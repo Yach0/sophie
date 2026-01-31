@@ -88,6 +88,8 @@ class OpenAIModels(Enum):
     gpt_5_nano = "openai/gpt-5-nano"
     gpt_5_1 = "openai/gpt-5.1"
     gpt_5_2_chat = "openai/gpt-5.2-chat"
+    gpt_oss_120b = "openai/gpt-oss-120b"
+    gpt_oss_20b = "openai/gpt-oss-20b"
 
 
 AI_PROVIDER_TO_MODEL_CLASS = {
@@ -124,6 +126,8 @@ AI_MODEL_TO_PROVIDER = {
     OpenAIModels.gpt_5_nano.name: "openai",
     OpenAIModels.gpt_5_1.name: "openai",
     OpenAIModels.gpt_5_2_chat.name: "openai",
+    OpenAIModels.gpt_oss_120b.name: "openai",
+    OpenAIModels.gpt_oss_20b.name: "openai",
 }
 
 AI_MODEL_TO_SHORT_NAME = {
@@ -146,6 +150,8 @@ AI_MODEL_TO_SHORT_NAME = {
     OpenAIModels.gpt_5_nano.value: "GPT-5 nano",
     OpenAIModels.gpt_5_1.value: "GPT-5.1",
     OpenAIModels.gpt_5_2_chat.value: "GPT-5.2 Chat",
+    OpenAIModels.gpt_oss_120b.value: "GPT-OSS 120B",
+    OpenAIModels.gpt_oss_20b.value: "GPT-OSS 20B",
 }
 
 
@@ -193,4 +199,4 @@ TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
     AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
 }
 
-FILTER_HANDLER_MODEL = AI_MODELS[MistralModels.mistral_small.name]
+FILTER_HANDLER_MODEL = AI_MODELS[OpenAIModels.gpt_oss_120b.name]
