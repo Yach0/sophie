@@ -199,4 +199,4 @@ TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
     AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
 }
 
-FILTER_HANDLER_MODEL = AI_MODELS[OpenAIModels.gpt_oss_120b.name]
+FILTER_HANDLER_MODEL = AI_MODELS[OpenAIModels.gpt_5_nano.name]
