@@ -54,6 +54,7 @@ class UserInGroupModel(Document):
                 group=group,
                 last_saw=current_timedate,
             ),
+            response_type=UpdateResponse.NEW_DOCUMENT,
         )
 
     @staticmethod

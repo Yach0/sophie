@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from beanie import Document, Indexed
+from beanie import Document, Indexed, UpdateResponse
 from beanie.odm.operators.update.general import Set
 from pymongo.results import DeleteResult
 
@@ -22,7 +22,9 @@ class RulesModel(Saveable, Document):
     async def set_rules(chat_id: int, rules: Saveable) -> "RulesModel":
         data = rules.model_dump()
         data["chat_id"] = chat_id
-        return await RulesModel.find_one(RulesModel.chat_id == chat_id).upsert(Set(data), on_insert=RulesModel(**data))
+        return await RulesModel.find_one(RulesModel.chat_id == chat_id).upsert(
+            Set(data), on_insert=RulesModel(**data), response_type=UpdateResponse.NEW_DOCUMENT
+        )
 
     @staticmethod
     async def del_rules(chat_id: int) -> Optional[DeleteResult]:

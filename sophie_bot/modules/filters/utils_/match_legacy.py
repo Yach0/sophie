@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone, timedelta
+
 from aiogram.types import Message
 from normality import normalize
 from pydantic_ai.messages import BinaryContent
@@ -83,8 +85,6 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
 
     # Limit AI filters to users who joined less than 2 days ago
     if user_in_group:
-        from datetime import datetime, timedelta, timezone
-
         two_days_ago = datetime.now(timezone.utc) - timedelta(days=2)
         if user_in_group.first_saw < two_days_ago:
             log.debug(
