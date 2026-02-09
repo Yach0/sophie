@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from aiogram.types import Message
 from normality import normalize
@@ -85,7 +85,7 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
 
     # Limit AI filters to users who joined less than 2 days ago
     if user_in_group:
-        two_days_ago = datetime.now(timezone.utc) - timedelta(days=2)
+        two_days_ago = datetime.now() - timedelta(days=2)
         if user_in_group.first_saw < two_days_ago:
             log.debug(
                 "match_ai_handler: user joined more than 2 days ago, skipping AI evaluation",
