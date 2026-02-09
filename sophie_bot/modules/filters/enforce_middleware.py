@@ -138,8 +138,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
         # Evaluate all filters asynchronously
         matched_filters: list[FiltersModel] = []
+        user_in_group = data.get("user_in_group")
         for fil in all_filters:
-            if await match_legacy_handler(message, fil.handler):
+            if await match_legacy_handler(message, fil.handler, user_in_group=user_in_group):
                 matched_filters.append(fil)
 
         all_messages = []

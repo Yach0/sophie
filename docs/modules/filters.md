@@ -53,6 +53,11 @@ AI filters work with various message types:
 - **GIFs/Animations**: Analyzes the caption and animation thumbnail
 - **Stickers**: Analyzes sticker images (static, animated, or video)
 
+### Limitations
+
+To reduce resource usage and focus on potential spam/scam threats, AI filters only trigger for users who joined the chat
+less than **2 days** ago. Established members of the chat are exempt from AI-powered filter evaluations.
+
 ## Multiple filter actions and multiple filters
 
 Sophie supports having many filter actions for one filter handler.

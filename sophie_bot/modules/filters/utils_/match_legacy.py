@@ -5,6 +5,7 @@ from normality import normalize
 from pydantic_ai.messages import BinaryContent
 from regex import regex
 
+from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
@@ -61,7 +62,9 @@ def match_word_handler(text: str, handler: str) -> bool:
     )
 
 
-async def match_ai_handler(message: Message, prompt: str) -> bool:
+async def match_ai_handler(
+    message: Message, prompt: str, user_in_group: UserInGroupModel | None = None
+) -> bool:
     """
     Match a message against AI-powered filter using Mistral Pixtral model.
 
@@ -70,6 +73,7 @@ async def match_ai_handler(message: Message, prompt: str) -> bool:
     Args:
         message: The Telegram message to evaluate
         prompt: The user-provided prompt describing when to trigger the filter
+        user_in_group: The user in group database model to check for join date
 
     Returns:
         bool: True if the message matches the filter criteria
@@ -78,6 +82,18 @@ async def match_ai_handler(message: Message, prompt: str) -> bool:
     if not await is_enabled("ai_filters"):
         log.debug("match_ai_handler: ai_filters feature flag is disabled, skipping AI evaluation")
         return False
+
+    # Limit AI filters to users who joined less than 2 days ago
+    if user_in_group:
+        from datetime import datetime, timedelta, timezone
+
+        two_days_ago = datetime.now(timezone.utc) - timedelta(days=2)
+        if user_in_group.first_saw < two_days_ago:
+            log.debug(
+                "match_ai_handler: user joined more than 2 days ago, skipping AI evaluation",
+                first_saw=user_in_group.first_saw,
+            )
+            return False
 
     try:
         # Extract message content (text and optional image)
@@ -123,13 +139,15 @@ async def match_ai_handler(message: Message, prompt: str) -> bool:
         return False
 
 
-async def match_legacy_handler(message: Message, handler: str) -> bool:
+async def match_legacy_handler(
+    message: Message, handler: str, user_in_group: UserInGroupModel | None = None
+) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler
     if handler.startswith("ai:"):
         log.debug(f"match_legacy_handler: ai: {handler}")
         prompt = handler[3:]
-        return await match_ai_handler(message, prompt)
+        return await match_ai_handler(message, prompt, user_in_group=user_in_group)
 
     if not (message_text := message.caption or message.text or ""):
         return False
