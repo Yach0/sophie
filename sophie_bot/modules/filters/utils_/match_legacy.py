@@ -62,9 +62,7 @@ def match_word_handler(text: str, handler: str) -> bool:
     )
 
 
-async def match_ai_handler(
-    message: Message, prompt: str, user_in_group: UserInGroupModel | None = None
-) -> bool:
+async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInGroupModel | None = None) -> bool:
     """
     Match a message against AI-powered filter using Mistral Pixtral model.
 
@@ -139,9 +137,7 @@ async def match_ai_handler(
         return False
 
 
-async def match_legacy_handler(
-    message: Message, handler: str, user_in_group: UserInGroupModel | None = None
-) -> bool:
+async def match_legacy_handler(message: Message, handler: str, user_in_group: UserInGroupModel | None = None) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler
     if handler.startswith("ai:"):

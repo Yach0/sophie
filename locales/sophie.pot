@@ -243,36 +243,32 @@ msgstr ""
 msgid "👨‍🏫 The most precise"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:35
-msgid "🌐 Best for web-based queries"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:56
-#: sophie_bot/modules/ai/handlers/aiprovider.py:119
+#: sophie_bot/modules/ai/handlers/aiprovider.py:55
+#: sophie_bot/modules/ai/handlers/aiprovider.py:118
 msgid "Select the AI Provider for this chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:73
+#: sophie_bot/modules/ai/handlers/aiprovider.py:72
 msgid "Current provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:74
+#: sophie_bot/modules/ai/handlers/aiprovider.py:73
 msgid "AI Provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:90
+#: sophie_bot/modules/ai/handlers/aiprovider.py:89
 msgid "Invalid message type"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:98
+#: sophie_bot/modules/ai/handlers/aiprovider.py:97
 msgid "You are not allowed to change this setting"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:103
+#: sophie_bot/modules/ai/handlers/aiprovider.py:102
 msgid "Unknown provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:109
+#: sophie_bot/modules/ai/handlers/aiprovider.py:108
 #: sophie_bot/modules/antiflood/handlers/status.py:54
 #: sophie_bot/modules/disabling/handlers/disable.py:49
 #: sophie_bot/modules/disabling/handlers/enable.py:51
@@ -286,15 +282,15 @@ msgstr ""
 msgid "Chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:110
+#: sophie_bot/modules/ai/handlers/aiprovider.py:109
 msgid "New provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:111
+#: sophie_bot/modules/ai/handlers/aiprovider.py:110
 msgid "AI Provider was updated"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:115
+#: sophie_bot/modules/ai/handlers/aiprovider.py:114
 msgid "Provider updated"
 msgstr ""
 
@@ -1959,11 +1955,11 @@ msgstr ""
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:91
+#: sophie_bot/modules/filters/utils_/match_legacy.py:105
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:97
+#: sophie_bot/modules/filters/utils_/match_legacy.py:111
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -1971,7 +1967,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:98
+#: sophie_bot/modules/filters/utils_/match_legacy.py:112
 msgid "(no text content)"
 msgstr ""
 
