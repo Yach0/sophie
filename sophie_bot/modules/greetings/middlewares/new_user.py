@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from aiogram import BaseMiddleware
@@ -7,6 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
+from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.greetings.default_welcome import (
@@ -14,7 +16,7 @@ from sophie_bot.modules.greetings.default_welcome import (
     get_default_security_message,
 )
 from sophie_bot.modules.greetings.utils.send_welcome import send_welcome
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_users_mute
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
@@ -24,6 +26,14 @@ from sophie_bot.utils.i18n import gettext as _
 
 
 class NewUserMiddleware(BaseMiddleware):
+    @staticmethod
+    def is_join_too_old(message: Message) -> bool:
+        """Check if the join message is older than the timeout threshold."""
+        if not message.date:
+            return False
+        time_diff = datetime.now(timezone.utc) - message.date
+        return time_diff > timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES)
+
     @staticmethod
     async def cleanup(db_item: GreetingsModel, message: Message, sent_message: Optional[Message]) -> GreetingsModel:
         to_delete: list[int] = []
@@ -99,7 +109,7 @@ class NewUserMiddleware(BaseMiddleware):
         sent_message = await send_welcome(message, ws_saveable, cleanservice_enabled, chat_rules)
         # Save sent message to cleanup it later
         if len(muted_users) == 1:
-            await aredis.set(f"chat_ws_message:{chat_db.id}:{new_users[0].id}", sent_message.message_id)
+            await aredis.set(f"chat_ws_message:{chat_db.iid}:{new_users[0].iid}", sent_message.message_id)
 
         return sent_message
 
@@ -129,23 +139,25 @@ class NewUserMiddleware(BaseMiddleware):
                 return await handler(event, data)
 
             # Sanity check
-            if tuple(user.id for user in event.new_chat_members) != tuple(user.chat_id for user in new_users):
+            if tuple(user.id for user in event.new_chat_members) != tuple(user.tid for user in new_users):
                 raise ValueError("NewUserMiddleware: unexpected / incorrect 'new_users' data from SaveChatsMiddleware!")
 
-            db_item: GreetingsModel = await GreetingsModel.get_by_chat_id(chat_id)
+            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
 
             cleanservice_enabled = bool(db_item.clean_service and db_item.clean_service.enabled)
 
-            is_admin = await is_user_admin(chat_id, user_id)
+            is_admin = await is_user_admin(chat_db.iid, user_id)
 
             # Save sent message to clean it later
             sent_message: Optional[Message] = None
 
-            chat_rules = await RulesModel.get_rules(chat_id)
+            chat_rules = await RulesModel.get_rules(chat_db.iid)
 
             # The origin user of the message is admin could indite:
             # 1. Chat owner joined the chat back
             # 2. One of admins added user/users, we do not want to enforce welcomesecurity
+            # 3. Join message is too old (bot was down/lagging), skip captcha enforcement
+            join_is_too_old = self.is_join_too_old(event)
             if not (db_item.welcome_disabled or (db_item.welcome_security and db_item.welcome_security.enabled)) or (
                 not db_item.welcome_disabled and is_admin
             ):
@@ -155,7 +167,7 @@ class NewUserMiddleware(BaseMiddleware):
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:
                     await on_welcomemute(chat_id, user_id, db_item.welcome_mute.time)
 
-            elif not is_admin and db_item.welcome_security and db_item.welcome_security.enabled:
+            elif not is_admin and db_item.welcome_security and db_item.welcome_security.enabled and not join_is_too_old:
                 # If group has join_by_request enabled, captcha is handled by join request handler
                 # Otherwise, use normal captcha
                 if not event.chat.join_by_request:

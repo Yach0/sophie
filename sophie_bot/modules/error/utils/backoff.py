@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import time
 import traceback
-from typing import Final, cast
+from typing import Final
 from redis.asyncio import Redis as AsyncRedis
 
 from redis.exceptions import RedisError
@@ -56,12 +56,19 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
         now = time.time()
 
     key = f"{_PREFIX}{signature}"
-    # Narrow type of aredis to the asyncio client to avoid Awaitable|non-Awaitable unions from stubs.
-    client: AsyncRedis = cast(AsyncRedis, aredis)
+    # Use aredis directly - it's already an AsyncRedis
+    client: AsyncRedis = aredis
 
     try:
         # Load current state
-        raw = await client.hgetall(key)  # type: ignore[misc]
+        raw_data = await client.hgetall(key)  # type: ignore[misc]
+        raw = {}
+        if isinstance(raw_data, dict):
+            for k, v in raw_data.items():
+                rk = k.decode() if isinstance(k, bytes) else k
+                rv = v.decode() if isinstance(v, bytes) else v
+                raw[rk] = rv
+
         # Parse existing fields
         step = int(raw.get("step", "-1"))  # -1 indicates unknown/new (will be set to 0 on first allow)
         next_allowed_at = float(raw.get("next_allowed_at", "0"))

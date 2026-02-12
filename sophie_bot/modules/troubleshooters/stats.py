@@ -9,8 +9,12 @@ async def beta_stats() -> Element:
     percentage = percentage_db.value if percentage_db else 0
 
     beta_chats = await BetaModeModel.beta_mode_chats_count()
-    total_chats = await BetaModeModel.count()
-    calculated_percentage = int((beta_chats / total_chats) * 100)
+    total_chats = await BetaModeModel.find_all().count()
+
+    if total_chats > 0:
+        calculated_percentage = int((beta_chats / total_chats) * 100)
+    else:
+        calculated_percentage = 0
 
     return Section(
         KeyValue("New chats Beta percentage", f"{percentage}%"),

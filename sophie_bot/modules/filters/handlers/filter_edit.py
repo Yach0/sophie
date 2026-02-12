@@ -13,7 +13,7 @@ from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
 from sophie_bot.modules.filters.handlers.filter_confirm import FilterConfirmHandler
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -38,12 +38,14 @@ class FilterEditHandler(SophieMessageHandler):
         keyword: str = self.data["handler"]
 
         # Find an item
-        if not (filter_item := await FiltersModel.get_by_keyword(self.connection.id, keyword)):
+        if not (filter_item := await FiltersModel.get_by_keyword(self.connection.db_model.iid, keyword)):
             return await self.event.reply(
-                Template(
-                    _("Filter with handler {handler} can not be found! Check all filters using {cmd} command"),
-                    handler=Code(keyword),
-                    cmd=Code("/filters"),
+                str(
+                    Template(
+                        _("Filter with handler {handler} can not be found! Check all filters using {cmd} command"),
+                        handler=Code(keyword),
+                        cmd=Code("/filters"),
+                    )
                 )
             )
 

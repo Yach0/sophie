@@ -10,8 +10,8 @@ from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.legacy_modules.utils.user_details import get_admins_rights
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.modules.utils_.admin import get_admins_rights
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.services.bot import bot
@@ -49,7 +49,7 @@ class DemoteUserHandler(SophieMessageHandler):
             return await self.event.reply(_("You cannot demote yourself."))
 
         await bot.promote_chat_member(
-            chat_id=connection.id,
+            chat_id=connection.tid,
             user_id=user.chat_id,
             can_invite_users=False,
             can_change_info=False,
@@ -60,7 +60,7 @@ class DemoteUserHandler(SophieMessageHandler):
         )
 
         # Reset admin cache
-        await get_admins_rights(connection.id, force_update=True)
+        await get_admins_rights(connection.tid, force_update=True)
 
         doc = Section(
             KeyValue(_("Chat"), connection.title),

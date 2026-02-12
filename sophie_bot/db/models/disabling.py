@@ -1,18 +1,16 @@
-from typing import Annotated, Optional
+from typing import Optional
 
-from beanie import Document, Indexed, UpdateResponse
+from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.update.array import AddToSet, Pull
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
+from sophie_bot.db.models._link_type import Link
+from sophie_bot.db.models.chat import ChatModel
 
 
 class DisablingModel(Document):
-    # Old ID
-    chat_id: Annotated[int, Indexed(unique=True)]
-
-    # New link
-    # chat: Link[ChatModel]
+    chat: Link[ChatModel]
 
     cmds: list[str]
 
@@ -20,8 +18,8 @@ class DisablingModel(Document):
         name = "disabled"
 
     @staticmethod
-    async def get_disabled(chat_id: int) -> list[str]:
-        disabled = await DisablingModel.find_one(DisablingModel.chat_id == chat_id)
+    async def get_disabled(chat_iid: PydanticObjectId) -> list[str]:
+        disabled = await DisablingModel.find_one(DisablingModel.chat.id == chat_iid)
 
         if not disabled:
             return []
@@ -29,16 +27,16 @@ class DisablingModel(Document):
         return disabled.cmds
 
     @staticmethod
-    async def disable(chat_id: int, cmd: str) -> "DisablingModel":
-        return await DisablingModel.find_one(DisablingModel.chat_id == chat_id).upsert(
+    async def disable(chat_iid: PydanticObjectId, cmd: str) -> "DisablingModel":
+        return await DisablingModel.find_one(DisablingModel.chat.id == chat_iid).upsert(
             AddToSet({DisablingModel.cmds: cmd}),
-            on_insert=DisablingModel(chat_id=chat_id, cmds=[cmd]),
+            on_insert=DisablingModel(chat=chat_iid, cmds=[cmd]),
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
 
     @staticmethod
-    async def enable(chat_id: int, cmd: str) -> "DisablingModel":
-        model = await DisablingModel.find_one(DisablingModel.chat_id == chat_id, In(DisablingModel.cmds, [cmd]))
+    async def enable(chat_iid: PydanticObjectId, cmd: str) -> "DisablingModel":
+        model = await DisablingModel.find_one(DisablingModel.chat.id == chat_iid, In(DisablingModel.cmds, [cmd]))
 
         if not model:
             raise DBNotFoundException()
@@ -46,8 +44,8 @@ class DisablingModel(Document):
         return await model.update(Pull({DisablingModel.cmds: cmd}))
 
     @staticmethod
-    async def enable_all(chat_id: int) -> Optional["DisablingModel"]:
-        model = await DisablingModel.find_one(DisablingModel.chat_id == chat_id)
+    async def enable_all(chat_iid: PydanticObjectId) -> Optional["DisablingModel"]:
+        model = await DisablingModel.find_one(DisablingModel.chat.id == chat_iid)
 
         if model:
             await model.delete()

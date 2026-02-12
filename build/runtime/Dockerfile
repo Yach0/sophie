@@ -1,54 +1,83 @@
-FROM python:3.13-slim as builder
+# Build stage - uses uv pre-installed Python image
+FROM ghcr.io/astral-sh/uv:0.9.26-python3.13-bookworm-slim AS builder
 
-ENV PIP_DEFAULT_TIMEOUT=100 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+# Enable bytecode compilation for faster startup
+ENV UV_COMPILE_BYTECODE=1
+# Copy from cache instead of linking (required for cache mounts)
+ENV UV_LINK_MODE=copy
+# Omit development dependencies
+ENV UV_NO_DEV=1
+# Ensure installed tools are accessible
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-RUN apt update
-RUN apt install -y build-essential gcc git pkg-config libicu-dev
-RUN pip install poetry wheel
-RUN python -m venv /venv
+WORKDIR /app
 
-RUN poetry self add poetry-plugin-export
+# Install system build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git pkg-config libicu-dev g++ && \
+    rm -rf /var/lib/apt/lists/*
 
-WORKDIR /build
-COPY ../../pyproject.toml poetry.lock ./
+# Copy dependency files first for optimal layer caching
+COPY pyproject.toml uv.lock ./
+COPY libs libs
 
-RUN poetry export -f requirements.txt -E fast --without-hashes | /venv/bin/pip install -r /dev/stdin
+# Install dependencies first (without the project itself)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --compile-bytecode
 
-COPY ../../sophie_bot sophie_bot
-COPY ../../locales locales
-COPY ../../Makefile Makefile
+# Copy the project source code
+COPY sophie_bot sophie_bot
+COPY locales locales
+COPY tools tools
+COPY Makefile Makefile
 
-RUN bash -c "source /venv/bin/activate; make new_lang=en_US; make compile_lang"
+# Install the project itself
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --compile-bytecode
 
-RUN poetry build && /venv/bin/pip install dist/*.whl
+# Compile translations
+RUN uv run --no-sync pybabel compile -d locales -D sophie --use-fuzzy --statistics
 
-COPY ../../.git .git
-RUN BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD) && \
-    COMMIT_HASH=$(git rev-parse --short HEAD) && \
-    echo "Branch: $BRANCH_NAME, Commit: $COMMIT_HASH" && \
-    echo "SOPHIE_COMMIT = \"$COMMIT_HASH\"" >> /build/sophie_bot/versions.py && \
-    echo "SOPHIE_BRANCH = \"$BRANCH_NAME\"" >> /build/sophie_bot/versions.py
+# Inject version information
+ARG BRANCH_NAME=Local
+ARG COMMIT_HASH=unknown
+RUN SOPHIE_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])") && \
+    echo "SOPHIE_VERSION = \"$SOPHIE_VERSION\"" > /app/sophie_bot/versions.py && \
+    echo "SOPHIE_COMMIT = \"$COMMIT_HASH\"" >> /app/sophie_bot/versions.py && \
+    echo "SOPHIE_BRANCH = \"$BRANCH_NAME\"" >> /app/sophie_bot/versions.py
 
+# Runtime stage - minimal image without uv
+FROM python:3.13-slim-bookworm
 
-FROM python:3.13-slim as final
+# Setup non-root user for security
+RUN groupadd --system --gid 999 sophie && \
+    useradd --system --gid 999 --uid 999 --create-home sophie
 
+# Python runtime settings
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1
 
-RUN apt update
-RUN apt install -y libicu-dev
+# Install runtime dependencies only
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libicu-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# RUN apk add --no-cache libffi libpq
+# Copy the virtualenv from builder (contains all dependencies)
+COPY --from=builder --chown=sophie:sophie /app/.venv /app/.venv
 
-COPY --from=builder /venv /venv
-COPY --from=builder /build/sophie_bot /sophie_bot
+# Copy application source code and assets (editable install references these)
+COPY --from=builder --chown=sophie:sophie /app/sophie_bot /app/sophie_bot
+COPY --from=builder --chown=sophie:sophie /app/locales /app/locales
+COPY --from=builder --chown=sophie:sophie /app/tools /app/tools
 
-COPY --from=builder /build/locales /locales
+# Place virtualenv at the front of PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
-WORKDIR /
+WORKDIR /app
 
-ENTRYPOINT ["/venv/bin/python", "-m", "sophie_bot"]
-CMD ["bot"]
+# Switch to non-root user
+USER sophie
+
+# Run the application directly (no uv needed at runtime)
+CMD ["python", "-m", "sophie_bot"]

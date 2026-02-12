@@ -6,10 +6,11 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Doc, Title
 
+from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -25,7 +26,11 @@ class LeaveFederationHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("leavefed", "fleave")), FeatureFlagFilter("new_feds_leavefed"))
+        return (
+            CMDFilter(("leavefed", "fleave")),
+            FeatureFlagFilter("new_feds_leavefed"),
+            UserRestricting(user_owner=True),
+        )
 
     async def handle(self) -> Any:
         """Leave the current chat from its federation."""
@@ -33,25 +38,17 @@ class LeaveFederationHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        chat_id = self.connection.id
-        user_id = self.event.from_user.id
-
-        # Check if user can leave chats from federation
-        # Must be chat creator or have admin rights
-        if not await self._can_user_leave_chat(chat_id, user_id):
-            await self.event.reply(_("Only the chat creator can leave federations."))
-            return
-
         # Check if chat is in a federation
+        chat_iid = self.connection.db_model.iid
         federation = await FederationService.get_federation_for_chat(
-            chat_id,
+            chat_iid,
         )
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
 
         # Remove chat from federation
-        await FederationService.remove_chat_from_federation(federation, chat_id)
+        await FederationService.remove_chat_from_federation(federation, chat_iid)
 
         # Format success message
         doc = Doc(
@@ -69,19 +66,3 @@ class LeaveFederationHandler(SophieMessageHandler):
             chat_title=self.connection.title, user=self.event.from_user.mention_html()
         )
         await FederationService.post_federation_log(federation, log_text, self.event.bot)
-
-    async def _can_user_leave_chat(self, chat_id: int, user_id: int) -> bool:
-        """Check if user can leave this chat from a federation."""
-        # For now, require admin rights (can be extended to check creator status,)
-        # This follows the pattern from legacy code
-        from sophie_bot.modules.legacy_modules.utils.user_details import is_chat_creator
-
-        try:
-            return await is_chat_creator(
-                self.event,
-                chat_id,
-                user_id,
-            )
-        except Exception:
-            # Fallback to checking admin rights
-            return False

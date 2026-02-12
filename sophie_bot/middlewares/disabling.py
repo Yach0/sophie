@@ -6,7 +6,7 @@ from aiogram.dispatcher.flags import get_flag
 from aiogram.types import Message, TelegramObject
 
 from sophie_bot.db.models.disabling import DisablingModel
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.logger import log
 
 
@@ -18,16 +18,16 @@ class DisablingMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         if isinstance(event, Message):
-            chat_id = event.chat.id
-            disabled = await DisablingModel.get_disabled(chat_id)
+            chat_db = data["chat_db"]
+            disabled = await DisablingModel.get_disabled(chat_db.iid)
 
             data["disabled"] = disabled
-            log.debug("DisablingMiddleware", chat_id=chat_id, disabled=disabled)
+            log.debug("DisablingMiddleware", chat_id=chat_db.tid, disabled=disabled)
 
             if handler_disableable := get_flag(data, "disableable"):
                 if event.from_user:
                     user_id = event.from_user.id
-                    is_admin = await is_user_admin(chat_id, user_id)
+                    is_admin = await is_user_admin(chat_db.iid, user_id)
                 else:
                     is_admin = False
 

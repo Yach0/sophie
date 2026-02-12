@@ -7,7 +7,7 @@ from sophie_bot.db.models import DisablingModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.disabling.callbacks import EnableAllCallback
-from sophie_bot.modules.utils_.base_handler import (
+from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
 )
@@ -60,7 +60,7 @@ class DisableAllCbHandler(SophieCallbackQueryHandler):
         if user_id != data.user_id:
             return await self.event.answer(_("Only the initiator can confirm disabling all commands"))
 
-        model = await DisablingModel.enable_all(connection.id)
+        model = await DisablingModel.enable_all(connection.db_model.iid)
 
         removed_count: int = len(model.cmds) if model else 0
 

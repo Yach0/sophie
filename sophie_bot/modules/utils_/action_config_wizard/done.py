@@ -9,7 +9,6 @@ from aiogram.types import CallbackQuery, Message
 from beanie import PydanticObjectId
 
 from sophie_bot.utils.i18n import gettext as _
-
 from .base import ActionConfigDoneHandlerABC
 from .callbacks import ACWCoreCallback
 from .renderer import WizardRenderer
@@ -37,8 +36,12 @@ class ActionConfigDoneHandlerMixin(ActionConfigDoneHandlerABC):
             chat_tid, action_name, action_data = await get_staged(state)
             if chat_tid is not None and action_name:
                 # Ensure dict for storage
-                if action_data is not None and hasattr(action_data, "model_dump"):
-                    action_data = action_data.model_dump(mode="json")
+                if (
+                    action_data is not None
+                    and hasattr(action_data, "model_dump")
+                    and callable(getattr(action_data, "model_dump", None))
+                ):
+                    action_data = action_data.model_dump(mode="json")  # type: ignore[union-attr]
                 await self.add_action(chat_tid, action_name, action_data or {})
 
         if isinstance(state, FSMContext):
@@ -57,7 +60,7 @@ class ActionConfigDoneHandlerMixin(ActionConfigDoneHandlerABC):
         msg = callback_query.message
         if not msg or not isinstance(msg, Message):
             return
-        chat_tid: PydanticObjectId = self.connection.db_model.id  # type: ignore
+        chat_tid: PydanticObjectId = self.connection.db_model.iid
         state = self.data.get("state")
 
         html, markup = await WizardRenderer.render_home_page(

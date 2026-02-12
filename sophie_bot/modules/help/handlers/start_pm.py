@@ -11,7 +11,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.message_status import NoArgs
 from sophie_bot.modules.help.callbacks import PMHelpModules
 from sophie_bot.modules.privacy import PrivacyMenuCallback
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -32,17 +32,29 @@ class StartPMHandler(SophieMessageCallbackQueryHandler):
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text=_("➕ Add me to your chat"),
+                        text=_("Add me to your chat"),
                         url=f"https://telegram.me/{CONFIG.username}?startgroup=true",
+                        style="success",
+                        icon_custom_emoji_id="5397916757333654639",
                     )
                 ],
                 [
                     InlineKeyboardButton(
-                        text=_("🕵️‍♂️ Privacy"), callback_data=PrivacyMenuCallback(back_to_start=True).pack()
+                        text=_("Privacy"),
+                        callback_data=PrivacyMenuCallback(back_to_start=True).pack(),
+                        icon_custom_emoji_id="5377754411319698237",
                     ),
-                    InlineKeyboardButton(text=_("🌍 Language"), callback_data="lang_btn"),
+                    InlineKeyboardButton(
+                        text=_("Language"), callback_data="lang_btn", icon_custom_emoji_id="5447410659077661506"
+                    ),
                 ],
-                [InlineKeyboardButton(text=_("ℹ️ Help"), callback_data=PMHelpModules(back_to_start=True).pack())],
+                [
+                    InlineKeyboardButton(
+                        text=_("Help"),
+                        callback_data=PMHelpModules(back_to_start=True).pack(),
+                        icon_custom_emoji_id="5373098009640836781",
+                    )
+                ],
             ]
         )
 

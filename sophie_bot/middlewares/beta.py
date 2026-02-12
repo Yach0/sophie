@@ -1,22 +1,23 @@
 from random import randint
+from typing_extensions import override
 
 from aiohttp import ClientError, ClientSession
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import BetaModeModel, GlobalSettings
+from sophie_bot.db.models import BetaModeModel, GlobalSettings, ChatModel
 from sophie_bot.db.models.beta import CurrentMode, PreferredMode
 from sophie_bot.utils.logger import log
 
 try:
     import ujson as json
 except ImportError:
-    import json  # type: ignore
+    import json
 
 from datetime import datetime
 from typing import Any, Awaitable, Callable, Optional
 
 from aiogram import BaseMiddleware
-from aiogram.types import Chat, TelegramObject
+from aiogram.types import TelegramObject
 
 
 class BetaMiddleware(BaseMiddleware):
@@ -28,24 +29,25 @@ class BetaMiddleware(BaseMiddleware):
             self.session = ClientSession()
         return self.session
 
+    @override
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
-        update: TelegramObject,
+        event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        chat: Optional[Chat] = data.get("event_chat")
+        chat_db: Optional[ChatModel] = data.get("chat_db")
 
-        if chat and await self.is_beta(chat.id):
-            json_request = self.get_data(update)
+        if chat_db and await self.is_beta(chat_db):
+            json_request = self.get_data(event)
             log.debug("Sending request to Beta Sophie...", json_request=json_request)
             return await self.send_request(json_request, CONFIG.proxy_beta_instance_url)
 
         log.debug("Leaving this request for Stable...")
-        return await handler(update, data)
+        return await handler(event, data)
 
-    async def is_beta(self, chat_id: int) -> bool:
-        model = await BetaModeModel.get_by_chat_id(chat_id)
+    async def is_beta(self, chat_db: ChatModel) -> bool:
+        model = await BetaModeModel.get_by_chat_iid(chat_db.iid)
         # Current mode
         if model and model.mode:
             if model.mode == CurrentMode.beta:
@@ -57,7 +59,7 @@ class BetaMiddleware(BaseMiddleware):
         if model and model.preferred_mode:
             # Set the current preferred mode as current
             if model.preferred_mode != PreferredMode.auto:
-                await BetaModeModel.set_mode(chat_id=chat_id, new_mode=CurrentMode[model.preferred_mode.name])
+                await BetaModeModel.set_mode(chat_iid=chat_db.iid, new_mode=CurrentMode[model.preferred_mode.name])
 
             if model.preferred_mode == PreferredMode.beta:
                 return True
@@ -72,8 +74,8 @@ class BetaMiddleware(BaseMiddleware):
             return False
 
         new_mode = CurrentMode.beta if randint(0, 100) <= percentage else CurrentMode.stable
-        log.debug("Random beta mode generated", chat_id=chat_id, new_mode=new_mode)
-        await BetaModeModel.set_mode(chat_id=chat_id, new_mode=new_mode)
+        log.debug("Random beta mode generated", chat_id=chat_db.tid, new_mode=new_mode)
+        await BetaModeModel.set_mode(chat_iid=chat_db.iid, new_mode=new_mode)
 
         return new_mode == CurrentMode.beta
 

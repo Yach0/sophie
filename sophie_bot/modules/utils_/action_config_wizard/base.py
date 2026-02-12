@@ -4,10 +4,9 @@ from abc import ABC, abstractmethod
 from typing import Generic, Optional, TypeVar
 from beanie import PydanticObjectId
 
-from aiogram.handlers import CallbackQueryHandler
 
 from sophie_bot.db.models.filters import FilterActionType
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler, SophieCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageHandler, SophieCallbackQueryHandler
 
 # Type variable for the model type that stores action configuration
 ModelType = TypeVar("ModelType")
@@ -18,24 +17,24 @@ class ActionConfigDataAccessABC(Generic[ModelType], ABC):
 
     @abstractmethod
     async def get_model(self, chat_iid: PydanticObjectId) -> ModelType:
-        """Get the model instance for the chat (database internal ID - chat_iid)."""
+        """Get model instance for chat (database internal ID - chat_iid)."""
         pass
 
     @abstractmethod
     async def get_actions(self, model: ModelType) -> list[FilterActionType]:
-        """Get the list of actions from the model."""
+        """Get list of actions from model."""
         pass
 
     @abstractmethod
     async def add_action(
         self, chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
     ) -> None:
-        """Add an action to the model using database internal ID (chat_iid)."""
+        """Add an action to model using database internal ID (chat_iid)."""
         pass
 
     @abstractmethod
     async def remove_action(self, chat_iid: PydanticObjectId, action_id: str) -> None:
-        """Remove an action from the model using database internal ID (chat_iid)."""
+        """Remove an action from model using database internal ID (chat_iid)."""
         pass
 
 
@@ -60,7 +59,7 @@ class ActionConfigCallbackABC(
     """
     Abstract base class for handling action configuration callbacks.
 
-    This handles the button clicks from the action configuration wizard.
+    This handles button clicks from action configuration wizard.
     """
 
     # Override these in subclasses
@@ -72,7 +71,7 @@ class ActionConfigSetupHandlerABC(SophieMessageHandler, ActionConfigDataAccessAB
     """
     Abstract base class for handling interactive setup messages.
 
-    This processes user input during the interactive setup workflow.
+    This processes user input during interactive setup workflow.
     """
 
     # Override these in subclasses
@@ -93,28 +92,6 @@ class ActionConfigSettingsHandlerABC(
     callback_prefix: str = ""
     success_message: str = ""
 
-    @abstractmethod
-    async def get_model(self, chat_iid: PydanticObjectId) -> ModelType:
-        """Get the model instance for the chat (database internal ID - chat_iid)."""
-        pass
-
-    @abstractmethod
-    async def get_actions(self, model: ModelType) -> list[FilterActionType]:
-        """Get the list of actions from the model."""
-        pass
-
-    @abstractmethod
-    async def add_action(
-        self, chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
-    ) -> None:
-        """Add an action to the model using database internal ID (chat_iid)."""
-        pass
-
-    @abstractmethod
-    async def remove_action(self, chat_iid: PydanticObjectId, action_id: str) -> None:
-        """Remove an action from the model using database internal ID (chat_iid)."""
-        pass
-
 
 class ActionConfigDoneHandlerABC(
     SophieCallbackQueryHandler, ActionConfigDataAccessABC[ModelType], Generic[ModelType], ABC
@@ -127,30 +104,10 @@ class ActionConfigDoneHandlerABC(
     callback_prefix: str = ""
     success_message: str = ""
 
-    @abstractmethod
-    async def get_model(self, chat_iid: PydanticObjectId) -> ModelType:
-        """Get the model instance for the chat (database internal ID - chat_iid)."""
-        pass
 
-    @abstractmethod
-    async def get_actions(self, model: ModelType) -> list[FilterActionType]:
-        """Get the list of actions from the model."""
-        pass
-
-    @abstractmethod
-    async def add_action(
-        self, chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
-    ) -> None:
-        """Add an action to the model using database internal ID (chat_iid)."""
-        pass
-
-    @abstractmethod
-    async def remove_action(self, chat_iid: PydanticObjectId, action_id: str) -> None:
-        """Remove an action from the model using database internal ID (chat_iid)."""
-        pass
-
-
-class ActionConfigCancelHandlerABC(CallbackQueryHandler, ActionConfigDataAccessABC[ModelType], Generic[ModelType], ABC):
+class ActionConfigCancelHandlerABC(
+    SophieCallbackQueryHandler, ActionConfigDataAccessABC[ModelType], Generic[ModelType], ABC
+):
     """
     Abstract base class for handling setup cancellation.
     """
@@ -158,25 +115,3 @@ class ActionConfigCancelHandlerABC(CallbackQueryHandler, ActionConfigDataAccessA
     # Override these in subclasses
     callback_prefix: str = ""
     success_message: str = ""
-
-    @abstractmethod
-    async def get_model(self, chat_iid: PydanticObjectId) -> ModelType:
-        """Get the model instance for the chat (database internal ID - chat_iid)."""
-        pass
-
-    @abstractmethod
-    async def get_actions(self, model: ModelType) -> list[FilterActionType]:
-        """Get the list of actions from the model."""
-        pass
-
-    @abstractmethod
-    async def add_action(
-        self, chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
-    ) -> None:
-        """Add an action to the model using database internal ID (chat_iid)."""
-        pass
-
-    @abstractmethod
-    async def remove_action(self, chat_iid: PydanticObjectId, action_id: str) -> None:
-        """Remove an action from the model using database internal ID (chat_iid)."""
-        pass

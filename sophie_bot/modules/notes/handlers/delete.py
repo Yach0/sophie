@@ -9,8 +9,10 @@ from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.logging.events import LogEvent
+from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -23,15 +25,19 @@ class DelNote(SophieMessageHandler):
         return CMDFilter(("delnote", "clear")), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
+        if not self.event.from_user:
+            return
+
         chat: ChatConnection = self.data["connection"]
 
         raw_name = self.data["notename"]
-        note = await NoteModel.get_by_notenames(chat.id, (raw_name,))
+        note = await NoteModel.get_by_notenames(chat.db_model.iid, (raw_name,))
 
         if not note:
             return await self.event.reply(_("No notes was found with {name} name.").format(name=Italic(raw_name)))
 
         await note.delete()
+        await log_event(chat.tid, self.event.from_user.id, LogEvent.NOTE_DELETED, {"note_names": note.names})
 
         await self.event.reply(
             str(

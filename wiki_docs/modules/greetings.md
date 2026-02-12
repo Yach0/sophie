@@ -1,7 +1,10 @@
 ---
 title: Greetings
 icon: 🙋‍♂️
----> This module helps you to welcome new users automatically, while keeping the chat clean. \
+---
+### Welcome new users to your chat
+
+> This module helps you to welcome new users automatically, while keeping the chat clean. \
 > If you want to enforce captcha / rules verification, please see 'Welcome Security' module instead.
 
 ## Available commands

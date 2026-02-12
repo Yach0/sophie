@@ -5,6 +5,7 @@ from typing import Any
 from aiogram import flags
 from aiogram.handlers import BaseHandler
 from aiogram.types import BufferedInputFile, Message
+from beanie import PydanticObjectId
 from ujson import dumps
 
 from sophie_bot.middlewares.connections import ChatConnection
@@ -23,11 +24,11 @@ def text_to_buffered_file(text: str, filename: str = "data.txt") -> BufferedInpu
 @flags.help(description=l_("Exports your data to a JSON file"))
 class TriggerExport(BaseHandler[Message]):
     @staticmethod
-    async def get_data(chat_id: int) -> list[dict[str, Any]]:
+    async def get_data(chat_iid: PydanticObjectId) -> list[dict[str, Any]]:
         return list(
             filter(
                 None,
-                [await module.__export__(chat_id) for module in EXPORTABLE_MODULES if hasattr(module, "__export__")],
+                [await module.__export__(chat_iid) for module in EXPORTABLE_MODULES if hasattr(module, "__export__")],
             )
         )
 
@@ -37,7 +38,7 @@ class TriggerExport(BaseHandler[Message]):
         await self.event.reply(_("Export is started, this may take a while."))
 
         data = self.get_initial_data(connection)
-        modules_data = await self.get_data(connection.id)
+        modules_data = await self.get_data(connection.db_model.iid)
 
         for module_data in modules_data:
             data.update(module_data)
@@ -51,7 +52,7 @@ class TriggerExport(BaseHandler[Message]):
         return {
             "general": {
                 "chat_name": connection.title,
-                "chat_id": connection.id,
+                "chat_id": connection.tid,
                 "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "version": VERSION,
             }

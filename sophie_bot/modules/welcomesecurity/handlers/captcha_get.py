@@ -9,7 +9,7 @@ from stfu_tg import Bold, Italic, Template
 from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityMoveCB,
@@ -103,4 +103,4 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
             reply_markup=buttons.as_markup(),
         )
 
-        await self.state.update_data({"captcha": captcha.data.model_dump(), "ws_chat_iid": str(chat_db.id)})
+        await self.state.update_data({"captcha": captcha.data.model_dump(), "ws_chat_iid": str(chat_db.iid)})

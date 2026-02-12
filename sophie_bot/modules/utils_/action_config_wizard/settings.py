@@ -11,11 +11,10 @@ from pymongo.errors import PyMongoError
 
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.utils.i18n import gettext as _
-
 from .base import ActionConfigSettingsHandlerABC
-from .fsm import ActionConfigFSM
 from .callbacks import ACWSettingCallback, ACWCoreCallback
-from .helpers import _convert_action_data_to_model
+from .fsm import ActionConfigFSM
+from .helpers import convert_action_data_to_model
 from .service import ensure_session, set_action
 
 
@@ -40,7 +39,7 @@ class ActionConfigSettingsHandlerMixin(ActionConfigSettingsHandlerABC):
             return
 
         # Get chat ID from the callback query
-        chat_tid: PydanticObjectId = self.connection.db_model.id  # type: ignore
+        chat_tid: PydanticObjectId = self.connection.db_model.iid
 
         # Ensure/refresh session and set action name for staging
         state = self.data.get("state")
@@ -65,7 +64,7 @@ class ActionConfigSettingsHandlerMixin(ActionConfigSettingsHandlerABC):
             current_action_data = None
 
         # Get available settings
-        settings = action.settings(_convert_action_data_to_model(action, current_action_data or {}))
+        settings = action.settings(convert_action_data_to_model(action, current_action_data or {}))
         if parsed_setting_id not in settings:
             await callback_query.answer(_("Invalid setting"))
             return
@@ -93,7 +92,7 @@ class ActionConfigSettingsHandlerMixin(ActionConfigSettingsHandlerABC):
                     break
         except PyMongoError:
             current_action_data = None
-        settings = action.settings(_convert_action_data_to_model(action, current_action_data or {}))
+        settings = action.settings(convert_action_data_to_model(action, current_action_data or {}))
         setting = settings[setting_id]
 
         # Store setup data in FSM

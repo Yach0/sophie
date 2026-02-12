@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from pathlib import Path
 from re import compile
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 from aiogram.utils.i18n import I18n
 from babel.core import Locale
+from babel.support import LazyProxy as BabelLazyProxy
 from flag import flag
 
 from sophie_bot.utils.logger import log
@@ -101,46 +102,45 @@ class I18nNew(I18n):
         return self.to_iso_639_1(self.current_locale)
 
 
-def get_i18n():
+def get_i18n() -> I18nNew:
     i18n = I18nNew.get_current(no_error=True)
     if i18n is None:
         raise LookupError("I18n context is not set")
-    return i18n
+    return cast(I18nNew, i18n)
 
 
 def gettext(*args: Any, **kwargs: Any) -> str:
     return get_i18n().gettext(*args, **kwargs)
 
 
-class LazyProxy:
+class LazyProxy(BabelLazyProxy):
+    # `abc.ABCMeta` checks every class attribute for the `__isabstractmethod__` marker.
+    # `babel.support.LazyProxy` resolves missing attributes via `__getattr__`, which would
+    # evaluate the translation too early (during import / class creation), before an i18n
+    # context is installed. Providing the attribute avoids that eager evaluation.
+    __isabstractmethod__: bool = False
+
     def __init__(self, *items: str | Callable, **kwargs):
-        self.items = items
-        self.kwargs = kwargs
-
-    def _i18n(self):
-        if callable(self.items[0]):
-            return str(self.items[0](**self.kwargs))
-        return gettext(*self.items, **self.kwargs)
-
-    def __str__(self):
-        return self._i18n()
+        if callable(items[0]):
+            func = items[0]
+            args = items[1:]
+        else:
+            func = gettext
+            args = items
+        super().__init__(func, *args, **kwargs)
 
     def __eq__(self, other):
-        text = self._i18n()
-        return text == other
+        return str(self) == other
 
-    def __contains__(self, item):
-        return self._i18n() in item
-
-    def __add__(self, other):
-        return self._i18n() + other
-
-    def __radd__(self, other):
-        return other + self._i18n()
+    def __contains__(self, key: object) -> bool:
+        return str(self) in str(key)
 
 
-def lazy_plural_gettext(*args: Any, **kwargs: Any):
-    return lambda n: get_i18n().gettext(*args, n=n, **kwargs)
+def lazy_plural_gettext(*args: Any, **kwargs: Any) -> Callable[[int], str]:
+    def _inner(n: int) -> str:
+        return get_i18n().gettext(*args, **(kwargs | {"n": n}))
+
+    return _inner
 
 
 lazy_gettext = LazyProxy

@@ -7,6 +7,8 @@ from aiogram import Router
 from beanie import PydanticObjectId
 
 from ....db.models.filters import FilterActionType
+from ....modules.filters.types.modern_action_abc import ModernActionABC
+from ....utils.i18n import LazyProxy
 from .base import (
     ActionConfigCallbackABC,
     ActionConfigCancelHandlerABC,
@@ -28,6 +30,7 @@ GetModelFunc = Callable[[PydanticObjectId], Awaitable[ModelT]]
 GetActionsFunc = Callable[[ModelT], Awaitable[list[FilterActionType]]]
 AddActionFunc = Callable[[PydanticObjectId, str, Optional[dict]], Awaitable[None]]
 RemoveActionFunc = Callable[[PydanticObjectId, str], Awaitable[None]]
+ActionFilterFunc = Callable[[ModernActionABC], bool]
 
 
 def _invoke(func: Any, self: Any, *args: Any):
@@ -43,8 +46,8 @@ def _invoke(func: Any, self: Any, *args: Any):
 def create_action_config_system(
     module_name: str,
     callback_prefix: str,
-    wizard_title: str,
-    success_message: str,
+    wizard_title: str | LazyProxy,
+    success_message: str | LazyProxy,
     get_model_func: GetModelFunc | Any,
     get_actions_func: GetActionsFunc | Any,
     add_action_func: AddActionFunc | Any,
@@ -53,6 +56,8 @@ def create_action_config_system(
     admin_filter: Any,
     *,
     allow_multiple_actions: bool = True,
+    default_action_name: Optional[str] = None,
+    action_filter: Optional[ActionFilterFunc] = None,
 ):
     """
     Factory function to create a complete action configuration system for a module.
@@ -67,6 +72,7 @@ def create_action_config_system(
         "callback_prefix": callback_prefix,
         "wizard_title": wizard_title,
         "allow_multiple_actions": allow_multiple_actions,
+        "action_filter": action_filter,
         "filters": lambda: (command_filter, admin_filter),
         "get_model": lambda self, chat_iid: _invoke(get_model_func, self, chat_iid),
         "get_actions": lambda self, model: _invoke(get_actions_func, self, model),
@@ -83,6 +89,8 @@ def create_action_config_system(
         "callback_prefix": callback_prefix,
         "success_message": success_message,
         "allow_multiple_actions": allow_multiple_actions,
+        "default_action_name": default_action_name,
+        "action_filter": action_filter,
         "filters": lambda: ActionConfigCallbackMixin.create_filters(callback_prefix),
         "get_model": lambda self, chat_iid: _invoke(get_model_func, self, chat_iid),
         "get_actions": lambda self, model: _invoke(get_actions_func, self, model),
@@ -101,6 +109,7 @@ def create_action_config_system(
         "callback_prefix": callback_prefix,
         "success_message": success_message,
         "allow_multiple_actions": allow_multiple_actions,
+        "action_filter": action_filter,
         "filters": lambda: ActionConfigSetupHandlerMixin.create_filters(),
         "get_model": lambda self, chat_iid: _invoke(get_model_func, self, chat_iid),
         "get_actions": lambda self, model: _invoke(get_actions_func, self, model),
@@ -119,6 +128,7 @@ def create_action_config_system(
         "callback_prefix": callback_prefix,
         "success_message": success_message,
         "allow_multiple_actions": allow_multiple_actions,
+        "action_filter": action_filter,
         "filters": lambda: ActionConfigDoneHandlerMixin.create_filters(callback_prefix),
         "get_model": lambda self, chat_iid: _invoke(get_model_func, self, chat_iid),
         "get_actions": lambda self, model: _invoke(get_actions_func, self, model),
@@ -134,6 +144,7 @@ def create_action_config_system(
         "module_name": module_name,
         "callback_prefix": callback_prefix,
         "success_message": success_message,
+        "action_filter": action_filter,
         "filters": lambda: ActionConfigCancelHandlerMixin.create_filters(callback_prefix),
         "get_model": lambda self, chat_iid: _invoke(get_model_func, self, chat_iid),
         "get_actions": lambda self, model: _invoke(get_actions_func, self, model),
@@ -151,6 +162,7 @@ def create_action_config_system(
         "module_name": module_name,
         "callback_prefix": callback_prefix,
         "success_message": success_message,
+        "action_filter": action_filter,
         "filters": lambda: ActionConfigSettingsHandlerMixin.create_filters(callback_prefix),
         "get_model": lambda self, chat_iid: _invoke(get_model_func, self, chat_iid),
         "get_actions": lambda self, model: _invoke(get_actions_func, self, model),
@@ -191,18 +203,18 @@ def register_action_config_system(router: Router, *args, **kwargs):
     # Register the main wizard (message handler). Prefer class-provided register.
     if hasattr(WizardHandler, "register"):
         # SophieMessageHandler provides register with proper flags
-        WizardHandler.register(router)  # type: ignore[attr-defined]
+        WizardHandler.register(router)
     else:  # pragma: no cover - defensive fallback
-        router.message.register(WizardHandler, *WizardHandler.filters())  # type: ignore[attr-defined]
+        router.message.register(WizardHandler, *WizardHandler.filters())
 
     # Message handler for interactive setup
-    router.message.register(SetupHandler, *SetupHandler.filters())  # type: ignore[attr-defined]
+    router.message.register(SetupHandler, *SetupHandler.filters())
 
     # Callback query handlers
-    router.callback_query.register(CallbackHandler, *CallbackHandler.filters())  # type: ignore[attr-defined]
-    router.callback_query.register(DoneHandler, *DoneHandler.filters())  # type: ignore[attr-defined]
-    router.callback_query.register(CancelHandler, *CancelHandler.filters())  # type: ignore[attr-defined]
-    router.callback_query.register(SettingsHandler, *SettingsHandler.filters())  # type: ignore[attr-defined]
+    router.callback_query.register(CallbackHandler, *CallbackHandler.filters())
+    router.callback_query.register(DoneHandler, *DoneHandler.filters())
+    router.callback_query.register(CancelHandler, *CancelHandler.filters())
+    router.callback_query.register(SettingsHandler, *SettingsHandler.filters())
 
     return (
         WizardHandler,

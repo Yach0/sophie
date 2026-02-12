@@ -7,8 +7,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
-from .. import LOADED_MODULES
-from ..legacy_modules import LOADED_LEGACY_MODULES
+from .. import LOADED_MODULES as LOADED_MODULES
 from .enforce_middleware import EnforceFiltersMiddleware
 from .handlers.action_change_setting_confirm import ActionChangeSettingConfirm
 from .handlers.action_remove import ActionRemoveHandler
@@ -25,6 +24,19 @@ from .handlers.filter_save import FilterSaveHandler
 from .handlers.filters_list import FiltersListHandler
 from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS
+
+__all__ = (
+    "router",
+    "__module_name__",
+    "__module_emoji__",
+    "__module_info__",
+    "__advertise_wiki_page__",
+    "__handlers__",
+    "__pre_setup__",
+    "__post_setup__",
+    "LOADED_MODULES",
+)
+
 
 router = Router(name="filters")
 __module_name__ = l_("Filters")
@@ -74,15 +86,9 @@ async def __post_setup__(modules: dict[str, ModuleType]):
 
             ALL_MODERN_ACTIONS[action_filter.name] = action_filter()
 
-    # Legacy filters
-    log.debug("Legacy filters: Adding filters actions")
-    for module in (*LOADED_LEGACY_MODULES, *LOADED_MODULES.values()):
-        if not getattr(module, "__filters__", None):
-            continue
-
-        module_name = module.__name__.split(".")[-1]
-        log.debug(f"Legacy filters: Adding filter action from {module_name} module")
-        for data in module.__filters__.items():
-            LEGACY_FILTERS_ACTIONS[data[0]] = data[1]
+        legacy_filters: dict[str, dict] = getattr(module, "__filters__", dict())
+        for action_name, action in legacy_filters.items():
+            log.debug("Legacy filters: Adding new action...", name=action_name, module=name)
+            LEGACY_FILTERS_ACTIONS[action_name] = action
 
     log.debug("Legacy filters: Filters actions", actions=LEGACY_FILTERS_ACTIONS)

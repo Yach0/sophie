@@ -5,13 +5,14 @@ from aiogram import F, flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OneOf, OptionalArg, WordArg
 from stfu_tg import Bold, HList, Italic, Title
+from stfu_tg.doc import Element
 
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.combine import combine_saveables
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -27,7 +28,7 @@ class GetNote(SophieMessageHandler):
         chat: ChatConnection = self.data["connection"]
 
         note_name: str = self.data["notename"].removeprefix("#")
-        note = await NoteModel.get_by_notenames(chat.id, (note_name,))
+        note = await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
 
         if not note and self.data.get("get_error_on_404", True):
             return await self.event.reply(_("No note was found with {name} name.").format(name=Italic(note_name)))
@@ -67,10 +68,10 @@ class HashtagGetNote(SophieMessageHandler):
 
     async def _fine_note(self, note_name: str) -> Optional[NoteModel]:
         chat: ChatConnection = self.data["connection"]
-        return await NoteModel.get_by_notenames(chat.id, (note_name,))
+        return await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
 
     @staticmethod
-    def _get_note_title(note_model: NoteModel) -> str:
+    def _get_note_title(note_model: NoteModel) -> Element:
         return Bold(HList(Title(f"📗 #{note_model.names[0]}", bold=False), note_model.description or ""))
 
     async def handle(self) -> Any:

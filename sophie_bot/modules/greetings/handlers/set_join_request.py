@@ -9,7 +9,7 @@ from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.parse import parse_saveable
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -26,7 +26,7 @@ class SetJoinRequestMessageHandler(SophieMessageHandler):
         raw_text = self.data.get("raw_text")
 
         saveable = await parse_saveable(self.event, raw_text)
-        await GreetingsModel.change_join_request_message(connection.id, saveable)
+        await GreetingsModel.change_join_request_message(connection.db_model.iid, saveable)
 
         doc = Doc(
             Template(_("Join request message was saved in {chat_title}."), chat_title=Italic(connection.title)),
@@ -44,7 +44,7 @@ class DelJoinRequestMessageHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        db_model = await GreetingsModel.get_by_chat_id(connection.id)
+        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
         if not db_model or not db_model.join_request_message:
             return await self.event.reply(
                 _("Join request message in {chat_title} has not been set before").format(chat_title=connection.title)

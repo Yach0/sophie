@@ -5,14 +5,15 @@ from pydantic import BaseModel
 from stfu_tg import Section
 from stfu_tg.doc import Element
 
+from sophie_bot.config import CONFIG
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ModernActionABC,
     ModernActionSetting,
 )
-from sophie_bot.modules.legacy_modules.modules.warns import warn_func
-from sophie_bot.modules.legacy_modules.utils.connections import get_connected_chat
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.logging.events import LogEvent
+from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -66,15 +67,28 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
         if not message.from_user:
             return
 
-        chat_id = message.chat.id
-        target_user = message.from_user.id
-
-        if await is_user_admin(chat_id, target_user):
-            return
+        chat_db = data["chat_db"]
+        admin_db = data["user_db"]
+        target_db = data["user_db"]  # In filter/action context, usually the user who triggered it
 
         text = filter_data.reason or _("No reason")
 
         # Legacy workaround
-        connected_chat = await get_connected_chat(message)
+        # connected_chat = await get_connected_chat(message)
 
-        await warn_func(message, connected_chat, target_user, text, filter_action=True)
+        current, limit, punishment, warn = await warn_user(chat_db, target_db, admin_db, text)
+
+        if "filter_id" in data:
+            await log_event(
+                chat_db.tid,
+                CONFIG.bot_id,
+                LogEvent.WARN_ADDED,
+                {
+                    "target_user_id": target_db.tid,
+                    "reason": text,
+                    "current": current,
+                    "limit": limit,
+                    "filter_id": data["filter_id"],
+                    "action": "warn_user",
+                },
+            )

@@ -17,7 +17,7 @@ from sophie_bot.modules.filters.types.modern_action_data_types import (
     ACTION_DATA_DUMPED,
 )
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -40,15 +40,17 @@ class ActionChangeSettingConfirm(SophieMessageCallbackQueryHandler):
             raise SophieException("No action name or setting in state/data")
 
         action_item = ALL_MODERN_ACTIONS[action_name]
-        action_setting: ModernActionSetting = action_item.settings(self.data)[action_setting]  # type: ignore
+        action_setting: ModernActionSetting = action_item.settings(self.data)[action_setting]
 
-        # TODO: Deal with typing below
+        if action_setting.setup_confirm is None:
+            raise SophieException("Action setting has no setup_confirm handler")
+
         try:
-            action_data_model: ACTION_DATA | None = await action_setting.setup_confirm(self.event, self.data)  # type: ignore
+            action_data_model: ACTION_DATA | None = await action_setting.setup_confirm(self.event, self.data)
         except ActionSetupTryAgainException:
             return
 
-        action_data: ACTION_DATA_DUMPED = action_data_model.model_dump(mode="json") if action_data_model else None  # type: ignore
+        action_data: ACTION_DATA_DUMPED = action_data_model.model_dump(mode="json") if action_data_model else None
 
         # Add action to the list
         try:

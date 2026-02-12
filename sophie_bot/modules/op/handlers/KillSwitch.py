@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import Message
 from ass_tg.types import BooleanArg, OptionalArg, WordArg
+from ass_tg.types.base_abc import ArgFabric
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.feature_flags import (
     is_enabled,
     list_all,
@@ -22,7 +24,7 @@ class KillSwitchHandler(SophieMessageHandler):
         return CMDFilter("op_killswitch"), IsOP(True)
 
     @classmethod
-    async def handler_args(cls, message, data: Dict) -> Dict[str, object]:
+    async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
         # feature and value are both optional to allow listing when none provided
         return {
             "feature": OptionalArg(WordArg("feature")),
@@ -47,7 +49,7 @@ class KillSwitchHandler(SophieMessageHandler):
             allowed = ", ".join(FEATURE_FLAGS)
             return await self.event.reply(f"Unknown feature '{feature}'. Allowed: {allowed}")
 
-        await set_enabled(feature, value)  # type: ignore[arg-type]
+        await set_enabled(feature, value)
         # Read back for confirmation (uses in-memory cache)
-        current = await is_enabled(feature)  # type: ignore[arg-type]
+        current = await is_enabled(feature)
         return await self.event.reply(f"{feature}: {str(current).lower()}")

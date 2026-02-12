@@ -2,6 +2,11 @@
 title: Disabling
 icon: 🚫
 ---
+### Disable commands in chats
+
+> Allows administrators to disable specific commands in their chats. \
+> Useful for restricting bot functionality to only necessary commands.
+
 ## Available commands
 
 

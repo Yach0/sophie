@@ -6,12 +6,14 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemo
 from stfu_tg import Bold, Doc, Template, Url
 
 from sophie_bot.config import CONFIG
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.ai.callbacks import AIChatCallback
 from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_PROVIDER, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-from sophie_bot.modules.utils_.base_handler import (
+from sophie_bot.utils.handlers import (
     SophieMessageCallbackQueryHandler,
     SophieMessageHandler,
 )
@@ -25,14 +27,14 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):
         router.message.register(cls, CMDFilter("ai"), ChatTypeFilter("private"))
-        router.callback_query.register(cls, ChatTypeFilter("private"))
+        router.callback_query.register(cls, AIChatCallback.filter(), ChatTypeFilter("private"))
 
     async def handle(self) -> Any:
         doc = Doc(
             Bold(
                 Template(
                     _("{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."),
-                    ai_emoji=CONFIG.ai_emoji,
+                    ai_emoji=AI_EMOJI,
                 )
             ),
             Template(
@@ -61,7 +63,7 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
 class AiPmStop(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return F.text == AI_PM_STOP_TEXT, ChatTypeFilter("private")  # type: ignore
+        return F.text == AI_PM_STOP_TEXT, ChatTypeFilter("private")
 
     async def handle(self) -> Any:
         await self.data["state"].clear()

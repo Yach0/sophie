@@ -7,13 +7,14 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, KeyValue, Title
+from stfu_tg import Doc, KeyValue, Title, Template
 
+from sophie_bot.constants import FEDERATION_ID_HYPHEN_COUNT, FEDERATION_ID_PART_LENGTH
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -45,13 +46,15 @@ class SubscribeFederationHandler(SophieMessageHandler):
         target_fed_id: str = self.data["fed_id"]
 
         # Get federation for current chat
-        federation = await FederationService.get_federation_for_chat(self.event.chat.id)
+        chat_iid = self.connection.db_model.iid
+        federation = await FederationService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
             return
 
         # Check permissions
-        if not FederationPermissionService.is_federation_owner(federation, self.event.from_user.id):
+        user_iid = self.data["user_db"].iid
+        if not FederationPermissionService.is_federation_owner(federation, user_iid):
             await self.event.reply(_("Only federation owners can manage subscriptions."))
             return
 
@@ -70,7 +73,8 @@ class SubscribeFederationHandler(SophieMessageHandler):
 
             doc = Doc(
                 Title(_("🏛 Subscription Failed")),
-                _("Federation '{name}' is already subscribed to '{name2}'.").format(
+                Template(
+                    _("Federation '{name}' is already subscribed to '{name2}'."),
                     name=federation.fed_name,
                     name2=target_fed.fed_name,
                 ),
@@ -94,31 +98,22 @@ class SubscribeFederationHandler(SophieMessageHandler):
         await self.event.reply(str(doc))
 
         # Log the subscription
-        log_text = _("🏛 Federation '{fed_name}' ({fed_id}) subscribed to '{target_fed_name}' ({target_fed_id})").format(
+        log_text = Template(
+            _("🏛 Federation '{fed_name}' ({fed_id}) subscribed to '{target_fed_name}' ({target_fed_id})"),
             fed_name=federation.fed_name,
             fed_id=federation.fed_id,
             target_fed_name=target_fed.fed_name,
             target_fed_id=target_fed.fed_id,
-        )
+        ).to_html()
         await FederationService.post_federation_log(federation, log_text, bot)
-
-        # Log the subscription
-        await FederationService.post_federation_log(
-            federation,
-            _("Federation '{fed_name}' ({fed_id}) subscribed to '{target_fed_name}' ({target_fed_id})").format(
-                fed_name=federation.fed_name,
-                fed_id=federation.fed_id,
-                target_fed_name=target_fed.fed_name,
-                target_fed_id=target_fed.fed_id,
-            ),
-            bot,
-        )
 
     @staticmethod
     def _is_valid_fed_id(fed_id: str) -> bool:
-        """Validate federation ID format (4 groups of 4 characters separated by hyphens)."""
+        """Validate federation ID format."""
         parts = fed_id.split("-")
-        return len(parts) == 4 and all(len(part) == 4 for part in parts)
+        return len(parts) == FEDERATION_ID_HYPHEN_COUNT and all(
+            len(part) == FEDERATION_ID_PART_LENGTH for part in parts
+        )
 
 
 @flags.help(
@@ -147,13 +142,15 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
         fed_id: str = self.data["fed_id"]
 
         # Get federation for current chat
-        federation = await FederationService.get_federation_for_chat(self.event.chat.id)
+        chat_iid = self.connection.db_model.iid
+        federation = await FederationService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
             return
 
         # Check permissions
-        if not FederationPermissionService.is_federation_owner(federation, self.event.from_user.id):
+        user_iid = self.data["user_db"].iid
+        if not FederationPermissionService.is_federation_owner(federation, user_iid):
             await self.event.reply(_("Only federation owners can manage subscriptions."))
             return
 
@@ -167,7 +164,8 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
 
             doc = Doc(
                 Title(_("🏛 Unsubscription Failed")),
-                _("Federation '{name}' is not subscribed to '{name2}'.").format(
+                Template(
+                    _("Federation '{name}' is not subscribed to '{name2}'."),
                     name=federation.fed_name,
                     name2=target_fed.fed_name,
                 ),
@@ -191,12 +189,11 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
         await self.event.reply(str(doc))
 
         # Log the unsubscription
-        log_text = _(
-            "🏛 Federation '{fed_name}' ({fed_id}) unsubscribed from '{target_fed_name}' ({target_fed_id})"
-        ).format(
+        log_text = Template(
+            _("🏛 Federation '{fed_name}' ({fed_id}) unsubscribed from '{target_fed_name}' ({target_fed_id})"),
             fed_name=federation.fed_name,
             fed_id=federation.fed_id,
             target_fed_name=target_fed.fed_name,
             target_fed_id=target_fed.fed_id,
-        )
+        ).to_html()
         await FederationService.post_federation_log(federation, log_text, bot)

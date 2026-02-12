@@ -1,22 +1,14 @@
 PROJECT_DIR := "sophie_bot"
 
-ENV := $(shell poetry env info --path)
+# Use uv for package management - no need for explicit environment path
+PYTHON := "uv"
+ASS_PATH := $(shell uv run python -c "import ass_tg as _; print(_.__path__[0])" 2>/dev/null)
 
-# Replace \ with \\ for windows
-# ENV := $(shell cygpath "${ENV}")
+# Export PYTHONPATH to support git worktrees
+export PYTHONPATH := $(CURDIR)
 
-#PYTHON := $(subst \,/,$(PYTHON))
-PYTHON := "$(ENV)/scripts/python"
-
-ASS_PATH := $(shell poetry run python -c "import ass_tg as _; print(_.__path__[0])")
-
-ifneq ("$(wildcard $(ENV)/scripts/pybabel)","")
-	PYBABEL := "$(ENV)/scripts/pybabel"
-else ifneq ("$(wildcard $(ENV)/bin/pybabel)","")
-	PYBABEL := "$(ENV)/bin/pybabel" 
-else
-	PYBABEL := "pybabel"
-endif
+# Use uv run for pybabel
+PYBABEL := "pybabel"
 
 NUITKA := "python" "-m" "nuitka"
 NUITKA_ARGS := "--prefer-source-code" "--plugin-enable=pylint-warnings" "--follow-imports" \
@@ -27,12 +19,30 @@ LOCALES_DIR := $(CURDIR)/locales
 
 
 all: fix_code_style locale test_all clean build_onefile
-commit: fix_code_style extract_lang test_code_style test_codeanalysis run_tests gen_wiki
-test_all: test_code_style test_codeanalysis run_tests
+commit: fix_code_style extract_lang test_code_style test_codeanalysis run_tests gen_wiki api migrate_status
+test_all: test_code_style test_codeanalysis run_tests test_migrations
 locale: extract_lang update_lang compile_lang
 
 
 # Build
+
+pull_libs:
+	@echo "Pulling latest libs..."
+	mkdir -p libs
+	if [ ! -d "libs/stf" ]; then \
+		git clone https://gitlab.com/SophieBot/stf.git libs/stf; \
+	else \
+		cd libs/stf && git pull; \
+	fi
+	if [ ! -d "libs/ass" ]; then \
+		git clone https://gitlab.com/SophieBot/ass.git libs/ass; \
+	else \
+		cd libs/ass && git pull; \
+	fi
+
+sync_libs: pull_libs
+	uv sync --reinstall-package ass-tg
+	uv sync --reinstall-package stf-tg
 
 clean:
 	@echo "Cleaning build directories..."
@@ -40,29 +50,41 @@ clean:
 
 build_onefile:
 	@echo "Building onefile..."
-	poetry run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone --onefile --linux-onefile-icon=build/icon.png
+	uv run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone --onefile --linux-onefile-icon=build/icon.png
 
 build_standalone:
 	@echo "Building standalone..."
-	poetry run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone
+	uv run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone
 
+# Development with hot-reload
+dev_bot:
+	@echo "Starting bot with hot-reload..."
+	DEV_RELOAD=true MODE=bot uv run python -m sophie_bot
+
+dev_rest:
+	@echo "Starting REST API with hot-reload..."
+	DEV_RELOAD=true MODE=rest uv run python -m sophie_bot
+
+dev_scheduler:
+	@echo "Starting scheduler with hot-reload..."
+	DEV_RELOAD=true MODE=scheduler uv run python -m sophie_bot
 
 fix_code_style:
-	poetry run python -m pycln . -a
-	poetry run ruff check . --fix
-	poetry run ruff format sophie_bot/
+	uv run python -m pycln . -a
+	uv run ruff check . --fix
+	uv run ruff format sophie_bot/
 
 test_code_style:
-	poetry run python -m pycln . -a -c
-	poetry run ruff format sophie_bot/ --check
-	poetry run ruff check .
+	uv run python -m pycln . -a -c
+	uv run ruff format sophie_bot/ --check
+	uv run ruff check .
 
 test_codeanalysis:
-	# poetry run python -m bandit sophie_bot/ -r
-	poetry run mypy -p sophie_bot
+	# uv run python -m bandit sophie_bot/ -r
+	uv run ty check
 
 run_tests:
-	poetry run python -m pytest tests/ -v --alluredir=allure_results
+	uv run python -m pytest tests/ -v --alluredir=allure_results -n auto
 
 # Locale
 
@@ -99,76 +121,100 @@ new_locale:
 	make compile_lang
 
 # Wiki
-
 gen_wiki:
-	poetry run python tools/wiki_gen/start.py
+	uv run python tools/wiki_gen/start.py
 
 
-dev_deps:
-	rm -rf "$(ENV)/lib/site-packages/ass_tg"
-	rm -rf "$(ENV)/lib/site-packages/stfu_tg"
+# REST API
+gen_openapi:
+	uv run python tools/openapi_gen/generate.py
 
-	ln -s "$(realpath ../ass/ass_tg)" "$(ENV)/lib/site-packages/"
-	ln -s "$(realpath ../stf/stfu_tg)" "$(ENV)/lib/site-packages/"
+ api:
+	make gen_openapi
+	cp openapi.json ../sdash
+	cd ../sdash && bun run gen:api
 
-# -----------------------------
-# AI-assisted development setup
-# -----------------------------
+# Database Migrations
 
-# Source guidelines file
-GUIDELINES_SRC := ai_dev/AI_GUIDELINES.md
-
-# List of destinations to copy guidelines to (extendable)
-GUIDELINES_DESTS := \
-	./.junie/guidelines.md \
-	./AI_GUIDELINES.md \
-	./AGENTS.md \
-	./.kilocode/rules/guidelines.md \
-	./.github/AI_GUIDELINES.md
-
-# MCP configuration
-MCP_TEMPLATE := ai_dev/mcp.example.json
-MCP_DESTS := \
-	./.junie/mcp/mcp.json \
-	./.kilocode/mcp.json
-
-# MCP keys to inject (format: placeholder -> jq_path)
-MCP_KEYS := \
-	__CONTEXT7_API_KEY__:.context7.apiKey \
-	__TAVILY_API_KEY__:.tavily.apiKey
-
-.PHONY: ai_dev
-ai_dev:
-	@echo "Setting up AI development environment..."
-	@if [ ! -f "$(GUIDELINES_SRC)" ]; then \
-		echo "ERROR: $(GUIDELINES_SRC) not found. Please add it and re-run 'make ai_dev'." >&2; \
+new_migration:
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME parameter is required. Usage: make new_migration NAME=add_new_field"; \
 		exit 1; \
 	fi
-	@if [ ! -f "data/ai_dev.json" ]; then \
-		echo "ERROR: data/ai_dev.json not found. Please create it with your MCP API keys and re-run 'make ai_dev'." >&2; \
+	@echo "Creating migration: $(NAME)"
+	@uv run python tools/migration_helper.py create $(NAME)
+
+migrate_up:
+	@echo "Running migrations..."
+	@uv run python tools/migration_helper.py up
+
+migrate_status:
+	@echo "Migration status:"
+	@uv run python tools/migration_helper.py status
+
+migrate_rollback:
+	@if [ -z "$(MIGRATION)" ]; then \
+		echo "Error: MIGRATION parameter is required. Usage: make migrate_rollback MIGRATION=20240125_001_add_field"; \
 		exit 1; \
 	fi
-	@echo "Copying AI guidelines to destinations..."
-	@for dest in $(GUIDELINES_DESTS); do \
-		echo " - $$dest"; \
-		mkdir -p "$$(dirname "$$dest")"; \
-		cp -f "$(GUIDELINES_SRC)" "$$dest"; \
-	done
-	@echo "Configuring MCP client configurations..."
-	@for dest in $(MCP_DESTS); do \
-		echo " - $$dest"; \
-		mkdir -p "$$(dirname "$$dest")"; \
-		cp -f "$(MCP_TEMPLATE)" "$$dest"; \
-		# Inject credentials from data/ai_dev.json using MCP_KEYS list \
-		sed_args=""; \
-		for key_pair in $(MCP_KEYS); do \
-			placeholder=$$(echo "$$key_pair" | cut -d: -f1); \
-			jq_path=$$(echo "$$key_pair" | cut -d: -f2); \
-			value=$$(jq -r "$$jq_path // empty" data/ai_dev.json); \
-			if [ -z "$$value" ] || [ "$$value" = "null" ]; then \
-				echo "ERROR: data/ai_dev.json missing $$jq_path"; exit 1; \
-			fi; \
-			sed_args="$$sed_args -e s|$$placeholder|$$value|g"; \
-		done; \
-		sed -i $$sed_args "$$dest"; \
-	done
+	@echo "Rolling back migration: $(MIGRATION)"
+	@uv run python tools/migration_helper.py down $(MIGRATION)
+
+migrate_down_all:
+	@echo "Rolling back all migrations..."
+	@uv run python tools/migration_helper.py down_all
+
+test_migrations:
+	@echo "Running migration tests..."
+	@RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations uv run python -m pytest tests/test_migrations.py -v
+
+# Worktree support
+
+setup_worktree:
+	@echo "📦 Setting up worktree at: $(CURDIR)"
+	@echo "🔄 Syncing dependencies..."
+
+	@# Get the main repository directory
+	@MAIN_GIT_DIR=$$(git rev-parse --git-common-dir 2>/dev/null || git rev-parse --git-dir); \
+	MAIN_REPO_DIR=$$(cd "$$MAIN_GIT_DIR/.." && pwd); \
+	\
+	if [ ! -d "libs" ] && [ -d "$$MAIN_REPO_DIR/libs" ]; then \
+		echo "  → Linking local libraries from main repo..."; \
+		ln -s "$$MAIN_REPO_DIR/libs" libs; \
+	fi; \
+	\
+	if [ ! -f "data/config.env" ] && [ -f "$$MAIN_REPO_DIR/data/config.env" ]; then \
+		echo "  → Linking data directory from main repo..."; \
+		rm -rf data; \
+		ln -s "$$MAIN_REPO_DIR/data" data; \
+	fi
+
+	@echo "  → Running uv sync..."
+	@uv sync --quiet
+
+	@if [ -d "libs/stf" ] || [ -d "libs/ass" ]; then \
+		echo "  → Syncing local libraries..."; \
+		uv sync --reinstall-package ass-tg --quiet 2>/dev/null || true; \
+		uv sync --reinstall-package stf-tg --quiet 2>/dev/null || true; \
+	fi
+
+	@if [ -d "locales" ]; then \
+		echo "  → Compiling locale files..."; \
+		uv run pybabel compile -d "locales" -D "sophie" --use-fuzzy 2>&1 | grep -E "(translated|compiling)" || true; \
+	fi
+
+	@if [ -f "Makefile" ] && ! grep -q "export PYTHONPATH" Makefile; then \
+		echo "  → Patching Makefile for worktree support..."; \
+		sed -i '/^ASS_PATH := /a\\n# Export PYTHONPATH to support git worktrees\\nexport PYTHONPATH := $$(CURDIR)' Makefile; \
+	fi
+
+	@echo "  → Installing package in editable mode..."
+	@uv pip install -e . --quiet 2>/dev/null || true
+
+	@echo "✅ Worktree setup complete!"
+
+dev_branch: setup_worktree
+	@echo ""
+	@echo "🌲 Worktree is ready for development!"
+	@echo "   Run 'make commit' to verify everything is working."
+

@@ -19,14 +19,14 @@ class LeaveUserMiddleware(BaseMiddleware):
 
         if isinstance(event, Message) and event.left_chat_member:
             user_id = event.left_chat_member.id
-            chat_id: int = event.chat.id
 
             # Bot left the chat
             if user_id == CONFIG.bot_id:
                 # TODO: Delete chat data?
                 raise SkipHandler
 
-            db_item: GreetingsModel = await GreetingsModel.get_by_chat_id(chat_id)
+            chat_db = data["chat_db"]
+            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
 
             # Cleanservice
             if db_item.clean_service and db_item.clean_service.enabled:

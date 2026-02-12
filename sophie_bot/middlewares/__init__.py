@@ -5,7 +5,6 @@ from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.beta import BetaMiddleware
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.middlewares.disabling import DisablingMiddleware
-from sophie_bot.middlewares.legacy_save_chats import LegacySaveChats
 from sophie_bot.middlewares.localization import LocalizationMiddleware
 from sophie_bot.middlewares.logic import OrMiddleware
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
@@ -29,7 +28,12 @@ def set_metrics_middleware(middleware) -> None:
 
 
 def enable_middlewares():
-    if CONFIG.debug_mode:
+    if CONFIG.debug_mode in ("normal", "high"):
+        from .debug import EventSeparatorMiddleware
+
+        dp.update.outer_middleware(EventSeparatorMiddleware())
+
+    if CONFIG.debug_mode == "high":
         from .debug import UpdateDebugMiddleware
 
         dp.update.middleware(UpdateDebugMiddleware())
@@ -48,12 +52,11 @@ def enable_middlewares():
     dp.message.middleware(ArgsMiddleware(i18n=i18n))
 
     dp.update.outer_middleware(SaveChatsMiddleware())
-    dp.message.outer_middleware(LegacySaveChats())
 
     dp.update.middleware(ConnectionsMiddleware())
     dp.message.middleware(DisablingMiddleware())
 
-    if CONFIG.debug_mode:
+    if CONFIG.debug_mode == "high":
         from .debug import DataDebugMiddleware, HandlerDebugMiddleware
 
         dp.update.middleware(DataDebugMiddleware())

@@ -1,7 +1,11 @@
 ---
 title: Language
-icon: 🌍
+icon: 🌐
 ---
+### Language and localization settings
+
+> Allows users to set their preferred language for bot interactions.
+
 ## Available commands
 
 
@@ -9,7 +13,7 @@ icon: 🌍
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/lang` | - | Asks for the new language for the chat. |  |
+| `/lang` | - | Change the language of the bot in the chat. |  |
 
 ### Aliased commands from [✨ Sophie AI](ai)
 

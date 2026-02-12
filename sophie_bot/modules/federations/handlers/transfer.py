@@ -8,13 +8,13 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title
+from stfu_tg import Doc, Title, Template, Code
 
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -57,7 +57,8 @@ class TransferOwnershipHandler(SophieMessageHandler):
         user_id = self.event.from_user.id
 
         # Check if user is the current owner
-        if fed_id.creator != user_id:
+        creator = await fed_id.creator.fetch()
+        if not creator or creator.tid != user_id:
             await self.event.reply(_("Only the federation owner can transfer ownership."))
             return
 
@@ -75,7 +76,8 @@ class TransferOwnershipHandler(SophieMessageHandler):
             return
 
         # Check if new owner is in the federation
-        # For now, allow transfer to any user (can be restricted later,)
+        # TODO: Add validation to ensure new owner is eligible
+        # (e.g., not bot operator, has not exceeded federation limit, etc.)
 
         # Create transfer request
         transfer_key = f"{self.TRANSFER_KEY_PREFIX}{fed_id.fed_id}"
@@ -93,34 +95,28 @@ class TransferOwnershipHandler(SophieMessageHandler):
             ex=self.TRANSFER_TTL,
         )
 
-        # TODO: Send confirmation message to new owner (requires user messaging capability,)
-        # doc = Doc(
-        #     Title(_("🏛 Federation Ownership Transfer"),)
-        #     _("You have been offered ownership of federation '{fed_name}'.").format(
-        #         fed_name=fed_id.fed_name
-        #     )
-        #     _("Federation ID: {fed_id}").format(fed_id=fed_id.fed_id)
-        #     _("To accept, reply with /accepttransfer {fed_id}").format(fed_id=fed_id.fed_id)
-        #     _("This offer expires in 5 minutes.")
-        # ,)
-
         # Confirm to current owner
         confirm_doc = Doc(
             Title(_("🏛 Transfer Request Sent")),
-            _("Ownership transfer request sent to user {user_id}.").format(user_id=new_owner_id),
-            _("They have 5 minutes to accept with /accepttransfer {fed_id}").format(fed_id=fed_id.fed_id),
+            Template(
+                _("Ownership transfer request sent to user {user_id}."),
+                user_id=str(new_owner_id),
+            ),
+            Template(
+                _("They have 5 minutes to accept with /accepttransfer {fed_id}"),
+                fed_id=Code(fed_id.fed_id),
+            ),
         )
 
         await self.event.reply(str(confirm_doc))
 
     async def _parse_user_id(self, user_input: str) -> int | None:
-        """Parse user ID from username or ID string."""
-        # For now, assume it's a user ID
-        # TODO: Implement proper user resolution
+        """Parse user ID from username or ID string.
+
+        TODO: Implement proper user resolution for usernames via Telegram API.
+        Currently only supports numeric user IDs.
+        """
         try:
-            return int(
-                user_input,
-            )
+            return int(user_input)
         except ValueError:
-            # TODO: Resolve username to ID
             return None

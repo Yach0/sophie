@@ -8,7 +8,7 @@ from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.list import format_notes_list
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -27,7 +27,7 @@ class NotesList(SophieMessageHandler):
         to_search: Optional[str] = self.data.get("search")
         connection = self.connection
 
-        notes = await NoteModel.get_chat_notes(connection.id)
+        notes = await NoteModel.get_chat_notes(connection.db_model.iid)
         if to_search:
             notes = [note for note in notes if any(to_search in name for name in note.names)]
 

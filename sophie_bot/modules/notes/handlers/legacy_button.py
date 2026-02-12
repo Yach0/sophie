@@ -6,9 +6,9 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 from stfu_tg import Bold, HList, Title
 
-from sophie_bot.db.models import NoteModel
+from sophie_bot.db.models import NoteModel, ChatModel
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.exception import SophieException
 
 
@@ -25,11 +25,15 @@ class LegacyStartNoteButton(SophieMessageHandler):
         if not regex:
             return
 
-        chat_id = int(regex.group(2))
+        chat_tid = int(regex.group(2))
         user_id = message.from_user.id
         note_name = regex.group(1)
 
-        note = await NoteModel.get_by_notenames(chat_id, (note_name,))
+        chat = await ChatModel.get_by_tid(chat_tid)
+        if not chat:
+            raise SophieException("Chat not found")
+
+        note = await NoteModel.get_by_notenames(chat.iid, (note_name,))
 
         if not note:
             raise SophieException("No such note")

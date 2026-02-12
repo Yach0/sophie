@@ -1,11 +1,13 @@
 from typing import Optional
 
+from beanie import PydanticObjectId
+
 from sophie_bot.db.models import DisablingModel
 from sophie_bot.modules.help.utils.extract_info import HandlerHelp, get_all_cmds
 
 
-async def get_disabled_handlers(chat_id: int) -> tuple[HandlerHelp, ...]:
-    disabled_cmds: list[str] = await DisablingModel.get_disabled(chat_id)
+async def get_disabled_handlers(chat_iid: PydanticObjectId) -> tuple[HandlerHelp, ...]:
+    disabled_cmds: list[str] = await DisablingModel.get_disabled(chat_iid)
 
     help_cmds: list[HandlerHelp] = list(filter(lambda cmd: cmd.disableable, get_all_cmds()))
 

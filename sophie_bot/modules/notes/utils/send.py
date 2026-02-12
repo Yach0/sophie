@@ -30,6 +30,7 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models.notes import Saveable, SaveableParseMode
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import legacy_button_parser
+from sophie_bot.modules.notes.utils.buttons_processor.unparse import unparse_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.parse import (
     PARSABLE_CONTENT_TYPES,
@@ -82,8 +83,13 @@ async def send_saveable(
     # Extract buttons
     inline_markup = InlineKeyboardMarkup(inline_keyboard=[])
     if not raw:
-        chat_id_for_buttons = connection.db_model.chat_id if connection else (message.chat.id if message else send_to)
-        text, inline_markup = legacy_button_parser(chat_id_for_buttons, text)
+        chat_id_for_buttons = connection.db_model.tid if connection else (message.chat.id if message else send_to)
+
+        if saveable.version == 1:
+            text, inline_markup = legacy_button_parser(chat_id_for_buttons, text)
+        else:
+            inline_markup = unparse_buttons(saveable.buttons, chat_id_for_buttons)
+
         inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 
     # Convert legacy markdown to HTML
@@ -99,8 +105,6 @@ async def send_saveable(
     # Apply random choice sections (%%%...%%%)
     if text:
         text = parse_random_text(text)
-
-    # inline_markup = unparse_buttons(saveable.buttons)
 
     if len(text) > 4090:
         raise SophieException(_("The text is too long"))
@@ -138,7 +142,7 @@ async def send_saveable(
         kwargs["reply_parameters"] = ReplyParameters(message_id=reply_to)
 
     def to_try(**cb_kwargs):
-        return SEND_METHOD[content_type](**cb_kwargs).emit(bot)  # type: ignore
+        return SEND_METHOD[content_type](**cb_kwargs).emit(bot)
 
     async def reply_not_found():
         if "reply_parameters" in kwargs:

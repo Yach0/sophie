@@ -5,7 +5,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc, HList, Section, Title, VList
 
-from sophie_bot.config import CONFIG
+from sophie_bot.constants import FILTERS_MAX_TRIGGERS
 from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
@@ -20,7 +20,7 @@ from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.filters.utils_.legacy_filter_handler import text_legacy_handler_handles_on
 from sophie_bot.modules.troubleshooters.callbacks import CancelCallback
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
@@ -78,7 +78,7 @@ class FilterConfirmHandler(SophieMessageCallbackQueryHandler):
 
         # Manage filter actions buttons group
         manage_action_btn_row = []
-        if len(filters) <= CONFIG.filters_max_triggers:
+        if len(filters) <= FILTERS_MAX_TRIGGERS:
             manage_action_btn_row.append(
                 InlineKeyboardButton(
                     text=_("➕ Add another action"), callback_data=NewFilterActionCallback(back_to_confirm=True).pack()

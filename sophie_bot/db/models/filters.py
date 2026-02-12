@@ -1,10 +1,13 @@
-from typing import Annotated, Any, Optional, Self, TypeVar
+from typing import Any, Optional, Self, TypeVar
 
 from aiogram.fsm.context import FSMContext
-from beanie import Document, Indexed
+from beanie import Document
 from beanie.odm.operators.update.general import Set
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
+
+from ._link_type import Link
+from .chat import ChatModel
 
 ACTION_DATA_DUMPED = dict[str, Any] | None
 ACTION_DATA = TypeVar("ACTION_DATA", bound=type[BaseModel] | None)
@@ -21,8 +24,7 @@ class FilterHandlerType(BaseModel):
 
 
 class FiltersModel(Document):
-    # Old ID
-    chat_id: Annotated[int, Indexed(unique=False)]
+    chat: Link[ChatModel]
 
     handler: str  # old keyword handler
 
@@ -39,20 +41,37 @@ class FiltersModel(Document):
         name = "filters"
 
     @staticmethod
-    async def get_filters(chat_id: int) -> list["FiltersModel"] | None:
-        return await FiltersModel.find(FiltersModel.chat_id == chat_id).to_list()
+    async def get_filters(chat_iid: ObjectId) -> list["FiltersModel"] | None:
+        return await FiltersModel.find(FiltersModel.chat.id == chat_iid).to_list()
 
     @staticmethod
-    async def get_by_keyword(chat_id: int, keyword: str) -> Optional["FiltersModel"]:
-        return await FiltersModel.find_one(FiltersModel.chat_id == chat_id, FiltersModel.handler == keyword)
+    async def get_by_keyword(chat_iid: ObjectId, keyword: str) -> Optional["FiltersModel"]:
+        return await FiltersModel.find_one(FiltersModel.chat.id == chat_iid, FiltersModel.handler == keyword)
 
     @staticmethod
-    async def get_legacy_by_keyword(chat_id: int, keyword: str) -> list["FiltersModel"]:
-        return await FiltersModel.find(FiltersModel.chat_id == chat_id, FiltersModel.handler == keyword).to_list()
+    async def get_legacy_by_keyword(chat_iid: ObjectId, keyword: str) -> list["FiltersModel"]:
+        return await FiltersModel.find(FiltersModel.chat.id == chat_iid, FiltersModel.handler == keyword).to_list()
 
     @staticmethod
     async def get_by_id(oid: ObjectId):
-        return await FiltersModel.find_one(FiltersModel.id == oid)
+        return await FiltersModel.find_one(FiltersModel.iid == oid)
+
+    @staticmethod
+    async def count_ai_filters(chat_iid: ObjectId) -> int:
+        """Count the number of AI filter handlers for a specific chat.
+
+        AI filters are identified by handlers that start with 'ai:' prefix.
+
+        Args:
+            chat_iid: The database internal ID to count AI filters for.
+
+        Returns:
+            Number of AI filter handlers in the chat.
+        """
+        all_filters = await FiltersModel.get_filters(chat_iid)
+        if not all_filters:
+            return 0
+        return sum(1 for filter_item in all_filters if filter_item.handler.startswith("ai:"))
 
     async def update_fields(self, filters_setup: "FilterInSetupType"):
         return await self.update(
@@ -86,9 +105,9 @@ class FilterInSetupType(BaseModel):
         await state.update_data(filter_in_setup=self.model_dump(mode="json"))
         return self
 
-    def to_model(self, chat_id: int) -> FiltersModel:
+    def to_model(self, chat: ChatModel | ObjectId) -> FiltersModel:
         return FiltersModel(
-            chat_id=chat_id,
+            chat=chat,
             handler=self.handler.keyword,
             action=None,
             actions=self.actions,
@@ -97,7 +116,7 @@ class FilterInSetupType(BaseModel):
     @staticmethod
     def from_model(model: FiltersModel) -> "FilterInSetupType":
         return FilterInSetupType(
-            oid=str(model.id),
+            oid=str(model.iid),
             handler=FilterHandlerType(keyword=model.handler),
             actions=model.actions,
         )
