@@ -8,14 +8,14 @@ from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.list import format_notes_list
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 SEARCH_CMD = "search"
 
 
-@flags.args(text=TextArg(l_("Text to search")))
+@flags.args(to_search=TextArg(l_("Text to search")))
 @flags.disableable(name="notes")
 @flags.help(description=l_("Searches for note contents"))
 class NotesSearchHandler(SophieMessageHandler):
@@ -24,10 +24,10 @@ class NotesSearchHandler(SophieMessageHandler):
         return (CMDFilter(SEARCH_CMD),)
 
     async def handle(self) -> Any:
+        to_search: str = self.data["to_search"]
         connection = self.connection
 
-        to_search: str = self.data["text"]
-        notes = await NoteModel.search_chat_notes(connection.id, to_search)
+        notes = await NoteModel.search_chat_notes(connection.db_model.iid, to_search)
 
         if not notes:
             return await self.event.reply(

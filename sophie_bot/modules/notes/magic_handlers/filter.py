@@ -11,12 +11,12 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 async def filter_handle(message: Message, chat, data: dict):
-    chat_id = chat["chat_id"]
+    chat_iid = chat.db_model.iid
     note_name: str = data["note_name"]
 
-    current_chat_id = message.chat.id
+    current_chat_tid = message.chat.id
 
-    note = await NoteModel.get_by_notenames(chat_id, (note_name,))
+    note = await NoteModel.get_by_notenames(chat_iid, (note_name,))
 
     if not note:
         await message.reply(_("#{name} note was not found.").format(name=Bold(note_name)))
@@ -26,7 +26,7 @@ async def filter_handle(message: Message, chat, data: dict):
 
     await send_saveable(
         message,
-        current_chat_id,
+        current_chat_tid,
         note,
         title=title,
         reply_to=message.message_id,

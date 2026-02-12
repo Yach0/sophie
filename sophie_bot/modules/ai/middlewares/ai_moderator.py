@@ -14,12 +14,12 @@ from sophie_bot.modules.ai.utils.ai_moderator import (
     check_moderator,
 )
 from sophie_bot.modules.error.utils.capture import capture_sentry
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
 from sophie_bot.utils.logger import log
-from sophie_bot.utils.feature_flags import is_enabled
 
 
 class AiModeratorMiddleware(BaseMiddleware):
@@ -59,24 +59,22 @@ class AiModeratorMiddleware(BaseMiddleware):
         if not await is_enabled("ai_moderation"):
             return await handler(event, data)
 
-        if (
-            chat_db
-            and chat_db.type != ChatType.private
-            and data.get("ai_enabled")
-            and isinstance(event, Message)
-            and await AIModeratorModel.get_state(chat_db.id)
-        ):
+        if chat_db and chat_db.type != ChatType.private and data.get("ai_enabled") and isinstance(event, Message):
+            settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
+            if not settings or not settings.enabled:
+                return await handler(event, data)
+
             if not (event.text or event.caption or event.photo or event.audio):
                 return await handler(event, data)
 
             if not event.from_user:
                 return await handler(event, data)
 
-            if not CONFIG.debug_mode and await is_user_admin(chat_db.chat_id, event.from_user.id):
+            if CONFIG.debug_mode == "off" and await is_user_admin(chat_db.tid, event.from_user.id):
                 return await handler(event, data)
 
             try:
-                result = await check_moderator(event)
+                result = await check_moderator(event, settings=settings)
                 if result.flagged:
                     await self._triggered(event, result.categories.to_dict())
                     raise SkipHandler

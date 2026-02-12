@@ -9,6 +9,7 @@ from stfu_tg import Doc
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.constants import FILTERS_MAX_TRIGGERS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.filters.fsm import FilterEditFSM
 from sophie_bot.modules.filters.utils_.handle_action import (
@@ -17,7 +18,7 @@ from sophie_bot.modules.filters.utils_.handle_action import (
 )
 from sophie_bot.modules.filters.utils_.match_legacy import match_legacy_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
@@ -90,6 +91,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         triggered: list[str] = []
         messages = []
 
+        # Inject filter ID into data for logging purposes
+        data["filter_id"] = str(filter_item.id)
+
         for action, action_data in filter_item.actions.items():
             if action in triggered_actions:
                 log.debug("EnforceFiltersMiddleware: already triggered action, dropping...")
@@ -120,8 +124,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         await common_try(message.reply(doc.to_html()), reply_not_found=send_message)
 
     async def _process_filter(
-        self, message: Message, data: dict[str, Any], matched_filter: FiltersModel, triggered_groups: list[str] = []
+        self, message: Message, data: dict[str, Any], matched_filter: FiltersModel, triggered_groups=None
     ) -> tuple[list[str | None], list[Element | str | LazyProxy]]:
+        if triggered_groups is None:
+            triggered_groups = []
         if matched_filter.actions:
             return await self._handle_modern_action(matched_filter, triggered_groups, message, data)  # type: ignore
         elif matched_filter.action:
@@ -130,9 +136,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             raise SophieException("EnforceFiltersMiddleware: no actions found")
 
     async def _process_filters(self, message: Message, data: dict[str, Any]):
-        chat_id: int = message.chat.id
+        chat_db = data["chat_db"]
 
-        all_filters = await FiltersModel.get_filters(chat_id)
+        all_filters = await FiltersModel.get_filters(chat_db.iid)
         if not all_filters:
             return
 
@@ -147,7 +153,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         triggered_groups: list[str] = []  # Handled action groups, to stop same actions from repeating
 
         for idx, matched_filter in enumerate(matched_filters):
-            if idx > CONFIG.filters_max_triggers:
+            if idx > FILTERS_MAX_TRIGGERS:
                 log.debug("EnforceFiltersMiddleware: triggered maximum number of filters, dropping...")
                 break
 

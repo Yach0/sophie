@@ -1,12 +1,12 @@
 from aiogram import Router
+from fastapi import APIRouter
 from stfu_tg import Doc
 
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
-
-from ...modes import SOPHIE_MODE
-from ...services.scheduler import scheduler
+from .api import notes_router
 from .handlers.delete import DelNote
+from .handlers.delete_all import DelAllNotesHandler, DelAllNotesCallbackHandler
 from .handlers.get import GetNote, HashtagGetNote
 from .handlers.legacy_button import LegacyStartNoteButton
 from .handlers.list import NotesList
@@ -23,12 +23,17 @@ from .magic_handlers.reply_action import ReplyModernAction
 from .magic_handlers.send_note_action import SendNoteAction
 from .schedules.generate_ai_titles import GenerateAITitles
 from .utils.buttons_processor.legacy import BUTTONS
+from ...modes import SOPHIE_MODE
+from ...services.scheduler import scheduler
+
+api_router = APIRouter()
+api_router.include_router(notes_router)
 
 router = Router(name="notes")
 
-
 __module_name__ = l_("Notes")
 __module_emoji__ = "📗"
+__module_description__ = l_("Save and retrieve notes in chats")
 __module_info__ = LazyProxy(
     lambda: Doc(
         l_(
@@ -45,7 +50,6 @@ __filters__ = get_filter()
 __modern_actions__ = (ReplyModernAction, SendNoteAction)
 
 __export__ = export
-
 
 BUTTONS.update({"note": "btnnotesm", "#": "btnnotesm"})
 
@@ -66,8 +70,8 @@ async def __pre_setup__():
     router.message.register(DelNote, *DelNote.filters())
     router.message.register(SaveNote, *SaveNote.filters())
 
-    # router.message.register(DelAllNotesHandler, *DelAllNotesHandler.filters())
-    # router.callback_query.register(DelAllNotesCallbackHandler, *DelAllNotesCallbackHandler.filters())
+    router.message.register(DelAllNotesHandler, *DelAllNotesHandler.filters())
+    router.callback_query.register(DelAllNotesCallbackHandler, *DelAllNotesCallbackHandler.filters())
 
     # Legacy note buttons
     router.message.register(LegacyStartNoteButton, *LegacyStartNoteButton.filters())

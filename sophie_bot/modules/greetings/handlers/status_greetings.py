@@ -9,7 +9,7 @@ from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.parse import parse_saveable
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -36,7 +36,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             )
 
         saveable = await parse_saveable(self.event, raw_text)
-        await GreetingsModel.change_welcome_message(connection.id, saveable)
+        await GreetingsModel.change_welcome_message(connection.db_model.iid, saveable)
 
         doc = Doc(
             Template(
@@ -44,7 +44,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             ),
             Template(_("Use {cmd} to retrieve the welcome message."), cmd=Italic("/welcome")),
         )
-        db_model = await GreetingsModel.get_by_chat_id(connection.id)
+        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
         if db_model and db_model.welcome_disabled:
             doc += " "
             doc += Template(

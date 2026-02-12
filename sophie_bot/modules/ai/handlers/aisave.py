@@ -5,8 +5,11 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.handlers import MessageHandler
 from ass_tg.types import TextArg
+from beanie import PydanticObjectId
 from stfu_tg import Code, KeyValue, Section, Template
 
+from sophie_bot.constants import AI_EMOJI
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
@@ -35,26 +38,26 @@ class AISaveNote(MessageHandler):
     async def handle(self) -> Any:
         connection = self.data["connection"]
 
-        message = await self.event.reply(_("✨ Generating..."))
+        message = await self.event.reply(str(Template(_("{ai_emoji} Generating..."), ai_emoji=AI_EMOJI)))
 
-        all_notes = await NoteModel.get_chat_notes(connection.id)
+        all_notes = await NoteModel.get_chat_notes(connection.db_model.iid)
         all_notenames = list(itertools.chain.from_iterable(note.names for note in all_notes))
-        all_groups = list(note.note_group for note in all_notes if note.note_group)
+        all_groups = [note.note_group for note in all_notes if note.note_group]
 
         data: AISaveResponseSchema = await self.make_request(all_notenames, all_groups)
 
         # Pre-saving checks
-        if await NoteModel.get_by_notenames(connection.id, data.notenames):
+        if await NoteModel.get_by_notenames(connection.db_model.iid, data.notenames):
             return await message.edit_text(_("AI Generation failed, note already exists! Please try again."))
 
-        await self.save(connection.id, data)
+        await self.save(connection.db_model.iid, data)
 
         await message.edit_text(
             str(
                 Section(
                     KeyValue("Note names", format_notes_aliases(data.notenames)),
                     KeyValue("Description", data.description),
-                    title=_("✨ Note was successfully generated"),
+                    title=Template(_("{ai_emoji} Note was successfully generated"), ai_emoji=AI_EMOJI),
                 )
                 + Template(
                     _("Use {cmd} to retrieve this note."),
@@ -64,15 +67,19 @@ class AISaveNote(MessageHandler):
         )
 
     @staticmethod
-    async def save(chat_id: int, data: AISaveResponseSchema) -> bool:
+    async def save(chat_iid: PydanticObjectId, data: AISaveResponseSchema) -> bool:
+        chat = await ChatModel.get_by_iid(chat_iid)
+        if not chat:
+            return False
         model = NoteModel(
-            chat_id=chat_id,
+            chat=chat,
+            chat_id=chat.tid,
             names=tuple(name.lower() for name in data.notenames),
             note_group=data.group,
             description=data.description,
             text=legacy_markdown_to_html(data.text),
         )
-        return await model.save()  # type: ignore
+        return await model.save()
 
     @staticmethod
     def parse_data(data: str) -> AISaveResponseSchema:
@@ -85,6 +92,6 @@ class AISaveNote(MessageHandler):
         )
 
         messages = await NewAIMessageHistory.chatbot(self.event, custom_user_text=prompt)
-        provider = await get_chat_default_model(self.data["connection"].id)
+        provider = await get_chat_default_model(self.data["connection"].iid)
 
         return await new_ai_generate_schema(messages, AISaveResponseSchema, provider)

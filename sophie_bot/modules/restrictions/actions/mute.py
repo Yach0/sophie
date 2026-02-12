@@ -12,14 +12,16 @@ from pydantic import BaseModel
 from stfu_tg import KeyValue, Template, Title, UserLink
 from stfu_tg.doc import Doc, Element
 
+from sophie_bot.config import CONFIG
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ActionSetupTryAgainException,
     ModernActionABC,
     ModernActionSetting,
 )
-from sophie_bot.modules.legacy_modules.utils.restrictions import mute_user
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.logging.events import LogEvent
+from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.restrictions.utils import is_user_admin, mute_user
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -56,18 +58,18 @@ async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) ->
 async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
     return ActionSetupMessage(
         text=_(
-            "Please write the ban duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for a permanent ban."
+            "Please write the mute duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for a permanent mute."
         ),
     )
 
 
 class MuteModernAction(ModernActionABC[MuteActionDataModel]):
     name = "mute_user"
-
     icon = "🔕"
     title = l_("Mute")
     data_object = MuteActionDataModel
     default_data = MuteActionDataModel(mute_duration=None)
+    as_flood = True
 
     @staticmethod
     def description(data: MuteActionDataModel) -> Element | str:
@@ -87,7 +89,7 @@ class MuteModernAction(ModernActionABC[MuteActionDataModel]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: MuteActionDataModel) -> Element:
+    async def handle(self, message: Message, data: dict, filter_data: MuteActionDataModel) -> Optional[Element]:
         if not message.from_user:
             return
 
@@ -112,5 +114,21 @@ class MuteModernAction(ModernActionABC[MuteActionDataModel]):
 
         if not await mute_user(chat_id, message.from_user.id, until_date=filter_data.mute_duration):
             return
+
+        if "filter_id" in data:
+            details = {
+                "target_user_id": message.from_user.id,
+                "filter_id": data["filter_id"],
+                "action": "mute_user",
+            }
+            if filter_data.mute_duration:
+                details["duration"] = filter_data.mute_duration.total_seconds()
+
+            await log_event(
+                chat_id,
+                CONFIG.bot_id,
+                LogEvent.USER_MUTED,
+                details,
+            )
 
         return doc

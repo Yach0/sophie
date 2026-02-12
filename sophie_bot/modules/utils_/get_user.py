@@ -31,14 +31,14 @@ def get_arg_or_reply_user(message: Message, data: dict[str, Any]) -> User | Chat
 def get_union_user(user: User | ChatModel) -> UnionUser:
     if isinstance(user, User):
         return UnionUser(
-            chat_id=user.id,  # type: ignore
+            chat_id=user.id,
             first_name=user.first_name,
             last_name=user.last_name,
             username=user.username,
         )
     elif isinstance(user, ChatModel):
         return UnionUser(
-            chat_id=user.chat_id, first_name=user.first_name_or_title, last_name=user.last_name, username=user.username
+            chat_id=user.tid, first_name=user.first_name_or_title, last_name=user.last_name, username=user.username
         )
     else:
         raise ValueError("Invalid user type to cast to UnionUser")

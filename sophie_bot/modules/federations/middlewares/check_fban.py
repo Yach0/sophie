@@ -6,15 +6,15 @@ from aiogram.types import Message, TelegramObject
 from stfu_tg import Template, UserLink
 
 from sophie_bot.modules.federations.services.federation import FederationService
-from sophie_bot.modules.legacy_modules.utils.language import get_strings
-from sophie_bot.modules.legacy_modules.utils.restrictions import ban_user
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.restrictions.utils.restrictions import ban_user
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
 class FedBanMiddleware(BaseMiddleware):
-    async def is_fbanned(self, message: Message) -> bool:
+    async def is_fbanned(self, message: Message, data: Dict[str, Any]) -> bool:
         if message.sender_chat:
             # should be channel/anon
             return False
@@ -23,19 +23,22 @@ class FedBanMiddleware(BaseMiddleware):
         if not message.from_user:
             return False
 
-        user_id = message.from_user.id
+        chat_db = data["chat_db"]
+        user_db = data["user_db"]
+
+        user_id = user_db.tid
         user_name = message.from_user.first_name
-        chat_id = message.chat.id
+        chat_id = chat_db.tid
 
         log.debug("Enforcing fban check on {} in {}".format(user_id, chat_id))
 
         # Get federation for this chat
-        federation = await FederationService.get_federation_for_chat(chat_id)
+        federation = await FederationService.get_federation_for_chat(chat_db.iid)
         if not federation:
             return False
 
         # Skip check for admins
-        if await is_user_admin(chat_id, user_id):
+        if await is_user_admin(chat_db.iid, user_db.iid):
             return False
 
         # Check if user is banned in this federation or subscription chain
@@ -45,26 +48,24 @@ class FedBanMiddleware(BaseMiddleware):
 
         ban, banning_fed = ban_info
 
-        strings = await get_strings(chat_id, "feds")
-
         # Determine which federation actually banned the user
         if banning_fed.fed_id == federation.fed_id:
             # Banned in this federation
             doc = Template(
-                strings["automatic_ban"],
+                _("{user} has been banned in the current federation <b>{fed_name}</b>."),
                 user=UserLink(user_id, user_name),
                 fed_name=html.escape(federation.fed_name, False),
             )
         else:
             # Banned in a subscribed federation
             doc = Template(
-                strings["automatic_ban_sfed"],
+                _("Banned via subscribed federation <b>{fed_name}</b>."),
                 user=UserLink(user_id, user_name),
                 fed_name=html.escape(banning_fed.fed_name, False),
             )
 
         if ban.reason:
-            doc += Template(strings["automatic_ban_reason"], text=ban.reason)
+            doc += Template(_("Reason: {text}"), text=ban.reason)
 
         if not await ban_user(chat_id, user_id):
             return True
@@ -74,8 +75,8 @@ class FedBanMiddleware(BaseMiddleware):
         # Update banned_chats list
         if not ban.banned_chats:
             ban.banned_chats = []
-        if chat_id not in ban.banned_chats:
-            ban.banned_chats.append(chat_id)
+        if chat_db.iid not in [c.to_ref() for c in ban.banned_chats]:
+            ban.banned_chats.append(chat_db)
             await ban.save()
 
         return True
@@ -86,7 +87,7 @@ class FedBanMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        if isinstance(event, Message) and await self.is_fbanned(event):
+        if isinstance(event, Message) and await self.is_fbanned(event, data):
             return
 
         return await handler(event, data)

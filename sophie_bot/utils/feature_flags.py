@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Final, Literal, TypedDict, Awaitable, cast
+from typing import Final, Literal, TypedDict, Awaitable, cast, Any
 
 from sophie_bot.services.redis import aredis
 
@@ -11,6 +11,7 @@ FeatureType = Literal[
     "ai_translations",
     "ai_moderation",
     "ai_filters",
+    "ai_provider_zai",
     "filters",
     "antiflood",
     "new_feds_newfed",
@@ -26,6 +27,10 @@ FeatureType = Literal[
     "new_feds_unsetlog",
     "new_feds_fsub",
     "new_feds_funsub",
+    "new_feds_import",
+    "new_feds_frename",
+    "feds_rest_api",
+    "new_feds",
 ]
 
 # Redis storage details
@@ -44,6 +49,7 @@ class FeatureStates(TypedDict):
     ai_translations: bool
     ai_moderation: bool
     ai_filters: bool
+    ai_provider_zai: bool
     filters: bool
     antiflood: bool
     new_feds_newfed: bool
@@ -59,6 +65,10 @@ class FeatureStates(TypedDict):
     new_feds_unsetlog: bool
     new_feds_fsub: bool
     new_feds_funsub: bool
+    new_feds_import: bool
+    new_feds_frename: bool
+    feds_rest_api: bool
+    new_feds: bool
 
 
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
@@ -66,6 +76,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_translations",
     "ai_moderation",
     "ai_filters",
+    "ai_provider_zai",
     "filters",
     "antiflood",
     "new_feds_newfed",
@@ -81,6 +92,10 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "new_feds_unsetlog",
     "new_feds_fsub",
     "new_feds_funsub",
+    "new_feds_import",
+    "new_feds_frename",
+    "feds_rest_api",
+    "new_feds",
 )
 
 
@@ -96,21 +111,26 @@ def _default_state_map() -> FeatureStates:
         ai_translations=True,
         ai_moderation=True,
         ai_filters=True,
+        ai_provider_zai=True,
         filters=True,
         antiflood=True,
-        new_feds_newfed=False,
-        new_feds_joinfed=False,
-        new_feds_leavefed=False,
-        new_feds_finfo=False,
-        new_feds_fban=False,
-        new_feds_funban=False,
-        new_feds_fbanlist=False,
-        new_feds_transferfed=False,
-        new_feds_accepttransfer=False,
-        new_feds_setlog=False,
-        new_feds_unsetlog=False,
-        new_feds_fsub=False,
-        new_feds_funsub=False,
+        new_feds_newfed=True,
+        new_feds_joinfed=True,
+        new_feds_leavefed=True,
+        new_feds_finfo=True,
+        new_feds_fban=True,
+        new_feds_funban=True,
+        new_feds_fbanlist=True,
+        new_feds_transferfed=True,
+        new_feds_accepttransfer=True,
+        new_feds_setlog=True,
+        new_feds_unsetlog=True,
+        new_feds_fsub=True,
+        new_feds_funsub=True,
+        new_feds_import=True,
+        new_feds_frename=True,
+        feds_rest_api=False,
+        new_feds=True,
     )
 
 
@@ -124,7 +144,14 @@ def _from_redis_map(raw: dict[str, str]) -> FeatureStates:
 
 async def _refresh_cache() -> None:
     global _cache, _cache_expiry
-    raw = await cast(Awaitable[dict[str, str]], aredis.hgetall(_REDIS_KEY))
+    raw_data = await cast(Awaitable[Any], aredis.hgetall(_REDIS_KEY))
+    raw = {}
+    if isinstance(raw_data, dict):
+        for k, v in raw_data.items():
+            key = k.decode() if isinstance(k, bytes) else k
+            val = v.decode() if isinstance(v, bytes) else v
+            raw[key] = val
+
     states = _from_redis_map(raw)
     # Build cache explicitly to preserve precise typing (bool values)
     _cache = {feature: states[feature] for feature in FEATURE_FLAGS}

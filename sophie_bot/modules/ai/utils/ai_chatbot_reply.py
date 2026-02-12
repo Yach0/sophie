@@ -1,5 +1,6 @@
+from typing import Any, cast
+
 from aiogram.types import Message
-from pydantic_ai import Tool
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.messages import (
     ModelRequest,
@@ -30,14 +31,17 @@ from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-CHATBOT_TOOLS = [
+CHATBOT_TOOLS: list[Any] = [
     MemoryAgentTool(),
     CmdsHelpAgentTool(),
-    tavily_search_tool(api_key=CONFIG.tavily_api_key),
     # notes_list_ai_tool(),
 ]
-CHATBOT_TOOLS_DICT: dict[str, Tool] = {tool.name: tool for tool in CHATBOT_TOOLS}
-CHATBOT_TOOLS_TITLES = {
+
+if CONFIG.tavily_api_key:
+    CHATBOT_TOOLS.append(tavily_search_tool(api_key=CONFIG.tavily_api_key))
+
+CHATBOT_TOOLS_DICT: dict[str, Any] = {tool.name: tool for tool in CHATBOT_TOOLS}
+CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory updated 💾"),
     "cmds_help": l_("Commands help 📋"),
     "tavily_search": l_("Internet Search 🔍"),
@@ -56,7 +60,7 @@ def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -
     unique_tool_names = {part.tool_name for part in tool_parts if part.tool_name in CHATBOT_TOOLS_TITLES}
 
     # Map tool names to their corresponding titles
-    return [CHATBOT_TOOLS_TITLES[name] for name in unique_tool_names]
+    return [cast(Element, CHATBOT_TOOLS_TITLES[name]) for name in unique_tool_names]
 
 
 async def ai_chatbot_reply(
@@ -83,7 +87,7 @@ async def ai_chatbot_reply(
         await bot.send_chat_action(message.chat.id, "typing")
 
         # Chat memory
-        memory_lines = await AIMemoryModel.get_lines(connection.db_model.id)
+        memory_lines = await AIMemoryModel.get_lines(connection.db_model.iid)
 
         system_prompt = Doc(
             _("You can use Tavily to search for information. Include information sources as links."),
@@ -101,7 +105,7 @@ async def ai_chatbot_reply(
         await history.add_from_message(message, custom_text=user_text)
 
         # Debug mode
-        debug_mode = debug_mode or CONFIG.debug_mode
+        debug_mode = debug_mode or CONFIG.debug_mode != "off"
         if "^llm_debug" in (user_text or message.text or ""):
             debug_mode = True
 
@@ -113,7 +117,7 @@ async def ai_chatbot_reply(
             )
 
         if model is None:
-            model = await get_chat_default_model(connection.db_model.id)  # type: ignore
+            model = await get_chat_default_model(connection.db_model.iid)
         result = await new_ai_generate(
             history,
             tools=CHATBOT_TOOLS,

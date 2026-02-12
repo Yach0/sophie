@@ -4,6 +4,8 @@ icon: 🕵️‍♂️️
 ---
 ### Data protection
 
+> Manages user privacy and data protection settings. \
+> Allows users to export their data and control privacy preferences.
 
 ## Available commands
 

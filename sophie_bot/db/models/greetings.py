@@ -1,9 +1,11 @@
 from datetime import timedelta
-from typing import Annotated, Optional
+from typing import Optional
 
-from beanie import Document, Indexed
+from beanie import Document, PydanticObjectId
 from pydantic import BaseModel
 
+from sophie_bot.db.models._link_type import Link
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import Saveable
 
 
@@ -31,8 +33,7 @@ class WelcomeSecurity(BaseModel):
 
 
 class GreetingsModel(Document):
-    # Old ID
-    chat_id: Annotated[int, Indexed()]
+    chat: Link[ChatModel]
 
     welcome_disabled: Optional[bool] = False
 
@@ -50,24 +51,24 @@ class GreetingsModel(Document):
         name = "greetings"
 
     @staticmethod
-    async def get_by_chat_id(chat_id: int) -> "GreetingsModel":
-        return await GreetingsModel.find_one(GreetingsModel.chat_id == chat_id) or GreetingsModel(chat_id=chat_id)
+    async def get_by_chat_iid(chat_iid: PydanticObjectId) -> "GreetingsModel":
+        return await GreetingsModel.find_one(GreetingsModel.chat.id == chat_iid) or GreetingsModel(chat=chat_iid)
 
     @staticmethod
-    async def change_state_welcome(chat_id: int, new_state: bool) -> "GreetingsModel":
-        model = await GreetingsModel.get_by_chat_id(chat_id)
+    async def change_state_welcome(chat_iid: PydanticObjectId, new_state: bool) -> "GreetingsModel":
+        model = await GreetingsModel.get_by_chat_iid(chat_iid)
         model.welcome_disabled = not new_state
         return await model.save()
 
     @staticmethod
-    async def change_welcome_message(chat_id: int, saveable: Saveable) -> "GreetingsModel":
-        model = await GreetingsModel.get_by_chat_id(chat_id)
+    async def change_welcome_message(chat_iid: PydanticObjectId, saveable: Saveable) -> "GreetingsModel":
+        model = await GreetingsModel.get_by_chat_iid(chat_iid)
         model.note = saveable
         return await model.save()
 
     @staticmethod
-    async def change_join_request_message(chat_id: int, saveable: Saveable) -> "GreetingsModel":
-        model = await GreetingsModel.get_by_chat_id(chat_id)
+    async def change_join_request_message(chat_iid: PydanticObjectId, saveable: Saveable) -> "GreetingsModel":
+        model = await GreetingsModel.get_by_chat_iid(chat_iid)
         model.join_request_message = saveable
         return await model.save()
 

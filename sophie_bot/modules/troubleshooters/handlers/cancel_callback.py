@@ -2,10 +2,11 @@ from typing import Any
 
 from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
+from stfu_tg import UserLink
 
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
-from sophie_bot.modules.troubleshooters.callbacks import CancelCallback
-from sophie_bot.modules.utils_.base_handler import SophieCallbackQueryHandler
+from sophie_bot.modules.troubleshooters.callbacks import CallbackActionCancel, CancelCallback
+from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -26,7 +27,7 @@ class CancelCallbackHandler(SophieCallbackQueryHandler):
         user = self.event.from_user
 
         if not is_user_admin(self.event.message.chat.id, user.id):  # type: ignore[union-attr]
-            return await self.event.answer(_("You are not allowed to cancel this action!"))  # type: ignore[union-attr]
+            return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()
         await self.event.message.edit_text(_("❌ Cancelled."))  # type: ignore[union-attr]
@@ -43,7 +44,27 @@ class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
         user = self.event.from_user
 
         if user.id != data.user_id:
-            return await self.event.answer(_("You are not allowed to cancel this action!"))  # type: ignore[union-attr]
+            return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()
         await self.event.message.edit_text(_("❌ Cancelled."))  # type: ignore[union-attr]
+
+
+class CallbackActionCancelHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (CallbackActionCancel.filter(),)
+
+    async def handle(self) -> Any:
+        user = self.event.from_user
+        if not user:
+            return
+
+        # Check if the user is an admin
+        if not await is_user_admin(self.connection.db_model.iid, self.data["user_db"].iid):
+            return await self.event.answer(_("You are not allowed to cancel this action!"))
+
+        await self.state.clear()
+        await self.event.message.edit_text(  # type: ignore[union-attr]
+            _("The action was cancelled by {user}.").format(user=UserLink(user.id, user.first_name))
+        )

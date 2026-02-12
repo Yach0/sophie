@@ -1,5 +1,6 @@
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
+from beanie import PydanticObjectId
 from ass_tg.types import WordArg
 from stfu_tg import Code, Italic, KeyValue, Section, Template
 
@@ -11,7 +12,7 @@ from sophie_bot.modules.disabling.utils.get_disabled import (
     get_disabled_handlers,
 )
 from sophie_bot.modules.help.utils.format_help import format_cmd
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -24,8 +25,8 @@ class DisableHandler(SophieMessageHandler):
         return CMDFilter("disable"), UserRestricting(admin=True)
 
     @staticmethod
-    async def disable_cmd(chat_id: int, cmd: str) -> None:
-        await DisablingModel.disable(chat_id, cmd)
+    async def disable_cmd(chat_iid: PydanticObjectId, cmd: str) -> None:
+        await DisablingModel.disable(chat_iid, cmd)
 
     async def handle(self):
         connection = self.connection
@@ -37,11 +38,11 @@ class DisableHandler(SophieMessageHandler):
             await self.event.reply(str(Template(_("Command {cmd} not found."), cmd=Code("/" + cmd_name))))
             return
 
-        if handler in await get_disabled_handlers(connection.id):
+        if handler in await get_disabled_handlers(connection.db_model.iid):
             await self.event.reply(str(Template(_("Command {cmd} is already disabled."), cmd=Code("/" + cmd_name))))
             return
 
-        await self.disable_cmd(connection.id, handler.cmds[0])
+        await self.disable_cmd(connection.db_model.iid, handler.cmds[0])
 
         await self.event.reply(
             str(

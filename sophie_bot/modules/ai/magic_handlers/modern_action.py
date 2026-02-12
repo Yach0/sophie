@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, Optional
 
 from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel
-from stfu_tg import Italic, Section, Title
+from stfu_tg import Italic, Section, Template, Title
 from stfu_tg.doc import Doc, Element, PreformattedHTML
 
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
@@ -52,7 +53,7 @@ async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dic
 class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
     name = "ai_text"
 
-    icon = "✨"
+    icon = AI_EMOJI
     title = l_("AI Response")
 
     interactive_setup = ModernActionSetting(
@@ -68,23 +69,26 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         return {
             "reply_text": ModernActionSetting(
                 title=l_("Change AI prompt"),
-                icon="✨",
+                icon=AI_EMOJI,
                 setup_message=reply_action_setup_message,
                 setup_confirm=set_reply_text,
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: AIReplyActionDataModel) -> Element:
+    async def handle(self, message: Message, data: dict, filter_data: AIReplyActionDataModel) -> Optional[Element]:
         connection: ChatConnection = data["connection"]
 
-        if not (chat_db := await ChatModel.get_by_chat_id(connection.id)):
+        if not (chat_db := await ChatModel.get_by_tid(connection.tid)):
             raise SophieException("Chat not found in database")
 
         if not (message.text or message.caption and await AIThrottleFilter().__call__(message, chat_db)):
             return
 
         messages = await NewAIMessageHistory.chatbot(message, additional_system_prompt=filter_data.prompt)
-        provider = await get_chat_default_model(connection.db_model.id)
+        provider = await get_chat_default_model(connection.db_model.iid)
 
         result = await new_ai_generate(messages, provider)
-        return Doc(Title(_("✨ AI Response")), PreformattedHTML(legacy_markdown_to_html(str(result.output))))
+        return Doc(
+            Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),
+            PreformattedHTML(legacy_markdown_to_html(str(result.output))),
+        )

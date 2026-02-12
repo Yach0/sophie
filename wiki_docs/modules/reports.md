@@ -1,7 +1,12 @@
 ---
 title: Reports
-icon: 🗳
+icon: 📢
 ---
+### Report messages to chat admins
+
+> Allows users to report messages to chat administrators. \
+> Admins will be notified about reported messages and can take appropriate action.
+
 ## Available commands
 
 
@@ -9,4 +14,4 @@ icon: 🗳
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/report` | - | Reports the replied message. |  |
+| `/report` | - | Reports the replied message. | *Disable-able* |

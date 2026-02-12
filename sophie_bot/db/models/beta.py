@@ -2,8 +2,11 @@ from asyncio import Lock
 from enum import Enum
 from typing import Optional
 
-from beanie import Document, UpdateResponse, Indexed
+from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set, Unset
+
+from sophie_bot.db.models._link_type import Link
+from sophie_bot.db.models.chat import ChatModel
 
 
 class PreferredMode(Enum):
@@ -18,7 +21,7 @@ class CurrentMode(Enum):
 
 
 class BetaModeModel(Document):
-    chat_id: int = Indexed(unique=False)
+    chat: Link[ChatModel]
     preferred_mode: PreferredMode = PreferredMode.auto
     mode: Optional[CurrentMode] = None
 
@@ -34,29 +37,29 @@ class BetaModeModel(Document):
         return await BetaModeModel.find(BetaModeModel.mode == CurrentMode.beta).count()
 
     @staticmethod
-    async def set_mode(chat_id: int, new_mode: CurrentMode) -> "BetaModeModel":
+    async def set_mode(chat_iid: PydanticObjectId, new_mode: CurrentMode) -> "BetaModeModel":
         async with Lock():
-            return await BetaModeModel.find_one(BetaModeModel.chat_id == chat_id).upsert(
+            return await BetaModeModel.find_one(BetaModeModel.chat.id == chat_iid).upsert(
                 Set({BetaModeModel.mode: new_mode}),
                 on_insert=BetaModeModel(
-                    chat_id=chat_id,
+                    chat=chat_iid,
                     mode=new_mode,
                 ),
                 response_type=UpdateResponse.NEW_DOCUMENT,
             )
 
     @staticmethod
-    async def set_preferred_mode(chat_id: int, new_mode: PreferredMode) -> "BetaModeModel":
-        return await BetaModeModel.find_one(BetaModeModel.chat_id == chat_id).upsert(
+    async def set_preferred_mode(chat_iid: PydanticObjectId, new_mode: PreferredMode) -> "BetaModeModel":
+        return await BetaModeModel.find_one(BetaModeModel.chat.id == chat_iid).upsert(
             Set({BetaModeModel.preferred_mode: new_mode}),
             Unset({BetaModeModel.mode: 1}),
             on_insert=BetaModeModel(
-                chat_id=chat_id,
+                chat=chat_iid,
                 preferred_mode=new_mode,
             ),
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
 
     @staticmethod
-    async def get_by_chat_id(chat_id: int) -> Optional["BetaModeModel"]:
-        return await BetaModeModel.find_one(BetaModeModel.chat_id == chat_id)
+    async def get_by_chat_iid(chat_iid: PydanticObjectId) -> Optional["BetaModeModel"]:
+        return await BetaModeModel.find_one(BetaModeModel.chat.id == chat_iid)

@@ -7,7 +7,7 @@ from beanie import PydanticObjectId
 from pydantic import ValidationError
 
 
-def _convert_action_data_to_model(action, action_data):
+def convert_action_data_to_model(action, action_data):
     """Convert dictionary action data to Pydantic model using action's data_object."""
     if action_data is None:
         return action.default_data

@@ -2,11 +2,12 @@ from typing import Any, Optional
 
 from aiogram import Router, flags
 from aiogram.handlers import CallbackQueryHandler
-from aiogram.types import CallbackQuery, InlineKeyboardButton
+from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import Doc, HList, Section, Title, Url
+from stfu_tg import Doc, HList, Section, Template, Title, Url
 
 from sophie_bot.config import CONFIG
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIChatCallback
@@ -17,7 +18,7 @@ from sophie_bot.modules.help.callbacks import (
 )
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, get_aliased_cmds
 from sophie_bot.modules.help.utils.format_help import format_handlers, group_handlers
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -43,7 +44,11 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         buttons = InlineKeyboardBuilder()
 
         buttons.row(
-            InlineKeyboardButton(text=_("💬✨ Chat with Sophie for help"), callback_data=AIChatCallback().pack())
+            InlineKeyboardButton(
+                text=str(Template(_("💬{ai_emoji} Chat with Sophie for help"), ai_emoji=AI_EMOJI)),
+                callback_data=AIChatCallback().pack(),
+                style="primary",
+            )
         )
 
         buttons.row(
@@ -61,7 +66,7 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         )
 
         if callback_data and callback_data.back_to_start:
-            buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start"))
+            buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start", style="primary"))
 
         doc = Doc(
             Title(_("Help")),
@@ -72,7 +77,7 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         )
 
         if isinstance(self.event, CallbackQuery):
-            await self.message.edit_text(str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)  # type: ignore
+            await self.message.edit_text(str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)
         else:
             await self.event.reply(str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)
 
@@ -92,7 +97,7 @@ class PMModuleHelp(CallbackQueryHandler):
         doc = Doc(
             HList(
                 Title(f"{module.icon} {module.name}"),
-                ("- " + module.description) if module.description else None,
+                f"- {module.description}" if module.description else None,
             )
         )
         if module.info:
@@ -119,13 +124,13 @@ class PMModuleHelp(CallbackQueryHandler):
 
         buttons.row(
             InlineKeyboardButton(
-                text=_("⬅️ Back"), callback_data=PMHelpModules(back_to_start=callback_data.back_to_start).pack()
+                text=_("⬅️ Back"),
+                callback_data=PMHelpModules(back_to_start=callback_data.back_to_start).pack(),
+                style="primary",
             )
         )
 
-        if not self.event.message:
-            raise SophieException("Message not found")
+        if not self.event.message or not isinstance(self.event.message, Message):
+            raise SophieException("Message not found or inaccessible")
 
-        await self.event.message.edit_text(  # type: ignore
-            str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True
-        )
+        await self.event.message.edit_text(str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)

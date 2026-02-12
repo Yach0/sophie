@@ -28,11 +28,11 @@ class SophieErrorHandler(ErrorHandler):
         self.log_to_console(etype, value, tb, sentry_event_id=sentry_event_id)
 
         if not sys_exception:
-            log.error("No sys exception", from_aiogram=exception, from_sys=sys_exception)
+            log.warning("No sys exception", from_aiogram=exception, from_sys=sys_exception)
             return
 
         elif exception != sys_exception:
-            log.error(
+            log.warning(
                 "Mismatched exception seeking",
                 from_aiogram=exception,
                 from_sys=sys_exception,
@@ -42,7 +42,7 @@ class SophieErrorHandler(ErrorHandler):
         try:
             await self.data["state"].clear()
         except Exception as err:
-            log.error("Failed to clear state", err=err)
+            log.warning("Failed to clear state", err=err)
 
         if update.inline_query:
             return  # Do not send messages after inline query
@@ -63,12 +63,12 @@ class SophieErrorHandler(ErrorHandler):
     def log_to_console(etype, value, tb, **kwargs):
         if etype and value and tb:
             # Ensure traceback is attached for Sentry logging integration
-            log.error("Unhandled exception", exc_info=(etype, value, tb))
+            log.warning("Unhandled exception", exc_info=(etype, value, tb))
         else:
             # Fallback: no sys exc_info available
-            log.error("Unhandled exception (no sys exc_info available)")
+            log.warning("Unhandled exception (no sys exc_info available)")
         if kwargs:
-            log.error("Additional error data", **kwargs)
+            log.warning("Additional error data", **kwargs)
 
     @staticmethod
     def capture_sentry(exception: Exception) -> Optional[str]:

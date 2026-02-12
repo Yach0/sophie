@@ -4,7 +4,7 @@ from ass_tg.types import OneOf
 from stfu_tg import Italic, KeyValue, Section, Template
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import GlobalSettings
+from sophie_bot.db.models import GlobalSettings, ChatModel
 from sophie_bot.db.models.beta import BetaModeModel, PreferredMode
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -20,10 +20,10 @@ mode_names = {
     new_state=OneOf(("auto", "stable", "beta"), l_("Preferred strategy mode")),
 )
 @flags.help(description=l_("Set preferred strategy mode"))
-async def set_preferred_mode(message: Message, new_state: str):
+async def set_preferred_mode(message: Message, new_state: str, chat_db: ChatModel):
     state = PreferredMode[new_state]
 
-    await BetaModeModel.set_preferred_mode(message.chat.id, state)
+    await BetaModeModel.set_preferred_mode(chat_db.iid, state)
 
     buttons = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -63,8 +63,8 @@ async def set_preferred_mode(message: Message, new_state: str):
 
 
 @flags.help(description=l_("Get current strategy mode / current state"))
-async def show_beta_state(message):
-    beta_state = await BetaModeModel.get_by_chat_id(message.chat.id)
+async def show_beta_state(message: Message, chat_db: ChatModel):
+    beta_state = await BetaModeModel.get_by_chat_iid(chat_db.iid)
 
     preferred_mode = PreferredMode(beta_state.preferred_mode) if beta_state else PreferredMode.auto
 

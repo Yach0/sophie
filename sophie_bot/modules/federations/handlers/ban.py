@@ -5,18 +5,18 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from ass_tg.types import OptionalArg
-from stfu_tg import Doc, KeyValue, Title, UserLink
+from ass_tg.types import OptionalArg, TextArg
+from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
-from sophie_bot.config import CONFIG
+from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.args.ban import FederationBanReasonArg, FederationBanUserArg
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
+from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -36,8 +36,8 @@ class FederationBanHandler(SophieMessageHandler):
             "fed_id": OptionalArg(
                 FedIdArg(l_("Federation ID (optional, uses current chat's federation if not specified)"))
             ),
-            "user": FederationBanUserArg(l_("User to ban")),
-            "reason": OptionalArg(FederationBanReasonArg()),
+            "user": OptionalArg(SophieUserArg(l_("User to ban"))),
+            "reason": OptionalArg(TextArg(l_("Reason (optional)"))),
         }
 
     async def handle(self) -> Any:
@@ -47,10 +47,21 @@ class FederationBanHandler(SophieMessageHandler):
             return
 
         fed_id_arg: str | None = self.data.get("fed_id")
-        user: ChatModel = self.data["user"]
+        user: ChatModel | None = self.data.get("user")
         reason: str | None = self.data.get("reason")
 
+        if not user:
+            reply_message = self.event.reply_to_message
+            reply_from_user = reply_message.from_user if reply_message else None
+            if not reply_from_user:
+                await self.event.reply(_("Please specify a user or reply to a user's message."))
+                return
+            user = await ChatModel.get_by_tid(reply_from_user.id)
+            if not user:
+                user = await ChatModel.upsert_user(reply_from_user)
+
         # Determine federation
+        user_tid = user.tid
         if fed_id_arg:
             federation = await FederationService.get_federation_by_id(fed_id_arg)
             if not federation:
@@ -58,64 +69,54 @@ class FederationBanHandler(SophieMessageHandler):
                 return
         else:
             # Use current chat's federation
-            chat_id = self.connection.id
-            federation = await FederationService.get_federation_for_chat(chat_id)
+            chat_iid = self.connection.db_model.iid
+            federation = await FederationService.get_federation_for_chat(chat_iid)
             if not federation:
                 await self.event.reply(
-                    _("This chat is not in any federation. Use /fban <fed_id> <user> to specify federation.")
+                    Template(
+                        _("This chat is not in any federation. Use {cmd} to specify federation."),
+                        cmd=Code("/fban <fed_id> <user>"),
+                    ).to_html()
                 )
                 return
 
         # Permission check
-        if not FederationPermissionService.can_ban_in_federation(federation, self.event.from_user.id):
+        banner_tid = self.event.from_user.id if self.event.from_user else 0
+        if not await FederationPermissionService.can_ban_in_federation(federation, banner_tid):
             await self.event.reply(_("You don't have permission to ban users in this federation."))
             return
 
-        # Validation
-        if user.user_id in CONFIG.operators:
-            await self.event.reply(_("Cannot ban bot operators."))
-            return
-
-        if user.user_id == self.event.from_user.id:
-            await self.event.reply(_("You cannot ban yourself."))
-            return
-
-        if user.user_id == CONFIG.bot_id:
-            await self.event.reply(_("Cannot ban the bot."))
-            return
-
-        if user.user_id == federation.creator:
-            await self.event.reply(_("Cannot ban the federation owner."))
-            return
-
-        # Check if user is federation admin
-        if federation.admins and user.user_id in federation.admins:
-            await self.event.reply(_("Cannot ban federation administrators."))
-            return
-
         # Ban user
-        await FederationService.ban_user(federation, user.user_id, self.event.from_user.id, reason)
+        try:
+            user_iid = self.data["user_db"].iid
+            ban = await FederationService.ban_user(federation, user_tid, user_iid, reason)
+        except FederationBanValidationError as e:
+            await self.event.reply(str(e))
+            return
+        banned_count = await FederationService.ban_user_in_federation_chats(federation, ban, user_tid)
 
         # Format response
         silent = self.event.text and self.event.text.startswith("/sfban")
         doc = Doc(
             Title(_("🏛 User Banned from Federation")),
             KeyValue(_("Federation"), federation.fed_name),
-            KeyValue(_("User"), UserLink(user.user_id, user.first_name or "Unknown")),
+            KeyValue(_("User"), UserLink(user.tid, user.first_name_or_title or _("Unknown"))),
             KeyValue(_("Banned by"), UserLink(self.event.from_user.id, self.event.from_user.first_name)),
         )
         if reason:
             doc += KeyValue(_("Reason"), reason)
+        doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=str(banned_count)))
 
         await self.event.reply(str(doc))
 
         # Log the ban
-        log_text = _("🏛 User {banned_user} has been banned from federation by {banner}.").format(
-            banned_user=UserLink(user.user_id, user.first_name or "Unknown").to_html(),
+        log_text = Template(
+            _("🏛 User {banned_user} has been banned from federation by {banner}."),
+            banned_user=UserLink(user.tid, user.first_name_or_title or _("Unknown")).to_html(),
             banner=self.event.from_user.mention_html(),
-        )
+        ).to_html()
         if reason:
-            log_text += _(" Reason: {reason}").format(reason=reason)
+            log_text += Template(_(" Reason: {reason}"), reason=reason).to_html()
         await FederationService.post_federation_log(federation, log_text, self.event.bot)
 
         # TODO: Send ban notifications to federation chats (non-silent only)

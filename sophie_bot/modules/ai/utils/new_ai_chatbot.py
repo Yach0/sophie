@@ -46,14 +46,14 @@ async def new_ai_reply(message: Message, markup: Optional[ReplyKeyboardMarkup] =
     from sophie_bot.middlewares.connections import ChatConnection
     from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 
-    chat_db = await ChatModel.get_by_chat_id(message.chat.id)
+    chat_db = await ChatModel.get_by_tid(message.chat.id)
     if not chat_db:
         raise ValueError("Chat not found in database")
 
     connection = ChatConnection(
         type=chat_db.type,
         is_connected=False,
-        id=chat_db.chat_id,
+        tid=chat_db.tid,
         title=chat_db.first_name_or_title,
         db_model=chat_db,
     )

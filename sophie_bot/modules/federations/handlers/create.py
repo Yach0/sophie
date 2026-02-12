@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 from typing import Any
-import uuid
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title
+from stfu_tg import Doc, Title, Template, Code
 
-from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.federations.exceptions import (
+    FederationAlreadyExistsError,
+    FederationLimitExceededError,
+    FederationValidationError,
+)
 from sophie_bot.modules.federations.services.federation import FederationService
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -44,45 +47,35 @@ class CreateFederationHandler(SophieMessageHandler):
 
         name: str = self.data["name"]
 
-        # Validate name length
-        from sophie_bot.modules.federations.config import MAX_FEDERATION_NAME_LENGTH
-
-        if len(name) > MAX_FEDERATION_NAME_LENGTH:
-            await self.event.reply(
-                _("Federation name too long. Maximum length is {max_length} characters.").format(
-                    max_length=MAX_FEDERATION_NAME_LENGTH
-                )
-            )
+        try:
+            # Create federation
+            user_db = self.data["user_db"]
+            federation = await FederationService.create_federation(name, user_db.iid)
+        except FederationValidationError as e:
+            await self.event.reply(str(e))
             return
-
-        # Check if user can create federation
-        if not await FederationService._can_user_create_federation(self.event.from_user.id):
+        except FederationLimitExceededError:
             await self.event.reply(_("You have reached the maximum number of federations you can create."))
             return
-
-        # Check name uniqueness
-        if await Federation.find_one(Federation.fed_name == name):
+        except FederationAlreadyExistsError:
             await self.event.reply(_("A federation with this name already exists."))
             return
 
-        # Create federation
-        federation = Federation(fed_name=name, fed_id=str(uuid.uuid4()), creator=self.event.from_user.id)
-        await federation.insert()
-
         # Format success message
         doc = Doc(
-            Title(
-                _("🏛 Federation Created"),
-            ),
-            _("Federation '{name}' has been created successfully!").format(name=federation.fed_name),
-            _("Federation ID: {fed_id}").format(fed_id=federation.fed_id),
+            Title(_("🏛 Federation Created")),
+            Template(_("Federation '{name}' has been created successfully!"), name=federation.fed_name),
+            Template(_("Federation ID: {fed_id}"), fed_id=Code(federation.fed_id)),
+            Template(_("Use {cmd} to join this federation."), cmd=f"/joinfed {federation.fed_id}"),
             _("You are the owner of this federation."),
         )
 
         await self.event.reply(str(doc))
 
         # Log the federation creation
-        log_text = _("🏛 Federation '{name}' has been created by {user}.").format(
-            name=federation.fed_name, user=self.event.from_user.mention_html()
-        )
+        log_text = Template(
+            _("🏛 Federation '{name}' has been created by {user}."),
+            name=federation.fed_name,
+            user=self.event.from_user.mention_html(),
+        ).to_html()
         await FederationService.post_federation_log(federation, log_text, self.event.bot)

@@ -1,7 +1,10 @@
 ---
 title: Notes
 icon: 📗
----> If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes. \
+---
+### Save and retrieve notes in chats
+
+> If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes. \
 > Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons.
 
 ## Available commands
@@ -22,7 +25,8 @@ icon: 📗
 | --- | --- | --- | --- |
 | `/pmnotes` `/privatenotes` | `<New state>` | Control Private Notes | *Only in groups* |
 | `/delnote` `/clear` | `<Note name>` | Deletes notes. |  |
-| `/save` `/addnote` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
+| `/save` `/addnote` | `<Note names>` `<?Description>` `<None>` | Save the note. |  |
+| `/clearall` | - | Deletes all notes. |  |
 
 ### Aliased commands from [✨ Sophie AI](ai)
 

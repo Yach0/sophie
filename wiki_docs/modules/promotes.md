@@ -2,6 +2,11 @@
 title: Promotes
 icon: ⭐️
 ---
+### Manage user promotions in chats
+
+> Allows administrators to promote and demote users in chats. \
+> Manage user permissions and administrative privileges.
+
 ## Available commands
 
 

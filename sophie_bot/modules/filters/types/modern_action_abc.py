@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.filters.types.modern_action_data_types import ACTION_DATA
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import LazyProxy
 
 
@@ -70,6 +70,9 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):
 
     as_filter: bool = True  # Can be used as a filter
     as_button: bool = False  # Can be used as a button
+    as_flood: bool = False  # Can be used as an antiflood action
+
+    button_allowed_prefixes: Optional[tuple[str, ...]] = None  # Allowed prefixes for buttons
 
     def __init__(self):
         pass

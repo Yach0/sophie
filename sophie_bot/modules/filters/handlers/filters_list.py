@@ -7,7 +7,7 @@ from stfu_tg import Doc, KeyValue, Section, Template
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_text
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -20,7 +20,7 @@ class FiltersListHandler(SophieMessageHandler):
         return (CMDFilter("filters"),)
 
     async def handle(self) -> Any:
-        all_filters = await FiltersModel.get_filters(self.connection.id)
+        all_filters = await FiltersModel.get_filters(self.connection.db_model.iid)
 
         if not all_filters:
             return await self.event.reply(_("There are no filters in this chat!"))

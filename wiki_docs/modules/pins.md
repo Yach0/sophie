@@ -2,6 +2,11 @@
 title: Pins
 icon: 📌
 ---
+### Pin and unpin messages in chats
+
+> Allows administrators to pin important messages in the chat. \
+> Also provides the ability to unpin messages when needed.
+
 ## Available commands
 
 
@@ -9,5 +14,5 @@ icon: 📌
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/unpin` | - | Pins replied message |  |
-| `/pin` | - | Unpins the last pinned message |  |
+| `/pin` | `<None>` `<None>` | Pins replied message |  |
+| `/unpin` | `<None>` | Unpins message |  |

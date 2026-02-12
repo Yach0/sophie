@@ -1,13 +1,15 @@
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import ChatJoinRequest
 
+from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.modules.greetings.default_welcome import get_default_join_request_message
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.utils_.base_handler import SophieBaseHandler
+from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import initiate_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
@@ -40,12 +42,20 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             return
 
         # Get chat model
-        chat = await ChatModel.get_by_chat_id(chat_tid)
+        chat = await ChatModel.get_by_tid(chat_tid)
         if not chat:
             return
 
         # Get greetings model
-        greetings = await GreetingsModel.get_by_chat_id(chat_tid)
+        greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+
+        # Check if join request is too old (bot was down/lagging)
+        # If too old, skip captcha enforcement and approve immediately
+        if self.event.date:
+            time_diff = datetime.now(timezone.utc) - self.event.date
+            if time_diff > timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES):
+                await _approve_request()
+                return
 
         # Check if welcomesecurity is enabled
         if not (greetings.welcome_security and greetings.welcome_security.enabled):
@@ -54,7 +64,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             return
 
         # Get user model
-        user = await ChatModel.get_by_chat_id(user_tid)
+        user = await ChatModel.get_by_tid(user_tid)
         if not user:
             return
 
@@ -67,7 +77,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         # Send join request message in chat
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
 
-        rules = await RulesModel.get_rules(chat_id=connection.id)
+        rules = await RulesModel.get_rules(connection.db_model.iid)
         additional_fillings = {"rules": rules.text or "" if rules else _("No chat rules, have fun!")}
 
         # Send message in chat

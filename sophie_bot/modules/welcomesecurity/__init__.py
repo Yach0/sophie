@@ -30,6 +30,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 __module_name__ = l_("Welcome Security")
 __module_emoji__ = "🛡️"
+__module_description__ = l_("Protect your chat from bots and verify new users")
 __module_info__ = l_(
     "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 )

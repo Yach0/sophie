@@ -2,6 +2,11 @@
 title: Purges
 icon: 🗑
 ---
+### Delete messages in bulk
+
+> Allows administrators to delete multiple messages at once. \
+> Useful for cleaning up chat history and removing unwanted content.
+
 ## Available commands
 
 

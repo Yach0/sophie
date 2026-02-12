@@ -2,8 +2,9 @@ from contextlib import suppress
 
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
-from stfu_tg import Doc
+from stfu_tg import Doc, Template
 
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
@@ -39,7 +40,7 @@ async def ai_setup_finish(message: Message, _data: dict):
 async def ai_filter_handle(message: Message, chat: dict, data: dict):
     prompt = data["prompt"]
 
-    chat_db = await ChatModel.get_by_chat_id(chat["chat_id"])
+    chat_db = await ChatModel.get_by_tid(chat["chat_id"])
 
     if not chat_db:
         raise SophieException("Chat not found in database")
@@ -50,7 +51,7 @@ async def ai_filter_handle(message: Message, chat: dict, data: dict):
         connection = ChatConnection(
             type=chat_db.type,
             is_connected=False,
-            id=chat_db.chat_id,
+            tid=chat_db.tid,
             title=chat_db.first_name_or_title,
             db_model=chat_db,
         )
@@ -66,7 +67,7 @@ async def ai_filter_handle(message: Message, chat: dict, data: dict):
 def get_filter():
     return {
         "ai_text": {
-            "title": l_("✨ AI Response"),
+            "title": Template(l_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI),
             "setup": {"start": ai_setup_start, "finish": ai_setup_finish},
             "handle": ai_filter_handle,
         }

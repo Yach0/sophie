@@ -6,15 +6,15 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
-from stfu_tg import Doc, KeyValue, Title
+from stfu_tg import Doc, KeyValue, Title, VList, Template
 
-from sophie_bot.db.models.chat import ChatType
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.services.federation import FederationService
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -51,11 +51,15 @@ class FederationInfoHandler(SophieMessageHandler):
         chat_count = await FederationService.get_federation_chat_count(federation.fed_id)
         ban_count = await FederationService.get_federation_ban_count(federation.fed_id)
 
+        # Resolve creator
+        creator = await federation.creator.fetch()
+        creator_text = creator.tid if creator else _("Unknown")
+
         doc = Doc(
             Title(_("🏛 Federation Information")),
             KeyValue(_("Name"), federation.fed_name),
             KeyValue(_("ID"), federation.fed_id),
-            KeyValue(_("Owner"), federation.creator),
+            KeyValue(_("Owner"), creator_text),
             KeyValue(_("Chats"), chat_count),
             KeyValue(_("Banned users"), ban_count),
         )
@@ -80,8 +84,8 @@ class FederationInfoHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        user_id = self.event.from_user.id
-        federations = await FederationService.get_federations_by_creator(user_id)
+        user_iid = self.data["user_db"].id
+        federations = await FederationService.get_federations_by_creator(user_iid)
 
         if not federations:
             await self.event.reply(_("You don't own any federations."))
@@ -93,24 +97,26 @@ class FederationInfoHandler(SophieMessageHandler):
             return
 
         # Show list of federations with guidance for multiple federations
-        from stfu_tg import VList  # Add this import at the top of the file
-
         federation_list = VList(*(f"• {federation.fed_name} (ID: `{federation.fed_id}`)" for federation in federations))
 
         doc = Doc(
             Title(_("🏛 Your Federations")),
-            _("You own {count} federations:").format(count=len(federations)),
+            Template(_("You own {count} federations:"), count=str(len(federations))),
             federation_list,
             "",
             _("To get detailed information about a specific federation, use:"),
-            _("`/finfo <federation_id>`"),
+            Template(_("`/finfo <{var}>`"), var="federation_id"),
         )
         await self.event.reply(str(doc))
 
     async def _show_chat_federation(self) -> None:
         """Show federation information for the current chat."""
-        chat_id = self.connection.id
-        federation = await FederationService.get_federation_for_chat(chat_id)
+        chat = await ChatModel.get_by_tid(self.connection.tid)
+        if not chat:
+            await self.event.reply(_("Chat not found in database"))
+            return
+        chat_iid = chat.iid
+        federation = await FederationService.get_federation_for_chat(chat_iid)
 
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))

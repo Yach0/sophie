@@ -4,6 +4,8 @@ icon: ℹ️
 ---
 ### Provides helpful information
 
+> Provides help and documentation for all bot commands and features. \
+> Includes command lists, usage instructions, and feature explanations.
 
 ## Available commands
 

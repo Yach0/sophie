@@ -1,17 +1,23 @@
 from asyncio import gather
 from importlib import import_module
 from types import ModuleType
-from typing import Sequence, Type, Union
+from typing import TYPE_CHECKING, Sequence, Type, Union
 
 from aiogram import Dispatcher, Router
 
-from sophie_bot.modules.utils_.base_handler import SophieBaseHandler
 from sophie_bot.utils.logger import log
 
+if TYPE_CHECKING:
+    from fastapi import APIRouter
+
+    from sophie_bot.utils.handlers import SophieBaseHandler
+
 LOADED_MODULES: dict[str, ModuleType] = {}
+LOADED_API_ROUTERS: list["APIRouter"] = []
 MODULES = [
-    "op",
     "troubleshooters",  # troubleshooters always first!
+    "rest",
+    "op",
     "error",
     "users",
     "notes",
@@ -26,10 +32,14 @@ MODULES = [
     "purges",
     "warns",
     "restrictions",
+    "reports",
+    "pins",
     "ai",
     "filters",
-    # "antiflood",
-    "legacy_modules",  # Legacy last
+    "antiflood",
+    "language",
+    "connections",
+    "logging",
 ]
 
 
@@ -55,15 +65,20 @@ async def load_modules(
         else:
             log.debug(f"! Module {module_name} has no router!")
 
+        if api_router := getattr(module, "api_router", None):
+            LOADED_API_ROUTERS.append(api_router)
+
         LOADED_MODULES[module.__name__.split(".", 3)[2]] = module
 
     for module_name, module in LOADED_MODULES.items():
+        log.debug(f"Loading module {module_name}...")
         # Load handlers
         if not (router := getattr(module, "router", None)):
             continue
 
-        handlers: Sequence[Type[SophieBaseHandler]] = getattr(module, "__handlers__", [])
+        handlers: Sequence[Type["SophieBaseHandler"]] = getattr(module, "__handlers__", [])
         for handler in handlers:
+            log.debug(f"Registering handler {handler.__name__}...")
             handler.register(router)
 
     # Pre setup

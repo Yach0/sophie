@@ -1,16 +1,18 @@
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 
-from sophie_bot.db.models.ai_enabled import AIEnabledModel
+from sophie_bot.constants import AI_EMOJI
+from sophie_bot.db.models.ai.ai_enabled import AIEnabledModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.status_handler import StatusBoolHandlerABC
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Controls AI features"))
 class EnableAI(StatusBoolHandlerABC):
-    header_text = l_("✨ AI Features")
+    header_text = l_(lambda: _("{ai_emoji} AI Features").format(ai_emoji=AI_EMOJI))
     change_command = "aienable"
 
     @staticmethod
@@ -21,7 +23,7 @@ class EnableAI(StatusBoolHandlerABC):
         if not self.connection.db_model:
             return False
 
-        chat_iid = self.connection.db_model.id
+        chat_iid = self.connection.db_model.iid
         db_model = await AIEnabledModel.get_state(chat_iid)
         return bool(db_model)
 

@@ -6,7 +6,7 @@ from aiogram.types import Message
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
-from sophie_bot.modules.utils_.base_handler import SophieCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityRulesAgreeCB,
@@ -30,7 +30,7 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
         user = self.data["user_db"]
 
         if not isinstance(self.data["callback_data"], WelcomeSecurityRulesAgreeCB) and (
-            rules := await RulesModel.get_rules(chat_id=group.chat_id)
+            rules := await RulesModel.get_rules(group.iid)
         ):
             return await captcha_send_rules(self.event.message, rules)
 
@@ -39,7 +39,7 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
 
         await self.state.clear()
 
-        greetings_db = await GreetingsModel.get_by_chat_id(group.chat_id)
+        greetings_db = await GreetingsModel.get_by_chat_iid(group.iid)
 
         return await complete_captcha(user, group, greetings_db, self.event.message, is_join_request)
 

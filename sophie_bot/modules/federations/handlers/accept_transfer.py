@@ -8,12 +8,12 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title
+from stfu_tg import Doc, Title, Template, Code
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services.federation import FederationService
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -41,7 +41,8 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         fed_id_input: str = self.data["fed_id"]
-        user_id = self.event.from_user.id
+        user_iid = self.data["user_db"].id
+        user_tid = self.connection.tid
 
         # Get transfer request from Redis
         transfer_key = f"{self.TRANSFER_KEY_PREFIX}{fed_id_input}"
@@ -62,7 +63,7 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         # Validate transfer data
-        if transfer_data.get("to_user") != user_id:
+        if transfer_data.get("to_user") != user_tid:
             await self.event.reply(_("This transfer request is not for you."))
             return
 
@@ -79,14 +80,16 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         # Verify current owner
-        if federation.creator != transfer_data.get("from_user"):
+        # We need current owner TID
+        current_owner = await federation.creator.fetch()
+        if not current_owner or current_owner.tid != transfer_data.get("from_user"):
             await self.event.reply(_("Transfer request is outdated. The federation owner has changed."))
             return
 
         # Transfer ownership
         await FederationService.update_federation(
             federation,
-            {"creator": user_id},
+            {"creator": user_iid},
         )
 
         # Clean up transfer request
@@ -96,11 +99,9 @@ class AcceptTransferHandler(SophieMessageHandler):
 
         # Format success message
         doc = Doc(
-            Title(
-                _("🏛 Ownership Transferred"),
-            ),
-            _("You are now the owner of federation '{fed_name}'.").format(fed_name=federation.fed_name),
-            _("Federation ID: {fed_id}").format(fed_id=federation.fed_id),
+            Title(_("🏛 Ownership Transferred")),
+            Template(_("You are now the owner of federation '{fed_name}'."), fed_name=federation.fed_name),
+            Template(_("Federation ID: {fed_id}"), fed_id=Code(federation.fed_id)),
         )
 
         await self.event.reply(str(doc))

@@ -8,7 +8,7 @@ from sophie_bot.db.models import RulesModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.utils_.base_handler import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -26,7 +26,7 @@ class GetRulesHandler(SophieMessageHandler):
         if not connection.is_connected and connection.type == ChatType.private:
             return await self.event.reply(_("Private chats can not have rules. Have fun."))
 
-        rules = await RulesModel.get_rules(connection.id)
+        rules = await RulesModel.get_rules(connection.db_model.iid)
 
         if not rules:
             return await self.event.reply(_("No rules are set for this chat."))

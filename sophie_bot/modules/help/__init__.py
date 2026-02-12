@@ -1,7 +1,9 @@
 from types import ModuleType
 
 from aiogram import F, Router
+from stfu_tg import Doc
 
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 from ...filters.cmd import CMDFilter
@@ -23,6 +25,12 @@ router = Router(name="info")
 __module_name__ = l_("Help")
 __module_emoji__ = "ℹ️"
 __module_description__ = l_("Provides helpful information")
+__module_info__ = LazyProxy(
+    lambda: Doc(
+        l_("Provides help and documentation for all bot commands and features."),
+        l_("Includes command lists, usage instructions, and feature explanations."),
+    )
+)
 # __exclude_public__ = True
 
 

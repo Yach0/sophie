@@ -5,7 +5,7 @@ from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import Message, TelegramObject
 
 from sophie_bot.db.models import ChatModel, WSUserModel
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.logger import log
 
@@ -29,12 +29,12 @@ class LockMutedUsers(BaseMiddleware):
             chat_db: ChatModel = data["chat_db"]
             user_db: ChatModel = data["user_db"]
 
-            log.debug("LockMutedUsers", chat=chat_db.chat_id, user=user_db.chat_id)
+            log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
 
-            if await is_user_admin(chat_db.chat_id, user_db.chat_id):
+            if await is_user_admin(chat_db.tid, user_db.tid):
                 return await handler(event, data)
 
-            model = await WSUserModel.is_user(user_db.id, chat_db.id)
+            model = await WSUserModel.is_user(user_db.iid, chat_db.iid)
             if model and not model.passed:
                 await self._lock_user(event, chat_db, user_db)
 

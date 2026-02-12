@@ -12,14 +12,16 @@ from pydantic import BaseModel
 from stfu_tg import KeyValue, Template, Title, UserLink
 from stfu_tg.doc import Doc, Element
 
+from sophie_bot.config import CONFIG
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ActionSetupTryAgainException,
     ModernActionABC,
     ModernActionSetting,
 )
-from sophie_bot.modules.legacy_modules.utils.restrictions import ban_user
-from sophie_bot.modules.legacy_modules.utils.user_details import is_user_admin
+from sophie_bot.modules.logging.events import LogEvent
+from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.restrictions.utils import ban_user, is_user_admin
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -63,11 +65,11 @@ async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) 
 
 class BanModernAction(ModernActionABC[BanActionDataModel]):
     name = "ban_user"
-
     icon = "🚷"
     title = l_("Ban")
     data_object = BanActionDataModel
     default_data = BanActionDataModel(ban_duration=None)
+    as_flood = True
 
     @staticmethod
     def description(data: BanActionDataModel) -> Element | str:
@@ -87,7 +89,7 @@ class BanModernAction(ModernActionABC[BanActionDataModel]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: BanActionDataModel) -> Element:
+    async def handle(self, message: Message, data: dict, filter_data: BanActionDataModel) -> Optional[Element]:
         if not message.from_user:
             return
 
@@ -112,5 +114,21 @@ class BanModernAction(ModernActionABC[BanActionDataModel]):
 
         if not await ban_user(chat_id, message.from_user.id, until_date=filter_data.ban_duration):
             return
+
+        if "filter_id" in data:
+            details = {
+                "target_user_id": message.from_user.id,
+                "filter_id": data["filter_id"],
+                "action": "ban_user",
+            }
+            if filter_data.ban_duration:
+                details["duration"] = filter_data.ban_duration.total_seconds()
+
+            await log_event(
+                chat_id,
+                CONFIG.bot_id,
+                LogEvent.USER_BANNED,
+                details,
+            )
 
         return doc

@@ -18,7 +18,7 @@ from sophie_bot.modules.filters.types.modern_action_data_types import (
     ACTION_DATA_DUMPED,
 )
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.modules.utils_.base_handler import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -55,11 +55,11 @@ class ActionSetupConfirmHandler(SophieMessageCallbackQueryHandler):
 
         # TODO: Deal with typing below
         try:
-            action_data_model: ACTION_DATA | None = await self._filter_setup(filter_action)  # type: ignore
+            action_data_model: ACTION_DATA | None = await self._filter_setup(filter_action)
         except ActionSetupTryAgainException:
             return
 
-        action_data: ACTION_DATA_DUMPED = action_data_model.model_dump(mode="json") if action_data_model else None  # type: ignore
+        action_data: ACTION_DATA_DUMPED = action_data_model.model_dump(mode="json") if action_data_model else None
 
         # Add action to the list
         try:

@@ -4,32 +4,41 @@ from typing import Annotated, List, Literal, Optional
 from aiogram.webhook.security import DEFAULT_TELEGRAM_NETWORKS
 from pydantic import (
     AnyHttpUrl,
-    BaseModel,
     Field,
     FilePath,
     computed_field,
     field_validator,
-    validator,
+    ValidationInfo,
 )
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
     token: str = "12345:ABCDEFG"
 
-    app_id: int | None = None
-    app_hash: str | None = None
     username: str | None = None
 
     owner_id: int | None = None
     operators: List[int] = []
 
-    mode: Literal["bot", "scheduler", "nostart"] = "bot"
+    mode: Literal["bot", "scheduler", "nostart", "rest"] = "bot"
+    instance_name: str = "development"
+    dev_reload: bool = False  # Enable hot-reload for development (watches file changes)
 
     mongo_host: str = "mongodb://localhost"
     mongo_port: int = 27017
     mongo_db: str = "sophie"
     mongo_allow_index_dropping: bool = True
+    mongo_skip_indexes: bool = False
+    mongo_use_replica_set: bool = False  # Set to True for transaction support
+
+    # Migration configuration
+    run_migrations_on_startup: bool = True
+    migrations_path: str = "sophie_bot/db/migrations"
+    migration_mode: Literal["auto", "manual"] = "auto"
+    migration_use_transactions: bool = False  # Requires MongoDB replica set
+    migration_batch_size: int = 1000  # For large collections
+    migration_timeout_seconds: int = 3600  # 1 hour timeout per migration
 
     redis_host: str = "localhost"
     redis_port: int = 6379
@@ -40,15 +49,13 @@ class Config(BaseSettings):
     botapi_server: Optional[AnyHttpUrl] = None
 
     # Debugging
-    debug_mode: bool = False  # Debug console output
+    # off = no debug, normal = debug logging, high = debug + mongo logs + debug middlewares
+    debug_mode: Literal["off", "normal", "high"] = "off"
     memory_debug: bool = False  # Memory leaks debugging
 
     modules_load: List[str] = ["*"]
     modules_not_load: List[str] = []
     legacy_modules_not_load: List[str] = []
-
-    # Welcomesecurity
-    welcomesecurity_ban_timeout: int = 48  # Hours
 
     webhooks_enable: bool = False
     webhooks_listen: str = "127.0.0.1"
@@ -60,6 +67,13 @@ class Config(BaseSettings):
     webhooks_allowed_networks: Annotated[List[IPv4Network], Field(validate_default=True)] = [IPv4Network("127.0.0.0/8")]
     webhooks_secret_token: Optional[str] = None
     webhooks_handle_in_background: bool = True
+
+    api_listen: str = "0.0.0.0"
+    api_port: int = 8075
+    api_jwt_secret: str = "change_me_in_production"
+    api_operator_token: Optional[str] = "test"
+    api_jwt_expire_minutes: int = 720  # 12 hours
+    api_cors_origins: List[str] = ["*"]
 
     commands_prefix: str = "/!"
     commands_ignore_case: bool = True
@@ -94,14 +108,7 @@ class Config(BaseSettings):
     tavily_api_key: str = ""
     mistral_api_key: str | None = None
 
-    deepseek_key: Optional[str] = None
-    ai_emoji: str = "✨"
     ai_autotrans_lowmem: bool = False
-
-    filters_max_triggers: int = 2
-
-    # Features toggles
-    scheduler: bool = False
 
     # Metrics configuration
     metrics_enable: bool = True
@@ -111,7 +118,6 @@ class Config(BaseSettings):
     metrics_path: str = "/metrics"
     metrics_env: str = "dev"  # const label
     metrics_instance_id: Optional[str] = None  # default to hostname
-    metrics_histogram_buckets: List[float] = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60]
     metrics_enable_default_collectors: bool = True
     metrics_light_mode: bool = True  # disable some histograms if True
     metrics_sample_ratio: float = 1.0
@@ -122,25 +128,50 @@ class Config(BaseSettings):
     pushgateway_job: str = "sophie-bot"
     push_interval_seconds: int = 10
 
-    class Config:
-        env_file = "data/config.env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file="data/config.env", env_file_encoding="utf-8")
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def bot_id(self) -> int:
         return int(self.token.split(":")[0])
 
-    @validator("operators")
-    def validate_operators(cls, value: List[int] | None, values) -> List[int]:
-        owner_id = values["owner_id"]
+    @computed_field
+    @property
+    def security_log_file(self) -> str:
+        return f"data/security.{self.instance_name}.{self.bot_id}.log.txt"
 
-        if not value:
-            return [owner_id]
+    @field_validator("operators", mode="before")
+    @classmethod
+    def validate_operators(cls, v: List[int] | None, info: ValidationInfo) -> List[int]:
+        owner_id = info.data.get("owner_id")
 
-        if owner_id not in value:
-            value.append(owner_id)
-        return value
+        if not v:
+            return [owner_id] if owner_id else []
+
+        if owner_id and owner_id not in v:
+            v.append(owner_id)
+        return v
+
+    @field_validator("api_jwt_secret")
+    @classmethod
+    def validate_jwt_secret(cls, v: str, info: ValidationInfo) -> str:
+        if info.data.get("environment") == "production" and v == "change_me_in_production":
+            raise ValueError("api_jwt_secret must be changed in production")
+        return v
+
+    @field_validator("api_operator_token")
+    @classmethod
+    def validate_operator_token(cls, v: str | None, info: ValidationInfo) -> str | None:
+        if info.data.get("environment") == "production" and v == "test":
+            raise ValueError("api_operator_token must be changed in production")
+        return v
+
+    @field_validator("api_cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, v: List[str], info: ValidationInfo) -> List[str]:
+        if info.data.get("environment") == "production" and "*" in v:
+            raise ValueError("api_cors_origins must not contain '*' in production")
+        return v
 
     @field_validator("webhooks_allowed_networks")
     @classmethod
@@ -149,10 +180,4 @@ class Config(BaseSettings):
         return v
 
 
-class CacheTTL(BaseModel):
-    default_ttl: int = 1800  # 30 minutes
-    language_ttl: int = 86400  # 24 hours
-
-
-CONFIG = Config()  # type: ignore
-CACHE_TTL = CacheTTL()  # type: ignore
+CONFIG = Config()

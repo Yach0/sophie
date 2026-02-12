@@ -8,7 +8,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 async def send_chat_rules(message: Message, chat, data):
-    rules = await RulesModel.get_rules(message.chat.id)
+    rules = await RulesModel.get_rules(chat.iid)
 
     if not rules:
         return await message.reply(str(Section(_("No rules are set for this chat."), title=_("Rules filter failed"))))

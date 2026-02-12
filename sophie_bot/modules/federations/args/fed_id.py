@@ -1,8 +1,11 @@
-from typing import Optional
-from ass_tg.exceptions import ArgStrictError
+from typing import Any, Optional
+
+from ass_tg.entities import ArgEntities
+from ass_tg.exceptions import ArgStrictError, ArgSimpleTypeError
 from ass_tg.types import TextArg
 from stfu_tg import Code
 
+from sophie_bot.constants import FEDERATION_ID_HYPHEN_COUNT, FEDERATION_ID_PART_LENGTH
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
@@ -15,22 +18,40 @@ class FedIdArg(TextArg):
     def __init__(self, description: Optional[LazyProxy] = None):
         super().__init__(description or l_("Federation ID"))
 
-    async def value(self, text: str) -> Optional[Federation]:
+    def check(self, text: str, entities: ArgEntities) -> bool:
+        """Check if text has valid federation ID format and no overlapping entities."""
+        fed_id, *_rest = text.split(maxsplit=1) or (text,)
+
+        if fed_id.count("-") != FEDERATION_ID_HYPHEN_COUNT:
+            raise ArgSimpleTypeError(
+                _("Invalid federation ID format. Federation IDs must contain exactly {count} hyphens.").format(
+                    count=FEDERATION_ID_HYPHEN_COUNT
+                )
+            )
+
+        if entities:
+            raise ArgSimpleTypeError(_("Federation ID cannot contain formatting or mentions."))
+
+        return True
+
+    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, Federation]:
         """Parse and validate federation ID, return Federation model."""
-        # Validate format (exactly 4 hyphens)
-        if text.count("-") != 4:
-            raise ArgStrictError(_("Invalid federation ID format. Federation IDs must contain exactly 4 hyphens."))
+        fed_id, *_rest = text.split(maxsplit=1) or (text,)
 
         # Lookup federation
-        federation = await Federation.find_one(Federation.fed_id == text)
+        federation = await Federation.find_one(Federation.fed_id == fed_id)
         if not federation:
-            raise ArgStrictError(_("Federation with ID {fed_id} not found.").format(fed_id=Code(text)))
+            raise ArgStrictError(_("Federation with ID {fed_id} not found.").format(fed_id=Code(fed_id)))
 
-        return federation
+        return len(fed_id), federation
 
     def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
         return l_("Federation ID (format: xxxx-xxxx-xxxx-xxxx)"), l_("Federation IDs")
 
+    def unparse(self, data: Any, **kwargs) -> str:
+        return data.fed_id
+
     @property
     def examples(self) -> Optional[dict[str, Optional[LazyProxy]]]:
-        return {"a1b2-c3d4-e5f6-g7h8": l_("Federation ID example")}
+        example_id = "-".join(["x" * FEDERATION_ID_PART_LENGTH] * FEDERATION_ID_HYPHEN_COUNT)
+        return {example_id: l_("Federation ID example")}

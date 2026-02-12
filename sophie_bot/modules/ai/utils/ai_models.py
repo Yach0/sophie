@@ -5,66 +5,19 @@ from httpx import AsyncClient
 from pydantic_ai.models import Model
 from pydantic_ai.models.mistral import MistralModel
 from pydantic_ai.models.openrouter import OpenRouterModel
-from pydantic_ai.providers.mistral import MistralProvider
-from pydantic_ai.providers.openrouter import OpenRouterProvider
 
-from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS, AIProviders
 
 ai_http_client = AsyncClient(timeout=30)
 
 
-class AIProviders(str, Enum):
-    auto = "auto"
-    anthropic = "anthropic"
-    google = "google"
-    mistral = "mistral"
-    openai = "openai"
-
-
-# Configure OpenRouter (OpenAI-compatible) provider for non-Mistral models
-_openrouter_provider = OpenRouterProvider(
-    api_key=CONFIG.openrouter_api_key or "",
-)
-
-AI_PROVIDERS = {
-    AIProviders.anthropic.name: _openrouter_provider,
-    AIProviders.google.name: _openrouter_provider,
-    AIProviders.mistral.name: MistralProvider(api_key=CONFIG.mistral_api_key or ""),
-    AIProviders.openai.name: _openrouter_provider,
-}
-AI_MODEL_CLASSES = {
-    AIProviders.anthropic.name: OpenRouterProvider,
-    AIProviders.google.name: OpenRouterProvider,
-    AIProviders.mistral.name: MistralModel,
-    AIProviders.openai.name: OpenRouterProvider,
-}
-AI_PROVIDER_TO_NAME = {
-    AIProviders.auto.name: "Auto",
-    AIProviders.anthropic.name: "Anthropic Claude",
-    AIProviders.google.name: "Google Gemini",
-    AIProviders.mistral.name: "Mistral AI",
-    AIProviders.openai.name: "OpenAI ChatGPT",
-}
-
-# Global, ordered list of provider enum names for UI and validation
-AVAILABLE_PROVIDER_NAMES: tuple[str, ...] = (
-    AIProviders.auto.name,
-    AIProviders.anthropic.name,
-    AIProviders.openai.name,
-    AIProviders.google.name,
-    AIProviders.mistral.name,
-)
-
-
 class GoogleModels(Enum):
-    # OpenRouter slugs for Google models
     gemini_2_5_pro = "google/gemini-2.5-pro"
     gemini_2_5_flash = "google/gemini-2.5-flash"
     gemini_3_flash_preview = "google/gemini-3-flash-preview"
 
 
 class AnthropicModels(Enum):
-    # OpenRouter slugs for Anthropic models
     sonnet_4_5 = "anthropic/claude-sonnet-4.5"
     haiku_4_5 = "anthropic/claude-haiku-4.5"
     haiku_3_5 = "anthropic/claude-3.5-haiku"
@@ -81,7 +34,6 @@ class MistralModels(Enum):
 
 
 class OpenAIModels(Enum):
-    # OpenRouter slugs for OpenAI models
     gpt_4o_mini = "openai/gpt-4o-mini"
     gpt_5 = "openai/gpt-5"
     gpt_5_mini = "openai/gpt-5-mini"
@@ -92,18 +44,36 @@ class OpenAIModels(Enum):
     gpt_oss_20b = "openai/gpt-oss-20b"
 
 
-AI_PROVIDER_TO_MODEL_CLASS = {
-    AIProviders.anthropic.name: OpenRouterModel,
-    AIProviders.google.name: OpenRouterModel,
-    AIProviders.mistral.name: MistralModel,
-    AIProviders.openai.name: OpenRouterModel,
+class ZaiModels(Enum):
+    glm_4_7 = "z-ai/glm-4.7"
+    glm_4_6v = "z-ai/glm-4.6v"
+    glm_4_5_air = "z-ai/glm-4.5-air"
+
+
+AI_PROVIDER_TO_NAME = {
+    AIProviders.auto.name: "Auto",
+    AIProviders.anthropic.name: "Anthropic Claude",
+    AIProviders.google.name: "Google Gemini",
+    AIProviders.mistral.name: "Mistral AI",
+    AIProviders.openai.name: "OpenAI ChatGPT",
+    AIProviders.zai.name: "Z.AI",
 }
+
+AVAILABLE_PROVIDER_NAMES: tuple[str, ...] = (
+    AIProviders.auto.name,
+    AIProviders.anthropic.name,
+    AIProviders.openai.name,
+    AIProviders.google.name,
+    AIProviders.mistral.name,
+    AIProviders.zai.name,
+)
 
 PROVIDER_TO_MODELS: Mapping[str, Type[Enum]] = {
     "anthropic": AnthropicModels,
     "google": GoogleModels,
     "mistral": MistralModels,
     "openai": OpenAIModels,
+    "zai": ZaiModels,
 }
 
 AI_MODEL_TO_PROVIDER = {
@@ -128,6 +98,9 @@ AI_MODEL_TO_PROVIDER = {
     OpenAIModels.gpt_5_2_chat.name: "openai",
     OpenAIModels.gpt_oss_120b.name: "openai",
     OpenAIModels.gpt_oss_20b.name: "openai",
+    ZaiModels.glm_4_7.name: "zai",
+    ZaiModels.glm_4_6v.name: "zai",
+    ZaiModels.glm_4_5_air.name: "zai",
 }
 
 AI_MODEL_TO_SHORT_NAME = {
@@ -152,35 +125,9 @@ AI_MODEL_TO_SHORT_NAME = {
     OpenAIModels.gpt_5_2_chat.value: "GPT-5.2 Chat",
     OpenAIModels.gpt_oss_120b.value: "GPT-OSS 120B",
     OpenAIModels.gpt_oss_20b.value: "GPT-OSS 20B",
-}
-
-
-def build_models(provider: str, model: str) -> Model:
-    # Validate provider → enum mapping
-    try:
-        model_enum = PROVIDER_TO_MODELS[provider]
-    except KeyError:
-        raise ValueError(f"Invalid provider: {provider}") from None
-
-    # Validate model name for the provider
-    try:
-        model_value = model_enum[model].value
-    except KeyError:
-        raise ValueError(f"Invalid model '{model}' for provider '{provider}'") from None
-
-    # Resolve model class and provider instance
-    try:
-        ModelClass = AI_PROVIDER_TO_MODEL_CLASS[provider]
-        provider_instance = AI_PROVIDERS[provider]
-    except KeyError:
-        raise ValueError(f"Configuration missing for provider: {provider}") from None
-
-    # Always construct a Model with an associated Provider instance
-    return ModelClass(model_value, provider=provider_instance)
-
-
-AI_MODELS: dict[str, Model] = {
-    model_name: build_models(provider, model_name) for model_name, provider in AI_MODEL_TO_PROVIDER.items()
+    ZaiModels.glm_4_7.value: "GLM-4.7",
+    ZaiModels.glm_4_6v.value: "GLM-4.6V",
+    ZaiModels.glm_4_5_air.value: "GLM-4.5 Air",
 }
 
 DEFAULT_MODELS: dict[str, str] = {
@@ -189,6 +136,7 @@ DEFAULT_MODELS: dict[str, str] = {
     AIProviders.google.name: GoogleModels.gemini_3_flash_preview.name,
     AIProviders.mistral.name: MistralModels.mistral_medium.name,
     AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
+    AIProviders.zai.name: ZaiModels.glm_4_7.name,
 }
 
 TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
@@ -197,6 +145,73 @@ TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
     AIProviders.google.name: GoogleModels.gemini_2_5_flash.name,
     AIProviders.mistral.name: MistralModels.mistral_medium.name,
     AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
+    AIProviders.zai.name: ZaiModels.glm_4_7.name,
 }
 
-FILTER_HANDLER_MODEL = AI_MODELS[OpenAIModels.gpt_5_nano.name]
+AI_PROVIDER_TO_MODEL_CLASS = {
+    AIProviders.anthropic.name: OpenRouterModel,
+    AIProviders.google.name: OpenRouterModel,
+    AIProviders.mistral.name: MistralModel,
+    AIProviders.openai.name: OpenRouterModel,
+    AIProviders.zai.name: OpenRouterModel,
+}
+
+
+# Lazy model initialization
+_ai_models = None
+_filter_handler_model = None
+
+
+def _get_ai_models():
+    global _ai_models
+    if _ai_models is None:
+
+        def build_models(provider: str, model: str) -> Model:
+            model_enum = PROVIDER_TO_MODELS[provider]
+            model_value = model_enum[model].value
+            ModelClass = AI_PROVIDER_TO_MODEL_CLASS[provider]
+            provider_factory = AI_PROVIDERS[provider]
+            provider_instance = provider_factory()
+            return ModelClass(model_value, provider=provider_instance)
+
+        _ai_models = {
+            model_name: build_models(provider, model_name) for model_name, provider in AI_MODEL_TO_PROVIDER.items()
+        }
+    return _ai_models
+
+
+def _get_filter_handler_model():
+    global _filter_handler_model
+    if _filter_handler_model is None:
+        _filter_handler_model = _get_ai_models()[OpenAIModels.gpt_5_nano.name]
+    return _filter_handler_model
+
+
+# Backwards compatibility: AI_MODELS is now a property-like dict
+class _LazyAIModels(dict):
+    def __getitem__(self, key):
+        return _get_ai_models()[key]
+
+    def __contains__(self, key):
+        return key in _get_ai_models()
+
+    def keys(self):
+        return _get_ai_models().keys()
+
+    def values(self):
+        return _get_ai_models().values()
+
+    def items(self):
+        return _get_ai_models().items()
+
+    def get(self, key, default=None):
+        return _get_ai_models().get(key, default)
+
+
+class _LazyFilterHandlerModel:
+    def __get__(self, obj, objtype=None):
+        return _get_filter_handler_model()
+
+
+AI_MODELS = _LazyAIModels()
+FILTER_HANDLER_MODEL = _LazyFilterHandlerModel()

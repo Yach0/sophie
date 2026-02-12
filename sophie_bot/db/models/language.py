@@ -1,16 +1,12 @@
-from typing import Annotated
-
-from beanie import Document, Indexed
+from beanie import Document, PydanticObjectId
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models._link_type import Link
+from sophie_bot.db.models.chat import ChatModel
 
 
 class LanguageModel(Document):
-    # Old ID
-    chat_id: Annotated[int, Indexed(unique=True)]
-
-    # New link
-    # chat: Link[ChatModel]
+    chat: Link[ChatModel]
 
     lang: str
 
@@ -18,6 +14,6 @@ class LanguageModel(Document):
         name = "lang"
 
     @staticmethod
-    async def get_locale(chat_id: int) -> str:
-        item = await LanguageModel.find_one(LanguageModel.chat_id == chat_id)
+    async def get_locale(chat_iid: PydanticObjectId) -> str:
+        item = await LanguageModel.find_one(LanguageModel.chat.id == chat_iid)
         return item.lang if item else CONFIG.default_locale

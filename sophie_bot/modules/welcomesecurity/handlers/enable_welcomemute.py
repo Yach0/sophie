@@ -13,11 +13,10 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.legacy_modules.utils.message import convert_time
-from sophie_bot.modules.utils_.status_handler import StatusHandlerABC
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
-    convert_timedelta_or_str,
+    convert_timedelta_or_str as convert_timedelta_or_str,
 )
+from sophie_bot.modules.utils_.status_handler import StatusHandlerABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -44,7 +43,7 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
 
         # From db
         if isinstance(status_data, str):
-            delta = convert_time(status_data)
+            delta = convert_timedelta_or_str(status_data)
         elif isinstance(status_data, bool) and not status_data:
             return _("Disabled")
         elif isinstance(status_data, timedelta):
@@ -55,8 +54,8 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
         return Template(_("Enabled, set to {time}"), time=Italic(format_timedelta(delta, locale=locale)))
 
     async def get_status(self) -> timedelta | Literal[False]:
-        chat_id = self.connection.id
-        db_model = await GreetingsModel.get_by_chat_id(chat_id)
+        chat_iid = self.connection.db_model.iid
+        db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
 
         if not db_model or not db_model.welcome_mute or not db_model.welcome_mute.enabled:
             return False
@@ -66,7 +65,7 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
         return convert_timedelta_or_str(db_model.welcome_mute.time)
 
     async def set_status(self, new_status: str | timedelta | Literal[False]):
-        chat_id = self.connection.id
+        chat_iid = self.connection.db_model.iid
 
         time: Optional[timedelta] = None
 
@@ -76,7 +75,7 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
             is_enabled = True
             time = convert_timedelta_or_str(new_status)
 
-        db_model = await GreetingsModel.get_by_chat_id(chat_id)
+        db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
 
         time_str = str(time) if time else None
         await db_model.set_status_welcomemute(is_enabled, time_str)

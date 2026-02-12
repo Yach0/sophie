@@ -13,7 +13,7 @@ from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTI
 
 from .controller import WizardController
 from .callbacks import ACWCoreCallback, ACWSettingCallback
-from .helpers import _convert_action_data_to_model
+from .helpers import convert_action_data_to_model
 
 
 class WizardRenderer:
@@ -35,14 +35,12 @@ class WizardRenderer:
 
         Returns (text_html, reply_markup)
         """
-        try:
-            model = await handler.get_model(chat_iid)
-            actions = await handler.get_actions(model)
-        except Exception:
-            actions = []
+        model = await handler.get_model(chat_iid)
+        actions = await handler.get_actions(model)
 
         items = [KeyValue(_("Chat"), chat_title or "Unknown")]
         builder = InlineKeyboardBuilder()
+        allow_multiple = getattr(handler, "allow_multiple_actions", True)
 
         if actions:
             for action in actions:
@@ -50,7 +48,7 @@ class WizardRenderer:
                 if not action_meta:
                     continue
                 action_text = (
-                    action_meta.description(_convert_action_data_to_model(action_meta, action.data))
+                    action_meta.description(convert_action_data_to_model(action_meta, action.data))
                     if action_meta and action.data
                     else action.name
                 )
@@ -64,6 +62,13 @@ class WizardRenderer:
                     )
                 )
 
+            # In single-action mode, show current action name as a key-value
+            if not allow_multiple and len(actions) == 1:
+                action = actions[0]
+                action_meta = ALL_MODERN_ACTIONS.get(action.name)
+                if action_meta:
+                    items.append(KeyValue(_("Current Action"), f"{action_meta.icon} {action_meta.title}"))
+
         # Add Save if staged changes exist
         has_changes = await WizardController.has_staged_changes(state, handler.module_name, chat_iid)
         if has_changes:
@@ -76,9 +81,18 @@ class WizardRenderer:
         # Add add-new only if allowed or no actions yet
         allow_multiple = getattr(handler, "allow_multiple_actions", True)
         if allow_multiple or not actions:
+            # In multiple-action mode, show "Add another action"
+            # In single-action mode with no actions, show "Add action"
+            # In single-action mode with existing action, show "Change action"
+            if allow_multiple:
+                add_text = _("➕ Add another action")
+            elif not actions:
+                add_text = _("➕ Add action")
+            else:
+                add_text = _("🔄 Change action")
             builder.add(
                 InlineKeyboardButton(
-                    text=_("➕ Add another action"),
+                    text=add_text,
                     callback_data=ACWCoreCallback(mod=handler.callback_prefix, op="add").pack(),
                 )
             )
@@ -92,14 +106,27 @@ class WizardRenderer:
         return doc.to_html(), builder.as_markup()
 
     @staticmethod
-    async def render_add_action_list(handler: Any, *, chat_tid: int) -> Tuple[str, Any]:
+    async def render_add_action_list(
+        handler: Any, *, chat_tid: int, default_action_name: Optional[str] = None
+    ) -> Tuple[str, Any]:
         """Build the 'select an action to add' page text and keyboard.
 
         Returns (text, reply_markup)
+
+        Args:
+            handler: The handler instance
+            chat_tid: Telegram chat ID (unused but kept for consistency)
+            default_action_name: Optional name of the default action to highlight
         """
         builder = InlineKeyboardBuilder()
+        action_filter = getattr(handler, "action_filter", None)
         for action_name, action in ALL_MODERN_ACTIONS.items():
+            # Apply action filter if provided
+            if action_filter is not None and not action_filter(action):
+                continue
             button_text = f"{action.icon} {action.title}"
+            if default_action_name and action_name == default_action_name:
+                button_text = f"👈 {button_text}"
             callback_data = ACWCoreCallback(mod=handler.callback_prefix, op="select", name=action_name).pack()
             builder.add(InlineKeyboardButton(text=str(button_text), callback_data=callback_data))
         # Back button
@@ -109,7 +136,18 @@ class WizardRenderer:
                 text=_("🔙 Back"), callback_data=ACWCoreCallback(mod=handler.callback_prefix, op="back").pack()
             )
         )
-        return _("Select an action to add:"), builder.as_markup()
+
+        text = _("Select an action to add:")
+        if default_action_name:
+            default_action = ALL_MODERN_ACTIONS.get(default_action_name)
+            if default_action:
+                text += "\n\n"
+                text += _("Default action: {icon} {title}").format(
+                    icon=default_action.icon,
+                    title=default_action.title,
+                )
+
+        return text, builder.as_markup()
 
     @staticmethod
     async def show_action_configured_message(
@@ -130,7 +168,7 @@ class WizardRenderer:
         action = ALL_MODERN_ACTIONS[action_name]
 
         # Convert action data to proper Pydantic model
-        action_model = _convert_action_data_to_model(action, action_data)
+        action_model = convert_action_data_to_model(action, action_data)
 
         # Create confirmation message
         doc = Section(

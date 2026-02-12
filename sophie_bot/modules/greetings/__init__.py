@@ -23,6 +23,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 __module_name__ = l_("Greetings")
 __module_emoji__ = "🙋‍♂️"
+__module_description__ = l_("Welcome new users to your chat")
 __module_info__ = l_(
     "This module helps you to welcome new users automatically, while keeping the chat clean."
     "\nIf you want to enforce captcha / rules verification, please see 'Welcome Security' module instead."

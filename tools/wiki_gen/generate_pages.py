@@ -119,6 +119,7 @@ async def generate_wiki_pages():
 
     # Generate wiki pages for each module
     for module_name, module_help in HELP_MODULES.items():
+        log.debug(f"Generating wiki page for {module_name}")
         page = ModuleWikiPage(module_name, module_help)
 
         if page.is_excluded:
