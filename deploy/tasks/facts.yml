@@ -9,6 +9,8 @@
     api_jwt_secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
     api_operator_token: "{{ lookup('env', 'STAGING_API_OPERATOR_TOKEN') }}"
     api_cors_origins: "{{ lookup('env', 'STAGING_API_CORS_ORIGINS') | from_yaml | to_json }}"
+    mongo_host: "mongodb://host.containers.internal:27017"
+    redis_password: "None"
     role: "staging"
   when: inventory_hostname == "sstaging"
 
@@ -23,5 +25,8 @@
     api_jwt_secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
     api_operator_token: "{{ lookup('env', 'STABLE_API_OPERATOR_TOKEN') }}"
     api_cors_origins: "{{ lookup('env', 'STABLE_API_CORS_ORIGINS') | from_yaml | to_json }}"
+    mongo_host: "{{ lookup('env', 'STABLE_MONGO_HOST') }}"
+    redis_username: "{{ lookup('env', 'STABLE_REDIS_USERNAME') }}"
+    redis_password: "{{ lookup('env', 'STABLE_REDIS_PASSWORD') }}"
     role: "production"
-  when: inventory_hostname == "white"
+  when: inventory_hostname in ["white", "sophie-turquoise"]

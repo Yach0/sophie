@@ -20,6 +20,8 @@ else:
     aredis = Redis(
         host=CONFIG.redis_host,
         port=CONFIG.redis_port,
+        username=CONFIG.redis_username,
+        password=CONFIG.redis_password,
         db=CONFIG.redis_db_states,
         decode_responses=False,
         single_connection_client=True,

@@ -42,6 +42,8 @@ class Config(BaseSettings):
 
     redis_host: str = "localhost"
     redis_port: int = 6379
+    redis_username: Optional[str] = None
+    redis_password: Optional[str] = None
     redis_db_fsm: int = 1
     redis_db_states: int = 2
     redis_db_schedule: int = 3
@@ -139,6 +141,13 @@ class Config(BaseSettings):
     @property
     def security_log_file(self) -> str:
         return f"data/security.{self.instance_name}.{self.bot_id}.log.txt"
+
+    @field_validator("redis_username")
+    @classmethod
+    def validate_redis_username(cls, v: str | None) -> str | None:
+        if v and v.startswith('"') and v.endswith('"'):
+            return v[1:-1]
+        return v
 
     @field_validator("operators", mode="before")
     @classmethod

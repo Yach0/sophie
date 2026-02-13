@@ -19,6 +19,7 @@ bot = Bot(token=CONFIG.token, default=DefaultBotProperties(parse_mode="html"), s
 redis = Redis(
     host=CONFIG.redis_host,
     port=CONFIG.redis_port,
+    password=CONFIG.redis_password,
     db=CONFIG.redis_db_states,
     single_connection_client=True,
 )
