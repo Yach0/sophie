@@ -1,6 +1,13 @@
 from sophie_bot.modules.restrictions.handlers.ban import BanUserHandler, TempBanUserHandler
 from sophie_bot.modules.restrictions.handlers.kick import KickUserHandler
 from sophie_bot.modules.restrictions.handlers.mute import MuteUserHandler, TempMuteUserHandler
+from sophie_bot.modules.restrictions.handlers.silent import (
+    SilentBanUserHandler,
+    SilentKickUserHandler,
+    SilentMuteUserHandler,
+    SilentTempBanUserHandler,
+    SilentTempMuteUserHandler,
+)
 from sophie_bot.modules.restrictions.handlers.unban import UnbanUserHandler
 from sophie_bot.modules.restrictions.handlers.unmute import UnmuteUserHandler
 
@@ -12,4 +19,9 @@ __all__ = [
     "TempMuteUserHandler",
     "UnbanUserHandler",
     "UnmuteUserHandler",
+    "SilentKickUserHandler",
+    "SilentBanUserHandler",
+    "SilentTempBanUserHandler",
+    "SilentMuteUserHandler",
+    "SilentTempMuteUserHandler",
 ]
