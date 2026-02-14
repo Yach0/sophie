@@ -17,6 +17,11 @@ from pydantic_ai.messages import (
 )
 from stfu_tg import HList, KeyValue, Section, VList
 from stfu_tg.doc import Element
+from mistralai.models import (
+    SystemMessage,
+    UserMessage,
+    AssistantMessage,
+)
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -242,7 +247,9 @@ class NewAIMessageHistory:
         return items
 
     @property
-    def to_moderation(self) -> list[dict[str, str]]:
+    def to_moderation(
+        self,
+    ) -> list[dict[str, str]]:
         """Extract chat messages for moderation in {role, content} format."""
         moderation_content: list[dict[str, str]] = []
 
@@ -269,3 +276,20 @@ class NewAIMessageHistory:
                     moderation_content.append({"role": "user", "content": content})
 
         return moderation_content
+
+
+def convert_to_moderation_format(
+    messages: list[dict[str, str]],
+) -> list[SystemMessage | UserMessage | AssistantMessage]:
+    """Convert plain dict messages to Mistral SDK message objects for moderation."""
+    result: list[SystemMessage | UserMessage | AssistantMessage] = []
+    for msg in messages:
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        if role == "system":
+            result.append(SystemMessage(content=content))
+        elif role == "user":
+            result.append(UserMessage(content=content))
+        elif role == "assistant":
+            result.append(AssistantMessage(content=content))
+    return result
