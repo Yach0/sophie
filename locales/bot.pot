@@ -591,8 +591,8 @@ msgid "Message author"
 msgstr ""
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
-#: sophie_bot/modules/federations/handlers/ban.py:120
-#: sophie_bot/modules/federations/handlers/ban.py:158
+#: sophie_bot/modules/federations/handlers/ban.py:102
+#: sophie_bot/modules/federations/handlers/ban.py:140
 #: sophie_bot/modules/restrictions/handlers/ban.py:47
 #: sophie_bot/modules/restrictions/handlers/ban.py:83
 #: sophie_bot/modules/restrictions/handlers/ban.py:108
@@ -893,9 +893,9 @@ msgid "User has been restricted for flooding."
 msgstr ""
 
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:179
-#: sophie_bot/modules/federations/handlers/ban.py:116
-#: sophie_bot/modules/federations/handlers/ban.py:141
-#: sophie_bot/modules/federations/handlers/unban.py:176
+#: sophie_bot/modules/federations/handlers/ban.py:98
+#: sophie_bot/modules/federations/handlers/ban.py:123
+#: sophie_bot/modules/federations/handlers/unban.py:148
 #: sophie_bot/modules/promotes/handlers/demote.py:35
 #: sophie_bot/modules/promotes/handlers/demote.py:67
 #: sophie_bot/modules/promotes/handlers/promote.py:39
@@ -1410,20 +1410,20 @@ msgstr ""
 msgid "Softly whispering."
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:21
+#: sophie_bot/modules/federations/__init__.py:23
 msgid "Federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:23
+#: sophie_bot/modules/federations/__init__.py:25
 msgid "Manage federations across multiple chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:25
+#: sophie_bot/modules/federations/__init__.py:27
 msgid "Federations allow you to manage multiple chats as a group. You can ban users across all chats in a federation, subscribe to other federations, and manage permissions."
 msgstr ""
 
 #: sophie_bot/modules/federations/args/fed_id.py:19
-#: sophie_bot/modules/federations/handlers/rename.py:89
+#: sophie_bot/modules/federations/handlers/rename.py:71
 msgid "Federation ID"
 msgstr ""
 
@@ -1467,20 +1467,21 @@ msgid "Federation ID to accept transfer for"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:40
-#: sophie_bot/modules/federations/handlers/ban.py:59
-#: sophie_bot/modules/federations/handlers/banlist.py:52
+#: sophie_bot/modules/federations/handlers/ban.py:60
+#: sophie_bot/modules/federations/handlers/banlist.py:38
+#: sophie_bot/modules/federations/handlers/chats.py:32
 #: sophie_bot/modules/federations/handlers/create.py:45
-#: sophie_bot/modules/federations/handlers/import_banlist.py:46
+#: sophie_bot/modules/federations/handlers/import_banlist.py:33
 #: sophie_bot/modules/federations/handlers/info.py:84
 #: sophie_bot/modules/federations/handlers/join.py:46
 #: sophie_bot/modules/federations/handlers/leave.py:38
 #: sophie_bot/modules/federations/handlers/logs.py:34
 #: sophie_bot/modules/federations/handlers/logs.py:110
-#: sophie_bot/modules/federations/handlers/rename.py:45
+#: sophie_bot/modules/federations/handlers/rename.py:41
 #: sophie_bot/modules/federations/handlers/subscribe.py:43
 #: sophie_bot/modules/federations/handlers/subscribe.py:139
-#: sophie_bot/modules/federations/handlers/transfer.py:52
-#: sophie_bot/modules/federations/handlers/unban.py:50
+#: sophie_bot/modules/federations/handlers/transfer.py:54
+#: sophie_bot/modules/federations/handlers/unban.py:47
 msgid "This command can only be used by users."
 msgstr ""
 
@@ -1501,8 +1502,6 @@ msgid "Federation ID mismatch."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:79
-#: sophie_bot/modules/federations/handlers/ban.py:81
-#: sophie_bot/modules/federations/handlers/rename.py:68
 #: sophie_bot/modules/federations/handlers/subscribe.py:71
 #: sophie_bot/modules/federations/handlers/subscribe.py:88
 #: sophie_bot/modules/federations/handlers/subscribe.py:162
@@ -1531,70 +1530,59 @@ msgstr ""
 msgid "Federation ID: {fed_id}"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:37
+#: sophie_bot/modules/federations/handlers/ban.py:36
 msgid "Ban a user from the federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:50
-#: sophie_bot/modules/federations/handlers/banlist.py:45
-#: sophie_bot/modules/federations/handlers/rename.py:37
-#: sophie_bot/modules/federations/handlers/unban.py:42
-msgid "Federation ID (optional, uses current chat's federation if not specified)"
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/ban.py:52
+#: sophie_bot/modules/federations/handlers/ban.py:51
 msgid "User to ban"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:53
+#: sophie_bot/modules/federations/handlers/ban.py:52
 msgid "Reason (optional)"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/ban.py:70
-#: sophie_bot/modules/federations/handlers/unban.py:60
+#: sophie_bot/modules/federations/handlers/unban.py:56
 msgid "Please specify a user or reply to a user's message."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:90
-#: sophie_bot/modules/federations/handlers/unban.py:109
-#, python-brace-format
-msgid "This chat is not in any federation. Use {cmd} to specify federation."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/ban.py:99
+#: sophie_bot/modules/federations/handlers/ban.py:81
 msgid "You don't have permission to ban users in this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:114
+#: sophie_bot/modules/federations/handlers/ban.py:96
 msgid "🏛 User Banned from Federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:115
-#: sophie_bot/modules/federations/handlers/banlist.py:77
-#: sophie_bot/modules/federations/handlers/banlist.py:87
-#: sophie_bot/modules/federations/handlers/banlist.py:105
-#: sophie_bot/modules/federations/handlers/banlist.py:127
-#: sophie_bot/modules/federations/handlers/import_banlist.py:102
+#: sophie_bot/modules/federations/handlers/ban.py:97
+#: sophie_bot/modules/federations/handlers/banlist.py:54
+#: sophie_bot/modules/federations/handlers/banlist.py:64
+#: sophie_bot/modules/federations/handlers/banlist.py:82
+#: sophie_bot/modules/federations/handlers/banlist.py:104
+#: sophie_bot/modules/federations/handlers/chats.py:48
+#: sophie_bot/modules/federations/handlers/chats.py:67
+#: sophie_bot/modules/federations/handlers/import_banlist.py:73
 #: sophie_bot/modules/federations/handlers/subscribe.py:94
 #: sophie_bot/modules/federations/handlers/subscribe.py:185
-#: sophie_bot/modules/federations/handlers/unban.py:175
+#: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/schedules/process_exports.py:101
 #: sophie_bot/modules/federations/schedules/process_imports.py:311
 msgid "Federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:116
-#: sophie_bot/modules/federations/handlers/ban.py:143
+#: sophie_bot/modules/federations/handlers/ban.py:98
+#: sophie_bot/modules/federations/handlers/ban.py:125
 #: sophie_bot/modules/federations/handlers/info.py:56
-#: sophie_bot/modules/federations/handlers/unban.py:146
-#: sophie_bot/modules/federations/handlers/unban.py:176
-#: sophie_bot/modules/federations/handlers/unban.py:185
+#: sophie_bot/modules/federations/handlers/unban.py:118
+#: sophie_bot/modules/federations/handlers/unban.py:148
+#: sophie_bot/modules/federations/handlers/unban.py:157
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
 #: sophie_bot/modules/warns/handlers/warns_group.py:39
 msgid "Unknown"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:117
+#: sophie_bot/modules/federations/handlers/ban.py:99
 #: sophie_bot/modules/restrictions/handlers/ban.py:82
 #: sophie_bot/modules/restrictions/handlers/ban.py:145
 #: sophie_bot/modules/restrictions/handlers/silent.py:165
@@ -1602,94 +1590,140 @@ msgstr ""
 msgid "Banned by"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:121
+#: sophie_bot/modules/federations/handlers/ban.py:103
 #, python-brace-format
 msgid "Banned in {count} chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:121
-#: sophie_bot/modules/federations/handlers/unban.py:178
+#: sophie_bot/modules/federations/handlers/ban.py:103
+#: sophie_bot/modules/federations/handlers/unban.py:150
 msgid "Result"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:136
+#: sophie_bot/modules/federations/handlers/ban.py:118
 msgid "Ban user in the fed #FedBan"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:138
+#: sophie_bot/modules/federations/handlers/ban.py:120
 msgid "Fed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:146
+#: sophie_bot/modules/federations/handlers/ban.py:128
 msgid "By"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:148
+#: sophie_bot/modules/federations/handlers/ban.py:130
 msgid "Chats banned"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:155
+#: sophie_bot/modules/federations/handlers/ban.py:137
 msgid "The action is silent, all related messages would be deleted shortly"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:29
+#: sophie_bot/modules/federations/handlers/banlist.py:23
 msgid "Show list of banned users in federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:68
+#: sophie_bot/modules/federations/handlers/banlist.py:45
 msgid "You don't have permission to view ban lists in this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:76
+#: sophie_bot/modules/federations/handlers/banlist.py:53
 msgid "🏛 Federation Ban List"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:78
+#: sophie_bot/modules/federations/handlers/banlist.py:55
 msgid "This federation has no banned users."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:86
+#: sophie_bot/modules/federations/handlers/banlist.py:63
 msgid "❌ Export Too Large"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:88
-#: sophie_bot/modules/federations/handlers/banlist.py:128
+#: sophie_bot/modules/federations/handlers/banlist.py:65
+#: sophie_bot/modules/federations/handlers/banlist.py:105
 #: sophie_bot/modules/federations/schedules/process_exports.py:102
 msgid "Total bans"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:89
+#: sophie_bot/modules/federations/handlers/banlist.py:66
 msgid "Maximum export size"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:90
+#: sophie_bot/modules/federations/handlers/banlist.py:67
 msgid "This federation has too many bans to export. Please contact bot owner for assistance."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:104
+#: sophie_bot/modules/federations/handlers/banlist.py:81
 msgid "⏳ Export Already Queued"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:107
+#: sophie_bot/modules/federations/handlers/banlist.py:84
 msgid "You already have an export task queued for this federation. Please wait for it to complete before creating another one."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:126
+#: sophie_bot/modules/federations/handlers/banlist.py:103
 msgid "📤 Federation Ban List Export Started"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:129
-#: sophie_bot/modules/federations/handlers/import_banlist.py:103
+#: sophie_bot/modules/federations/handlers/banlist.py:106
+#: sophie_bot/modules/federations/handlers/import_banlist.py:74
 msgid "Status"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:129
-#: sophie_bot/modules/federations/handlers/import_banlist.py:103
+#: sophie_bot/modules/federations/handlers/banlist.py:106
+#: sophie_bot/modules/federations/handlers/import_banlist.py:74
 msgid "Queued for processing"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/banlist.py:130
+#: sophie_bot/modules/federations/handlers/banlist.py:107
 msgid "Your ban list will be sent to this chat shortly."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/base.py:53
+msgid "Federation ID (optional, uses current chat's federation if not specified)"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/base.py:83
+msgid "Unable to determine chat context."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/base.py:89
+msgid "Please specify a federation ID or use this command in a group chat."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/base.py:99
+#, python-brace-format
+msgid "This chat is not in any federation. Use {cmd} to specify federation."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:20
+msgid "List all chats in a federation"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:39
+msgid "You don't have permission to view this federation's chats."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:47
+#: sophie_bot/modules/federations/handlers/chats.py:66
+msgid "🏛 Federation Chats"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:49
+msgid "This federation has no chats."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:68
+msgid "Total chats"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:70
+msgid "Chats in this federation"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/chats.py:70
+msgid "No chats found."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/create.py:26
@@ -1705,7 +1739,7 @@ msgid "You have reached the maximum number of federations you can create."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/create.py:61
-#: sophie_bot/modules/federations/handlers/rename.py:77
+#: sophie_bot/modules/federations/handlers/rename.py:59
 msgid "A federation with this name already exists."
 msgstr ""
 
@@ -1732,31 +1766,27 @@ msgstr ""
 msgid "🏛 Federation '{name}' has been created by {user}."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:28
+#: sophie_bot/modules/federations/handlers/import_banlist.py:21
 msgid "Import federation ban list from CSV file"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:40
-msgid "Federation ID (optional, auto-detects from chat or PM)"
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/import_banlist.py:56
+#: sophie_bot/modules/federations/handlers/import_banlist.py:43
 msgid "Please upload a CSV file with the command or reply to a message containing a CSV file."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:61
+#: sophie_bot/modules/federations/handlers/import_banlist.py:48
 msgid "Please upload a CSV file (ending with .csv)."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:84
+#: sophie_bot/modules/federations/handlers/import_banlist.py:55
 msgid "You don't have permission to import ban lists to this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:101
+#: sophie_bot/modules/federations/handlers/import_banlist.py:72
 msgid "📥 Federation Ban List Import Started"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:105
+#: sophie_bot/modules/federations/handlers/import_banlist.py:76
 msgid "This might take a while."
 msgstr ""
 
@@ -1941,35 +1971,35 @@ msgstr ""
 msgid "Log channel has been removed for federation '{name}'."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:24
+#: sophie_bot/modules/federations/handlers/rename.py:22
 msgid "Rename a federation (owner only)"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:39
+#: sophie_bot/modules/federations/handlers/rename.py:35
 msgid "New federation name"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:51
+#: sophie_bot/modules/federations/handlers/rename.py:46
 msgid "Please provide a new federation name."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:55
+#: sophie_bot/modules/federations/handlers/rename.py:50
 msgid "Federation name too long."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:72
+#: sophie_bot/modules/federations/handlers/rename.py:54
 msgid "Only federation owners can rename federations."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:86
+#: sophie_bot/modules/federations/handlers/rename.py:68
 msgid "🏛 Federation Renamed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:87
+#: sophie_bot/modules/federations/handlers/rename.py:69
 msgid "Old name"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/rename.py:88
+#: sophie_bot/modules/federations/handlers/rename.py:70
 msgid "New name"
 msgstr ""
 
@@ -2047,112 +2077,112 @@ msgstr ""
 msgid "Transfer federation ownership"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:45
+#: sophie_bot/modules/federations/handlers/transfer.py:47
 msgid "Federation ID to transfer"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:46
+#: sophie_bot/modules/federations/handlers/transfer.py:48
 msgid "New owner username or ID"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:62
+#: sophie_bot/modules/federations/handlers/transfer.py:63
 msgid "Only the federation owner can transfer ownership."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:70
+#: sophie_bot/modules/federations/handlers/transfer.py:71
 msgid "Invalid user. Please provide a valid username or user ID."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:75
+#: sophie_bot/modules/federations/handlers/transfer.py:76
 msgid "You cannot transfer ownership to yourself."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:100
+#: sophie_bot/modules/federations/handlers/transfer.py:101
 msgid "🏛 Transfer Request Sent"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:102
+#: sophie_bot/modules/federations/handlers/transfer.py:103
 #, python-brace-format
 msgid "Ownership transfer request sent to user {user_id}."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/transfer.py:106
+#: sophie_bot/modules/federations/handlers/transfer.py:107
 #, python-brace-format
 msgid "They have 5 minutes to accept with /accepttransfer {fed_id}"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:29
+#: sophie_bot/modules/federations/handlers/unban.py:24
 msgid "Unban a user from the federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:44
+#: sophie_bot/modules/federations/handlers/unban.py:39
 msgid "User to unban"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:87
+#: sophie_bot/modules/federations/handlers/unban.py:78
 msgid "Failed to unban user."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:124
+#: sophie_bot/modules/federations/handlers/unban.py:96
 msgid "You don't have permission to unban users in this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:130
+#: sophie_bot/modules/federations/handlers/unban.py:102
 msgid "This user is not banned in this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:136
+#: sophie_bot/modules/federations/handlers/unban.py:108
 msgid "Cannot unban this user because their ban originated from a subscription."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:150
+#: sophie_bot/modules/federations/handlers/unban.py:122
 msgid "🏛 Cannot Unban User"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:151
+#: sophie_bot/modules/federations/handlers/unban.py:123
 msgid "This user cannot be unbanned because they are banned in a federation this federation subscribes to."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:153
+#: sophie_bot/modules/federations/handlers/unban.py:125
 msgid "📅 Banned on"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:154
+#: sophie_bot/modules/federations/handlers/unban.py:126
 msgid "🏛 Federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:155
+#: sophie_bot/modules/federations/handlers/unban.py:127
 msgid "👤 Banned by"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:159
+#: sophie_bot/modules/federations/handlers/unban.py:131
 msgid "📝 Reason"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:162
+#: sophie_bot/modules/federations/handlers/unban.py:134
 msgid "To unban this user, you need to unsubscribe from the parent federation first:"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:163
+#: sophie_bot/modules/federations/handlers/unban.py:135
 #, python-brace-format
 msgid "`/funsub {fed_id}`"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:174
+#: sophie_bot/modules/federations/handlers/unban.py:146
 msgid "🏛 User Unbanned from Federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:177
+#: sophie_bot/modules/federations/handlers/unban.py:149
 #: sophie_bot/modules/restrictions/handlers/unban.py:72
 msgid "Unbanned by"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:178
+#: sophie_bot/modules/federations/handlers/unban.py:150
 #, python-brace-format
 msgid "Unbanned in {count} chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:184
+#: sophie_bot/modules/federations/handlers/unban.py:156
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr ""

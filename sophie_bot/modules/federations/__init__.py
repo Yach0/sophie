@@ -4,7 +4,9 @@ from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.federations.api import api_router as federations_api_router
 from sophie_bot.modules.federations.handlers.accept_transfer import AcceptTransferHandler
 from sophie_bot.modules.federations.handlers.ban import FederationBanHandler
+from sophie_bot.modules.federations.handlers.base import FederationCommandHandler as FederationCommandHandler
 from sophie_bot.modules.federations.handlers.banlist import FederationBanListHandler
+from sophie_bot.modules.federations.handlers.chats import FederationChatsHandler
 from sophie_bot.modules.federations.handlers.create import CreateFederationHandler
 from sophie_bot.modules.federations.handlers.import_banlist import FederationImportHandler
 from sophie_bot.modules.federations.handlers.info import FederationInfoHandler
@@ -46,6 +48,7 @@ __handlers__ = (
     UnsubscribeFederationHandler,
     FederationImportHandler,
     FederationRenameHandler,
+    FederationChatsHandler,
 )
 
 

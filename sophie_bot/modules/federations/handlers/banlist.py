@@ -5,30 +5,24 @@ from typing import Any
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import Message
-from ass_tg.types import OptionalArg
 from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.constants import MAX_BANLIST_EXPORT_SIZE
+from sophie_bot.db.models import Federation
 from sophie_bot.db.models.federations import FederationExportTask
+from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.args.fed_id import FedIdArg
+from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.db.models.federations_enums import TaskStatus
-from sophie_bot.modules.federations.exceptions import (
-    FederationContextError,
-    FederationNotFoundError,
-)
 
 
 @flags.help(description=l_("Show list of banned users in federation"))
 @flags.disableable(name="fbanlist")
-class FederationBanListHandler(SophieMessageHandler):
+class FederationBanListHandler(FederationCommandHandler):
     """Handler for showing federation ban lists."""
 
     @staticmethod
@@ -38,31 +32,14 @@ class FederationBanListHandler(SophieMessageHandler):
             FeatureFlagFilter("new_feds_fbanlist"),
         )
 
-    @classmethod
-    async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
-        return {
-            "fed_id": OptionalArg(
-                FedIdArg(l_("Federation ID (optional, uses current chat's federation if not specified)"))
-            ),
-        }
-
-    async def handle(self) -> Any:
+    async def handle_federation_command(self, federation: Federation) -> Any:
         """Create export task for federation ban list."""
         if not self.event.from_user:
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        fed_id_arg: str | None = self.data.get("fed_id")
-
-        connection = self.connection
         user_iid = self.data["user_db"].iid
         user_tid = self.event.from_user.id
-
-        try:
-            federation = await FederationService.get_federation(fed_id_arg, connection, user_tid)
-        except (FederationNotFoundError, FederationContextError) as e:
-            await self.event.reply(str(e))
-            return
 
         if not await FederationPermissionService.can_ban_in_federation(federation, user_tid):
             await self.event.reply(_("You don't have permission to view ban lists in this federation."))

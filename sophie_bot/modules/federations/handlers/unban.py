@@ -10,25 +10,20 @@ from babel.dates import format_date
 from stfu_tg import Doc, KeyValue, Title, UserLink, Template, Code
 
 from sophie_bot.args.users import SophieUserArg
-from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.args.fed_id import FedIdArg
-from sophie_bot.modules.federations.exceptions import (
-    FederationContextError,
-    FederationNotFoundError,
-)
+from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Unban a user from the federation"))
 @flags.disableable(name="funban")
-class FederationUnbanHandler(SophieMessageHandler):
+class FederationUnbanHandler(FederationCommandHandler):
     """Handler for unbanning users from federations."""
 
     @staticmethod
@@ -37,20 +32,21 @@ class FederationUnbanHandler(SophieMessageHandler):
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
-        return {
-            "fed_id": OptionalArg(
-                FedIdArg(l_("Federation ID (optional, uses current chat's federation if not specified)"))
-            ),
-            "user": OptionalArg(SophieUserArg(l_("User to unban"))),
-        }
+        """Define arguments for the unban command."""
+        base_args = await super().handler_args(message, data)
+        base_args.update(
+            {
+                "user": OptionalArg(SophieUserArg(l_("User to unban"))),
+            }
+        )
+        return base_args
 
-    async def handle(self) -> Any:
+    async def handle_federation_command(self, federation: Federation) -> Any:
         """Unban user from federation."""
         if not self.event.from_user:
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        fed_id_arg: str | None = self.data.get("fed_id")
         user: ChatModel | None = self.data.get("user")
 
         if not user:
@@ -62,11 +58,6 @@ class FederationUnbanHandler(SophieMessageHandler):
             user = await ChatModel.get_by_tid(reply_from_user.id)
             if not user:
                 user = await ChatModel.upsert_user(reply_from_user)
-
-        # Get federation
-        federation = await self._get_federation(fed_id_arg)
-        if not federation:
-            return
 
         # Check permissions
         if not await self._check_permissions(federation):
@@ -96,26 +87,7 @@ class FederationUnbanHandler(SophieMessageHandler):
         # Success - format and send response
         await self._send_success_response(federation, user, unbanned_count)
 
-    async def _get_federation(self, fed_id_arg: str | None) -> Any:
-        """Get federation from argument or current chat."""
-        try:
-            if fed_id_arg:
-                federation = await FederationService.get_federation_by_id(fed_id_arg)
-            else:
-                chat_iid = self.connection.db_model.iid
-                federation = await FederationService.get_federation_for_chat(chat_iid)
-                if not federation:
-                    error_message = Template(
-                        _("This chat is not in any federation. Use {cmd} to specify federation."),
-                        cmd=Code("/funban <fed_id> <user>"),
-                    ).to_html()
-                    raise FederationContextError(error_message)
-            return federation
-        except (FederationNotFoundError, FederationContextError) as e:
-            await self.event.reply(str(e))
-            return None
-
-    async def _check_permissions(self, federation) -> bool:
+    async def _check_permissions(self, federation: Federation) -> bool:
         """Check if user has permission to unban in this federation."""
         if not self.event.from_user:
             return False
@@ -164,7 +136,7 @@ class FederationUnbanHandler(SophieMessageHandler):
 
         await self.event.reply(str(doc))
 
-    async def _send_success_response(self, federation, user: ChatModel, unbanned_count: int) -> None:
+    async def _send_success_response(self, federation: Federation, user: ChatModel, unbanned_count: int) -> None:
         """Send success response for unbanning."""
         from_user = self.event.from_user
         if not from_user:

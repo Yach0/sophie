@@ -29,7 +29,7 @@ class FedIdArg(TextArg):
                 )
             )
 
-        if entities:
+        if entities.get_overlapping(0, len(fed_id)):
             raise ArgSimpleTypeError(_("Federation ID cannot contain formatting or mentions."))
 
         return True

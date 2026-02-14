@@ -24,8 +24,9 @@ icon: 🏛
 | `/funsetlog` `/unsetfedlog` | - | Removes the Federation logs channel | *Disable-able* |
 | `/fsub` | `<Federation ID to subscribe to>` | Subscribe federation to another federation | *Disable-able* |
 | `/funsub` | `<Federation ID to unsubscribe from>` | Unsubscribe federation from another federation | *Disable-able* |
-| `/importfbans` `/fimport` | `<Federation ID (optional, auto-detects from chat or PM)>` | Import federation ban list from CSV file | *Disable-able* |
+| `/importfbans` `/fimport` | `<Federation ID (optional, uses current chat's federation if not specified)>` | Import federation ban list from CSV file | *Disable-able* |
 | `/frename` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<New federation name>` | Rename a federation (owner only) | *Disable-able* |
+| `/fchats` | `<Federation ID (optional, uses current chat's federation if not specified)>` | List all chats in a federation | *Disable-able* |
 
 ### Only admins
 

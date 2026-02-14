@@ -29,6 +29,7 @@ FeatureType = Literal[
     "new_feds_funsub",
     "new_feds_import",
     "new_feds_frename",
+    "new_feds_fchats",
     "feds_rest_api",
     "new_feds",
 ]
@@ -67,6 +68,7 @@ class FeatureStates(TypedDict):
     new_feds_funsub: bool
     new_feds_import: bool
     new_feds_frename: bool
+    new_feds_fchats: bool
     feds_rest_api: bool
     new_feds: bool
 
@@ -94,6 +96,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "new_feds_funsub",
     "new_feds_import",
     "new_feds_frename",
+    "new_feds_fchats",
     "feds_rest_api",
     "new_feds",
 )
@@ -129,6 +132,7 @@ def _default_state_map() -> FeatureStates:
         new_feds_funsub=True,
         new_feds_import=True,
         new_feds_frename=True,
+        new_feds_fchats=True,
         feds_rest_api=False,
         new_feds=True,
     )

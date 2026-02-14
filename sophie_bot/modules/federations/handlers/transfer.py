@@ -10,11 +10,11 @@ from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Doc, Title, Template, Code
 
-from sophie_bot.db.models.federations import Federation
+from sophie_bot.db.models import Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
-from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -26,7 +26,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.disableable(
     name="transferfed",
 )
-class TransferOwnershipHandler(SophieMessageHandler):
+class TransferOwnershipHandler(FederationCommandHandler):
     """Handler for transferring federation ownership."""
 
     TRANSFER_KEY_PREFIX = "fed_transfer:"
@@ -41,23 +41,24 @@ class TransferOwnershipHandler(SophieMessageHandler):
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
-        return {
-            "fed_id": FedIdArg(l_("Federation ID to transfer")),
-            "new_owner": TextArg(l_("New owner username or ID")),
-        }
+        """Define arguments for transfer command."""
+        base_args = await super().handler_args(message, data)
+        # Override fed_id to be required (not optional) for transfer
+        base_args["fed_id"] = FedIdArg(l_("Federation ID to transfer"))
+        base_args["new_owner"] = TextArg(l_("New owner username or ID"))
+        return base_args
 
-    async def handle(self) -> Any:
+    async def handle_federation_command(self, federation: Federation) -> Any:
         """Transfer federation ownership."""
         if not self.event.from_user:
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        fed_id: Federation = self.data["fed_id"]
         new_owner_input: str = self.data["new_owner"]
         user_id = self.event.from_user.id
 
         # Check if user is the current owner
-        creator = await fed_id.creator.fetch()
+        creator = await federation.creator.fetch()
         if not creator or creator.tid != user_id:
             await self.event.reply(_("Only the federation owner can transfer ownership."))
             return
@@ -80,12 +81,12 @@ class TransferOwnershipHandler(SophieMessageHandler):
         # (e.g., not bot operator, has not exceeded federation limit, etc.)
 
         # Create transfer request
-        transfer_key = f"{self.TRANSFER_KEY_PREFIX}{fed_id.fed_id}"
+        transfer_key = f"{self.TRANSFER_KEY_PREFIX}{federation.fed_id}"
         transfer_data = {
             "from_user": user_id,
             "to_user": new_owner_id,
-            "fed_id": fed_id.fed_id,
-            "fed_name": fed_id.fed_name,
+            "fed_id": federation.fed_id,
+            "fed_name": federation.fed_name,
         }
 
         # Store transfer request in Redis with TTL
@@ -104,7 +105,7 @@ class TransferOwnershipHandler(SophieMessageHandler):
             ),
             Template(
                 _("They have 5 minutes to accept with /accepttransfer {fed_id}"),
-                fed_id=Code(fed_id.fed_id),
+                fed_id=Code(federation.fed_id),
             ),
         )
 
