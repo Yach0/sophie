@@ -53,7 +53,7 @@ async def complete_captcha(
     # Send rules if available
     rules = await RulesModel.get_rules(group.iid)
     if rules:
-        await send_welcome(captcha_message, rules.saveable, False, None, user)
+        await send_welcome(captcha_message, rules, False, None, user)
 
     # Send welcome message
     if not greetings.welcome_disabled:
