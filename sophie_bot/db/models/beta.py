@@ -4,7 +4,6 @@ from typing import Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set, Unset
-from pymongo import IndexModel, ASCENDING
 
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
@@ -28,7 +27,7 @@ class BetaModeModel(Document):
 
     class Settings:
         name = "beta_mode"
-        indexes = ['chat.$id']
+        indexes = ["chat.$id"]
 
     @staticmethod
     async def all_chats_reset_current_mode():
