@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from aiogram import flags
@@ -16,9 +17,21 @@ from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.services.bot import bot
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
+
+async def delete_messages_after_delay(
+    chat_id: int,
+    message_ids: list[int],
+    delay_seconds: int = 10,
+) -> None:
+    """Delete messages after a specified delay."""
+    await asyncio.sleep(delay_seconds)
+    await common_try(bot.delete_messages(chat_id, message_ids))
 
 
 @flags.help(description=l_("Ban a user from the federation"))
@@ -107,19 +120,39 @@ class FederationBanHandler(SophieMessageHandler):
             doc += KeyValue(_("Reason"), reason)
         doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=str(banned_count)))
 
-        await self.event.reply(str(doc))
+        reply_msg = await self.event.reply(str(doc))
+
+        # If silent mode, schedule deletion of messages after 10 seconds
+        if silent:
+            messages_to_delete = [self.event.message_id, reply_msg.message_id]
+            if self.event.reply_to_message:
+                messages_to_delete.append(self.event.reply_to_message.message_id)
+            asyncio.create_task(delete_messages_after_delay(self.event.chat.id, messages_to_delete))
 
         # Log the ban
-        log_text = Template(
-            _("🏛 User {banned_user} has been banned from federation by {banner}."),
-            banned_user=UserLink(user.tid, user.first_name_or_title or _("Unknown")).to_html(),
-            banner=self.event.from_user.mention_html(),
-        ).to_html()
-        if reason:
-            log_text += Template(_(" Reason: {reason}"), reason=reason).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        total_chats = len(federation.chats) if federation.chats else 0
 
-        # TODO: Send ban notifications to federation chats (non-silent only)
-        if not silent:
-            # Implementation for notifying chats would go here
-            pass
+        log_doc = Doc(
+            Title(_("Ban user in the fed #FedBan")),
+            KeyValue(
+                _("Fed"), Template("{fed_name} ({fed_id})", fed_name=federation.fed_name, fed_id=federation.fed_id)
+            ),
+            KeyValue(
+                _("User"),
+                Template(
+                    "{user_name} ({user_id})", user_name=user.first_name_or_title or _("Unknown"), user_id=user.tid
+                ),
+            ),
+            KeyValue(_("By"), self.event.from_user.first_name),
+            KeyValue(
+                _("Chats banned"),
+                Template(
+                    "user banned in {banned_count}/{total_chats} chats",
+                    banned_count=banned_count,
+                    total_chats=total_chats,
+                ),
+            ),
+        )
+        if reason:
+            log_doc += KeyValue(_("Reason"), reason)
+        await FederationService.post_federation_log(federation, log_doc.to_html(), self.event.bot)
