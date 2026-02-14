@@ -1,9 +1,8 @@
 from aiogram.filters.callback_data import CallbackData
-from beanie import PydanticObjectId
 
 
 class DeleteWarnCallback(CallbackData, prefix="del_warn"):
-    warn_iid: PydanticObjectId
+    warn_iid: str
 
 
 class ResetWarnsCallback(CallbackData, prefix="reset_warns"):

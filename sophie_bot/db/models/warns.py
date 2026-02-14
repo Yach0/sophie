@@ -40,9 +40,8 @@ class WarnModel(Document):
     @staticmethod
     async def get_user_warns(chat_iid: PydanticObjectId, user_iid: PydanticObjectId) -> list[WarnModel]:
         return (
-            await WarnModel.find(WarnModel.chat.id == chat_iid, WarnModel.user.id == user_iid)
+            await WarnModel.find(WarnModel.chat.id == chat_iid, WarnModel.user.id == user_iid, fetch_links=True)
             .sort(WarnModel.date)
-            .fetch_all_links()
             .to_list()
         )
 

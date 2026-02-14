@@ -1,8 +1,10 @@
 from typing import Any
 
 from aiogram.types import CallbackQuery, Message
-from stfu_tg import Doc, Title, Section, UserLink
+from beanie import PydanticObjectId
+from stfu_tg import Doc, Title, Section, UserLink, Template
 
+from sophie_bot.db.models import WarnModel, ChatModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -10,7 +12,6 @@ from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from ..callbacks import DeleteWarnCallback, ResetWarnsCallback, ResetAllWarnsCallback
 from ..utils import delete_warn
-from sophie_bot.db.models import WarnModel, ChatModel
 
 
 class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
@@ -30,7 +31,8 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
             await callback.answer(_("Only admins can delete warns!"), show_alert=True)
             return
 
-        if await delete_warn(callback_data.warn_iid):
+        warn_iid = PydanticObjectId(callback_data.warn_iid)
+        if await delete_warn(warn_iid):
             await log_event(
                 self.connection.tid,
                 self.event.from_user.id,
@@ -42,8 +44,9 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
             doc = Doc(
                 Title(_("✅ Warning deleted")),
                 Section(
-                    _("The warning has been successfully removed by {admin}.").format(
-                        admin=UserLink(admin.tid, admin.first_name_or_title)
+                    Template(
+                        _("The warning has been successfully removed by {admin}."),
+                        admin=UserLink(admin.tid, admin.first_name_or_title),
                     )
                 ),
             )
@@ -92,7 +95,7 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
 
         await callback.answer(_("Warnings reset!"))
         return await callback.message.edit_text(
-            _("Reset warnings of {user}.").format(user=UserLink(target_user_tid, target_user_name))
+            str(Template(_("Reset warnings of {user}."), user=UserLink(target_user_tid, target_user_name)))
         )
 
 

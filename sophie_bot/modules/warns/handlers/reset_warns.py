@@ -3,7 +3,7 @@ from typing import Any
 from aiogram import flags
 from aiogram.types import Message, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import UserLink
+from stfu_tg import UserLink, Template
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.admin_rights import UserRestricting
@@ -50,8 +50,11 @@ class ResetWarnsHandler(SophieMessageHandler):
         )
 
         return await message.reply(
-            _("Are you sure you want to reset warnings of {user}?").format(
-                user=UserLink(target_user_tid, target_user_name)
+            str(
+                Template(
+                    _("Are you sure you want to reset warnings of {user}?"),
+                    user=UserLink(target_user_tid, target_user_name),
+                )
             ),
             reply_markup=builder.as_markup(),
         )
