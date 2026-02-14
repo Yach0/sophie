@@ -222,6 +222,25 @@ async def run_migrations_up() -> None:
         sys.exit(1)
 
 
+async def run_single_migration(migration_name: str) -> None:
+    """
+    Run a specific migration by name.
+
+    Args:
+        migration_name: Name of the migration to run
+    """
+    # Set environment variable to force migration run
+    os.environ["RUN_MIGRATIONS_ON_STARTUP"] = "true"
+
+    try:
+        from sophie_bot.services.migrations import _run_single_migration
+
+        await _run_single_migration(migration_name)
+    except Exception as e:
+        print(f"Error running migration: {e}")
+        sys.exit(1)
+
+
 async def run_migration_down(migration_name: str) -> None:
     """
     Rollback a specific migration.
@@ -282,6 +301,9 @@ Examples:
   # Run pending migrations
   %(prog)s up
 
+  # Run a specific migration
+  %(prog)s run 20240125_120000_add_field
+
   # Rollback a specific migration
   %(prog)s down 20240125_120000_add_field
 
@@ -321,6 +343,10 @@ Examples:
     # Up command
     subparsers.add_parser("up", help="Run pending migrations")
 
+    # Run command
+    run_parser = subparsers.add_parser("run", help="Run a specific migration")
+    run_parser.add_argument("migration", help="Migration name to run")
+
     # Down command
     down_parser = subparsers.add_parser("down", help="Rollback a migration")
     down_parser.add_argument("migration", help="Migration name to rollback")
@@ -341,6 +367,8 @@ Examples:
         validate_migration(args.path)
     elif args.command == "up":
         asyncio.run(run_migrations_up())
+    elif args.command == "run":
+        asyncio.run(run_single_migration(args.migration))
     elif args.command == "down":
         asyncio.run(run_migration_down(args.migration))
     elif args.command == "down_all":
