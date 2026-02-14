@@ -80,8 +80,8 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
         # Check if welcomesecurity is enabled
         if not (greetings.welcome_security and greetings.welcome_security.enabled):
-            # Approve immediately if not enabled
-            await _approve_request()
+            # If welcome security is not enabled, don't auto-approve
+            # Let admins handle the approval manually
             return
 
         # Get user model
@@ -108,6 +108,9 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
         # Store message ID for cleanup
         await aredis.set(f"join_request_message:{chat_tid}:{user_tid}", sent_message.message_id, ex=172800)
+
+        # Mark this user as having an active join request to prevent re-processing in new_user middleware
+        await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
 
         # Apply clean_welcome to the join request message
         if greetings.clean_welcome and greetings.clean_welcome.enabled:

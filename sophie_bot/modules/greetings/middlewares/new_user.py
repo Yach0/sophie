@@ -74,8 +74,8 @@ class NewUserMiddleware(BaseMiddleware):
         return await message.reply(str(doc))
 
     @staticmethod
-    async def is_join_request(chat_id: int, user_id: int) -> bool:
-        key = f"chat_ws_message:{chat_id}:{user_id}"
+    async def is_join_request(chat_db: ChatModel, user_db: ChatModel) -> bool:
+        key = f"chat_ws_message:{chat_db.iid}:{user_db.iid}"
         join_request = await aredis.get(key)
         if join_request:
             await aredis.delete(key)
@@ -135,7 +135,15 @@ class NewUserMiddleware(BaseMiddleware):
                 await self.self_welcome(event)
                 return await handler(event, data)
 
-            if await self.is_join_request(chat_id, user_id):
+            # Check if any of the new users was from a join request
+            # Join request users should skip the welcome captcha flow
+            is_from_join_request = False
+            for user in new_users:
+                if await self.is_join_request(chat_db, user):
+                    is_from_join_request = True
+                    break
+
+            if is_from_join_request:
                 return await handler(event, data)
 
             # Sanity check
