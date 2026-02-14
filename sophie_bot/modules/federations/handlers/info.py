@@ -97,9 +97,7 @@ class FederationInfoHandler(SophieMessageHandler):
             return
 
         # Show list of federations with guidance for multiple federations
-        federation_list = VList(
-            *(KeyValue(federation.fed_name, Code(federation.fed_id)) for federation in federations)
-        )
+        federation_list = VList(*(KeyValue(federation.fed_name, Code(federation.fed_id)) for federation in federations))
 
         doc = Doc(
             Title(_("🏛 Your Federations")),
