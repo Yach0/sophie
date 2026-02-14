@@ -8,6 +8,10 @@ from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.ignored import QUIET_EXCEPTIONS
 from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.modules.error.utils.backoff import compute_error_signature, should_notify
+from sophie_bot.modules.error.utils.permission_errors import (
+    handle_no_rights_error,
+    is_no_rights_error,
+)
 from sophie_bot.utils.logger import log
 
 
@@ -18,6 +22,12 @@ class SophieErrorHandler(ErrorHandler):
         update: Update = self.event.update  # type: ignore
 
         if isinstance(exception, QUIET_EXCEPTIONS):
+            return
+
+        # Check for permission errors that indicate we should leave the chat
+        if is_no_rights_error(exception):
+            chat = self.data.get("event_chat")
+            await handle_no_rights_error(self.bot, chat, exception)
             return
 
         etype, value, tb = sys.exc_info()

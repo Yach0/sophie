@@ -14,6 +14,7 @@ from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.api_token import ApiTokenModel
 from sophie_bot.db.models.beta import BetaModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatTopicModel, UserInGroupModel
+from sophie_bot.db.models.chat_leave_log import ChatLeaveLogModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.chat_photo import ChatPhotoModel
@@ -37,6 +38,7 @@ models: List[Type[Document]] = [
     ChatPhotoModel,
     UserInGroupModel,
     ChatTopicModel,
+    ChatLeaveLogModel,
     ChatAdminModel,
     LanguageModel,
     LogModel,
