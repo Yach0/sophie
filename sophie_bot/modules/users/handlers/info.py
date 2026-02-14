@@ -30,7 +30,7 @@ class UserInfoHandler(SophieMessageHandler):
             # If no user arg, try to get self from event
             user = getattr(self.event, "from_user", None)
             if user:
-                target_user = await ChatModel.get_or_create_user(user.id)
+                target_user = await ChatModel.upsert_user(user)
 
         if not target_user:
             await self.event.reply(_("Could not identify user."))
