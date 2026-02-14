@@ -16,6 +16,7 @@ from sophie_bot.db.models.beta import BetaModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatTopicModel, UserInGroupModel
 from sophie_bot.db.models.chat_leave_log import ChatLeaveLogModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
+from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.chat_photo import ChatPhotoModel
 from sophie_bot.db.models.disabling import DisablingModel
@@ -44,6 +45,7 @@ models: List[Type[Document]] = [
     LogModel,
     MigrationState,
     ChatConnectionModel,
+    ChatConnectionSettingsModel,
     NoteModel,
     BetaModeModel,
     GlobalSettings,
