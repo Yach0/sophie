@@ -6,7 +6,7 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
-from stfu_tg import Doc, KeyValue, Title, VList, Template
+from stfu_tg import Doc, KeyValue, Title, VList, Template, Code
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
@@ -97,7 +97,9 @@ class FederationInfoHandler(SophieMessageHandler):
             return
 
         # Show list of federations with guidance for multiple federations
-        federation_list = VList(*(f"• {federation.fed_name} (ID: `{federation.fed_id}`)" for federation in federations))
+        federation_list = VList(
+            *(KeyValue(federation.fed_name, Code(federation.fed_id)) for federation in federations)
+        )
 
         doc = Doc(
             Title(_("🏛 Your Federations")),
@@ -105,7 +107,7 @@ class FederationInfoHandler(SophieMessageHandler):
             federation_list,
             "",
             _("To get detailed information about a specific federation, use:"),
-            Template(_("`/finfo <{var}>`"), var="federation_id"),
+            Template(_("/finfo {var}"), var="<federation_id>"),
         )
         await self.event.reply(str(doc))
 

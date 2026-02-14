@@ -152,6 +152,7 @@ class FederationBanHandler(SophieMessageHandler):
                     total_chats=total_chats,
                 ),
             ),
+            _("The action is silent, all related messages would be deleted shortly") if silent else None,
         )
         if reason:
             log_doc += KeyValue(_("Reason"), reason)
