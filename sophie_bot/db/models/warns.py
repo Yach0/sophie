@@ -42,7 +42,7 @@ class WarnModel(Document):
         return (
             await WarnModel.find(WarnModel.chat.id == chat_iid, WarnModel.user.id == user_iid)
             .sort(WarnModel.date)
-            .fetch_links()
+            .fetch_all_links()
             .to_list()
         )
 
