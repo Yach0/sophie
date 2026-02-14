@@ -110,6 +110,9 @@ CACHE_DEFAULT_TTL_SECONDS: Final[int] = 1800  # 30 minutes
 # Language cache TTL (in seconds)
 CACHE_LANGUAGE_TTL_SECONDS: Final[int] = 86400  # 24 hours
 
+# Admin cache TTL (in seconds)
+CACHE_ADMIN_TTL_SECONDS: Final[int] = 7200  # 2 hours
+
 
 # =============================================================================
 # Metrics
