@@ -1,3 +1,4 @@
+from aiogram.exceptions import TelegramBadRequest
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -9,6 +10,12 @@ from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.modules.greetings.default_welcome import get_default_join_request_message
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.telegram_exceptions import (
+    CHANNELS_TOO_MUCH,
+    CHAT_ADMIN_REQUIRED,
+    USER_CHANNELS_TOO_MUCH,
+    HIDE_REQUESTER_MISSING,
+)
 from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import initiate_captcha
@@ -16,6 +23,7 @@ from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 
 class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
@@ -33,7 +41,20 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         connection = self.connection
 
         async def _approve_request() -> None:
-            await common_try(self.event.approve())
+            try:
+                await common_try(self.event.approve())
+            except TelegramBadRequest as err:
+                log.warning("Could not approve join request", err=err)
+
+                if CHANNELS_TOO_MUCH in err.message or USER_CHANNELS_TOO_MUCH in err.message:
+                    await self.event.decline()
+                    return None
+                elif CHAT_ADMIN_REQUIRED in err.message:
+                    return None
+                elif HIDE_REQUESTER_MISSING in err.message:
+                    return None
+                else:
+                    raise err
 
         # Check if user is admin
         if await is_user_admin(chat_tid, user_tid):
