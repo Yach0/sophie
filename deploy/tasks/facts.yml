@@ -10,6 +10,7 @@
     api_operator_token: "{{ lookup('env', 'STAGING_API_OPERATOR_TOKEN') }}"
     api_cors_origins: "{{ lookup('env', 'STAGING_API_CORS_ORIGINS') | from_yaml | to_json }}"
     mongo_host: "mongodb://host.containers.internal:27017"
+    redis_username: "None"
     redis_password: "None"
     role: "staging"
   when: inventory_hostname == "sstaging"
