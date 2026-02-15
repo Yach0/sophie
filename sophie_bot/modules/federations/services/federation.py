@@ -307,12 +307,28 @@ class FederationService:
         return ban
 
     @staticmethod
-    async def ban_user_in_federation_chats(federation: Federation, ban: FederationBan, user_tid: int) -> int:
-        """Ban user in all federation chats and track successful bans."""
-        if not federation.chats:
+    async def ban_user_in_federation_chats(
+        federation: Federation, ban: FederationBan, user_tid: int, current_chat_iid: PydanticObjectId | None = None
+    ) -> int:
+        """Ban user in all federation chats and track successful bans.
+
+        Args:
+            federation: The federation to ban user from
+            ban: The FederationBan record
+            user_tid: Telegram user ID to ban
+            current_chat_iid: Optional chat ID to ensure ban even if not in federation.chats list yet
+
+        Returns:
+            Number of chats where user was successfully banned
+        """
+        if not federation.chats and not current_chat_iid:
             return 0
 
         chat_iids = FederationService._normalize_chat_iids([chat.to_ref() for chat in federation.chats])
+
+        if current_chat_iid and current_chat_iid not in chat_iids:
+            chat_iids.append(current_chat_iid)
+
         chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
 
         banned_chat_iids: list[PydanticObjectId] = []

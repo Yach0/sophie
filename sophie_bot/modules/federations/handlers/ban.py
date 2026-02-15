@@ -88,7 +88,9 @@ class FederationBanHandler(FederationCommandHandler):
         except FederationBanValidationError as e:
             await self.event.reply(str(e))
             return
-        banned_count = await FederationService.ban_user_in_federation_chats(federation, ban, user_tid)
+        banned_count = await FederationService.ban_user_in_federation_chats(
+            federation, ban, user_tid, current_chat_iid=self.connection.db_model.iid
+        )
 
         # Format response
         silent = self.event.text and self.event.text.startswith("/sfban")
@@ -101,6 +103,9 @@ class FederationBanHandler(FederationCommandHandler):
         if reason:
             doc += KeyValue(_("Reason"), reason)
         doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=str(banned_count)))
+
+        if silent:
+            doc += _("The action is silent, all related messages would be deleted shortly")
 
         reply_msg = await self.event.reply(str(doc))
 
@@ -134,7 +139,6 @@ class FederationBanHandler(FederationCommandHandler):
                     total_chats=total_chats,
                 ),
             ),
-            _("The action is silent, all related messages would be deleted shortly") if silent else None,
         )
         if reason:
             log_doc += KeyValue(_("Reason"), reason)
