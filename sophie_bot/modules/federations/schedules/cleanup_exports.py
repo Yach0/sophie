@@ -30,7 +30,7 @@ class CleanupOldExports:
 
         deleted_count = 0
         for task in tasks_to_delete:
-            if task.completed_at and task.completed_at < cutoff_date:
+            if task.completed_at and task.completed_at.replace(tzinfo=timezone.utc) < cutoff_date:
                 await task.delete()
                 deleted_count += 1
 
