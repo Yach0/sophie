@@ -492,7 +492,7 @@ class FederationService:
         chat = await ChatModel.get_by_iid(chat_iid)
         if not chat:
             return
-        federation.log_chat = chat
+        federation.log_chat = chat.id
         await federation.save()
 
     @staticmethod
@@ -586,9 +586,12 @@ class FederationService:
         if not federation.log_chat or not bot:
             return
 
-        log_chat = await federation.log_chat.fetch()
-        if not log_chat:
-            return
+        if isinstance(federation.log_chat, ChatModel):
+            log_chat = federation.log_chat
+        else:
+            log_chat = await federation.log_chat.fetch()
+            if not log_chat:
+                return
 
         try:
             await bot.send_message(log_chat.tid, text)
