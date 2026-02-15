@@ -1680,19 +1680,19 @@ msgstr ""
 msgid "Your ban list will be sent to this chat shortly."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/base.py:53
+#: sophie_bot/modules/federations/handlers/base.py:54
 msgid "Federation ID (optional, uses current chat's federation if not specified)"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/base.py:83
+#: sophie_bot/modules/federations/handlers/base.py:84
 msgid "Unable to determine chat context."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/base.py:89
+#: sophie_bot/modules/federations/handlers/base.py:90
 msgid "Please specify a federation ID or use this command in a group chat."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/base.py:99
+#: sophie_bot/modules/federations/handlers/base.py:101
 #, python-brace-format
 msgid "This chat is not in any federation. Use {cmd} to specify federation."
 msgstr ""

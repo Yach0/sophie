@@ -4,6 +4,7 @@ from typing import Any
 
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
+from stfu_tg import Template, Italic
 
 from sophie_bot.db.models import Federation
 from sophie_bot.db.models.chat import ChatType
@@ -96,11 +97,12 @@ class FederationCommandHandler(SophieMessageHandler):
 
             if not federation:
                 command = getattr(self, "command", "/command")
-                error_msg = _("This chat is not in any federation. Use {cmd} to specify federation.").format(
-                    cmd=f"{command} <fed_id>"
+                error_msg = Template(
+                    _("This chat is not in any federation. Use {cmd} to specify federation."),
+                    cmd=Italic(f"{command} <fed_id>"),
                 )
-                await self.event.reply(error_msg)
-                return None, error_msg
+                await self.event.reply(error_msg.to_html())
+                return None, error_msg.to_html()
 
             return federation, None
 
