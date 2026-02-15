@@ -18,7 +18,10 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
     ) -> Any:
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
 
-        data["ai_enabled"] = await AIEnabledFilter.get_status(chat_db)  # type: ignore
+        if chat_db:
+            data["ai_enabled"] = await AIEnabledFilter.get_status(chat_db)
+        else:
+            data["ai_enabled"] = False
 
         result = await handler(event, data)
 
