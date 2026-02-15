@@ -5,6 +5,8 @@ from datetime import timedelta
 from typing import Any
 
 from aiogram import flags
+
+from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import ActionTimeArg, OptionalArg, TextArg
@@ -34,7 +36,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 async def delete_messages_after_delay(
     chat_id: int,
     message_ids: list[int],
-    delay_seconds: int = 10,
+    delay_seconds: int = SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS,
 ) -> None:
     """Delete messages after a specified delay."""
     await asyncio.sleep(delay_seconds)
@@ -101,7 +103,7 @@ class SilentKickUserHandler(SophieMessageHandler):
 
         reply_msg = await self.event.reply(str(doc))
 
-        # Schedule deletion of messages after 10 seconds
+        # Schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         messages_to_delete = [self.event.message_id, reply_msg.message_id]
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
@@ -169,7 +171,7 @@ class SilentBanUserHandler(SophieMessageHandler):
 
         reply_msg = await self.event.reply(str(doc))
 
-        # Schedule deletion of messages after 10 seconds
+        # Schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         messages_to_delete = [self.event.message_id, reply_msg.message_id]
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
@@ -241,7 +243,7 @@ class SilentTempBanUserHandler(SophieMessageHandler):
 
         reply_msg = await self.event.reply(str(doc))
 
-        # Schedule deletion of messages after 10 seconds
+        # Schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         messages_to_delete = [self.event.message_id, reply_msg.message_id]
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
@@ -309,7 +311,7 @@ class SilentMuteUserHandler(SophieMessageHandler):
 
         reply_msg = await self.event.reply(str(doc))
 
-        # Schedule deletion of messages after 10 seconds
+        # Schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         messages_to_delete = [self.event.message_id, reply_msg.message_id]
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
@@ -381,7 +383,7 @@ class SilentTempMuteUserHandler(SophieMessageHandler):
 
         reply_msg = await self.event.reply(str(doc))
 
-        # Schedule deletion of messages after 10 seconds
+        # Schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         messages_to_delete = [self.event.message_id, reply_msg.message_id]
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
