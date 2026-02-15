@@ -4,7 +4,7 @@ from typing import Any
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from stfu_tg import Doc, Title
+from stfu_tg import Doc, Template, Title
 
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
@@ -53,16 +53,20 @@ class LeaveFederationHandler(SophieMessageHandler):
         # Format success message
         doc = Doc(
             Title(_("🏛 Chat Left Federation")),
-            _("Chat '{chat_title}' has left federation '{fed_name}'.").format(
-                chat_title=self.connection.title, fed_name=federation.fed_name
+            Template(
+                _("Chat '{chat_title}' has left federation '{fed_name}'."),
+                chat_title=self.connection.title,
+                fed_name=federation.fed_name,
             ),
-            _("Federation ID: {fed_id}").format(fed_id=federation.fed_id),
+            Template(_("Federation ID: {fed_id}"), fed_id=federation.fed_id),
         )
 
         await self.event.reply(str(doc))
 
         # Log the chat leaving
-        log_text = _("🏛 Chat '{chat_title}' has left federation by {user}.").format(
-            chat_title=self.connection.title, user=self.event.from_user.mention_html()
-        )
+        log_text = Template(
+            _("🏛 Chat '{chat_title}' has left federation by {user}."),
+            chat_title=self.connection.title,
+            user=self.event.from_user.mention_html(),
+        ).to_html()
         await FederationService.post_federation_log(federation, log_text, self.event.bot)

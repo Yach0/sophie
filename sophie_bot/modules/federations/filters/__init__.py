@@ -9,6 +9,7 @@ from aiogram.types import Message
 from sophie_bot.constants import FEDERATION_BANLIST_COOLDOWN_SECONDS
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
+from stfu_tg import Template
 
 
 class BanlistCooldownFilter(Filter):
@@ -22,7 +23,9 @@ class BanlistCooldownFilter(Filter):
         if last_used:
             ttl = await aredis.ttl(key)
             await message.reply(
-                _("⏱ Please wait {seconds} seconds before using this command again.").format(seconds=max(ttl, 1))
+                Template(
+                    _("⏱ Please wait {seconds} seconds before using this command again."), seconds=max(ttl, 1)
+                ).to_html()
             )
             raise SkipHandler
 

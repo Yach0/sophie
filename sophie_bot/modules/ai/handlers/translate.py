@@ -76,17 +76,21 @@ class AiTranslate(SophieMessageHandler):
         ai_context = NewAIMessageHistory()
         if self.event.reply_to_message and self.event.reply_to_message.photo:
             ai_context.add_system(
-                _("If applicable, translate the photo to {language_name}").format(language_name=language_name)
+                Template(
+                    _("If applicable, translate the photo to {language_name}"), language_name=language_name
+                ).to_html()
             )
             await ai_context.add_from_message(self.event.reply_to_message, disable_name=True)
 
         ai_context.add_system(
             "\n".join(
                 (
-                    _("You're the professional AI translator / transcriber."),
-                    _("Translate the following text to {language_name}:\n{to_translate}").format(
-                        language_name=language_name, to_translate=to_translate
-                    ),
+                    _("You're a professional AI translator / transcriber."),
+                    Template(
+                        _("Translate the following text to {language_name}:\n{to_translate}"),
+                        language_name=language_name,
+                        to_translate=to_translate,
+                    ).to_html(),
                     _(
                         "Set translation_explanations to null unless the source is ambiguous,"
                         " self-contradictory, requires culturally/contextually essential explanation,"

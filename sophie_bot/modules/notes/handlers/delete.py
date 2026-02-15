@@ -3,7 +3,7 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import WordArg
-from stfu_tg import Italic, KeyValue, Section
+from stfu_tg import Italic, KeyValue, Section, Template
 
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.admin_rights import UserRestricting
@@ -34,7 +34,9 @@ class DelNote(SophieMessageHandler):
         note = await NoteModel.get_by_notenames(chat.db_model.iid, (raw_name,))
 
         if not note:
-            return await self.event.reply(_("No notes was found with {name} name.").format(name=Italic(raw_name)))
+            return await self.event.reply(
+                Template(_("No notes was found with {name} name."), name=Italic(raw_name)).to_html()
+            )
 
         await note.delete()
         await log_event(chat.tid, self.event.from_user.id, LogEvent.NOTE_DELETED, {"note_names": note.names})

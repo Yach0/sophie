@@ -8,11 +8,12 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.status_handler import StatusBoolHandlerABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from stfu_tg import Template
 
 
 @flags.help(alias_to_modules=["restrictions"], description=l_("Controls AI Moderator features"))
 class AIModerator(StatusBoolHandlerABC):
-    header_text = l_(lambda: _("{ai_emoji} AI Moderator").format(ai_emoji=AI_EMOJI))
+    header_text = l_(lambda: Template(_("{ai_emoji} AI Moderator"), ai_emoji=AI_EMOJI).to_html())
     change_command = "aimoderator"
 
     @staticmethod

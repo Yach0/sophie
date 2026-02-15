@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
-from stfu_tg import KeyValue, Section
+from stfu_tg import KeyValue, Section, Template
 
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
@@ -142,10 +142,9 @@ class WizardRenderer:
             default_action = ALL_MODERN_ACTIONS.get(default_action_name)
             if default_action:
                 text += "\n\n"
-                text += _("Default action: {icon} {title}").format(
-                    icon=default_action.icon,
-                    title=default_action.title,
-                )
+                text += Template(
+                    _("Default action: {icon} {title}"), icon=default_action.icon, title=default_action.title
+                ).to_html()
 
         return text, builder.as_markup()
 

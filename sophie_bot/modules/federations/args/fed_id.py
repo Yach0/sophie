@@ -3,7 +3,7 @@ from typing import Any, Optional
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgStrictError, ArgSimpleTypeError
 from ass_tg.types import TextArg
-from stfu_tg import Code
+from stfu_tg import Code, Template
 
 from sophie_bot.constants import FEDERATION_ID_HYPHEN_COUNT, FEDERATION_ID_PART_LENGTH
 from sophie_bot.db.models.federations import Federation
@@ -24,9 +24,10 @@ class FedIdArg(TextArg):
 
         if fed_id.count("-") != FEDERATION_ID_HYPHEN_COUNT:
             raise ArgSimpleTypeError(
-                _("Invalid federation ID format. Federation IDs must contain exactly {count} hyphens.").format(
-                    count=FEDERATION_ID_HYPHEN_COUNT
-                )
+                Template(
+                    _("Invalid federation ID format. Federation IDs must contain exactly {count} hyphens."),
+                    count=FEDERATION_ID_HYPHEN_COUNT,
+                ).to_html()
             )
 
         if entities.get_overlapping(0, len(fed_id)):
@@ -41,7 +42,7 @@ class FedIdArg(TextArg):
         # Lookup federation
         federation = await Federation.find_one(Federation.fed_id == fed_id)
         if not federation:
-            raise ArgStrictError(_("Federation with ID {fed_id} not found.").format(fed_id=Code(fed_id)))
+            raise ArgStrictError(Template(_("Federation with ID {fed_id} not found."), fed_id=Code(fed_id)).to_html())
 
         return len(fed_id), federation
 

@@ -90,7 +90,7 @@ def note_not_found(note_name: str) -> str:
     """Return error message for note not found."""
     from stfu_tg import Bold
 
-    return _("#{name} note was not found.").format(name=Bold(note_name))
+    return Template(_("#{name} note was not found."), name=Bold(note_name)).to_html()
 
 
 # =============================================================================
@@ -104,4 +104,4 @@ def invalid_duration(action_type: str) -> str:
     Args:
         action_type: Type of action (e.g., "ban", "mute")
     """
-    return _("Invalid {action} duration, please try again.").format(action=action_type)
+    return Template(_("Invalid {action} duration, please try again."), action=action_type).to_html()

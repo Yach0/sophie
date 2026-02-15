@@ -50,7 +50,7 @@ class NotesList(SophieMessageHandler):
             Section(
                 KeyValue(_("Search pattern"), Italic(to_search)) if to_search else None,
                 format_notes_list(notes),
-                title=_("Notes in {chat_name}").format(chat_name=connection.title),
+                title=Template(_("Notes in {chat_name}"), chat_name=connection.title).to_html(),
             ),
             " ",
             Template(

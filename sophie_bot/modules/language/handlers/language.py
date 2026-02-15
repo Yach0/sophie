@@ -4,6 +4,7 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from stfu_tg import Template
 
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
@@ -82,7 +83,7 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
         locale = i18n.babels.get(lang_code)
         display_name = i18n.locale_display(locale) if locale else lang_code
 
-        await self.event.answer(_("Language changed to {lang}").format(lang=display_name))
+        await self.event.answer(Template(_("Language changed to {lang}"), lang=display_name).to_html())
 
         # Re-render the keyboard to show the new checkmark
         buttons = []
@@ -107,5 +108,5 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
 
         if self.event.message and isinstance(self.event.message, Message):
             await self.event.message.edit_text(
-                _("Language set to {lang}").format(lang=display_name), reply_markup=keyboard
+                Template(_("Language set to {lang}"), lang=display_name).to_html(), reply_markup=keyboard
             )

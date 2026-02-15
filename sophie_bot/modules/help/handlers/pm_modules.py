@@ -112,7 +112,9 @@ class PMModuleHelp(CallbackQueryHandler):
             a_module = HELP_MODULES[a_mod_name]
             doc += Section(
                 format_handlers(a_cmds),
-                title=_("Aliased commands from {module}").format(module=f"{a_module.icon} {a_module.name}"),
+                title=Template(
+                    _("Aliased commands from {module}"), module=f"{a_module.icon} {a_module.name}"
+                ).to_html(),
             )
 
         buttons = InlineKeyboardBuilder()

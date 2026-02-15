@@ -19,7 +19,7 @@ async def filter_handle(message: Message, chat, data: dict):
     note = await NoteModel.get_by_notenames(chat_iid, (note_name,))
 
     if not note:
-        await message.reply(_("#{name} note was not found.").format(name=Bold(note_name)))
+        await message.reply(Template(_("#{name} note was not found."), name=Bold(note_name)).to_html())
         return
 
     title = Bold(HList(Title(f"📗 #{note_name}", bold=False), _("Filter action")))

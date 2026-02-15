@@ -153,8 +153,9 @@ class FederationUnbanHandler(FederationCommandHandler):
         await self.event.reply(str(doc))
 
         # Log the unban
-        log_text = _("🏛 User {unbanned_user} has been unbanned from federation by {unbanner}.").format(
-            unbanned_user=UserLink(user.tid, user.first_name_or_title or _("Unknown")).to_html(),
+        log_text = Template(
+            _("🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."),
+            unbanned_user=UserLink(user.tid, user.first_name_or_title or _("Unknown")),
             unbanner=from_user.mention_html(),
-        )
+        ).to_html()
         await FederationService.post_federation_log(federation, log_text, self.event.bot)

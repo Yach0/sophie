@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from aiogram import F, flags, Router
-from stfu_tg import Doc, UserLink
+from stfu_tg import Doc, Template, UserLink
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
@@ -60,14 +60,14 @@ class ReportHandler(SophieMessageHandler):
         # Build message
         offender_mention = UserLink(offender_id, message.reply_to_message.from_user.full_name)
 
-        doc = Doc(_("User {user} has been reported!").format(user=offender_mention))
+        doc = Doc(Template(_("User {user} has been reported!"), user=offender_mention))
 
         # Add reason if present
         # message.text is guaranteed to exist by CMDFilter usually, but good to check
         if message.text:
             command_args = message.text.split(maxsplit=1)
             if len(command_args) > 1:
-                doc += _("Reason: {reason}").format(reason=command_args[1])
+                doc += Template(_("Reason: {reason}"), reason=command_args[1])
 
         # Mention admins
         admin_mentions = []

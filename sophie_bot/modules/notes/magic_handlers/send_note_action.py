@@ -79,7 +79,7 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
         note = await NoteModel.get_by_notenames(connection.db_model.iid, (notename,))
 
         if not note:
-            await message.reply(_("#{name} note was not found.").format(name=Bold(notename)))
+            await message.reply(Template(_("#{name} note was not found."), name=Bold(notename)).to_html())
             return
 
         title = Bold(HList(Title(f"📗 #{notename}", bold=False), _("Filter action")))

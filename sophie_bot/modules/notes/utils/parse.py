@@ -4,7 +4,7 @@ from typing import Optional
 
 from aiogram.enums import ContentType
 from aiogram.types import Message
-from stfu_tg import Section
+from stfu_tg import Section, Template
 
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteFile, Saveable
@@ -113,8 +113,10 @@ async def parse_saveable(
     if len(note_text or "") > TELEGRAM_MESSAGE_LENGTH_LIMIT:
         raise SophieException(
             Section(
-                _("The maximum length of the note is {limit} characters.").format(limit=TELEGRAM_MESSAGE_LENGTH_LIMIT),
-                _("Please try to reduce the length of the note."),
+                Template(
+                    _("The maximum length of the note is {limit} characters."), limit=TELEGRAM_MESSAGE_LENGTH_LIMIT
+                ).to_html(),
+                _("Please try to reduce the length of note."),
                 title=_("Note is too long."),
             )
         )

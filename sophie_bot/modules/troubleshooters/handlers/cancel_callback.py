@@ -2,7 +2,7 @@ from typing import Any
 
 from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
-from stfu_tg import UserLink
+from stfu_tg import Template, UserLink
 
 from sophie_bot.modules.troubleshooters.callbacks import CallbackActionCancel, CancelCallback
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -66,5 +66,5 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
 
         await self.state.clear()
         await self.event.message.edit_text(  # type: ignore[union-attr]
-            _("The action was cancelled by {user}.").format(user=UserLink(user.id, user.first_name))
+            Template(_("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)).to_html()
         )

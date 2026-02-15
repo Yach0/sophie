@@ -4,7 +4,7 @@ from typing import Any, Optional
 from aiogram import F, flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OneOf, OptionalArg, WordArg
-from stfu_tg import Bold, HList, Italic, Title
+from stfu_tg import Bold, HList, Italic, Template, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models import NoteModel
@@ -31,7 +31,9 @@ class GetNote(SophieMessageHandler):
         note = await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
 
         if not note and self.data.get("get_error_on_404", True):
-            return await self.event.reply(_("No note was found with {name} name.").format(name=Italic(note_name)))
+            return await self.event.reply(
+                Template(_("No note was found with {name} name."), name=Italic(note_name)).to_html()
+            )
         elif not note:
             return
 

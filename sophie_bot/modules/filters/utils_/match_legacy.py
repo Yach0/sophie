@@ -6,6 +6,7 @@ from aiogram.types import Message
 from normality import normalize
 from pydantic_ai.messages import BinaryContent
 from regex import regex
+from stfu_tg import Template
 
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
@@ -108,9 +109,11 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
         history.add_system(system_prompt)
 
         # Build user prompt with filter criteria
-        user_prompt_text = _("Filter criteria: {criteria}\n\nMessage content: {content}").format(
-            criteria=prompt, content=text_content or _("(no text content)")
-        )
+        user_prompt_text = Template(
+            _("Filter criteria: {criteria}\n\nMessage content: {content}"),
+            criteria=prompt,
+            content=text_content or _("(no text content)"),
+        ).to_html()
 
         # Add text to prompt
         history.prompt = [user_prompt_text]

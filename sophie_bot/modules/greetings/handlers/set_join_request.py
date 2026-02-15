@@ -47,7 +47,9 @@ class DelJoinRequestMessageHandler(SophieMessageHandler):
         db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
         if not db_model or not db_model.join_request_message:
             return await self.event.reply(
-                _("Join request message in {chat_title} has not been set before").format(chat_title=connection.title)
+                Template(
+                    _("Join request message in {chat_title} has not been set before"), chat_title=connection.title
+                ).to_html()
             )
 
         # Reset to None
