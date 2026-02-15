@@ -54,7 +54,7 @@ class FiltersModel(Document):
 
     @staticmethod
     async def get_by_id(oid: ObjectId):
-        return await FiltersModel.find_one(FiltersModel.iid == oid)
+        return await FiltersModel.find_one(FiltersModel.id == oid)
 
     @staticmethod
     async def count_ai_filters(chat_iid: ObjectId) -> int:
@@ -116,7 +116,7 @@ class FilterInSetupType(BaseModel):
     @staticmethod
     def from_model(model: FiltersModel) -> "FilterInSetupType":
         return FilterInSetupType(
-            oid=str(model.iid),
+            oid=str(model.id),
             handler=FilterHandlerType(keyword=model.handler),
             actions=model.actions,
         )
