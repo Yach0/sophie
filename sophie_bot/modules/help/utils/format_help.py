@@ -26,7 +26,9 @@ def format_handler(handler: HandlerHelp, show_only_in_groups: bool = True, show_
         HList(*(format_cmd(cmd) for cmd in handler.cmds)),
         format_cmd_args(handler.args) if handler.args else None,
         Italic(_("— Only in groups")) if show_only_in_groups and handler.only_chats else None,
-        Italic(Template(_("({value})"), value=_("Disable-able"))) if show_disable_able and handler.disableable else None,
+        Italic(Template(_("({value})"), value=_("Disable-able")))
+        if show_disable_able and handler.disableable
+        else None,
     )
     if not handler.description:
         return cmd_and_args
