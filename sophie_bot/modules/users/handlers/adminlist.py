@@ -2,7 +2,7 @@ from typing import Any
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from stfu_tg import Doc, Title, UserLink, VList, Template, Section
+from stfu_tg import UserLink, VList, Template, Section
 
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
@@ -57,7 +57,10 @@ class AdminListHandler(SophieMessageHandler):
 
             admin_list_doc.append(UserLink(user.tid, user.first_name_or_title))
 
-        return await self.event.reply(Section(
-            VList(*admin_list_doc) if admin_list_doc else _("No visible admins found."),
-            title=Template(_("Admins in {chat_name}"), chat_name=self.event.chat.title)
-        ).to_html(), disable_notification=True)
+        return await self.event.reply(
+            Section(
+                VList(*admin_list_doc) if admin_list_doc else _("No visible admins found."),
+                title=Template(_("Admins in {chat_name}"), chat_name=self.event.chat.title),
+            ).to_html(),
+            disable_notification=True,
+        )

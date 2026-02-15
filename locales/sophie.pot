@@ -4162,13 +4162,13 @@ msgstr ""
 msgid "Chat not found."
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/adminlist.py:38
-#, python-brace-format
-msgid "Admins in {chat_name}"
+#: sophie_bot/modules/users/handlers/adminlist.py:62
+msgid "No visible admins found."
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/adminlist.py:71
-msgid "No visible admins found."
+#: sophie_bot/modules/users/handlers/adminlist.py:63
+#, python-brace-format
+msgid "Admins in {chat_name}"
 msgstr ""
 
 #: sophie_bot/modules/users/handlers/id.py:41
