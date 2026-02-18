@@ -2231,7 +2231,7 @@ wheels = [
 
 [[package]]
 name = "stfu-tg"
-version = "3.4"
+version = "3.5"
 source = { directory = "libs/stf" }
 
 [package.metadata]
