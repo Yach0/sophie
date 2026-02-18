@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from aiogram import F, flags, Router
-from stfu_tg import Doc, Template, UserLink
+from aiogram import F, Router, flags
+from stfu_tg import Code, Doc, HList, InvisibleSymbol, KeyValue, Template, UserLink
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
@@ -60,29 +60,31 @@ class ReportHandler(SophieMessageHandler):
         # Build message
         offender_mention = UserLink(offender_id, message.reply_to_message.from_user.full_name)
 
-        doc = Doc(Template(_("User {user} has been reported!"), user=offender_mention))
+        doc = Doc()
+
+        # Mention admins
+        mentions = [
+            UserLink(admin.user.tid, InvisibleSymbol())
+            if hasattr(admin.user, "tid")
+            else UserLink(admin.user.chat_id, InvisibleSymbol())
+            for admin in admins
+            if admin.user
+        ]
+
+        # We add mentions right after this line, because if we add them at the last line, they would make the message bubble bigger
+        doc += HList(
+            Template(_("User {user} ({user_id}) has been reported!"), user=offender_mention, user_id=Code(offender_id)),
+            *mentions,
+            divider="",
+        )
+
+        doc += KeyValue(_("Reported by"), UserLink(message.from_user.id, message.from_user.full_name))
 
         # Add reason if present
         # message.text is guaranteed to exist by CMDFilter usually, but good to check
         if message.text:
             command_args = message.text.split(maxsplit=1)
             if len(command_args) > 1:
-                doc += Template(_("Reason: {reason}"), reason=command_args[1])
-
-        # Mention admins
-        admin_mentions = []
-        for admin in admins:
-            if admin.user:
-                # We use zero-width space for invisible mention or just listing
-                # Legacy behavior was to mention them.
-                # Assuming ChatModel has 'tid' which is the telegram ID.
-                # ChatModel.user is a Link, fetch_links=True populates it.
-                if hasattr(admin.user, "tid"):
-                    admin_mentions.append(UserLink(admin.user.tid, "\u200b"))
-                elif hasattr(admin.user, "chat_id"):  # Fallback if alias used
-                    admin_mentions.append(UserLink(admin.user.chat_id, "\u200b"))
-
-        if admin_mentions:
-            doc += admin_mentions
+                doc += KeyValue(_("Reason"), command_args[1])
 
         await message.reply(str(doc))
