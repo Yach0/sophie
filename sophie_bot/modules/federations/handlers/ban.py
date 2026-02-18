@@ -4,14 +4,13 @@ import asyncio
 from typing import Any
 
 from aiogram import flags
-
-from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg, TextArg
-from stfu_tg import Doc, KeyValue, Template, Title, UserLink
+from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
+from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
@@ -134,17 +133,16 @@ class FederationBanHandler(FederationCommandHandler):
             KeyValue(
                 _("User"),
                 Template(
-                    "{user_name} ({user_id})", user_name=user.first_name_or_title or _("Unknown"), user_id=user.tid
+                    "{user_name} ({user_id})",
+                    user_name=user.first_name_or_title or _("Unknown"),
+                    user_id=Code(user.tid),
                 ),
             ),
             KeyValue(_("By"), self.event.from_user.first_name),
-            KeyValue(
-                _("Chats banned"),
-                Template(
-                    "user banned in {banned_count}/{total_chats} chats",
-                    banned_count=banned_count,
-                    total_chats=total_chats,
-                ),
+            Template(
+                "User banned in {banned_count} out of {total_chats} chats in the federation",
+                banned_count=banned_count,
+                total_chats=total_chats,
             ),
         )
         if reason:
