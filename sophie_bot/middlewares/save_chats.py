@@ -1,10 +1,9 @@
 from typing import Any, Awaitable, Callable, Iterable, List, Optional
 
 import structlog
-from typing_extensions import override
-
 from aiogram import BaseMiddleware
 from aiogram.types import Chat, ChatMemberUpdated, Message, TelegramObject, Update, User
+from typing_extensions import override
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -150,6 +149,9 @@ class SaveChatsMiddleware(BaseMiddleware):
                 old_id=message.chat.id,
                 new_id=message.migrate_to_chat_id,
             )
+            # Save the current (old) chat before migration
+            current_group = await ChatModel.upsert_group(message.chat)
+            data["chat_db"] = data["group_db"] = current_group
             return True
         else:
             return False
