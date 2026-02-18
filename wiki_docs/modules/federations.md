@@ -15,7 +15,6 @@ icon: 🏛
 | --- | --- | --- | --- |
 | `/newfed` `/fnew` | `<Federation name>` | Create a new federation | *Disable-able* |
 | `/fedinfo` `/finfo` | `<Federation ID to get info about (optional)>` | Get information about a federation | *Disable-able* |
-| `/fban` `/sfban` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User to ban>` `<Reason (optional)>` | Ban a user from the federation | *Disable-able* |
 | `/unfban` `/funban` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User to unban>` | Unban a user from the federation | *Disable-able* |
 | `/fbanlist` `/exportfbans` `/fexport` | `<Federation ID (optional, uses current chat's federation if not specified)>` | Show list of banned users in federation | *Disable-able* |
 | `/transferfed` `/ftransfer` | `<Federation ID to transfer>` `<New owner username or ID>` | Transfer federation ownership | *Disable-able* |
@@ -34,3 +33,4 @@ icon: 🏛
 | --- | --- | --- | --- |
 | `/joinfed` `/fjoin` | `<Federation ID to join>` | Join a chat to a federation | *Disable-able* |
 | `/leavefed` `/fleave` | - | Leave a federation | *Disable-able* |
+| `/fban` `/sfban` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User to ban>` `<Reason (optional)>` | Ban a user from the federation | *Disable-able* |
