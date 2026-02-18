@@ -4,12 +4,12 @@ from typing import Any
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from stfu_tg import Doc, Template, Title
+from stfu_tg import Doc, Italic, Template, Title, UserLink
 
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -55,8 +55,8 @@ class LeaveFederationHandler(SophieMessageHandler):
             Title(_("🏛 Chat Left Federation")),
             Template(
                 _("Chat '{chat_title}' has left federation '{fed_name}'."),
-                chat_title=self.connection.title,
-                fed_name=federation.fed_name,
+                chat_title=Italic(self.connection.title),
+                fed_name=(federation.fed_name),
             ),
             Template(_("Federation ID: {fed_id}"), fed_id=federation.fed_id),
         )
@@ -66,7 +66,7 @@ class LeaveFederationHandler(SophieMessageHandler):
         # Log the chat leaving
         log_text = Template(
             _("🏛 Chat '{chat_title}' has left federation by {user}."),
-            chat_title=self.connection.title,
-            user=self.event.from_user.mention_html(),
+            chat_title=Italic(self.connection.title),
+            user=UserLink(self.event.from_user.id, self.event.from_user.first_name),
         ).to_html()
         await FederationService.post_federation_log(federation, log_text, self.event.bot)
