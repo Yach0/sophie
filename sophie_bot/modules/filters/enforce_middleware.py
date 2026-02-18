@@ -136,7 +136,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             raise SophieException("EnforceFiltersMiddleware: no actions found")
 
     async def _process_filters(self, message: Message, data: dict[str, Any]):
-        chat_db = data["chat_db"]
+        chat_db = data.get("chat_db")
+        if chat_db is None:
+            log.debug("EnforceFiltersMiddleware: chat_db is None, skipping...")
+            return
 
         all_filters = await FiltersModel.get_filters(chat_db.iid)
         if not all_filters:
