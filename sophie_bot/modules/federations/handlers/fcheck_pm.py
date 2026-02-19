@@ -18,16 +18,16 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import IsConnectedFilter
-from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Check federation bans"))
 @flags.disableable(name="fcheck")
-class FederationCheckPMHandler(FederationCommandHandler):
+class FederationCheckPMHandler(SophieMessageHandler):
     """Handler for checking fed bans in private chat when not connected."""
 
     @staticmethod
@@ -41,14 +41,10 @@ class FederationCheckPMHandler(FederationCommandHandler):
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
-        base_args = await super().handler_args(message, data)
-        base_args.update(
-            {
-                "user": OptionalArg(SophieUserArg(l_("User to check"), allow_unknown_id=True)),
-                "full": OptionalArg(EqualsArg("full", l_("Show all bans"))),
-            }
-        )
-        return base_args
+        return {
+            "user": OptionalArg(SophieUserArg(l_("User to check"), allow_unknown_id=True)),
+            "full": OptionalArg(EqualsArg("full", l_("'full' to show all bans"))),
+        }
 
     async def handle(self) -> Any:
         if self.connection.type != ChatType.private:

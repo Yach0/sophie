@@ -33,7 +33,7 @@ class CreateFederationHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("newfed", "fnew")), FeatureFlagFilter("new_feds_newfed"))
+        return CMDFilter(("newfed", "fnew")), FeatureFlagFilter("new_feds_newfed")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

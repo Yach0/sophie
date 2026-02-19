@@ -31,7 +31,7 @@ class FederationPromoteHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fpromote",)), FeatureFlagFilter("new_feds_fpromote"))
+        return CMDFilter(("fpromote",)), FeatureFlagFilter("new_feds_fpromote")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

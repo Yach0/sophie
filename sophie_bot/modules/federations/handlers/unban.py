@@ -28,7 +28,7 @@ class FederationUnbanHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("unfban", "funban")), FeatureFlagFilter("new_feds_funban"))
+        return CMDFilter(("unfban", "funban")), FeatureFlagFilter("new_feds_funban")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
@@ -36,7 +36,7 @@ class FederationUnbanHandler(FederationCommandHandler):
         base_args = await super().handler_args(message, data)
         base_args.update(
             {
-                "user": OptionalArg(SophieUserArg(l_("User to unban"))),
+                "user": OptionalArg(SophieUserArg(l_("User"))),
             }
         )
         return base_args

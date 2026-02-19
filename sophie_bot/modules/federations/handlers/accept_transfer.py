@@ -28,7 +28,7 @@ class AcceptTransferHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("accepttransfer",)), FeatureFlagFilter("new_feds_accepttransfer"))
+        return CMDFilter(("accepttransfer",)), FeatureFlagFilter("new_feds_accepttransfer")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

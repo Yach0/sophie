@@ -54,8 +54,8 @@ class FederationBanHandler(FederationCommandHandler):
         base_args = await super().handler_args(message, data)
         base_args.update(
             {
-                "user": OptionalArg(SophieUserArg(l_("User to ban"), allow_unknown_id=True)),
-                "reason": OptionalArg(TextArg(l_("Reason (optional)"))),
+                "user": OptionalArg(SophieUserArg(l_("User"), allow_unknown_id=True)),
+                "reason": OptionalArg(TextArg(l_("?Reason"))),
             }
         )
         return base_args

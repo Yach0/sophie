@@ -31,7 +31,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fsub",)), FeatureFlagFilter("new_feds_fsub"))
+        return CMDFilter(("fsub",)), FeatureFlagFilter("new_feds_fsub")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

@@ -22,7 +22,7 @@ class SetFederationLogHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fsetlog", "setfedlog")), FeatureFlagFilter("new_feds_setlog"))
+        return CMDFilter(("fsetlog", "setfedlog")), FeatureFlagFilter("new_feds_setlog")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

@@ -25,7 +25,7 @@ class FederationImportHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("importfbans", "fimport")), FeatureFlagFilter("new_feds_import"))
+        return CMDFilter(("importfbans", "fimport")), FeatureFlagFilter("new_feds_import")
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         """Import federation ban list from CSV file."""

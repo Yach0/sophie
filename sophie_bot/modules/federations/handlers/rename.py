@@ -26,7 +26,7 @@ class FederationRenameHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("frename",)), FeatureFlagFilter("new_feds_frename"))
+        return CMDFilter(("frename",)), FeatureFlagFilter("new_feds_frename")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

@@ -44,8 +44,8 @@ class TransferOwnershipHandler(FederationCommandHandler):
         """Define arguments for transfer command."""
         base_args = await super().handler_args(message, data)
         # Override fed_id to be required (not optional) for transfer
-        base_args["fed_id"] = FedIdArg(l_("Federation ID to transfer"))
-        base_args["new_owner"] = TextArg(l_("New owner username or ID"))
+        base_args["fed_id"] = FedIdArg(l_("?Federation ID"))
+        base_args["new_owner"] = TextArg(l_("New owner"))
         return base_args
 
     async def handle_federation_command(self, federation: Federation) -> Any:

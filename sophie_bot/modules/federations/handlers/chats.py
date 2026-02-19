@@ -24,7 +24,7 @@ class FederationChatsHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fchats",)), FeatureFlagFilter("new_feds_fchats"))
+        return CMDFilter(("fchats",)), FeatureFlagFilter("new_feds_fchats")
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         """List all chats in the federation."""

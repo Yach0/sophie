@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABCMeta
 from typing import Any
 
 from aiogram.types import Message
@@ -19,7 +20,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-class FederationCommandHandler(SophieMessageHandler):
+class FederationCommandHandler(SophieMessageHandler, metaclass=ABCMeta):
     """Base handler for federation commands with optional fed_id argument.
 
     This handler provides common functionality for all federation-related commands
@@ -50,9 +51,7 @@ class FederationCommandHandler(SophieMessageHandler):
         federation when not provided.
         """
         return {
-            "fed_id": OptionalArg(
-                FedIdArg(l_("Federation ID (optional, uses current chat's federation if not specified)"))
-            ),
+            "fed_id": OptionalArg(FedIdArg(l_("?Federation ID"))),
         }
 
     async def handle(self) -> Any:

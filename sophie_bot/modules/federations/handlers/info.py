@@ -26,11 +26,11 @@ class FederationInfoHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fedinfo", "finfo")), FeatureFlagFilter("new_feds_finfo"))
+        return CMDFilter(("fedinfo", "finfo")), FeatureFlagFilter("new_feds_finfo")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
-        return {"fed_id": OptionalArg(FedIdArg(l_("Federation ID to get info about (optional)")))}
+        return {"fed_id": OptionalArg(FedIdArg(l_("?Federation ID")))}
 
     async def handle(self) -> Any:
         """Get information about a federation."""
