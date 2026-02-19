@@ -881,7 +881,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:85
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:103
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:131
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:134
 #: sophie_bot/modules/federations/handlers/promote.py:43
 #: sophie_bot/modules/federations/handlers/unban.py:148
 #: sophie_bot/modules/promotes/handlers/demote.py:35
@@ -1571,7 +1571,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:85
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:103
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:131
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:134
 #: sophie_bot/modules/federations/handlers/info.py:56
 #: sophie_bot/modules/federations/handlers/unban.py:118
 #: sophie_bot/modules/federations/handlers/unban.py:148
@@ -1638,7 +1638,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/banlist.py:65
 #: sophie_bot/modules/federations/handlers/banlist.py:105
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:104
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:132
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:135
 #: sophie_bot/modules/federations/schedules/process_exports.py:102
 msgid "Total bans"
 msgstr ""
@@ -1805,7 +1805,7 @@ msgid "👤 {admin} demoted {user} from admin in federation {fed_name}."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:23
-msgid "Check federation bans for a user in current chat"
+msgid "Check federation bans for a user"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:39
@@ -1843,7 +1843,7 @@ msgid "To see the full list of your federation bans, run /fcheck in Sophie's DM.
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:28
-msgid "Check federation bans for a user in PM"
+msgid "Check federation bans"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:48
@@ -1854,11 +1854,12 @@ msgstr ""
 msgid "No federation bans found."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:109
-msgid "Some federation bans are hidden because they do not affect any chats. Use /fcheck full to show the complete list."
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:110
+#, python-brace-format
+msgid "Some federation bans are hidden because they do not affect any chats. Use {cmd} to show the complete list."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:130
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:133
 msgid "🏛 Federation Ban Check Export"
 msgstr ""
 

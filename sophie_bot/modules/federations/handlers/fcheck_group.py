@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Check federation bans for a user in current chat"))
+@flags.help(description=l_("Check federation bans for a user"))
 @flags.disableable(name="fcheck")
 class FederationCheckGroupHandler(FederationCommandHandler):
     """Handler for checking fed bans in group or connected PM context."""

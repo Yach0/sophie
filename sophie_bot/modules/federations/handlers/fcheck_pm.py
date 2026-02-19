@@ -25,7 +25,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Check federation bans for a user in PM"))
+@flags.help(description=l_("Check federation bans"))
 @flags.disableable(name="fcheck")
 class FederationCheckPMHandler(FederationCommandHandler):
     """Handler for checking fed bans in private chat when not connected."""
@@ -105,11 +105,12 @@ class FederationCheckPMHandler(FederationCommandHandler):
             VList(*items),
         )
         if not show_full and len(total_bans) > len(bans):
-            doc += Template(_(
-                "Some federation bans are hidden because they do not affect any chats. "
-                "Use {cmd} to show the complete list."
-            ),
-                cmd=Code('/fcheck full')
+            doc += Template(
+                _(
+                    "Some federation bans are hidden because they do not affect any chats. "
+                    "Use {cmd} to show the complete list."
+                ),
+                cmd=Code("/fcheck full"),
             )
         await self.event.reply(doc.to_html())
 
