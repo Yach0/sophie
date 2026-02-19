@@ -8,13 +8,13 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title, Template, Code
+from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services.federation import FederationService
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -40,7 +40,7 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         fed_id_input: str = self.data["fed_id"]
-        user_iid = self.data["user_db"].id
+        user_db = self.data["user_db"]
         user_tid = self.connection.tid
 
         # Get transfer request from Redis
@@ -88,7 +88,7 @@ class AcceptTransferHandler(SophieMessageHandler):
         # Transfer ownership
         await FederationService.update_federation(
             federation,
-            {"creator": user_iid},
+            {"creator": user_db},
         )
 
         # Clean up transfer request
