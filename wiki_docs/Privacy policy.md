@@ -1,11 +1,8 @@
-:information_source: Sophie respects your privacy; every part of Sophie is open source!
+Sophie respects your privacy; every part of Sophie is open source!
 
-For privacy inquiries, please contact sophie@orangefox.tech
+For further privacy inquiries, please contact sophie@orangefox.tech
 
 # What data we are saving / caching
-
-For the proper functionality of the bot, we are saving some data inconspicuously.
-Here are all the non-obvious things we are saving:
 
 ### Settings and save-able content
 
@@ -64,7 +61,7 @@ This is necessary for the proper functioning of Sophie and its ability to protec
 For special cases, you can request deletion of this essential information by contacting us at sophie@orangefox.tech,
 and we will review such requests on a case-by-case basis.
 
-However, deleting this information may prevent you from using Sophie.
+However, deleting this information may prevent you from using Sophie in the future.
 
 # Third parties
 
@@ -76,9 +73,7 @@ When these features are activated, you agree to:
 * [OpenRouter Privacy Policy](https://openrouter.ai/docs/features/privacy-and-logging)
 * [Mistral Privacy Policy](https://mistral.ai/terms#privacy-policy)
 * [Tavily Privacy Policy](https://www.tavily.com/privacy)
-* By using AI features with a specific AI provider (selected via /aiprovider command), you agree to that provider's
-  privacy policy. For example, when using OpenAI, you agree to their privacy policy: https://openai.com/privacy/. The
-  default provider is Mistral.
+* By using AI features with a specific AI provider (selected via /aiprovider command), you agree to the selected provider's privacy policy.
 
 While using some AI-enabled features such as AI Chatbot, AI Translator or AI Moderator,
 we may share the context of the conversation, which can
@@ -102,12 +97,17 @@ We collect crash tracebacks and, in some cases, code variable states,
 which may include raw update data that caused the crash.
 This data is automatically purged after the issues are resolved or after 48 hours.
 You will be notified of crashes via a "crash" message from Sophie (unless technical limitations prevent delivery).
+This data is not shared with any third parties, except for Sentry, and is only used internally by Sophie.
 By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy.
 
-This data is automatically purged after the issues are closed or/and stale or after 48 hours.
-The crashlytics are not hidden. You will be clearly notified about it with the "crash" message Sophie would send.
-In some cases, if it's not possible to send the message (the bot is blocked or another reason Telegram doesn't sends
-the message), this guarantee can be withdrawn.
+### AI Telemetry (Pydantic logfire)
+
+Sophie can use Pydantic's logfire feature to collect usage statistics and performance metrics of AI-related activities. This data is used to improve
+the user experience and identify potential issues. The data collected includes information about the user's device,
+operating system, and usage patterns.
+This data is not shared with any third parties, except for Pydantic, and is only used internally by Sophie.
+You can withdraw your consent at any time by contacting us by disabling the AI feature by writing '/aienable no'.
+By using Sophie with AI-related activities, you agree to Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.
 
 # Changes to This Policy
 
