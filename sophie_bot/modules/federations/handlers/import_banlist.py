@@ -19,7 +19,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Import federation ban list from CSV file"))
-@flags.disableable(name="importfbans")
 class FederationImportHandler(FederationCommandHandler):
     """Handler for importing federation ban lists from CSV files."""
 

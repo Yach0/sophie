@@ -20,7 +20,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Rename a federation (owner only)"))
-@flags.disableable(name="frename")
 class FederationRenameHandler(FederationCommandHandler):
     """Handler for renaming federations."""
 

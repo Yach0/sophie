@@ -20,12 +20,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(
-    description=l_("Subscribe federation to another federation"),
-)
-@flags.disableable(
-    name="fsub",
-)
+@flags.help(description=l_("Subscribe federation to another federation"))
 class SubscribeFederationHandler(SophieMessageHandler):
     """Handler for subscribing federations to other federations."""
 
@@ -116,12 +111,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
         )
 
 
-@flags.help(
-    description=l_("Unsubscribe federation from another federation"),
-)
-@flags.disableable(
-    name="funsub",
-)
+@flags.help(description=l_("Unsubscribe federation from another federation"))
 class UnsubscribeFederationHandler(SophieMessageHandler):
     """Handler for unsubscribing federations from other federations."""
 

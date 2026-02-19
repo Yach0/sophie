@@ -21,7 +21,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Show list of banned users in federation"))
-@flags.disableable(name="fbanlist")
 class FederationBanListHandler(FederationCommandHandler):
     """Handler for showing federation ban lists."""
 

@@ -25,7 +25,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Demote a user from federation admin"))
-@flags.disableable(name="fdemote")
 class FederationDemoteHandler(FederationCommandHandler):
     """Handler for demoting users from federation admin."""
 

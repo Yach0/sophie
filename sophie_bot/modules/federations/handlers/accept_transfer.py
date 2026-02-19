@@ -20,7 +20,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Accept federation ownership transfer"))
-@flags.disableable(name="accepttransfer")
 class AcceptTransferHandler(SophieMessageHandler):
     """Handler for accepting federation ownership transfers."""
 

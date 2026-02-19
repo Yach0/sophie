@@ -15,12 +15,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(
-    description=l_("Leave a federation"),
-)
-@flags.disableable(
-    name="leavefed",
-)
+@flags.help(description=l_("Leave a federation"))
 class LeaveFederationHandler(SophieMessageHandler):
     """Handler for leaving federations."""
 

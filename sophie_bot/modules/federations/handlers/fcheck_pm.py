@@ -26,7 +26,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Check federation bans"))
-@flags.disableable(name="fcheck")
 class FederationCheckPMHandler(SophieMessageHandler):
     """Handler for checking fed bans in private chat when not connected."""
 

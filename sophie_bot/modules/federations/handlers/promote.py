@@ -25,7 +25,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Promote a user to federation admin"))
-@flags.disableable(name="fpromote")
 class FederationPromoteHandler(FederationCommandHandler):
     """Handler for promoting users to federation admin."""
 

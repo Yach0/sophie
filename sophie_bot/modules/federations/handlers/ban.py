@@ -36,7 +36,6 @@ async def delete_messages_after_delay(
 
 
 @flags.help(description=l_("Ban a user from the federation"))
-@flags.disableable(name="fban")
 class FederationBanHandler(FederationCommandHandler):
     """Handler for banning users from federations."""
 
