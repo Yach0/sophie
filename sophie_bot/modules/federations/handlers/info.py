@@ -6,7 +6,7 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
-from stfu_tg import Doc, KeyValue, Title, VList, Template, Code
+from stfu_tg import Code, Doc, KeyValue, Template, Title, VList
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
@@ -58,7 +58,7 @@ class FederationInfoHandler(SophieMessageHandler):
         doc = Doc(
             Title(_("🏛 Federation Information")),
             KeyValue(_("Name"), federation.fed_name),
-            KeyValue(_("ID"), federation.fed_id),
+            KeyValue(_("ID"), Code(federation.fed_id)),
             KeyValue(_("Owner"), creator_text),
             KeyValue(_("Chats"), chat_count),
             KeyValue(_("Banned users"), ban_count),

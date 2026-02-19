@@ -8,7 +8,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title, Template, Code
+from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.db.models import Federation
 from sophie_bot.filters.cmd import CMDFilter
@@ -99,8 +99,8 @@ class TransferOwnershipHandler(FederationCommandHandler):
                 user_id=str(new_owner_id),
             ),
             Template(
-                _("They have 5 minutes to accept with /accepttransfer {fed_id}"),
-                fed_id=Code(federation.fed_id),
+                _("They have 5 minutes to accept with {cmd}"),
+                cmd=Code(f"/accepttransfer {federation.fed_id}"),
             ),
         )
 
