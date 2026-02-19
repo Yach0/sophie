@@ -2249,7 +2249,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/transfer.py:102
 #, python-brace-format
-msgid "They have 5 minutes to accept with /accepttransfer {fed_id}"
+msgid "They have 5 minutes to accept with {cmd}"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/unban.py:24
