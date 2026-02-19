@@ -597,6 +597,30 @@ class FederationService:
         return None
 
     @staticmethod
+    async def count_user_fed_bans(user_tid: int) -> int:
+        """Count how many unique federations have banned a user."""
+        fed_ids: set[str] = set()
+        async for ban in FederationBan.find(FederationBan.user_id == user_tid):
+            fed_ids.add(ban.fed_id)
+        return len(fed_ids)
+
+    @staticmethod
+    async def get_user_fed_bans(
+        user_tid: int,
+        only_with_banned_chats: bool = True,
+    ) -> list[tuple[FederationBan, Federation]]:
+        """Get all federation bans for a user, optionally filtering by bans with banned chats."""
+        bans = await FederationBan.find(FederationBan.user_id == user_tid).to_list()
+        results: list[tuple[FederationBan, Federation]] = []
+        for ban in bans:
+            if only_with_banned_chats and not ban.banned_chats:
+                continue
+            federation = await FederationService.get_federation_by_id(ban.fed_id)
+            if federation:
+                results.append((ban, federation))
+        return results
+
+    @staticmethod
     async def post_federation_log(federation: Federation, text: str, bot: Bot | None) -> None:
         """Post a log message to the federation's log channel."""
         if not federation.log_chat or not bot:

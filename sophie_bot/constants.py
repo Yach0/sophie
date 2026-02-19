@@ -83,6 +83,7 @@ MAX_IMPORT_FILE_SIZE_CSV: Final[int] = 50_000_000  # 50MB
 
 # Federation export limits
 MAX_BANLIST_EXPORT_SIZE: Final[int] = 500000  # Maximum bans to export
+MAX_FCHECK_INLINE_ITEMS: Final[int] = 50  # Maximum inline items before exporting /fcheck results
 FEDERATION_EXPORT_TTL_DAYS: Final[int] = 7  # Clean up old export tasks after 7 days
 
 # Welcomesecurity ban timeout (in hours)

@@ -17,6 +17,7 @@ icon: 🏛
 | `/fedinfo` `/finfo` | `<Federation ID to get info about (optional)>` | Get information about a federation | *Disable-able* |
 | `/unfban` `/funban` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User to unban>` | Unban a user from the federation | *Disable-able* |
 | `/fbanlist` `/exportfbans` `/fexport` | `<Federation ID (optional, uses current chat's federation if not specified)>` | Show list of banned users in federation | *Disable-able* |
+| `/fcheck` `/fbanstat` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User to check>` | Check federation bans for a user in current chat | *Disable-able* |
 | `/transferfed` `/ftransfer` | `<Federation ID to transfer>` `<New owner username or ID>` | Transfer federation ownership | *Disable-able* |
 | `/accepttransfer` | `<Federation ID to accept transfer for>` | Accept federation ownership transfer | *Disable-able* |
 | `/fsetlog` `/setfedlog` | - | Sets the Federation logs channel | *Disable-able* |
@@ -28,6 +29,12 @@ icon: 🏛
 | `/fchats` | `<Federation ID (optional, uses current chat's federation if not specified)>` | List all chats in a federation | *Disable-able* |
 | `/fpromote` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User>` | Promote a user to federation admin | *Disable-able* |
 | `/fdemote` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User>` | Demote a user from federation admin | *Disable-able* |
+
+### PM-only
+
+| Commands | Arguments | Description | Remarks |
+| --- | --- | --- | --- |
+| `/fcheck` `/fbanstat` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User to check>` `<Show all bans>` | Check federation bans for a user in PM | *Only in groups*, *Disable-able* |
 
 ### Only admins
 

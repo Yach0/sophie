@@ -21,6 +21,7 @@ FeatureType = Literal[
     "new_feds_fban",
     "new_feds_funban",
     "new_feds_fbanlist",
+    "new_feds_fcheck",
     "new_feds_transferfed",
     "new_feds_accepttransfer",
     "new_feds_setlog",
@@ -62,6 +63,7 @@ class FeatureStates(TypedDict):
     new_feds_fban: bool
     new_feds_funban: bool
     new_feds_fbanlist: bool
+    new_feds_fcheck: bool
     new_feds_transferfed: bool
     new_feds_accepttransfer: bool
     new_feds_setlog: bool
@@ -92,6 +94,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "new_feds_fban",
     "new_feds_funban",
     "new_feds_fbanlist",
+    "new_feds_fcheck",
     "new_feds_transferfed",
     "new_feds_accepttransfer",
     "new_feds_setlog",
@@ -130,6 +133,7 @@ def _default_state_map() -> FeatureStates:
         new_feds_fban=True,
         new_feds_funban=True,
         new_feds_fbanlist=True,
+        new_feds_fcheck=True,
         new_feds_transferfed=True,
         new_feds_accepttransfer=True,
         new_feds_setlog=True,
