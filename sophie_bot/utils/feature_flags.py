@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Final, Literal, TypedDict, Awaitable, cast, Any
+from typing import Any, Awaitable, Final, Literal, TypedDict, cast
 
 from sophie_bot.services.redis import aredis
 
@@ -30,6 +30,8 @@ FeatureType = Literal[
     "new_feds_import",
     "new_feds_frename",
     "new_feds_fchats",
+    "new_feds_fpromote",
+    "new_feds_fdemote",
     "feds_rest_api",
     "new_feds",
 ]
@@ -69,6 +71,8 @@ class FeatureStates(TypedDict):
     new_feds_import: bool
     new_feds_frename: bool
     new_feds_fchats: bool
+    new_feds_fpromote: bool
+    new_feds_fdemote: bool
     feds_rest_api: bool
     new_feds: bool
 
@@ -97,6 +101,8 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "new_feds_import",
     "new_feds_frename",
     "new_feds_fchats",
+    "new_feds_fpromote",
+    "new_feds_fdemote",
     "feds_rest_api",
     "new_feds",
 )
@@ -133,6 +139,8 @@ def _default_state_map() -> FeatureStates:
         new_feds_import=True,
         new_feds_frename=True,
         new_feds_fchats=True,
+        new_feds_fpromote=True,
+        new_feds_fdemote=True,
         feds_rest_api=False,
         new_feds=True,
     )

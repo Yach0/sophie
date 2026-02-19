@@ -4,15 +4,17 @@ from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.federations.api import api_router as federations_api_router
 from sophie_bot.modules.federations.handlers.accept_transfer import AcceptTransferHandler
 from sophie_bot.modules.federations.handlers.ban import FederationBanHandler
-from sophie_bot.modules.federations.handlers.base import FederationCommandHandler as FederationCommandHandler
 from sophie_bot.modules.federations.handlers.banlist import FederationBanListHandler
+from sophie_bot.modules.federations.handlers.base import FederationCommandHandler as FederationCommandHandler
 from sophie_bot.modules.federations.handlers.chats import FederationChatsHandler
 from sophie_bot.modules.federations.handlers.create import CreateFederationHandler
+from sophie_bot.modules.federations.handlers.demote import FederationDemoteHandler
 from sophie_bot.modules.federations.handlers.import_banlist import FederationImportHandler
 from sophie_bot.modules.federations.handlers.info import FederationInfoHandler
 from sophie_bot.modules.federations.handlers.join import JoinFederationHandler
 from sophie_bot.modules.federations.handlers.leave import LeaveFederationHandler
 from sophie_bot.modules.federations.handlers.logs import SetFederationLogHandler, UnsetFederationLogHandler
+from sophie_bot.modules.federations.handlers.promote import FederationPromoteHandler
 from sophie_bot.modules.federations.handlers.rename import FederationRenameHandler
 from sophie_bot.modules.federations.handlers.subscribe import SubscribeFederationHandler, UnsubscribeFederationHandler
 from sophie_bot.modules.federations.handlers.transfer import TransferOwnershipHandler
@@ -49,6 +51,8 @@ __handlers__ = (
     FederationImportHandler,
     FederationRenameHandler,
     FederationChatsHandler,
+    FederationPromoteHandler,
+    FederationDemoteHandler,
 )
 
 
@@ -58,9 +62,9 @@ async def __pre_setup__():
 
 async def __post_setup__(_):
     if SOPHIE_MODE == "scheduler":
-        from sophie_bot.modules.federations.schedules.process_imports import ProcessFederationImports
-        from sophie_bot.modules.federations.schedules.process_exports import ProcessFederationExports
         from sophie_bot.modules.federations.schedules.cleanup_exports import CleanupOldExports
+        from sophie_bot.modules.federations.schedules.process_exports import ProcessFederationExports
+        from sophie_bot.modules.federations.schedules.process_imports import ProcessFederationImports
         from sophie_bot.services.scheduler import scheduler
 
         scheduler.add_job(ProcessFederationImports().handle, "interval", seconds=30, jobstore="ram")

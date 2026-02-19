@@ -26,6 +26,8 @@ icon: 🏛
 | `/importfbans` `/fimport` | `<Federation ID (optional, uses current chat's federation if not specified)>` | Import federation ban list from CSV file | *Disable-able* |
 | `/frename` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<New federation name>` | Rename a federation (owner only) | *Disable-able* |
 | `/fchats` | `<Federation ID (optional, uses current chat's federation if not specified)>` | List all chats in a federation | *Disable-able* |
+| `/fpromote` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User>` | Promote a user to federation admin | *Disable-able* |
+| `/fdemote` | `<Federation ID (optional, uses current chat's federation if not specified)>` `<User>` | Demote a user from federation admin | *Disable-able* |
 
 ### Only admins
 

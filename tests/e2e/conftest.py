@@ -91,6 +91,8 @@ async def test_dispatcher(db_init: Any) -> AsyncGenerator[Dispatcher, None]:
     dp = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
 
     # Set up middlewares
+    from ass_tg.middleware import ArgsMiddleware
+
     from sophie_bot.middlewares import (
         ConnectionsMiddleware,
         DisablingMiddleware,
@@ -104,6 +106,7 @@ async def test_dispatcher(db_init: Any) -> AsyncGenerator[Dispatcher, None]:
     dp.update.outer_middleware(SaveChatsMiddleware())
     dp.update.middleware(ConnectionsMiddleware())
     dp.message.middleware(DisablingMiddleware())
+    dp.message.middleware(ArgsMiddleware(i18n=i18n))
 
     # Load all modules
     await load_modules(

@@ -6,9 +6,9 @@ from typing import List, Optional, cast
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from bson import DBRef
-from beanie import PydanticObjectId
+from beanie import Link, PydanticObjectId
 from beanie.odm.operators.find.comparison import In
+from bson import DBRef
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import MAX_FEDERATION_NAME_LENGTH, MAX_FEDERATIONS_PER_USER
@@ -615,3 +615,68 @@ class FederationService:
             # If we can't send to the log channel, silently ignore
             # Could potentially remove the log channel if it's invalid
             pass
+
+    @staticmethod
+    async def promote_admin(federation: Federation, user_iid: PydanticObjectId) -> None:
+        """Promote a user to federation admin.
+
+        Args:
+            federation: The federation to promote in
+            user_iid: The internal ID of the user to promote
+
+        Raises:
+            ValueError: If user is already an admin
+        """
+        # Check if user is already an admin
+        for admin_link in federation.admins:
+            if admin_link.id == user_iid:
+                raise ValueError("User is already an admin")
+
+        # Add user to admins list
+        db_ref = DBRef("chats", user_iid)
+        federation.admins.append(Link(db_ref, ChatModel))  # type: ignore[arg-type]
+        await federation.save()
+
+    @staticmethod
+    async def demote_admin(federation: Federation, user_iid: PydanticObjectId) -> None:
+        """Demote a user from federation admin.
+
+        Args:
+            federation: The federation to demote in
+            user_iid: The internal ID of the user to demote
+
+        Raises:
+            ValueError: If user is not an admin
+        """
+        # Find and remove user from admins list
+        admin_count = len(federation.admins)
+        federation.admins = [admin for admin in federation.admins if admin.id != user_iid]
+
+        if len(federation.admins) == admin_count:
+            raise ValueError("User is not an admin")
+
+        await federation.save()
+
+    @staticmethod
+    async def is_admin(federation: Federation, user_tid: int) -> bool:
+        """Check if a user is a federation admin.
+
+        Args:
+            federation: The federation to check
+            user_tid: The Telegram ID of the user to check
+
+        Returns:
+            True if user is an admin, False otherwise
+        """
+        # Check creator (owner)
+        creator = await federation.creator.fetch()
+        if creator and creator.tid == user_tid:
+            return True
+
+        # Check admin list
+        for admin_link in federation.admins:
+            admin = await admin_link.fetch()
+            if admin and admin.tid == user_tid:
+                return True
+
+        return False
