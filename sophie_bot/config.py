@@ -130,11 +130,7 @@ class Config(BaseSettings):
     pushgateway_job: str = "sophie-bot"
     push_interval_seconds: int = 10
 
-    model_config = SettingsConfigDict(
-        env_parse_none_str='None',
-        env_file="data/config.env",
-        env_file_encoding="utf-8"
-    )
+    model_config = SettingsConfigDict(env_parse_none_str="None", env_file="data/config.env", env_file_encoding="utf-8")
 
     @computed_field
     @property
