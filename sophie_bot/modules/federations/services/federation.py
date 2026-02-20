@@ -665,7 +665,7 @@ class FederationService:
         """
         # Check if user is already an admin
         for admin_link in federation.admins:
-            if admin_link.id == user_iid:
+            if admin_link.to_ref().id == user_iid:
                 raise ValueError("User is already an admin")
 
         # Add user to admins list
@@ -686,7 +686,7 @@ class FederationService:
         """
         # Find and remove user from admins list
         admin_count = len(federation.admins)
-        federation.admins = [admin for admin in federation.admins if admin.id != user_iid]
+        federation.admins = [admin for admin in federation.admins if admin.to_ref().id != user_iid]
 
         if len(federation.admins) == admin_count:
             raise ValueError("User is not an admin")
