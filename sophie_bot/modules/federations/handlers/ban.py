@@ -12,10 +12,8 @@ from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import ChatModel, Federation
-from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.federation import FederationService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
@@ -44,7 +42,6 @@ class FederationBanHandler(FederationCommandHandler):
         return (
             CMDFilter(("fban", "sfban")),
             FeatureFlagFilter("new_feds_fban"),
-            UserRestricting(can_restrict_members=True),
         )
 
     @classmethod
@@ -87,14 +84,18 @@ class FederationBanHandler(FederationCommandHandler):
             return
 
         # Ban user
-        try:
-            user_iid = self.data["user_db"].iid
-            ban = await FederationService.ban_user(federation, user_tid, user_iid, reason)
-        except FederationBanValidationError as e:
-            await self.event.reply(str(e))
-            return
+        user_iid = self.data["user_db"].iid
+        ban = await FederationService.ban_user(federation, user_tid, user_iid, reason)
+
+        # Is current chat part of the federation?
+        chat_part_of_federation: bool = self.connection.db_model.iid in federation.chats
+
         banned_count = await FederationService.ban_user_in_federation_chats(
-            federation, ban, user_tid, current_chat_iid=self.connection.db_model.iid
+            federation,
+            ban,
+            user_tid,
+            # Ban user in current chat if it's part of the federation
+            current_chat_iid=(self.connection.db_model.iid if chat_part_of_federation else None),
         )
 
         # Format response
@@ -107,12 +108,12 @@ class FederationBanHandler(FederationCommandHandler):
         )
         if reason:
             doc += KeyValue(_("Reason"), reason)
-        doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=str(banned_count)))
+        doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count)))
 
         if silent:
             doc += _("The action is silent, all related messages would be deleted shortly")
 
-        reply_msg = await self.event.reply(str(doc))
+        reply_msg = await self.event.reply(doc.to_html())
 
         # If silent mode, schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         if silent:

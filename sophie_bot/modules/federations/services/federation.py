@@ -12,7 +12,7 @@ from bson import DBRef
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import MAX_FEDERATION_NAME_LENGTH, MAX_FEDERATIONS_PER_USER
-from sophie_bot.db.models.chat import ChatModel, ChatType
+from sophie_bot.db.models.chat import ChatModel, ChatType, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationExportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.middlewares.connections import ChatConnection
@@ -326,13 +326,25 @@ class FederationService:
 
         chat_iids = FederationService._normalize_chat_iids([chat.to_ref() for chat in federation.chats])
 
-        if current_chat_iid and current_chat_iid not in chat_iids:
+        if current_chat_iid and current_chat_iid not in chat_iids and current_chat_iid in federation.chats:
             chat_iids.append(current_chat_iid)
 
         chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
 
+        user = await ChatModel.get_by_tid(user_tid)
+        if not user:
+            return 0
+
+        user_in_groups = await UserInGroupModel.find(
+            UserInGroupModel.user.id == user.iid,
+            In(UserInGroupModel.group.id, chat_iids),
+        ).to_list()
+        detected_chat_iids = {user_in_group.group.to_ref() for user_in_group in user_in_groups}
+
         banned_chat_iids: list[PydanticObjectId] = []
         for chat in chats:
+            if chat.iid not in detected_chat_iids:
+                continue
             if await restrict_ban_user(chat.tid, user_tid):
                 banned_chat_iids.append(chat.iid)
 
