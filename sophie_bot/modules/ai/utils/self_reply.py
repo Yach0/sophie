@@ -6,4 +6,5 @@ def is_ai_message(text: str) -> bool:
 
 
 def cut_titlebar(text: str) -> str:
-    return text.split("\n")[1]
+    lines = text.split("\n")
+    return lines[1] if len(lines) > 1 else ""
