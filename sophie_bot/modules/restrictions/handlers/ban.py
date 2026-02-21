@@ -9,7 +9,7 @@ from aiogram.types import Message
 from ass_tg.types import ActionTimeArg, OptionalArg, TextArg
 from ass_tg.types.base_abc import ArgFabric
 from babel.dates import format_timedelta
-from stfu_tg import KeyValue, Section, UserLink
+from stfu_tg import KeyValue, Section, Template, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
@@ -19,6 +19,7 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
+from sophie_bot.utils.federation_ban_check import FederationBanInfo, get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
@@ -65,6 +66,10 @@ class BanUserHandler(SophieMessageHandler):
         if await is_user_admin(connection.tid, user.chat_id):
             return await self.event.reply(_("I cannot ban an admin."))
 
+        federation_ban_info: FederationBanInfo | None = await get_user_federation_ban_info(
+            connection.db_model.iid, user.chat_id
+        )
+
         if not await ban_user(connection.tid, user.chat_id):
             return await self.event.reply(_("Failed to ban the user. Make sure I have the right permissions."))
 
@@ -81,6 +86,26 @@ class BanUserHandler(SophieMessageHandler):
             KeyValue(_("User"), UserLink(user.chat_id, user.first_name)),
             KeyValue(_("Banned by"), UserLink(self.event.from_user.id, self.event.from_user.first_name)),
             KeyValue(_("Reason"), reason) if reason else None,
+            KeyValue(
+                _("Notice"),
+                Template(
+                    _("The user is already banned in the current federation: {fed_name} ({fed_id})."),
+                    fed_name=federation_ban_info.fed_name,
+                    fed_id=federation_ban_info.fed_id,
+                ),
+            )
+            if federation_ban_info and federation_ban_info.scope == "current"
+            else None,
+            KeyValue(
+                _("Notice"),
+                Template(
+                    _("The user is already banned in a subscribed federation: {fed_name} ({fed_id})."),
+                    fed_name=federation_ban_info.fed_name,
+                    fed_id=federation_ban_info.fed_id,
+                ),
+            )
+            if federation_ban_info and federation_ban_info.scope == "subscribed"
+            else None,
             title=_("User banned"),
         )
 
@@ -126,6 +151,10 @@ class TempBanUserHandler(SophieMessageHandler):
         if await is_user_admin(connection.tid, user.chat_id):
             return await self.event.reply(_("I cannot ban an admin."))
 
+        federation_ban_info: FederationBanInfo | None = await get_user_federation_ban_info(
+            connection.db_model.iid, user.chat_id
+        )
+
         until_date: timedelta = self.data["time"]
 
         if not await ban_user(connection.tid, user.chat_id, until_date=until_date):
@@ -145,6 +174,26 @@ class TempBanUserHandler(SophieMessageHandler):
             KeyValue(_("Banned by"), UserLink(self.event.from_user.id, self.event.from_user.first_name)),
             KeyValue(_("Duration"), format_timedelta(until_date, locale=self.current_locale)),
             KeyValue(_("Reason"), reason) if reason else None,
+            KeyValue(
+                _("Notice"),
+                Template(
+                    _("The user is already banned in the current federation: {fed_name} ({fed_id})."),
+                    fed_name=federation_ban_info.fed_name,
+                    fed_id=federation_ban_info.fed_id,
+                ),
+            )
+            if federation_ban_info and federation_ban_info.scope == "current"
+            else None,
+            KeyValue(
+                _("Notice"),
+                Template(
+                    _("The user is already banned in a subscribed federation: {fed_name} ({fed_id})."),
+                    fed_name=federation_ban_info.fed_name,
+                    fed_id=federation_ban_info.fed_id,
+                ),
+            )
+            if federation_ban_info and federation_ban_info.scope == "subscribed"
+            else None,
             title=_("User temporarily banned"),
         )
 

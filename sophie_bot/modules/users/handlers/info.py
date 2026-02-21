@@ -3,13 +3,14 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg
-from stfu_tg import Doc, KeyValue, Section, Title, UserLink
+from stfu_tg import Doc, KeyValue, Section, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.utils.federation_ban_check import get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -58,7 +59,27 @@ class UserInfoHandler(SophieMessageHandler):
         doc += Section()
 
         if await is_user_admin(chat_tid, user_tid):
-            doc += _("This user is an admin in this chat.") + "\n"
+            doc += KeyValue(_("Notice"), _("This user is an admin in this chat."))
+
+        federation_ban_info = await get_user_federation_ban_info(self.connection.db_model.iid, user_tid)
+        if federation_ban_info and federation_ban_info.scope == "current":
+            doc += KeyValue(
+                _("Notice"),
+                Template(
+                    _("The user is banned in the current federation: {fed_name} ({fed_id})."),
+                    fed_name=federation_ban_info.fed_name,
+                    fed_id=federation_ban_info.fed_id,
+                ),
+            )
+        elif federation_ban_info and federation_ban_info.scope == "subscribed":
+            doc += KeyValue(
+                _("Notice"),
+                Template(
+                    _("The user is banned in a subscribed federation: {fed_name} ({fed_id})."),
+                    fed_name=federation_ban_info.fed_name,
+                    fed_id=federation_ban_info.fed_id,
+                ),
+            )
 
         # Count shared groups
         # We search for UserInGroupModel entries where the user is the target user
