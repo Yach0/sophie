@@ -15,7 +15,7 @@ from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -63,13 +63,13 @@ class FederationUnbanHandler(FederationCommandHandler):
             return
 
         # Check if user is banned
-        ban = await FederationService.is_user_banned(federation.fed_id, user.tid)
+        ban = await FederationBanService.is_user_banned(federation.fed_id, user.tid)
         if not ban:
             await self._reply_user_not_banned()
             return
 
         # Attempt unban
-        was_unbanned, subscription_ban = await FederationService.unban_user(federation.fed_id, user.tid)
+        was_unbanned, subscription_ban = await FederationBanService.unban_user(federation.fed_id, user.tid)
         if not was_unbanned:
             if subscription_ban and subscription_ban.origin_fed:
                 await self._handle_subscription_ban_error(subscription_ban, user)
@@ -79,7 +79,7 @@ class FederationUnbanHandler(FederationCommandHandler):
 
         banned_chat_refs = [chat.to_ref() for chat in ban.banned_chats] if ban.banned_chats else []
         if banned_chat_refs:
-            unbanned_count = await FederationService.unban_user_in_chat_iids(banned_chat_refs, user.tid)
+            unbanned_count = await FederationBanService.unban_user_in_chat_iids(banned_chat_refs, user.tid)
         else:
             unbanned_count = 0
 
@@ -102,7 +102,7 @@ class FederationUnbanHandler(FederationCommandHandler):
 
     async def _handle_subscription_ban_error(self, subscription_ban, user: ChatModel) -> None:
         """Handle the case where unbanning is blocked due to subscription."""
-        origin_fed = await FederationService.get_federation_by_id(subscription_ban.origin_fed)
+        origin_fed = await FederationManageService.get_federation_by_id(subscription_ban.origin_fed)
         if not origin_fed:
             await self.event.reply(_("Cannot unban this user because their ban originated from a subscription."))
             return
@@ -157,4 +157,4 @@ class FederationUnbanHandler(FederationCommandHandler):
             unbanned_user=UserLink(user.tid, user.first_name_or_title or _("Unknown")),
             unbanner=from_user.mention_html(),
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)

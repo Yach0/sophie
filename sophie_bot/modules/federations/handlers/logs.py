@@ -9,7 +9,7 @@ from stfu_tg import Doc, Title, Template
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -35,7 +35,7 @@ class SetFederationLogHandler(SophieMessageHandler):
 
         # Get federation for this chat
         chat_iid = self.connection.db_model.iid
-        federation = await FederationService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
@@ -72,7 +72,7 @@ class SetFederationLogHandler(SophieMessageHandler):
                 return
 
         # Set the log channel
-        await FederationService.set_federation_log_channel(federation, chat_iid)
+        await FederationManageService.set_federation_log_channel(federation, chat_iid)
 
         # Send confirmation
         doc = Doc(
@@ -87,7 +87,7 @@ class SetFederationLogHandler(SophieMessageHandler):
             _("🏛 Federation '{name}' log channel has been set to this chat."),
             name=federation.fed_name,
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)
 
 
 @flags.help(description=l_("Removes the Federation logs channel"))
@@ -110,7 +110,7 @@ class UnsetFederationLogHandler(SophieMessageHandler):
 
         # Get federation for this chat
         chat_iid = self.connection.db_model.iid
-        federation = await FederationService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
@@ -131,10 +131,10 @@ class UnsetFederationLogHandler(SophieMessageHandler):
         log_text = Template(
             _("🏛 Federation '{name}' log channel has been removed."), name=federation.fed_name
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)
 
         # Remove log channel
-        await FederationService.remove_federation_log_channel(federation)
+        await FederationManageService.remove_federation_log_channel(federation)
 
         # Send confirmation
         doc = Doc(

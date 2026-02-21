@@ -14,7 +14,7 @@ from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationBanService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -44,7 +44,7 @@ class FederationBanListHandler(FederationCommandHandler):
             await self.event.reply(_("You don't have permission to view ban lists in this federation."))
             return
 
-        ban_count = await FederationService.get_federation_ban_count(federation.fed_id)
+        ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id)
 
         if ban_count == 0:
             await self.event.reply(

@@ -9,7 +9,7 @@ from stfu_tg import Doc, Italic, Template, Title, UserLink
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService, FederationChatService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -35,7 +35,7 @@ class LeaveFederationHandler(SophieMessageHandler):
 
         # Check if chat is in a federation
         chat_iid = self.connection.db_model.iid
-        federation = await FederationService.get_federation_for_chat(
+        federation = await FederationManageService.get_federation_for_chat(
             chat_iid,
         )
         if not federation:
@@ -43,7 +43,7 @@ class LeaveFederationHandler(SophieMessageHandler):
             return
 
         # Remove chat from federation
-        await FederationService.remove_chat_from_federation(federation, chat_iid)
+        await FederationChatService.remove_chat_from_federation(federation, chat_iid)
 
         # Format success message
         doc = Doc(
@@ -64,4 +64,4 @@ class LeaveFederationHandler(SophieMessageHandler):
             chat_title=Italic(self.connection.title),
             user=UserLink(self.event.from_user.id, self.event.from_user.first_name),
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)

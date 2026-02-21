@@ -4,8 +4,8 @@ import pytest
 from beanie import PydanticObjectId
 from bson import DBRef
 
-from sophie_bot.modules.federations.services import federation as federation_service_module
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import ban as ban_service_module
+from sophie_bot.modules.federations.services import FederationBanService, FederationAdminService
 
 
 class FakeLink:
@@ -59,23 +59,23 @@ async def test_ban_user_in_federation_chats_bans_only_detected_chats() -> None:
     user_in_group_query.to_list = AsyncMock(return_value=[user_in_group_entry])
 
     with (
-        patch.object(federation_service_module.ChatModel, "iid", new=MagicMock(), create=True),
-        patch.object(federation_service_module.UserInGroupModel, "user", new=MagicMock(), create=True),
-        patch.object(federation_service_module.UserInGroupModel, "group", new=MagicMock(), create=True),
-        patch("sophie_bot.modules.federations.services.federation.ChatModel.find", return_value=chat_query),
+        patch.object(ban_service_module.ChatModel, "iid", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "user", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "group", new=MagicMock(), create=True),
+        patch("sophie_bot.modules.federations.services.ban.ChatModel.find", return_value=chat_query),
         patch(
-            "sophie_bot.modules.federations.services.federation.ChatModel.get_by_tid",
+            "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
             new=AsyncMock(return_value=user_model),
         ),
         patch(
-            "sophie_bot.modules.federations.services.federation.UserInGroupModel.find", return_value=user_in_group_query
+            "sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query
         ),
         patch(
-            "sophie_bot.modules.federations.services.federation.restrict_ban_user",
+            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
             new=AsyncMock(return_value=True),
         ) as mock_restrict_ban_user,
     ):
-        banned_count = await FederationService.ban_user_in_federation_chats(federation, ban, user_tid)
+        banned_count = await FederationBanService.ban_user_in_federation_chats(federation, ban, user_tid)
 
     assert banned_count == 1
     assert ban.banned_chats == [chat_one]
@@ -103,22 +103,22 @@ async def test_ban_user_in_federation_chats_returns_zero_if_user_not_found() -> 
     chat_query.to_list = AsyncMock(return_value=[chat_model])
 
     with (
-        patch.object(federation_service_module.ChatModel, "iid", new=MagicMock(), create=True),
-        patch("sophie_bot.modules.federations.services.federation.ChatModel.find", return_value=chat_query),
+        patch.object(ban_service_module.ChatModel, "iid", new=MagicMock(), create=True),
+        patch("sophie_bot.modules.federations.services.ban.ChatModel.find", return_value=chat_query),
         patch(
-            "sophie_bot.modules.federations.services.federation.ChatModel.get_by_tid",
+            "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
             new=AsyncMock(return_value=None),
         ),
         patch(
-            "sophie_bot.modules.federations.services.federation.UserInGroupModel.find",
+            "sophie_bot.modules.federations.services.ban.UserInGroupModel.find",
             return_value=MagicMock(),
         ) as mock_user_in_group_find,
         patch(
-            "sophie_bot.modules.federations.services.federation.restrict_ban_user",
+            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
             new=AsyncMock(return_value=True),
         ) as mock_restrict_ban_user,
     ):
-        banned_count = await FederationService.ban_user_in_federation_chats(federation, ban, user_tid)
+        banned_count = await FederationBanService.ban_user_in_federation_chats(federation, ban, user_tid)
 
     assert banned_count == 0
     mock_user_in_group_find.assert_not_called()
@@ -135,7 +135,7 @@ async def test_promote_admin_raises_for_existing_admin_link() -> None:
     federation.save = AsyncMock()
 
     with pytest.raises(ValueError, match="already an admin"):
-        await FederationService.promote_admin(federation, user_iid)
+        await FederationAdminService.promote_admin(federation, user_iid)
 
     federation.save.assert_not_called()
 
@@ -149,7 +149,7 @@ async def test_demote_admin_removes_matching_admin_link() -> None:
     federation.admins = [FakeDbRefLink(removed_admin_iid), FakeDbRefLink(remaining_admin_iid)]
     federation.save = AsyncMock()
 
-    await FederationService.demote_admin(federation, removed_admin_iid)
+    await FederationAdminService.demote_admin(federation, removed_admin_iid)
 
     assert len(federation.admins) == 1
     assert federation.admins[0].to_ref().id == remaining_admin_iid
@@ -166,6 +166,6 @@ async def test_demote_admin_raises_for_missing_admin_link() -> None:
     federation.save = AsyncMock()
 
     with pytest.raises(ValueError, match="not an admin"):
-        await FederationService.demote_admin(federation, missing_admin_iid)
+        await FederationAdminService.demote_admin(federation, missing_admin_iid)
 
     federation.save.assert_not_called()

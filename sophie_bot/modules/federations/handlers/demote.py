@@ -16,7 +16,7 @@ from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService, FederationAdminService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
@@ -84,7 +84,7 @@ class FederationDemoteHandler(FederationCommandHandler):
 
         # Try to demote the user
         try:
-            await FederationService.demote_admin(federation, user_db.iid)
+            await FederationAdminService.demote_admin(federation, user_db.iid)
         except ValueError as e:
             if "not an admin" in str(e):
                 await self.event.reply(
@@ -115,4 +115,4 @@ class FederationDemoteHandler(FederationCommandHandler):
             user=UserLink(user_db.tid, user_db.first_name_or_title),
             fed_name=federation.fed_name,
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)

@@ -18,7 +18,7 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import IsConnectedFilter
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationBanService
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -70,8 +70,8 @@ class FederationCheckPMHandler(SophieMessageHandler):
 
         show_full = self.data.get("full") is not None
 
-        bans = await FederationService.get_user_fed_bans(target_user.tid, only_with_banned_chats=not show_full)
-        total_bans = await FederationService.get_user_fed_bans(target_user.tid, only_with_banned_chats=False)
+        bans = await FederationBanService.get_user_fed_bans(target_user.tid, only_with_banned_chats=not show_full)
+        total_bans = await FederationBanService.get_user_fed_bans(target_user.tid, only_with_banned_chats=False)
 
         if not bans:
             await self.event.reply(

@@ -16,7 +16,7 @@ from sophie_bot.modules.federations.exceptions import (
     FederationLimitExceededError,
     FederationValidationError,
 )
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -45,7 +45,7 @@ class CreateFederationHandler(SophieMessageHandler):
         try:
             # Create federation
             user_db = self.data["user_db"]
-            federation = await FederationService.create_federation(name, user_db.iid)
+            federation = await FederationManageService.create_federation(name, user_db.iid)
         except FederationValidationError as e:
             await self.event.reply(str(e))
             return
@@ -73,4 +73,4 @@ class CreateFederationHandler(SophieMessageHandler):
             name=federation.fed_name,
             user=self.event.from_user.mention_html(),
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)

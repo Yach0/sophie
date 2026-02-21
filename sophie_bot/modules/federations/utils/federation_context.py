@@ -35,7 +35,7 @@ class FederationContextMixin:
 
         Errors are replied to user and returned as error_message.
         """
-        from sophie_bot.modules.federations.services.federation import FederationService
+        from sophie_bot.modules.federations.services import FederationManageService
 
         event = getattr(self, "event", None)
 
@@ -53,7 +53,7 @@ class FederationContextMixin:
 
         # Try to resolve federation
         try:
-            federation = await FederationService.get_federation(fed_id_arg, connection, user_tid)
+            federation = await FederationManageService.get_federation(fed_id_arg, connection, user_tid)
         except (FederationNotFoundError, FederationContextError) as e:
             error_msg = str(e)
             await event.reply(error_msg)

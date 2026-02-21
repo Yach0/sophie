@@ -5,7 +5,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 from stfu_tg import Template, UserLink
 
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
@@ -33,7 +33,7 @@ class FedBanMiddleware(BaseMiddleware):
         log.debug("Enforcing fban check on {} in {}".format(user_id, chat_id))
 
         # Get federation for this chat
-        federation = await FederationService.get_federation_for_chat(chat_db.iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_db.iid)
         if not federation:
             return False
 
@@ -42,7 +42,7 @@ class FedBanMiddleware(BaseMiddleware):
             return False
 
         # Check if user is banned in this federation or subscription chain
-        ban_info = await FederationService.is_user_banned_in_chain(federation.fed_id, user_id)
+        ban_info = await FederationBanService.is_user_banned_in_chain(federation.fed_id, user_id)
         if not ban_info:
             return False
 

@@ -14,7 +14,7 @@ from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -99,7 +99,7 @@ class FederationChatsHandler(SophieMessageHandler):
             return
 
         user_iid = self.data["user_db"].id
-        federations = await FederationService.get_federations_by_creator(user_iid)
+        federations = await FederationManageService.get_federations_by_creator(user_iid)
 
         if not federations:
             await self.event.reply(_("You don't own any federations."))
@@ -127,7 +127,7 @@ class FederationChatsHandler(SophieMessageHandler):
             await self.event.reply(_("Chat not found in database"))
             return
         chat_iid = chat.iid
-        federation = await FederationService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid)
 
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))

@@ -12,7 +12,7 @@ from stfu_tg import Doc, KeyValue, Title, Template
 from sophie_bot.constants import FEDERATION_ID_HYPHEN_COUNT, FEDERATION_ID_PART_LENGTH
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.bot import bot
@@ -42,7 +42,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
 
         # Get federation for current chat
         chat_iid = self.connection.db_model.iid
-        federation = await FederationService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
             return
@@ -59,9 +59,9 @@ class SubscribeFederationHandler(SophieMessageHandler):
             return
 
         # Subscribe to federation
-        success = await FederationService.subscribe_to_federation(federation, target_fed_id)
+        success = await FederationManageService.subscribe_to_federation(federation, target_fed_id)
         if not success:
-            target_fed = await FederationService.get_federation_by_id(target_fed_id)
+            target_fed = await FederationManageService.get_federation_by_id(target_fed_id)
             if not target_fed:
                 await self.event.reply(_("Federation not found."))
                 return
@@ -78,7 +78,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
             return
 
         # Get target federation for logging
-        target_fed = await FederationService.get_federation_by_id(target_fed_id)
+        target_fed = await FederationManageService.get_federation_by_id(target_fed_id)
         if not target_fed:
             await self.event.reply(_("Federation not found."))
             return
@@ -100,7 +100,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
             target_fed_name=target_fed.fed_name,
             target_fed_id=target_fed.fed_id,
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, bot)
+        await FederationManageService.post_federation_log(federation, log_text, bot)
 
     @staticmethod
     def _is_valid_fed_id(fed_id: str) -> bool:
@@ -133,7 +133,7 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
 
         # Get federation for current chat
         chat_iid = self.connection.db_model.iid
-        federation = await FederationService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
             return
@@ -145,9 +145,9 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
             return
 
         # Unsubscribe from federation
-        success = await FederationService.unsubscribe_from_federation(federation, fed_id)
+        success = await FederationManageService.unsubscribe_from_federation(federation, fed_id)
         if not success:
-            target_fed = await FederationService.get_federation_by_id(fed_id)
+            target_fed = await FederationManageService.get_federation_by_id(fed_id)
             if not target_fed:
                 await self.event.reply(_("Federation not found."))
                 return
@@ -164,7 +164,7 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
             return
 
         # Get target federation for response
-        target_fed = await FederationService.get_federation_by_id(fed_id)
+        target_fed = await FederationManageService.get_federation_by_id(fed_id)
         if not target_fed:
             await self.event.reply(_("Federation not found."))
             return
@@ -186,4 +186,4 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
             target_fed_name=target_fed.fed_name,
             target_fed_id=target_fed.fed_id,
         ).to_html()
-        await FederationService.post_federation_log(federation, log_text, bot)
+        await FederationManageService.post_federation_log(federation, log_text, bot)

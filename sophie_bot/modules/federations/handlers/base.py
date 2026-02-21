@@ -14,7 +14,7 @@ from sophie_bot.modules.federations.exceptions import (
     FederationContextError,
     FederationNotFoundError,
 )
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -92,7 +92,7 @@ class FederationCommandHandler(SophieMessageHandler, metaclass=ABCMeta):
 
             # Try to get federation for current chat
             chat_iid = connection.db_model.iid
-            federation = await FederationService.get_federation_for_chat(chat_iid)
+            federation = await FederationManageService.get_federation_for_chat(chat_iid)
 
             if not federation:
                 command = getattr(self, "command", "/command")

@@ -15,7 +15,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationBanService
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -61,8 +61,8 @@ class FederationCheckGroupHandler(FederationCommandHandler):
 
         user_tid = target_user.tid
 
-        ban_in_fed = await FederationService.is_user_banned_in_chain(federation.fed_id, user_tid)
-        fed_ban_count = await FederationService.count_user_fed_bans(user_tid)
+        ban_in_fed = await FederationBanService.is_user_banned_in_chain(federation.fed_id, user_tid)
+        fed_ban_count = await FederationBanService.count_user_fed_bans(user_tid)
 
         doc = Doc(
             Title(_("🏛 Federation Ban Check")),

@@ -132,7 +132,7 @@ msgid ""
 msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:63
-#: sophie_bot/modules/federations/handlers/info.py:60
+#: sophie_bot/modules/federations/handlers/info.py:64
 #: sophie_bot/modules/notes/handlers/delete.py:48
 msgid "Name"
 msgstr ""
@@ -1462,7 +1462,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:44
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:53
 #: sophie_bot/modules/federations/handlers/import_banlist.py:32
-#: sophie_bot/modules/federations/handlers/info.py:84
+#: sophie_bot/modules/federations/handlers/info.py:88
 #: sophie_bot/modules/federations/handlers/join.py:41
 #: sophie_bot/modules/federations/handlers/leave.py:33
 #: sophie_bot/modules/federations/handlers/logs.py:33
@@ -1567,7 +1567,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:129
-#: sophie_bot/modules/federations/handlers/info.py:56
+#: sophie_bot/modules/federations/handlers/info.py:60
 #: sophie_bot/modules/federations/handlers/unban.py:117
 #: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/handlers/unban.py:157
@@ -1673,7 +1673,7 @@ msgid "Your ban list will be sent to this chat shortly."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/base.py:54
-#: sophie_bot/modules/federations/handlers/info.py:33
+#: sophie_bot/modules/federations/handlers/info.py:37
 #: sophie_bot/modules/federations/handlers/transfer.py:42
 msgid "?Federation ID"
 msgstr ""
@@ -1725,12 +1725,12 @@ msgid "No chats found."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:105
-#: sophie_bot/modules/federations/handlers/info.py:91
+#: sophie_bot/modules/federations/handlers/info.py:95
 msgid "You don't own any federations."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:114
-#: sophie_bot/modules/federations/handlers/info.py:103
+#: sophie_bot/modules/federations/handlers/info.py:107
 msgid "🏛 Your Federations"
 msgstr ""
 
@@ -1747,13 +1747,13 @@ msgid "/fchats <federation_id>"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:127
-#: sophie_bot/modules/federations/handlers/info.py:116
+#: sophie_bot/modules/federations/handlers/info.py:120
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:52
 msgid "Chat not found in database"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:133
-#: sophie_bot/modules/federations/handlers/info.py:122
+#: sophie_bot/modules/federations/handlers/info.py:126
 #: sophie_bot/modules/federations/handlers/leave.py:42
 #: sophie_bot/modules/federations/handlers/logs.py:40
 #: sophie_bot/modules/federations/handlers/logs.py:115
@@ -1924,46 +1924,46 @@ msgstr ""
 msgid "This might take a while."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:22
+#: sophie_bot/modules/federations/handlers/info.py:26
 msgid "Get information about a federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:59
+#: sophie_bot/modules/federations/handlers/info.py:63
 msgid "🏛 Federation Information"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:61
+#: sophie_bot/modules/federations/handlers/info.py:65
 #: sophie_bot/modules/users/handlers/info.py:44
 msgid "ID"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:62
+#: sophie_bot/modules/federations/handlers/info.py:66
 msgid "Owner"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:63
+#: sophie_bot/modules/federations/handlers/info.py:67
 msgid "Chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:64
+#: sophie_bot/modules/federations/handlers/info.py:68
 msgid "Banned users"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:77
+#: sophie_bot/modules/federations/handlers/info.py:81
 #: sophie_bot/modules/federations/handlers/subscribe.py:90
 msgid "Subscribed to"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:104
+#: sophie_bot/modules/federations/handlers/info.py:108
 #, python-brace-format
 msgid "You own {count} federations:"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:107
+#: sophie_bot/modules/federations/handlers/info.py:111
 msgid "To get detailed information about a specific federation, use:"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/info.py:108
+#: sophie_bot/modules/federations/handlers/info.py:112
 #, python-brace-format
 msgid "/finfo {var}"
 msgstr ""
@@ -2359,23 +2359,23 @@ msgstr ""
 msgid "Failed"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/federation.py:171
+#: sophie_bot/modules/federations/services/manage.py:83
 msgid "This chat is not in any federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/federation.py:177
+#: sophie_bot/modules/federations/services/manage.py:88
 msgid "User not found in database"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/federation.py:182
+#: sophie_bot/modules/federations/services/manage.py:93
 msgid "You have multiple federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/federation.py:184
+#: sophie_bot/modules/federations/services/manage.py:95
 msgid "You don't have any federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/federation.py:186
+#: sophie_bot/modules/federations/services/manage.py:97
 msgid "Could not determine federation"
 msgstr ""
 

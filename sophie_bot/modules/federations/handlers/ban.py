@@ -15,7 +15,7 @@ from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
@@ -85,12 +85,12 @@ class FederationBanHandler(FederationCommandHandler):
 
         # Ban user
         user_iid = self.data["user_db"].iid
-        ban = await FederationService.ban_user(federation, user_tid, user_iid, reason)
+        ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason)
 
         # Is current chat part of the federation?
         chat_part_of_federation: bool = self.connection.db_model.iid in federation.chats
 
-        banned_count = await FederationService.ban_user_in_federation_chats(
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
             federation,
             ban,
             user_tid,
@@ -147,4 +147,4 @@ class FederationBanHandler(FederationCommandHandler):
         )
         if reason:
             log_doc += KeyValue(_("Reason"), reason)
-        await FederationService.post_federation_log(federation, log_doc.to_html(), self.event.bot)
+        await FederationManageService.post_federation_log(federation, log_doc.to_html(), self.event.bot)

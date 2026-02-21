@@ -12,7 +12,7 @@ from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -71,7 +71,7 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         # Get federation
-        federation = await FederationService.get_federation_by_id(
+        federation = await FederationManageService.get_federation_by_id(
             fed_id_input,
         )
         if not federation:
@@ -86,7 +86,7 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         # Transfer ownership
-        await FederationService.update_federation(
+        await FederationManageService.update_federation(
             federation,
             {"creator": user_db},
         )

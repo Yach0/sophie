@@ -9,7 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation, FederationBan
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import (
+    FederationManageService,
+    FederationBanService,
+    FederationChatService,
+)
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils.api.auth import get_current_user, rest_require_admin
 from sophie_bot.utils.feature_flags import is_enabled
@@ -154,7 +158,7 @@ async def create_federation(
     payload: FederationCreate,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> FederationSummaryResponse:
-    federation = await FederationService.create_federation(payload.name, user.iid)
+    federation = await FederationManageService.create_federation(payload.name, user.iid)
     if not federation:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unable to create federation")
 
@@ -167,7 +171,7 @@ async def get_federation(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> FederationDetailResponse:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
 
@@ -183,7 +187,7 @@ async def update_federation(
     payload: FederationUpdate,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> FederationSummaryResponse:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
@@ -193,7 +197,7 @@ async def update_federation(
         updates["fed_name"] = payload.name
 
     if updates:
-        await FederationService.update_federation(federation, updates)
+        await FederationManageService.update_federation(federation, updates)
 
     batch_data = await _batch_resolve_federations([federation])
     return _federation_summary(federation, batch_data)
@@ -204,11 +208,11 @@ async def delete_federation(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
-    await FederationService.delete_federation(federation)
+    await FederationManageService.delete_federation(federation)
 
 
 @router.get("/{fed_id}/chats", response_model=list[FederationChatResponse])
@@ -216,7 +220,7 @@ async def list_federation_chats(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> list[FederationChatResponse]:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_access(federation, user)
@@ -241,7 +245,7 @@ async def add_chat_to_federation(
     payload: FederationChatAdd,
     user: Annotated[ChatModel, Depends(rest_require_admin(require_owner=True))],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
 
@@ -249,13 +253,13 @@ async def add_chat_to_federation(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    existing_federation = await FederationService.get_federation_for_chat(chat.iid)
+    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid)
     if existing_federation:
         if existing_federation.fed_id == federation.fed_id:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in another federation")
 
-    await FederationService.add_chat_to_federation(federation, chat.iid)
+    await FederationChatService.add_chat_to_federation(federation, chat.iid)
 
 
 @router.delete("/{fed_id}/chats/{chat_iid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -264,7 +268,7 @@ async def remove_chat_from_federation(
     chat_iid: PydanticObjectId,
     user: Annotated[ChatModel, Depends(rest_require_admin(require_owner=True))],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
 
@@ -272,11 +276,11 @@ async def remove_chat_from_federation(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    existing_federation = await FederationService.get_federation_for_chat(chat.iid)
+    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid)
     if not existing_federation or existing_federation.fed_id != federation.fed_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")
 
-    await FederationService.remove_chat_from_federation(federation, chat.iid)
+    await FederationChatService.remove_chat_from_federation(federation, chat.iid)
 
 
 @router.get("/{fed_id}/subscriptions", response_model=list[FederationSubscriptionResponse])
@@ -284,7 +288,7 @@ async def list_federation_subscriptions(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> list[FederationSubscriptionResponse]:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     _require_federation_access(federation, user)
@@ -306,12 +310,12 @@ async def subscribe_federation(
     payload: FederationSubscriptionAdd,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
 
-    success = await FederationService.subscribe_to_federation(federation, payload.target_fed_id)
+    success = await FederationManageService.subscribe_to_federation(federation, payload.target_fed_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Subscription failed")
 
@@ -322,12 +326,12 @@ async def unsubscribe_federation(
     target_fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
 
-    success = await FederationService.unsubscribe_from_federation(federation, target_fed_id)
+    success = await FederationManageService.unsubscribe_from_federation(federation, target_fed_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Unsubscription failed")
 
@@ -337,12 +341,12 @@ async def list_federation_bans(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> list[FederationBanResponse]:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_admin(federation, user)
 
-    bans = await FederationService.get_federation_bans(fed_id)
+    bans = await FederationBanService.get_federation_bans(fed_id)
     result = []
     for ban in bans:
         # Fetch by user to get tid
@@ -376,7 +380,7 @@ async def ban_user(
     payload: FederationBanCreate,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> FederationBanResponse:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_admin(federation, user)
@@ -385,7 +389,7 @@ async def ban_user(
     if not target_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found")
 
-    ban = await FederationService.ban_user(federation, payload.user_id, user.iid, payload.reason)
+    ban = await FederationBanService.ban_user(federation, payload.user_id, user.iid, payload.reason)
 
     # Fetch by user to get tid
     by_user = await ban.by.fetch()
@@ -415,12 +419,12 @@ async def unban_user(
     user_id: int,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_admin(federation, user)
 
-    success, ban_info = await FederationService.unban_user(fed_id, user_id)
+    success, ban_info = await FederationBanService.unban_user(fed_id, user_id)
     if not success and ban_info:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ban originated from subscription")
     if not success:
@@ -433,7 +437,7 @@ async def set_federation_log_channel(
     payload: FederationLogChannelUpdate,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
@@ -445,7 +449,7 @@ async def set_federation_log_channel(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    await FederationService.set_federation_log_channel(federation, chat.iid)
+    await FederationManageService.set_federation_log_channel(federation, chat.iid)
 
 
 @router.delete("/{fed_id}/log_channel", status_code=status.HTTP_204_NO_CONTENT)
@@ -453,7 +457,7 @@ async def unset_federation_log_channel(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
-    federation = await FederationService.get_federation_by_id(fed_id)
+    federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
@@ -461,4 +465,4 @@ async def unset_federation_log_channel(
     if not federation.log_chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Log channel not set")
 
-    await FederationService.remove_federation_log_channel(federation)
+    await FederationManageService.remove_federation_log_channel(federation)

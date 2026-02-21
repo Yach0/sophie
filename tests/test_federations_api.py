@@ -76,7 +76,7 @@ async def test_create_federation_returns_summary():
 
     with (
         patch(
-            "sophie_bot.modules.federations.api.federations.FederationService.create_federation",
+            "sophie_bot.modules.federations.api.federations.FederationManageService.create_federation",
             new_callable=AsyncMock,
         ) as mock_create_federation,
         patch(

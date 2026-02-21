@@ -13,7 +13,11 @@ from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
-from sophie_bot.modules.federations.services.federation import FederationService
+from sophie_bot.modules.federations.services import (
+    FederationManageService,
+    FederationBanService,
+    FederationChatService,
+)
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -48,8 +52,8 @@ class FederationInfoHandler(SophieMessageHandler):
 
     async def _show_federation_info(self, federation: Federation) -> None:
         """Show information about a specific federation."""
-        chat_count = await FederationService.get_federation_chat_count(federation.fed_id)
-        ban_count = await FederationService.get_federation_ban_count(federation.fed_id)
+        chat_count = await FederationChatService.get_federation_chat_count(federation.fed_id)
+        ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id)
 
         # Resolve creator
         creator = await federation.creator.fetch()
@@ -68,7 +72,7 @@ class FederationInfoHandler(SophieMessageHandler):
         if federation.subscribed:
             subscription_list = []
             for sub_fed_id in federation.subscribed:
-                sub_fed = await FederationService.get_federation_by_id(sub_fed_id)
+                sub_fed = await FederationManageService.get_federation_by_id(sub_fed_id)
                 if sub_fed:
                     subscription_list.append(f"• {sub_fed.fed_name} (`{sub_fed.fed_id}`)")
                 else:
@@ -85,7 +89,7 @@ class FederationInfoHandler(SophieMessageHandler):
             return
 
         user_iid = self.data["user_db"].id
-        federations = await FederationService.get_federations_by_creator(user_iid)
+        federations = await FederationManageService.get_federations_by_creator(user_iid)
 
         if not federations:
             await self.event.reply(_("You don't own any federations."))
@@ -116,7 +120,7 @@ class FederationInfoHandler(SophieMessageHandler):
             await self.event.reply(_("Chat not found in database"))
             return
         chat_iid = chat.iid
-        federation = await FederationService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid)
 
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
