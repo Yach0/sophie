@@ -149,5 +149,7 @@ async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient,
 
     yield client
 
-    # Cleanup
-    await client.close()
+    # Only reset captures/counters — do NOT call client.close() because it
+    # disconnects the session-scoped dispatcher's router tree and emits
+    # shutdown, which breaks all subsequent tests that reuse the dispatcher.
+    client.reset()

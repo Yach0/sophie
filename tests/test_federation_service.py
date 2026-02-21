@@ -1,11 +1,15 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from beanie import PydanticObjectId
 from bson import DBRef
 
+from sophie_bot.modules.federations.exceptions import FederationContextError
 from sophie_bot.modules.federations.services import ban as ban_service_module
-from sophie_bot.modules.federations.services import FederationBanService, FederationAdminService
+from sophie_bot.modules.federations.services import FederationAdminService, FederationBanService, FederationManageService
 
 
 class FakeLink:
@@ -169,3 +173,111 @@ async def test_demote_admin_raises_for_missing_admin_link() -> None:
         await FederationAdminService.demote_admin(federation, missing_admin_iid)
 
     federation.save.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_subscribe_to_federation_rejects_self_subscription() -> None:
+    federation = MagicMock()
+    federation.fed_id = "fed-main"
+    federation.subscribed = None
+    federation.save = AsyncMock()
+
+    with patch.object(
+        FederationManageService,
+        "get_federation_by_id",
+        new=AsyncMock(return_value=federation),
+    ):
+        subscribed = await FederationManageService.subscribe_to_federation(federation, "fed-main")
+
+    assert subscribed is False
+    federation.save.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_subscribe_to_federation_initializes_subscribed_list() -> None:
+    federation = MagicMock()
+    federation.fed_id = "fed-main"
+    federation.subscribed = None
+    federation.save = AsyncMock()
+
+    target_federation = MagicMock()
+    target_federation.fed_id = "fed-target"
+
+    with patch.object(
+        FederationManageService,
+        "get_federation_by_id",
+        new=AsyncMock(return_value=target_federation),
+    ):
+        subscribed = await FederationManageService.subscribe_to_federation(federation, "fed-target")
+
+    assert subscribed is True
+    assert federation.subscribed == ["fed-target"]
+    federation.save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_from_federation_returns_false_for_missing_target() -> None:
+    federation = MagicMock()
+    federation.subscribed = ["fed-target"]
+    federation.save = AsyncMock()
+
+    unsubscribed = await FederationManageService.unsubscribe_from_federation(federation, "fed-other")
+
+    assert unsubscribed is False
+    assert federation.subscribed == ["fed-target"]
+    federation.save.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_subscription_chain_handles_cycle_without_duplicates() -> None:
+    federation_main = MagicMock()
+    federation_main.subscribed = ["fed-branch", "fed-other"]
+
+    federation_branch = MagicMock()
+    federation_branch.subscribed = ["fed-main"]
+
+    federation_other = MagicMock()
+    federation_other.subscribed = ["fed-leaf"]
+
+    federation_leaf = MagicMock()
+    federation_leaf.subscribed = []
+
+    federation_map = {
+        "fed-main": federation_main,
+        "fed-branch": federation_branch,
+        "fed-other": federation_other,
+        "fed-leaf": federation_leaf,
+    }
+
+    async def fake_get_federation_by_id(fed_id: str) -> Any | None:
+        return federation_map.get(fed_id)
+
+    with patch.object(
+        FederationManageService,
+        "get_federation_by_id",
+        new=AsyncMock(side_effect=fake_get_federation_by_id),
+    ):
+        chain = await FederationManageService.get_subscription_chain("fed-main")
+
+    assert sorted(chain) == ["fed-branch", "fed-leaf", "fed-other"]
+
+
+@pytest.mark.asyncio
+async def test_get_federation_with_user_multiple_federations_raises() -> None:
+    user_id = 21001
+    user_model = MagicMock()
+    user_model.iid = PydanticObjectId("507f1f77bcf86cd799439071")
+
+    with (
+        patch(
+            "sophie_bot.modules.federations.services.manage.ChatModel.get_by_tid",
+            new=AsyncMock(return_value=user_model),
+        ),
+        patch.object(
+            FederationManageService,
+            "get_federations_by_creator",
+            new=AsyncMock(return_value=[MagicMock(), MagicMock()]),
+        ),
+    ):
+        with pytest.raises(FederationContextError, match="multiple federations"):
+            await FederationManageService.get_federation(fed_id_arg=None, connection=None, user_id=user_id)
