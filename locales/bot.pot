@@ -1127,7 +1127,7 @@ msgid "✅ All the commands ({removed_count}) have been enabled in the {chat_nam
 msgstr ""
 
 #: sophie_bot/modules/error/__init__.py:14
-#: sophie_bot/modules/federations/schedules/process_imports.py:317
+#: sophie_bot/modules/federations/schedules/process_imports.py:337
 #: sophie_bot/modules/federations/utils/federation_context.py:79
 msgid "Error"
 msgstr ""
@@ -1469,8 +1469,8 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/logs.py:108
 #: sophie_bot/modules/federations/handlers/promote.py:49
 #: sophie_bot/modules/federations/handlers/rename.py:40
-#: sophie_bot/modules/federations/handlers/subscribe.py:38
-#: sophie_bot/modules/federations/handlers/subscribe.py:129
+#: sophie_bot/modules/federations/handlers/subscribe.py:36
+#: sophie_bot/modules/federations/handlers/subscribe.py:106
 #: sophie_bot/modules/federations/handlers/transfer.py:49
 #: sophie_bot/modules/federations/handlers/unban.py:46
 msgid "This command can only be used by users."
@@ -1493,10 +1493,8 @@ msgid "Federation ID mismatch."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:78
-#: sophie_bot/modules/federations/handlers/subscribe.py:66
-#: sophie_bot/modules/federations/handlers/subscribe.py:83
-#: sophie_bot/modules/federations/handlers/subscribe.py:152
-#: sophie_bot/modules/federations/handlers/subscribe.py:169
+#: sophie_bot/modules/federations/handlers/subscribe.py:57
+#: sophie_bot/modules/federations/handlers/subscribe.py:127
 msgid "Federation not found."
 msgstr ""
 
@@ -1553,11 +1551,11 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/chats.py:87
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:70
 #: sophie_bot/modules/federations/handlers/import_banlist.py:72
-#: sophie_bot/modules/federations/handlers/subscribe.py:89
-#: sophie_bot/modules/federations/handlers/subscribe.py:175
+#: sophie_bot/modules/federations/handlers/subscribe.py:74
+#: sophie_bot/modules/federations/handlers/subscribe.py:144
 #: sophie_bot/modules/federations/handlers/unban.py:146
-#: sophie_bot/modules/federations/schedules/process_exports.py:101
-#: sophie_bot/modules/federations/schedules/process_imports.py:311
+#: sophie_bot/modules/federations/schedules/process_exports.py:126
+#: sophie_bot/modules/federations/schedules/process_imports.py:331
 msgid "Federation"
 msgstr ""
 
@@ -1634,7 +1632,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/banlist.py:104
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:99
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:130
-#: sophie_bot/modules/federations/schedules/process_exports.py:102
+#: sophie_bot/modules/federations/schedules/process_exports.py:127
 msgid "Total bans"
 msgstr ""
 
@@ -1689,6 +1687,14 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/base.py:100
 #, python-brace-format
 msgid "This chat is not in any federation. Use {cmd} to specify federation."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/base.py:130
+msgid "Only federation owners can perform this action."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/base.py:141
+msgid "Only federation admins can perform this action."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:24
@@ -1950,7 +1956,7 @@ msgid "Banned users"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/info.py:81
-#: sophie_bot/modules/federations/handlers/subscribe.py:90
+#: sophie_bot/modules/federations/handlers/subscribe.py:75
 msgid "Subscribed to"
 msgstr ""
 
@@ -2144,72 +2150,63 @@ msgstr ""
 msgid "New name"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:23
+#: sophie_bot/modules/federations/handlers/subscribe.py:21
 msgid "Subscribe federation to another federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:33
+#: sophie_bot/modules/federations/handlers/subscribe.py:31
 msgid "Federation ID to subscribe to"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:47
-#: sophie_bot/modules/federations/handlers/subscribe.py:138
+#: sophie_bot/modules/federations/handlers/subscribe.py:46
+#: sophie_bot/modules/federations/handlers/subscribe.py:116
 msgid "This chat is not in a federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:53
-#: sophie_bot/modules/federations/handlers/subscribe.py:144
-msgid "Only federation owners can manage subscriptions."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/subscribe.py:58
-msgid "Invalid federation ID format."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/subscribe.py:70
+#: sophie_bot/modules/federations/handlers/subscribe.py:61
 msgid "🏛 Subscription Failed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:72
+#: sophie_bot/modules/federations/handlers/subscribe.py:63
 #, python-brace-format
 msgid "Federation '{name}' is already subscribed to '{name2}'."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:88
+#: sophie_bot/modules/federations/handlers/subscribe.py:73
 msgid "🏛 Federation Subscribed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:97
+#: sophie_bot/modules/federations/handlers/subscribe.py:82
 #, python-brace-format
 msgid "🏛 Federation '{fed_name}' ({fed_id}) subscribed to '{target_fed_name}' ({target_fed_id})"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:114
+#: sophie_bot/modules/federations/handlers/subscribe.py:91
 msgid "Unsubscribe federation from another federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:124
+#: sophie_bot/modules/federations/handlers/subscribe.py:101
 msgid "Federation ID to unsubscribe from"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:156
+#: sophie_bot/modules/federations/handlers/subscribe.py:131
 msgid "🏛 Unsubscription Failed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:158
+#: sophie_bot/modules/federations/handlers/subscribe.py:133
 #, python-brace-format
 msgid "Federation '{name}' is not subscribed to '{name2}'."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:174
+#: sophie_bot/modules/federations/handlers/subscribe.py:143
 msgid "🏛 Federation Unsubscribed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:176
+#: sophie_bot/modules/federations/handlers/subscribe.py:145
 msgid "Unsubscribed from"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/subscribe.py:183
+#: sophie_bot/modules/federations/handlers/subscribe.py:152
 #, python-brace-format
 msgid "🏛 Federation '{fed_name}' ({fed_id}) unsubscribed from '{target_fed_name}' ({target_fed_id})"
 msgstr ""
@@ -2335,27 +2332,27 @@ msgstr ""
 msgid "Reason: {text}"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_exports.py:100
+#: sophie_bot/modules/federations/schedules/process_exports.py:125
 msgid "🏛 Federation Ban List Export"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_exports.py:103
+#: sophie_bot/modules/federations/schedules/process_exports.py:128
 msgid "Exported at"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:305
+#: sophie_bot/modules/federations/schedules/process_imports.py:325
 msgid "✅ Import completed successfully"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:307
+#: sophie_bot/modules/federations/schedules/process_imports.py:327
 msgid "⚠️ Import completed with errors"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:312
+#: sophie_bot/modules/federations/schedules/process_imports.py:332
 msgid "Imported"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:313
+#: sophie_bot/modules/federations/schedules/process_imports.py:333
 msgid "Failed"
 msgstr ""
 

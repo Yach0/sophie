@@ -20,6 +20,7 @@ class FederationChatService:
             federation.chats.append(chat)
             await federation.save()
             await FederationCacheService.set_fed_id_for_chat(chat.iid, federation.fed_id)
+            await FederationCacheService.incr_chat_count(federation.fed_id, 1)
 
     @staticmethod
     async def remove_chat_from_federation(federation: Federation, chat_iid: PydanticObjectId) -> None:
@@ -31,11 +32,16 @@ class FederationChatService:
                 federation.chats.remove(c)
                 await federation.save()
                 await FederationCacheService.invalidate_federation_for_chat(chat.iid)
+                await FederationCacheService.incr_chat_count(federation.fed_id, -1)
                 break
 
     @staticmethod
     async def get_federation_chat_count(fed_id: str) -> int:
+        cached = await FederationCacheService.get_chat_count(fed_id)
+        if cached is not None:
+            return cached
+
         federation = await FederationManageService.get_federation_by_id(fed_id)
-        if not federation or not federation.chats:
-            return 0
-        return len(federation.chats)
+        count = len(federation.chats) if federation and federation.chats else 0
+        await FederationCacheService.set_chat_count(fed_id, count)
+        return count

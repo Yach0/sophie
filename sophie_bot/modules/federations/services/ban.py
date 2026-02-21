@@ -48,6 +48,7 @@ class FederationBanService:
             reason=reason,
         )
         await ban.insert()
+        await FederationCacheService.incr_ban_count(federation.fed_id, 1)
 
         await FederationBanService._invalidate_export_tasks(federation.fed_id)
         await FederationCacheService.set_user_ban_status(federation.fed_id, user_tid, True)
@@ -111,6 +112,7 @@ class FederationBanService:
             return False, result
 
         await result.delete()
+        await FederationCacheService.incr_ban_count(fed_id, -1)
         await FederationBanService._invalidate_export_tasks(fed_id)
         await FederationCacheService.set_user_ban_status(fed_id, user_tid, False)
         return True, None
@@ -246,4 +248,9 @@ class FederationBanService:
 
     @staticmethod
     async def get_federation_ban_count(fed_id: str) -> int:
-        return await FederationBan.find(FederationBan.fed_id == fed_id).count()
+        cached = await FederationCacheService.get_ban_count(fed_id)
+        if cached is not None:
+            return cached
+        count = await FederationBan.find(FederationBan.fed_id == fed_id).count()
+        await FederationCacheService.set_ban_count(fed_id, count)
+        return count

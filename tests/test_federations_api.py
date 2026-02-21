@@ -4,7 +4,7 @@ import pytest
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models.federations import Federation
-from sophie_bot.modules.federations.api.federations import create_federation, list_federations
+from sophie_bot.modules.federations.api.routers.manage import create_federation, list_federations
 from sophie_bot.modules.federations.api.schemas import FederationCreate
 
 
@@ -37,11 +37,11 @@ async def test_list_federations_includes_owner_and_admin():
         patch.object(Federation, "creator", new=MagicMock(), create=True),
         patch.object(Federation, "admins", new=MagicMock(), create=True),
         patch(
-            "sophie_bot.modules.federations.api.federations.Federation.find",
+            "sophie_bot.modules.federations.api.routers.manage.Federation.find",
             side_effect=[owned_query, admin_query],
         ),
         patch(
-            "sophie_bot.modules.federations.api.federations._batch_resolve_federations",
+            "sophie_bot.modules.federations.api.routers.manage.get_current_user",
             new_callable=AsyncMock,
         ) as mock_batch_resolve,
     ):
@@ -76,11 +76,11 @@ async def test_create_federation_returns_summary():
 
     with (
         patch(
-            "sophie_bot.modules.federations.api.federations.FederationManageService.create_federation",
+            "sophie_bot.modules.federations.api.routers.manage.FederationManageService.create_federation",
             new_callable=AsyncMock,
         ) as mock_create_federation,
         patch(
-            "sophie_bot.modules.federations.api.federations._batch_resolve_federations",
+            "sophie_bot.modules.federations.api.routers.manage.get_current_user",
             new_callable=AsyncMock,
         ) as mock_batch_resolve,
     ):

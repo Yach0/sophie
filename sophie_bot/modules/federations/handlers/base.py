@@ -119,3 +119,25 @@ class FederationCommandHandler(SophieMessageHandler, metaclass=ABCMeta):
             Handler result
         """
         raise NotImplementedError("Subclasses must implement handle_federation_command()")
+
+    async def require_owner(self, federation: Federation) -> bool:
+        """Check if current user is owner and reply if not."""
+        if not self.event.from_user:
+            return False
+        from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+
+        if not await FederationPermissionService.is_federation_owner(federation, self.event.from_user.id):
+            await self.event.reply(_("Only federation owners can perform this action."))
+            return False
+        return True
+
+    async def require_admin(self, federation: Federation) -> bool:
+        """Check if current user is admin and reply if not."""
+        if not self.event.from_user:
+            return False
+        from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+
+        if not await FederationPermissionService.is_federation_admin(federation, self.event.from_user.id):
+            await self.event.reply(_("Only federation admins can perform this action."))
+            return False
+        return True

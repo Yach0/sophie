@@ -5,23 +5,21 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from ass_tg.types import TextArg
+from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Doc, KeyValue, Title, Template
 
-from sophie_bot.constants import FEDERATION_ID_HYPHEN_COUNT, FEDERATION_ID_PART_LENGTH
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services import FederationManageService
-from sophie_bot.modules.federations.services.permissions import FederationPermissionService
-from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Subscribe federation to another federation"))
-class SubscribeFederationHandler(SophieMessageHandler):
+class SubscribeFederationHandler(FederationCommandHandler):
     """Handler for subscribing federations to other federations."""
 
     @staticmethod
@@ -30,7 +28,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
-        return {"fed_id": TextArg(l_("Federation ID to subscribe to"))}
+        return {"fed_id": FedIdArg(l_("Federation ID to subscribe to"))}
 
     async def handle(self) -> Any:
         """Subscribe federation to another federation."""
@@ -38,7 +36,8 @@ class SubscribeFederationHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        target_fed_id: str = self.data["fed_id"]
+        target_fed = self.data["fed_id"]
+        target_fed_id = target_fed.fed_id
 
         # Get federation for current chat
         chat_iid = self.connection.db_model.iid
@@ -47,15 +46,7 @@ class SubscribeFederationHandler(SophieMessageHandler):
             await self.event.reply(_("This chat is not in a federation."))
             return
 
-        # Check permissions
-        user_iid = self.data["user_db"].iid
-        if not FederationPermissionService.is_federation_owner(federation, user_iid):
-            await self.event.reply(_("Only federation owners can manage subscriptions."))
-            return
-
-        # Validate target federation ID format
-        if not self._is_valid_fed_id(target_fed_id):
-            await self.event.reply(_("Invalid federation ID format."))
+        if not await self.require_owner(federation):
             return
 
         # Subscribe to federation
@@ -77,12 +68,6 @@ class SubscribeFederationHandler(SophieMessageHandler):
             await self.event.reply(str(doc))
             return
 
-        # Get target federation for logging
-        target_fed = await FederationManageService.get_federation_by_id(target_fed_id)
-        if not target_fed:
-            await self.event.reply(_("Federation not found."))
-            return
-
         # Format response using STFU
         doc = Doc(
             Title(_("🏛 Federation Subscribed")),
@@ -102,17 +87,9 @@ class SubscribeFederationHandler(SophieMessageHandler):
         ).to_html()
         await FederationManageService.post_federation_log(federation, log_text, bot)
 
-    @staticmethod
-    def _is_valid_fed_id(fed_id: str) -> bool:
-        """Validate federation ID format."""
-        parts = fed_id.split("-")
-        return len(parts) == FEDERATION_ID_HYPHEN_COUNT and all(
-            len(part) == FEDERATION_ID_PART_LENGTH for part in parts
-        )
-
 
 @flags.help(description=l_("Unsubscribe federation from another federation"))
-class UnsubscribeFederationHandler(SophieMessageHandler):
+class UnsubscribeFederationHandler(FederationCommandHandler):
     """Handler for unsubscribing federations from other federations."""
 
     @staticmethod
@@ -121,7 +98,7 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
-        return {"fed_id": TextArg(l_("Federation ID to unsubscribe from"))}
+        return {"fed_id": FedIdArg(l_("Federation ID to unsubscribe from"))}
 
     async def handle(self) -> Any:
         """Unsubscribe federation from another federation."""
@@ -129,7 +106,8 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        fed_id: str = self.data["fed_id"]
+        target_fed = self.data["fed_id"]
+        fed_id = target_fed.fed_id
 
         # Get federation for current chat
         chat_iid = self.connection.db_model.iid
@@ -138,10 +116,7 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
             await self.event.reply(_("This chat is not in a federation."))
             return
 
-        # Check permissions
-        user_iid = self.data["user_db"].iid
-        if not FederationPermissionService.is_federation_owner(federation, user_iid):
-            await self.event.reply(_("Only federation owners can manage subscriptions."))
+        if not await self.require_owner(federation):
             return
 
         # Unsubscribe from federation
@@ -161,12 +136,6 @@ class UnsubscribeFederationHandler(SophieMessageHandler):
                 ),
             )
             await self.event.reply(str(doc))
-            return
-
-        # Get target federation for response
-        target_fed = await FederationManageService.get_federation_by_id(fed_id)
-        if not target_fed:
-            await self.event.reply(_("Federation not found."))
             return
 
         # Format response using STFU

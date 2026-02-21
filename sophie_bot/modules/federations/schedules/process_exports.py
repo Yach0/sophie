@@ -7,7 +7,9 @@ from io import StringIO
 from typing import Final
 
 from aiogram.types import BufferedInputFile
+from beanie.odm.operators.find.comparison import In
 
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import FederationBan, FederationExportTask
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import FeatureType, is_enabled
@@ -71,18 +73,41 @@ class ProcessFederationExports:
         writer = csv.writer(output)
         writer.writerow(["user_id", "reason", "by", "time", "banned_chats"])
 
+        # Pre-fetch all bans in one go
+        bans = await FederationBan.find(FederationBan.fed_id == fed_id).to_list()
+
+        # Collect all linked user and chat iids to pre-fetch them in bulk
+        by_user_iids = {ban.by.id for ban in bans if ban.by}
+
+        chat_iids = set()
+        for ban in bans:
+            if ban.banned_chats:
+                for chat_link in ban.banned_chats:
+                    chat_iids.add(chat_link.id)
+
+        # Bulk load "by" users
+        users_cache = {}
+        if by_user_iids:
+            by_users = await ChatModel.find(In(ChatModel.iid, list(by_user_iids))).to_list()
+            users_cache = {user.iid: user for user in by_users}
+
+        # Bulk load chats
+        chats_cache = {}
+        if chat_iids:
+            chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
+            chats_cache = {chat.iid: chat for chat in chats}
+
         ban_count = 0
-        async for ban in FederationBan.find(FederationBan.fed_id == fed_id):
-            # Fetch banned chats to get tids
+        for ban in bans:
             banned_chat_tids = []
-            for chat_link in ban.banned_chats or []:
-                chat = await chat_link.fetch()
-                if chat:
-                    banned_chat_tids.append(chat.tid)
+            if ban.banned_chats:
+                for chat_link in ban.banned_chats:
+                    chat = chats_cache.get(chat_link.id)
+                    if chat:
+                        banned_chat_tids.append(chat.tid)
             banned_chats_str = "|".join(str(cid) for cid in banned_chat_tids)
 
-            # Fetch by user to get tid
-            by_user = await ban.by.fetch()
+            by_user = users_cache.get(ban.by.id) if ban.by else None
             by_tid = by_user.tid if by_user else 0
 
             writer.writerow([ban.user_id, ban.reason or "", by_tid, ban.time.isoformat(), banned_chats_str])
