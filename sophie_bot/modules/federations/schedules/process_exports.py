@@ -38,7 +38,6 @@ class ProcessFederationExports:
                 await self._process_task(task)
             except Exception as e:
                 log.error("Error processing federation export task", task_id=str(task.id), error=str(e))
-                await self._update_task_status(task, TaskStatus.FAILED, str(e))
 
     async def _process_task(self, task: FederationExportTask) -> None:
         """Process a single export task."""
@@ -77,13 +76,17 @@ class ProcessFederationExports:
         bans = await FederationBan.find(FederationBan.fed_id == fed_id).to_list()
 
         # Collect all linked user and chat iids to pre-fetch them in bulk
-        by_user_iids = {ban.by.id for ban in bans if ban.by}
+        by_user_iids = {
+            by_user_iid for ban in bans for by_user_iid in [self._extract_chat_iid(ban.by)] if by_user_iid is not None
+        }
 
         chat_iids = set()
         for ban in bans:
             if ban.banned_chats:
                 for chat_link in ban.banned_chats:
-                    chat_iids.add(chat_link.id)
+                    chat_iid = self._extract_chat_iid(chat_link)
+                    if chat_iid is not None:
+                        chat_iids.add(chat_iid)
 
         # Bulk load "by" users
         users_cache = {}
@@ -102,12 +105,16 @@ class ProcessFederationExports:
             banned_chat_tids = []
             if ban.banned_chats:
                 for chat_link in ban.banned_chats:
-                    chat = chats_cache.get(chat_link.id)
+                    chat_iid = self._extract_chat_iid(chat_link)
+                    if chat_iid is None:
+                        continue
+                    chat = chats_cache.get(chat_iid)
                     if chat:
                         banned_chat_tids.append(chat.tid)
             banned_chats_str = "|".join(str(cid) for cid in banned_chat_tids)
 
-            by_user = users_cache.get(ban.by.id) if ban.by else None
+            by_user_iid = self._extract_chat_iid(ban.by) if ban.by else None
+            by_user = users_cache.get(by_user_iid) if by_user_iid is not None else None
             by_tid = by_user.tid if by_user else 0
 
             writer.writerow([ban.user_id, ban.reason or "", by_tid, ban.time.isoformat(), banned_chats_str])
@@ -118,6 +125,18 @@ class ProcessFederationExports:
 
         csv_bytes = output.getvalue().encode("utf-8")
         return csv_bytes, ban_count
+
+    def _extract_chat_iid(self, chat_link: object) -> object | None:
+        """Extract ChatModel internal ID from either a fetched model or a Link object."""
+        direct_iid = getattr(chat_link, "iid", None)
+        if direct_iid is not None:
+            return direct_iid
+
+        link_ref = getattr(chat_link, "ref", None)
+        if link_ref is None:
+            return None
+
+        return getattr(link_ref, "id", None)
 
     def _build_caption(self, task: FederationExportTask, ban_count: int) -> str:
         """Build caption for exported document."""

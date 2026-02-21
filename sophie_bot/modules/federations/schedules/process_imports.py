@@ -67,9 +67,8 @@ class ProcessFederationImports:
         for task in tasks:
             try:
                 await self._process_task(task)
-            except (csv.Error, CSVValidationError, CSVDownloadError, BanValidationError) as e:
+            except Exception as e:
                 log.error("Error processing federation import task", task_id=str(task.id), error=str(e))
-                await self._update_task_status(task, TaskStatus.FAILED, str(e))
 
     async def _process_task(self, task: FederationImportTask) -> None:
         """Process a single import task."""
@@ -172,8 +171,9 @@ class ProcessFederationImports:
             )
             await self._send_completion_notification(task, federation)
 
-        except (csv.Error, CSVValidationError, CSVDownloadError, BanValidationError) as e:
-            await self._update_task_status(task, TaskStatus.FAILED, str(e))
+        except Exception as e:
+            error_message = str(e)
+            await self._update_task_status(task, TaskStatus.FAILED, error_message)
             raise
 
     async def _download_and_parse_csv(self, file_id: str) -> csv.DictReader:

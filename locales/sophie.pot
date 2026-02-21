@@ -1554,7 +1554,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/subscribe.py:74
 #: sophie_bot/modules/federations/handlers/subscribe.py:144
 #: sophie_bot/modules/federations/handlers/unban.py:146
-#: sophie_bot/modules/federations/schedules/process_exports.py:126
+#: sophie_bot/modules/federations/schedules/process_exports.py:145
 #: sophie_bot/modules/federations/schedules/process_imports.py:331
 msgid "Federation"
 msgstr ""
@@ -1632,7 +1632,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/banlist.py:104
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:99
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:130
-#: sophie_bot/modules/federations/schedules/process_exports.py:127
+#: sophie_bot/modules/federations/schedules/process_exports.py:146
 msgid "Total bans"
 msgstr ""
 
@@ -2332,11 +2332,11 @@ msgstr ""
 msgid "Reason: {text}"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_exports.py:125
+#: sophie_bot/modules/federations/schedules/process_exports.py:144
 msgid "🏛 Federation Ban List Export"
 msgstr ""
 
-#: sophie_bot/modules/federations/schedules/process_exports.py:128
+#: sophie_bot/modules/federations/schedules/process_exports.py:147
 msgid "Exported at"
 msgstr ""
 
