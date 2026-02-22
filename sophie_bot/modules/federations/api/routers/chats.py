@@ -29,7 +29,8 @@ async def list_federation_chats(
     if not federation.chats:
         return []
 
-    chats = await ChatModel.find(In(ChatModel.iid, [c.to_ref() for c in federation.chats])).to_list()
+    chat_iids = [chat_link.to_ref().id for chat_link in federation.chats]
+    chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
     return [
         FederationChatResponse(
             chat_iid=chat_model.iid,
@@ -60,7 +61,9 @@ async def add_chat_to_federation(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in another federation")
 
-    await FederationChatService.add_chat_to_federation(federation, chat.iid)
+    joined = await FederationChatService.add_chat_to_federation(federation, chat.iid)
+    if not joined:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
 
 
 @router.delete("/{fed_id}/chats/{chat_iid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -81,4 +84,6 @@ async def remove_chat_from_federation(
     if not existing_federation or existing_federation.fed_id != federation.fed_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")
 
-    await FederationChatService.remove_chat_from_federation(federation, chat.iid)
+    removed = await FederationChatService.remove_chat_from_federation(federation, chat.iid)
+    if not removed:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")

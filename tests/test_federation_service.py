@@ -8,8 +8,13 @@ from beanie import PydanticObjectId
 from bson import DBRef
 
 from sophie_bot.modules.federations.exceptions import FederationContextError
+from sophie_bot.modules.federations.services import (
+    FederationAdminService,
+    FederationBanService,
+    FederationChatService,
+    FederationManageService,
+)
 from sophie_bot.modules.federations.services import ban as ban_service_module
-from sophie_bot.modules.federations.services import FederationAdminService, FederationBanService, FederationManageService
 
 
 class FakeLink:
@@ -26,6 +31,75 @@ class FakeDbRefLink:
 
     def to_ref(self) -> DBRef:
         return DBRef("chats", self._ref_value)
+
+
+@pytest.mark.asyncio
+async def test_add_chat_to_federation_skips_existing_dbref_link() -> None:
+    chat_iid = PydanticObjectId("507f1f77bcf86cd799439081")
+    chat_model = MagicMock()
+    chat_model.iid = chat_iid
+
+    federation = MagicMock()
+    federation.fed_id = "fed-main"
+    federation.chats = [FakeDbRefLink(chat_iid)]
+    federation.save = AsyncMock()
+
+    with (
+        patch(
+            "sophie_bot.modules.federations.services.chat.ChatModel.get_by_iid",
+            new=AsyncMock(return_value=chat_model),
+        ),
+        patch(
+            "sophie_bot.modules.federations.services.chat.FederationCacheService.set_fed_id_for_chat",
+            new=AsyncMock(),
+        ) as cache_set_fed_id_mock,
+        patch(
+            "sophie_bot.modules.federations.services.chat.FederationCacheService.incr_chat_count",
+            new=AsyncMock(),
+        ) as cache_incr_count_mock,
+    ):
+        added = await FederationChatService.add_chat_to_federation(federation, chat_iid)
+
+    assert added is False
+    federation.save.assert_not_called()
+    cache_set_fed_id_mock.assert_not_awaited()
+    cache_incr_count_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_remove_chat_from_federation_removes_matching_dbref_link() -> None:
+    removed_chat_iid = PydanticObjectId("507f1f77bcf86cd799439091")
+    remaining_chat_iid = PydanticObjectId("507f1f77bcf86cd799439092")
+    chat_model = MagicMock()
+    chat_model.iid = removed_chat_iid
+
+    federation = MagicMock()
+    federation.fed_id = "fed-main"
+    federation.chats = [FakeDbRefLink(removed_chat_iid), FakeDbRefLink(remaining_chat_iid)]
+    federation.save = AsyncMock()
+
+    with (
+        patch(
+            "sophie_bot.modules.federations.services.chat.ChatModel.get_by_iid",
+            new=AsyncMock(return_value=chat_model),
+        ),
+        patch(
+            "sophie_bot.modules.federations.services.chat.FederationCacheService.invalidate_federation_for_chat",
+            new=AsyncMock(),
+        ) as cache_invalidate_mock,
+        patch(
+            "sophie_bot.modules.federations.services.chat.FederationCacheService.incr_chat_count",
+            new=AsyncMock(),
+        ) as cache_incr_count_mock,
+    ):
+        removed = await FederationChatService.remove_chat_from_federation(federation, removed_chat_iid)
+
+    assert removed is True
+    assert len(federation.chats) == 1
+    assert federation.chats[0].to_ref().id == remaining_chat_iid
+    federation.save.assert_awaited_once()
+    cache_invalidate_mock.assert_awaited_once_with(removed_chat_iid)
+    cache_incr_count_mock.assert_awaited_once_with("fed-main", -1)
 
 
 @pytest.mark.asyncio
@@ -71,9 +145,7 @@ async def test_ban_user_in_federation_chats_bans_only_detected_chats() -> None:
             "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
             new=AsyncMock(return_value=user_model),
         ),
-        patch(
-            "sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query
-        ),
+        patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
         patch(
             "sophie_bot.modules.federations.services.ban.restrict_ban_user",
             new=AsyncMock(return_value=True),

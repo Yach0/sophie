@@ -36,9 +36,7 @@ async def test_join_federation(test_client: TestClient) -> None:
             group_title="Join Test Group",
         )
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Join Test Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Join Test Fed", owner_model)
 
         await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
 
@@ -67,9 +65,7 @@ async def test_join_federation_duplicate(test_client: TestClient) -> None:
             group_title="Dup Join Group",
         )
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Dup Join Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Dup Join Fed", owner_model)
 
         await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
         await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
@@ -128,8 +124,7 @@ async def test_leave_federation(test_client: TestClient) -> None:
 
     Verifies:
     1. Chat joins a federation
-    2. The /leavefed command is handled without errors
-    3. Directly removing the chat via the service works
+    2. /leavefed removes the chat from federation
     """
     admin_mock = AsyncMock(return_value=True)
 
@@ -143,9 +138,7 @@ async def test_leave_federation(test_client: TestClient) -> None:
             group_title="Leave Test Group",
         )
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Leave Test Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Leave Test Fed", owner_model)
 
         await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
 
@@ -156,15 +149,6 @@ async def test_leave_federation(test_client: TestClient) -> None:
 
         # /leavefed command should be handled without errors
         await test_client.send_command(command="leavefed", from_user=owner_user, chat=group)
-
-    # Directly remove via service to verify removal logic (the handler's
-    # DBRef-vs-ObjectId comparison does not work in mongomock)
-    chat_model = await ChatModel.get_by_tid(-1001000003005)
-    assert chat_model is not None
-    fed = await FederationManageService.get_federation_by_id(federation.fed_id)
-    assert fed is not None
-    fed.chats.clear()
-    await fed.save()
 
     updated_fed = await FederationManageService.get_federation_by_id(federation.fed_id)
     assert updated_fed is not None

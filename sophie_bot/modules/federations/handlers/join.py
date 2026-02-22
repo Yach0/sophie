@@ -6,14 +6,14 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title, Template, Code
+from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
-from sophie_bot.modules.federations.services import FederationManageService, FederationChatService
+from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -57,10 +57,13 @@ class JoinFederationHandler(SophieMessageHandler):
                 return
 
         # Add chat to federation
-        await FederationChatService.add_chat_to_federation(
+        joined = await FederationChatService.add_chat_to_federation(
             fed_id,
             chat_iid,
         )
+        if not joined:
+            await self.event.reply(_("Unable to join the federation right now. Please try again."))
+            return
 
         # Format success message
         doc = Doc(

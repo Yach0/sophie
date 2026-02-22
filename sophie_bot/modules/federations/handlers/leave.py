@@ -9,7 +9,7 @@ from stfu_tg import Doc, Italic, Template, Title, UserLink
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.federations.services import FederationManageService, FederationChatService
+from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -43,7 +43,10 @@ class LeaveFederationHandler(SophieMessageHandler):
             return
 
         # Remove chat from federation
-        await FederationChatService.remove_chat_from_federation(federation, chat_iid)
+        removed = await FederationChatService.remove_chat_from_federation(federation, chat_iid)
+        if not removed:
+            await self.event.reply(_("Unable to leave the federation right now. Please try again."))
+            return
 
         # Format success message
         doc = Doc(
