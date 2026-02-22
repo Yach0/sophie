@@ -203,6 +203,112 @@ async def test_ban_user_in_federation_chats_returns_zero_if_user_not_found() -> 
 
 
 @pytest.mark.asyncio
+async def test_ban_user_in_federation_chats_normalizes_dbref_group_links() -> None:
+    user_tid = 1002
+    user_iid = PydanticObjectId("507f1f77bcf86cd799439032")
+    chat_iid = PydanticObjectId("507f1f77bcf86cd799439033")
+
+    federation = MagicMock()
+    federation.chats = [FakeDbRefLink(chat_iid)]
+
+    ban = MagicMock()
+    ban.banned_chats = []
+    ban.save = AsyncMock()
+
+    chat_model = MagicMock()
+    chat_model.iid = chat_iid
+    chat_model.tid = -10012346
+
+    user_model = MagicMock()
+    user_model.iid = user_iid
+
+    user_in_group_entry = MagicMock()
+    user_in_group_entry.group = FakeDbRefLink(chat_iid)
+
+    chat_query = MagicMock()
+    chat_query.to_list = AsyncMock(return_value=[chat_model])
+
+    user_in_group_query = MagicMock()
+    user_in_group_query.to_list = AsyncMock(return_value=[user_in_group_entry])
+
+    with (
+        patch.object(ban_service_module.ChatModel, "iid", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "user", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "group", new=MagicMock(), create=True),
+        patch("sophie_bot.modules.federations.services.ban.ChatModel.find", return_value=chat_query),
+        patch(
+            "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
+            new=AsyncMock(return_value=user_model),
+        ),
+        patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
+        patch(
+            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
+            new=AsyncMock(return_value=True),
+        ) as mock_restrict_ban_user,
+    ):
+        banned_count = await FederationBanService.ban_user_in_federation_chats(federation, ban, user_tid)
+
+    assert banned_count == 1
+    assert ban.banned_chats == [chat_model]
+    ban.save.assert_awaited_once()
+    mock_restrict_ban_user.assert_awaited_once_with(chat_model.tid, user_tid)
+
+
+@pytest.mark.asyncio
+async def test_ban_user_in_federation_chats_includes_current_chat_without_seen_record() -> None:
+    user_tid = 1003
+    user_iid = PydanticObjectId("507f1f77bcf86cd799439034")
+    chat_iid = PydanticObjectId("507f1f77bcf86cd799439035")
+
+    federation = MagicMock()
+    federation.chats = []
+
+    ban = MagicMock()
+    ban.banned_chats = []
+    ban.save = AsyncMock()
+
+    chat_model = MagicMock()
+    chat_model.iid = chat_iid
+    chat_model.tid = -10012347
+
+    user_model = MagicMock()
+    user_model.iid = user_iid
+
+    chat_query = MagicMock()
+    chat_query.to_list = AsyncMock(return_value=[chat_model])
+
+    user_in_group_query = MagicMock()
+    user_in_group_query.to_list = AsyncMock(return_value=[])
+
+    with (
+        patch.object(ban_service_module.ChatModel, "iid", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "user", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "group", new=MagicMock(), create=True),
+        patch("sophie_bot.modules.federations.services.ban.ChatModel.find", return_value=chat_query),
+        patch(
+            "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
+            new=AsyncMock(return_value=user_model),
+        ),
+        patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
+        patch(
+            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
+            new=AsyncMock(return_value=True),
+        ) as mock_restrict_ban_user,
+    ):
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
+            federation,
+            ban,
+            user_tid,
+            current_chat_iid=chat_iid,
+        )
+
+    assert banned_count == 1
+    assert ban.banned_chats == [chat_model]
+    ban.save.assert_awaited_once()
+    mock_restrict_ban_user.assert_awaited_once_with(chat_model.tid, user_tid)
+
+
+@pytest.mark.asyncio
 async def test_promote_admin_raises_for_existing_admin_link() -> None:
     user_iid = PydanticObjectId("507f1f77bcf86cd799439041")
 

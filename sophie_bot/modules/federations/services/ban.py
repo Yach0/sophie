@@ -62,7 +62,7 @@ class FederationBanService:
             return 0
 
         chat_iids = normalize_chat_iids([chat.to_ref() for chat in federation.chats])
-        if current_chat_iid and current_chat_iid not in chat_iids and current_chat_iid in federation.chats:
+        if current_chat_iid and current_chat_iid not in chat_iids:
             chat_iids.append(current_chat_iid)
 
         chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
@@ -74,7 +74,11 @@ class FederationBanService:
             UserInGroupModel.user.id == user.iid,
             In(UserInGroupModel.group.id, chat_iids),
         ).to_list()
-        detected_chat_iids = {user_in_group.group.to_ref() for user_in_group in user_in_groups}
+        detected_chat_iids = set(
+            normalize_chat_iids([user_in_group.group.to_ref() for user_in_group in user_in_groups])
+        )
+        if current_chat_iid:
+            detected_chat_iids.add(current_chat_iid)
 
         banned_chat_iids: list[PydanticObjectId] = []
 
