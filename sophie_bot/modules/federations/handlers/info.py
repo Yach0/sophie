@@ -6,7 +6,7 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
-from stfu_tg import Code, Doc, KeyValue, Template, Title, VList
+from stfu_tg import Code, Doc, KeyValue, Section, Template, Title, VList
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
@@ -14,9 +14,9 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.services import (
-    FederationManageService,
     FederationBanService,
     FederationChatService,
+    FederationManageService,
 )
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -70,15 +70,15 @@ class FederationInfoHandler(SophieMessageHandler):
 
         # Add subscription information
         if federation.subscribed:
-            subscription_list = []
+            subscription_items = []
             for sub_fed_id in federation.subscribed:
                 sub_fed = await FederationManageService.get_federation_by_id(sub_fed_id)
-                if sub_fed:
-                    subscription_list.append(f"• {sub_fed.fed_name} (`{sub_fed.fed_id}`)")
-                else:
-                    subscription_list.append(f"• Unknown (`{sub_fed_id}`)")
+                fed_name = sub_fed.fed_name if sub_fed else _("Unknown")
+                fed_id = sub_fed.fed_id if sub_fed else sub_fed_id
 
-            doc += KeyValue(_("Subscribed to"), "\n".join(subscription_list))
+                subscription_items.append(KeyValue(fed_name, fed_id))
+
+            doc += Section(VList(*subscription_items), title=_("Subscribed to"))
 
         await self.event.reply(str(doc))
 
