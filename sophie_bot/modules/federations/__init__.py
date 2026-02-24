@@ -3,6 +3,7 @@ from aiogram import Router
 from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.federations.api import api_router as federations_api_router
 from sophie_bot.modules.federations.handlers.accept_transfer import AcceptTransferHandler
+from sophie_bot.modules.federations.handlers.admins import FederationAdminsHandler
 from sophie_bot.modules.federations.handlers.ban import FederationBanHandler
 from sophie_bot.modules.federations.handlers.banlist import FederationBanListHandler
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler as FederationCommandHandler
@@ -55,6 +56,7 @@ __handlers__ = (
     FederationImportHandler,
     FederationRenameHandler,
     FederationChatsHandler,
+    FederationAdminsHandler,
     FederationPromoteHandler,
     FederationDemoteHandler,
 )

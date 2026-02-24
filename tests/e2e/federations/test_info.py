@@ -8,7 +8,12 @@ import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
-from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
+from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.modules.federations.services import (
+    FederationAdminService,
+    FederationBanService,
+    FederationManageService,
+)
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
     create_test_user_and_group,
@@ -36,9 +41,7 @@ async def test_fedinfo_by_id(test_client: TestClient) -> None:
             group_title="Info Test Group",
         )
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Info Test Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Info Test Fed", owner_model)
 
         # Should not crash when querying by ID
         await test_client.send_command(command="fedinfo", from_user=owner_user, args=federation.fed_id, chat=group)
@@ -64,9 +67,7 @@ async def test_fedinfo_from_chat_context(test_client: TestClient) -> None:
             group_title="Ctx Info Group",
         )
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Ctx Info Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Ctx Info Fed", owner_model)
 
         await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
 
@@ -160,6 +161,45 @@ async def test_fchats_not_in_federation(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_fadmins_with_promoted_admin(test_client: TestClient) -> None:
+    """Test /fadmins for a federation with an extra promoted admin.
+
+    Verifies:
+    1. The command does not crash for a valid federation context
+    2. Promoted admins remain in federation admin list
+    """
+    admin_mock = AsyncMock(return_value=True)
+
+    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
+        owner_user, group, owner_model = await create_test_user_and_group(
+            test_client,
+            user_id=7012,
+            first_name="AdminsOwner",
+            username="admins_owner",
+            chat_id=-1001000007012,
+            group_title="Fadmins Group",
+        )
+
+        admin_user = test_client.create_user(user_id=7013, first_name="ExtraAdmin", username="extra_admin")
+        await test_client.send_message(text="init", from_user=admin_user.user, chat=group)
+        admin_model = await ChatModel.get_by_tid(7013)
+        assert admin_model is not None
+
+        federation = await create_federation_via_command(
+            test_client, owner_user, group, "Fadmins Test Fed", owner_model
+        )
+
+        await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
+        await FederationAdminService.promote_admin(federation, admin_model.iid)
+
+        await test_client.send_command(command="fadmins", from_user=owner_user, chat=group)
+
+    updated_federation = await FederationManageService.get_federation_by_id(federation.fed_id)
+    assert updated_federation is not None
+    assert len(updated_federation.admins) == 1
+
+
+@pytest.mark.asyncio
 async def test_federation_chat_count_service(test_client: TestClient) -> None:
     """Test the federation chat count service method.
 
@@ -227,9 +267,7 @@ async def test_federation_ban_count_service(test_client: TestClient) -> None:
             )
             await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Ban Count Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Ban Count Fed", owner_model)
 
     # Ban two users
     await FederationBanService.ban_user(federation, 7010, owner_model.iid, reason="count test 1")
