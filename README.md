@@ -143,6 +143,7 @@ git branch -D feature/my-feature
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)
 - **Self-hosting Guide:** See [wiki_docs/Self-hosting.md](wiki_docs/Self-hosting.md)
+- **AGENTS.md:** Even if you're a human, it's still very helpful to read this file to understand the project structure, guidelines, best practices and the boilerplates.
 
 ## ⚖️ License
 
