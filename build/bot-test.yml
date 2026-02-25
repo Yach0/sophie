@@ -2,9 +2,9 @@ variables:
   UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
   UV_LINK_MODE: copy
 
-# Use uv's official Python image with uv pre-installed
+# Base template for all test jobs - no FFmpeg needed since PyAV has wheels
 .test-base:
-  image: python:3.13-slim-trixie
+  image: python:3.13-slim
   cache:
     - key: uv-cache-${CI_COMMIT_REF_SLUG}
       paths:
@@ -15,8 +15,8 @@ variables:
         - .venv
       policy: pull-push
   before_script:
-    # Install system dependencies - FFmpeg 7.x from trixie
-    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
+    # Install minimal system dependencies (no FFmpeg - PyAV has wheels)
+    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++
     # Clone/update libs - force remove any existing libs (file or dir) first
     - rm -rf libs 2>/dev/null || rm -f libs 2>/dev/null || true
     - mkdir -p libs
