@@ -37,4 +37,5 @@ def init_sentry():
         environment=f"{CONFIG.environment}_{SOPHIE_MODE}",
         release=SOPHIE_VERSION,
         ignore_errors=IGNORED_EXCEPTIONS,
+        default_integrations=False,
     )
