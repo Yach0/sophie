@@ -4,7 +4,7 @@ variables:
 
 # Use uv's official Python image with uv pre-installed
 .test-base:
-  image: ghcr.io/astral-sh/uv:0.9.26-python3.13-bookworm-slim
+  image: python:3.13-slim-trixie
   cache:
     - key: uv-cache-${CI_COMMIT_REF_SLUG}
       paths:
@@ -15,13 +15,15 @@ variables:
         - .venv
       policy: pull-push
   before_script:
-    # Install system dependencies only if needed
+    # Install system dependencies - FFmpeg 7.x from trixie
     - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
     # Clone/update libs - force remove any existing libs (file or dir) first
     - rm -rf libs 2>/dev/null || rm -f libs 2>/dev/null || true
     - mkdir -p libs
     - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
     - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
+    # Install uv
+    - pip install uv
     # Sync dependencies (uses cache, very fast if unchanged)
     - uv sync --dev --frozen
 

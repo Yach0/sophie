@@ -1,0 +1,44 @@
+[
+  {
+    "label": "Sophie: Debug Bot",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "module": "sophie_bot",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "env": {
+      "MODE": "bot",
+      "DEV_RELOAD": "false",
+      "PYTHONUNBUFFERED": "1",
+    },
+    "subProcess": true,
+    "justMyCode": false,
+  },
+  {
+    "label": "Sophie: Debug REST",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "module": "sophie_bot",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "env": {
+      "MODE": "rest",
+      "DEV_RELOAD": "false",
+      "PYTHONUNBUFFERED": "1",
+    },
+    "subProcess": true,
+    "justMyCode": false,
+  },
+  {
+    "label": "Sophie: Debug Scheduler",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "module": "sophie_bot",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "env": {
+      "MODE": "scheduler",
+      "DEV_RELOAD": "false",
+      "PYTHONUNBUFFERED": "1",
+    },
+    "subProcess": true,
+    "justMyCode": false,
+  },
+]

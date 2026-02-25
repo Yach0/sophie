@@ -1,6 +1,6 @@
 build_linux_onefile:
   stage: build
-  image: python:3.13-slim
+  image: python:3.13-slim-trixie
   before_script:
     - apt update; apt install patchelf ccache git pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev -y
     - ccache -s
