@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -16,6 +18,39 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+
+
+@dataclass
+class _FakeUserLink:
+    """Mimics a Beanie Link[ChatModel] with an async fetch() method."""
+
+    user_model: Any
+
+    async def fetch(self) -> Any:
+        return self.user_model
+
+
+@dataclass
+class _FakeAdminEntry:
+    """Mimics a ChatAdminModel document returned by ChatAdminModel.find()."""
+
+    member: Any
+    user: _FakeUserLink
+
+
+class _FakeAdminsQuery:
+    """Mimics the Beanie FindMany query object returned by ChatAdminModel.find().
+
+    mongomock cannot handle DBRef sub-field queries (e.g. ``chat.$id``), so this
+    stand-in is used to return pre-built admin entries in e2e tests.
+    """
+
+    def __init__(self, admin_entries: list[_FakeAdminEntry]) -> None:
+        self._entries = admin_entries
+
+    async def to_list(self) -> list[_FakeAdminEntry]:
+        return self._entries
+
 
 TEST_ROUTER = Router(name="admin_rights_e2e_router")
 
@@ -104,16 +139,15 @@ async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
     assert first_admin_model is not None
     assert second_admin_model is not None
 
-    await ChatAdminModel.upsert_admin(
-        chat_iid=chat_model.iid,
-        user_iid=first_admin_model.iid,
-        member=_build_admin_member(first_admin.user, can_restrict_members=True, title="Moderator"),
-    )
-    await ChatAdminModel.upsert_admin(
-        chat_iid=chat_model.iid,
-        user_iid=second_admin_model.iid,
-        member=_build_admin_member(second_admin.user, can_restrict_members=False, title="Moderator"),
-    )
+    member_one = _build_admin_member(first_admin.user, can_restrict_members=True, title="Moderator")
+    member_two = _build_admin_member(second_admin.user, can_restrict_members=False, title="Moderator")
+
+    # Build fake admin entries to work around mongomock's inability to query
+    # DBRef sub-fields (``chat.$id``) used by ChatAdminModel.find().
+    fake_admins = [
+        _FakeAdminEntry(member=member_one, user=_FakeUserLink(first_admin_model)),
+        _FakeAdminEntry(member=member_two, user=_FakeUserLink(second_admin_model)),
+    ]
 
     anonymous_message = Message(
         message_id=5551,
@@ -131,7 +165,9 @@ async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
         message_thread_id=77,
         text="/e2e_restrict_required",
     )
-    requests = await _new_requests_for_update(test_client, Update(update_id=88001, message=anonymous_message))
+
+    with patch.object(ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
+        requests = await _new_requests_for_update(test_client, Update(update_id=88001, message=anonymous_message))
 
     assert requests, "Bot should respond to ambiguous anonymous admin identity."
     assert any("Multiple anonymous admins share this title" in (request.text or "") for request in requests)
@@ -157,16 +193,14 @@ async def test_anonymous_admin_duplicate_title_all_permissions_allowed(
     assert first_admin_model is not None
     assert second_admin_model is not None
 
-    await ChatAdminModel.upsert_admin(
-        chat_iid=chat_model.iid,
-        user_iid=first_admin_model.iid,
-        member=_build_admin_member(first_admin.user, can_restrict_members=True, title="Guardian"),
-    )
-    await ChatAdminModel.upsert_admin(
-        chat_iid=chat_model.iid,
-        user_iid=second_admin_model.iid,
-        member=_build_admin_member(second_admin.user, can_restrict_members=True, title="Guardian"),
-    )
+    member_three = _build_admin_member(first_admin.user, can_restrict_members=True, title="Guardian")
+    member_four = _build_admin_member(second_admin.user, can_restrict_members=True, title="Guardian")
+
+    # Build fake admin entries to work around mongomock DBRef query limitation.
+    fake_admins = [
+        _FakeAdminEntry(member=member_three, user=_FakeUserLink(first_admin_model)),
+        _FakeAdminEntry(member=member_four, user=_FakeUserLink(second_admin_model)),
+    ]
 
     anonymous_message = Message(
         message_id=5552,
@@ -184,7 +218,9 @@ async def test_anonymous_admin_duplicate_title_all_permissions_allowed(
         message_thread_id=91,
         text="/e2e_restrict_required",
     )
-    requests = await _new_requests_for_update(test_client, Update(update_id=88002, message=anonymous_message))
+
+    with patch.object(ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
+        requests = await _new_requests_for_update(test_client, Update(update_id=88002, message=anonymous_message))
 
     assert requests, "Bot should respond when anonymous admin permissions are valid."
     assert any((request.text or "") == "E2E_RESTRICT_OK" for request in requests)
