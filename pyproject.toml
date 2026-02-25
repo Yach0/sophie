@@ -38,6 +38,7 @@ dependencies = [
     "init-data-py>=0.2.7,<0.3",
     "ty>=0.0.12",
     "normality>=3.0.2",
+    "av>=14,<15",
 ]
 
 [dependency-groups]

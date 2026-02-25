@@ -13,8 +13,12 @@ ENV UV_TOOL_BIN_DIR=/usr/local/bin
 WORKDIR /app
 
 # Install system build dependencies
+# FFmpeg libraries are needed for video/audio processing with PyAV
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git pkg-config libicu-dev g++ && \
+    apt-get install -y --no-install-recommends \
+        git pkg-config libicu-dev g++ \
+        libavformat-dev libavcodec-dev libavdevice-dev \
+        libavutil-dev libswscale-dev libswresample-dev libavfilter-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files first for optimal layer caching
@@ -58,9 +62,13 @@ ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1
 
-# Install runtime dependencies only
+# Install runtime dependencies
+# FFmpeg libraries are needed for video/audio processing with PyAV
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libicu-dev && \
+    apt-get install -y --no-install-recommends \
+        libicu-dev \
+        libavformat59 libavcodec59 libavdevice59 \
+        libavutil57 libswscale6 libswresample4 libavfilter8 && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the virtualenv from builder (contains all dependencies)

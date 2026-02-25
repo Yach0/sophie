@@ -31,6 +31,7 @@ from sophie_bot.modules.ai.utils.cache_messages import (
 )
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
+from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -192,6 +193,29 @@ class NewAIMessageHistory:
             voice_text = await transform_voice_to_text(message.voice)
             prompt.append(voice_text)
             # TODO: Cache message somehow again?
+
+        # Video - extract thumbnail and transcribe audio
+        if message.video or message.video_note:
+            video = message.video or message.video_note
+
+            # Add video thumbnail if available
+            if video and video.thumbnail:
+                thumbnail_file_id = video.thumbnail.file_id
+                downloaded_thumbnail: Optional[BinaryIO] = await bot.download(thumbnail_file_id)
+
+                if downloaded_thumbnail:
+                    prompt.append(
+                        BinaryContent(
+                            media_type="image/jpeg",
+                            data=downloaded_thumbnail.read(),
+                        )
+                    )
+
+            # Transcribe video audio
+            if video:
+                video_transcription = await transform_video_to_text(video)
+                if video_transcription:
+                    prompt.append(_("[Video transcription: {text}]").format(text=video_transcription))
 
         self.prompt = prompt
 
