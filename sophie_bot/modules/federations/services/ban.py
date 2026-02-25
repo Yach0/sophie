@@ -55,6 +55,73 @@ class FederationBanService:
         return ban
 
     @staticmethod
+    async def lazy_ban_in_subscribing_federations(
+        origin_federation: Federation,
+        user_tid: int,
+        by_user_iid: PydanticObjectId,
+        reason: Optional[str] = None,
+    ) -> list[tuple[Federation, FederationBan]]:
+        """Ban a user in federations that subscribe to the origin federation.
+
+        This is called "lazy-ban" because it only bans the user in subscribing federations
+        if the user is actually present in one of those federation's chats (tracked via
+        UserInGroupModel).
+
+        Returns a list of tuples (federation, ban_record) for each federation where
+        the user was banned.
+        """
+        results: list[tuple[Federation, FederationBan]] = []
+
+        # Find federations that subscribe TO this federation (transitive reverse lookup)
+        # This includes direct subscribers and their subscribers (full chain)
+        subscribing_feds = await FederationManageService.get_subscribed_by_chain(origin_federation.fed_id)
+        if not subscribing_feds:
+            return results
+
+        # Get the user model
+        user = await ChatModel.get_by_tid(user_tid)
+        if not user:
+            return results
+
+        for sub_fed in subscribing_feds:
+            # Skip if user is already banned in this federation
+            existing_ban = await FederationBanService.is_user_banned(sub_fed.fed_id, user_tid)
+            if existing_ban:
+                continue
+
+            # Check if federation has any chats
+            if not sub_fed.chats:
+                continue
+
+            # Get chat IIDs for this federation
+            sub_chat_iids = normalize_chat_iids([chat.to_ref() for chat in sub_fed.chats])
+            if not sub_chat_iids:
+                continue
+
+            # Check if user is in any of this federation's chats via UserInGroupModel
+            user_in_group = await UserInGroupModel.find(
+                UserInGroupModel.user.id == user.iid,
+                In(UserInGroupModel.group.id, sub_chat_iids),
+            ).first_or_none()
+
+            if user_in_group:
+                # User is present in this federation's chat, create a ban record
+                ban = FederationBan(
+                    fed_id=sub_fed.fed_id,
+                    user_id=user_tid,
+                    time=datetime.now(timezone.utc),
+                    by=by_user_iid,
+                    reason=reason,
+                    origin_fed=origin_federation.fed_id,
+                )
+                await ban.insert()
+                await FederationCacheService.incr_ban_count(sub_fed.fed_id, 1)
+                await FederationCacheService.set_user_ban_status(sub_fed.fed_id, user_tid, True)
+                results.append((sub_fed, ban))
+
+        return results
+
+    @staticmethod
     async def ban_user_in_federation_chats(
         federation: Federation, ban: FederationBan, user_tid: int, current_chat_iid: PydanticObjectId | None = None
     ) -> int:

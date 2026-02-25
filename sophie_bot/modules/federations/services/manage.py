@@ -192,3 +192,40 @@ class FederationManageService:
                     if sub_fed_id != fed_id:
                         chain.append(sub_fed_id)
         return chain
+
+    @staticmethod
+    async def get_subscribing_federations(fed_id: str) -> List[Federation]:
+        """Get federations that subscribe TO the given federation (reverse lookup).
+
+        Returns federations where `subscribed` list contains the given fed_id.
+        """
+        return await Federation.find(Federation.subscribed == fed_id).to_list()
+
+    @staticmethod
+    async def get_subscribed_by_chain(fed_id: str) -> List[Federation]:
+        """Get the full chain of federations that subscribe to the given federation.
+
+        This is the reverse of get_subscription_chain - it finds all federations
+        that transitively subscribe TO this federation.
+
+        Example: If Fed A subscribes to Fed B, and Fed B subscribes to Fed C,
+        then get_subscribed_by_chain("Fed C") returns [Fed B, Fed A].
+
+        Returns list of federations ordered by distance (closest first).
+        """
+        chain: List[Federation] = []
+        to_visit = [fed_id]
+        visited = {fed_id}
+
+        while to_visit:
+            current = to_visit.pop(0)  # BFS to maintain order
+            # Find all federations that subscribe to 'current'
+            subscribing_feds = await Federation.find(Federation.subscribed == current).to_list()
+
+            for sub_fed in subscribing_feds:
+                if sub_fed.fed_id not in visited:
+                    visited.add(sub_fed.fed_id)
+                    chain.append(sub_fed)
+                    to_visit.append(sub_fed.fed_id)
+
+        return chain

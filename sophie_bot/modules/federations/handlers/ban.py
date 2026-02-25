@@ -20,6 +20,7 @@ from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -102,6 +103,14 @@ class FederationBanHandler(FederationCommandHandler):
             current_chat_iid=(self.connection.db_model.iid if chat_part_of_federation else None),
         )
 
+        # Lazy-ban: Also ban in federations that subscribe to this federation
+        lazy_ban_count = 0
+        if await is_enabled("new_feds_fban_lazy"):
+            lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+                federation, user_tid, user_iid, reason
+            )
+            lazy_ban_count = len(lazy_bans)
+
         # Format response
         silent = self.event.text and self.event.text.startswith("/sfban")
         doc = Doc(
@@ -113,6 +122,11 @@ class FederationBanHandler(FederationCommandHandler):
         if reason:
             doc += KeyValue(_("Reason"), reason)
         doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count)))
+
+        if lazy_ban_count > 0:
+            doc += KeyValue(
+                _("Also banned in"), Template(_("{count} subscribed federations"), count=Code(lazy_ban_count))
+            )
 
         if silent:
             doc += _("The action is silent, all related messages would be deleted shortly")
