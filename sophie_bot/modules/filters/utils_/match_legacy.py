@@ -128,7 +128,7 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
             )
 
         # Run AI evaluation
-        result = await new_ai_generate_schema(history, AIFilterResponseSchema, FILTER_HANDLER_MODEL)  # type: ignore[arg-type]
+        result = await new_ai_generate_schema(history, AIFilterResponseSchema, FILTER_HANDLER_MODEL())
 
         log.debug("match_ai_handler: AI evaluation", prompt=prompt, matches=result.matches, reasoning=result.reasoning)
 

@@ -79,10 +79,12 @@ class WarnHandler(SophieMessageHandler):
         if not message.from_user:
             return
 
-        # Generate AI reason if none provided
-        if not reason:
+        # Generate AI reason if none provided and replying to a message
+        if not reason and message.reply_to_message:
+            replied_text = message.reply_to_message.text or message.reply_to_message.caption or None
             ai_reason = await generate_restriction_reason(
                 connection.db_model,
+                message_text=replied_text,
                 include_rules=True,
             )
             if ai_reason:

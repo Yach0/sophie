@@ -86,10 +86,12 @@ class FederationBanHandler(FederationCommandHandler):
             await self.event.reply(_("You don't have permission to ban users in this federation."))
             return
 
-        # Generate AI reason if none provided (federations don't include group rules)
-        if not reason:
+        # Generate AI reason if none provided and replying to a message (federations don't include group rules)
+        if not reason and self.event.reply_to_message:
+            replied_text = self.event.reply_to_message.text or self.event.reply_to_message.caption or None
             ai_reason = await generate_restriction_reason(
                 self.connection.db_model,
+                message_text=replied_text,
                 include_rules=False,
             )
             if ai_reason:

@@ -51,18 +51,24 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
 
 async def generate_restriction_reason(
     chat_db: ChatModel,
+    message_text: Optional[str] = None,
     include_rules: bool = True,
 ) -> Optional[str]:
     """Generate a reason for a restriction using AI.
 
     Args:
         chat_db: The chat database model
+        message_text: The text of the message being replied to (the violation)
         include_rules: Whether to include group rules in the prompt (False for federations)
 
     Returns:
-        The generated reason string, or None if generation failed
+        The generated reason string, or None if generation failed or no message text provided
     """
     if not await should_generate_ai_reason(chat_db):
+        return None
+
+    # Only generate reason if there's a message to analyze
+    if not message_text:
         return None
 
     try:
@@ -77,7 +83,7 @@ async def generate_restriction_reason(
                     rules_text = f"\n\nGroup Rules:\n{rules_content}"
 
         # Build the prompt
-        prompt = build_reason_prompt(rules_text=rules_text)
+        prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text)
 
         # Generate AI response
         history = NewAIMessageHistory()
@@ -87,7 +93,7 @@ async def generate_restriction_reason(
         )
         history.add_custom(prompt, "Moderator")
 
-        result: AIReasonResponse = await new_ai_generate_schema(history, AIReasonResponse, MODERATION_REASON_MODEL)  # type: ignore[arg-type]
+        result: AIReasonResponse = await new_ai_generate_schema(history, AIReasonResponse, MODERATION_REASON_MODEL())
 
         # Clean up the reason
         reason = result.reason.strip()
@@ -141,25 +147,31 @@ def extract_rules_text(rules_model: RulesModel) -> str:
         return ""
 
 
-def build_reason_prompt(rules_text: str) -> str:
+def build_reason_prompt(message_text: str, rules_text: str) -> str:
     """Build the prompt for AI reason generation.
 
     Args:
+        message_text: The text of the message that triggered the restriction
         rules_text: Group rules text (may be empty)
 
     Returns:
         The formatted prompt string
     """
     prompt_parts = [
-        "Generate a brief, professional moderation reason for restricting a user.",
+        "Generate a brief, professional moderation reason for restricting a user based on their message.",
+        "",
+        "Message Content:",
+        message_text,
         "",
         "Guidelines:",
-        "- The reason should be 1-2 sentences",
+        "- Analyze the message content above to identify the violation",
+        "- The reason should be 1-2 sentences explaining what rule was broken",
         "- Be professional and neutral in tone",
-        "- Do not mention any user names",
-        "- Focus on common violations or general misconduct",
-        "- If group rules are provided, reference relevant rules",
+        "- Do not reference content from the message",
+        "- If group rules are provided, reference the specific rule violated",
         "- The reason should be suitable for moderation logs",
+        "- Do not preface the reason with 'User was restricted for...' or similar language, write directly the reason",
+        "- Output only the reason (e.g., 'Inappropriate language').",
     ]
 
     if rules_text:
@@ -167,6 +179,6 @@ def build_reason_prompt(rules_text: str) -> str:
         prompt_parts.append(rules_text)
 
     prompt_parts.append("")
-    prompt_parts.append("Generate a concise reason:")
+    prompt_parts.append("Generate a concise reason based on the message content:")
 
     return "\n".join(prompt_parts)

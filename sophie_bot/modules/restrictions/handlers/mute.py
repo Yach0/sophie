@@ -71,10 +71,12 @@ class MuteUserHandler(SophieMessageHandler):
 
         reason = self.data.get("reason")
 
-        # Generate AI reason if none provided
-        if not reason:
+        # Generate AI reason if none provided and replying to a message
+        if not reason and self.event.reply_to_message:
+            replied_text = self.event.reply_to_message.text or self.event.reply_to_message.caption or None
             ai_reason = await generate_restriction_reason(
                 connection.db_model,
+                message_text=replied_text,
                 include_rules=True,
             )
             if ai_reason:
@@ -144,10 +146,12 @@ class TempMuteUserHandler(SophieMessageHandler):
 
         reason = self.data.get("reason")
 
-        # Generate AI reason if none provided
-        if not reason:
+        # Generate AI reason if none provided and replying to a message
+        if not reason and self.event.reply_to_message:
+            replied_text = self.event.reply_to_message.text or self.event.reply_to_message.caption or None
             ai_reason = await generate_restriction_reason(
                 connection.db_model,
+                message_text=replied_text,
                 include_rules=True,
             )
             if ai_reason:
