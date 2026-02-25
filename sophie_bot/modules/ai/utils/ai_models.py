@@ -213,5 +213,11 @@ class _LazyFilterHandlerModel:
         return _get_filter_handler_model()
 
 
+class _LazyModerationReasonModel:
+    def __get__(self, obj, objtype=None):
+        return _get_ai_models()[MistralModels.mistral_small.name]
+
+
 AI_MODELS = _LazyAIModels()
 FILTER_HANDLER_MODEL = _LazyFilterHandlerModel()
+MODERATION_REASON_MODEL = _LazyModerationReasonModel()

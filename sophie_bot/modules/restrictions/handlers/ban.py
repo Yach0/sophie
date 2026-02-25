@@ -15,6 +15,7 @@ from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -74,6 +75,16 @@ class BanUserHandler(SophieMessageHandler):
             return await self.event.reply(_("Failed to ban the user. Make sure I have the right permissions."))
 
         reason = self.data.get("reason")
+
+        # Generate AI reason if none provided
+        if not reason:
+            ai_reason = await generate_restriction_reason(
+                connection.db_model,
+                include_rules=True,
+            )
+            if ai_reason:
+                reason = ai_reason
+
         await log_event(
             connection.tid,
             self.event.from_user.id,
@@ -161,6 +172,16 @@ class TempBanUserHandler(SophieMessageHandler):
             return await self.event.reply(_("Failed to ban the user. Make sure I have the right permissions."))
 
         reason = self.data.get("reason")
+
+        # Generate AI reason if none provided
+        if not reason:
+            ai_reason = await generate_restriction_reason(
+                connection.db_model,
+                include_rules=True,
+            )
+            if ai_reason:
+                reason = ai_reason
+
         await log_event(
             connection.tid,
             self.event.from_user.id,

@@ -14,6 +14,7 @@ from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
@@ -84,6 +85,15 @@ class FederationBanHandler(FederationCommandHandler):
         if not await FederationPermissionService.can_ban_in_federation(federation, banner_tid):
             await self.event.reply(_("You don't have permission to ban users in this federation."))
             return
+
+        # Generate AI reason if none provided (federations don't include group rules)
+        if not reason:
+            ai_reason = await generate_restriction_reason(
+                self.connection.db_model,
+                include_rules=False,
+            )
+            if ai_reason:
+                reason = ai_reason
 
         # Ban user
         user_iid = self.data["user_db"].iid

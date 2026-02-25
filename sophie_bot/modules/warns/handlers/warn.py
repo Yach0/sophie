@@ -20,6 +20,7 @@ from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
+from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -77,6 +78,15 @@ class WarnHandler(SophieMessageHandler):
 
         if not message.from_user:
             return
+
+        # Generate AI reason if none provided
+        if not reason:
+            ai_reason = await generate_restriction_reason(
+                connection.db_model,
+                include_rules=True,
+            )
+            if ai_reason:
+                reason = ai_reason
 
         current, limit, punishment, warn = await warn_user(connection.db_model, target_user, admin_user, reason)
 

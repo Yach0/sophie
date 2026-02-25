@@ -10,6 +10,7 @@ FeatureType = Literal[
     "ai_chatbot",
     "ai_translations",
     "ai_moderation",
+    "ai_moderation_reasons",
     "ai_filters",
     "ai_provider_zai",
     "filters",
@@ -54,6 +55,7 @@ class FeatureStates(TypedDict):
     ai_chatbot: bool
     ai_translations: bool
     ai_moderation: bool
+    ai_moderation_reasons: bool
     ai_filters: bool
     ai_provider_zai: bool
     filters: bool
@@ -87,6 +89,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_chatbot",
     "ai_translations",
     "ai_moderation",
+    "ai_moderation_reasons",
     "ai_filters",
     "ai_provider_zai",
     "filters",
@@ -128,6 +131,7 @@ def _default_state_map() -> FeatureStates:
         ai_chatbot=True,
         ai_translations=True,
         ai_moderation=True,
+        ai_moderation_reasons=True,
         ai_filters=True,
         ai_provider_zai=True,
         filters=True,
