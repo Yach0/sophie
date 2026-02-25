@@ -13,7 +13,7 @@ async def transform_voice_to_text(voice: Voice) -> str:
     audio_bytes = BufferedReader(BytesIO(downloaded_audio.read()))  # type: ignore
 
     resp = await mistral_client.audio.transcriptions.complete_async(
-        model="mistral-transcribe",
+        model="voxtral-mini-latest",
         file={
             "file_name": "audio.ogg",
             "content": audio_bytes,

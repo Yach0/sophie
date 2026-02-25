@@ -147,7 +147,7 @@ async def transform_video_to_text(video: Video | VideoNote) -> Optional[str]:
     audio_bytes_io = BufferedReader(BytesIO(audio_bytes))
 
     resp = await mistral_client.audio.transcriptions.complete_async(
-        model="mistral-transcribe",
+        model="voxtral-mini-latest",
         file={
             "file_name": "audio.ogg",
             "content": audio_bytes_io,
@@ -156,5 +156,7 @@ async def transform_video_to_text(video: Video | VideoNote) -> Optional[str]:
     )
 
     transcribed_text = resp.text.removesuffix("\n")
+
+    log.debug("Transcribed text", transcribed_text=transcribed_text)
 
     return transcribed_text
