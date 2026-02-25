@@ -71,7 +71,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         libicu-dev \
         libavformat61 libavcodec61 libavdevice61 \
-        libavutil59 libswscale7 libswresample5 libavfilter10 && \
+        libavutil59 libswscale8 libswresample5 libavfilter10 && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the virtualenv from builder (contains all dependencies)
