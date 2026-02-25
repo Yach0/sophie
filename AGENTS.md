@@ -40,6 +40,7 @@ async def handle_message(message: Message, user_id: int) -> Optional[str]:
 - Avoid global state modifications
 - Use immutable data structures when applicable
 - Leverage higher-order functions and function composition
+- Avoid overly guarded code!
 - Example functional approach:
 
 ```python
