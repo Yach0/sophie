@@ -331,6 +331,7 @@ msgstr ""
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:41
 #: sophie_bot/modules/utils_/status_handler.py:47
 #: sophie_bot/modules/utils_/status_handler.py:70
+#: sophie_bot/modules/utils_/status_handler.py:124
 msgid "Chat"
 msgstr ""
 
@@ -4624,6 +4625,36 @@ msgstr ""
 msgid "The state was successfully changed"
 msgstr ""
 
+#: sophie_bot/modules/utils_/status_handler.py:94
+msgid "<number>"
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:98
+msgid "?New value"
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:105
+msgid "Please provide a valid number."
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:109
+#, python-brace-format
+msgid "Value must be between {min} and {max}."
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:116
+#, python-brace-format
+msgid "The current value is already {value}"
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:122
+msgid "The value was successfully changed"
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:123
+msgid "New value"
+msgstr ""
+
 #: sophie_bot/modules/warns/__init__.py:25
 msgid "Warnings"
 msgstr ""
@@ -4754,6 +4785,22 @@ msgstr ""
 
 #: sophie_bot/modules/warns/handlers/warn.py:121
 msgid "Delete warn"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnlimit.py:14
+msgid "Shows / changes the warn limit for this chat."
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnlimit.py:15
+msgid "?New warn limit (number)"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnlimit.py:20
+msgid "Warn Limit"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnlimit.py:22
+msgid "<number> (2-20)"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/warns_group.py:16

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, TypeVar
 
 from aiogram.types import Message
-from ass_tg.types import BooleanArg, OptionalArg
+from ass_tg.types import BooleanArg, IntArg, OptionalArg
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Italic, KeyValue, Section, Template
 from stfu_tg.doc import Element
@@ -83,3 +83,45 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):
 
 class StatusBoolHandlerABC(StatusHandlerABC[bool], ABC):
     status_texts: dict[bool, LazyProxy] = {True: l_("Enabled"), False: l_("Disabled")}
+
+
+class StatusIntHandlerABC(StatusHandlerABC[int], ABC):
+    """Abstract base class for integer status handlers (e.g., warn limit, max count)."""
+
+    min_value: int = 0
+    max_value: int = 10000
+    default_value: int = 3
+    change_args: str | LazyProxy = l_("<number>")
+
+    @classmethod
+    async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
+        return {"new_status": OptionalArg(IntArg(l_("?New value")))}
+
+    def status_text(self, status_data: int) -> Element | str | LazyProxy:
+        return str(status_data)
+
+    async def change_status(self, new_status: int) -> Any:
+        if not isinstance(new_status, int):
+            return await self.event.reply(str(_("Please provide a valid number.")))
+
+        if new_status < self.min_value or new_status > self.max_value:
+            return await self.event.reply(
+                str(Template(_("Value must be between {min} and {max}."), min=self.min_value, max=self.max_value))
+            )
+
+        current_status: int = await self.get_status()
+
+        if current_status == new_status:
+            return await self.event.reply(
+                str(Template(_("The current value is already {value}"), value=Italic(self.status_text(current_status))))
+            )
+
+        await self.set_status(new_status)
+
+        doc = Section(
+            _("The value was successfully changed"),
+            KeyValue(_("New value"), self.status_text(new_status)),
+            KeyValue(_("Chat"), self.connection.title),
+            title=self.header_text,
+        )
+        await self.event.reply(str(doc))

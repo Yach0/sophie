@@ -8,6 +8,7 @@ from .warns_group import WarnsGroupHandler
 from .warns_pm import WarnsPMHandler
 from .reset_warns import ResetWarnsHandler
 from .reset_all_warns import ResetAllWarnsHandler
+from .warnlimit import WarnLimitHandler
 
 __all__ = (
     "WarnHandler",
@@ -18,4 +19,5 @@ __all__ = (
     "WarnsPMHandler",
     "ResetWarnsHandler",
     "ResetAllWarnsHandler",
+    "WarnLimitHandler",
 )
