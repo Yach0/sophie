@@ -43,35 +43,35 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:235
+#: sophie_bot/filters/admin_rights.py:245
 msgid "I don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:237
+#: sophie_bot/filters/admin_rights.py:247
 msgid "You don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:242
+#: sophie_bot/filters/admin_rights.py:252
 msgid "I must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:244
+#: sophie_bot/filters/admin_rights.py:254
 msgid "You must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:258
+#: sophie_bot/filters/admin_rights.py:268
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:270
+#: sophie_bot/filters/admin_rights.py:280
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:284
+#: sophie_bot/filters/admin_rights.py:294
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:299
+#: sophie_bot/filters/admin_rights.py:309
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
@@ -583,8 +583,8 @@ msgid "Message author"
 msgstr ""
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
-#: sophie_bot/modules/federations/handlers/ban.py:114
-#: sophie_bot/modules/federations/handlers/ban.py:153
+#: sophie_bot/modules/federations/handlers/ban.py:123
+#: sophie_bot/modules/federations/handlers/ban.py:167
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
 #: sophie_bot/modules/reports/handlers/report.py:88
 #: sophie_bot/modules/restrictions/handlers/ban.py:48
@@ -607,8 +607,8 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/silent.py:308
 #: sophie_bot/modules/restrictions/handlers/silent.py:341
 #: sophie_bot/modules/restrictions/handlers/silent.py:380
-#: sophie_bot/modules/warns/handlers/warn.py:49
-#: sophie_bot/modules/warns/handlers/warn.py:100
+#: sophie_bot/modules/warns/handlers/warn.py:48
+#: sophie_bot/modules/warns/handlers/warn.py:99
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] ""
@@ -887,9 +887,9 @@ msgid "User has been restricted for flooding."
 msgstr ""
 
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:179
-#: sophie_bot/modules/federations/handlers/ban.py:54
-#: sophie_bot/modules/federations/handlers/ban.py:110
-#: sophie_bot/modules/federations/handlers/ban.py:138
+#: sophie_bot/modules/federations/handlers/ban.py:55
+#: sophie_bot/modules/federations/handlers/ban.py:119
+#: sophie_bot/modules/federations/handlers/ban.py:152
 #: sophie_bot/modules/federations/handlers/demote.py:42
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
@@ -929,7 +929,7 @@ msgstr ""
 #: sophie_bot/modules/users/handlers/id.py:24
 #: sophie_bot/modules/users/handlers/info.py:21
 #: sophie_bot/modules/warns/handlers/callback.py:94
-#: sophie_bot/modules/warns/handlers/warn.py:94
+#: sophie_bot/modules/warns/handlers/warn.py:93
 #: sophie_bot/modules/warns/handlers/warns.py:11
 msgid "User"
 msgstr ""
@@ -1466,7 +1466,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:39
 #: sophie_bot/modules/federations/handlers/admins.py:29
-#: sophie_bot/modules/federations/handlers/ban.py:63
+#: sophie_bot/modules/federations/handlers/ban.py:64
 #: sophie_bot/modules/federations/handlers/banlist.py:37
 #: sophie_bot/modules/federations/handlers/chats.py:52
 #: sophie_bot/modules/federations/handlers/chats.py:98
@@ -1541,8 +1541,8 @@ msgid "You don't have permission to view this federation's admins."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/admins.py:38
-#: sophie_bot/modules/federations/handlers/ban.py:110
-#: sophie_bot/modules/federations/handlers/ban.py:141
+#: sophie_bot/modules/federations/handlers/ban.py:119
+#: sophie_bot/modules/federations/handlers/ban.py:155
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
@@ -1567,7 +1567,7 @@ msgid "🏛 Federation Admins"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/admins.py:66
-#: sophie_bot/modules/federations/handlers/ban.py:109
+#: sophie_bot/modules/federations/handlers/ban.py:118
 #: sophie_bot/modules/federations/handlers/banlist.py:53
 #: sophie_bot/modules/federations/handlers/banlist.py:63
 #: sophie_bot/modules/federations/handlers/banlist.py:81
@@ -1601,30 +1601,30 @@ msgstr ""
 msgid "No additional admins."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:37
+#: sophie_bot/modules/federations/handlers/ban.py:38
 msgid "Ban a user from the federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:55
+#: sophie_bot/modules/federations/handlers/ban.py:56
 msgid "?Reason"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:73
+#: sophie_bot/modules/federations/handlers/ban.py:74
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:59
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:68
 #: sophie_bot/modules/federations/handlers/unban.py:55
 msgid "Please specify a user or reply to a user's message."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:84
+#: sophie_bot/modules/federations/handlers/ban.py:85
 msgid "You don't have permission to ban users in this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:108
+#: sophie_bot/modules/federations/handlers/ban.py:117
 msgid "🏛 User Banned from Federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:111
+#: sophie_bot/modules/federations/handlers/ban.py:120
 #: sophie_bot/modules/restrictions/handlers/ban.py:87
 #: sophie_bot/modules/restrictions/handlers/ban.py:174
 #: sophie_bot/modules/restrictions/handlers/silent.py:167
@@ -1632,29 +1632,38 @@ msgstr ""
 msgid "Banned by"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:115
+#: sophie_bot/modules/federations/handlers/ban.py:124
 #, python-brace-format
 msgid "Banned in {count} chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:115
+#: sophie_bot/modules/federations/handlers/ban.py:124
 #: sophie_bot/modules/federations/handlers/unban.py:149
 msgid "Result"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:118
+#: sophie_bot/modules/federations/handlers/ban.py:128
+msgid "Also banned in"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/ban.py:128
+#, python-brace-format
+msgid "{count} subscribed federations"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/ban.py:132
 msgid "The action is silent, all related messages would be deleted shortly"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:133
+#: sophie_bot/modules/federations/handlers/ban.py:147
 msgid "Ban user in the fed #FedBan"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:135
+#: sophie_bot/modules/federations/handlers/ban.py:149
 msgid "Fed"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:145
+#: sophie_bot/modules/federations/handlers/ban.py:159
 msgid "By"
 msgstr ""
 
@@ -1866,7 +1875,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/demote.py:64
 #: sophie_bot/modules/federations/handlers/promote.py:64
-#: sophie_bot/modules/warns/handlers/warn.py:66
+#: sophie_bot/modules/warns/handlers/warn.py:65
 msgid "User not found in database."
 msgstr ""
 
@@ -4215,7 +4224,7 @@ msgstr ""
 #: sophie_bot/modules/rules/handlers/legacy_button.py:34
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:34
-#: sophie_bot/modules/warns/handlers/warn.py:113
+#: sophie_bot/modules/warns/handlers/warn.py:112
 msgid "Rules"
 msgstr ""
 
@@ -4710,40 +4719,40 @@ msgstr ""
 msgid "Are you sure you want to reset warnings of {user}?"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:31
+#: sophie_bot/modules/warns/handlers/warn.py:30
 msgid "Warns a user."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:47
+#: sophie_bot/modules/warns/handlers/warn.py:46
 msgid "User to warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:72
+#: sophie_bot/modules/warns/handlers/warn.py:71
 msgid "I cannot warn myself."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:76
+#: sophie_bot/modules/warns/handlers/warn.py:75
 msgid "I cannot warn an admin."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:93
+#: sophie_bot/modules/warns/handlers/warn.py:92
 msgid "⚠️ User warned"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:95
+#: sophie_bot/modules/warns/handlers/warn.py:94
 msgid "By admin"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:96
+#: sophie_bot/modules/warns/handlers/warn.py:95
 msgid "Warnings count"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:103
+#: sophie_bot/modules/warns/handlers/warn.py:102
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:122
+#: sophie_bot/modules/warns/handlers/warn.py:121
 msgid "Delete warn"
 msgstr ""
 
