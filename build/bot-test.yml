@@ -16,7 +16,7 @@ variables:
       policy: pull-push
   before_script:
     # Install system dependencies only if needed
-    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++
+    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
     # Clone/update libs - force remove any existing libs (file or dir) first
     - rm -rf libs 2>/dev/null || rm -f libs 2>/dev/null || true
     - mkdir -p libs
