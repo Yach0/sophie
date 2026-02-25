@@ -37,6 +37,8 @@ async def check_user_admin_permissions(
     user: Union[int, PydanticObjectId],
     required_permissions: Optional[list[str]] = None,
     require_creator: bool = False,
+    chat_model: Optional[ChatModel] = None,
+    user_model: Optional[ChatModel] = None,
 ) -> Union[bool, list[str]]:
     """
     Check if a user is an admin in the specified chat and has the required permissions.
@@ -69,11 +71,13 @@ async def check_user_admin_permissions(
             return True
 
     # Resolve models
-    chat_model = await _resolve_model(chat)
+    if not chat_model:
+        chat_model = await _resolve_model(chat)
     if not chat_model:
         return False
 
-    user_model = await _resolve_model(user)
+    if not user_model:
+        user_model = await _resolve_model(user)
     if not user_model:
         return False
 

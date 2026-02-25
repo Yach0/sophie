@@ -43,23 +43,35 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:119
+#: sophie_bot/filters/admin_rights.py:235
 msgid "I don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:121
+#: sophie_bot/filters/admin_rights.py:237
 msgid "You don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:126
+#: sophie_bot/filters/admin_rights.py:242
 msgid "I must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:128
+#: sophie_bot/filters/admin_rights.py:244
 msgid "You must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:142
+#: sophie_bot/filters/admin_rights.py:258
+msgid "Anonymous admin must have a custom admin title to use this command."
+msgstr ""
+
+#: sophie_bot/filters/admin_rights.py:270
+msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
+msgstr ""
+
+#: sophie_bot/filters/admin_rights.py:284
+msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
+msgstr ""
+
+#: sophie_bot/filters/admin_rights.py:299
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
@@ -595,8 +607,8 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/silent.py:308
 #: sophie_bot/modules/restrictions/handlers/silent.py:341
 #: sophie_bot/modules/restrictions/handlers/silent.py:380
-#: sophie_bot/modules/warns/handlers/warn.py:48
-#: sophie_bot/modules/warns/handlers/warn.py:99
+#: sophie_bot/modules/warns/handlers/warn.py:49
+#: sophie_bot/modules/warns/handlers/warn.py:100
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] ""
@@ -917,7 +929,7 @@ msgstr ""
 #: sophie_bot/modules/users/handlers/id.py:24
 #: sophie_bot/modules/users/handlers/info.py:21
 #: sophie_bot/modules/warns/handlers/callback.py:94
-#: sophie_bot/modules/warns/handlers/warn.py:93
+#: sophie_bot/modules/warns/handlers/warn.py:94
 #: sophie_bot/modules/warns/handlers/warns.py:11
 msgid "User"
 msgstr ""
@@ -1396,15 +1408,15 @@ msgstr ""
 msgid "Softly whispering."
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:27
+#: sophie_bot/modules/federations/__init__.py:28
 msgid "Federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:29
+#: sophie_bot/modules/federations/__init__.py:30
 msgid "Manage federations across multiple chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:31
+#: sophie_bot/modules/federations/__init__.py:32
 msgid "Federations allow you to manage multiple chats as a group. You can ban users across all chats in a federation, subscribe to other federations, and manage permissions."
 msgstr ""
 
@@ -1453,6 +1465,7 @@ msgid "Federation ID to accept transfer for"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:39
+#: sophie_bot/modules/federations/handlers/admins.py:29
 #: sophie_bot/modules/federations/handlers/ban.py:63
 #: sophie_bot/modules/federations/handlers/banlist.py:37
 #: sophie_bot/modules/federations/handlers/chats.py:52
@@ -1519,6 +1532,75 @@ msgstr ""
 msgid "Federation ID: {fed_id}"
 msgstr ""
 
+#: sophie_bot/modules/federations/handlers/admins.py:18
+msgid "List all admins of a federation"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:34
+msgid "You don't have permission to view this federation's admins."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:38
+#: sophie_bot/modules/federations/handlers/ban.py:110
+#: sophie_bot/modules/federations/handlers/ban.py:141
+#: sophie_bot/modules/federations/handlers/fcheck_group.py:73
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:129
+#: sophie_bot/modules/federations/handlers/info.py:60
+#: sophie_bot/modules/federations/handlers/info.py:76
+#: sophie_bot/modules/federations/handlers/unban.py:117
+#: sophie_bot/modules/federations/handlers/unban.py:147
+#: sophie_bot/modules/federations/handlers/unban.py:157
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
+#: sophie_bot/modules/warns/handlers/warns_group.py:39
+msgid "Unknown"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:52
+#, python-brace-format
+msgid "{number}. {admin}"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:65
+msgid "🏛 Federation Admins"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:66
+#: sophie_bot/modules/federations/handlers/ban.py:109
+#: sophie_bot/modules/federations/handlers/banlist.py:53
+#: sophie_bot/modules/federations/handlers/banlist.py:63
+#: sophie_bot/modules/federations/handlers/banlist.py:81
+#: sophie_bot/modules/federations/handlers/banlist.py:103
+#: sophie_bot/modules/federations/handlers/chats.py:68
+#: sophie_bot/modules/federations/handlers/chats.py:87
+#: sophie_bot/modules/federations/handlers/fcheck_group.py:70
+#: sophie_bot/modules/federations/handlers/import_banlist.py:72
+#: sophie_bot/modules/federations/handlers/subscribe.py:74
+#: sophie_bot/modules/federations/handlers/subscribe.py:144
+#: sophie_bot/modules/federations/handlers/unban.py:146
+#: sophie_bot/modules/federations/schedules/process_exports.py:145
+#: sophie_bot/modules/federations/schedules/process_imports.py:331
+msgid "Federation"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:67
+msgid "Total admins"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:68
+#: sophie_bot/modules/federations/handlers/info.py:66
+msgid "Owner"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:69
+msgid "Admins"
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/admins.py:69
+msgid "No additional admins."
+msgstr ""
+
 #: sophie_bot/modules/federations/handlers/ban.py:37
 msgid "Ban a user from the federation"
 msgstr ""
@@ -1540,39 +1622,6 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/ban.py:108
 msgid "🏛 User Banned from Federation"
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/ban.py:109
-#: sophie_bot/modules/federations/handlers/banlist.py:53
-#: sophie_bot/modules/federations/handlers/banlist.py:63
-#: sophie_bot/modules/federations/handlers/banlist.py:81
-#: sophie_bot/modules/federations/handlers/banlist.py:103
-#: sophie_bot/modules/federations/handlers/chats.py:68
-#: sophie_bot/modules/federations/handlers/chats.py:87
-#: sophie_bot/modules/federations/handlers/fcheck_group.py:70
-#: sophie_bot/modules/federations/handlers/import_banlist.py:72
-#: sophie_bot/modules/federations/handlers/subscribe.py:74
-#: sophie_bot/modules/federations/handlers/subscribe.py:144
-#: sophie_bot/modules/federations/handlers/unban.py:146
-#: sophie_bot/modules/federations/schedules/process_exports.py:145
-#: sophie_bot/modules/federations/schedules/process_imports.py:331
-msgid "Federation"
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/ban.py:110
-#: sophie_bot/modules/federations/handlers/ban.py:141
-#: sophie_bot/modules/federations/handlers/fcheck_group.py:73
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:129
-#: sophie_bot/modules/federations/handlers/info.py:60
-#: sophie_bot/modules/federations/handlers/info.py:76
-#: sophie_bot/modules/federations/handlers/unban.py:117
-#: sophie_bot/modules/federations/handlers/unban.py:147
-#: sophie_bot/modules/federations/handlers/unban.py:157
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
-#: sophie_bot/modules/warns/handlers/warns_group.py:39
-msgid "Unknown"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/ban.py:111
@@ -1817,7 +1866,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/demote.py:64
 #: sophie_bot/modules/federations/handlers/promote.py:64
-#: sophie_bot/modules/warns/handlers/warn.py:65
+#: sophie_bot/modules/warns/handlers/warn.py:66
 msgid "User not found in database."
 msgstr ""
 
@@ -1942,10 +1991,6 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/info.py:65
 #: sophie_bot/modules/users/handlers/info.py:45
 msgid "ID"
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/info.py:66
-msgid "Owner"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/info.py:67
@@ -4170,7 +4215,7 @@ msgstr ""
 #: sophie_bot/modules/rules/handlers/legacy_button.py:34
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:34
-#: sophie_bot/modules/warns/handlers/warn.py:112
+#: sophie_bot/modules/warns/handlers/warn.py:113
 msgid "Rules"
 msgstr ""
 
@@ -4665,40 +4710,40 @@ msgstr ""
 msgid "Are you sure you want to reset warnings of {user}?"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:30
+#: sophie_bot/modules/warns/handlers/warn.py:31
 msgid "Warns a user."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:46
+#: sophie_bot/modules/warns/handlers/warn.py:47
 msgid "User to warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:71
+#: sophie_bot/modules/warns/handlers/warn.py:72
 msgid "I cannot warn myself."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:75
+#: sophie_bot/modules/warns/handlers/warn.py:76
 msgid "I cannot warn an admin."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:92
+#: sophie_bot/modules/warns/handlers/warn.py:93
 msgid "⚠️ User warned"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:94
+#: sophie_bot/modules/warns/handlers/warn.py:95
 msgid "By admin"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:95
+#: sophie_bot/modules/warns/handlers/warn.py:96
 msgid "Warnings count"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:102
+#: sophie_bot/modules/warns/handlers/warn.py:103
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:121
+#: sophie_bot/modules/warns/handlers/warn.py:122
 msgid "Delete warn"
 msgstr ""
 
