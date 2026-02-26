@@ -523,7 +523,10 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
 
     # Trigger lazy-ban in subscribing federations.
     # Patch UserInGroupModel.find to work around mongomock DBRef query limitation.
-    with patch.object(UserInGroupModel, "find", _make_uig_find_patch(uig_entries)):
+    # Import the specific module where UserInGroupModel is used to ensure proper patching.
+    from sophie_bot.modules.federations.services import ban as ban_service_module
+
+    with patch.object(ban_service_module.UserInGroupModel, "find", _make_uig_find_patch(uig_entries)):
         lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
             fed_c, 4033, model_c.iid, reason="transitive lazy ban test"
         )
@@ -625,7 +628,10 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
     assert ban_b is not None
 
     # Trigger lazy-ban
-    with patch.object(UserInGroupModel, "find", _make_uig_find_patch([user_in_group_b])):
+    # Import the specific module where UserInGroupModel is used to ensure proper patching.
+    from sophie_bot.modules.federations.services import ban as ban_service_module
+
+    with patch.object(ban_service_module.UserInGroupModel, "find", _make_uig_find_patch([user_in_group_b])):
         lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
             fed_b, 4042, model_b.iid, reason="selective lazy ban test"
         )

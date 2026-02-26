@@ -15,7 +15,6 @@ from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 
@@ -166,7 +165,11 @@ async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
         text="/e2e_restrict_required",
     )
 
-    with patch.object(ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
+    # Patch needs to target where the object is looked up, not where it's defined.
+    # This ensures the patch works correctly in parallel test execution.
+    from sophie_bot.filters import admin_rights as admin_rights_module
+
+    with patch.object(admin_rights_module.ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
         requests = await _new_requests_for_update(test_client, Update(update_id=88001, message=anonymous_message))
 
     assert requests, "Bot should respond to ambiguous anonymous admin identity."
@@ -219,7 +222,10 @@ async def test_anonymous_admin_duplicate_title_all_permissions_allowed(
         text="/e2e_restrict_required",
     )
 
-    with patch.object(ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
+    # Patch needs to target where the object is looked up, not where it's defined.
+    from sophie_bot.filters import admin_rights as admin_rights_module
+
+    with patch.object(admin_rights_module.ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
         requests = await _new_requests_for_update(test_client, Update(update_id=88002, message=anonymous_message))
 
     assert requests, "Bot should respond when anonymous admin permissions are valid."
