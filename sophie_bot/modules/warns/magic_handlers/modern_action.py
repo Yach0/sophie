@@ -6,6 +6,7 @@ from stfu_tg import Section
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ModernActionABC,
@@ -71,7 +72,15 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
         admin_db = data["user_db"]
         target_db = data["user_db"]  # In filter/action context, usually the user who triggered it
 
-        text = filter_data.reason or _("No reason")
+        text = filter_data.reason
+        if not text:
+            message_text = message.text or message.caption or None
+            ai_reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
+            if ai_reason:
+                text = ai_reason
+
+        if not text:
+            text = _("No reason")
 
         # Legacy workaround
         # connected_chat = await get_connected_chat(message)

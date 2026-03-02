@@ -13,6 +13,7 @@ from stfu_tg import KeyValue, Template, Title, UserLink
 from stfu_tg.doc import Doc, Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ActionSetupTryAgainException,
@@ -96,6 +97,12 @@ class BanModernAction(ModernActionABC[BanActionDataModel]):
         chat_id = message.chat.id
         user_id = message.from_user.id
         locale: str = data["i18n"].current_locale
+        reason: Optional[str] = None
+
+        chat_db = data.get("chat_db")
+        if chat_db:
+            message_text = message.text or message.caption or None
+            reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
 
         if await is_user_admin(chat_id, user_id):
             log.debug("BanModernAction: user is admin, skipping...")
@@ -112,6 +119,9 @@ class BanModernAction(ModernActionABC[BanActionDataModel]):
         if filter_data.ban_duration:
             doc += KeyValue(_("For"), format_timedelta(filter_data.ban_duration, locale=locale))
 
+        if reason:
+            doc += KeyValue(_("Reason"), reason)
+
         if not await ban_user(chat_id, message.from_user.id, until_date=filter_data.ban_duration):
             return
 
@@ -121,6 +131,10 @@ class BanModernAction(ModernActionABC[BanActionDataModel]):
                 "filter_id": data["filter_id"],
                 "action": "ban_user",
             }
+
+            if reason:
+                details["reason"] = reason
+
             if filter_data.ban_duration:
                 details["duration"] = filter_data.ban_duration.total_seconds()
 
