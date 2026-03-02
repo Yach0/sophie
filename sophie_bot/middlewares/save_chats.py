@@ -240,7 +240,7 @@ class SaveChatsMiddleware(BaseMiddleware):
             if not (group := await ChatModel.get_by_tid(event.chat.id)):
                 return False
             logger.debug("SaveChatsMiddleware: Bot was kicked from chat", chat_id=event.chat.id)
-            await self._delete_user_in_chat_by_user_id(event.new_chat_member.user.id, group)
+            await group.delete_chat()
             return False
         elif status == "member":
             # Telegram will send a message event, so we'll handle it and save user later

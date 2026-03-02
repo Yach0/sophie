@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from aiogram import BaseMiddleware
 from aiogram.types import Chat, TelegramObject
+from beanie.odm.fields import Link as BeanieLink
 
 from sophie_bot.db.models import ChatConnectionModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
@@ -96,8 +97,9 @@ class ConnectionsMiddleware(BaseMiddleware):
                 data["connection"] = await self.get_current_chat_info(real_chat)
                 return await handler(event, data)
 
-        chat = await connection.chat.fetch()
-        if not chat:
+        connection_chat = await connection.chat.fetch()
+        # Beanie returns the original Link object when target document is missing.
+        if isinstance(connection_chat, BeanieLink):
             log.debug("ConnectionsMiddleware: connected, but chat were not found in database, disconnecting...")
 
             # Disconnect
@@ -116,6 +118,10 @@ class ConnectionsMiddleware(BaseMiddleware):
 
         log.debug("ConnectionsMiddleware: connected!")
         data["connection"] = ChatConnection(
-            is_connected=True, tid=chat.tid, type=chat.type, title=chat.first_name_or_title, db_model=chat
+            is_connected=True,
+            tid=connection_chat.tid,
+            type=connection_chat.type,
+            title=connection_chat.first_name_or_title,
+            db_model=connection_chat,
         )
         return await handler(event, data)
