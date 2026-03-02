@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel
-from stfu_tg import Section
+from stfu_tg import Doc, KeyValue, Section, Template, Title, UserLink
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
@@ -64,7 +64,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: WarnActionDataModel):
+    async def handle(self, message: Message, data: dict, filter_data: WarnActionDataModel) -> Optional[Element]:
         if not message.from_user:
             return
 
@@ -101,3 +101,20 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
                     "action": "warn_user",
                 },
             )
+
+        doc = Doc(
+            Title(_("Filter action")),
+            Template(
+                _("User {user} was automatically warned based on a filter action"),
+                user=UserLink(message.from_user.id, message.from_user.first_name),
+            ),
+            KeyValue(_("Warnings count"), f"{current}/{limit}"),
+        )
+
+        if filter_data.reason:
+            doc += Section(filter_data.reason, title=_("Reason"), title_underline=False)
+
+        if punishment:
+            doc += Section(Template(_("User has been {punishment} due to reaching max warns."), punishment=punishment))
+
+        return doc

@@ -131,8 +131,12 @@ gen_openapi:
 
  api:
 	make gen_openapi
-	cp openapi.json ../sdash
-	cd ../sdash && bun run gen:api
+	if [ -d "../sdash" ]; then \
+		cp openapi.json ../sdash/openapi.json; \
+		cd ../sdash && bun run gen:api; \
+	else \
+		echo "Skipping sdash API generation: ../sdash directory not found"; \
+	fi
 
 # Database Migrations
 
@@ -217,4 +221,3 @@ dev_branch: setup_worktree
 	@echo ""
 	@echo "🌲 Worktree is ready for development!"
 	@echo "   Run 'make commit' to verify everything is working."
-
