@@ -47,6 +47,10 @@ SUPPORTS_CAPTION: tuple[ContentType, ...] = (
 )
 
 
+def tg_emoji_workaround(text: str) -> str:
+    return text.replace("<tg-emoji emoji_id=", "<tg-emoji emoji-id=")
+
+
 def extract_file_info(message: Message) -> Optional[NoteFile]:
     if message.content_type not in PARSABLE_CONTENT_TYPES:
         return None
@@ -77,7 +81,8 @@ def parse_reply_message(message: Message) -> tuple[str, Optional[NoteFile], list
     reply_markup = getattr(message, "reply_markup", None)
     buttons = parse_message_buttons(reply_markup) if reply_markup else []
 
-    return message.html_text, extract_file_info(message), buttons
+    # TODO: fuck aiogram
+    return tg_emoji_workaround(message.html_text), extract_file_info(message), buttons
 
 
 async def parse_saveable(

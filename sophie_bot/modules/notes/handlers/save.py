@@ -16,6 +16,7 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
 from sophie_bot.modules.notes.utils.parse import parse_saveable
@@ -28,7 +29,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
     notenames=DividedArg(WordArg(l_("Note names"))),
     # note_group=OptionalArg(StartsWithArg("$", WordArg(l_("Group")))),
     description=OptionalArg(SurroundedArg(TextArg(l_("?Description")))),
-    text_with_buttons=TextWithButtonsArg(l_("Content")),
+    text_with_buttons=OptionalArg(TextWithButtonsArg(l_("Content"))),
 )
 @flags.help(description=l_("Save the note."))
 class SaveNote(SophieMessageHandler):
@@ -42,12 +43,14 @@ class SaveNote(SophieMessageHandler):
 
         connection: ChatConnection = self.data["connection"]
 
-        text_with_buttons: dict[str, Any] = self.data["text_with_buttons"]
-        raw_text_parsed: ParsedArg[str] = text_with_buttons.get("text")
-        raw_text = raw_text_parsed.value
-        text_offset = raw_text_parsed.offset
+        text_with_buttons: dict[str, Any] = self.data.get("text_with_buttons", {})
+        raw_text_parsed: ParsedArg[str] | None = text_with_buttons.get("text")
+        raw_text = raw_text_parsed.value if raw_text_parsed else None
+        text_offset = raw_text_parsed.offset if raw_text_parsed else 0
 
-        raw_buttons: ButtonsList = text_with_buttons.get("buttons").value
+        raw_buttons: list[AssButtonData] = (
+            text_with_buttons.get("buttons").value if text_with_buttons.get("buttons") else []
+        )
         buttons = ButtonsList.from_ass(raw_buttons)
 
         notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"])
