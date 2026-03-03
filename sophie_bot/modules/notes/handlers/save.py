@@ -3,12 +3,12 @@ from typing import Any, Sequence
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import DividedArg, OptionalArg, SurroundedArg, TextArg, WordArg
+from ass_tg.types.base_abc import ParsedArg
 from beanie import PydanticObjectId
-from bson import Code
+from bson import Code, DBRef
 from stfu_tg import KeyValue, Section, Template
 
-from ass_tg.types.base_abc import ParsedArg
-from sophie_bot.db.models import NoteModel, ChatModel
+from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
@@ -82,7 +82,6 @@ class SaveNote(SophieMessageHandler):
         # Explicitly type the saveable data to ensure type safety
         saveable_dump = saveable.model_dump()
         saveable_data: dict[str, Any] = {
-            "chat": chat,
             "chat_tid": chat.tid,
             "names": notenames,
             "note_group": data.get("note_group"),
@@ -98,7 +97,7 @@ class SaveNote(SophieMessageHandler):
         }
 
         if not model:
-            model = NoteModel(**saveable_data)
+            model = NoteModel(chat=chat, **saveable_data)
             await model.create()
             await log_event(chat.tid, user_id, LogEvent.NOTE_SAVED, {"note_names": notenames})
             return True

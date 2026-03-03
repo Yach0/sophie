@@ -55,7 +55,7 @@ class NoteModel(Saveable, Document):
     chat_tid: Annotated[int, Indexed()] = Field(..., alias="chat_id")
 
     # New link
-    chat: Annotated[Optional[Link[ChatModel]], Indexed()] = None
+    chat: Annotated[Link[ChatModel], Indexed()]
 
     names: tuple[str, ...]
     note_group: Optional[str] = None
