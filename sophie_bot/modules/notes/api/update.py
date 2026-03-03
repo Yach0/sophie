@@ -61,6 +61,7 @@ async def update_note(
         text=note.text,
         file=note.file,
         buttons=note.buttons,
+        entities=note.entities,
         parse_mode=note.parse_mode,
         preview=note.preview,
         description=note.description,

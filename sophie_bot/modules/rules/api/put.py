@@ -29,6 +29,8 @@ async def set_rules(
         await RulesModel.del_rules(chat.iid)
         return RulesResponse()
 
-    saveable = Saveable(text=payload.text or "", buttons=payload.buttons, preview=payload.preview)
+    saveable = Saveable(
+        text=payload.text or "", buttons=payload.buttons, preview=payload.preview, entities=payload.entities
+    )
     rules = await RulesModel.set_rules(chat.iid, saveable)
     return RulesResponse.model_validate(rules)

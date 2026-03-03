@@ -22,12 +22,13 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     LinkPreviewOptions,
     Message,
+    MessageEntity,
     ReplyParameters,
     User,
 )
 from stfu_tg.doc import Element
 
-from sophie_bot.db.models.notes import Saveable, SaveableParseMode
+from sophie_bot.db.models.notes import Saveable, SaveableEntity, SaveableParseMode
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import legacy_button_parser
 from sophie_bot.modules.notes.utils.buttons_processor.unparse import unparse_buttons
@@ -74,7 +75,40 @@ async def send_saveable(
     connection: ChatConnection | None = None,
     user: Optional[User] = None,
 ):
+    def utf16_length(value: str) -> int:
+        return len(value.encode("utf-16-le")) // 2
+
+    def should_send_custom_emoji_entities(source_text: str, source_entities: list[SaveableEntity]) -> bool:
+        has_html_like_tags = "<" in source_text and ">" in source_text
+        return bool(source_entities) and not has_html_like_tags
+
+    def shift_custom_emoji_entities(source_entities: list[SaveableEntity], shift: int) -> list[SaveableEntity]:
+        if shift <= 0:
+            return source_entities
+
+        return [
+            SaveableEntity(
+                type="custom_emoji",
+                offset=entity_item.offset + shift,
+                length=entity_item.length,
+                custom_emoji_id=entity_item.custom_emoji_id,
+            )
+            for entity_item in source_entities
+        ]
+
+    def to_message_entities(source_entities: list[SaveableEntity]) -> list[MessageEntity]:
+        return [
+            MessageEntity(
+                type=entity_item.type,
+                offset=entity_item.offset,
+                length=entity_item.length,
+                custom_emoji_id=entity_item.custom_emoji_id,
+            )
+            for entity_item in source_entities
+        ]
+
     text = saveable.text or ""
+    custom_emoji_entities = saveable.entities
 
     # Note - the order of those operations are actually more important than whatd you think
     # We want to extract the buttons as the very first, since laterly, the markdown convertor would convert them to the normal URLs, which we don't want!
@@ -100,7 +134,10 @@ async def send_saveable(
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)
 
     # Add title
-    text = (str(title) + "\n" if title else "") + text
+    title_prefix = str(title) + "\n" if title else ""
+    text = title_prefix + text
+    if title_prefix:
+        custom_emoji_entities = shift_custom_emoji_entities(custom_emoji_entities, utf16_length(title_prefix))
 
     # Apply random choice sections (%%%...%%%)
     if text:
@@ -118,17 +155,24 @@ async def send_saveable(
         "chat_id": send_to,
         "text": text,
     }
+    can_send_custom_emoji_entities = should_send_custom_emoji_entities(text, custom_emoji_entities)
 
     # Text
     if content_type == ContentType.TEXT:
         kwargs["text"] = text
         kwargs["reply_markup"] = inline_markup
+        if can_send_custom_emoji_entities:
+            kwargs["entities"] = to_message_entities(custom_emoji_entities)
+            kwargs["parse_mode"] = None
 
         # TODO: Settings?
         kwargs["link_preview_options"] = LinkPreviewOptions(is_disabled=True)
     elif content_type in SUPPORTS_CAPTION:
         kwargs["caption"] = text
         kwargs["reply_markup"] = inline_markup
+        if can_send_custom_emoji_entities:
+            kwargs["caption_entities"] = to_message_entities(custom_emoji_entities)
+            kwargs["parse_mode"] = None
 
     # File
     if content_type == ContentType.TEXT:

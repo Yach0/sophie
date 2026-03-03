@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from sophie_bot.db.models.notes import SaveableEntity
 from sophie_bot.db.models.notes_buttons import Button
 
 
@@ -13,3 +14,4 @@ class RestSaveable(BaseModel):
     text: Optional[str] = ""
     buttons: list[list[Button]] = []
     preview: Optional[bool] = False
+    entities: list[SaveableEntity] = []

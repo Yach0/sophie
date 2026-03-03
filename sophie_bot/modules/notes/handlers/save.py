@@ -91,6 +91,7 @@ class SaveNote(SophieMessageHandler):
             "text": saveable_dump["text"],
             "file": saveable_dump["file"],
             "buttons": saveable_dump["buttons"],
+            "entities": saveable_dump["entities"],
             "parse_mode": saveable_dump["parse_mode"],
             "preview": saveable_dump["preview"],
             "version": saveable_dump["version"],

@@ -5,7 +5,7 @@ from datetime import datetime
 from beanie import PydanticObjectId
 from pydantic import BaseModel
 
-from sophie_bot.db.models.notes import NoteFile, SaveableParseMode
+from sophie_bot.db.models.notes import NoteFile, SaveableEntity, SaveableParseMode
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.utils.api.schemas import RestSaveable
 
@@ -36,6 +36,7 @@ class NoteUpdate(BaseModel):
     text: str | None = None
     file: NoteFile | None = None
     buttons: list[list[Button]] | None = None
+    entities: list[SaveableEntity] | None = None
     parse_mode: SaveableParseMode | None = None
     preview: bool | None = None
     description: str | None = None
