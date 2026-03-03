@@ -2,7 +2,7 @@ variables:
   UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
   UV_LINK_MODE: copy
 
-# Base template for all test jobs - no FFmpeg needed since PyAV has wheels
+# Base template for all test jobs
 .test-base:
   image: python:3.13-slim
   cache:
@@ -15,8 +15,8 @@ variables:
         - .venv
       policy: pull-push
   before_script:
-    # Install minimal system dependencies (no FFmpeg - PyAV has wheels)
-    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++
+    # Install system dependencies required for PyAV source builds on Python 3.13
+    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++ ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
     # Clone/update libs - force remove any existing libs (file or dir) first
     - rm -rf libs 2>/dev/null || rm -f libs 2>/dev/null || true
     - mkdir -p libs
