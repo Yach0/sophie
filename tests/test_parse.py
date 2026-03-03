@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.enums import ContentType
-from aiogram.types import Message, MessageEntity
+from aiogram.types import Message
 
 from sophie_bot.db.models.notes import NoteFile
 from sophie_bot.modules.notes.utils.parse import (
@@ -18,7 +18,6 @@ async def test_parse_saveable_with_text_only():
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
     message.content_type = ContentType.TEXT
-    message.entities = []
 
     result = await parse_saveable(message, text="This is a note.")
     assert result.text == "This is a note."
@@ -34,10 +33,9 @@ async def test_parse_saveable_with_reply_message():
     message.reply_to_message.html_text = "Replied message text"
     message.reply_to_message.content_type = ContentType.TEXT
     message.content_type = ContentType.TEXT
-    message.entities = []
 
     with patch("sophie_bot.modules.notes.utils.parse.parse_reply_message") as mock_parse_reply_message:
-        mock_parse_reply_message.return_value = ("Replied message text", None, [], [])
+        mock_parse_reply_message.return_value = ("Replied message text", None, [])
         result = await parse_saveable(message, text="This is a note.")
         assert result.text == "Replied message text\nThis is a note."
         assert result.file is None
@@ -49,7 +47,6 @@ async def test_parse_saveable_exceeding_length_limit():
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
     message.content_type = ContentType.TEXT
-    message.entities = []
 
     text = "A" * 1001  # Assuming TELEGRAM_MESSAGE_LENGTH_LIMIT is patched to 1000
     with patch("sophie_bot.modules.notes.utils.parse.TELEGRAM_MESSAGE_LENGTH_LIMIT", 1000):
@@ -63,7 +60,6 @@ async def test_parse_saveable_with_file_data():
     message.reply_to_message = None
     message.content_type = ContentType.PHOTO
     message.photo = [AsyncMock(file_id="file_123")]
-    message.caption_entities = []
 
     with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
         mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.PHOTO)
@@ -78,32 +74,11 @@ def test_parse_reply_message_with_text():
     message = AsyncMock(spec=Message)
     message.content_type = ContentType.TEXT
     message.html_text = "Sample text"
-    message.entities = []
-    message.text = "Sample text"
-    message.caption = None
 
     result = parse_reply_message(message)
     assert result[0] == "Sample text"
     assert result[1] is None
     assert result[2] == []
-    assert result[3] == []
-
-
-@pytest.mark.asyncio
-async def test_parse_saveable_with_custom_emoji_entities() -> None:
-    message = AsyncMock(spec=Message)
-    message.reply_to_message = None
-    message.content_type = ContentType.TEXT
-    message.entities = [
-        MessageEntity(type="custom_emoji", offset=6, length=2, custom_emoji_id="emoji_123"),
-    ]
-
-    result = await parse_saveable(message, text="Hello \U0001f601")
-    assert len(result.entities) == 1
-    assert result.entities[0].type == "custom_emoji"
-    assert result.entities[0].offset == 6
-    assert result.entities[0].length == 2
-    assert result.entities[0].custom_emoji_id == "emoji_123"
 
 
 def test_parse_reply_message_with_unsupported_content_type():

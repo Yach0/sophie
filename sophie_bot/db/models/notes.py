@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Literal, Optional, Sequence
+from typing import Annotated, Optional, Sequence
 
 from aiogram.enums import ContentType
 from beanie import Document, Indexed, PydanticObjectId
@@ -38,16 +38,8 @@ class Saveable(BaseModel):
 
     parse_mode: Optional[SaveableParseMode] = SaveableParseMode.html
     preview: Optional[bool] = False
-    entities: list["SaveableEntity"] = Field(default_factory=list)
 
     version: Optional[int] = 1
-
-
-class SaveableEntity(BaseModel):
-    type: Literal["custom_emoji"]
-    offset: int
-    length: int
-    custom_emoji_id: str
 
 
 class NoteModel(Saveable, Document):
