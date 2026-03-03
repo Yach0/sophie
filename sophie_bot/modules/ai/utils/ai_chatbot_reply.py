@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+from aiogram.enums import ChatType
 from aiogram.types import Message
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.messages import (
@@ -9,7 +10,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models import Model
-from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section, VList, Template
+from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
@@ -22,7 +23,8 @@ from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_header import ai_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate
+from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
+from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
@@ -104,13 +106,13 @@ async def ai_chatbot_reply(
         await history.initialize_chat_history(message.chat.id, additional_system_prompt=system_prompt.to_md())
         await history.add_from_message(message, custom_text=user_text)
 
-        # Debug mode
-        debug_mode = debug_mode or CONFIG.debug_mode != "off"
+        # Debug mode (explicit only; global debug config should not disable draft streaming)
+        explicit_debug_mode = debug_mode
         if "^llm_debug" in (user_text or message.text or ""):
-            debug_mode = True
+            explicit_debug_mode = True
 
         # History debug
-        if debug_mode:
+        if explicit_debug_mode:
             await message.reply(
                 Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
                 disable_web_page_preview=True,
@@ -118,12 +120,25 @@ async def ai_chatbot_reply(
 
         if model is None:
             model = await get_chat_default_model(connection.db_model.iid)
-        result = await new_ai_generate(
-            history,
-            tools=CHATBOT_TOOLS,
-            model=model,
-            agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
-        )
+
+        allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode
+        draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
+
+        if allow_draft_streaming:
+            result = await new_ai_generate_stream(
+                history,
+                tools=CHATBOT_TOOLS,
+                model=model,
+                agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
+                on_text_stream=draft_streamer.stream,
+            )
+        else:
+            result = await new_ai_generate(
+                history,
+                tools=CHATBOT_TOOLS,
+                model=model,
+                agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
+            )
 
         # Track AI usage metrics
         if result.usage:
@@ -139,7 +154,7 @@ async def ai_chatbot_reply(
             output_text = output_text[:4000] + "..."
 
         doc = Doc(header, BlockQuote(PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True))))
-        if debug_mode:
+        if explicit_debug_mode:
             doc += " "
             doc += Section(
                 BlockQuote(

@@ -1,14 +1,19 @@
+from collections.abc import Awaitable, Callable
 from typing import Optional, TypeVar
 
 from aiogram.types import Message, ReplyKeyboardMarkup
 from pydantic import BaseModel
 from pydantic_ai import Agent
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.models import Model
 
+from sophie_bot.metrics import track_ai_request
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult, ai_agent_run
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.utils.exception import SophieException
 
 RESPONSE_TYPE = TypeVar("RESPONSE_TYPE", bound=BaseModel)
+TextStreamCallback = Callable[[str], Awaitable[None]]
 
 
 async def new_ai_generate(history: NewAIMessageHistory, model: Model, agent_kwargs=None, **kwargs) -> AIAgentResult:
@@ -23,6 +28,47 @@ async def new_ai_generate(history: NewAIMessageHistory, model: Model, agent_kwar
         agent, user_prompt=history.prompt, message_history=history.message_history, **agent_kwargs
     )
     return result
+
+
+async def new_ai_generate_stream(
+    history: NewAIMessageHistory,
+    model: Model,
+    on_text_stream: TextStreamCallback,
+    agent_kwargs=None,
+    **kwargs,
+) -> AIAgentResult:
+    """
+    Generate AI response while streaming cumulative text chunks through a callback.
+    """
+    if agent_kwargs is None:
+        agent_kwargs = dict()
+
+    agent = Agent(model, **kwargs)
+    async with track_ai_request(model, "agent"):
+        try:
+            async with agent.run_stream(
+                user_prompt=history.prompt,
+                message_history=history.message_history,
+                **agent_kwargs,
+            ) as result_stream:
+                accumulated_text = ""
+                async for text_delta in result_stream.stream_text(delta=True, debounce_by=0.2):
+                    accumulated_text += text_delta
+                    await on_text_stream(accumulated_text)
+
+                output_text = await result_stream.get_output()
+                usage = result_stream.usage()
+                result_message_history = result_stream.all_messages()
+        except UnexpectedModelBehavior as error:
+            raise SophieException("AI provider returned an invalid response. Please try again later.") from error
+
+    return AIAgentResult(
+        output=output_text,
+        steps=0,
+        retries=0,
+        message_history=result_message_history,
+        usage=usage,
+    )
 
 
 async def new_ai_generate_schema(
