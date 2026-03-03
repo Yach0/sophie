@@ -136,7 +136,7 @@ DEFAULT_MODELS: dict[str, str] = {
     AIProviders.google.name: GoogleModels.gemini_3_flash_preview.name,
     AIProviders.mistral.name: MistralModels.mistral_medium.name,
     AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
-    AIProviders.zai.name: ZaiModels.glm_4_7.name,
+    AIProviders.zai.name: ZaiModels.glm_4_6v.name,
 }
 
 TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
@@ -145,7 +145,7 @@ TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
     AIProviders.google.name: GoogleModels.gemini_2_5_flash.name,
     AIProviders.mistral.name: MistralModels.mistral_medium.name,
     AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
-    AIProviders.zai.name: ZaiModels.glm_4_7.name,
+    AIProviders.zai.name: ZaiModels.glm_4_6v.name,
 }
 
 AI_PROVIDER_TO_MODEL_CLASS = {
