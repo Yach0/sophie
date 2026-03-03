@@ -25,7 +25,7 @@ icon: 📗
 | --- | --- | --- | --- |
 | `/pmnotes` `/privatenotes` | `<New state>` | Control Private Notes | *Only in groups* |
 | `/delnote` `/clear` | `<Note name>` | Deletes notes. |  |
-| `/save` `/addnote` | `<Note names>` `<?Description>` `<None>` | Save the note. |  |
+| `/save` `/addnote` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
 | `/clearall` | - | Deletes all notes. |  |
 
 ### Aliased commands from [✨ Sophie AI](ai)
