@@ -28,7 +28,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
     notenames=DividedArg(WordArg(l_("Note names"))),
     # note_group=OptionalArg(StartsWithArg("$", WordArg(l_("Group")))),
     description=OptionalArg(SurroundedArg(TextArg(l_("?Description")))),
-    text_with_buttons=TextWithButtonsArg(),
+    text_with_buttons=TextWithButtonsArg(l_("Content")),
 )
 @flags.help(description=l_("Save the note."))
 class SaveNote(SophieMessageHandler):

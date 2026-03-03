@@ -99,13 +99,13 @@ async def parse_saveable(
     else:
         file_data = extract_file_info(message)
 
-    # If not specifically added
-    if buttons is None:
-        buttons = ButtonsList()
-
     # Parse buttons (only when there's text to parse; file-only notes are allowed)
     if note_text and buttons is None:
         note_text, buttons = await parse_buttons_list_from_message(message, note_text, offset=offset)
+
+    # If not specifically added
+    if buttons is None:
+        buttons = ButtonsList()
 
     buttons.extend(replied_buttons)
 

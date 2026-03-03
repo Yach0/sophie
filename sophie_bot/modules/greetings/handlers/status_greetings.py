@@ -2,7 +2,9 @@ from typing import Any
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from ass_tg.types import OptionalArg, TextArg
+from ass_tg.types.base_abc import ParsedArg
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from stfu_tg import Doc, Italic, Template
 
 from sophie_bot.db.models import GreetingsModel
@@ -14,7 +16,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.args(raw_text=OptionalArg(TextArg(l_("Content"), parse_entities=True)))
+@flags.args(text_with_buttons=TextWithButtonsArg(l_("Content")))
 @flags.help(description=l_("Sets welcome message."))
 class SetWelcomeMessageHandler(SophieMessageHandler):
     @staticmethod
@@ -23,7 +25,14 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         connection = self.connection
-        raw_text = self.data.get("raw_text")
+        text_with_buttons: dict[str, Any] = self.data.get("text_with_buttons", {})
+
+        raw_text_parsed: ParsedArg[str] | None = text_with_buttons.get("text")
+        raw_text = raw_text_parsed.value if raw_text_parsed else None
+        text_offset = raw_text_parsed.offset if raw_text_parsed else 0
+
+        raw_buttons = text_with_buttons.get("buttons").value if text_with_buttons.get("buttons") else []
+        buttons = ButtonsList.from_ass(raw_buttons)
 
         # Workaround for the old syntax
         if raw_text == "off":
@@ -35,7 +44,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
                 )
             )
 
-        saveable = await parse_saveable(self.event, raw_text)
+        saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
         await GreetingsModel.change_welcome_message(connection.db_model.iid, saveable)
 
         doc = Doc(
