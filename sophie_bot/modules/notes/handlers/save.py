@@ -5,7 +5,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import DividedArg, OptionalArg, SurroundedArg, TextArg, WordArg
 from ass_tg.types.base_abc import ParsedArg
 from beanie import PydanticObjectId
-from bson import Code, DBRef
+from bson import Code
 from stfu_tg import KeyValue, Section, Template
 
 from sophie_bot.db.models import ChatModel, NoteModel
