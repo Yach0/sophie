@@ -2,9 +2,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.enums import ContentType
-from aiogram.types import Message
+from aiogram.types import Message, MessageEntity
 
 from sophie_bot.db.models.notes import NoteFile
+from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import (
     extract_file_info,
     parse_reply_message,
@@ -105,3 +106,23 @@ def test_extract_file_info_with_non_parsable_content_type():
 
     result = extract_file_info(message)
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_parse_saveable_preserves_inline_custom_emoji() -> None:
+    message = AsyncMock(spec=Message)
+    message.reply_to_message = None
+    message.content_type = ContentType.TEXT
+    message.text = "/save note Hello 🙂"
+    message.entities = [
+        MessageEntity(type="custom_emoji", offset=17, length=2, custom_emoji_id="123456789"),
+    ]
+
+    result = await parse_saveable(
+        message=message,
+        text="Hello 🙂",
+        offset=11,
+        buttons=ButtonsList(),
+    )
+
+    assert result.text == 'Hello <tg-emoji emoji-id="123456789">🙂</tg-emoji>'

@@ -11,6 +11,7 @@ from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteFile, Savea
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList, parse_message_buttons
 from sophie_bot.modules.notes.utils.buttons_processor.list_from_message import parse_buttons_list_from_message
+from sophie_bot.modules.notes.utils.convert_to_html import preserve_custom_emoji_inline_html, tg_emoji_workaround
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -45,10 +46,6 @@ SUPPORTS_CAPTION: tuple[ContentType, ...] = (
     ContentType.DOCUMENT,
     ContentType.PHOTO,
 )
-
-
-def tg_emoji_workaround(text: str) -> str:
-    return text.replace("<tg-emoji emoji_id=", "<tg-emoji emoji-id=")
 
 
 def extract_file_info(message: Message) -> Optional[NoteFile]:
@@ -91,6 +88,7 @@ async def parse_saveable(
     """Parses the given message and returns common note props to save."""
     # TODO: Make its own exception for notes saving
     note_text = text
+    initial_note_text = text
     replied_buttons = []
 
     if allow_reply_message and message.reply_to_message and not message.reply_to_message.forum_topic_created:
@@ -111,6 +109,11 @@ async def parse_saveable(
     # If not specifically added
     if buttons is None:
         buttons = ButtonsList()
+
+    if note_text and initial_note_text and note_text == initial_note_text:
+        parsed_inline_html = preserve_custom_emoji_inline_html(message, text=note_text, offset=offset)
+        if parsed_inline_html is not None:
+            note_text = parsed_inline_html
 
     buttons.extend(replied_buttons)
 
