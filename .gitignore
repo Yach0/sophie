@@ -35,3 +35,5 @@ openapi.json
 libs/
 
 *.egg-info/
+
+.junie/

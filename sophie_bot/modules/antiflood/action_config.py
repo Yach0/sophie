@@ -5,7 +5,7 @@ from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
-from sophie_bot.modules.utils_.action_config_wizard import create_action_config_system
+from sophie_bot.modules.utils_.action_config_wizard import ActionWizardConfig, create_action_config_system
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -19,15 +19,7 @@ async def _get_antiflood_actions(model: AntifloodModel | None) -> list:
     return model.actions if model else []
 
 
-# Create action config system for antiflood
-(
-    AntifloodActionWizard,
-    AntifloodActionCallback,
-    AntifloodActionSetup,
-    AntifloodActionDone,
-    AntifloodActionCancel,
-    AntifloodActionSettings,
-) = create_action_config_system(
+_antiflood_cfg = ActionWizardConfig(
     module_name="antiflood",
     callback_prefix="antiflood_action",
     wizard_title=l_("Antiflood Action Configuration"),
@@ -41,6 +33,15 @@ async def _get_antiflood_actions(model: AntifloodModel | None) -> list:
     allow_multiple_actions=(ANTIFOOD_MAX_ACTIONS > 1),
     action_filter=antiflood_action_filter,
 )
+
+(
+    AntifloodActionWizard,
+    AntifloodActionCallback,
+    AntifloodActionSetup,
+    AntifloodActionDone,
+    AntifloodActionCancel,
+    AntifloodActionSettings,
+) = create_action_config_system(_antiflood_cfg)
 
 __all__ = [
     "AntifloodActionWizard",

@@ -3949,7 +3949,6 @@ msgid "Please write the ban duration, for example 2h for 2 hours, 7d for 7 days 
 msgstr ""
 
 #: sophie_bot/modules/restrictions/actions/ban.py:70
-#: sophie_bot/modules/warns/handlers/warnaction.py:68
 msgid "Ban"
 msgstr ""
 
@@ -4478,39 +4477,40 @@ msgstr ""
 msgid "Shared Chats"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:50
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:53
 msgid "Invalid callback data"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:55
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:68
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:83
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:196
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:223
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:58
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:71
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:86
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:199
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:226
+#: sophie_bot/modules/warns/action_config.py:36
 msgid "Message not found."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:72
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:75
 msgid "Action removed."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:79
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:214
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:82
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:217
 #: sophie_bot/modules/utils_/action_config_wizard/settings.py:38
 msgid "Invalid action"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:128
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:131
 #: sophie_bot/modules/utils_/action_config_wizard/settings.py:47
 #: sophie_bot/modules/utils_/action_config_wizard/settings.py:101
 msgid "State management not available"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:140
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:143
 msgid "Action setup not properly configured"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:154
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:157
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:136
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:199
 msgid "🔙 Back"
@@ -4683,17 +4683,17 @@ msgstr ""
 msgid "You can set a max warning limit and an action to take when the limit is reached."
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:34
-msgid "Warn Action Configuration (On each warn)"
+#: sophie_bot/modules/warns/action_config.py:54
+msgid "⚙️ Warn Actions - On Each Warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:35
-#: sophie_bot/modules/warns/action_config.py:58
+#: sophie_bot/modules/warns/action_config.py:55
+#: sophie_bot/modules/warns/action_config.py:79
 msgid "Warn action configured successfully!"
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:57
-msgid "Warn Action Configuration (On max warns)"
+#: sophie_bot/modules/warns/action_config.py:78
+msgid "⚠️ Warn Actions - On Max Warns Exceeded"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/callback.py:31
@@ -4818,38 +4818,46 @@ msgstr ""
 msgid "Delete warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:22
-msgid "Configures warn actions."
-msgstr ""
-
-#: sophie_bot/modules/warns/handlers/warnaction.py:31
-#: sophie_bot/modules/warns/handlers/warnaction.py:50
+#: sophie_bot/modules/warns/handlers/warnaction.py:32
+#: sophie_bot/modules/warns/handlers/warnaction.py:51
 msgid "No actions configured"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:63
+#: sophie_bot/modules/warns/handlers/warnaction.py:61
+#, python-brace-format
+msgid "{icon} {title} (default)"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:65
+msgid "Ban the user (default)"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:85
 msgid "On each warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:64
+#: sophie_bot/modules/warns/handlers/warnaction.py:86
 msgid "⚙️ Warn Actions"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:67
-msgid "On max warns"
+#: sophie_bot/modules/warns/handlers/warnaction.py:89
+msgid "On exceeding warnings"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:68
-#, python-brace-format
-msgid "Default if empty: {action}"
+#: sophie_bot/modules/warns/handlers/warnaction.py:90
+msgid "⚠️ Max Warnings Action"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:75
-msgid "📝 Configure on each warn"
+#: sophie_bot/modules/warns/handlers/warnaction.py:97
+msgid "🔔 Configure on each warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:81
-msgid "🧱 Configure on max warns"
+#: sophie_bot/modules/warns/handlers/warnaction.py:103
+msgid "🚫 Configure on max warns"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:111
+msgid "Configures warn actions."
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/warnlimit.py:14

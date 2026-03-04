@@ -1,45 +1,41 @@
 """
 Action Configuration Wizard System
 
-A comprehensive system for creating interactive action configuration interfaces
-for modules. Provides standardized wizards with button-based action selection,
-interactive setup workflows, and settings management.
+A declarative system for creating interactive action configuration interfaces.
+Consumers create an ``ActionWizardConfig`` and call ``create_action_config_system``
+to get handler classes for ``__handlers__`` registration.
 
 Example usage:
 
-    from sophie_bot.modules.utils_.action_config_wizard import create_action_config_system
+    from sophie_bot.modules.utils_.action_config_wizard import (
+        ActionWizardConfig,
+        create_action_config_system,
+    )
 
-    # Create handler classes for your module
-    (
-        MyActionHandler,
-        MyActionCallbackHandler,
-        MyActionSetupHandler,
-        MyActionDoneHandler,
-        MyActionCancelHandler,
-        MyActionSettingsHandler,
-    ) = create_action_config_system(
+    cfg = ActionWizardConfig(
         module_name="my_module",
         callback_prefix="my_module_action",
         wizard_title="My Module Action Configuration",
         success_message="Action updated successfully!",
         get_model_func=get_my_model,
-        get_current_action_func=get_current_action,
-        get_current_action_data_func=get_current_action_data,
-        update_action_func=update_my_action,
+        get_actions_func=get_current_actions,
+        add_action_func=add_my_action,
+        remove_action_func=remove_my_action,
         command_filter=CMDFilter("myaction"),
         admin_filter=UserRestricting(admin=True),
     )
 
-The system automatically handles:
-- Action selection with button interface
-- Interactive setup workflows for complex actions
-- Settings configuration for actions with additional parameters
-- FSM state management for multi-step processes
-- Proper data conversion between Pydantic models and dictionaries
-- Error handling and user feedback
+    (
+        MyWizard,
+        MyCallback,
+        MySetup,
+        MyDone,
+        MyCancel,
+        MySettings,
+    ) = create_action_config_system(cfg)
 """
 
-from .factory import create_action_config_system
+from .config import ActionWizardConfig
+from .handler import create_action_config_system
 
-# Export the main factory function
-__all__ = ["create_action_config_system"]
+__all__ = ["ActionWizardConfig", "create_action_config_system"]

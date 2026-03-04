@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from aiogram.types import Message
 from beanie import PydanticObjectId
+from pydantic import TypeAdapter, ValidationError
 
 from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.db.models.chat import ChatModel
@@ -24,10 +25,24 @@ def _action_duration_seconds(action_data: dict[str, Any]) -> Optional[float]:
     mute_duration = action_data.get("mute_duration")
     if isinstance(mute_duration, (int, float)):
         return float(mute_duration)
+    if isinstance(mute_duration, str):
+        try:
+            ta = TypeAdapter(timedelta)
+            td = ta.validate_python(mute_duration)
+            return td.total_seconds()
+        except (ValidationError, ValueError):
+            pass
 
     ban_duration = action_data.get("ban_duration")
     if isinstance(ban_duration, (int, float)):
         return float(ban_duration)
+    if isinstance(ban_duration, str):
+        try:
+            ta = TypeAdapter(timedelta)
+            td = ta.validate_python(ban_duration)
+            return td.total_seconds()
+        except (ValidationError, ValueError):
+            pass
 
     return None
 

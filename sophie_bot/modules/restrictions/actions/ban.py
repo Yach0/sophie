@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import Any, Optional
 
 from aiogram.types import CallbackQuery, Message
-from aiogram.utils.i18n import I18n
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ARGS_EXCEPTIONS
 from ass_tg.i18n import gettext_ctx
@@ -13,6 +12,7 @@ from stfu_tg import KeyValue, Template, Title, UserLink
 from stfu_tg.doc import Doc, Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.services.i18n import i18n
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
@@ -43,7 +43,6 @@ async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) ->
         return BanActionDataModel(ban_duration=None)
 
     try:
-        i18n = I18n(path="/")
         gettext_ctx.set(i18n)
 
         with i18n.context():
