@@ -3618,24 +3618,24 @@ msgstr ""
 msgid "Local chat"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:72
+#: sophie_bot/modules/notes/utils/parse.py:76
 msgid "Please check the notes documentation for the list of the allowed content types."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:73
+#: sophie_bot/modules/notes/utils/parse.py:77
 msgid "Reply message content is not parsable as the note."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:117
+#: sophie_bot/modules/notes/utils/parse.py:122
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:119
+#: sophie_bot/modules/notes/utils/parse.py:124
 msgid "Please try to reduce the length of note."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:120
+#: sophie_bot/modules/notes/utils/parse.py:125
 msgid "Note is too long."
 msgstr ""
 
@@ -4670,15 +4670,15 @@ msgstr ""
 msgid "New value"
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:25
+#: sophie_bot/modules/warns/__init__.py:26
 msgid "Warnings"
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:29
+#: sophie_bot/modules/warns/__init__.py:30
 msgid "Warns users in the chat to keep it safe."
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:30
+#: sophie_bot/modules/warns/__init__.py:31
 msgid "You can set a max warning limit and an action to take when the limit is reached."
 msgstr ""
 
@@ -4808,15 +4808,11 @@ msgstr ""
 msgid "Shows / changes the warn limit for this chat."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnlimit.py:15
-msgid "?New warn limit (number)"
-msgstr ""
-
-#: sophie_bot/modules/warns/handlers/warnlimit.py:20
+#: sophie_bot/modules/warns/handlers/warnlimit.py:19
 msgid "Warn Limit"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnlimit.py:22
+#: sophie_bot/modules/warns/handlers/warnlimit.py:21
 msgid "<number> (2-20)"
 msgstr ""
 

@@ -26,3 +26,4 @@ icon: ⚠️
 | `/warn` | `<User to warn>` `<Reason>` | Warns a user. | *Disable-able* |
 | `/resetwarns` `/delwarns` | `<User>` | Resets all warnings of a user in the current chat. | *Only in groups* |
 | `/resetallwarns` `/delallwarns` | - | Resets all warnings of all users in the current chat. | *Only in groups* |
+| `/warnlimit` | `<?New value>` | Shows / changes the warn limit for this chat. |  |

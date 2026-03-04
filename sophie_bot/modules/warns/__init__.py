@@ -8,6 +8,7 @@ from sophie_bot.modules.warns.handlers import (
     ResetAllWarnsHandler,
     ResetWarnsCallbackHandler,
     ResetWarnsHandler,
+    WarnLimitHandler,
     WarnsGroupHandler,
     WarnsPMHandler,
 )
@@ -41,4 +42,5 @@ __handlers__ = (
     DeleteWarnCallbackHandler,
     ResetWarnsCallbackHandler,
     ResetAllWarnsCallbackHandler,
+    WarnLimitHandler,
 )

@@ -12,7 +12,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 @flags.help(
     description=l_("Shows / changes the warn limit for this chat."),
-    args={"NewValue": l_("?New warn limit (number)")},
 )
 class WarnLimitHandler(StatusIntHandlerABC):
     """Handler for viewing and changing the warn limit."""
