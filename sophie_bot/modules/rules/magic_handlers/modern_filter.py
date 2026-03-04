@@ -16,6 +16,7 @@ class SendRulesAction(ModernActionABC[None]):
 
     icon = "🪧"
     title = l_("Send chat rules")
+    allow_warns = True
 
     @staticmethod
     def description(data: None) -> Element | str:

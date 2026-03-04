@@ -50,6 +50,7 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
 
     icon = "🗒"
     title = l_("Send note")
+    allow_warns = True
 
     interactive_setup = ModernActionSetting(
         title=l_("Send note"), setup_message=setup_message, setup_confirm=setup_confirm

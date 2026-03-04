@@ -22,5 +22,8 @@ async def get_warn_settings(
 
     settings = await WarnSettingsModel.get_or_create(chat.iid)
     return WarnSettingsResponse(
-        max_warns=settings.max_warns, actions=[action.model_dump() for action in settings.actions]
+        max_warns=settings.max_warns,
+        actions=[action.model_dump() for action in settings.on_max_warn_actions],
+        on_each_warn_actions=[action.model_dump() for action in settings.on_each_warn_actions],
+        on_max_warn_actions=[action.model_dump() for action in settings.on_max_warn_actions],
     )

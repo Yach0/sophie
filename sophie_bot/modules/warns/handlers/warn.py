@@ -90,7 +90,14 @@ class WarnHandler(SophieMessageHandler):
             if ai_reason:
                 reason = ai_reason
 
-        current, limit, punishment, warn = await warn_user(connection.db_model, target_user, admin_user, reason)
+        current, limit, punishment, warn = await warn_user(
+            connection.db_model,
+            target_user,
+            admin_user,
+            reason,
+            trigger_message=message,
+            action_context=self.data,
+        )
 
         await log_event(
             connection.tid,

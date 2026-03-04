@@ -71,6 +71,7 @@ class BanModernAction(ModernActionABC[BanActionDataModel]):
     data_object = BanActionDataModel
     default_data = BanActionDataModel(ban_duration=None)
     as_flood = True
+    allow_warns = True
 
     @staticmethod
     def description(data: BanActionDataModel) -> Element | str:

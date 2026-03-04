@@ -55,6 +55,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
 
     icon = AI_EMOJI
     title = l_("AI Response")
+    allow_warns = True
 
     interactive_setup = ModernActionSetting(
         title=l_("Reply to message"), setup_message=reply_action_setup_message, setup_confirm=set_reply_text

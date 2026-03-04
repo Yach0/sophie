@@ -404,7 +404,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/handlers/filter.py:70
 #: sophie_bot/modules/ai/magic_handlers/filter.py:70
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:92
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:93
 #, python-brace-format
 msgid "{ai_emoji} AI Response"
 msgstr ""
@@ -556,18 +556,18 @@ msgstr ""
 msgid "AI Response"
 msgstr ""
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:60
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:61
 #: sophie_bot/modules/notes/magic_handlers/modern_filter.py:31
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:45
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:48
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
 msgid "Reply to message"
 msgstr ""
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:66
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:67
 msgid "Send an AI Respond with prompt"
 msgstr ""
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:71
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:72
 msgid "Change AI prompt"
 msgstr ""
 
@@ -588,9 +588,9 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:179
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
 #: sophie_bot/modules/reports/handlers/report.py:88
-#: sophie_bot/modules/restrictions/actions/ban.py:123
-#: sophie_bot/modules/restrictions/actions/kick.py:51
-#: sophie_bot/modules/restrictions/actions/mute.py:123
+#: sophie_bot/modules/restrictions/actions/ban.py:124
+#: sophie_bot/modules/restrictions/actions/kick.py:52
+#: sophie_bot/modules/restrictions/actions/mute.py:124
 #: sophie_bot/modules/restrictions/handlers/ban.py:49
 #: sophie_bot/modules/restrictions/handlers/ban.py:101
 #: sophie_bot/modules/restrictions/handlers/ban.py:146
@@ -612,8 +612,8 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/silent.py:341
 #: sophie_bot/modules/restrictions/handlers/silent.py:380
 #: sophie_bot/modules/warns/handlers/warn.py:49
-#: sophie_bot/modules/warns/handlers/warn.py:111
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:115
+#: sophie_bot/modules/warns/handlers/warn.py:118
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:123
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] ""
@@ -943,7 +943,7 @@ msgstr ""
 #: sophie_bot/modules/users/handlers/id.py:24
 #: sophie_bot/modules/users/handlers/info.py:21
 #: sophie_bot/modules/warns/handlers/callback.py:94
-#: sophie_bot/modules/warns/handlers/warn.py:105
+#: sophie_bot/modules/warns/handlers/warn.py:112
 #: sophie_bot/modules/warns/handlers/warns.py:11
 msgid "User"
 msgstr ""
@@ -3433,20 +3433,20 @@ msgid "You need to update the data of the chat notes. Generate the note data fro
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/filter.py:22
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:82
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:83
 #: sophie_bot/utils/errors.py:93
 #, python-brace-format
 msgid "#{name} note was not found."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/filter.py:25
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:85
-#: sophie_bot/modules/restrictions/actions/ban.py:112
-#: sophie_bot/modules/restrictions/actions/kick.py:46
-#: sophie_bot/modules/restrictions/actions/mute.py:112
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
+#: sophie_bot/modules/restrictions/actions/ban.py:113
+#: sophie_bot/modules/restrictions/actions/kick.py:47
+#: sophie_bot/modules/restrictions/actions/mute.py:113
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:34
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:106
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:114
 msgid "Filter action"
 msgstr ""
 
@@ -3475,17 +3475,17 @@ msgid "🗒 Send a note"
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/modern_filter.py:37
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:62
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:63
 msgid "Change reply text"
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/modern_filter.py:45
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:55
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
 msgid "Replies to the message with"
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/modern_filter.py:47
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:57
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:58
 msgid "Replies to the message"
 msgstr ""
 
@@ -3499,7 +3499,7 @@ msgstr ""
 msgid "Markup help"
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:70
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:71
 msgid "Reply"
 msgstr ""
 
@@ -3512,16 +3512,16 @@ msgid "Please write the note name you want to send as a filter trigger."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:52
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:55
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:56
 msgid "Send note"
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:62
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:63
 #, python-brace-format
 msgid "Replies to the message with the note with {notename} note name"
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:68
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:69
 msgid "Change note name"
 msgstr ""
 
@@ -3863,7 +3863,7 @@ msgstr ""
 msgid "Delete the message"
 msgstr ""
 
-#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:28
+#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:29
 msgid "Deletes the message"
 msgstr ""
 
@@ -3949,29 +3949,30 @@ msgid "Please write the ban duration, for example 2h for 2 hours, 7d for 7 days 
 msgstr ""
 
 #: sophie_bot/modules/restrictions/actions/ban.py:70
+#: sophie_bot/modules/warns/handlers/warnaction.py:68
 msgid "Ban"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:79
+#: sophie_bot/modules/restrictions/actions/ban.py:80
 #, python-brace-format
 msgid "Bans user for {time}"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:81
+#: sophie_bot/modules/restrictions/actions/ban.py:82
 msgid "Bans user indefinitely"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:86
+#: sophie_bot/modules/restrictions/actions/ban.py:87
 msgid "Change ban duration"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:114
+#: sophie_bot/modules/restrictions/actions/ban.py:115
 #, python-brace-format
 msgid "User {user} was automatically banned based on a filter action"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:120
-#: sophie_bot/modules/restrictions/actions/mute.py:120
+#: sophie_bot/modules/restrictions/actions/ban.py:121
+#: sophie_bot/modules/restrictions/actions/mute.py:121
 msgid "For"
 msgstr ""
 
@@ -3979,11 +3980,11 @@ msgstr ""
 msgid "Kick"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/kick.py:26
+#: sophie_bot/modules/restrictions/actions/kick.py:27
 msgid "Kicks a user"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/kick.py:48
+#: sophie_bot/modules/restrictions/actions/kick.py:49
 #, python-brace-format
 msgid "User {user} was automatically kicked based on a filter action"
 msgstr ""
@@ -4000,20 +4001,20 @@ msgstr ""
 msgid "Mute"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:79
+#: sophie_bot/modules/restrictions/actions/mute.py:80
 #, python-brace-format
 msgid "Mutes user for {time}"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:81
+#: sophie_bot/modules/restrictions/actions/mute.py:82
 msgid "Mutes user indefinitely"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:86
+#: sophie_bot/modules/restrictions/actions/mute.py:87
 msgid "Change mute duration"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:114
+#: sophie_bot/modules/restrictions/actions/mute.py:115
 #, python-brace-format
 msgid "User {user} was automatically muted based on a filter action"
 msgstr ""
@@ -4239,8 +4240,8 @@ msgstr ""
 #: sophie_bot/modules/rules/handlers/get.py:34
 #: sophie_bot/modules/rules/handlers/legacy_button.py:34
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:34
-#: sophie_bot/modules/warns/handlers/warn.py:124
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
+#: sophie_bot/modules/warns/handlers/warn.py:131
 msgid "Rules"
 msgstr ""
 
@@ -4267,7 +4268,7 @@ msgstr ""
 #: sophie_bot/modules/rules/handlers/get.py:32
 #: sophie_bot/modules/rules/handlers/legacy_button.py:31
 #: sophie_bot/modules/rules/magic_handlers/filter.py:14
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:31
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:32
 msgid "No rules are set for this chat."
 msgstr ""
 
@@ -4293,7 +4294,7 @@ msgid "🪧 Rules have been set in {chat_name} successfully."
 msgstr ""
 
 #: sophie_bot/modules/rules/magic_handlers/filter.py:14
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:31
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:32
 msgid "Rules filter failed"
 msgstr ""
 
@@ -4305,7 +4306,7 @@ msgstr ""
 msgid "Send chat rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:22
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:23
 msgid "Replies to the message with the chat rules"
 msgstr ""
 
@@ -4670,16 +4671,29 @@ msgstr ""
 msgid "New value"
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:26
+#: sophie_bot/modules/warns/__init__.py:41
 msgid "Warnings"
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:30
+#: sophie_bot/modules/warns/__init__.py:45
 msgid "Warns users in the chat to keep it safe."
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:31
+#: sophie_bot/modules/warns/__init__.py:46
 msgid "You can set a max warning limit and an action to take when the limit is reached."
+msgstr ""
+
+#: sophie_bot/modules/warns/action_config.py:34
+msgid "Warn Action Configuration (On each warn)"
+msgstr ""
+
+#: sophie_bot/modules/warns/action_config.py:35
+#: sophie_bot/modules/warns/action_config.py:58
+msgid "Warn action configured successfully!"
+msgstr ""
+
+#: sophie_bot/modules/warns/action_config.py:57
+msgid "Warn Action Configuration (On max warns)"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/callback.py:31
@@ -4781,27 +4795,61 @@ msgstr ""
 msgid "I cannot warn an admin."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:104
+#: sophie_bot/modules/warns/handlers/warn.py:111
 msgid "⚠️ User warned"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:106
+#: sophie_bot/modules/warns/handlers/warn.py:113
 msgid "By admin"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:107
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:111
+#: sophie_bot/modules/warns/handlers/warn.py:114
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:119
 msgid "Warnings count"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:114
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:118
+#: sophie_bot/modules/warns/handlers/warn.py:121
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warn.py:133
+#: sophie_bot/modules/warns/handlers/warn.py:140
 msgid "Delete warn"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:22
+msgid "Configures warn actions."
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:31
+#: sophie_bot/modules/warns/handlers/warnaction.py:50
+msgid "No actions configured"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:63
+msgid "On each warn"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:64
+msgid "⚙️ Warn Actions"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:67
+msgid "On max warns"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:68
+#, python-brace-format
+msgid "Default if empty: {action}"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:75
+msgid "📝 Configure on each warn"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/warnaction.py:81
+msgid "🧱 Configure on max warns"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/warnlimit.py:14
@@ -4861,36 +4909,36 @@ msgstr ""
 msgid "Warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:53
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:54
 msgid "Warn user with the reason"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:55
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:56
 msgid "Warns user with no reason"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:60
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:61
 msgid "Change warn reason"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:83
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:84
 msgid "No reason"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:108
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:116
 #, python-brace-format
 msgid "User {user} was automatically warned based on a filter action"
 msgstr ""
 
-#: sophie_bot/modules/warns/utils.py:40 sophie_bot/modules/warns/utils.py:47
+#: sophie_bot/modules/warns/utils.py:46 sophie_bot/modules/warns/utils.py:154
 msgid "banned"
 msgstr ""
 
-#: sophie_bot/modules/warns/utils.py:50
+#: sophie_bot/modules/warns/utils.py:51
 msgid "kicked"
 msgstr ""
 
-#: sophie_bot/modules/warns/utils.py:53 sophie_bot/modules/warns/utils.py:60
+#: sophie_bot/modules/warns/utils.py:56
 msgid "muted"
 msgstr ""
 

@@ -1,6 +1,20 @@
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules.warns.action_config import (
+    WarnEachActionCallback,
+    WarnEachActionCancel,
+    WarnEachActionDone,
+    WarnEachActionSettings,
+    WarnEachActionSetup,
+    WarnEachActionWizard,
+    WarnMaxActionCallback,
+    WarnMaxActionCancel,
+    WarnMaxActionDone,
+    WarnMaxActionSettings,
+    WarnMaxActionSetup,
+    WarnMaxActionWizard,
+)
 from sophie_bot.modules.warns.api import api_router
 from sophie_bot.modules.warns.handlers import (
     DeleteWarnCallbackHandler,
@@ -8,6 +22,7 @@ from sophie_bot.modules.warns.handlers import (
     ResetAllWarnsHandler,
     ResetWarnsCallbackHandler,
     ResetWarnsHandler,
+    WarnActionHandler,
     WarnLimitHandler,
     WarnsGroupHandler,
     WarnsPMHandler,
@@ -43,4 +58,17 @@ __handlers__ = (
     ResetWarnsCallbackHandler,
     ResetAllWarnsCallbackHandler,
     WarnLimitHandler,
+    WarnActionHandler,
+    WarnEachActionWizard,
+    WarnEachActionCallback,
+    WarnEachActionSetup,
+    WarnEachActionDone,
+    WarnEachActionCancel,
+    WarnEachActionSettings,
+    WarnMaxActionWizard,
+    WarnMaxActionCallback,
+    WarnMaxActionSetup,
+    WarnMaxActionDone,
+    WarnMaxActionCancel,
+    WarnMaxActionSettings,
 )

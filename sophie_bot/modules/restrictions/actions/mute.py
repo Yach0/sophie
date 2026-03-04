@@ -71,6 +71,7 @@ class MuteModernAction(ModernActionABC[MuteActionDataModel]):
     data_object = MuteActionDataModel
     default_data = MuteActionDataModel(mute_duration=None)
     as_flood = True
+    allow_warns = True
 
     @staticmethod
     def description(data: MuteActionDataModel) -> Element | str:

@@ -45,6 +45,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
     title = l_("Warn")
     data_object = WarnActionDataModel
     default_data = WarnActionDataModel(reason=None)
+    allow_warns = False
 
     @staticmethod
     def description(data: WarnActionDataModel) -> Element | str:
@@ -85,7 +86,14 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
         # Legacy workaround
         # connected_chat = await get_connected_chat(message)
 
-        current, limit, punishment, warn = await warn_user(chat_db, target_db, admin_db, text)
+        current, limit, punishment, warn = await warn_user(
+            chat_db,
+            target_db,
+            admin_db,
+            text,
+            trigger_message=message,
+            action_context=data,
+        )
 
         if "filter_id" in data:
             await log_event(

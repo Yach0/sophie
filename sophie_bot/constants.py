@@ -101,6 +101,9 @@ FILTERS_MAX_TRIGGERS: Final[int] = 2
 # Antiflood limits
 ANTIFOOD_MAX_ACTIONS: Final[int] = 1  # Maximum number of actions allowed per chat
 
+# Warns limits
+WARN_MAX_ACTIONS: Final[int] = 2  # Maximum number of actions allowed per warn scope
+
 # AI Emoji used in messages
 AI_EMOJI: Final[str] = "✨"
 

@@ -20,6 +20,7 @@ class KickModernAction(ModernActionABC[None]):
     icon = "🚪"
     title = l_("Kick")
     as_flood = True
+    allow_warns = True
 
     @staticmethod
     def description(data: None) -> Element | str:

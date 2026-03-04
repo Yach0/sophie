@@ -22,6 +22,7 @@ class DelMsgModernModern(ModernActionABC[None]):
     title = l_("Delete the message")
 
     default_data = None
+    allow_warns = True
 
     @staticmethod
     def description(data: None) -> Element | str:

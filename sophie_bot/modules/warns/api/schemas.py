@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -12,7 +13,9 @@ class WarnResponse(BaseModel):
 
 class WarnSettingsResponse(BaseModel):
     max_warns: int
-    actions: List[dict]
+    actions: list[dict]
+    on_each_warn_actions: list[dict]
+    on_max_warn_actions: list[dict]
 
 
 class WarnSettingsUpdate(BaseModel):

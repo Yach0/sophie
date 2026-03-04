@@ -43,6 +43,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
 
     icon = "💭"
     title = l_("Reply to message")
+    allow_warns = True
 
     interactive_setup = ModernActionSetting(
         title=l_("Reply to message"), setup_message=reply_action_setup_message, setup_confirm=set_reply_text
