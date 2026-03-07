@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from datetime import time as dt_time
-from datetime import timedelta
 from enum import Enum
 from typing import Any, Optional, Tuple
 
@@ -29,6 +28,15 @@ _K_CHAT_IID = "acw_chat_iid"
 _K_STARTED_AT = "acw_started_at"
 _K_ACTION_NAME = "acw_action_name"
 _K_ACTION_DATA = "acw_action_data"
+_SETUP_CONTEXT_KEYS = (
+    "action_setup_name",
+    "action_setup_chat_tid",
+    "action_setup_callback_prefix",
+    "setting_setup_action",
+    "setting_setup_setting_id",
+    "setting_setup_chat_tid",
+    "setting_setup_callback_prefix",
+)
 
 
 def _sanitize_for_json(obj: Any) -> Any:
@@ -94,6 +102,14 @@ class WizardState:
         data = await self._state.get_data()
         for key in (_K_MODULE, _K_CHAT_IID, _K_STARTED_AT, _K_ACTION_NAME, _K_ACTION_DATA):
             data.pop(key, None)
+        await self._state.update_data(**data)
+
+    async def replace_setup_context(self, **kwargs: Any) -> None:
+        """Replace setup-specific context keys so stale mode data cannot leak across flows."""
+        data = await self._state.get_data()
+        for key in _SETUP_CONTEXT_KEYS:
+            data.pop(key, None)
+        data.update(kwargs)
         await self._state.update_data(**data)
 
     async def is_active(self, module_name: str, chat_iid: PydanticObjectId) -> bool:

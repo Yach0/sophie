@@ -28,6 +28,8 @@ from .config import ActionWizardConfig
 from .helpers import convert_action_data_to_model
 from .state import ActionConfigFSM, WizardState
 
+_ACTION_WIZARD_CONFIGS: dict[str, ActionWizardConfig] = {}
+
 # ---------------------------------------------------------------------------
 # Renderer — stateless rendering helpers
 # ---------------------------------------------------------------------------
@@ -268,6 +270,21 @@ def _get_fsm_context(data: dict[str, Any]) -> FSMContext | None:
     return state if isinstance(state, FSMContext) else None
 
 
+def _get_interactive_setup_chat_iid_raw(state_data: dict[str, Any]) -> Any:
+    """Read the chat context for the currently active interactive setup mode."""
+    if "setting_setup_action" in state_data:
+        return state_data.get("setting_setup_chat_tid")
+    return state_data.get("action_setup_chat_tid")
+
+
+def _get_active_setup_config(state_data: dict[str, Any], fallback_cfg: ActionWizardConfig) -> ActionWizardConfig:
+    """Return the config for the active ACW session, falling back to the current handler config."""
+    active_module_name = state_data.get("acw_module")
+    if isinstance(active_module_name, str):
+        return _ACTION_WIZARD_CONFIGS.get(active_module_name, fallback_cfg)
+    return fallback_cfg
+
+
 # ---------------------------------------------------------------------------
 # Unified Callback Handler
 # ---------------------------------------------------------------------------
@@ -466,7 +483,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
             return
 
         await wizard_state.ensure_session(self.cfg.module_name, chat_iid)
-        await wizard_state.update_data(
+        await wizard_state.replace_setup_context(
             action_setup_name=action_name,
             action_setup_chat_tid=str(chat_iid),
             action_setup_callback_prefix=self.cfg.callback_prefix,
@@ -576,7 +593,7 @@ class _ACWSettingsHandler(SophieCallbackQueryHandler):
             await callback_query.answer(_("State management not available"))
             return
 
-        await wizard_state.update_data(
+        await wizard_state.replace_setup_context(
             setting_setup_action=action_name,
             setting_setup_setting_id=setting_id,
             setting_setup_chat_tid=str(chat_iid),
@@ -652,26 +669,27 @@ class _ACWSetupHandler(SophieMessageHandler):
 
         wizard_state = WizardState(fsm_ctx)
         state_data = await wizard_state.get_data()
+        cfg = _get_active_setup_config(state_data, self.cfg)
 
         # Validate TTL
-        chat_iid_raw = state_data.get("action_setup_chat_tid") or state_data.get("setting_setup_chat_tid")
+        chat_iid_raw = _get_interactive_setup_chat_iid_raw(state_data)
         if chat_iid_raw:
             try:
                 chat_iid = PydanticObjectId(chat_iid_raw)
             except (InvalidId, TypeError):
                 chat_iid = None
-            if chat_iid and not await wizard_state.is_active(self.cfg.module_name, chat_iid):
+            if chat_iid and not await wizard_state.is_active(cfg.module_name, chat_iid):
                 await message.reply(_("Setup session expired. Please start again."))
                 await wizard_state.clear_fsm()
                 return
 
         if "setting_setup_action" in state_data:
-            await self._handle_setting_setup(message, wizard_state, state_data)
+            await self._handle_setting_setup(message, wizard_state, state_data, cfg)
         else:
-            await self._handle_action_setup(message, wizard_state, state_data)
+            await self._handle_action_setup(message, wizard_state, state_data, cfg)
 
     async def _handle_action_setup(
-        self, message: Message, wizard_state: WizardState, state_data: dict[str, Any]
+        self, message: Message, wizard_state: WizardState, state_data: dict[str, Any], cfg: ActionWizardConfig
     ) -> None:
         action_name = state_data.get("action_setup_name")
         chat_iid_raw = state_data.get("action_setup_chat_tid")
@@ -701,14 +719,14 @@ class _ACWSetupHandler(SophieMessageHandler):
             else:
                 action_data_dict = action_data
 
-            await wizard_state.stage_action(self.cfg.module_name, chat_iid, action_name, action_data_dict)
+            await wizard_state.stage_action(cfg.module_name, chat_iid, action_name, action_data_dict)
 
-            callback_prefix = state_data.get("action_setup_callback_prefix", self.cfg.callback_prefix)
+            callback_prefix = state_data.get("action_setup_callback_prefix", cfg.callback_prefix)
             await WizardRenderer.send_action_configured(
                 message,
                 action_name=action_name,
                 callback_prefix=callback_prefix,
-                success_message=self.cfg.success_message,
+                success_message=cfg.success_message,
                 action_data=action_data_dict,
                 show_delete=False,
                 show_cancel=True,
@@ -719,7 +737,7 @@ class _ACWSetupHandler(SophieMessageHandler):
             pass
 
     async def _handle_setting_setup(
-        self, message: Message, wizard_state: WizardState, state_data: dict[str, Any]
+        self, message: Message, wizard_state: WizardState, state_data: dict[str, Any], cfg: ActionWizardConfig
     ) -> None:
         action_name = state_data.get("setting_setup_action")
         setting_id = state_data.get("setting_setup_setting_id")
@@ -743,8 +761,8 @@ class _ACWSetupHandler(SophieMessageHandler):
             await wizard_state.clear_fsm()
             return
 
-        model = await self.cfg.get_model_func(chat_iid)
-        actions = await self.cfg.get_actions_func(model)
+        model = await cfg.get_model_func(chat_iid)
+        actions = await cfg.get_actions_func(model)
         current_action_data = None
         for act in actions:
             if act.name == action_name:
@@ -773,12 +791,12 @@ class _ACWSetupHandler(SophieMessageHandler):
             updated_action_data = setting_data_dict if setting_data_dict else (current_action_data or {})
             await wizard_state.set_action_data(updated_action_data)
 
-            callback_prefix = state_data.get("setting_setup_callback_prefix", self.cfg.callback_prefix)
+            callback_prefix = state_data.get("setting_setup_callback_prefix", cfg.callback_prefix)
             await WizardRenderer.send_action_configured(
                 message,
                 action_name=action_name,
                 callback_prefix=callback_prefix,
-                success_message=self.cfg.success_message,
+                success_message=cfg.success_message,
                 action_data=updated_action_data,
                 show_cancel=True,
                 show_done=True,
@@ -803,6 +821,8 @@ def create_action_config_system(
     DoneHandler and CancelHandler are the same class as CallbackHandler (unified dispatch),
     but provided as separate references for backward compatibility with ``__handlers__`` registration.
     """
+
+    _ACTION_WIZARD_CONFIGS[cfg.module_name] = cfg
 
     # Wizard (command) handler
     wizard_cls = type(
