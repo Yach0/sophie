@@ -8,6 +8,7 @@ from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.list import format_notes_list
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -23,6 +24,16 @@ class NotesList(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (CMDFilter(LIST_CMDS),)
 
+    async def _reply_or_send(self, text: str) -> Any:
+        async def send_message() -> Any:
+            return await self.bot.send_message(
+                chat_id=self.event.chat.id,
+                text=text,
+                message_thread_id=self.event.message_thread_id,
+            )
+
+        return await common_try(self.event.reply(text), reply_not_found=send_message)
+
     async def handle(self) -> Any:
         to_search: Optional[str] = self.data.get("search")
         connection = self.connection
@@ -32,7 +43,7 @@ class NotesList(SophieMessageHandler):
             notes = [note for note in notes if any(to_search in name for name in note.names)]
 
         if to_search and not notes:
-            return await self.event.reply(
+            return await self._reply_or_send(
                 str(
                     Template(
                         _("No notes found by the provided search pattern {pattern} in {chat_name}."),
@@ -42,7 +53,7 @@ class NotesList(SophieMessageHandler):
                 )
             )
         elif not notes:
-            return await self.event.reply(
+            return await self._reply_or_send(
                 str(Template(_("No notes found in {chat_name}."), chat_name=Italic(connection.title)))
             )
 

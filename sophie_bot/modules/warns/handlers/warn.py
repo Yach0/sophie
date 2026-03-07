@@ -17,6 +17,7 @@ from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
@@ -142,4 +143,15 @@ class WarnHandler(SophieMessageHandler):
                 )
             )
 
-        await message.reply(str(doc), reply_markup=builder.as_markup())
+        reply_markup = builder.as_markup()
+        text = doc.to_html()
+
+        async def send_message() -> Message:
+            return await self.bot.send_message(
+                chat_id=message.chat.id,
+                text=text,
+                reply_markup=reply_markup,
+                message_thread_id=message.message_thread_id,
+            )
+
+        await common_try(message.reply(text, reply_markup=reply_markup), reply_not_found=send_message)
