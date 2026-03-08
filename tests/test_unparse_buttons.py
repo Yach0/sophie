@@ -13,6 +13,15 @@ def test_unparse_button_url():
     assert unparsed.url == "https://google.com"
 
 
+def test_unparse_button_url_with_style():
+    button = Button(text="Google", action=ButtonAction.url, data="https://google.com", style="success")
+    unparsed = unparse_button(button, 123)
+    assert isinstance(unparsed, InlineKeyboardButton)
+    assert unparsed.text == "Google"
+    assert unparsed.url == "https://google.com"
+    assert unparsed.style == "success"
+
+
 def test_unparse_button_delmsg():
     button = Button(text="Delete", action=ButtonAction.delmsg, data=None)
     unparsed = unparse_button(button, 123)
@@ -26,8 +35,8 @@ def test_unparse_buttons():
         [Button(text="R1C1", action=ButtonAction.url, data="https://r1c1.com")],
         [
             Button(text="R2C1", action=ButtonAction.url, data="https://r2c1.com"),
-            Button(text="R2C2", action=ButtonAction.url, data="https://r2c2.com")
-        ]
+            Button(text="R2C2", action=ButtonAction.url, data="https://r2c2.com"),
+        ],
     ]
     markup = unparse_buttons(buttons, 123)
     assert len(markup.inline_keyboard) == 2

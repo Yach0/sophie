@@ -2,8 +2,12 @@ import pytest
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import UnknownMessageButtonTypeError, \
-    parse_message_button, parse_message_buttons_row, parse_message_buttons
+from sophie_bot.modules.notes.utils.buttons_processor.buttons import (
+    UnknownMessageButtonTypeError,
+    parse_message_button,
+    parse_message_buttons_row,
+    parse_message_buttons,
+)
 
 
 def test_parse_message_button_url():
@@ -12,6 +16,15 @@ def test_parse_message_button_url():
     assert parsed.text == "Google"
     assert parsed.action == ButtonAction.url
     assert parsed.data == "https://google.com"
+
+
+def test_parse_message_button_url_with_style():
+    button = InlineKeyboardButton(text="Google", url="https://google.com", style="danger")
+    parsed = parse_message_button(button)
+    assert parsed.text == "Google"
+    assert parsed.action == ButtonAction.url
+    assert parsed.data == "https://google.com"
+    assert parsed.style == "danger"
 
 
 def test_parse_message_button_invalid():
@@ -43,11 +56,15 @@ def test_parse_message_buttons_row_with_invalid():
 
 
 def test_parse_message_buttons():
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Row1-Col1", url="https://r1c1.com")],
-        [InlineKeyboardButton(text="Row2-Col1", url="https://r2c1.com"),
-         InlineKeyboardButton(text="Row2-Col2", url="https://r2c2.com")]
-    ])
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Row1-Col1", url="https://r1c1.com")],
+            [
+                InlineKeyboardButton(text="Row2-Col1", url="https://r2c1.com"),
+                InlineKeyboardButton(text="Row2-Col2", url="https://r2c2.com"),
+            ],
+        ]
+    )
     parsed_markup = parse_message_buttons(markup)
     assert len(parsed_markup) == 2
     assert len(parsed_markup[0]) == 1

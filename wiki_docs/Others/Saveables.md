@@ -23,6 +23,16 @@ The most common is the URL button, if you want to add a URL button to your savea
 the message:
 `[Button name](btnurl:https://google.com)`.
 
+Styled URL buttons are also supported. Use `buttonurl#<style>` or `btnurl#<style>` where style is one of
+`primary`, `danger`, or `success`.
+
+Examples:
+- `[Primary button](buttonurl#primary://example.com)`
+- `[Danger button](buttonurl#danger://example.com)`
+- `[Success button](buttonurl#success://example.com)`
+
+When using the styled syntax, Sophie treats `//example.com` as `https://example.com` automatically.
+
 If you keep adding buttons, they would stack in a horizontal stack.
 You can change that by adding `:same` to the end of the button's content. For example:
 `[Same-row button](btnurl:https://google.com:same)`.

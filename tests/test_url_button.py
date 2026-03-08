@@ -106,3 +106,43 @@ async def test_url_button_button_prefix():
     length, data = await button.parse(text, 0, entities)
     assert data.button_type == "url"
     assert data.arguments == ("https://google.com",)
+
+
+@pytest.mark.asyncio
+async def test_url_button_with_style_and_short_protocol():
+    button = URLButton()
+    text = "[Google](buttonurl#success://example.com)"
+    entities = ArgEntities([])
+
+    assert button.check(text, entities) is True
+
+    length, data = await button.parse(text, 0, entities)
+    assert length == len(text)
+    assert data.button_type == "url"
+    assert data.arguments == ("https://example.com",)
+    assert data.style == "success"
+
+
+@pytest.mark.asyncio
+async def test_url_button_with_style_and_explicit_protocol():
+    button = URLButton()
+    text = "[Google](buttonurl#danger:https://example.com)"
+    entities = ArgEntities([])
+
+    assert button.check(text, entities) is True
+
+    _, data = await button.parse(text, 0, entities)
+    assert data.arguments == ("https://example.com",)
+    assert data.style == "danger"
+
+
+@pytest.mark.asyncio
+async def test_url_button_with_invalid_style():
+    button = URLButton()
+    text = "[Google](buttonurl#invalid://example.com)"
+    entities = ArgEntities([])
+
+    with pytest.raises(ArgCustomError) as excinfo:
+        await button.parse(text, 0, entities)
+
+    assert "Button style must be one of" in str(excinfo.value)

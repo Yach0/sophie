@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Optional, cast
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from ass_tg.entities import ArgEntities
 
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.db.models.notes_buttons import Button
+from sophie_bot.db.models.notes_buttons import Button, ButtonStyle
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.parse_arg import ButtonsArg
 from sophie_bot.modules.notes.utils.buttons_processor.registry import ASS_MAPPING
@@ -24,6 +24,7 @@ class ButtonsList(list[list[Button]]):
                 text=ass_button.title,
                 action=ASS_MAPPING.get(ass_button.button_type, ass_button.button_type),  # type: ignore[arg-type]
                 data=ass_button.arguments[0] if ass_button.arguments else None,
+                style=ass_button.style,
             )
 
             if ass_button.same_row and current_row:
@@ -70,6 +71,7 @@ def parse_message_button(button: InlineKeyboardButton) -> Optional[Button]:
         text=button.text,
         action=action,
         data=data,
+        style=cast(ButtonStyle | None, button.style),
     )
 
 

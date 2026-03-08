@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from abc import ABC
 from dataclasses import dataclass
-from typing import TypeVar, Generic
+from typing import Generic, TypeVar
 
 from ass_tg.entities import ArgEntities
 
+from sophie_bot.db.models.notes_buttons import ButtonStyle
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.MarkdownLinkArgument import MarkdownLinkArgument
 
 A = TypeVar("A")
@@ -15,6 +18,7 @@ class AssButtonData(Generic[A]):
     title: str
     arguments: tuple[A]
     same_row: bool = False
+    style: ButtonStyle | None = None
 
 
 class SophieButtonABC(MarkdownLinkArgument, ABC):

@@ -70,6 +70,37 @@ async def test_buttons_arg_url_same_row():
 
 
 @pytest.mark.asyncio
+async def test_buttons_arg_url_with_style():
+    arg = ButtonArg()
+    text = "[Google](buttonurl#success://google.com)"
+    entities = ArgEntities([])
+
+    assert arg.check(text, entities) is True
+
+    parsed_arg = await arg(text, 0, entities)
+    data = parsed_arg.value
+    assert data.button_type == "url"
+    assert data.arguments == ("https://google.com",)
+    assert data.style == "success"
+
+
+@pytest.mark.asyncio
+async def test_buttons_arg_url_with_style_same_row():
+    arg = ButtonArg()
+    text = "[Google](buttonurl#primary://google.com:same)"
+    entities = ArgEntities([])
+
+    assert arg.check(text, entities) is True
+
+    parsed_arg = await arg(text, 0, entities)
+    data = parsed_arg.value
+    assert data.button_type == "url"
+    assert data.arguments == ("https://google.com",)
+    assert data.style == "primary"
+    assert data.same_row is True
+
+
+@pytest.mark.asyncio
 async def test_buttons_arg_note():
     arg = ButtonArg()
     text = "[Note](btnnote:my_note)"
@@ -214,6 +245,7 @@ async def test_buttons_arg_invalid_prefix():
     entities = ArgEntities([])
 
     from ass_tg.exceptions import ArgTypeError
+
     with pytest.raises(ArgTypeError):
         await arg(text, 0, entities)
 
@@ -225,6 +257,7 @@ async def test_buttons_arg_invalid_button_type():
     entities = ArgEntities([])
 
     from ass_tg.exceptions import ArgTypeError
+
     with pytest.raises(ArgTypeError):
         await arg(text, 0, entities)
 
@@ -236,5 +269,6 @@ async def test_buttons_arg_invalid():
     entities = ArgEntities([])
 
     from ass_tg.exceptions import ArgTypeError
+
     with pytest.raises(ArgTypeError):
         await arg(text, 0, entities)

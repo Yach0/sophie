@@ -1,8 +1,11 @@
-from typing import Any, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
 from .button_action import ButtonAction
+
+
+type ButtonStyle = Literal["primary", "danger", "success"]
 
 
 class Button(BaseModel):
@@ -10,4 +13,5 @@ class Button(BaseModel):
 
     text: str
     action: ButtonAction
-    data: Optional[Any] = None
+    data: Any | None = None
+    style: ButtonStyle | None = None
