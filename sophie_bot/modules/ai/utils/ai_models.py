@@ -3,7 +3,6 @@ from typing import Mapping, Type
 
 from httpx import AsyncClient
 from pydantic_ai.models import Model
-from pydantic_ai.models.mistral import MistralModel
 from pydantic_ai.models.openrouter import OpenRouterModel
 
 from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS, AIProviders
@@ -24,13 +23,14 @@ class AnthropicModels(Enum):
 
 
 class MistralModels(Enum):
-    mistral_large = "mistral-large-latest"
-    mistral_medium = "mistral-medium-latest"
-    mistral_small = "mistral-small-latest"
-    magistral_small = "magistral-small-latest"
-    magistral_medium = "magistral-medium-latest"
-    codestral = "codestral-latest"
-    pixtral = "pixtral-12b-2409"
+    mistral_large = "mistralai/mistral-large"
+    mistral_medium = "mistralai/mistral-medium"
+    mistral_small = "mistralai/mistral-small"
+    magistral_small = "mistralai/magistral-small-2506"
+    magistral_medium = "mistralai/magistral-medium-2506"
+    codestral = "mistralai/codestral-2508"
+    pixtral = "mistralai/pixtral-12b"
+    mistral_small_3_2_24b_instruct = "mistralai/mistral-small-3.2-24b-instruct"
 
 
 class OpenAIModels(Enum):
@@ -90,6 +90,7 @@ AI_MODEL_TO_PROVIDER = {
     MistralModels.pixtral.name: "mistral",
     MistralModels.magistral_small.name: "mistral",
     MistralModels.magistral_medium.name: "mistral",
+    MistralModels.mistral_small_3_2_24b_instruct.name: "mistral",
     OpenAIModels.gpt_4o_mini.name: "openai",
     OpenAIModels.gpt_5.name: "openai",
     OpenAIModels.gpt_5_mini.name: "openai",
@@ -117,6 +118,7 @@ AI_MODEL_TO_SHORT_NAME = {
     MistralModels.pixtral.value: "Pixtral 12B",
     MistralModels.magistral_small.value: "Magistral Small",
     MistralModels.magistral_medium.value: "Magistral Medium",
+    MistralModels.mistral_small_3_2_24b_instruct.value: "Mistral Small 3.2 24B Instruct",
     OpenAIModels.gpt_4o_mini.value: "GPT-4o mini",
     OpenAIModels.gpt_5.value: "GPT-5",
     OpenAIModels.gpt_5_mini.value: "GPT-5 mini",
@@ -151,7 +153,7 @@ TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
 AI_PROVIDER_TO_MODEL_CLASS = {
     AIProviders.anthropic.name: OpenRouterModel,
     AIProviders.google.name: OpenRouterModel,
-    AIProviders.mistral.name: MistralModel,
+    AIProviders.mistral.name: OpenRouterModel,
     AIProviders.openai.name: OpenRouterModel,
     AIProviders.zai.name: OpenRouterModel,
 }
@@ -183,7 +185,7 @@ def _get_ai_models():
 def _get_filter_handler_model():
     global _filter_handler_model
     if _filter_handler_model is None:
-        _filter_handler_model = _get_ai_models()[OpenAIModels.gpt_5_nano.name]
+        _filter_handler_model = _get_ai_models()[MistralModels.mistral_small_3_2_24b_instruct.name]
     return _filter_handler_model
 
 

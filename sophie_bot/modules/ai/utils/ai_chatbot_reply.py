@@ -2,7 +2,6 @@ from typing import Any, cast
 
 from aiogram.enums import ChatType
 from aiogram.types import Message
-from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -10,10 +9,10 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models import Model
+from pydantic_ai.settings import ModelSettings
 from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section, Template, VList
 from stfu_tg.doc import Element
 
-from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIMemoryModel
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
@@ -39,14 +38,10 @@ CHATBOT_TOOLS: list[Any] = [
     # notes_list_ai_tool(),
 ]
 
-if CONFIG.tavily_api_key:
-    CHATBOT_TOOLS.append(tavily_search_tool(api_key=CONFIG.tavily_api_key))
-
 CHATBOT_TOOLS_DICT: dict[str, Any] = {tool.name: tool for tool in CHATBOT_TOOLS}
 CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory updated 💾"),
     "cmds_help": l_("Commands help 📋"),
-    "tavily_search": l_("Internet Search 🔍"),
     "get_notes": l_("Scanned notes 🗒"),
 }
 
@@ -63,6 +58,21 @@ def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -
 
     # Map tool names to their corresponding titles
     return [cast(Element, CHATBOT_TOOLS_TITLES[name]) for name in unique_tool_names]
+
+
+def get_chatbot_model_settings(model: Model) -> ModelSettings | None:
+    if getattr(model, "system", None) != "openrouter":
+        return None
+
+    return {
+        "extra_body": {
+            "plugins": [
+                {
+                    "id": "web",
+                }
+            ]
+        }
+    }
 
 
 async def ai_chatbot_reply(
@@ -92,7 +102,7 @@ async def ai_chatbot_reply(
         memory_lines = await AIMemoryModel.get_lines(connection.db_model.iid)
 
         system_prompt = Doc(
-            _("You can use Tavily to search for information. Include information sources as links."),
+            _("You can use OpenRouter web search to search for information. Include information sources as links."),
             _("You can also save important things to the memory."),
             _(
                 "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
@@ -121,6 +131,7 @@ async def ai_chatbot_reply(
         if model is None:
             model = await get_chat_default_model(connection.db_model.iid)
 
+        model_settings = get_chatbot_model_settings(model)
         allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode
         draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
 
@@ -130,6 +141,7 @@ async def ai_chatbot_reply(
                 tools=CHATBOT_TOOLS,
                 model=model,
                 agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
+                model_settings=model_settings,
                 on_text_stream=draft_streamer.stream,
             )
         else:
@@ -138,6 +150,7 @@ async def ai_chatbot_reply(
                 tools=CHATBOT_TOOLS,
                 model=model,
                 agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
+                model_settings=model_settings,
             )
 
         # Track AI usage metrics

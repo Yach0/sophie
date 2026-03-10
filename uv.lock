@@ -1543,9 +1543,6 @@ openai = [
 openrouter = [
     { name = "openai" },
 ]
-tavily = [
-    { name = "tavily-python" },
-]
 
 [[package]]
 name = "pydantic-core"
@@ -2101,7 +2098,7 @@ dependencies = [
     { name = "pillow" },
     { name = "prometheus-client" },
     { name = "pydantic" },
-    { name = "pydantic-ai-slim", extra = ["mistral", "openai", "openrouter", "tavily"] },
+    { name = "pydantic-ai-slim", extra = ["mistral", "openai", "openrouter"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "pyyaml" },
@@ -2160,7 +2157,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=12,<13" },
     { name = "prometheus-client", specifier = ">=0.24,<0.25" },
     { name = "pydantic", specifier = ">=2,<3" },
-    { name = "pydantic-ai-slim", extras = ["mistral", "openai", "openrouter", "tavily"], specifier = ">=1.44,<2" },
+    { name = "pydantic-ai-slim", extras = ["mistral", "openai", "openrouter"], specifier = ">=1.44,<2" },
     { name = "pydantic-settings", specifier = ">=2,<3" },
     { name = "pyjwt", specifier = ">=2.10.1,<3" },
     { name = "pyyaml", specifier = ">=6.0,<7" },

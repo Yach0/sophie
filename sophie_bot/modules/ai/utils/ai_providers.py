@@ -22,7 +22,6 @@ TESTING = "pytest" in sys.modules or __import__("os").environ.get("TESTING") == 
 
 # Lazy provider initialization
 _openrouter_provider = None
-_mistral_provider = None
 
 
 def _get_openrouter_provider():
@@ -34,22 +33,13 @@ def _get_openrouter_provider():
     return _openrouter_provider
 
 
-def _get_mistral_provider():
-    global _mistral_provider
-    if _mistral_provider is None:
-        from pydantic_ai.providers.mistral import MistralProvider
-
-        _mistral_provider = MistralProvider(api_key=CONFIG.mistral_api_key or "")
-    return _mistral_provider
-
-
 if TESTING:
     AI_PROVIDERS = {}
 else:
     AI_PROVIDERS = {
         AIProviders.anthropic.name: _get_openrouter_provider,
         AIProviders.google.name: _get_openrouter_provider,
-        AIProviders.mistral.name: _get_mistral_provider,
+        AIProviders.mistral.name: _get_openrouter_provider,
         AIProviders.openai.name: _get_openrouter_provider,
         AIProviders.zai.name: _get_openrouter_provider,
     }

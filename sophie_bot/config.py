@@ -105,8 +105,9 @@ class Config(BaseSettings):
     proxy_stable_instance_url: str = "http://host.container.internal:8071"
     proxy_beta_instance_url: str = "http://host.container.internal:8072"
 
-    # OpenRouter API key for routing non-Mistral models via OpenAI-compatible API
+    # OpenRouter API key for routed chat/completions, including OpenRouter web search.
     openrouter_api_key: str | None = None
+    # Deprecated: retained only so older config files with TAVILY_API_KEY still parse.
     tavily_api_key: str = ""
     mistral_api_key: str | None = None
 

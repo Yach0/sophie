@@ -72,7 +72,6 @@ When these features are activated, you agree to:
 
 * [OpenRouter Privacy Policy](https://openrouter.ai/docs/features/privacy-and-logging)
 * [Mistral Privacy Policy](https://mistral.ai/terms#privacy-policy)
-* [Tavily Privacy Policy](https://www.tavily.com/privacy)
 * By using AI features with a specific AI provider (selected via /aiprovider command), you agree to the selected provider's privacy policy.
 
 While using some AI-enabled features such as AI Chatbot, AI Translator or AI Moderator,
