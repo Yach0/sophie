@@ -143,7 +143,7 @@ async def op_ai_stats_handler(message: Message) -> None:
                 out[iid] = count
         return out
 
-    top_chats_today = _top_n({k: v for k, v in filter_type(chats_today, ChatType.group).items()}, 5)
+    top_chats_today = _top_n(dict(filter_type(chats_today, ChatType.group).items()), 5)
     # Include supergroups and channels as chats as well
     extra_chats_today = _top_n(
         {
