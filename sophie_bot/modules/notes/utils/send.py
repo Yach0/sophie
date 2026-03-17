@@ -114,7 +114,7 @@ async def send_saveable(
 
     content_type = saveable.file.type if saveable.file else ContentType.TEXT
 
-    kwargs = {
+    kwargs: dict[str, object] = {
         "chat_id": send_to,
         "text": text,
     }
@@ -141,7 +141,7 @@ async def send_saveable(
     if reply_to:
         kwargs["reply_parameters"] = ReplyParameters(message_id=reply_to)
 
-    def to_try(**cb_kwargs):
+    def to_try(**cb_kwargs: object):
         return SEND_METHOD[content_type](**cb_kwargs).emit(bot)
 
     async def reply_not_found():
