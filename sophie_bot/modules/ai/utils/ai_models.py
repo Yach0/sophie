@@ -42,6 +42,8 @@ class OpenAIModels(Enum):
     gpt_5_2_chat = "openai/gpt-5.2-chat"
     gpt_oss_120b = "openai/gpt-oss-120b"
     gpt_oss_20b = "openai/gpt-oss-20b"
+    gpt_5_4_mini = "openai/gpt-5.4-mini"
+    gpt_5_4_nano = "openai/gpt-5.4-nano"
 
 
 class ZaiModels(Enum):
@@ -99,6 +101,8 @@ AI_MODEL_TO_PROVIDER = {
     OpenAIModels.gpt_5_2_chat.name: "openai",
     OpenAIModels.gpt_oss_120b.name: "openai",
     OpenAIModels.gpt_oss_20b.name: "openai",
+    OpenAIModels.gpt_5_4_mini.name: "openai",
+    OpenAIModels.gpt_5_4_nano.name: "openai",
     ZaiModels.glm_4_7.name: "zai",
     ZaiModels.glm_4_6v.name: "zai",
     ZaiModels.glm_4_5_air.name: "zai",
@@ -127,6 +131,8 @@ AI_MODEL_TO_SHORT_NAME = {
     OpenAIModels.gpt_5_2_chat.value: "GPT-5.2 Chat",
     OpenAIModels.gpt_oss_120b.value: "GPT-OSS 120B",
     OpenAIModels.gpt_oss_20b.value: "GPT-OSS 20B",
+    OpenAIModels.gpt_5_4_mini.value: "GPT-5.4 mini",
+    OpenAIModels.gpt_5_4_nano.value: "GPT-5.4 nano",
     ZaiModels.glm_4_7.value: "GLM-4.7",
     ZaiModels.glm_4_6v.value: "GLM-4.6V",
     ZaiModels.glm_4_5_air.value: "GLM-4.5 Air",
@@ -137,7 +143,7 @@ DEFAULT_MODELS: dict[str, str] = {
     AIProviders.anthropic.name: AnthropicModels.haiku_4_5.name,
     AIProviders.google.name: GoogleModels.gemini_3_flash_preview.name,
     AIProviders.mistral.name: MistralModels.mistral_medium.name,
-    AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
+    AIProviders.openai.name: OpenAIModels.gpt_5_4_mini.name,
     AIProviders.zai.name: ZaiModels.glm_4_6v.name,
 }
 
@@ -146,7 +152,7 @@ TRANSLATE_DEFAULT_MODELS: dict[str, str] = {
     AIProviders.anthropic.name: AnthropicModels.haiku_4_5.name,
     AIProviders.google.name: GoogleModels.gemini_2_5_flash.name,
     AIProviders.mistral.name: MistralModels.mistral_medium.name,
-    AIProviders.openai.name: OpenAIModels.gpt_5_2_chat.name,
+    AIProviders.openai.name: OpenAIModels.gpt_5_4_mini.name,
     AIProviders.zai.name: ZaiModels.glm_4_6v.name,
 }
 
@@ -185,7 +191,7 @@ def _get_ai_models():
 def _get_filter_handler_model():
     global _filter_handler_model
     if _filter_handler_model is None:
-        _filter_handler_model = _get_ai_models()[MistralModels.mistral_small_3_2_24b_instruct.name]
+        _filter_handler_model = _get_ai_models()[OpenAIModels.gpt_5_4_nano.name]
     return _filter_handler_model
 
 
