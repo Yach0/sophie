@@ -28,12 +28,12 @@ dependencies = [
     "mem-top>=0.2.1,<0.3",
     "apscheduler>=3.11.2,<4",
     "pydantic-ai-slim[mistral,openai,openrouter]>=1.44,<2",
-    "fastapi>=0.128,<0.130",
-    "uvicorn>=0.40,<0.41",
+    "fastapi>=0.128,<0.136",
+    "uvicorn>=0.41,<0.43",
     "prometheus-client>=0.24,<0.25",
     "uvloop>=0.22.1,<0.23",
     "unidecode>=1.4.0,<2",
-    "pyjwt>=2.10.1,<3",
+    "pyjwt>=2.12.1,<3",
     "link>=2.1.4,<3",
     "init-data-py>=0.2.7,<0.3",
     "ty>=0.0.12",
@@ -55,7 +55,7 @@ dev = [
     "allure-pytest>=2.13.5,<3",
     "pytest>=9.0.2,<10",
     "fakeredis>=2.27.0,<3",
-    "ty>=0.0.10",
+    "ty>=0.0.23",
     "babel>=2.17.0",
     "watchfiles>=1.0.0,<2",
     "mongomock>=4.3.0,<5",
@@ -73,17 +73,9 @@ exclude = ["**/legacy_modules/**", "**/legacy_*.py"]
 [tool.ty.environment]
 python-version = "3.12"
 
-[tool.ty.analysis]
-# exclude = ["**/legacy_modules/", '**/legacy_**.py']
-# respect-type-ignore-comments = true
-
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-
-#[tool.ruff.lint]
-#select = ["E", "F", "W", "I", "B"]
-#ignore = ["E203", "W503"]
 
 [tool.pytest.ini_options]
 pythonpath = "."
