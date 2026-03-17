@@ -2,6 +2,7 @@ from typing import Any, Optional
 
 from aiogram import Router
 from aiogram.fsm.storage.base import DEFAULT_DESTINY
+from pydantic import BaseModel
 
 from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
@@ -46,7 +47,7 @@ class ActionChangeSettingConfirm(SophieMessageCallbackQueryHandler):
             raise SophieException("Action setting has no setup_confirm handler")
 
         try:
-            action_data_model: ACTION_DATA | None = await action_setting.setup_confirm(self.event, self.data)
+            action_data_model: BaseModel | None = await action_setting.setup_confirm(self.event, self.data)
         except ActionSetupTryAgainException:
             return
 
