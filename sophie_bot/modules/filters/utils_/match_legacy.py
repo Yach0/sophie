@@ -10,7 +10,7 @@ from regex import regex
 from stfu_tg import Template
 
 from sophie_bot.db.models.chat import UserInGroupModel
-from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL, OpenAIModels
+from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
