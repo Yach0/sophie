@@ -191,7 +191,7 @@ def _get_ai_models():
 def _get_filter_handler_model():
     global _filter_handler_model
     if _filter_handler_model is None:
-        _filter_handler_model = _get_ai_models()[OpenAIModels.gpt_5_4_nano.name]
+        _filter_handler_model = _get_ai_models()[OpenAIModels.gpt_5_nano.name]
     return _filter_handler_model
 
 
