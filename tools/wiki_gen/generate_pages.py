@@ -73,7 +73,7 @@ class ModuleWikiPage:
 
                 # Commands groups
                 Title('Available commands', level=2),
-                *(Title(title, level=3) + self._table(handlers) for title, handlers in group_handlers(self.module.handlers)),
+                *(Title(title, level=3) + self._table(handlers) + '{.card-view-on-mobile}' for title, handlers in group_handlers(self.module.handlers)),
 
                 # Aliased commands
                 *(
