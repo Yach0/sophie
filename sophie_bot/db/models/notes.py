@@ -65,16 +65,16 @@ class NoteModel(Saveable, Document):
 
     @staticmethod
     async def get_chat_notes(chat_iid: PydanticObjectId) -> list["NoteModel"]:
-        return await NoteModel.find(NoteModel.chat.id == chat_iid).to_list()  # type: ignore
+        return await NoteModel.find(NoteModel.chat.id == chat_iid).to_list()
 
     @staticmethod
     async def search_chat_notes(chat_iid: PydanticObjectId, text: str) -> list["NoteModel"]:
-        return await NoteModel.find(NoteModel.chat.id == chat_iid, Text(text)).to_list()  # type: ignore
+        return await NoteModel.find(NoteModel.chat.id == chat_iid, Text(text)).to_list()
 
     @staticmethod
     async def get_by_notenames(chat_iid: PydanticObjectId, notenames: Sequence[str]) -> Optional["NoteModel"]:
-        return await NoteModel.find_one(NoteModel.chat.id == chat_iid, In(NoteModel.names, notenames))  # type: ignore
+        return await NoteModel.find_one(NoteModel.chat.id == chat_iid, In(NoteModel.names, notenames))
 
     @staticmethod
     async def delete_all_notes(chat_iid: PydanticObjectId) -> DeleteResult | None:
-        return await NoteModel.find(NoteModel.chat.id == chat_iid).delete()  # type: ignore
+        return await NoteModel.find(NoteModel.chat.id == chat_iid).delete()
