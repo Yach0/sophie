@@ -14,7 +14,6 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
     ModernActionSetting,
 )
 from sophie_bot.modules.filters.types.modern_action_data_types import (
-    ACTION_DATA,
     ACTION_DATA_DUMPED,
 )
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
