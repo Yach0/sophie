@@ -98,7 +98,7 @@ class CmdsHelpAgentTool:
                         )
 
                 # Combine module info and commands
-                module_section_parts = [
+                module_section_parts: list[Element | str] = [
                     Section(*module_info_parts, title=_("Module Information")),
                 ]
                 if commands_elements:
