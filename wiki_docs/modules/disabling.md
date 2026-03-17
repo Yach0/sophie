@@ -16,6 +16,7 @@ icon: 🚫
 | --- | --- | --- | --- |
 | `/disableable` | - | Lists all commands that can be disabled. | *Disable-able* |
 | `/disabled` | - | Lists all disabled commands. | *Disable-able* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -24,3 +25,4 @@ icon: 🚫
 | `/disable` | `<Command>` | Disables the command. |  |
 | `/enable` | `<Command>` | Enables previously disabled command. |  |
 | `/enableall` | - | - |  |
+{.card-view-on-mobile}

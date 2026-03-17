@@ -14,6 +14,7 @@ icon: 🛡️
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/welcomesecurity` | - | Shows Welcome Security settings | *Disable-able* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -21,3 +22,4 @@ icon: 🛡️
 | --- | --- | --- | --- |
 | `/welcomecaptcha` `/enablewelcomecaptcha` | `<?New status>` | Shows / changes the state of Welcome Captcha. |  |
 | `/welcomerestrict` | `<?New status or restrict time>` | Shows / changes the state of Welcome Restrict (Media restricting). |  |
+{.card-view-on-mobile}

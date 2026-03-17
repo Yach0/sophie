@@ -21,6 +21,7 @@ icon: 🛑
 | `/tmute` | `<User>` `<Time (e.g., 2h, 7d, 2w)>` `<Reason>` | Temporarily mutes the user in the chat. |  |
 | `/unmute` | `<User>` | Unmutes the user in the chat. |  |
 | `/unban` | `<User>` | Unbans the user from the chat. |  |
+{.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)
 

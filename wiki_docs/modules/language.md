@@ -14,6 +14,7 @@ icon: 🌐
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/lang` | - | Change the language of the bot in the chat. |  |
+{.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)
 

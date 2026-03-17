@@ -15,6 +15,7 @@ icon: 🙋‍♂️
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/welcome` | - | Shows welcome settings | *Disable-able* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -26,3 +27,4 @@ icon: 🙋‍♂️
 | `/deljoinrequest` | - | Deletes the join request message |  |
 | `/cleanservice` | `<?New status>` | Shows / changes the state of automatic service messages cleanup. |  |
 | `/cleanwelcome` | `<?New status>` | Shows / changes the state of automatic welcome messages cleanup. |  |
+{.card-view-on-mobile}

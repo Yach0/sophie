@@ -16,3 +16,4 @@ icon: ⭐️
 | --- | --- | --- | --- |
 | `/promote` | `<User>` `<?Admin title>` | Promotes the user to admins. |  |
 | `/demote` | `<User>` | Demotes the user from admins. |  |
+{.card-view-on-mobile}

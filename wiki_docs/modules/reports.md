@@ -15,3 +15,4 @@ icon: 📢
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/report` | - | Reports the replied message. | *Disable-able* |
+{.card-view-on-mobile}

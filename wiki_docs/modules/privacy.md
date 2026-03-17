@@ -16,3 +16,4 @@ icon: 🕵️‍♂️️
 | --- | --- | --- | --- |
 | `/privacy` | - | Shows the privacy policy of the bot | *Only in groups* |
 | `/export` | - | Exports your data to a JSON file | *Only in groups* |
+{.card-view-on-mobile}

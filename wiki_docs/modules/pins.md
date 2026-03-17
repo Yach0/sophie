@@ -16,3 +16,4 @@ icon: 📌
 | --- | --- | --- | --- |
 | `/pin` | `<None>` `<None>` | Pins replied message |  |
 | `/unpin` | `<None>` | Unpins message |  |
+{.card-view-on-mobile}

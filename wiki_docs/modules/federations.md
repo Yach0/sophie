@@ -31,12 +31,14 @@ icon: 🏛
 | `/fadmins` `/fedadmins` | `<?Federation ID>` | List all admins of a federation | *Disable-able* |
 | `/fpromote` | `<?Federation ID>` `<User>` | Promote a user to federation admin |  |
 | `/fdemote` | `<?Federation ID>` `<User>` | Demote a user from federation admin |  |
+{.card-view-on-mobile}
 
 ### PM-only
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/fcheck` `/fbanstat` | `<User to check>` `<'full' to show all bans>` | Check federation bans | *Only in groups* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -44,3 +46,4 @@ icon: 🏛
 | --- | --- | --- | --- |
 | `/joinfed` `/fjoin` | `<Federation ID to join>` | Join a chat to a federation |  |
 | `/leavefed` `/fleave` | - | Leave a federation |  |
+{.card-view-on-mobile}

@@ -13,6 +13,7 @@ icon: 🪄
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/filters` | - | Lists all filters in the chat | *Disable-able* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -21,6 +22,7 @@ icon: 🪄
 | `/addfilter` `/newfilter` | `<Text to match>` | Adds a new filter |  |
 | `/delfilter` | `<Text to match>` | Deletes a filter |  |
 | `/editfilter` | `<Filter's keyword>` | Edits filter settings |  |
+{.card-view-on-mobile}
 ---
 ## Exact-match filters
 

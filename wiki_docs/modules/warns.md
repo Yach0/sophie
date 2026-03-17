@@ -12,12 +12,14 @@ icon: ⚠️
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/warns` | `<User>` | Shows user's warns in the current chat. | *Only in groups*, *Disable-able* |
+{.card-view-on-mobile}
 
 ### PM-only
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/warns` | - | Shows all your warns across all chats. | *Only in groups* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -30,3 +32,4 @@ icon: ⚠️
 | `/warnaction` `/warn_action` | - | Configures warn actions. |  |
 | `/warnaction_each` `/warn_action_each` | - | - |  |
 | `/warnaction_max` `/warn_action_max` | - | - |  |
+{.card-view-on-mobile}

@@ -15,6 +15,7 @@ icon: 🔗
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/connect` | - | Connects to the current chat. |  |
+{.card-view-on-mobile}
 
 ### PM-only
 
@@ -22,9 +23,11 @@ icon: 🔗
 | --- | --- | --- | --- |
 | `/connect` | `<Chat>` | Connects to the chat. | *Only in groups* |
 | `/disconnect` | - | Disconnects from the current chat. | *Only in groups* |
+{.card-view-on-mobile}
 
 ### Only admins
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/allowusersconnect` | `<?New status>` | Sets whether normal users (non-admins) are allowed to connect. |  |
+{.card-view-on-mobile}

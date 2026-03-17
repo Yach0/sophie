@@ -16,9 +16,11 @@ icon: ℹ️
 | --- | --- | --- | --- |
 | `/help` | - | Shows the help message | *Only in groups*, *Disable-able* |
 | `/start` | - | Shows the start message | *Only in groups*, *Disable-able* |
+{.card-view-on-mobile}
 
 ### PM-only
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/help` | - | Shows help overview for all modules | *Only in groups* |
+{.card-view-on-mobile}

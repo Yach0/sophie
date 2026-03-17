@@ -15,6 +15,7 @@ icon: 🪧
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/rules` | - | Gets chat rules | *Disable-able* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -22,3 +23,4 @@ icon: 🪧
 | --- | --- | --- | --- |
 | `/setrules` | `<Content>` | Sets chat rules | *Only in groups* |
 | `/resetrules` | - | Resets chat rules to default settings. | *Only in groups* |
+{.card-view-on-mobile}

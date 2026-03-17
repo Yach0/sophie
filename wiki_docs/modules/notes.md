@@ -18,6 +18,7 @@ icon: 📗
 | `/notes` `/saved` `/notelist` | `<?Search notes>` | Lists available notes. | *Disable-able* |
 | `/get` | `<Note name>` `<?raw>` | Retrieve the note. |  |
 | `/search` | `<Text to search>` | Searches for note contents | *Disable-able* |
+{.card-view-on-mobile}
 
 ### Only admins
 
@@ -27,6 +28,7 @@ icon: 📗
 | `/delnote` `/clear` | `<Note name>` | Deletes notes. |  |
 | `/save` `/addnote` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
 | `/clearall` | - | Deletes all notes. |  |
+{.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)
 
