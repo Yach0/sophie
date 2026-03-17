@@ -3,6 +3,7 @@ from typing import Any
 from aiogram import Router
 from aiogram.fsm.storage.base import DEFAULT_DESTINY
 from aiogram.types import Message
+from pydantic import BaseModel
 
 from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
@@ -53,9 +54,8 @@ class ActionSetupConfirmHandler(SophieMessageCallbackQueryHandler):
 
         filter_action = ALL_MODERN_ACTIONS[filter_action_raw]
 
-        # TODO: Deal with typing below
         try:
-            action_data_model: ACTION_DATA | None = await self._filter_setup(filter_action)
+            action_data_model: BaseModel | None = await self._filter_setup(filter_action)
         except ActionSetupTryAgainException:
             return
 
