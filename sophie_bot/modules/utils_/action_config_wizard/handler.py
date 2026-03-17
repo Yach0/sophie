@@ -886,7 +886,7 @@ class _ACWNoOpHandler(SophieCallbackQueryHandler):
         return ()
 
     @classmethod
-    def register(cls, router: Any) -> None:  # type: ignore[override]
+    def register(cls, router: Any) -> None:
         # Intentionally no-op: done/cancel are dispatched by the unified callback handler
         pass
 
