@@ -72,12 +72,12 @@ async def new_ai_generate_stream(
 
 
 async def new_ai_generate_schema(
-    history: NewAIMessageHistory, schema: type[RESPONSE_TYPE], model: Model
+    history: NewAIMessageHistory, schema: type[RESPONSE_TYPE], model: Model, **kwargs
 ) -> RESPONSE_TYPE:
     """
     Generate AI response with structured schema output
     """
-    agent = Agent(model, output_type=schema)
+    agent = Agent(model, output_type=schema, **kwargs)
     result: AIAgentResult[RESPONSE_TYPE] = await ai_agent_run(
         agent, user_prompt=history.prompt, message_history=history.message_history
     )

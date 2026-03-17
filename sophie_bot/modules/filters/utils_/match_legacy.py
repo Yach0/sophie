@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 from datetime import datetime, timedelta
 
@@ -9,7 +10,7 @@ from regex import regex
 from stfu_tg import Template
 
 from sophie_bot.db.models.chat import UserInGroupModel
-from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
+from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL, OpenAIModels
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
@@ -128,7 +129,11 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
             )
 
         # Run AI evaluation
-        result = await new_ai_generate_schema(history, AIFilterResponseSchema, FILTER_HANDLER_MODEL())
+        kwargs = {}
+        model = FILTER_HANDLER_MODEL()
+        kwargs["model_settings"] = OpenRouterModelSettings(openrouter_reasoning={"effort": "low"})
+
+        result = await new_ai_generate_schema(history, AIFilterResponseSchema, model, **kwargs)
 
         log.debug("match_ai_handler: AI evaluation", prompt=prompt, matches=result.matches, reasoning=result.reasoning)
 
