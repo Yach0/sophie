@@ -17,7 +17,7 @@ from sophie_bot.db.models import AIMemoryModel
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
-from sophie_bot.modules.ai.agent_tools.memory import MemoryAgentTool
+from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_header import ai_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
@@ -34,6 +34,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 CHATBOT_TOOLS: list[Any] = [
     MemoryAgentTool(),
+    ForgetMemoryAgentTool(),
     CmdsHelpAgentTool(),
     # notes_list_ai_tool(),
 ]
@@ -41,6 +42,7 @@ CHATBOT_TOOLS: list[Any] = [
 CHATBOT_TOOLS_DICT: dict[str, Any] = {tool.name: tool for tool in CHATBOT_TOOLS}
 CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory updated 💾"),
+    "forget_memory": l_("Memory forgotten 🗑"),
     "cmds_help": l_("Commands help 📋"),
     "get_notes": l_("Scanned notes 🗒"),
 }
@@ -110,7 +112,10 @@ async def ai_chatbot_reply(
             Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
         )
         if memory_lines:
-            system_prompt += Section(VList(*memory_lines), title=_("You have the following information in your memory"))
+            indexed_memory_lines = [f"{i + 1}. {line}" for i, line in enumerate(memory_lines)]
+            system_prompt += Section(
+                VList(*indexed_memory_lines), title=_("You have the following information in your memory")
+            )
 
         history = NewAIMessageHistory()
         await history.initialize_chat_history(message.chat.id, additional_system_prompt=system_prompt.to_md())

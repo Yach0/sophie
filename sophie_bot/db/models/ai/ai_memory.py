@@ -27,6 +27,17 @@ class AIMemoryModel(Document):
         await model.save()
 
     @staticmethod
+    async def remove_line_by_index(chat_iid: PydanticObjectId, index: int) -> bool:
+        model = await AIMemoryModel.find_one(AIMemoryModel.chat.id == chat_iid)
+        if not model or index < 0 or index >= len(model.lines):
+            return False
+
+        model.lines.pop(index)
+        await model.save()
+
+        return True
+
+    @staticmethod
     async def clear(chat_iid: PydanticObjectId):
         model = await AIMemoryModel.find_one(AIMemoryModel.chat.id == chat_iid)
         if model:
