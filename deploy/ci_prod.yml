@@ -12,11 +12,11 @@ deploy_prod_beta:
     - ansible-playbook -i "$ANSIBLE_INV" deploy/beta.yml --limit sprod
   environment:
     name: prod
-  only:
-    - beta
-    - test_ci
-    - test-ci
-  when: manual
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+      when: manual
 
 
 deploy_prod_stable:
@@ -29,8 +29,8 @@ deploy_prod_stable:
     - ansible-playbook -i "$ANSIBLE_INV" deploy/stable.yml --limit sprod
   environment:
     name: prod
-  only:
-    - stable
-    - test_ci
-    - test-ci
-  when: manual
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "stable" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+      when: manual
