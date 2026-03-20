@@ -375,8 +375,8 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/unmute.py:70
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:53
 #: sophie_bot/modules/utils_/status_handler.py:47
-#: sophie_bot/modules/utils_/status_handler.py:70
-#: sophie_bot/modules/utils_/status_handler.py:124
+#: sophie_bot/modules/utils_/status_handler.py:73
+#: sophie_bot/modules/utils_/status_handler.py:127
 msgid "Chat"
 msgstr ""
 
@@ -888,27 +888,28 @@ msgid_plural "Actions"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:17
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:19
 msgid "Set the message count threshold for antiflood protection"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:32
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:34
 msgid "Number of messages allowed in 30 seconds"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:40
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:42
 msgid "Chat not found"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:44
-msgid "Please provide a number. Usage: /antiflood_count <number>"
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:47
+#, python-brace-format
+msgid "Please provide a number. Usage: {cmd}"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:48
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:52
 msgid "Number must be between 1 and 100"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:59
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:63
 #, python-brace-format
 msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
 msgstr ""
@@ -1867,10 +1868,6 @@ msgstr ""
 msgid "Usage:"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/chats.py:119
-msgid "/fchats <federation_id>"
-msgstr ""
-
 #: sophie_bot/modules/federations/handlers/chats.py:127
 #: sophie_bot/modules/federations/handlers/info.py:120
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:52
@@ -2086,7 +2083,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/info.py:112
 #, python-brace-format
-msgid "/finfo {var}"
+msgid "{cmd}"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/join.py:22
@@ -3170,11 +3167,10 @@ msgstr ""
 #: sophie_bot/modules/locks/handlers/lock.py:43
 #: sophie_bot/modules/locks/handlers/unlock.py:43
 #, python-brace-format
-msgid "Usage: {cmd} <lock_type>"
+msgid "Usage: {cmd}"
 msgstr ""
 
 #: sophie_bot/modules/locks/handlers/lock.py:44
-#: sophie_bot/modules/locks/handlers/locks_list.py:81
 msgid "Use /lockable to see all available lock types."
 msgstr ""
 
@@ -3645,7 +3641,8 @@ msgid "No locks in {chat}"
 msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locks_list.py:45
-msgid "Use /lock <type> to add a lock."
+#, python-brace-format
+msgid "Use {cmd} to add a lock."
 msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locks_list.py:68
@@ -3660,12 +3657,19 @@ msgstr ""
 msgid "Filter-enforced lock types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locks_list.py:82
-msgid "Use /lock <type> to add a lock or /addfilter <type> to add a filter lock."
+#: sophie_bot/modules/locks/handlers/locks_list.py:81
+#, python-brace-format
+msgid "Use {cmd} to see all available lock types."
 msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locks_list.py:83
-msgid "Use /unlock <type> to remove a lock."
+#, python-brace-format
+msgid "Use {lock_cmd} to add a lock or {filter_cmd} to add a filter lock."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:87
+#, python-brace-format
+msgid "Use {cmd} to remove a lock."
 msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locksticker.py:17
@@ -3968,12 +3972,12 @@ msgid "Current state"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/utils_/status_handler.py:85
+#: sophie_bot/modules/utils_/status_handler.py:88
 msgid "Enabled"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/utils_/status_handler.py:85
+#: sophie_bot/modules/utils_/status_handler.py:88
 #: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:48
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:55
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:73
@@ -3986,7 +3990,6 @@ msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:40
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:88
-#: sophie_bot/modules/utils_/status_handler.py:51
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
 msgstr ""
@@ -4283,6 +4286,13 @@ msgstr ""
 
 #: sophie_bot/modules/op/handlers/Captcha.py:17
 msgid "Generate a test emoji captcha"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:50
+#, python-brace-format
+msgid ""
+"Usage: {cmd}\n"
+"Allowed features: {allowed}"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/event.py:13
@@ -5257,42 +5267,47 @@ msgstr ""
 msgid "?New status"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:61
+#: sophie_bot/modules/utils_/status_handler.py:52
+#, python-brace-format
+msgid "Use {cmd} to change it."
+msgstr ""
+
+#: sophie_bot/modules/utils_/status_handler.py:64
 #, python-brace-format
 msgid "The current status is already {state}"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:68
+#: sophie_bot/modules/utils_/status_handler.py:71
 msgid "The state was successfully changed"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:94
+#: sophie_bot/modules/utils_/status_handler.py:97
 msgid "<number>"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:98
+#: sophie_bot/modules/utils_/status_handler.py:101
 msgid "?New value"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:105
+#: sophie_bot/modules/utils_/status_handler.py:108
 msgid "Please provide a valid number."
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:109
+#: sophie_bot/modules/utils_/status_handler.py:112
 #, python-brace-format
 msgid "Value must be between {min} and {max}."
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:116
+#: sophie_bot/modules/utils_/status_handler.py:119
 #, python-brace-format
 msgid "The current value is already {value}"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:122
+#: sophie_bot/modules/utils_/status_handler.py:125
 msgid "The value was successfully changed"
 msgstr ""
 
-#: sophie_bot/modules/utils_/status_handler.py:123
+#: sophie_bot/modules/utils_/status_handler.py:126
 msgid "New value"
 msgstr ""
 
