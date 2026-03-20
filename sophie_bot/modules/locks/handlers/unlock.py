@@ -6,7 +6,7 @@ from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
-from stfu_tg import Doc, KeyValue, Section, Template
+from stfu_tg import Code, Doc, KeyValue, Section, Template
 
 from sophie_bot.args.lock_type import LockTypeArg
 from sophie_bot.db.models import LocksModel
@@ -40,7 +40,7 @@ class UnlockHandler(SophieMessageHandler):
 
         if not lock_type:
             doc = Doc(
-                Template(_("Usage: {cmd} <lock_type>"), cmd="/unlock"),
+                Template(_("Usage: {cmd}"), cmd=Code("/unlock <lock_type>")),
                 _("Use /locks to see currently locked types."),
             )
             await message.reply(doc.to_html())

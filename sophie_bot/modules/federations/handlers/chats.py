@@ -7,7 +7,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
 from beanie.odm.operators.find.comparison import In
-from stfu_tg import Doc, KeyValue, Section, Title, VList
+from stfu_tg import Code, Doc, KeyValue, Section, Title, VList
 
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.chat import ChatType
@@ -116,7 +116,7 @@ class FederationChatsHandler(SophieMessageHandler):
             federation_list,
             "",
             _("Usage:"),
-            _("/fchats <federation_id>"),
+            Code("/fchats <federation_id>"),
         )
         await self.event.reply(str(doc))
 

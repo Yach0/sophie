@@ -9,6 +9,8 @@ from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from stfu_tg import Code, Template
+
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -41,7 +43,9 @@ class AntifloodSetCountHandler(SophieMessageHandler):
             return
 
         if count is None:
-            await self.event.reply(_("Please provide a number. Usage: /antiflood_count <number>"))
+            await self.event.reply(
+                Template(_("Please provide a number. Usage: {cmd}"), cmd=Code("/antiflood_count <number>")).to_html()
+            )
             return
 
         if count < 1 or count > 100:

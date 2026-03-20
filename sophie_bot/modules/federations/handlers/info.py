@@ -109,7 +109,7 @@ class FederationInfoHandler(SophieMessageHandler):
             federation_list,
             "",
             _("To get detailed information about a specific federation, use:"),
-            Template(_("/finfo {var}"), var="<federation_id>"),
+            Template(_("{cmd}"), cmd=Code("/finfo <federation_id>")),
         )
         await self.event.reply(str(doc))
 

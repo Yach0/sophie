@@ -42,7 +42,7 @@ class LocksListHandler(SophieMessageHandler):
         if not locked_types and not filter_lock_types:
             doc = Doc(
                 Template(_("No locks in {chat}"), chat=connection.title),
-                _("Use /lock <type> to add a lock."),
+                Template(_("Use {cmd} to add a lock."), cmd=Code("/lock <type>")),
             )
             await message.reply(doc.to_html())
             return
@@ -78,7 +78,11 @@ class LocksListHandler(SophieMessageHandler):
             )
 
         doc += Spacer()
-        doc += Template(_("Use /lockable to see all available lock types."))
-        doc += Template(item=_("Use /lock <type> to add a lock or /addfilter <type> to add a filter lock."))
-        doc += Template(item=_("Use /unlock <type> to remove a lock."))
+        doc += Template(_("Use {cmd} to see all available lock types."), cmd=Code("/lockable"))
+        doc += Template(
+            _("Use {lock_cmd} to add a lock or {filter_cmd} to add a filter lock."),
+            lock_cmd=Code("/lock <type>"),
+            filter_cmd=Code("/addfilter <type>"),
+        )
+        doc += Template(_("Use {cmd} to remove a lock."), cmd=Code("/unlock <type>"))
         await message.reply(doc.to_html())
