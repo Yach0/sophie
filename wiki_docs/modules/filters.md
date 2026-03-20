@@ -84,6 +84,38 @@ AI filters work with various message types:
 To reduce resource usage and focus on potential spam/scam threats, AI filters only trigger for users who joined the chat
 less than **2 days** ago. Established members of the chat are exempt from AI-powered filter evaluations.
 
+## Lock-based filters
+
+Filters can also use lock types as handlers.
+This lets you attach normal filter actions to message-type detection that is shared with the `Locks` module.
+
+Examples:
+
+```
+/addfilter sticker
+/addfilter language:ru
+/addfilter url
+/addfilter stickerpack:FunnyCats
+```
+
+When you use a lock-based handler, Sophie does not match literal text.
+Instead, it checks the message the same way the `Locks` module does.
+
+Examples:
+
+- `sticker` matches messages with stickers
+- `url` matches messages containing URL entities
+- `language:ru` matches messages detected as Russian
+- `stickerpack:FunnyCats` matches stickers from that sticker pack
+
+This makes it possible to configure custom actions for lock types, such as warning, muting, banning, or replying,
+instead of only deleting the message.
+
+### Legacy filters compatibility
+
+Older filters created before lock-based filters were introduced keep their previous behavior.
+If an old filter handler happens to have the same text as a lock type, Sophie still treats it as a normal text filter.
+
 ## Multiple filter actions and multiple filters
 
 Sophie supports having many filter actions for one filter handler.
