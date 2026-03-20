@@ -200,16 +200,20 @@ def _get_supported_languages() -> dict[str, str]:
 SUPPORTED_LANGUAGES: dict[str, str] = _get_supported_languages()
 
 
-def get_lock_display_name(lock_type: str) -> KeyValue:
+def get_lock_description(lock_type: str) -> LazyProxy | Template | str:
     if is_stickerpack_lock(lock_type):
         pack_name = get_stickerpack_name(lock_type) or "unknown"
-        return KeyValue(Code(lock_type), Template(_("Sticker pack: {pack}"), pack=pack_name))
+        return Template(_("Sticker pack: {pack}"), pack=pack_name)
     if is_language_lock(lock_type):
         lang_code = get_language_code(lock_type) or "unknown"
         lang_name = SUPPORTED_LANGUAGES.get(lang_code, lang_code)
-        return KeyValue(Code(lock_type), lang_name)
+        return Template(_("Messages in {lang} language"), lang=lang_name)
 
-    description = LOCK_TYPE_DESCRIPTIONS.get(lock_type, lock_type)
+    return LOCK_TYPE_DESCRIPTIONS.get(lock_type, lock_type)
+
+
+def get_lock_display_name(lock_type: str) -> KeyValue:
+    description = get_lock_description(lock_type)
     return KeyValue(Code(lock_type), description)
 
 

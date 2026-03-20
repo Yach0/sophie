@@ -39,7 +39,8 @@ class FilterNewHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         keyword: str = self.data["handler"]
-        await check_legacy_filter_handler(self.event, keyword, self.connection)
+        if not await check_legacy_filter_handler(self.event, keyword, self.connection):
+            return
 
         # Create a new filter item
         filter_item = FilterInSetupType(handler=FilterHandlerType(keyword=keyword), actions={})

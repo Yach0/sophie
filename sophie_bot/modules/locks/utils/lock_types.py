@@ -74,3 +74,7 @@ def get_language_code(lock_type: str) -> str | None:
         return None
     parts = lock_type.split(":", 1)
     return parts[1].lower() if len(parts) > 1 else None
+
+
+def is_supported_lock_type(lock_type: str) -> bool:
+    return lock_type in ALL_LOCK_TYPES or is_stickerpack_lock(lock_type) or is_language_lock(lock_type)

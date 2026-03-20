@@ -10,6 +10,7 @@ from regex import regex
 from stfu_tg import Template
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
+from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
@@ -177,13 +178,23 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
         return False
 
 
-async def match_legacy_handler(message: Message, handler: str, user_in_group: UserInGroupModel | None = None) -> bool:
+async def match_legacy_handler(
+    message: Message,
+    handler: str,
+    user_in_group: UserInGroupModel | None = None,
+    enable_lock_types: bool = True,
+) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler
     if handler.startswith("ai:"):
         log.debug(f"match_legacy_handler: ai: {handler}")
         prompt = handler[3:]
         return await match_ai_handler(message, prompt, user_in_group=user_in_group)
+
+    if enable_lock_types and is_supported_lock_type(handler):
+        from sophie_bot.modules.locks.utils.detect_lock import check_locks
+
+        return bool(await check_locks(message, {handler}))
 
     if not (message_text := message.caption or message.text or ""):
         return False

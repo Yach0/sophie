@@ -156,7 +156,14 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                     continue
                 ai_filter_evaluated = True
 
-            if await match_legacy_handler(message, fil.handler, user_in_group=user_in_group):
+            matched = await match_legacy_handler(
+                message,
+                fil.handler,
+                user_in_group=user_in_group,
+                enable_lock_types=fil.effective_version >= 2,
+            )
+
+            if matched:
                 matched_filters.append(fil)
 
         all_messages = []

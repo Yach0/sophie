@@ -8,12 +8,12 @@ from sophie_bot.db.models import FiltersModel
 from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
-from sophie_bot.modules.logging.events import LogEvent
-from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.filters.callbacks import SaveFilterCallback
 from sophie_bot.modules.filters.utils_.legacy_filter_handler import (
     check_legacy_filter_handler,
 )
+from sophie_bot.modules.logging.events import LogEvent
+from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
@@ -51,7 +51,10 @@ class FilterSaveHandler(SophieCallbackQueryHandler):
             return await self.event.answer(_("Continuing setup is only possible by the same user who started it."))
 
         # Check
-        await check_legacy_filter_handler(self.event, filter_item.handler.keyword, self.connection, filter_item.oid)
+        if not await check_legacy_filter_handler(
+            self.event, filter_item.handler.keyword, self.connection, filter_item.oid
+        ):
+            return
 
         await self.save_filter(filter_item)
 

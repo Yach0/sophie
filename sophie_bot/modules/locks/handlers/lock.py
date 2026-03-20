@@ -13,6 +13,7 @@ from sophie_bot.db.models import LocksModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.cache import invalidate_locks_cache
 from sophie_bot.modules.locks.utils.lock_types import ALL_LOCK_TYPES, is_language_lock, is_stickerpack_lock
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -54,6 +55,22 @@ class LockHandler(SophieMessageHandler):
             await message.reply(
                 Template(
                     _("Unknown lock type: {type}. Use /lockable to see all available types."), type=lock_type
+                ).to_html()
+            )
+            return
+
+        existing_owner = await get_lock_type_owner(connection.db_model.iid, lock_type)
+        if existing_owner == "filters":
+            await message.reply(
+                Doc(
+                    Template(
+                        _("Lock type {type} is already enforced by the Filters module."),
+                        type=lock_type,
+                    ),
+                    Template(
+                        _("Delete it there first with {cmd} before adding it to Locks."),
+                        cmd=f"/delfilter {lock_type}",
+                    ),
                 ).to_html()
             )
             return

@@ -27,6 +27,7 @@ class FiltersModel(Document):
     chat: Link[ChatModel]
 
     handler: str  # old keyword handler
+    version: int | None = None
 
     action: Optional[str]  # None for modern filters
     actions: dict[str, ACTION_DATA_DUMPED] = Field(default_factory=dict)
@@ -39,6 +40,10 @@ class FiltersModel(Document):
 
     class Settings:
         name = "filters"
+
+    @property
+    def effective_version(self) -> int:
+        return self.version or 1
 
     @staticmethod
     async def get_filters(chat_iid: ObjectId) -> list["FiltersModel"] | None:
@@ -109,6 +114,7 @@ class FilterInSetupType(BaseModel):
         return FiltersModel(
             chat=chat,
             handler=self.handler.keyword,
+            version=2,
             action=None,
             actions=self.actions,
         )
