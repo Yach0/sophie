@@ -36,6 +36,5 @@ class FiltersListHandler(SophieMessageHandler):
         )
         doc += " "
         doc += _("Additionally rules from 'Antiflood' module can be enforced.")
-        doc += " "
         doc += _("Additionally rules from 'Locks' module can be enforced.")
         await self.event.reply(doc.to_html())

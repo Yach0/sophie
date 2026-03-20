@@ -5,7 +5,7 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from stfu_tg import BlockQuote, Code, Doc, HList, KeyValue, Section, Spacer, Template, Title, VList
+from stfu_tg import BlockQuote, Code, Doc, KeyValue, Section, Spacer, Template, Title, VList
 
 from sophie_bot.db.models import LocksModel
 from sophie_bot.filters.admin_rights import UserRestricting

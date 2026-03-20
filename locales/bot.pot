@@ -23,10 +23,10 @@ msgstr ""
 msgid "Username"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:18 sophie_bot/modules/locks/handlers/lock.py:23
-#: sophie_bot/modules/locks/handlers/lock.py:70
-#: sophie_bot/modules/locks/handlers/unlock.py:23
-#: sophie_bot/modules/locks/handlers/unlock.py:65
+#: sophie_bot/args/lock_type.py:18 sophie_bot/modules/locks/handlers/lock.py:24
+#: sophie_bot/modules/locks/handlers/lock.py:87
+#: sophie_bot/modules/locks/handlers/unlock.py:24
+#: sophie_bot/modules/locks/handlers/unlock.py:82
 msgid "Lock type"
 msgstr ""
 
@@ -352,11 +352,11 @@ msgstr ""
 #: sophie_bot/modules/connections/handlers/connect_dm.py:39
 #: sophie_bot/modules/disabling/handlers/disable.py:50
 #: sophie_bot/modules/disabling/handlers/enable.py:52
-#: sophie_bot/modules/locks/handlers/lock.py:69
-#: sophie_bot/modules/locks/handlers/locks_list.py:52
+#: sophie_bot/modules/locks/handlers/lock.py:86
+#: sophie_bot/modules/locks/handlers/locks_list.py:69
 #: sophie_bot/modules/locks/handlers/locksticker.py:49
 #: sophie_bot/modules/locks/handlers/locksticker.py:63
-#: sophie_bot/modules/locks/handlers/unlock.py:64
+#: sophie_bot/modules/locks/handlers/unlock.py:81
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:36
 #: sophie_bot/modules/promotes/handlers/demote.py:66
@@ -2580,14 +2580,14 @@ msgstr ""
 #: sophie_bot/modules/filters/handlers/add.py:57
 #: sophie_bot/modules/filters/handlers/confirm.py:39
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:50
-#: sophie_bot/modules/filters/handlers/filter_new.py:50
+#: sophie_bot/modules/filters/handlers/filter_new.py:51
 msgid "New filter"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/add.py:59
 #: sophie_bot/modules/filters/handlers/confirm.py:40
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:51
-#: sophie_bot/modules/filters/handlers/filter_new.py:51
+#: sophie_bot/modules/filters/handlers/filter_new.py:52
 msgid "Handles"
 msgstr ""
 
@@ -2678,7 +2678,7 @@ msgstr ""
 msgid "Adds a new filter"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_save.py:58
+#: sophie_bot/modules/filters/handlers/filter_save.py:61
 #, python-brace-format
 msgid "Filter on {keyword} was saved."
 msgstr ""
@@ -2700,53 +2700,72 @@ msgstr ""
 msgid "Additionally rules from 'Antiflood' module can be enforced."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:25
+#: sophie_bot/modules/filters/handlers/filters_list.py:40
+msgid "Additionally rules from 'Locks' module can be enforced."
+msgstr ""
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:31
+#, python-brace-format
+msgid "The lock type {handler} is already enforced by the Locks module."
+msgstr ""
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:35
+#, python-brace-format
+msgid "Delete it there first with {cmd} before adding it as a filter."
+msgstr ""
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:45
+#, python-brace-format
+msgid "The lock-filter {name} already exists! Please use {cmd} to edit the filter."
+msgstr ""
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:57
 #, python-brace-format
 msgid "Filter with the handler {handler} already exists!"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:28
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:60
 #, python-brace-format
 msgid "You can edit the filter's actions with {cmd}."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:39
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:72
 msgid ""
 "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
 "Example: ai:Message contains crypto scam"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:63
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:95
 #, python-brace-format
 msgid ""
 "Maximum number of AI filter handlers reached ({limit} per chat).\n"
 "AI filters consume tokens and can overload the system. Please remove an existing AI filter before adding a new one."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:81
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:114
 msgid "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:88
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:127
 #, python-brace-format
 msgid "When AI detects: {prompt}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:91
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:130
 #, python-brace-format
 msgid "When messages matches the regex pattern {pattern}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:93
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:132
 #, python-brace-format
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:139
+#: sophie_bot/modules/filters/utils_/match_legacy.py:140
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:146
+#: sophie_bot/modules/filters/utils_/match_legacy.py:147
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -2754,7 +2773,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:148
+#: sophie_bot/modules/filters/utils_/match_legacy.py:149
 msgid "(no text content)"
 msgstr ""
 
@@ -3144,30 +3163,41 @@ msgstr ""
 msgid "Lock specific message types in chats"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:24
+#: sophie_bot/modules/locks/handlers/lock.py:25
 msgid "Lock a message type in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:42
-#: sophie_bot/modules/locks/handlers/unlock.py:42
+#: sophie_bot/modules/locks/handlers/lock.py:43
+#: sophie_bot/modules/locks/handlers/unlock.py:43
 #, python-brace-format
 msgid "Usage: {cmd} <lock_type>"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:43
+#: sophie_bot/modules/locks/handlers/lock.py:44
+#: sophie_bot/modules/locks/handlers/locks_list.py:81
 msgid "Use /lockable to see all available lock types."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:56
+#: sophie_bot/modules/locks/handlers/lock.py:57
 #, python-brace-format
 msgid "Unknown lock type: {type}. Use /lockable to see all available types."
 msgstr ""
 
+#: sophie_bot/modules/locks/handlers/lock.py:67
+#, python-brace-format
+msgid "Lock type {type} is already enforced by the Filters module."
+msgstr ""
+
 #: sophie_bot/modules/locks/handlers/lock.py:71
+#, python-brace-format
+msgid "Delete it there first with {cmd} before adding it to Locks."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lock.py:88
 msgid "Lock added"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:75
+#: sophie_bot/modules/locks/handlers/lock.py:92
 #, python-brace-format
 msgid "Lock type {type} is already locked in this chat."
 msgstr ""
@@ -3538,52 +3568,57 @@ msgstr ""
 msgid "Sticker pack: {pack}"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:220
+#: sophie_bot/modules/locks/handlers/lockable.py:210
+#, python-brace-format
+msgid "Messages in {lang} language"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:224
 msgid "Shows all lockable message types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:231
+#: sophie_bot/modules/locks/handlers/lockable.py:235
 msgid "Available lock types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:235
+#: sophie_bot/modules/locks/handlers/lockable.py:239
 msgid "Media types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:242
+#: sophie_bot/modules/locks/handlers/lockable.py:246
 msgid "Entities and links"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:249
+#: sophie_bot/modules/locks/handlers/lockable.py:253
 msgid "Forwards"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:256
+#: sophie_bot/modules/locks/handlers/lockable.py:260
 msgid "Text patterns"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:263
+#: sophie_bot/modules/locks/handlers/lockable.py:267
 msgid "Lock a specific sticker pack by its ID"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:264
+#: sophie_bot/modules/locks/handlers/lockable.py:268
 msgid "Sticker types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:274
+#: sophie_bot/modules/locks/handlers/lockable.py:278
 #, python-brace-format
 msgid "To see all supported languages, use {cmd}"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:276
+#: sophie_bot/modules/locks/handlers/lockable.py:280
 msgid "Languages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:283
+#: sophie_bot/modules/locks/handlers/lockable.py:287
 msgid "Special"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:288
+#: sophie_bot/modules/locks/handlers/lockable.py:292
 #, python-brace-format
 msgid "Use {cmd} to lock a specific type."
 msgstr ""
@@ -3600,25 +3635,36 @@ msgstr ""
 msgid "Use /lock language:code to block messages in that language."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locks_list.py:21
+#: sophie_bot/modules/locks/handlers/locks_list.py:23
 msgid "Show currently locked message types in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locks_list.py:41
+#: sophie_bot/modules/locks/handlers/locks_list.py:44
 #, python-brace-format
 msgid "No locks in {chat}"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locks_list.py:42
-#: sophie_bot/modules/locks/handlers/locks_list.py:55
+#: sophie_bot/modules/locks/handlers/locks_list.py:45
 msgid "Use /lock <type> to add a lock."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locks_list.py:51
+#: sophie_bot/modules/locks/handlers/locks_list.py:68
 msgid "Active locks"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locks_list.py:56
+#: sophie_bot/modules/locks/handlers/locks_list.py:72
+msgid "No rules from Locks module."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:77
+msgid "Filter-enforced lock types"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:82
+msgid "Use /lock <type> to add a lock or /addfilter <type> to add a filter lock."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:83
 msgid "Use /unlock <type> to remove a lock."
 msgstr ""
 
@@ -3650,24 +3696,34 @@ msgstr ""
 msgid "Sticker pack {pack} is already locked in this chat."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:24
+#: sophie_bot/modules/locks/handlers/unlock.py:25
 msgid "Unlock a message type in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:43
+#: sophie_bot/modules/locks/handlers/unlock.py:44
 msgid "Use /locks to see currently locked types."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:53
+#: sophie_bot/modules/locks/handlers/unlock.py:54
 #, python-brace-format
 msgid "Unknown lock type: {type}"
 msgstr ""
 
+#: sophie_bot/modules/locks/handlers/unlock.py:62
+#, python-brace-format
+msgid "Lock type {type} is enforced by the Filters module, not Locks."
+msgstr ""
+
 #: sophie_bot/modules/locks/handlers/unlock.py:66
+#, python-brace-format
+msgid "Delete it there with {cmd} if you want to stop enforcing it."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock.py:83
 msgid "Lock removed"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:70
+#: sophie_bot/modules/locks/handlers/unlock.py:87
 #, python-brace-format
 msgid "Lock type {type} is not locked in this chat."
 msgstr ""
