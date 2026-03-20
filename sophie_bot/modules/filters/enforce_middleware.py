@@ -148,7 +148,14 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         # Evaluate all filters asynchronously
         matched_filters: list[FiltersModel] = []
         user_in_group = data.get("user_in_group")
+        ai_filter_evaluated = False
         for fil in all_filters:
+            if fil.handler.startswith("ai:"):
+                if ai_filter_evaluated:
+                    log.debug("EnforceFiltersMiddleware: skipping extra AI filter for this message")
+                    continue
+                ai_filter_evaluated = True
+
             if await match_legacy_handler(message, fil.handler, user_in_group=user_in_group):
                 matched_filters.append(fil)
 

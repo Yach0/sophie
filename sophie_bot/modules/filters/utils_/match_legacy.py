@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from aiogram.types import Message
 from normality import normalize
@@ -9,12 +9,14 @@ from pydantic_ai.messages import BinaryContent
 from regex import regex
 from stfu_tg import Template
 
+from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
 from sophie_bot.modules.filters.utils_.extract_content import extract_message_content
+from sophie_bot.services.redis import aredis
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -66,6 +68,28 @@ def match_word_handler(text: str, handler: str) -> bool:
     )
 
 
+def _get_ai_filter_daily_limit_key(chat_tid: int, now: datetime) -> str:
+    return f"ai_filter_daily_limit:{chat_tid}:{now.strftime('%Y%m%d')}"
+
+
+def _seconds_until_next_utc_day(now: datetime) -> int:
+    next_day = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return max(int((next_day - now).total_seconds()), 1)
+
+
+async def consume_ai_filter_daily_quota(chat_tid: int) -> bool:
+    now = datetime.now(timezone.utc)
+    rate_limit_key = _get_ai_filter_daily_limit_key(chat_tid, now)
+    daily_ttl = _seconds_until_next_utc_day(now)
+
+    async with aredis.pipeline() as pipe:
+        await pipe.incr(rate_limit_key)
+        await pipe.expire(rate_limit_key, daily_ttl)
+        daily_count, _ = await pipe.execute()
+
+    return int(daily_count) <= AI_FILTER_DAILY_LIMIT_PER_CHAT
+
+
 async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInGroupModel | None = None) -> bool:
     """
     Match a message against AI-powered filter using Mistral Pixtral model.
@@ -85,15 +109,23 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
         log.debug("match_ai_handler: ai_filters feature flag is disabled, skipping AI evaluation")
         return False
 
-    # Limit AI filters to users who joined less than 2 days ago
+    # Limit AI filters to users who joined recently
     if user_in_group:
-        two_days_ago = datetime.now() - timedelta(days=2)
-        if user_in_group.first_saw < two_days_ago:
+        joined_after_threshold = datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
+        if user_in_group.first_saw < joined_after_threshold:
             log.debug(
-                "match_ai_handler: user joined more than 2 days ago, skipping AI evaluation",
+                "match_ai_handler: user joined before AI threshold, skipping AI evaluation",
                 first_saw=user_in_group.first_saw,
             )
             return False
+
+    if not await consume_ai_filter_daily_quota(message.chat.id):
+        log.debug(
+            "match_ai_handler: daily AI filter limit reached for chat, skipping AI evaluation",
+            chat_tid=message.chat.id,
+            daily_limit=AI_FILTER_DAILY_LIMIT_PER_CHAT,
+        )
+        return False
 
     try:
         # Extract message content (text and optional image)

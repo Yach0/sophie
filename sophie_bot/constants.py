@@ -45,6 +45,11 @@ AI_DEFAULT_DAILY_LIMIT: Final[int] = 150
 
 # Maximum number of AI filter handlers per chat
 AI_FILTER_LIMIT_PER_CHAT: Final[int] = 2
+# Maximum age of a newly joined user eligible for AI filter checks
+AI_FILTER_NEW_USER_MAX_AGE_HOURS: Final[int] = 24
+
+# Maximum number of AI filter evaluations per chat per day
+AI_FILTER_DAILY_LIMIT_PER_CHAT: Final[int] = 200
 
 # Maximum video file size for AI transcription (in bytes) - 20MB
 AI_MAX_VIDEO_SIZE_BYTES: Final[int] = 20 * 1024 * 1024
