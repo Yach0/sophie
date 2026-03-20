@@ -44,7 +44,8 @@ TELEGRAM_ANONYMOUS_ADMIN_BOT_ID: Final[int] = 1087968824
 AI_DEFAULT_DAILY_LIMIT: Final[int] = 150
 
 # Maximum number of AI filter handlers per chat
-AI_FILTER_LIMIT_PER_CHAT: Final[int] = 2
+AI_FILTER_LIMIT_PER_CHAT: Final[int] = 1
+
 # Maximum age of a newly joined user eligible for AI filter checks
 AI_FILTER_NEW_USER_MAX_AGE_HOURS: Final[int] = 24
 
