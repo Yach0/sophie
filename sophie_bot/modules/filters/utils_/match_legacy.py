@@ -1,22 +1,22 @@
 from __future__ import annotations
-from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 from datetime import datetime, timedelta, timezone
 
 from aiogram.types import Message
 from normality import normalize
 from pydantic_ai.messages import BinaryContent
+from pydantic_ai.models.openrouter import OpenRouterModelSettings
 from regex import regex
 from stfu_tg import Template
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
-from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
 from sophie_bot.modules.filters.utils_.extract_content import extract_message_content
+from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
@@ -112,7 +112,7 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
 
     # Limit AI filters to users who joined recently
     if user_in_group:
-        joined_after_threshold = datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
+        joined_after_threshold = datetime.now() - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
         if user_in_group.first_saw < joined_after_threshold:
             log.debug(
                 "match_ai_handler: user joined before AI threshold, skipping AI evaluation",

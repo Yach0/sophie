@@ -5,13 +5,14 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from stfu_tg import BlockQuote, Doc, KeyValue, Section, Spacer, Template, Title, VList
+from stfu_tg import BlockQuote, Code, Doc, HList, KeyValue, Section, Spacer, Template, Title, VList
 
 from sophie_bot.db.models import LocksModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.locks.handlers.lockable import get_lock_display_name
+from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_text
+from sophie_bot.modules.locks.handlers.lockable import get_lock_description, get_lock_display_name
 from sophie_bot.modules.locks.utils.conflicts import get_filter_lock_types
 from sophie_bot.modules.locks.utils.lock_types import is_stickerpack_lock
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -36,9 +37,7 @@ class LocksListHandler(SophieMessageHandler):
 
         model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
         locked_types = model.locked_types
-        filter_lock_types = [
-            filter_item.handler for filter_item in await get_filter_lock_types(connection.db_model.iid)
-        ]
+        filter_lock_types = await get_filter_lock_types(connection.db_model.iid)
 
         if not locked_types and not filter_lock_types:
             doc = Doc(
@@ -49,9 +48,21 @@ class LocksListHandler(SophieMessageHandler):
             return
 
         sorted_locks = sorted(locked_types, key=lambda x: (is_stickerpack_lock(x), x))
-        sorted_filter_locks = sorted(filter_lock_types, key=lambda x: (is_stickerpack_lock(x), x))
+        sorted_filter_locks = sorted(filter_lock_types, key=lambda x: (is_stickerpack_lock(x.handler), x.handler))
         lock_names = [get_lock_display_name(lock_type) for lock_type in sorted_locks]
-        filter_lock_names = [get_lock_display_name(lock_type) for lock_type in sorted_filter_locks]
+        filter_lock_names = [
+            KeyValue(
+                Code(filter_item.handler),
+                Section(
+                    filter_action_text(filter_item.action, list(filter_item.actions.keys())),
+                    title=get_lock_description(filter_item.handler),
+                    title_postfix=" -> ",
+                    title_underline=False,
+                    indent=2,
+                ),
+            )
+            for filter_item in sorted_filter_locks
+        ]
 
         doc = Doc(
             Title(_("Active locks")),
@@ -67,6 +78,7 @@ class LocksListHandler(SophieMessageHandler):
             )
 
         doc += Spacer()
+        doc += Template(_("Use /lockable to see all available lock types."))
         doc += Template(item=_("Use /lock <type> to add a lock or /addfilter <type> to add a filter lock."))
         doc += Template(item=_("Use /unlock <type> to remove a lock."))
         await message.reply(doc.to_html())
