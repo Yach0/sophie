@@ -23,6 +23,7 @@ from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationImportTask, FederationExportTask
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.greetings import GreetingsModel
+from sophie_bot.db.models.locks import LocksModel
 from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.db.models.log import LogModel
 from sophie_bot.db.models.migrations import MigrationState
@@ -62,6 +63,7 @@ models: List[Type[Document]] = [
     WarnSettingsModel,
     WarnModel,
     FiltersModel,
+    LocksModel,
     AIProviderModel,
     AntifloodModel,
     ApiTokenModel,

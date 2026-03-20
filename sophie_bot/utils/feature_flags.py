@@ -15,6 +15,7 @@ FeatureType = Literal[
     "ai_provider_zai",
     "filters",
     "antiflood",
+    "locks",
     "new_feds_newfed",
     "new_feds_joinfed",
     "new_feds_leavefed",
@@ -60,6 +61,7 @@ class FeatureStates(TypedDict):
     ai_provider_zai: bool
     filters: bool
     antiflood: bool
+    locks: bool
     new_feds_newfed: bool
     new_feds_joinfed: bool
     new_feds_leavefed: bool
@@ -94,6 +96,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_provider_zai",
     "filters",
     "antiflood",
+    "locks",
     "new_feds_newfed",
     "new_feds_joinfed",
     "new_feds_leavefed",
@@ -136,6 +139,7 @@ def _default_state_map() -> FeatureStates:
         ai_provider_zai=True,
         filters=True,
         antiflood=True,
+        locks=True,
         new_feds_newfed=True,
         new_feds_joinfed=True,
         new_feds_leavefed=True,

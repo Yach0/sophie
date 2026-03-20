@@ -23,6 +23,41 @@ msgstr ""
 msgid "Username"
 msgstr ""
 
+#: sophie_bot/args/lock_type.py:18 sophie_bot/modules/locks/handlers/lock.py:19
+#: sophie_bot/modules/locks/handlers/lock.py:57
+#: sophie_bot/modules/locks/handlers/unlock.py:19
+#: sophie_bot/modules/locks/handlers/unlock.py:53
+msgid "Lock type"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:34
+msgid "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID format."
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:38
+msgid "Lock type (e.g., sticker, url, stickerpack:PACK_ID)"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:38
+msgid "Lock types"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:43
+msgid "Block stickers"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:44
+msgid "Block URLs"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:45
+msgid "Block forwarded messages"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:46
+msgid "Block specific sticker pack"
+msgstr ""
+
 #: sophie_bot/args/users.py:27
 msgid "Could not find the requested User ID in the database."
 msgstr ""
@@ -209,6 +244,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:105
 #: sophie_bot/modules/help/utils/format_help.py:71
+#: sophie_bot/modules/locks/handlers/lockable.py:28
 msgid "Commands"
 msgstr ""
 
@@ -312,6 +348,11 @@ msgstr ""
 #: sophie_bot/modules/connections/handlers/connect_dm.py:39
 #: sophie_bot/modules/disabling/handlers/disable.py:50
 #: sophie_bot/modules/disabling/handlers/enable.py:52
+#: sophie_bot/modules/locks/handlers/lock.py:56
+#: sophie_bot/modules/locks/handlers/locks_list.py:52
+#: sophie_bot/modules/locks/handlers/locksticker.py:49
+#: sophie_bot/modules/locks/handlers/locksticker.py:63
+#: sophie_bot/modules/locks/handlers/unlock.py:52
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:36
 #: sophie_bot/modules/promotes/handlers/demote.py:66
@@ -1566,6 +1607,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/unban.py:117
 #: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/handlers/unban.py:157
+#: sophie_bot/modules/locks/handlers/locksticker.py:50
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
 #: sophie_bot/modules/warns/handlers/warns_group.py:39
 msgid "Unknown"
@@ -3090,24 +3132,328 @@ msgstr ""
 msgid "Language set to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:8
+#: sophie_bot/modules/locks/__init__.py:12
 msgid "Locks"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:10
+#: sophie_bot/modules/locks/__init__.py:14
 msgid "Lock specific message types in chats"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:13
-msgid "Allows administrators to lock specific types of messages in chats."
+#: sophie_bot/modules/locks/handlers/lock.py:20
+msgid "Lock a message type in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:14
-msgid "Prevents users from sending certain content types like stickers, GIFs, or URLs."
+#: sophie_bot/modules/locks/handlers/lock.py:37
+#: sophie_bot/modules/locks/handlers/unlock.py:37
+#, python-brace-format
+msgid "Usage: {cmd} <lock_type>"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:10
-msgid "Shows all lockable entities"
+#: sophie_bot/modules/locks/handlers/lock.py:38
+msgid "Use /lockable to see all available lock types."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lock.py:46
+#, python-brace-format
+msgid "Unknown lock type: {type}. Use /lockable to see all available types."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lock.py:58
+msgid "Lock added"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lock.py:62
+#, python-brace-format
+msgid "Lock type {type} is already locked in this chat."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:18
+msgid "All messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:19
+msgid "Media albums"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:20
+msgid "Anonymous channels"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:21
+msgid "Audio files"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:22
+msgid "Bot messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:23
+msgid "Bot links"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:24
+msgid "Inline buttons"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:25
+msgid "Cashtags ($TAG)"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:26
+msgid "Checklists"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:27
+msgid "CJK characters"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:29
+msgid "Comments"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:30
+msgid "Contacts"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:31
+msgid "Cyrillic text"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:32
+msgid "Documents"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:33
+msgid "Email addresses"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:34
+msgid "Emoji"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:35
+msgid "Custom emoji"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:36
+msgid "Game messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:37
+msgid "Emoji-only messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:38
+msgid "External replies"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:39
+msgid "Forwarded messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:40
+msgid "Bot forwards"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:41
+msgid "Channel forwards"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:42
+msgid "Story forwards"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:43
+msgid "User forwards"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:44
+msgid "Games"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:45
+msgid "GIFs"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:46
+msgid "Inline results"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:47
+msgid "Invite links"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:48
+msgid "Locations"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:49
+msgid "Phone numbers"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:50
+msgid "Photos"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:51
+msgid "Polls"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:52
+msgid "RTL text"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:53
+msgid "Spoilers"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:54
+msgid "Stickers"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:55
+msgid "Animated stickers"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:56
+msgid "Premium stickers"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:57
+msgid "Text messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:58
+msgid "URLs"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:59
+msgid "Videos"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:60
+msgid "Video notes"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:61
+msgid "Voice messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:62
+msgid "Zalgo text"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:63
+msgid "Dice"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:126
+#, python-brace-format
+msgid "Sticker pack: {pack}"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:131
+msgid "Shows all lockable message types"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:142
+msgid "Available lock types"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:144
+msgid "Media types:"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:148
+msgid "Entities & links:"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:152
+msgid "Forwards:"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:156
+msgid "Text patterns:"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:160
+msgid "Special:"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:162
+msgid "stickerpack:PACK_ID - Lock specific sticker pack"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:21
+msgid "Show currently locked message types in the chat"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:41
+#, python-brace-format
+msgid "No locks in {chat}"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:42
+msgid "Use /lock <type> to add a lock."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:53
+msgid "Locked types"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:54
+msgid "Active locks"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:17
+msgid "Lock a sticker pack in the chat"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:33
+msgid "Reply to a sticker to lock its sticker pack."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:40
+#, python-brace-format
+msgid "Reply to a message with a sticker to use {cmd} to lock a sticker pack."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:50
+#: sophie_bot/modules/locks/handlers/locksticker.py:64
+msgid "Sticker pack"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:51
+#: sophie_bot/modules/locks/handlers/locksticker.py:65
+msgid "Sticker pack locked"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:69
+#, python-brace-format
+msgid "Sticker pack {pack} is already locked in this chat."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock.py:20
+msgid "Unlock a message type in the chat"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock.py:38
+msgid "Use /locks to see currently locked types."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock.py:44
+#, python-brace-format
+msgid "Unknown lock type: {type}"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock.py:54
+msgid "Lock removed"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock.py:58
+#, python-brace-format
+msgid "Lock type {type} is not locked in this chat."
 msgstr ""
 
 #: sophie_bot/modules/logging/__init__.py:10
