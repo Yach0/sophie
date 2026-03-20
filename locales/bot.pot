@@ -2700,7 +2700,7 @@ msgstr ""
 msgid "Additionally rules from 'Antiflood' module can be enforced."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:40
+#: sophie_bot/modules/filters/handlers/filters_list.py:39
 msgid "Additionally rules from 'Locks' module can be enforced."
 msgstr ""
 
