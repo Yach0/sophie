@@ -12,6 +12,8 @@ from sophie_bot.modules.locks.handlers.unlock import UnlockHandler
 from sophie_bot.modules.locks.middlewares.enforcer import LocksEnforcerMiddleware
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
+from .api import api_router
+
 __module_name__ = l_("Locks")
 __module_emoji__ = "🔓"
 __module_description__ = l_("Lock specific message types in chats")
@@ -33,6 +35,12 @@ __handlers__ = (
     LockStickerHandler,
     LocksListHandler,
     ListLockLanguagesHandler,
+)
+
+__all__ = (
+    api_router,
+    router,
+    __handlers__,
 )
 
 
