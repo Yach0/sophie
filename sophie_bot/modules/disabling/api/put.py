@@ -30,8 +30,8 @@ async def set_disabled_commands(
     disableable = set(cmd.cmds[0] for cmd in DISABLEABLE_CMDS if cmd.cmds)
     to_disable = [cmd for cmd in payload.disabled if cmd in disableable]
 
-    await DisablingModel.find_one(DisablingModel.chat_id == chat.tid).upsert(
+    await DisablingModel.find_one(DisablingModel.chat.id == chat.iid).upsert(
         Set({DisablingModel.cmds: to_disable}),
-        on_insert=DisablingModel(chat_id=chat.tid, cmds=to_disable),
+        on_insert=DisablingModel(chat=chat.iid, cmds=to_disable),
     )
     return DisabledResponse(disabled=to_disable)

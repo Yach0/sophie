@@ -16,6 +16,7 @@ FeatureType = Literal[
     "filters",
     "antiflood",
     "locks",
+    "filters_rest_api",
     "new_feds_newfed",
     "new_feds_joinfed",
     "new_feds_leavefed",
@@ -62,6 +63,7 @@ class FeatureStates(TypedDict):
     filters: bool
     antiflood: bool
     locks: bool
+    filters_rest_api: bool
     new_feds_newfed: bool
     new_feds_joinfed: bool
     new_feds_leavefed: bool
@@ -97,6 +99,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "filters",
     "antiflood",
     "locks",
+    "filters_rest_api",
     "new_feds_newfed",
     "new_feds_joinfed",
     "new_feds_leavefed",
@@ -140,6 +143,7 @@ def _default_state_map() -> FeatureStates:
         filters=True,
         antiflood=True,
         locks=True,
+        filters_rest_api=False,
         new_feds_newfed=True,
         new_feds_joinfed=True,
         new_feds_leavefed=True,

@@ -2500,20 +2500,20 @@ msgstr ""
 msgid "You don't have permission to perform this action in this federation."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:42
+#: sophie_bot/modules/filters/__init__.py:49
 #: sophie_bot/modules/filters/handlers/filter_del.py:52
 msgid "Filters"
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:46
+#: sophie_bot/modules/filters/__init__.py:53
 msgid "Filters allows to invoke different actions for different messages."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:47
+#: sophie_bot/modules/filters/__init__.py:54
 msgid "For example muting the users when they mention crypto."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:49
+#: sophie_bot/modules/filters/__init__.py:56
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
 msgstr ""
 

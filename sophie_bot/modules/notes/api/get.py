@@ -56,7 +56,7 @@ async def get_note(
     await verify_admin(chat, user)
 
     note = await NoteModel.get(note_id)
-    if not note or (note.chat and note.chat.iid != chat.iid) or (not note.chat and note.chat_tid != chat.tid):
+    if not note or (note.chat and note.chat.ref.id != chat.iid) or (not note.chat and note.chat_tid != chat.tid):
         raise HTTPException(status_code=404, detail="Note not found")
 
     return NoteResponse(

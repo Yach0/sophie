@@ -8,6 +8,7 @@ from init_data_py.errors.errors import InitDataPyError
 from pydantic import BaseModel
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.db_exceptions import DBNotFoundException
 from sophie_bot.db.models.api_token import ApiTokenModel
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.refresh_token import RefreshTokenModel
@@ -134,9 +135,9 @@ async def login_operator(data: OperatorLoginRequest):
 async def refresh_token(data: RefreshRequest):
     hashed_token = hash_token(data.refresh_token)
 
-    token = await RefreshTokenModel.get_by_hash(hashed_token)
-
-    if not token:
+    try:
+        token = await RefreshTokenModel.get_by_hash(hashed_token)
+    except DBNotFoundException:
         security_log.warning("auth.refresh.invalid_or_expired_token")
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 

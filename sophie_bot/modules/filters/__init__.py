@@ -1,8 +1,10 @@
 from types import ModuleType
 
 from aiogram import Router
+from fastapi import APIRouter
 from stfu_tg import Doc
 
+from .api import api_router as filters_api_router
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -26,6 +28,7 @@ from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS
 
 __all__ = (
+    "api_router",
     "router",
     "__module_name__",
     "__module_emoji__",
@@ -36,6 +39,10 @@ __all__ = (
     "__post_setup__",
     "LOADED_MODULES",
 )
+
+
+api_router = APIRouter()
+api_router.include_router(filters_api_router)
 
 
 router = Router(name="filters")
