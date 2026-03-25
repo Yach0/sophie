@@ -48,7 +48,7 @@ async def update_note(
         setattr(note, key, value)
 
     note.edited_date = datetime.now(timezone.utc)
-    note.edited_user = user.tid
+    note.edited_user = user
     await note.save()
     await log_event(chat.tid, user.tid, LogEvent.NOTE_UPDATED, {"note_names": note.names})
 

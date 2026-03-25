@@ -3,15 +3,17 @@ from __future__ import annotations
 from datetime import datetime
 
 from beanie import PydanticObjectId
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sophie_bot.db.models.notes import NoteFile, SaveableParseMode
 from sophie_bot.db.models.notes_buttons import Button
+from sophie_bot.services.telegram_media import ResolvedMedia
 from sophie_bot.utils.api.schemas import RestSaveable
 
 
 class NoteResponse(RestSaveable):
-    id: PydanticObjectId
+    id: PydanticObjectId | None = None
+    names: tuple[str, ...]
     names: tuple[str, ...]
     file: NoteFile | None
     parse_mode: SaveableParseMode | None
@@ -20,6 +22,18 @@ class NoteResponse(RestSaveable):
     note_group: str | None
     created_date: datetime | None
     edited_date: datetime | None
+    resolved_media: dict[str, ResolvedMedia] = Field(
+        default_factory=dict,
+        description="Resolved Telegram custom emoji and sticker metadata",
+    )
+
+
+class NotesListResponse(BaseModel):
+    notes: list[NoteResponse]
+    resolved_media: dict[str, ResolvedMedia] = Field(
+        default_factory=dict,
+        description="Resolved Telegram custom emoji and sticker metadata for all notes",
+    )
 
 
 class NoteCreate(RestSaveable):

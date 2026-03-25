@@ -4534,19 +4534,19 @@ msgstr ""
 msgid "Reported by"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:15
+#: sophie_bot/modules/rest/__init__.py:16
 msgid "REST API"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:17
+#: sophie_bot/modules/rest/__init__.py:18
 msgid "REST API for external integrations"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:20
+#: sophie_bot/modules/rest/__init__.py:21
 msgid "Provides a REST API for external integrations and third-party applications."
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:21
+#: sophie_bot/modules/rest/__init__.py:22
 msgid "Allows programmatic access to bot functionality and data."
 msgstr ""
 
