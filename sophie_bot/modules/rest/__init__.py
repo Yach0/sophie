@@ -4,11 +4,12 @@ from stfu_tg import Doc
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from .api import auth_router, groups_router
+from .api import auth_router, groups_router, telegram_media_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
 api_router.include_router(groups_router)
+api_router.include_router(telegram_media_router)
 
 __all__ = ["api_router"]
 
