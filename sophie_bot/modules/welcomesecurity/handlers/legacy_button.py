@@ -45,7 +45,13 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         user_db: ChatModel = self.data["user_db"]
 
-        if not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
+        ws_user = await WSUserModel.is_user(user_db.iid, group_db.iid)
+        if not ws_user:
+            return await self.event.reply(
+                _("It seems like you do not have to pass the welcome security authentication")
+            )
+
+        if not ws_user.is_join_request and not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
             return await self.event.reply(
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
@@ -54,11 +60,6 @@ class LegacyWSButtonHandler(SophieMessageHandler):
             # TODO: Make it unmute the muted user instead
             return await self.event.reply(
                 _("You already an admin in the chat, therefore you don't need to pass the authentication!")
-            )
-
-        if not await WSUserModel.is_user(user_db.iid, group_db.iid):
-            return await self.event.reply(
-                _("It seems like you do not have to pass the welcome security authentication")
             )
 
         # TODO: Check if not banned / fedbanned

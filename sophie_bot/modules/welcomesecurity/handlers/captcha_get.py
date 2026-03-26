@@ -14,6 +14,7 @@ from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityMoveCB,
 )
+from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -103,4 +104,5 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
             reply_markup=buttons.as_markup(),
         )
 
+        await self.state.set_state(WelcomeSecurityFSM.captcha)
         await self.state.update_data({"captcha": captcha.data.model_dump(), "ws_chat_iid": str(chat_db.iid)})

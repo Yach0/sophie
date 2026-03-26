@@ -1,12 +1,26 @@
+from aiogram.exceptions import TelegramForbiddenError
+from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Bold, Italic, Template
 
 from sophie_bot.db.models import ChatModel
+from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityMoveCB, WelcomeSecurityConfirmCB
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
-from sophie_bot.services.bot import bot
+from sophie_bot.services.bot import bot, dp
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
+
+
+class CaptchaDMBlockedError(Exception):
+    """Raised when the captcha cannot be delivered because the user blocked the bot."""
+
+
+async def _prepare_captcha_state(user_tid: int, group: ChatModel, captcha: EmojiCaptcha) -> None:
+    state: FSMContext = dp.fsm.get_context(bot=bot, chat_id=user_tid, user_id=user_tid)
+    await state.set_state(WelcomeSecurityFSM.captcha)
+    await state.update_data(captcha=captcha.data.model_dump(), ws_chat_iid=str(group.iid))
 
 
 async def initiate_captcha(
@@ -26,6 +40,7 @@ async def initiate_captcha(
     """
     # Generate captcha
     captcha = EmojiCaptcha()
+    await _prepare_captcha_state(user.tid, group, captcha)
 
     # Create text
     text = Template(
@@ -58,9 +73,19 @@ async def initiate_captcha(
     )
 
     # DM mode: send to user's DM
-    return await bot.send_photo(
-        chat_id=user.tid,
-        photo=BufferedInputFile(captcha.image, "captcha.jpeg"),
-        caption=str(text),
-        reply_markup=buttons.as_markup(),
-    )
+    try:
+        return await bot.send_photo(
+            chat_id=user.tid,
+            photo=BufferedInputFile(captcha.image, "captcha.jpeg"),
+            caption=str(text),
+            reply_markup=buttons.as_markup(),
+        )
+    except TelegramForbiddenError as err:
+        log.warning(
+            "initiate_captcha: could not send captcha to user DM",
+            error=str(err),
+            user_tid=user.tid,
+            group_tid=group.tid,
+            is_join_request=is_join_request,
+        )
+        raise CaptchaDMBlockedError from err

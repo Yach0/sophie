@@ -3,8 +3,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import ChatJoinRequest
+from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.modules.greetings.default_welcome import get_default_join_request_message
@@ -18,12 +19,29 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
 )
 from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import initiate_captcha
+from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError, initiate_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
+
+
+async def send_dm_unblock_message(chat_tid: int) -> Message:
+    start_url = f"https://t.me/{CONFIG.username}?start=btnwelcomesecuritystart_{chat_tid}"
+
+    return await bot.send_message(
+        chat_id=chat_tid,
+        text=str(
+            _(
+                "I can't send the verification captcha because you've blocked Sophie in direct messages. "
+                "Please unblock me, then open the DM below to continue."
+            )
+        ),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text=_("Open DM with Sophie"), url=start_url)]]
+        ),
+    )
 
 
 class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
@@ -95,27 +113,26 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             await _approve_request()
             return
 
-        # Send join request message in chat
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
-
         rules = await RulesModel.get_rules(connection.db_model.iid)
         additional_fillings = {"rules": rules.text or "" if rules else _("No chat rules, have fun!")}
 
-        # Send message in chat
-        sent_message = await send_saveable(
-            None, chat_tid, join_request_saveable, additional_fillings=additional_fillings, user=self.event.from_user
-        )
+        join_request_message_key = f"join_request_message:{chat.iid}:{user.iid}"
+        try:
+            await initiate_captcha(user, chat, is_join_request=True)
+            sent_message = await send_saveable(
+                None,
+                chat_tid,
+                join_request_saveable,
+                additional_fillings=additional_fillings,
+                user=self.event.from_user,
+            )
+        except CaptchaDMBlockedError:
+            sent_message = await send_dm_unblock_message(chat_tid)
 
-        # Store message ID for cleanup
-        await aredis.set(f"join_request_message:{chat_tid}:{user_tid}", sent_message.message_id, ex=172800)
-
-        # Mark this user as having an active join request to prevent re-processing in new_user middleware
-        await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
-
-        # Apply clean_welcome to the join request message
         if greetings.clean_welcome and greetings.clean_welcome.enabled:
             if greetings.clean_welcome.last_msg:
                 await common_try(bot.delete_message(chat_id=chat_tid, message_id=greetings.clean_welcome.last_msg))
 
-        # Send captcha to user's DM
-        await initiate_captcha(user, chat, is_join_request=True)
+        await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
+        await aredis.set(join_request_message_key, sent_message.message_id, ex=172800)
