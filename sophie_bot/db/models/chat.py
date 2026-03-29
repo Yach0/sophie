@@ -47,6 +47,13 @@ class UserInGroupModel(Document):
                 ],
                 unique=False,
             ),  # TODO: Should be unique but has duplicates
+            IndexModel(
+                [
+                    ("user.id", ASCENDING),
+                    ("group.id", ASCENDING),
+                ],
+                unique=False,
+            )
         ]
 
     @staticmethod
