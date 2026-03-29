@@ -79,7 +79,12 @@ class TestMetricsMiddleware:
         handler = AsyncMock(return_value="success")
         data = {}
 
-        result = await middleware(handler, mock_update, data)
+        with (
+            patch("sophie_bot.metrics.middleware.count_metric") as count_metric_mock,
+            patch("sophie_bot.metrics.middleware.change_gauge_metric") as change_gauge_metric_mock,
+            patch("sophie_bot.metrics.middleware.distribution_metric") as distribution_metric_mock,
+        ):
+            result = await middleware(handler, mock_update, data)
 
         # Check that handler was called
         handler.assert_called_once_with(mock_update, data)
@@ -91,6 +96,9 @@ class TestMetricsMiddleware:
         mock_metrics.inflight_handlers.inc.assert_called_once()
         mock_metrics.inflight_handlers.dec.assert_called_once()
         mock_metrics.handler_duration_seconds.labels.assert_called_once()
+        assert count_metric_mock.call_count == 2
+        assert change_gauge_metric_mock.call_count == 2
+        distribution_metric_mock.assert_called_once()
 
         # Check no error metrics
         mock_metrics.handler_errors_total.labels.assert_not_called()
@@ -102,7 +110,12 @@ class TestMetricsMiddleware:
         handler = AsyncMock(side_effect=test_exception)
         data = {}
 
-        with pytest.raises(ValueError, match="Test error"):
+        with (
+            patch("sophie_bot.metrics.middleware.count_metric") as count_metric_mock,
+            patch("sophie_bot.metrics.middleware.change_gauge_metric") as change_gauge_metric_mock,
+            patch("sophie_bot.metrics.middleware.distribution_metric") as distribution_metric_mock,
+            pytest.raises(ValueError, match="Test error"),
+        ):
             await middleware(handler, mock_update, data)
 
         # Check error metrics were recorded
@@ -115,6 +128,9 @@ class TestMetricsMiddleware:
 
         # Check duration was still recorded
         mock_metrics.handler_duration_seconds.labels.assert_called_once()
+        assert count_metric_mock.call_count == 3
+        assert change_gauge_metric_mock.call_count == 2
+        distribution_metric_mock.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_sampling_skip(self, mock_metrics: MagicMock, mock_config: MagicMock, mock_update: Update):

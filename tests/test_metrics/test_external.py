@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from sophie_bot.metrics.external import (
@@ -55,34 +56,46 @@ class TestExternalServiceInstrumentation:
     @pytest.mark.asyncio
     async def test_time_external_service_success(self, mock_metrics: MagicMock):
         """Test successful external service timing"""
-        async with time_external_service("test_service"):
-            await asyncio.sleep(0.01)  # Simulate some work
+        with (
+            patch("sophie_bot.metrics.external.distribution_metric") as distribution_metric_mock,
+            patch("sophie_bot.metrics.external.count_metric") as count_metric_mock,
+        ):
+            async with time_external_service("test_service"):
+                await asyncio.sleep(0.01)  # Simulate some work
 
         # Check that duration was recorded
         mock_metrics.external_request_duration_seconds.labels.assert_called_once_with(service="test_service")
         mock_metrics.external_request_duration_seconds.labels.return_value.observe.assert_called_once()
+        distribution_metric_mock.assert_called_once()
 
         # Check that no error was recorded
         mock_metrics.external_errors_total.labels.assert_not_called()
+        count_metric_mock.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_time_external_service_exception(self, mock_metrics: MagicMock):
         """Test external service timing with exception"""
         test_exception = ValueError("Test error")
 
-        with pytest.raises(ValueError, match="Test error"):
+        with (
+            patch("sophie_bot.metrics.external.distribution_metric") as distribution_metric_mock,
+            patch("sophie_bot.metrics.external.count_metric") as count_metric_mock,
+            pytest.raises(ValueError, match="Test error"),
+        ):
             async with time_external_service("test_service"):
                 raise test_exception
 
         # Check that duration was recorded
         mock_metrics.external_request_duration_seconds.labels.assert_called_once_with(service="test_service")
         mock_metrics.external_request_duration_seconds.labels.return_value.observe.assert_called_once()
+        distribution_metric_mock.assert_called_once()
 
         # Check that error was recorded
         mock_metrics.external_errors_total.labels.assert_called_once_with(
             service="test_service", exception="ValueError"
         )
         mock_metrics.external_errors_total.labels.return_value.inc.assert_called_once()
+        count_metric_mock.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_time_external_service_disabled(self, mock_config: MagicMock, mock_metrics: MagicMock):
@@ -198,37 +211,49 @@ class TestExternalServiceTracker:
         """Test manual tracker for successful operation"""
         tracker = create_service_tracker("manual_service")
 
-        tracker.start()
-        # Simulate some work
-        import time
+        with (
+            patch("sophie_bot.metrics.external.distribution_metric") as distribution_metric_mock,
+            patch("sophie_bot.metrics.external.count_metric") as count_metric_mock,
+        ):
+            tracker.start()
+            # Simulate some work
+            import time
 
-        time.sleep(0.001)
-        tracker.finish()
+            time.sleep(0.001)
+            tracker.finish()
 
         # Check metrics were recorded
         mock_metrics.external_request_duration_seconds.labels.assert_called_once_with(service="manual_service")
         mock_metrics.external_request_duration_seconds.labels.return_value.observe.assert_called_once()
+        distribution_metric_mock.assert_called_once()
 
         # Check no error was recorded
         mock_metrics.external_errors_total.labels.assert_not_called()
+        count_metric_mock.assert_not_called()
 
     def test_tracker_with_exception(self, mock_metrics: MagicMock):
         """Test manual tracker with exception"""
         tracker = create_service_tracker("manual_service")
         test_exception = ValueError("Test error")
 
-        tracker.start()
-        tracker.finish(test_exception)
+        with (
+            patch("sophie_bot.metrics.external.distribution_metric") as distribution_metric_mock,
+            patch("sophie_bot.metrics.external.count_metric") as count_metric_mock,
+        ):
+            tracker.start()
+            tracker.finish(test_exception)
 
         # Check duration was recorded
         mock_metrics.external_request_duration_seconds.labels.assert_called_once_with(service="manual_service")
         mock_metrics.external_request_duration_seconds.labels.return_value.observe.assert_called_once()
+        distribution_metric_mock.assert_called_once()
 
         # Check error was recorded
         mock_metrics.external_errors_total.labels.assert_called_once_with(
             service="manual_service", exception="ValueError"
         )
         mock_metrics.external_errors_total.labels.return_value.inc.assert_called_once()
+        count_metric_mock.assert_called_once()
 
     def test_tracker_without_start(self, mock_metrics: MagicMock):
         """Test tracker finish without start (should not crash)"""

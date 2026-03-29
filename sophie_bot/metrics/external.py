@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import functools
 import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar
 
 from sophie_bot.config import CONFIG
+from sophie_bot.services.sentry_metrics import count_metric, distribution_metric
 from sophie_bot.utils.logger import log
 
 # Global metrics instance - will be set during initialization
@@ -43,10 +45,20 @@ async def time_external_service(service_name: str) -> AsyncGenerator[None, None]
 
         # Record duration
         _metrics.external_request_duration_seconds.labels(service=service_name).observe(duration)
+        distribution_metric(
+            "sophie.external_request.duration",
+            duration,
+            attributes={"service": service_name},
+            unit="second",
+        )
 
         # Record error if there was an exception
         if exception_occurred:
             _metrics.external_errors_total.labels(service=service_name, exception=exception_name).inc()
+            count_metric(
+                "sophie.external_errors",
+                attributes={"service": service_name, "exception": exception_name},
+            )
 
             log.debug(
                 "External service error tracked", service=service_name, exception_type=exception_name, duration=duration
@@ -87,13 +99,20 @@ def instrument_external_service(service_name: str):
 
                 # Record duration
                 _metrics.external_request_duration_seconds.labels(service=service_name).observe(duration)
+                distribution_metric(
+                    "sophie.external_request.duration",
+                    duration,
+                    attributes={"service": service_name},
+                    unit="second",
+                )
 
                 # Record error if there was an exception
                 if exception_occurred:
                     _metrics.external_errors_total.labels(service=service_name, exception=exception_name).inc()
-
-        # Return appropriate wrapper based on whether function is async
-        import asyncio
+                    count_metric(
+                        "sophie.external_errors",
+                        attributes={"service": service_name, "exception": exception_name},
+                    )
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
@@ -172,11 +191,21 @@ class ExternalServiceTracker:
 
         # Record duration
         _metrics.external_request_duration_seconds.labels(service=self.service_name).observe(duration)
+        distribution_metric(
+            "sophie.external_request.duration",
+            duration,
+            attributes={"service": self.service_name},
+            unit="second",
+        )
 
         # Record error if there was an exception
         if exception:
             exception_name = type(exception).__name__
             _metrics.external_errors_total.labels(service=self.service_name, exception=exception_name).inc()
+            count_metric(
+                "sophie.external_errors",
+                attributes={"service": self.service_name, "exception": exception_name},
+            )
 
             log.debug(
                 "External service error tracked manually",

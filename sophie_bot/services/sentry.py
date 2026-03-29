@@ -16,8 +16,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+
 import sentry_sdk
+from sentry_sdk.integrations import Integration
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
@@ -28,14 +32,28 @@ from sophie_bot.utils.logger import log
 from sophie_bot.versions import SOPHIE_VERSION
 
 
-def init_sentry():
+def init_sentry() -> None:
     log.info("Starting sentry.io integraion...")
+
+    integrations: list[Integration] = [RedisIntegration(), AioHttpIntegration(), PyMongoIntegration()]
+
+    if CONFIG.sentry_enable_logs:
+        integrations.append(
+            LoggingIntegration(
+                level=logging.INFO,
+                event_level=logging.ERROR,
+                sentry_logs_level=logging.INFO,
+            )
+        )
 
     sentry_sdk.init(
         str(CONFIG.sentry_url),
-        integrations=[RedisIntegration(), AioHttpIntegration(), PyMongoIntegration()],
+        integrations=integrations,
         environment=f"{CONFIG.environment}_{SOPHIE_MODE}",
         release=SOPHIE_VERSION,
         ignore_errors=IGNORED_EXCEPTIONS,
         default_integrations=False,
+        enable_logs=CONFIG.sentry_enable_logs,
+        traces_sample_rate=CONFIG.sentry_traces_sample_rate,
+        profiles_sample_rate=CONFIG.sentry_profiles_sample_rate,
     )

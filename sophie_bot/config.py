@@ -84,6 +84,10 @@ class Config(BaseSettings):
     commands_ignore_code: bool = True
 
     sentry_url: Optional[AnyHttpUrl] = None
+    sentry_enable_logs: bool = True
+    sentry_enable_metrics: bool = True
+    sentry_traces_sample_rate: float | None = 0.1
+    sentry_profiles_sample_rate: float | None = None
 
     devs_managed_languages: List[str] = ["en_US"]
     # A list of languages that are managed by developers; Will disable

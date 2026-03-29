@@ -16,6 +16,7 @@ from aiogram.types import (
 )
 
 from sophie_bot.metrics.prom import SophieMetrics
+from sophie_bot.services.sentry_metrics import change_gauge_metric, count_metric, distribution_metric
 from sophie_bot.utils.logger import log
 
 
@@ -49,13 +50,23 @@ class MetricsMiddleware(BaseMiddleware):
             chat_type=update_info["chat_type"],
             transport=update_info["transport"],
         ).inc()
+        count_metric(
+            "sophie.updates",
+            attributes={
+                "update_type": update_info["update_type"],
+                "chat_type": update_info["chat_type"],
+                "transport": update_info["transport"],
+            },
+        )
 
         # Increment message counter if it's a message
         if update_info["message_kind"]:
             self.metrics.messages_total.labels(message_kind=update_info["message_kind"]).inc()
+            count_metric("sophie.messages", attributes={"message_kind": update_info["message_kind"]})
 
         # Track inflight handlers
         self.metrics.inflight_handlers.inc()
+        change_gauge_metric("sophie.inflight_handlers", 1)
 
         # Measure handler duration
         start_time = time.perf_counter()
@@ -69,6 +80,10 @@ class MetricsMiddleware(BaseMiddleware):
             # Track handler errors
             exception_name = type(e).__name__
             self.metrics.handler_errors_total.labels(handler=handler_name, exception=exception_name).inc()
+            count_metric(
+                "sophie.handler_errors",
+                attributes={"handler": handler_name, "exception": exception_name},
+            )
 
             log.debug("Handler error tracked", handler=handler_name, exception_type=exception_name, error=str(e))
 
@@ -78,10 +93,17 @@ class MetricsMiddleware(BaseMiddleware):
         finally:
             # Always decrement inflight handlers and record duration
             self.metrics.inflight_handlers.dec()
+            change_gauge_metric("sophie.inflight_handlers", -1)
 
             # Record handler duration
             duration = time.perf_counter() - start_time
             self.metrics.handler_duration_seconds.labels(handler=handler_name).observe(duration)
+            distribution_metric(
+                "sophie.handler.duration",
+                duration,
+                attributes={"handler": handler_name},
+                unit="second",
+            )
 
     def _extract_update_info(self, event: TelegramObject, data: Dict[str, Any]) -> Dict[str, Optional[str]]:
         """Extract update information for labeling"""

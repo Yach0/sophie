@@ -6,6 +6,7 @@ import time
 from typing import Any, Optional
 
 from sophie_bot.metrics.prom import SophieMetrics
+from sophie_bot.services.sentry_metrics import set_gauge_metric
 from sophie_bot.utils.logger import log
 
 
@@ -95,6 +96,7 @@ async def _monitor_event_loop_lag(metrics: SophieMetrics) -> None:
 
             # Update gauge
             metrics.event_loop_lag_seconds.set(lag)
+            set_gauge_metric("sophie.event_loop.lag", lag, unit="second")
 
             # Log excessive lag
             if lag > 1.0:

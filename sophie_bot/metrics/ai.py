@@ -8,6 +8,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
 from sophie_bot.config import CONFIG
+from sophie_bot.services.sentry_metrics import change_gauge_metric, count_metric, distribution_metric
 from sophie_bot.utils.logger import log
 
 # Global metrics instance - will be set during initialization
@@ -64,6 +65,10 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
 
     # Increment request counter
     _metrics.ai_requests_total.labels(provider=provider, model=model_name, operation=operation).inc()
+    count_metric(
+        "sophie.ai.requests",
+        attributes={"provider": provider, "model": model_name, "operation": operation},
+    )
 
     error_type = "unknown"
 
@@ -76,6 +81,10 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
         _metrics.ai_errors_total.labels(
             provider=provider, model=model_name, error_type=error_type, operation=operation
         ).inc()
+        count_metric(
+            "sophie.ai.errors",
+            attributes={"provider": provider, "model": model_name, "error_type": error_type, "operation": operation},
+        )
 
         log.debug(
             "AI request error tracked", provider=provider, model=model_name, operation=operation, error=error_type
@@ -86,6 +95,12 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
         duration = time.perf_counter() - start_time
         _metrics.ai_request_duration_seconds.labels(provider=provider, model=model_name, operation=operation).observe(
             duration
+        )
+        distribution_metric(
+            "sophie.ai.request.duration",
+            duration,
+            attributes={"provider": provider, "model": model_name, "operation": operation},
+            unit="second",
         )
 
 
@@ -102,14 +117,29 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
         _metrics.ai_tokens_total.labels(provider=provider, model=model_name, token_type="request").inc(
             usage.request_tokens
         )
+        count_metric(
+            "sophie.ai.tokens",
+            usage.request_tokens,
+            attributes={"provider": provider, "model": model_name, "token_type": "request"},
+        )
 
     if usage.response_tokens:
         _metrics.ai_tokens_total.labels(provider=provider, model=model_name, token_type="response").inc(
             usage.response_tokens
         )
+        count_metric(
+            "sophie.ai.tokens",
+            usage.response_tokens,
+            attributes={"provider": provider, "model": model_name, "token_type": "response"},
+        )
 
     if usage.total_tokens:
         _metrics.ai_tokens_total.labels(provider=provider, model=model_name, token_type="total").inc(usage.total_tokens)
+        count_metric(
+            "sophie.ai.tokens",
+            usage.total_tokens,
+            attributes={"provider": provider, "model": model_name, "token_type": "total"},
+        )
 
 
 @asynccontextmanager
@@ -131,10 +161,12 @@ async def track_ai_tool(tool_name: str) -> AsyncGenerator[None, None]:
     finally:
         # Track tool call
         _metrics.ai_tool_calls_total.labels(tool_name=tool_name, status=status).inc()
+        count_metric("sophie.ai.tool_calls", attributes={"tool_name": tool_name, "status": status})
 
         # Track tool duration
         duration = time.perf_counter() - start_time
         _metrics.ai_tool_duration_seconds.labels(tool_name=tool_name).observe(duration)
+        distribution_metric("sophie.ai.tool.duration", duration, attributes={"tool_name": tool_name}, unit="second")
 
 
 def track_active_conversation_start() -> None:
@@ -143,6 +175,7 @@ def track_active_conversation_start() -> None:
         return
 
     _metrics.ai_active_conversations.inc()
+    change_gauge_metric("sophie.ai.active_conversations", 1)
 
 
 def track_active_conversation_end() -> None:
@@ -151,6 +184,7 @@ def track_active_conversation_end() -> None:
         return
 
     _metrics.ai_active_conversations.dec()
+    change_gauge_metric("sophie.ai.active_conversations", -1)
 
 
 class AIConversationTracker:
