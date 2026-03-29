@@ -151,7 +151,7 @@ msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
 #: sophie_bot/modules/ai/__init__.py:70
-msgid "Please note that you can make a limited amount of AI requests per day."
+msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
 #: sophie_bot/modules/ai/__init__.py:71
@@ -273,37 +273,6 @@ msgstr ""
 msgid "Please use \"{cmd}\" to activate them."
 msgstr ""
 
-#: sophie_bot/modules/ai/filters/quota.py:42
-#: sophie_bot/modules/ai/filters/quota.py:75
-msgid "AI Quota Exhausted"
-msgstr ""
-
-#: sophie_bot/modules/ai/filters/quota.py:44
-#, python-brace-format
-msgid "This chat has used all {total} credits for this month."
-msgstr ""
-
-#: sophie_bot/modules/ai/filters/quota.py:47
-#, python-brace-format
-msgid "Quota resets on {date}."
-msgstr ""
-
-#: sophie_bot/modules/ai/filters/quota.py:48
-#: sophie_bot/modules/ai/filters/quota.py:77
-#, python-brace-format
-msgid "Run {cmd} to check usage details."
-msgstr ""
-
-#: sophie_bot/modules/ai/filters/quota.py:76
-#, python-brace-format
-msgid "AI features are disabled till {date}."
-msgstr ""
-
-#: sophie_bot/modules/ai/filters/throttle.py:25
-#, python-brace-format
-msgid "{emoji} AI Quota Exhausted. Quota resets on {date}."
-msgstr ""
-
 #: sophie_bot/modules/ai/fsm/pm.py:13
 msgid "🛑 Exit AI mode"
 msgstr ""
@@ -317,7 +286,6 @@ msgid "⚙️ AI Provider"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:19
-#: sophie_bot/modules/ai/handlers/aisave.py:33
 #: sophie_bot/modules/ai/handlers/mode.py:15
 msgid "Prompt"
 msgstr ""
@@ -427,30 +395,6 @@ msgstr ""
 msgid "Provider updated"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aisave.py:35
-msgid "Generate a new note using AI"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aisave.py:44
-#, python-brace-format
-msgid "{ai_emoji} Generating..."
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aisave.py:54
-msgid "AI Generation failed, note already exists! Please try again."
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aisave.py:63
-#, python-brace-format
-msgid "{ai_emoji} Note was successfully generated"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aisave.py:66
-#: sophie_bot/modules/notes/handlers/save.py:70
-#, python-brace-format
-msgid "Use {cmd} to retrieve this note."
-msgstr ""
-
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
 msgid "Controls AI Auto translator"
 msgstr ""
@@ -460,30 +404,30 @@ msgid "Controls AI features"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/filter.py:23
-#: sophie_bot/modules/ai/magic_handlers/filter.py:22
+#: sophie_bot/modules/ai/magic_handlers/filter.py:23
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:47
 msgid "Please send me the AI instruction to proceed!"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/filter.py:24
-#: sophie_bot/modules/ai/magic_handlers/filter.py:23
+#: sophie_bot/modules/ai/magic_handlers/filter.py:24
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:48
 msgid "The AI will try to remember the chat context and will respond accordingly!"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/filter.py:26
-#: sophie_bot/modules/ai/magic_handlers/filter.py:25
+#: sophie_bot/modules/ai/magic_handlers/filter.py:26
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:49
 msgid "For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/filter.py:36
-#: sophie_bot/modules/ai/magic_handlers/filter.py:35
+#: sophie_bot/modules/ai/magic_handlers/filter.py:36
 msgid "Should be AI prompt, please try again!"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/filter.py:71
-#: sophie_bot/modules/ai/magic_handlers/filter.py:70
+#: sophie_bot/modules/ai/magic_handlers/filter.py:71
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:99
 #, python-brace-format
 msgid "{ai_emoji} AI Response"
@@ -493,95 +437,113 @@ msgstr ""
 msgid "Generates a new AI mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:20
+#: sophie_bot/modules/ai/handlers/op_prices.py:48
+msgid "default chat"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:50
+msgid "default translate"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:71
+msgid "AI Prices"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:72
+msgid "Prices are shown as approximate USD per 1M input/output tokens."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:21
 msgid "Monthly credit amount"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:22
+#: sophie_bot/modules/ai/handlers/op_quota.py:23
 msgid "Set monthly AI quota for a chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:33
-msgid "Credits must be a positive number."
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_quota.py:40
-msgid "AI Quota Updated"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_quota.py:42
-msgid "Monthly credits"
+#: sophie_bot/modules/ai/handlers/op_quota.py:35
+#, python-brace-format
+msgid "{credit_emoji} amount must be a positive number."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:43
-#: sophie_bot/modules/ai/handlers/usage.py:53
+msgid "AI Quota Updated"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:45
+msgid "Monthly quota"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:47
+#: sophie_bot/modules/ai/handlers/usage.py:59
 msgid "Remaining"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:44
+#: sophie_bot/modules/ai/handlers/op_quota.py:50
 #, python-brace-format
 msgid "New quota for {chat}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:50
+#: sophie_bot/modules/ai/handlers/op_quota.py:56
 msgid "Reset AI quota usage for a chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:62
+#: sophie_bot/modules/ai/handlers/op_quota.py:68
 msgid "AI Quota Reset"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:63
+#: sophie_bot/modules/ai/handlers/op_quota.py:69
 msgid "Quota usage has been reset for this period."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_quota.py:65
+#: sophie_bot/modules/ai/handlers/op_quota.py:71
 #, python-brace-format
 msgid "New remaining: {remaining}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:31
+#: sophie_bot/modules/ai/handlers/op_stats.py:33
+#: sophie_bot/modules/ai/handlers/op_stats.py:52
 msgid "No data"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:38
-msgid "Today"
+#: sophie_bot/modules/ai/handlers/op_stats.py:59
+msgid "Requests today"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:39
-msgid "This week"
+#: sophie_bot/modules/ai/handlers/op_stats.py:60
+msgid "Requests this week"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:40
-msgid "This month"
+#: sophie_bot/modules/ai/handlers/op_stats.py:61
+msgid "Requests this month"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:41
+#: sophie_bot/modules/ai/handlers/op_stats.py:62
+msgid "Credits this month"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_stats.py:63
 msgid "AI usage"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:43
-msgid "Top chats — today"
+#: sophie_bot/modules/ai/handlers/op_stats.py:65
+msgid "Top chats by requests"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:44
-msgid "Top chats — this week"
+#: sophie_bot/modules/ai/handlers/op_stats.py:66
+msgid "Top chats by credits"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:45
-msgid "Top chats — this month"
+#: sophie_bot/modules/ai/handlers/op_stats.py:67
+msgid "Top users by requests"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:46
-msgid "Top users — today"
+#: sophie_bot/modules/ai/handlers/op_stats.py:68
+msgid "Top users by credits"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:47
-msgid "Top users — this week"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_stats.py:48
-msgid "Top users — this month"
+#: sophie_bot/modules/ai/handlers/op_stats.py:69
+msgid "Top features this month"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/pm.py:26
@@ -622,98 +584,102 @@ msgstr ""
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:43
+#: sophie_bot/modules/ai/handlers/translate.py:45
 msgid "Text to translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:50
+#: sophie_bot/modules/ai/handlers/translate.py:52
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/translate.py:83
+msgid "Please provide text to translate."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/translate.py:91
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:91
+#: sophie_bot/modules/ai/handlers/translate.py:99
 msgid "You're a professional AI translator / transcriber."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:93
+#: sophie_bot/modules/ai/handlers/translate.py:101
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:98
+#: sophie_bot/modules/ai/handlers/translate.py:106
 msgid "Set translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:130
+#: sophie_bot/modules/ai/handlers/translate.py:138
 msgid "Error generating translation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:144
+#: sophie_bot/modules/ai/handlers/translate.py:158
 msgid "Auto Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:144
+#: sophie_bot/modules/ai/handlers/translate.py:158
 msgid "Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:145
+#: sophie_bot/modules/ai/handlers/translate.py:159
 msgid "Voice"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:150
+#: sophie_bot/modules/ai/handlers/translate.py:165
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:160
+#: sophie_bot/modules/ai/handlers/translate.py:175
 msgid "Translation Notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/usage.py:18
+#: sophie_bot/modules/ai/handlers/usage.py:19
 msgid "Check AI quota and usage details"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/usage.py:31
+#: sophie_bot/modules/ai/handlers/usage.py:32
 msgid "AI quota information is not available yet."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/usage.py:47
+#: sophie_bot/modules/ai/handlers/usage.py:49
 msgid "AI Usage"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/usage.py:49
-msgid "Credits used"
+#: sophie_bot/modules/ai/handlers/usage.py:51
+msgid "Usage"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/usage.py:50
+#: sophie_bot/modules/ai/handlers/usage.py:53
 #, python-brace-format
 msgid "{used} out of {total}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/usage.py:55
+#: sophie_bot/modules/ai/handlers/usage.py:61
 #, python-brace-format
-msgid "{remaining_credits} credits ({percentage_remaining}%)"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/usage.py:60
-msgid "Resets"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/usage.py:64
-msgid "Feature breakdown"
+msgid "{remaining_credits} ({percentage_remaining}%)"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/usage.py:66
-msgid "No credit usage data available yet"
+msgid "Resets"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/usage.py:70
+msgid "Feature breakdown"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/usage.py:72
+msgid "No credit usage data available yet"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/usage.py:76
 #, python-brace-format
 msgid "Quota exhausted! AI features are disabled until {date}."
 msgstr ""
@@ -793,45 +759,50 @@ msgstr[1] ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:51
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
 msgid "Memory updated 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:53
 msgid "Memory forgotten 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:53
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
 msgid "Commands help 📋"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
 msgid "Internet Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:106
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:83
 msgid "You can use Tavily to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:107
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:84
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:109
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:86
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:111
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:88
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:116
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:93
 msgid "You have the following information in your memory"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_header.py:21
+#, python-brace-format
+msgid "{credit_emoji} Quota {percentage}%"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_moderator.py:18
@@ -868,6 +839,32 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_moderator.py:36
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:15
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:27
+msgid "AI Quota Exhausted"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:17
+#, python-brace-format
+msgid "This chat has used all {total} for this month."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:20
+#, python-brace-format
+msgid "Quota resets on {date}."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:21
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:29
+#, python-brace-format
+msgid "Run {cmd} to check usage details."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:28
+#, python-brace-format
+msgid "AI features are disabled till {date}."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/new_message_history.py:86
@@ -4173,6 +4170,11 @@ msgstr ""
 msgid "Note was successfully updated"
 msgstr ""
 
+#: sophie_bot/modules/notes/handlers/save.py:70
+#, python-brace-format
+msgid "Use {cmd} to retrieve this note."
+msgstr ""
+
 #: sophie_bot/modules/notes/handlers/search.py:18
 msgid "Text to search"
 msgstr ""
@@ -5389,7 +5391,7 @@ msgstr ""
 msgid "Setting configuration not available."
 msgstr ""
 
-#: sophie_bot/modules/utils_/reply_or_edit.py:11
+#: sophie_bot/modules/utils_/reply_or_edit.py:14
 #: sophie_bot/utils/handlers.py:84 sophie_bot/utils/handlers.py:103
 #: sophie_bot/utils/handlers.py:105 sophie_bot/utils/handlers.py:114
 msgid "The message is inaccessible. Please write the command again"
@@ -5772,15 +5774,15 @@ msgstr ""
 msgid "Welcome Captcha"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:51
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:58
 msgid "It seems like you do not have to pass the welcome security authentication"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:63
 msgid "It seems like you are not belong to the chat anymore. Are you sure you joined the group?"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:62
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:69
 msgid "You already an admin in the chat, therefore you don't need to pass the authentication!"
 msgstr ""
 

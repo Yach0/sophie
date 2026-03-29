@@ -29,12 +29,6 @@ icon: 📗
 | `/save` `/addnote` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
 | `/clearall` | - | Deletes all notes. |  |
 {.card-view-on-mobile}
-
-### Aliased commands from [✨ Sophie AI](ai)
-
-| Commands | Arguments | Description | Remarks |
-| --- | --- | --- | --- |
-| `/aisave` | `<Prompt>` | Generate a new note using AI |  |
 ---
 # Features
 

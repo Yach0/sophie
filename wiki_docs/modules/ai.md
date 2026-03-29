@@ -8,7 +8,7 @@ icon: ✨
 > From a simple chat-bot, to the automatic translator. Have fun. \
 >   \
 > By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used. \
-> Please note that you can make a limited amount of AI requests per day. \
+> Please note that each chat has a limited monthly AI quota. \
 > Use /aiusage to check your remaining quota.
 
 ## Available commands
@@ -38,6 +38,5 @@ icon: ✨
 | `/aimoderator` | `<?New status>` | Controls AI Moderator features |  |
 | `/aiautotranslate` `/autotranslate` | `<?New status>` | Controls AI Auto translator |  |
 | `/aiprovider` | - | Select the AI Provider for this chat |  |
-| `/aisave` | `<Prompt>` | Generate a new note using AI |  |
 | `/aireset` | - | Reset the chat's AI context and AI memory |  |
 {.card-view-on-mobile}
