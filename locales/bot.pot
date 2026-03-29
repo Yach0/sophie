@@ -668,40 +668,44 @@ msgstr[1] ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:44
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:48
 msgid "Memory updated 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:45
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:49
 msgid "Memory forgotten 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:46
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:50
 msgid "Commands help 📋"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:47
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:51
+msgid "Internet Search 🔍"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:113
-msgid "You can use OpenRouter web search to search for information. Include information sources as links."
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:103
+msgid "You can use Tavily to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:114
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:104
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:116
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:106
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:118
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:108
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:123
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:113
 msgid "You have the following information in your memory"
 msgstr ""
 
