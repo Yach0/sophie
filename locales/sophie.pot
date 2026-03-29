@@ -2,7 +2,7 @@
 msgid "Could not find the requested Chat ID in the database."
 msgstr ""
 
-#: sophie_bot/args/chats.py:36 sophie_bot/args/users.py:41
+#: sophie_bot/args/chats.py:36 sophie_bot/args/users.py:46
 msgid "Could not find the requested Username in the database."
 msgstr ""
 
@@ -18,7 +18,7 @@ msgstr ""
 msgid "Chat ID"
 msgstr ""
 
-#: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:78
+#: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:83
 #: sophie_bot/modules/users/handlers/info.py:52
 msgid "Username"
 msgstr ""
@@ -62,23 +62,27 @@ msgstr ""
 msgid "Block Russian language messages"
 msgstr ""
 
-#: sophie_bot/args/users.py:27
+#: sophie_bot/args/users.py:25
+msgid "Invalid user ID."
+msgstr ""
+
+#: sophie_bot/args/users.py:32
 msgid "Could not find the requested User ID in the database."
 msgstr ""
 
-#: sophie_bot/args/users.py:70
+#: sophie_bot/args/users.py:75
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr ""
 
-#: sophie_bot/args/users.py:71
+#: sophie_bot/args/users.py:76
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr ""
 
-#: sophie_bot/args/users.py:77
+#: sophie_bot/args/users.py:82
 msgid "User ID"
 msgstr ""
 
-#: sophie_bot/args/users.py:80
+#: sophie_bot/args/users.py:85
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
@@ -2747,26 +2751,30 @@ msgstr ""
 msgid "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:127
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:122
+msgid "Provided regex pattern is invalid. Please check the syntax and try again."
+msgstr ""
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:134
 #, python-brace-format
 msgid "When AI detects: {prompt}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:130
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:137
 #, python-brace-format
 msgid "When messages matches the regex pattern {pattern}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:132
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:139
 #, python-brace-format
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:142
+#: sophie_bot/modules/filters/utils_/match_legacy.py:145
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:149
+#: sophie_bot/modules/filters/utils_/match_legacy.py:152
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -2774,7 +2782,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:151
+#: sophie_bot/modules/filters/utils_/match_legacy.py:154
 msgid "(no text content)"
 msgstr ""
 
@@ -3903,6 +3911,10 @@ msgstr ""
 #: sophie_bot/modules/notes/handlers/get.py:35
 #, python-brace-format
 msgid "No note was found with {name} name."
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/legacy_button.py:40
+msgid "This note no longer exists."
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:19
@@ -5626,7 +5638,7 @@ msgstr ""
 msgid "? Action time"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:54
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:55
 #, python-brace-format
 msgid "Enabled, set to {time}"
 msgstr ""

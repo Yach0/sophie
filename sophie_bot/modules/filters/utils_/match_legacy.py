@@ -114,8 +114,11 @@ async def match_ai_handler(
 
     # Limit AI filters to users who joined recently
     if user_in_group:
-        joined_after_threshold = datetime.now() - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
-        if user_in_group.first_saw < joined_after_threshold:
+        joined_after_threshold = datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
+        first_saw = user_in_group.first_saw
+        if first_saw.tzinfo is None:
+            first_saw = first_saw.replace(tzinfo=timezone.utc)
+        if first_saw < joined_after_threshold:
             log.debug(
                 "match_ai_handler: user joined before AI threshold, skipping AI evaluation",
                 first_saw=user_in_group.first_saw,

@@ -8,8 +8,9 @@ from stfu_tg import Bold, HList, Title
 
 from sophie_bot.db.models import NoteModel, ChatModel
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import gettext as _
 
 
 class LegacyStartNoteButton(SophieMessageHandler):
@@ -36,7 +37,8 @@ class LegacyStartNoteButton(SophieMessageHandler):
         note = await NoteModel.get_by_notenames(chat.iid, (note_name,))
 
         if not note:
-            raise SophieException("No such note")
+            await message.reply(_("This note no longer exists."))
+            return
 
         title = Bold(HList(Title(f"📗 #{note_name}", bold=False), note.description or ""))
 

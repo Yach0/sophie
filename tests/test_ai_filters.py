@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -16,7 +16,7 @@ from sophie_bot.services.redis import aredis
 @pytest.mark.asyncio
 async def test_match_ai_handler_skips_users_older_than_24_hours() -> None:
     message = AsyncMock(spec=Message)
-    user_in_group = SimpleNamespace(first_saw=datetime.now() - timedelta(hours=25))
+    user_in_group = SimpleNamespace(first_saw=datetime.now(timezone.utc) - timedelta(hours=25))
 
     with (
         patch("sophie_bot.modules.filters.utils_.match_legacy.is_enabled", AsyncMock(return_value=True)),

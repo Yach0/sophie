@@ -71,7 +71,10 @@ class I18nNew(I18n):
 
     @property
     def current_locale_babel(self) -> Locale:
-        return self.babels[self.ctx_locale.get()]
+        locale_code = self.ctx_locale.get()
+        if locale_code not in self.babels:
+            locale_code = self.default_locale
+        return self.babels[locale_code]
 
     def locale_display(self, locale: Locale) -> str:
         return f"{flag(locale.territory or '')} {locale.display_name}"

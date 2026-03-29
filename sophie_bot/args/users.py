@@ -10,6 +10,8 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
+TELEGRAM_USER_ID_MAX = (1 << 63) - 1
+
 
 class SophieUserIDArg(UserIDArg):
     def __init__(self, *args, allow_unknown_id: bool = False):
@@ -18,6 +20,9 @@ class SophieUserIDArg(UserIDArg):
 
     async def value(self, text: str) -> ChatModel:
         user_id: int = await super().value(text)
+
+        if user_id < 0 or user_id > TELEGRAM_USER_ID_MAX:
+            raise ArgStrictError(_("Invalid user ID."))
 
         # Find user
         try:

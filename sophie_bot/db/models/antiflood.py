@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Literal
 
 from beanie import Document, PydanticObjectId
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from ._link_type import Link
 from .chat import ChatModel
@@ -17,12 +17,22 @@ LEGACY_ACTIONS_TO_MODERN = {"mute": "mute_user", "kick": "kick_user", "ban": "ba
 class AntifloodModel(Document):
     chat: Link[ChatModel]
     enabled: Optional[bool] = True
-    message_count: int = Field(default=5, ge=1, le=100)  # Number of messages in 30s window
+    message_count: int = Field(default=5, ge=1, le=100, alias="count")
     actions: list[FilterActionType] = []
     action: Optional[LEGACY_ACTION_TYPE] = None  # Legacy action
 
+    model_config = {"populate_by_name": True}
+
     class Settings:
         name = "antiflood"
+        bson_encoders = {}
+
+    @field_validator("message_count", mode="before")
+    @classmethod
+    def handle_legacy_count(cls, value: object) -> int:
+        if isinstance(value, int):
+            return value
+        return 5
 
     @model_validator(mode="after")
     def handle_legacy_actions(self) -> "AntifloodModel":

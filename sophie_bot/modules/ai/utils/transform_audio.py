@@ -10,7 +10,14 @@ from sophie_bot.services.bot import bot
 async def transform_voice_to_text(voice: Voice) -> str:
     downloaded_audio: Optional[BinaryIO] = await bot.download(voice.file_id)
 
-    audio_bytes = BufferedReader(BytesIO(downloaded_audio.read()))  # type: ignore
+    if downloaded_audio is None:
+        raise ValueError("Failed to download voice file")
+
+    raw_bytes = downloaded_audio.read()
+    if not raw_bytes:
+        raise ValueError("Downloaded voice file is empty")
+
+    audio_bytes = BufferedReader(BytesIO(raw_bytes))
 
     resp = await mistral_client.audio.transcriptions.complete_async(
         model="voxtral-mini-latest",

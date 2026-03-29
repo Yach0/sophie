@@ -115,6 +115,13 @@ async def check_legacy_filter_handler(
                 ),
             )
             return False
+        except regex.error:
+            log.info("check_legacy_filter_handler: invalid regex pattern")
+            await reply_or_edit(
+                event,
+                _("Provided regex pattern is invalid. Please check the syntax and try again."),
+            )
+            return False
 
     return True
 

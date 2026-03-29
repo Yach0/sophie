@@ -51,7 +51,9 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
         else:
             raise ValueError("Invalid status data type")
 
-        return Template(_("Enabled, set to {time}"), time=Italic(format_timedelta(delta, locale=locale)))
+        return Template(
+            _("Enabled, set to {time}"), time=Italic(format_timedelta(delta, locale=locale.replace("-", "_")))
+        )
 
     async def get_status(self) -> timedelta | Literal[False]:
         chat_iid = self.connection.db_model.iid
