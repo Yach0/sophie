@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class WarnResponse(BaseModel):
     id: str
     user_id: int
-    admin_id: int
+    admin_id: Optional[int] = None
     reason: Optional[str]
     date: str
 

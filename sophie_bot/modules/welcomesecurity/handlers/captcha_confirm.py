@@ -16,6 +16,7 @@ from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_
 from sophie_bot.modules.welcomesecurity.utils_.captcha_rules import captcha_send_rules
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.i18n import gettext as _
 
 
 class CaptchaConfirmHandler(SophieCallbackQueryHandler):
@@ -53,7 +54,8 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
                 chat_iid = self.callback_data.chat_iid
 
         if not chat_iid:
-            raise ValueError("No chat_iid found")
+            await self.event.answer(_("Captcha expired. Please try again."))
+            return
 
         chat_db = await ChatModel.get_by_iid(PydanticObjectId(chat_iid))
         if not chat_db:

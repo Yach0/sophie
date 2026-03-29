@@ -126,7 +126,7 @@ class FederationManageService:
         chat = await ChatModel.get_by_iid(chat_iid)
         if not chat:
             return
-        federation.log_chat = chat.id
+        federation.log_chat = chat
         await federation.save()
 
     @staticmethod

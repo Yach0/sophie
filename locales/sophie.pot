@@ -632,7 +632,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:135
 #: sophie_bot/modules/federations/handlers/ban.py:179
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
-#: sophie_bot/modules/reports/handlers/report.py:88
+#: sophie_bot/modules/reports/handlers/report.py:93
 #: sophie_bot/modules/restrictions/actions/ban.py:123
 #: sophie_bot/modules/restrictions/actions/kick.py:52
 #: sophie_bot/modules/restrictions/actions/mute.py:123
@@ -2441,17 +2441,17 @@ msgstr ""
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr ""
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:55
+#: sophie_bot/modules/federations/middlewares/check_fban.py:56
 #, python-brace-format
 msgid "{user} has been banned in the current federation <b>{fed_name}</b>."
 msgstr ""
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:62
+#: sophie_bot/modules/federations/middlewares/check_fban.py:63
 #, python-brace-format
 msgid "Banned via subscribed federation <b>{fed_name}</b>."
 msgstr ""
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:68
+#: sophie_bot/modules/federations/middlewares/check_fban.py:69
 #, python-brace-format
 msgid "Reason: {text}"
 msgstr ""
@@ -4513,28 +4513,28 @@ msgstr ""
 msgid "Admins will be notified about reported messages and can take appropriate action."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:15
+#: sophie_bot/modules/reports/handlers/report.py:16
 msgid "Reports the replied message."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:37
+#: sophie_bot/modules/reports/handlers/report.py:38
 msgid "You are an admin, you don't need to report."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:41
+#: sophie_bot/modules/reports/handlers/report.py:42
 msgid "You need to reply to a message to report it."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:46
+#: sophie_bot/modules/reports/handlers/report.py:47
 msgid "You cannot report an admin."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:76
+#: sophie_bot/modules/reports/handlers/report.py:81
 #, python-brace-format
 msgid "User {user} ({user_id}) has been reported!"
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:81
+#: sophie_bot/modules/reports/handlers/report.py:86
 msgid "Reported by"
 msgstr ""
 
@@ -5586,6 +5586,10 @@ msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/__init__.py:35
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:57
+msgid "Captcha expired. Please try again."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:76

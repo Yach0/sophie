@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from beanie import Document, PydanticObjectId
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from sophie_bot.constants import WARN_MAX_ACTIONS
 from sophie_bot.db.models._link_type import Link
@@ -111,9 +111,16 @@ class WarnSettingsModel(Document):
 class WarnModel(Document):
     chat: Link[ChatModel]
     user: Link[ChatModel]
-    admin: Link[ChatModel]
+    admin: Optional[Link[ChatModel]] = None
     reason: Optional[str] = None
     date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("admin", mode="before")
+    @classmethod
+    def _coerce_legacy_admin(cls, value: Any) -> Any:
+        if value is None or (isinstance(value, dict) and not value):
+            return None
+        return value
 
     class Settings:
         name = "warns"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiogram import F, Router, flags
+from beanie.odm.fields import Link as BeanieLink
 from stfu_tg import Code, Doc, HList, InvisibleSymbol, KeyValue, Template, UserLink
 
 from sophie_bot.db.models.chat import ChatModel
@@ -63,13 +64,17 @@ class ReportHandler(SophieMessageHandler):
         doc = Doc()
 
         # Mention admins
-        mentions = [
-            UserLink(admin.user.tid, InvisibleSymbol())
-            if hasattr(admin.user, "tid")
-            else UserLink(admin.user.chat_id, InvisibleSymbol())
-            for admin in admins
-            if admin.user
-        ]
+        mentions = []
+        for admin in admins:
+            if not admin.user:
+                continue
+            user = admin.user
+            if isinstance(user, BeanieLink):
+                user = await user.fetch()
+            if isinstance(user, BeanieLink):
+                continue
+            if hasattr(user, "tid"):
+                mentions.append(UserLink(user.tid, InvisibleSymbol()))
 
         # We add mentions right after this line, because if we add them at the last line, they would make the message bubble bigger
         doc += HList(

@@ -31,7 +31,7 @@ async def get_user_warns(
         WarnResponse(
             id=str(warn.id),
             user_id=user_tid,
-            admin_id=warn.admin.tid,
+            admin_id=warn.admin.tid if warn.admin else None,
             reason=warn.reason,
             date=warn.date.isoformat(),
         )

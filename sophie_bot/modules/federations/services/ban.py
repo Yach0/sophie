@@ -11,6 +11,8 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationExportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
+from beanie.odm.fields import Link as BeanieLink
+
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.manage import FederationManageService
@@ -249,12 +251,12 @@ class FederationBanService:
         if target_user_tid == CONFIG.bot_id:
             raise FederationBanValidationError("Cannot ban the bot")
         creator = await federation.creator.fetch()
-        if creator and target_user_tid == creator.tid:
+        if not isinstance(creator, BeanieLink) and creator and target_user_tid == creator.tid:
             raise FederationBanValidationError("Cannot ban the federation owner")
         if federation.admins:
             for admin_link in federation.admins:
                 admin = await admin_link.fetch()
-                if admin and target_user_tid == admin.tid:
+                if not isinstance(admin, BeanieLink) and admin and target_user_tid == admin.tid:
                     raise FederationBanValidationError("Cannot ban federation administrators")
 
     @staticmethod

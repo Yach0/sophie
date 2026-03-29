@@ -16,15 +16,16 @@ from sophie_bot.utils.logger import log
 class FedBanMiddleware(BaseMiddleware):
     async def is_fbanned(self, message: Message, data: Dict[str, Any]) -> bool:
         if message.sender_chat:
-            # should be channel/anon
             return False
         if message.chat.type not in {"group", "supergroup"}:
             return False
         if not message.from_user:
             return False
 
-        chat_db = data["chat_db"]
-        user_db = data["user_db"]
+        chat_db = data.get("chat_db")
+        user_db = data.get("user_db")
+        if not chat_db or not user_db:
+            return False
 
         user_id = user_db.tid
         user_name = message.from_user.first_name
