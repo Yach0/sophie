@@ -51,7 +51,7 @@ AI_BASE_INPUT_PRICE_PER_MILLION: Final[float] = 0.15
 AI_BASE_OUTPUT_PRICE_PER_MILLION: Final[float] = 0.60
 
 # Maximum number of AI filter handlers per chat
-AI_FILTER_LIMIT_PER_CHAT: Final[int] = 1
+AI_FILTER_LIMIT_PER_CHAT: Final[int] = 5
 
 # Maximum age of a newly joined user eligible for AI filter checks
 AI_FILTER_NEW_USER_MAX_AGE_HOURS: Final[int] = 48
