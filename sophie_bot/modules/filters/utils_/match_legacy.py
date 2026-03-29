@@ -91,7 +91,9 @@ async def consume_ai_filter_daily_quota(chat_tid: int) -> bool:
     return int(daily_count) <= AI_FILTER_DAILY_LIMIT_PER_CHAT
 
 
-async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInGroupModel | None = None) -> bool:
+async def match_ai_handler(
+    message: Message, prompt: str, user_in_group: UserInGroupModel | None = None, chat_iid: object | None = None
+) -> bool:
     """
     Match a message against AI-powered filter using Mistral Pixtral model.
 
@@ -166,7 +168,9 @@ async def match_ai_handler(message: Message, prompt: str, user_in_group: UserInG
         model = FILTER_HANDLER_MODEL()
         kwargs["model_settings"] = OpenRouterModelSettings(openrouter_reasoning={"effort": "low"})
 
-        result = await new_ai_generate_schema(history, AIFilterResponseSchema, model, **kwargs)
+        result = await new_ai_generate_schema(
+            history, AIFilterResponseSchema, model, user_tracking_id=chat_iid, **kwargs
+        )
 
         log.debug("match_ai_handler: AI evaluation", prompt=prompt, matches=result.matches, reasoning=result.reasoning)
 
@@ -183,13 +187,14 @@ async def match_legacy_handler(
     handler: str,
     user_in_group: UserInGroupModel | None = None,
     enable_lock_types: bool = True,
+    chat_iid: object | None = None,
 ) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler
     if handler.startswith("ai:"):
         log.debug(f"match_legacy_handler: ai: {handler}")
         prompt = handler[3:]
-        return await match_ai_handler(message, prompt, user_in_group=user_in_group)
+        return await match_ai_handler(message, prompt, user_in_group=user_in_group, chat_iid=chat_iid)
 
     if enable_lock_types and is_supported_lock_type(handler):
         from sophie_bot.modules.locks.utils.detect_lock import check_locks

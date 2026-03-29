@@ -62,6 +62,12 @@ def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -
     return [cast(Element, CHATBOT_TOOLS_TITLES[name]) for name in unique_tool_names]
 
 
+def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
+    if thread_id:
+        return f"{chat_iid}:{thread_id}"
+    return str(chat_iid)
+
+
 def get_chatbot_model_settings(model: Model) -> ModelSettings | None:
     if getattr(model, "system", None) != "openrouter":
         return None
@@ -148,6 +154,8 @@ async def ai_chatbot_reply(
                 agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
                 model_settings=model_settings,
                 on_text_stream=draft_streamer.stream,
+                user_tracking_id=connection.db_model.iid,
+                session_id=_build_session_id(connection.db_model.iid, message.message_thread_id),
             )
         else:
             result = await new_ai_generate(
@@ -156,6 +164,8 @@ async def ai_chatbot_reply(
                 model=model,
                 agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
                 model_settings=model_settings,
+                user_tracking_id=connection.db_model.iid,
+                session_id=_build_session_id(connection.db_model.iid, message.message_thread_id),
             )
 
         # Track AI usage metrics

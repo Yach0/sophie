@@ -88,7 +88,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         messages = await NewAIMessageHistory.chatbot(message, additional_system_prompt=filter_data.prompt)
         provider = await get_chat_default_model(connection.db_model.iid)
 
-        result = await new_ai_generate(messages, provider)
+        result = await new_ai_generate(messages, provider, user_tracking_id=chat_db.iid)
         return Doc(
             Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),
             PreformattedHTML(legacy_markdown_to_html(str(result.output))),

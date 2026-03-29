@@ -94,4 +94,6 @@ class AISaveNote(MessageHandler):
         messages = await NewAIMessageHistory.chatbot(self.event, custom_user_text=prompt)
         provider = await get_chat_default_model(self.data["connection"].iid)
 
-        return await new_ai_generate_schema(messages, AISaveResponseSchema, provider)
+        return await new_ai_generate_schema(
+            messages, AISaveResponseSchema, provider, user_tracking_id=self.data["connection"].db_model.iid
+        )

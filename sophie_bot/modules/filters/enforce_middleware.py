@@ -161,6 +161,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 fil.handler,
                 user_in_group=user_in_group,
                 enable_lock_types=fil.effective_version >= 2,
+                chat_iid=chat_db.iid,
             )
 
             if matched:

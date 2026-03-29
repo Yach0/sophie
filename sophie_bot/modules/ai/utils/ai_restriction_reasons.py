@@ -93,7 +93,9 @@ async def generate_restriction_reason(
         )
         history.add_custom(prompt, "Moderator")
 
-        result: AIReasonResponse = await new_ai_generate_schema(history, AIReasonResponse, MODERATION_REASON_MODEL())
+        result: AIReasonResponse = await new_ai_generate_schema(
+            history, AIReasonResponse, MODERATION_REASON_MODEL(), user_tracking_id=chat_db.iid
+        )
 
         # Clean up the reason
         reason = result.reason.strip()

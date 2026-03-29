@@ -107,7 +107,9 @@ class AiTranslate(SophieMessageHandler):
         model = await get_chat_translations_model(self.connection.db_model.iid)
 
         try:
-            translated = await new_ai_generate_schema(ai_context, AITranslateResponseSchema, model=model)
+            translated = await new_ai_generate_schema(
+                ai_context, AITranslateResponseSchema, model=model, user_tracking_id=self.connection.db_model.iid
+            )
         except ModelHTTPError as err:
             event_id = capture_sentry(err)
             if self.data.get("silent_error"):

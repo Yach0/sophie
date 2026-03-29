@@ -58,7 +58,9 @@ class NotesDescriptionsScheduler:
                         messages.add_custom(note.text, name=None)
 
                         model = await get_chat_default_model(chat.iid)
-                        generated_data = await new_ai_generate_schema(messages, AIUpdateNoteData, model)
+                        generated_data = await new_ai_generate_schema(
+                            messages, AIUpdateNoteData, model, user_tracking_id=chat.iid
+                        )
                         log.debug("- NotesDescriptionsScheduler: generated data", generated_data=generated_data)
 
                         note.description = generated_data.description

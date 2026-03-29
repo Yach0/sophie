@@ -16,12 +16,35 @@ RESPONSE_TYPE = TypeVar("RESPONSE_TYPE", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
 
 
-async def new_ai_generate(history: NewAIMessageHistory, model: Model, agent_kwargs=None, **kwargs) -> AIAgentResult:
+def _inject_user_tracking(kwargs: dict, user_tracking_id: object | None, session_id: str | None = None) -> None:
+    if user_tracking_id is None and session_id is None:
+        return
+    model_settings = dict(kwargs.get("model_settings") or {})
+    extra_body = dict(model_settings.get("extra_body") or {})
+    if user_tracking_id is not None:
+        extra_body["user"] = str(user_tracking_id)
+    if session_id is not None:
+        extra_body["session_id"] = session_id
+    model_settings["extra_body"] = extra_body
+    kwargs["model_settings"] = model_settings
+
+
+async def new_ai_generate(
+    history: NewAIMessageHistory,
+    model: Model,
+    agent_kwargs=None,
+    user_tracking_id: object | None = None,
+    session_id: str | None = None,
+    **kwargs,
+) -> AIAgentResult:
     """
     Used to generate the AI Chat-bot result text
     """
     if agent_kwargs is None:
         agent_kwargs = dict()
+
+    kwargs = dict(kwargs)
+    _inject_user_tracking(kwargs, user_tracking_id, session_id)
 
     agent = Agent(model, **kwargs)
     result = await ai_agent_run(
@@ -35,6 +58,8 @@ async def new_ai_generate_stream(
     model: Model,
     on_text_stream: TextStreamCallback,
     agent_kwargs=None,
+    user_tracking_id: object | None = None,
+    session_id: str | None = None,
     **kwargs,
 ) -> AIAgentResult:
     """
@@ -42,6 +67,9 @@ async def new_ai_generate_stream(
     """
     if agent_kwargs is None:
         agent_kwargs = dict()
+
+    kwargs = dict(kwargs)
+    _inject_user_tracking(kwargs, user_tracking_id, session_id)
 
     agent = Agent(model, **kwargs)
     async with track_ai_request(model, "agent"):
@@ -72,11 +100,19 @@ async def new_ai_generate_stream(
 
 
 async def new_ai_generate_schema(
-    history: NewAIMessageHistory, schema: type[RESPONSE_TYPE], model: Model, **kwargs
+    history: NewAIMessageHistory,
+    schema: type[RESPONSE_TYPE],
+    model: Model,
+    user_tracking_id: object | None = None,
+    session_id: str | None = None,
+    **kwargs,
 ) -> RESPONSE_TYPE:
     """
     Generate AI response with structured schema output
     """
+    kwargs = dict(kwargs)
+    _inject_user_tracking(kwargs, user_tracking_id, session_id)
+
     agent = Agent(model, output_type=schema, **kwargs)
     result: AIAgentResult[RESPONSE_TYPE] = await ai_agent_run(
         agent, user_prompt=history.prompt, message_history=history.message_history

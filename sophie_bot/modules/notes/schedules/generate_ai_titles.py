@@ -24,7 +24,7 @@ class GenerateAITitles:
         messages.add_system(system_prompt)
 
         model = await get_chat_default_model(chat_iid)
-        return await new_ai_generate_schema(messages, AIUpdateNoteData, model)
+        return await new_ai_generate_schema(messages, AIUpdateNoteData, model, user_tracking_id=chat_iid)
 
     @staticmethod
     async def update_note(note: NoteModel, generated_data: AIUpdateNoteData):
