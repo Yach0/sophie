@@ -568,28 +568,28 @@ msgstr ""
 msgid "Set translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:117
+#: sophie_bot/modules/ai/handlers/translate.py:119
 msgid "Error generating translation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:131
+#: sophie_bot/modules/ai/handlers/translate.py:133
 msgid "Auto Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:131
+#: sophie_bot/modules/ai/handlers/translate.py:133
 msgid "Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:132
+#: sophie_bot/modules/ai/handlers/translate.py:134
 msgid "Voice"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:137
+#: sophie_bot/modules/ai/handlers/translate.py:139
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:147
+#: sophie_bot/modules/ai/handlers/translate.py:149
 msgid "Translation Notes"
 msgstr ""
 
@@ -684,24 +684,24 @@ msgstr ""
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:107
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:113
 msgid "You can use OpenRouter web search to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:108
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:114
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:110
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:116
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:112
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:118
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:117
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:123
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -2758,11 +2758,11 @@ msgstr ""
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:140
+#: sophie_bot/modules/filters/utils_/match_legacy.py:142
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:147
+#: sophie_bot/modules/filters/utils_/match_legacy.py:149
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -2770,7 +2770,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:149
+#: sophie_bot/modules/filters/utils_/match_legacy.py:151
 msgid "(no text content)"
 msgstr ""
 

@@ -665,6 +665,7 @@ wheels = [
 name = "griffelib"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/06/eccbd311c9e2b3ca45dbc063b93134c57a1ccc7607c5e545264ad092c4a9/griffelib-2.0.0.tar.gz", hash = "sha256:e504d637a089f5cab9b5daf18f7645970509bf4f53eda8d79ed71cce8bd97934", size = 166312, upload-time = "2026-03-23T21:06:55.954Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/51/c936033e16d12b627ea334aaaaf42229c37620d0f15593456ab69ab48161/griffelib-2.0.0-py3-none-any.whl", hash = "sha256:01284878c966508b6d6f1dbff9b6fa607bc062d8261c5c7253cb285b06422a7f", size = 142004, upload-time = "2026-02-09T19:09:40.561Z" },
 ]
@@ -1569,6 +1570,9 @@ openai = [
 openrouter = [
     { name = "openai" },
 ]
+tavily = [
+    { name = "tavily-python" },
+]
 
 [[package]]
 name = "pydantic-core"
@@ -2124,7 +2128,7 @@ dependencies = [
     { name = "pillow" },
     { name = "prometheus-client" },
     { name = "pydantic" },
-    { name = "pydantic-ai-slim", extra = ["mistral", "openai", "openrouter"] },
+    { name = "pydantic-ai-slim", extra = ["mistral", "openai", "openrouter", "tavily"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "pyyaml" },
@@ -2183,7 +2187,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=12,<13" },
     { name = "prometheus-client", specifier = ">=0.24,<0.25" },
     { name = "pydantic", specifier = ">=2,<3" },
-    { name = "pydantic-ai-slim", extras = ["mistral", "openai", "openrouter"], specifier = ">=1.44,<2" },
+    { name = "pydantic-ai-slim", extras = ["mistral", "openai", "openrouter", "tavily"], specifier = ">=1.44,<2" },
     { name = "pydantic-settings", specifier = ">=2,<3" },
     { name = "pyjwt", specifier = ">=2.12.1,<3" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
@@ -2266,6 +2270,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ef/52/9ba0f43b686e7f3ddfeaa78ac3af750292662284b3661e91ad5494f21dbc/structlog-25.5.0.tar.gz", hash = "sha256:098522a3bebed9153d4570c6d0288abf80a031dfdb2048d59a49e9dc2190fc98", size = 1460830, upload-time = "2025-10-27T08:28:23.028Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a8/45/a132b9074aa18e799b891b91ad72133c98d8042c70f6240e4c5f9dabee2f/structlog-25.5.0-py3-none-any.whl", hash = "sha256:a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f", size = 72510, upload-time = "2025-10-27T08:28:21.535Z" },
+]
+
+[[package]]
+name = "tavily-python"
+version = "0.7.23"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "requests" },
+    { name = "tiktoken" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/d1/197419d6133643848514e5e84e8f41886e825b73bf91ae235a1595c964f5/tavily_python-0.7.23.tar.gz", hash = "sha256:3b92232e0e29ab68898b765f281bb4f2c650b02210b64affbc48e15292e96161", size = 25968, upload-time = "2026-03-09T19:17:32.333Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/27/f9c6e9249367be0772fb754849e03cbbc6ad8d80a479bf30ea8811828b2e/tavily_python-0.7.23-py3-none-any.whl", hash = "sha256:52ef85c44b926bce3f257570cd32bc1bd4db54666acf3105617f27411a59e188", size = 19079, upload-time = "2026-03-09T19:17:29.593Z" },
 ]
 
 [[package]]
