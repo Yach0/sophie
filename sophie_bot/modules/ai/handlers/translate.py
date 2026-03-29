@@ -72,6 +72,12 @@ class AiTranslate(SophieMessageHandler):
         else:
             to_translate = self.data.get("text", "")
 
+        if not to_translate.strip() and not (self.event.reply_to_message and self.event.reply_to_message.photo):
+            if self.data.get("silent_error"):
+                return
+            await self.event.reply(_("Please provide text to translate."))
+            return
+
         # AI Context
         ai_context = NewAIMessageHistory()
         if self.event.reply_to_message and self.event.reply_to_message.photo:

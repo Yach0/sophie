@@ -1,3 +1,4 @@
+from re import search
 from typing import Any
 
 from aiogram import F
@@ -37,8 +38,14 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         return (F.text.regexp(r"/start btnwelcomesecuritystart_(.*)"),)
 
     async def handle(self) -> Any:
-        _prefix, chat_id = self.event.text.split("_", 2)
-        chat_id = int(chat_id)
+        if not self.event.text:
+            return
+
+        match = search(r"btnwelcomesecuritystart_(-?\d+)", self.event.text)
+        if not match:
+            return
+
+        chat_id = int(match.group(1))
 
         if not (group_db := await ChatModel.get_by_tid(chat_id)):
             raise SophieException("Cannot find group")

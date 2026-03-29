@@ -12,10 +12,13 @@ from aiogram.methods import TelegramMethod
 from sophie_bot.modules.utils_.telegram_exceptions import (
     CAN_NOT_BE_DELETED,
     CHAT_ADMIN_REQUIRED,
-    MSG_TEXT_EMPTY,
+    MSG_NOT_MODIFIED,
+    NO_TEXT_IN_MSG_TO_EDIT,
     MSG_TO_DEL_NOT_FOUND,
+    MSG_TEXT_EMPTY,
     REPLIED_NOT_FOUND,
     USER_ALREADY_PARTICIPANT,
+    MSG_TOO_LONG,
 )
 from sophie_bot.utils.logger import log
 
@@ -46,6 +49,15 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
             return None
         elif MSG_TEXT_EMPTY in err.message:
             log.debug("common_try: Message text is empty, ignoring")
+            return None
+        elif MSG_NOT_MODIFIED in err.message:
+            log.debug("common_try: Message is not modified, ignoring")
+            return None
+        elif NO_TEXT_IN_MSG_TO_EDIT in err.message:
+            log.debug("common_try: No text in message to edit, ignoring")
+            return None
+        elif MSG_TOO_LONG in err.message:
+            log.debug("common_try: Message is too long, ignoring")
             return None
         elif USER_ALREADY_PARTICIPANT in err.message:
             log.debug("common_try: User already participant, ignoring")

@@ -552,48 +552,52 @@ msgstr ""
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:80
+#: sophie_bot/modules/ai/handlers/translate.py:78
+msgid "Please provide text to translate."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/translate.py:86
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:88
+#: sophie_bot/modules/ai/handlers/translate.py:94
 msgid "You're a professional AI translator / transcriber."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:90
+#: sophie_bot/modules/ai/handlers/translate.py:96
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:95
+#: sophie_bot/modules/ai/handlers/translate.py:101
 msgid "Set translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:119
+#: sophie_bot/modules/ai/handlers/translate.py:125
 msgid "Error generating translation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:133
+#: sophie_bot/modules/ai/handlers/translate.py:139
 msgid "Auto Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:133
+#: sophie_bot/modules/ai/handlers/translate.py:139
 msgid "Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:134
+#: sophie_bot/modules/ai/handlers/translate.py:140
 msgid "Voice"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:139
+#: sophie_bot/modules/ai/handlers/translate.py:145
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:149
+#: sophie_bot/modules/ai/handlers/translate.py:155
 msgid "Translation Notes"
 msgstr ""
 
@@ -5268,7 +5272,7 @@ msgstr ""
 msgid "Setting configuration not available."
 msgstr ""
 
-#: sophie_bot/modules/utils_/reply_or_edit.py:11
+#: sophie_bot/modules/utils_/reply_or_edit.py:14
 #: sophie_bot/utils/handlers.py:84 sophie_bot/utils/handlers.py:103
 #: sophie_bot/utils/handlers.py:105 sophie_bot/utils/handlers.py:114
 msgid "The message is inaccessible. Please write the command again"
@@ -5651,15 +5655,15 @@ msgstr ""
 msgid "Welcome Captcha"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:51
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:58
 msgid "It seems like you do not have to pass the welcome security authentication"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:63
 msgid "It seems like you are not belong to the chat anymore. Are you sure you joined the group?"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:62
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:69
 msgid "You already an admin in the chat, therefore you don't need to pass the authentication!"
 msgstr ""
 
