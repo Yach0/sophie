@@ -67,10 +67,10 @@ class AISaveNote(MessageHandler):
         )
 
     @staticmethod
-    async def save(chat_iid: PydanticObjectId, data: AISaveResponseSchema) -> bool:
+    async def save(chat_iid: PydanticObjectId, data: AISaveResponseSchema) -> NoteModel | None:
         chat = await ChatModel.get_by_iid(chat_iid)
         if not chat:
-            return False
+            return None
         model = NoteModel(
             chat=chat,
             chat_id=chat.tid,
@@ -79,7 +79,8 @@ class AISaveNote(MessageHandler):
             description=data.description,
             text=legacy_markdown_to_html(data.text),
         )
-        return await model.save()
+        await model.save()
+        return model
 
     @staticmethod
     def parse_data(data: str) -> AISaveResponseSchema:

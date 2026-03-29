@@ -2,6 +2,7 @@ from typing import Any
 
 from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import Message
 from stfu_tg import Template, UserLink
 
 from sophie_bot.modules.troubleshooters.callbacks import CallbackActionCancel, CancelCallback
@@ -25,12 +26,15 @@ class CancelCallbackHandler(SophieCallbackQueryHandler):
         await self.check_for_message()
 
         user = self.event.from_user
+        message = self.event.message
+        if not isinstance(message, Message):
+            return await self.event.answer(_("Message not found."))
 
-        if not is_user_admin(self.event.message.chat.id, user.id):  # type: ignore[union-attr]
+        if not await is_user_admin(message.chat.id, user.id):
             return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()
-        await self.event.message.edit_text(_("❌ Cancelled."))  # type: ignore[union-attr]
+        await message.edit_text(_("❌ Cancelled."))
 
 
 class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
@@ -47,7 +51,9 @@ class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
             return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()
-        await self.event.message.edit_text(_("❌ Cancelled."))  # type: ignore[union-attr]
+        message = self.event.message
+        if isinstance(message, Message):
+            await message.edit_text(_("❌ Cancelled."))
 
 
 class CallbackActionCancelHandler(SophieCallbackQueryHandler):
@@ -65,6 +71,8 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
             return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()
-        await self.event.message.edit_text(  # type: ignore[union-attr]
-            Template(_("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)).to_html()
-        )
+        message = self.event.message
+        if isinstance(message, Message):
+            await message.edit_text(
+                Template(_("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)).to_html()
+            )

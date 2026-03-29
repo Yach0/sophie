@@ -63,7 +63,10 @@ class ActionSelectHandler(SophieCallbackQueryHandler):
 
         await self.state.set_state(FilterEditFSM.action_setup)
 
-        setup_message = await filter_action.interactive_setup.setup_message(self.event, self.data)  # type: ignore[union-attr, misc]
+        if not filter_action.interactive_setup or not filter_action.interactive_setup.setup_message:
+            return
+
+        setup_message = await filter_action.interactive_setup.setup_message(self.event, self.data)
         return await self._setup_message(
             filter_action.title, text=setup_message.text, reply_markup=setup_message.reply_markup
         )

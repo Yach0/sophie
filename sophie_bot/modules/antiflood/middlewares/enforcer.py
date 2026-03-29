@@ -94,7 +94,9 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
     async def _execute_action(self, message: Message, settings: AntifloodModel) -> bool:
         """Execute configured antiflood action. Returns True if action succeeded."""
         chat_id = message.chat.id
-        user_id = message.from_user.id  # type: ignore[union-attr]
+        if not message.from_user:
+            return False
+        user_id = message.from_user.id
 
         action_name = self._get_action_name(settings)
 
@@ -153,8 +155,10 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
 
     async def _handle_flood(self, message: Message, settings: AntifloodModel) -> None:
         """Handle flood violation: execute action and notify."""
-        user_id = message.from_user.id  # type: ignore[union-attr]
-        first_name = message.from_user.first_name  # type: ignore[union-attr]
+        if not message.from_user:
+            return
+        user_id = message.from_user.id
+        first_name = message.from_user.first_name
 
         # Try to delete the flooding message
         try:
@@ -189,7 +193,9 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         Returns True if flood was triggered and message should be skipped.
         """
         chat_id = message.chat.id
-        user_id = message.from_user.id  # type: ignore[union-attr]
+        if not message.from_user:
+            return False
+        user_id = message.from_user.id
 
         # Get last user who sent a message
         last_user = await self._get_last_user(chat_id)
@@ -243,8 +249,10 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         # Skip admins
-        if await is_user_admin(message.chat.id, message.from_user.id):  # type: ignore[union-attr]
-            await self._set_last_user(message.chat.id, message.from_user.id)  # type: ignore[union-attr]
+        if not message.from_user:
+            return await handler(event, data)
+        if await is_user_admin(message.chat.id, message.from_user.id):
+            await self._set_last_user(message.chat.id, message.from_user.id)
             return await handler(event, data)
 
         # Check and enforce flood

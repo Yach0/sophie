@@ -56,12 +56,11 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
         now = time.time()
 
     key = f"{_PREFIX}{signature}"
-    # Use aredis directly - it's already an AsyncRedis
     client: AsyncRedis = aredis
 
     try:
         # Load current state
-        raw_data = await client.hgetall(key)  # type: ignore[misc]
+        raw_data = await client.hgetall(key)  # ty: ignore[invalid-await]
         raw = {}
         if isinstance(raw_data, dict):
             for k, v in raw_data.items():
@@ -80,14 +79,14 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
             next_allowed_at = 0
 
         # Always update last_seen_at
-        await client.hset(key, mapping={"last_seen_at": str(now)})  # type: ignore[misc]
+        await client.hset(key, mapping={"last_seen_at": str(now)})  # ty: ignore[invalid-await]
 
         if step < 0:
             # First occurrence after reset/new: allow immediately and set initial backoff
             step = 0
             delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
             next_allowed = now + delay
-            await client.hset(  # type: ignore[misc]
+            await client.hset(  # ty: ignore[invalid-await]
                 key,
                 mapping={
                     "step": str(step),
@@ -111,7 +110,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
         delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
         next_allowed = now + delay
 
-        await client.hset(  # type: ignore[misc]
+        await client.hset(  # ty: ignore[invalid-await]
             key,
             mapping={
                 "step": str(step),

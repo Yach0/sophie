@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 from io import BufferedReader, BytesIO
+import types as typing_types
 from typing import TYPE_CHECKING, BinaryIO, Optional
 
 from aiogram.types import Video, VideoNote
@@ -23,7 +24,7 @@ try:
     AV_AVAILABLE = True
 except ImportError:
     AV_AVAILABLE = False
-    _av_module = None  # type: ignore[misc,assignment]
+    _av_module: typing_types.ModuleType = None  # ty: ignore[invalid-assignment]
 
 
 def _is_av_available() -> bool:

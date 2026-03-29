@@ -429,7 +429,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
                     and hasattr(action_data, "model_dump")
                     and callable(getattr(action_data, "model_dump", None))
                 ):
-                    action_data = action_data.model_dump(mode="json")  # type: ignore[union-attr]
+                    action_data = getattr(action_data, "model_dump")(mode="json")
                 await self.cfg.add_action_func(chat_iid, action_name, action_data or {})
 
             await wizard_state.clear()

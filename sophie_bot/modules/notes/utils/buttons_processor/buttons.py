@@ -22,7 +22,7 @@ class ButtonsList(list[list[Button]]):
         for ass_button in buttons:
             button = Button(
                 text=ass_button.title,
-                action=ASS_MAPPING.get(ass_button.button_type, ass_button.button_type),  # type: ignore[arg-type]
+                action=cast(ButtonAction, ASS_MAPPING.get(ass_button.button_type, ass_button.button_type)),
                 data=ass_button.arguments[0] if ass_button.arguments else None,
                 style=ass_button.style,
             )

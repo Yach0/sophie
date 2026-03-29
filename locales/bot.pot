@@ -82,35 +82,35 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:245
+#: sophie_bot/filters/admin_rights.py:263
 msgid "I don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:247
+#: sophie_bot/filters/admin_rights.py:265
 msgid "You don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:252
+#: sophie_bot/filters/admin_rights.py:270
 msgid "I must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:254
+#: sophie_bot/filters/admin_rights.py:272
 msgid "You must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:268
+#: sophie_bot/filters/admin_rights.py:286
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:280
+#: sophie_bot/filters/admin_rights.py:298
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:294
+#: sophie_bot/filters/admin_rights.py:312
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:309
+#: sophie_bot/filters/admin_rights.py:327
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
@@ -795,7 +795,7 @@ msgstr ""
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/transform_video.py:66
+#: sophie_bot/modules/ai/utils/transform_video.py:67
 msgid "Failed to download video file"
 msgstr ""
 
@@ -884,7 +884,7 @@ msgid "Use {cmd} to configure actions"
 msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:72
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:180
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:184
 #: sophie_bot/modules/filters/handlers/confirm.py:48
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:64
 msgid "Action"
@@ -926,31 +926,31 @@ msgstr ""
 msgid "📈 Antiflood"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:124
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:126
 msgid "Banned"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:125
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:127
 msgid "Kicked"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:126
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:128
 msgid "Muted"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:128
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:130
 msgid "Restricted"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:177
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:181
 msgid "⚠️ Antiflood"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:178
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:182
 msgid "User has been restricted for flooding."
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:179
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:183
 #: sophie_bot/modules/federations/handlers/ban.py:56
 #: sophie_bot/modules/federations/handlers/ban.py:131
 #: sophie_bot/modules/federations/handlers/ban.py:164
@@ -998,7 +998,7 @@ msgstr ""
 msgid "User"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:183
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:187
 #: sophie_bot/modules/restrictions/handlers/ban.py:200
 #: sophie_bot/modules/restrictions/handlers/mute.py:171
 #: sophie_bot/modules/restrictions/handlers/silent.py:239
@@ -4996,18 +4996,28 @@ msgstr ""
 msgid "Current state {state} is cleared."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:30
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:47
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:65
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:327
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:339
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:351
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:377
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:393
+#: sophie_bot/modules/warns/action_config.py:34
+msgid "Message not found."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:34
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:51
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:71
 msgid "You are not allowed to cancel this action!"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:33
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:50
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:37
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:56
 msgid "❌ Cancelled."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:69
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:77
 #, python-brace-format
 msgid "The action was cancelled by {user}."
 msgstr ""
@@ -5163,15 +5173,6 @@ msgstr ""
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:336
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:348
 msgid "Invalid callback data"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:327
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:339
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:351
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:377
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:393
-#: sophie_bot/modules/warns/action_config.py:34
-msgid "Message not found."
 msgstr ""
 
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:343

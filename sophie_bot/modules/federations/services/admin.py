@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from beanie import Link, PydanticObjectId
+from typing import cast
+
+from beanie import PydanticObjectId
+from beanie.odm.fields import Link as BeanieLink
 from bson import DBRef
 
 from sophie_bot.db.models.chat import ChatModel
@@ -16,7 +19,7 @@ class FederationAdminService:
             if admin_link.to_ref().id == user_iid:
                 raise ValueError("User is already an admin")
         db_ref = DBRef("chats", user_iid)
-        federation.admins.append(Link(db_ref, ChatModel))  # type: ignore[arg-type]
+        federation.admins.append(cast("ChatModel", BeanieLink(db_ref, ChatModel)))
         await federation.save()
 
     @staticmethod

@@ -6,8 +6,7 @@ from typing import Any, Optional, Union
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatMemberStatus
 from aiogram.filters import Filter
-from aiogram.types import TelegramObject
-from aiogram.types.callback_query import CallbackQuery
+from aiogram.types import CallbackQuery, Message, TelegramObject
 from stfu_tg import Doc, Section, VList
 
 from sophie_bot.config import CONFIG
@@ -85,14 +84,16 @@ class UserRestricting(Filter):
         user_db: Optional[ChatModel] = None,
     ) -> Union[bool, dict[str, Any]]:
         user_tid = await self.get_target_id(event)
-        message = event.message if hasattr(event, "message") else event
+        message = self.get_event_message(event)
+        if message is None:
+            return False
 
-        chat_tid = connection.tid if connection else message.chat.id  # type: ignore[union-attr]
+        chat_tid = connection.tid if connection else message.chat.id
         is_connected = connection.is_connected if connection else False
         payload: dict[str, Any] = {}
 
         # Skip if in PM and not connected to the chat
-        if not is_connected and message.chat.type == "private":  # type: ignore[union-attr]
+        if not is_connected and message.chat.type == "private":
             log.debug("Admin rights: Private message without connection")
             return True
 
@@ -233,7 +234,24 @@ class UserRestricting(Filter):
         return missing_permissions or True
 
     async def get_target_id(self, message: TelegramObject) -> int:
-        return message.from_user.id  # type: ignore[union-attr]
+        from_user = getattr(message, "from_user", None)
+        if not from_user:
+            raise ValueError("Event must expose a from_user")
+        return from_user.id
+
+    def get_event_message(self, event: TelegramObject) -> Optional[Any]:
+        if isinstance(event, CallbackQuery):
+            return event.message
+        if isinstance(event, Message):
+            return event
+
+        # Support message-like test doubles and lightweight event objects.
+        if hasattr(event, "chat"):
+            return event
+        if hasattr(event, "message"):
+            return getattr(event, "message")
+
+        return None
 
     async def no_rights_msg(self, event: TelegramObject, required_permissions: Union[bool, list[str]]) -> None:
         actual_message: Any = event.message if isinstance(event, CallbackQuery) else event
