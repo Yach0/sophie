@@ -85,6 +85,11 @@ class AsyncDatabaseMock:
         sync_collection = self._sync_db.get_collection(name, **kwargs)
         return AsyncCollectionMock(sync_collection)
 
+    async def list_collection_names(self, **kwargs: Any) -> list[str]:
+        func = partial(self._sync_db.list_collection_names)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func)
+
     async def command(self, command: Any, **kwargs: Any) -> dict[str, Any]:
         """Execute database command."""
         if isinstance(command, dict):
