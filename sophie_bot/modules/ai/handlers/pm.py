@@ -10,7 +10,7 @@ from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIChatCallback
-from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
+from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_PROVIDER, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.utils.handlers import (
@@ -18,6 +18,7 @@ from sophie_bot.utils.handlers import (
     SophieMessageHandler,
 )
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -74,7 +75,7 @@ class AiPmStop(SophieMessageHandler):
 class AiPmHandle(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return AiPMFSM.in_ai, ChatTypeFilter("private"), AIThrottleFilter()
+        return AiPMFSM.in_ai, ChatTypeFilter("private"), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
         await bot.send_chat_action(self.event.chat.id, "typing")

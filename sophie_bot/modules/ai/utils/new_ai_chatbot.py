@@ -120,6 +120,24 @@ async def new_ai_generate_schema(
     return result.output
 
 
+async def new_ai_generate_schema_with_result(
+    history: NewAIMessageHistory,
+    schema: type[RESPONSE_TYPE],
+    model: Model,
+    user_tracking_id: object | None = None,
+    session_id: str | None = None,
+    **kwargs,
+) -> AIAgentResult[RESPONSE_TYPE]:
+    """
+    Generate AI response with structured schema output and return full result including usage.
+    """
+    kwargs = dict(kwargs)
+    _inject_user_tracking(kwargs, user_tracking_id, session_id)
+
+    agent = Agent(model, output_type=schema, **kwargs)
+    return await ai_agent_run(agent, user_prompt=history.prompt, message_history=history.message_history)
+
+
 async def new_ai_reply(message: Message, markup: Optional[ReplyKeyboardMarkup] = None) -> Message:
     """
     Generate AI reply and send it as a message

@@ -7,16 +7,18 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiogram.types import Message
 
-from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT
+from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
 from sophie_bot.modules.filters.utils_.match_legacy import consume_ai_filter_daily_quota, match_ai_handler
 from sophie_bot.services.redis import aredis
 
 
 @pytest.mark.asyncio
-async def test_match_ai_handler_skips_users_older_than_24_hours() -> None:
+async def test_match_ai_handler_skips_users_older_than_threshold() -> None:
     message = AsyncMock(spec=Message)
-    user_in_group = SimpleNamespace(first_saw=datetime.now(timezone.utc) - timedelta(hours=25))
+    user_in_group = SimpleNamespace(
+        first_saw=datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS + 1)
+    )
 
     with (
         patch("sophie_bot.modules.filters.utils_.match_legacy.is_enabled", AsyncMock(return_value=True)),

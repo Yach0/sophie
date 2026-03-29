@@ -11,12 +11,13 @@ from sophie_bot.modules.ai.handlers.aiprovider import (
     AIProviderSetting,
     AIProviderSettingAlt,
 )
-from sophie_bot.modules.ai.handlers.aisave import AISaveNote
 from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
 )
 from sophie_bot.modules.ai.handlers.enable_setting import EnableAI
 from sophie_bot.modules.ai.handlers.filter import get_filter
+from sophie_bot.modules.ai.handlers.op_prices import op_ai_prices_handler
+from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
 from sophie_bot.modules.ai.handlers.op_stats import op_ai_stats_handler
 from sophie_bot.modules.ai.handlers.playground import (
     AIPlaygroundCmd,
@@ -26,6 +27,7 @@ from sophie_bot.modules.ai.handlers.pm import AiPmHandle, AiPmInitialize, AiPmSt
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
 from sophie_bot.modules.ai.handlers.translate import AiTranslate, text_or_reply
+from sophie_bot.modules.ai.handlers.usage import AiUsage
 from sophie_bot.modules.ai.magic_handlers.modern_action import AIReplyAction
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.middlewares.auto_translate import AiAutoTranslateMiddleware
@@ -65,7 +67,8 @@ __module_info__ = LazyProxy(
         l_("From a simple chat-bot, to the automatic translator. Have fun."),
         " ",
         AI_POLICY,
-        l_("Please note that you can make a limited amount of AI requests per day."),
+        l_("Please note that each chat has a limited monthly AI quota."),
+        l_("Use /aiusage to check your remaining quota."),
     )
 )
 
@@ -84,35 +87,43 @@ __handlers__ = (
 )
 
 
+def _register_context_handlers() -> None:
+    router.message.register(AIContextReset, *AIContextReset.filters())
+    router.message.register(AIContextReset, *AIContextReset.filters_alt())
+
+
+def _register_translation_handlers() -> None:
+    router.message.register(AiTranslate, *AiTranslate.filters(), flags={"args": text_or_reply})
+    router.message.outer_middleware(AiAutoTranslateMiddleware())
+
+
+def _register_usage_handlers() -> None:
+    router.message.register(AiUsage, *AiUsage.filters())
+    router.message.register(op_ai_stats_handler, CMDFilter("op_aistats"), IsOP(True))
+    router.message.register(op_ai_prices_handler, CMDFilter("op_aiprices"), IsOP(True))
+
+
+def _register_quota_handlers() -> None:
+    router.message.register(SetQuota, *SetQuota.filters())
+    router.message.register(ResetQuota, *ResetQuota.filters())
+
+
+def _register_chat_handlers() -> None:
+    router.message.register(AiReplyHandler, *AiReplyHandler.filters())
+    router.message.register(AiPmStop, *AiPmStop.filters())
+    router.message.register(AiPmHandle, *AiPmHandle.filters())
+    router.message.register(AiCmd, *AiCmd.filters())
+
+
 async def __pre_setup__():
     router.message.outer_middleware(CacheUserMessagesMiddleware())
     router.message.middleware(CacheBotMessagesMiddleware())
 
-    # Notes
-    router.message.register(AISaveNote, *AISaveNote.filters())
-
     # AI Moderator
     router.message.outer_middleware(AiModeratorMiddleware())
 
-    # AI Context reset
-    router.message.register(AIContextReset, *AIContextReset.filters())
-    router.message.register(AIContextReset, *AIContextReset.filters_alt())
-
-    # AI mode
-    # router.message.register(AiGenerateMode, *AiGenerateMode.filters())
-
-    # AI translate
-    router.message.register(AiTranslate, *AiTranslate.filters(), flags={"args": text_or_reply})
-    router.message.outer_middleware(AiAutoTranslateMiddleware())
-
-    # Trigger AI
-    router.message.register(AiReplyHandler, *AiReplyHandler.filters())
-
-    router.message.register(AiPmStop, *AiPmStop.filters())
-
-    router.message.register(AiPmHandle, *AiPmHandle.filters())
-
-    router.message.register(AiCmd, *AiCmd.filters())
-
-    # Operator-only: overall AI usage stats
-    router.message.register(op_ai_stats_handler, CMDFilter("op_aistats"), IsOP(True))
+    _register_context_handlers()
+    _register_translation_handlers()
+    _register_usage_handlers()
+    _register_quota_handlers()
+    _register_chat_handlers()

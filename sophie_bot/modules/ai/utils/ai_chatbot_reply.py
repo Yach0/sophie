@@ -2,6 +2,7 @@ from typing import Any, cast
 
 from aiogram.enums import ChatType
 from aiogram.types import Message
+from beanie import PydanticObjectId
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.messages import (
     ModelRequest,
@@ -20,11 +21,14 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
 from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
-from sophie_bot.modules.ai.utils.ai_header import ai_header
+from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
+from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
+from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
@@ -73,6 +77,130 @@ def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
     return str(chat_iid)
 
 
+async def _build_system_prompt(chat_iid: PydanticObjectId) -> Doc:
+    memory_lines = await AIMemoryModel.get_lines(chat_iid)
+    system_prompt = Doc(
+        _("You can use Tavily to search for information. Include information sources as links."),
+        _("You can also save important things to the memory."),
+        _(
+            "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
+        ),
+        Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
+    )
+    if memory_lines:
+        indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
+        system_prompt += Section(
+            VList(*indexed_memory_lines), title=_("You have the following information in your memory")
+        )
+    return system_prompt
+
+
+async def _prepare_history(message: Message, chat_iid: PydanticObjectId, user_text: str | None) -> NewAIMessageHistory:
+    history = NewAIMessageHistory()
+    system_prompt = await _build_system_prompt(chat_iid)
+    await history.initialize_chat_history(message.chat.id, additional_system_prompt=system_prompt.to_md())
+    await history.add_from_message(message, custom_text=user_text)
+    return history
+
+
+def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode: bool) -> bool:
+    if debug_mode:
+        return True
+    return "^llm_debug" in (user_text or message.text or "")
+
+
+async def _reply_debug_history(message: Message, history: NewAIMessageHistory) -> None:
+    await message.reply(
+        Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
+        disable_web_page_preview=True,
+    )
+
+
+async def _resolve_model(connection: ChatConnection, model: Model | None) -> Model:
+    if model is not None:
+        return model
+    return await get_chat_default_model(connection.db_model.iid)
+
+
+async def _generate_chatbot_result(
+    message: Message,
+    connection: ChatConnection,
+    history: NewAIMessageHistory,
+    model: Model,
+    explicit_debug_mode: bool,
+):
+    allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode
+    draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
+    agent_kwargs = {"deps": SophieAIToolContenxt(connection=connection)}
+    session_id = _build_session_id(connection.db_model.iid, message.message_thread_id)
+
+    if allow_draft_streaming:
+        return await new_ai_generate_stream(
+            history,
+            tools=CHATBOT_TOOLS,
+            model=model,
+            agent_kwargs=agent_kwargs,
+            on_text_stream=draft_streamer.stream,
+            user_tracking_id=connection.db_model.iid,
+            session_id=session_id,
+        )
+
+    return await new_ai_generate(
+        history,
+        tools=CHATBOT_TOOLS,
+        model=model,
+        agent_kwargs=agent_kwargs,
+        user_tracking_id=connection.db_model.iid,
+        session_id=session_id,
+    )
+
+
+async def _build_chatbot_header(
+    connection: ChatConnection, model: Model, message_history: list[ModelRequest | ModelResponse]
+) -> Element:
+    quota_info = await get_quota_info(connection.db_model.iid)
+    header_items = [*retrieve_tools_titles(message_history), HList(divider=", ")]
+    if quota_info:
+        percentage = (
+            int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
+        )
+        header_items.append(ai_credit_header(percentage))
+    return ai_header(model, *header_items)
+
+
+def _build_debug_doc(model: Model, result: Any) -> Section:
+    return Section(
+        BlockQuote(
+            Doc(
+                KeyValue("Model", AI_MODEL_TO_SHORT_NAME[model.model_name]),
+                KeyValue("LLM Requests", result.usage.requests),
+                KeyValue("Retries", result.retries),
+                KeyValue("Request tokens", result.usage.request_tokens),
+                KeyValue("Response tokens", result.usage.response_tokens),
+                KeyValue("Total tokens", result.usage.total_tokens),
+                KeyValue("Details", result.usage.details or "-"),
+            ),
+            expandable=True,
+        ),
+        title="Provider debug",
+    )
+
+
+def _truncate_output(header: Element, output_text: str) -> str:
+    length = len(output_text) + len(header.to_html())
+    if length > 4000:
+        return output_text[:4000] + "..."
+    return output_text
+
+
+def _build_reply_doc(header: Element, output_text: str, model: Model, result: Any, explicit_debug_mode: bool) -> Doc:
+    doc = Doc(header, BlockQuote(PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True))))
+    if explicit_debug_mode:
+        doc += " "
+        doc += _build_debug_doc(model, result)
+    return doc
+
+
 async def ai_chatbot_reply(
     message: Message,
     connection: ChatConnection,
@@ -96,95 +224,20 @@ async def ai_chatbot_reply(
     async with track_ai_conversation():
         await bot.send_chat_action(message.chat.id, "typing")
 
-        # Chat memory
-        memory_lines = await AIMemoryModel.get_lines(connection.db_model.iid)
-
-        system_prompt = Doc(
-            _("You can use Tavily to search for information. Include information sources as links."),
-            _("You can also save important things to the memory."),
-            _(
-                "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
-            ),
-            Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
-        )
-        if memory_lines:
-            indexed_memory_lines = [f"{i + 1}. {line}" for i, line in enumerate(memory_lines)]
-            system_prompt += Section(
-                VList(*indexed_memory_lines), title=_("You have the following information in your memory")
-            )
-
-        history = NewAIMessageHistory()
-        await history.initialize_chat_history(message.chat.id, additional_system_prompt=system_prompt.to_md())
-        await history.add_from_message(message, custom_text=user_text)
-
-        # Debug mode (explicit only; global debug config should not disable draft streaming)
-        explicit_debug_mode = debug_mode
-        if "^llm_debug" in (user_text or message.text or ""):
-            explicit_debug_mode = True
-
-        # History debug
+        history = await _prepare_history(message, connection.db_model.iid, user_text)
+        explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         if explicit_debug_mode:
-            await message.reply(
-                Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
-                disable_web_page_preview=True,
-            )
+            await _reply_debug_history(message, history)
 
-        if model is None:
-            model = await get_chat_default_model(connection.db_model.iid)
-
-        allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode
-        draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
-
-        if allow_draft_streaming:
-            result = await new_ai_generate_stream(
-                history,
-                tools=CHATBOT_TOOLS,
-                model=model,
-                agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
-                on_text_stream=draft_streamer.stream,
-                user_tracking_id=connection.db_model.iid,
-                session_id=_build_session_id(connection.db_model.iid, message.message_thread_id),
-            )
-        else:
-            result = await new_ai_generate(
-                history,
-                tools=CHATBOT_TOOLS,
-                model=model,
-                agent_kwargs={"deps": SophieAIToolContenxt(connection=connection)},
-                user_tracking_id=connection.db_model.iid,
-                session_id=_build_session_id(connection.db_model.iid, message.message_thread_id),
-            )
+        model = await _resolve_model(connection, model)
+        result = await _generate_chatbot_result(message, connection, history, model, explicit_debug_mode)
 
         # Track AI usage metrics
         if result.usage:
             track_ai_usage(model, result.usage)
+            await charge_ai_usage(connection.db_model.iid, AI_FEATURE_CHATBOT, model, result.usage)
 
-        header_items = [*retrieve_tools_titles(result.message_history), HList(divider=", ")]
-        header = ai_header(model, *header_items)
-
-        # Split if too long
-        output_text = str(result.output)
-        length = len(output_text) + len(header.to_html())
-        if length > 4000:
-            output_text = output_text[:4000] + "..."
-
-        doc = Doc(header, BlockQuote(PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True))))
-        if explicit_debug_mode:
-            doc += " "
-            doc += Section(
-                BlockQuote(
-                    Doc(
-                        KeyValue("Model", AI_MODEL_TO_SHORT_NAME[model.model_name]),
-                        KeyValue("LLM Requests", result.usage.requests),
-                        KeyValue("Retries", result.retries),
-                        KeyValue("Request tokens", result.usage.request_tokens),
-                        KeyValue("Response tokens", result.usage.response_tokens),
-                        KeyValue("Total tokens", result.usage.total_tokens),
-                        KeyValue("Details", result.usage.details or "-"),
-                    ),
-                    expandable=True,
-                ),
-                title="Provider debug",
-            )
-
+        header = await _build_chatbot_header(connection, model, result.message_history)
+        output_text = _truncate_output(header, str(result.output))
+        doc = _build_reply_doc(header, output_text, model, result, explicit_debug_mode)
         return await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)

@@ -8,8 +8,9 @@ from stfu_tg.doc import Doc, Element, PreformattedHTML
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
+from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.filters.types.modern_action_abc import (
@@ -20,6 +21,7 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
 )
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -82,13 +84,17 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         if not (chat_db := await ChatModel.get_by_tid(connection.tid)):
             raise SophieException("Chat not found in database")
 
-        if not (message.text or message.caption and await AIThrottleFilter().__call__(message, chat_db)):
+        if not (message.text or message.caption and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db)):
             return
 
         messages = await NewAIMessageHistory.chatbot(message, additional_system_prompt=filter_data.prompt)
         provider = await get_chat_default_model(connection.db_model.iid)
 
         result = await new_ai_generate(messages, provider, user_tracking_id=chat_db.iid)
+
+        if result.usage and result.usage.total_tokens:
+            await charge_ai_usage(chat_db.iid, AI_FEATURE_FILTER, provider, result.usage)
+
         return Doc(
             Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),
             PreformattedHTML(legacy_markdown_to_html(str(result.output))),

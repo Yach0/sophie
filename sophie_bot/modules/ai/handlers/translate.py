@@ -18,16 +18,21 @@ from stfu_tg import (
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_model
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
+from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
+from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
+from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -53,7 +58,7 @@ async def text_or_reply(message: Message | None, _data: dict):
 class AiTranslate(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("aitranslate", "translate", "tr")), AIEnabledFilter()
+        return CMDFilter(("aitranslate", "translate", "tr")), AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_TRANSLATE)
 
     async def handle(self) -> Any:
         is_autotranslate: bool = self.data.get("autotranslate", False)
@@ -113,9 +118,17 @@ class AiTranslate(SophieMessageHandler):
         model = await get_chat_translations_model(self.connection.db_model.iid)
 
         try:
-            translated = await new_ai_generate_schema(
+            result = await new_ai_generate_schema_with_result(
                 ai_context, AITranslateResponseSchema, model=model, user_tracking_id=self.connection.db_model.iid
             )
+            translated = result.output
+            if result.usage and result.usage.total_tokens:
+                await charge_ai_usage(
+                    self.connection.db_model.iid,
+                    AI_FEATURE_AUTO_TRANSLATE if is_autotranslate else AI_FEATURE_TRANSLATE,
+                    model,
+                    result.usage,
+                )
         except ModelHTTPError as err:
             event_id = capture_sentry(err)
             if self.data.get("silent_error"):
@@ -133,11 +146,18 @@ class AiTranslate(SophieMessageHandler):
             log.debug("AiTranslate: AI gave the exact same text, skipping.")
             return
 
+        quota_info = await get_quota_info(self.connection.db_model.iid)
+        quota_header = None
+        if quota_info and quota_info.total_credits > 0:
+            quota_percentage = int((quota_info.remaining_credits / quota_info.total_credits) * 100)
+            quota_header = ai_credit_header(quota_percentage)
+
         doc = Doc(
             HList(
                 Title(AI_GENERATED_TEXT),
                 _("Auto Translator") if is_autotranslate else _("Translator"),
                 f"({_('Voice')})" if is_voice else None,
+                quota_header,
             ),
             (
                 Bold(

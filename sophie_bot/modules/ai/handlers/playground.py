@@ -19,7 +19,8 @@ from sophie_bot.modules.ai.utils.ai_models import (
     AI_MODEL_TO_SHORT_NAME,
     AI_MODELS,
     AI_PROVIDER_TO_NAME,
-    PROVIDER_TO_MODELS,
+    AVAILABLE_PROVIDER_NAMES,
+    get_provider_models,
 )
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
@@ -31,18 +32,18 @@ def build_playground_keyboard(selected_model: str | None = None) -> InlineKeyboa
     """Build keyboard with all available AI models grouped by provider."""
     rows = []
 
-    # Group models by provider for better organization
-    for provider_name, model_enum in PROVIDER_TO_MODELS.items():
+    for provider_name in AVAILABLE_PROVIDER_NAMES:
+        provider_models = get_provider_models(provider_name, playground_only=True)
+        if not provider_models:
+            continue
         provider_display = AI_PROVIDER_TO_NAME[provider_name]
 
-        # Add provider header (non-clickable)
-        rows.append([InlineKeyboardButton(text=f"── {provider_display} ──", callback_data="header")])  # Will be ignored
+        rows.append([InlineKeyboardButton(text=f"── {provider_display} ──", callback_data="header")])
 
-        # Collect model buttons for this provider
         model_buttons = []
-        for model in model_enum:
+        for model in provider_models:
             model_name = model.name
-            display_name = AI_MODEL_TO_SHORT_NAME.get(model.value, model.value)
+            display_name = AI_MODEL_TO_SHORT_NAME.get(model.name, model.name)
             mark = "🟢 " if model_name == selected_model else "⚪ "
 
             model_buttons.append(
@@ -51,9 +52,8 @@ def build_playground_keyboard(selected_model: str | None = None) -> InlineKeyboa
                 )
             )
 
-        # Arrange model buttons in rows of 2
-        for i in range(0, len(model_buttons), 2):
-            row = model_buttons[i : i + 2]  # Take up to 2 buttons per row
+        for index in range(0, len(model_buttons), 2):
+            row = model_buttons[index : index + 2]
             rows.append(row)
 
     return InlineKeyboardMarkup(inline_keyboard=rows)

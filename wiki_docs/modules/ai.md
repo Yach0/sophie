@@ -8,7 +8,8 @@ icon: ✨
 > From a simple chat-bot, to the automatic translator. Have fun. \
 >   \
 > By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used. \
-> Please note that you can make a limited amount of AI requests per day.
+> Please note that you can make a limited amount of AI requests per day. \
+> Use /aiusage to check your remaining quota.
 
 ## Available commands
 
@@ -18,6 +19,7 @@ icon: ✨
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/aitranslate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text | *Disable-able* |
+| `/aiusage` | - | Check AI quota and usage details |  |
 | `/ai` | `<Prompt>` | Ask Sophie a question | *Disable-able* |
 {.card-view-on-mobile}
 

@@ -40,17 +40,24 @@ TELEGRAM_ANONYMOUS_ADMIN_BOT_ID: Final[int] = 1087968824
 # AI Module Limits
 # =============================================================================
 
-# Default daily limit for AI requests per user
-AI_DEFAULT_DAILY_LIMIT: Final[int] = 150
+# Default monthly credits for AI features per chat.
+AI_DEFAULT_MONTHLY_CREDITS: Final[int] = 20000
+
+# Reference token amount represented by one credit on the baseline pricing model.
+AI_CREDITS_PER_TOKEN: Final[int] = 100
+
+# Baseline OpenRouter-equivalent prices used to normalize credits across models.
+AI_BASE_INPUT_PRICE_PER_MILLION: Final[float] = 0.15
+AI_BASE_OUTPUT_PRICE_PER_MILLION: Final[float] = 0.60
 
 # Maximum number of AI filter handlers per chat
 AI_FILTER_LIMIT_PER_CHAT: Final[int] = 1
 
 # Maximum age of a newly joined user eligible for AI filter checks
-AI_FILTER_NEW_USER_MAX_AGE_HOURS: Final[int] = 24
+AI_FILTER_NEW_USER_MAX_AGE_HOURS: Final[int] = 48
 
-# Maximum number of AI filter evaluations per chat per day
-AI_FILTER_DAILY_LIMIT_PER_CHAT: Final[int] = 200
+# Maximum number of AI filter evaluations per chat per day (Redis-based, separate from quota)
+AI_FILTER_DAILY_LIMIT_PER_CHAT: Final[int] = 1000
 
 # Maximum video file size for AI transcription (in bytes) - 20MB
 AI_MAX_VIDEO_SIZE_BYTES: Final[int] = 20 * 1024 * 1024
@@ -112,6 +119,7 @@ WARN_MAX_ACTIONS: Final[int] = 2  # Maximum number of actions allowed per warn s
 
 # AI Emoji used in messages
 AI_EMOJI: Final[str] = "✨"
+AI_CREDIT_EMOJI: Final[str] = "🥡"
 
 
 # =============================================================================

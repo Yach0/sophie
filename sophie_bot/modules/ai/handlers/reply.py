@@ -6,10 +6,11 @@ from aiogram.types import Message
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
-from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
+from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.services.bot import bot
 
 
@@ -27,7 +28,7 @@ class AiReplyHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return AiReplyHandler.filter, AIThrottleFilter(), AIEnabledFilter()
+        return AiReplyHandler.filter, AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
         await bot.send_chat_action(self.event.chat.id, "typing")

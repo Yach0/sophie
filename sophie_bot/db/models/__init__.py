@@ -8,6 +8,7 @@ from sophie_bot.db.models.ai import (
     AIMemoryModel,
     AIModeratorModel,
     AIProviderModel,
+    AIQuotaModel,
     AIUsageModel,
 )
 from sophie_bot.db.models.antiflood import AntifloodModel
@@ -65,6 +66,7 @@ models: List[Type[Document]] = [
     FiltersModel,
     LocksModel,
     AIProviderModel,
+    AIQuotaModel,
     AntifloodModel,
     ApiTokenModel,
     Federation,

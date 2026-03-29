@@ -6,9 +6,10 @@ from stfu_tg import Doc, Template
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import ChatModel
-from sophie_bot.modules.ai.filters.throttle import AIThrottleFilter
+from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -45,7 +46,7 @@ async def ai_filter_handle(message: Message, chat: dict, data: dict):
     if not chat_db:
         raise SophieException("Chat not found in database")
 
-    if message.text or message.caption and await AIThrottleFilter().__call__(message, chat_db):
+    if message.text or message.caption and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db):
         from sophie_bot.middlewares.connections import ChatConnection
 
         connection = ChatConnection(
