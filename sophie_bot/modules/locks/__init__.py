@@ -25,6 +25,7 @@ __module_info__ = l_(
         ),
     )
 )
+__advertise_wiki_page__ = True
 
 router = Router(name="locks")
 

@@ -16,6 +16,7 @@ from sophie_bot.modules.help.utils.format_help import (
     format_cmd_args,
     group_handlers,
 )
+from sophie_bot.modules.locks.handlers.lockable import build_lockable_sections
 from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
@@ -26,7 +27,10 @@ human_pages = Path("./docs/modules")
 
 class ModuleWikiPage:
     # TODO: Use this for /help as well
-    __slots__ = ('name', 'module',)
+    __slots__ = (
+        "name",
+        "module",
+    )
 
     def __init__(self, name: str, module: ModuleHelp):
         self.name = name
@@ -34,58 +38,76 @@ class ModuleWikiPage:
 
     @staticmethod
     def _table_row(handler: HandlerHelp) -> tuple[Element, Element, LazyProxy | str, Element]:
-        remarks = HList(divider=', ')
+        remarks = HList(divider=", ")
 
         if handler.only_chats:
-            remarks.append(Italic('Only in groups'))
+            remarks.append(Italic("Only in groups"))
 
         if handler.disableable:
-            remarks.append(Italic('Disable-able'))
+            remarks.append(Italic("Disable-able"))
 
         return (
             HList(
                 *(format_cmd(cmd) for cmd in handler.cmds),
             ),
-            format_cmd_args(handler.args, as_code=True) if handler.args else '-',
+            format_cmd_args(handler.args, as_code=True) if handler.args else "-",
             handler.description or "-",
             remarks,
         )
 
     def _table(self, handlers: Sequence[HandlerHelp]):
         return TableMD(
-            ('Commands', 'Arguments', 'Description', 'Remarks'),
-            *(self._table_row(handler) for handler in handlers)
+            ("Commands", "Arguments", "Description", "Remarks"), *(self._table_row(handler) for handler in handlers)
         )
 
     def _generate_frontmatter(self) -> str:
-        with i18n.context(), i18n.use_locale('en_US'):
-            text = '---'
-            text += '\n' + f'title: {self.module.name}'
-            text += '\n' + f'icon: {self.module.icon}'
-            text += '\n' + '---'
+        with i18n.context(), i18n.use_locale("en_US"):
+            text = "---"
+            text += "\n" + f"title: {self.module.name}"
+            text += "\n" + f"icon: {self.module.icon}"
+            text += "\n" + "---"
         return text
 
     def _generate_module_info(self) -> str:
-        with i18n.context(), i18n.use_locale('en_US'):
+        with i18n.context(), i18n.use_locale("en_US"):
             doc = Doc(
                 Title(self.module.description, level=3) if self.module.description else None,
                 BlockQuote(self.module.info) if self.module.info else None,
-
                 # Commands groups
-                Title('Available commands', level=2),
-                *(Title(title, level=3) + self._table(handlers) + '{.card-view-on-mobile}' for title, handlers in group_handlers(self.module.handlers)),
-
+                Title("Available commands", level=2),
+                *(
+                    Title(title, level=3) + self._table(handlers) + "{.card-view-on-mobile}"
+                    for title, handlers in group_handlers(self.module.handlers)
+                ),
                 # Aliased commands
                 *(
-                    Title(Template('Aliased commands from {module}', module=Url(
-                        f"{HELP_MODULES[mod_name].icon} {HELP_MODULES[mod_name].name}",
-                        mod_name
-                    )), level=3) + self._table(handlers) for mod_name, handlers in get_aliased_cmds(self.name).items()
-                )
-
+                    Title(
+                        Template(
+                            "Aliased commands from {module}",
+                            module=Url(f"{HELP_MODULES[mod_name].icon} {HELP_MODULES[mod_name].name}", mod_name),
+                        ),
+                        level=3,
+                    )
+                    + self._table(handlers)
+                    for mod_name, handlers in get_aliased_cmds(self.name).items()
+                ),
             )
 
             return doc.to_md()
+
+    def _generate_generated_appendix(self) -> str:
+        with i18n.context(), i18n.use_locale("en_US"):
+            if self.name != "locks":
+                return ""
+
+            return (
+                "\n---\n"
+                + Doc(
+                    Title("Lockable types", level=2),
+                    "The list below is generated from the same source used by /lockable.",
+                    *build_lockable_sections(full_languages=True),
+                ).to_md()
+            )
 
     @property
     def is_excluded(self) -> bool:
@@ -95,6 +117,7 @@ class ModuleWikiPage:
     def page(self) -> str:
         text = self._generate_frontmatter()
         text += self._generate_module_info()
+        text += self._generate_generated_appendix()
         if (human := human_pages / f"{self.name}.md").exists():
             log.debug("- Appending human-maintained page")
             with human.open("r", encoding="utf-8") as f:
@@ -134,4 +157,4 @@ async def generate_wiki_pages():
 
         readme_file.close()
 
-    log.warn('Generating wiki documentation done!')
+    log.warn("Generating wiki documentation done!")

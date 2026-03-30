@@ -9,6 +9,7 @@ from aiogram.types import Message
 from babel.support import LazyProxy
 from lingua import Language
 from stfu_tg import BlockQuote, Code, Doc, KeyValue, Section, Template, Title, VList
+from stfu_tg.doc import Element
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.locks.utils.lock_types import (
@@ -221,6 +222,68 @@ def _build_lock_list(lock_types: tuple[str, ...]) -> VList:
     return VList(*[get_lock_display_name(lock_type) for lock_type in lock_types])
 
 
+def build_lockable_sections(full_languages: bool = False) -> tuple[Section, ...]:
+    language_items: list[Any]
+    if full_languages:
+        language_items = [
+            *[KeyValue(Code(f"language:{code}"), name) for code, name in sorted(SUPPORTED_LANGUAGES.items())],
+        ]
+    else:
+        language_items = [
+            *sample([KeyValue(Code(f"language:{code}"), name) for code, name in SUPPORTED_LANGUAGES.items()], 5),
+            Template(_("To see all supported languages, use {cmd}"), cmd=Code("/locklanguages")),
+        ]
+
+    return (
+        Section(
+            _build_lock_list(CONTENT_TYPES),
+            title=_("Media types"),
+        ),
+        Section(
+            _build_lock_list(ENTITY_TYPES),
+            title=_("Entities and links"),
+        ),
+        Section(
+            _build_lock_list(FORWARD_TYPES),
+            title=_("Forwards"),
+        ),
+        Section(
+            _build_lock_list(TEXT_PATTERN_TYPES),
+            title=_("Text patterns"),
+        ),
+        Section(
+            _build_lock_list(STICKER_PACK_TYPES),
+            VList(KeyValue(Code("stickerpack:PACK_ID"), _("Lock a specific sticker pack by its ID"))),
+            title=_("Sticker types"),
+        ),
+        Section(
+            VList(*language_items),
+            title=_("Languages"),
+        ),
+        Section(
+            _build_lock_list(SPECIAL_TYPES),
+            title=_("Special"),
+        ),
+    )
+
+
+def build_lockable_chat_sections(full_languages: bool = False) -> tuple[Element, ...]:
+    return tuple(
+        BlockQuote(section, expandable=True) for section in build_lockable_sections(full_languages=full_languages)
+    )
+
+
+def build_lockable_doc(full_languages: bool = False) -> Doc:
+    return Doc(
+        Title(_("Available lock types")),
+        *build_lockable_chat_sections(full_languages=full_languages),
+        Template(
+            _("Use {cmd} to lock a specific type."),
+            cmd=Code("/lock <type>"),
+        ),
+    )
+
+
 @flags.help(description=l_("Shows all lockable message types"))
 @flags.disableable(name="lockable")
 class ListLockableHandler(SophieMessageHandler):
@@ -230,68 +293,4 @@ class ListLockableHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         message: Message = self.event
-
-        doc = Doc(
-            Title(_("Available lock types")),
-            BlockQuote(
-                Section(
-                    _build_lock_list(CONTENT_TYPES),
-                    title=_("Media types"),
-                ),
-                expandable=True,
-            ),
-            BlockQuote(
-                Section(
-                    _build_lock_list(ENTITY_TYPES),
-                    title=_("Entities and links"),
-                ),
-                expandable=True,
-            ),
-            BlockQuote(
-                Section(
-                    _build_lock_list(FORWARD_TYPES),
-                    title=_("Forwards"),
-                ),
-                expandable=True,
-            ),
-            BlockQuote(
-                Section(
-                    _build_lock_list(TEXT_PATTERN_TYPES),
-                    title=_("Text patterns"),
-                ),
-                expandable=True,
-            ),
-            BlockQuote(
-                Section(
-                    _build_lock_list(STICKER_PACK_TYPES),
-                    VList(KeyValue(Code("stickerpack:PACK_ID"), _("Lock a specific sticker pack by its ID"))),
-                    title=_("Sticker types"),
-                ),
-                expandable=True,
-            ),
-            BlockQuote(
-                Section(
-                    VList(
-                        *sample(
-                            [KeyValue(Code(f"language:{code}"), name) for code, name in SUPPORTED_LANGUAGES.items()], 5
-                        ),
-                        Template(_("To see all supported languages, use {cmd}"), cmd=Code("/locklanguages")),
-                    ),
-                    title=_("Languages"),
-                ),
-                expandable=True,
-            ),
-            BlockQuote(
-                Section(
-                    _build_lock_list(SPECIAL_TYPES),
-                    title=_("Special"),
-                ),
-                expandable=True,
-            ),
-            Template(
-                _("Use {cmd} to lock a specific type."),
-                cmd=Code("/lock <type>"),
-            ),
-        )
-
-        await message.reply(doc.to_html())
+        await message.reply(build_lockable_doc().to_html())
