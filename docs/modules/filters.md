@@ -206,9 +206,10 @@ Use:
 Examples:
 
 ```
-/aiaddfilter block crypto spam
-/aiaddfilter catch phishing links
-/aiaddfilter block users asking people to DM for investment help
+/aiaddfilter weird unicode characters
+/aiaddfilter crypto spam
+/aiaddfilter health-related topics
+/aiaddfilter asking to PM
 ```
 
 Sophie will reply with 1 to 3 suggested handlers.

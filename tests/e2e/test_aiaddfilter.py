@@ -77,7 +77,7 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
     assert "word:crypto scam" in response_text
     assert "ai:messages promoting cryptocurrency or crypto scams" in response_text
     assert "Use /addfilter &lt;handler&gt; to create the filter." in response_text
-    assert "For example, /addfilter re:crypto|btc|bitcoin|blockchain" in response_text
+    assert "For example, <code>/addfilter re:crypto|btc|bitcoin|blockchain</code>" in response_text
 
 
 @pytest.mark.asyncio

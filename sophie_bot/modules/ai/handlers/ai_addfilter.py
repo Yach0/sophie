@@ -237,7 +237,7 @@ class AIFilterAddHandler(SophieMessageHandler):
             (
                 " ",
                 _("Use /addfilter <handler> to create the filter."),
-                Template(_("For example, /addfilter {handler}"), handler=first_handler),
+                Template(_("For example, {cmd}"), cmd=Code(f"/addfilter {first_handler}")),
             )
         )
 
