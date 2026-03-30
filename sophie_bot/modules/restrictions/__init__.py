@@ -8,6 +8,11 @@ from sophie_bot.modules.restrictions.handlers import (
     BanUserHandler,
     KickUserHandler,
     MuteUserHandler,
+    SilentBanUserHandler,
+    SilentKickUserHandler,
+    SilentMuteUserHandler,
+    SilentTempBanUserHandler,
+    SilentTempMuteUserHandler,
     TempBanUserHandler,
     TempMuteUserHandler,
     UnbanUserHandler,
@@ -32,10 +37,15 @@ __modern_actions__ = (KickModernAction, BanModernAction, MuteModernAction)
 
 __handlers__ = (
     KickUserHandler,
+    SilentKickUserHandler,
     BanUserHandler,
+    SilentBanUserHandler,
     TempBanUserHandler,
+    SilentTempBanUserHandler,
     MuteUserHandler,
+    SilentMuteUserHandler,
     TempMuteUserHandler,
+    SilentTempMuteUserHandler,
     UnmuteUserHandler,
     UnbanUserHandler,
 )
