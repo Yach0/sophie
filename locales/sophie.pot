@@ -134,27 +134,27 @@ msgstr ""
 msgid "Connected chat not found in the database. You have been disconnected and will remain disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:61
+#: sophie_bot/modules/ai/__init__.py:62
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:63
+#: sophie_bot/modules/ai/__init__.py:64
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:66
+#: sophie_bot/modules/ai/__init__.py:67
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:67
+#: sophie_bot/modules/ai/__init__.py:68
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:70
+#: sophie_bot/modules/ai/__init__.py:71
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:71
+#: sophie_bot/modules/ai/__init__.py:72
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -283,6 +283,40 @@ msgstr ""
 
 #: sophie_bot/modules/ai/fsm/pm.py:15
 msgid "⚙️ AI Provider"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:78
+#, python-brace-format
+msgid "Uses AI quota, limited to {limit} evaluations/day per chat"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:83
+msgid "Recommended"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:180
+msgid "Suggests filter handlers from a natural language description"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:197
+msgid "Describe what the filter should catch"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:222
+msgid "Could not generate suggestions. Please try again or use /addfilter directly."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
+msgid "AI Filter Suggestions"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:239
+msgid "Use /addfilter <handler> to create the filter."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
+#, python-brace-format
+msgid "For example, /addfilter {handler}"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:19
@@ -4689,19 +4723,19 @@ msgstr ""
 msgid "Allows programmatic access to bot functionality and data."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:19
+#: sophie_bot/modules/restrictions/__init__.py:24
 msgid "Restrictions"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:21
+#: sophie_bot/modules/restrictions/__init__.py:26
 msgid "Manage user restrictions in chats"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:24
+#: sophie_bot/modules/restrictions/__init__.py:29
 msgid "Provides commands to restrict users in chats."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:25
+#: sophie_bot/modules/restrictions/__init__.py:30
 msgid "Includes ban, kick, mute, and temporary restrictions."
 msgstr ""
 

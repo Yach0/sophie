@@ -37,6 +37,7 @@ icon: ✨
 | `/enableai` `/aienable` | `<?New status>` | Controls AI features |  |
 | `/aimoderator` | `<?New status>` | Controls AI Moderator features |  |
 | `/aiautotranslate` `/autotranslate` | `<?New status>` | Controls AI Auto translator |  |
+| `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
 | `/aiprovider` | - | Select the AI Provider for this chat |  |
 | `/aireset` | - | Reset the chat's AI context and AI memory |  |
 {.card-view-on-mobile}

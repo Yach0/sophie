@@ -53,7 +53,7 @@ class UserInGroupModel(Document):
                     ("group.id", ASCENDING),
                 ],
                 unique=False,
-            )
+            ),
         ]
 
     @staticmethod

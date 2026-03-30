@@ -23,6 +23,12 @@ icon: 🪄
 | `/delfilter` | `<Text to match>` | Deletes a filter |  |
 | `/editfilter` | `<Filter's keyword>` | Edits filter settings |  |
 {.card-view-on-mobile}
+
+### Aliased commands from [✨ Sophie AI](ai)
+
+| Commands | Arguments | Description | Remarks |
+| --- | --- | --- | --- |
+| `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
 ---
 ## Exact-match filters
 

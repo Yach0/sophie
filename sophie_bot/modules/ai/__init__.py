@@ -4,6 +4,7 @@ from stfu_tg import Doc
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.ai_moderator_setting import AIModerator
 from sophie_bot.modules.ai.handlers.aiprovider import (
@@ -78,6 +79,7 @@ __handlers__ = (
     EnableAI,
     AIModerator,
     AIAutotrans,
+    AIFilterAddHandler,
     AIProviderSetting,
     AIProviderSettingAlt,
     AIProviderSelectCallback,
