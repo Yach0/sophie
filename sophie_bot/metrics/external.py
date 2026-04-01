@@ -23,6 +23,27 @@ def set_metrics(metrics) -> None:
     log.info("External service metrics instrumentation enabled")
 
 
+def _classify_service(service_name: str) -> tuple[str, str] | None:
+    if service_name.startswith("mongo_"):
+        return "mongo", service_name.removeprefix("mongo_") or "query"
+
+    if service_name.startswith("redis_"):
+        return "redis", service_name.removeprefix("redis_") or "query"
+
+    return None
+
+
+def _extract_telegram_method(service_name: str) -> str | None:
+    if not service_name.startswith("telegram_"):
+        return None
+
+    method_name = service_name.removeprefix("telegram_").strip()
+    if not method_name:
+        return "api_call"
+
+    return method_name
+
+
 @asynccontextmanager
 async def time_external_service(service_name: str) -> AsyncGenerator[None, None]:
     """Context manager for timing external service calls"""
@@ -33,15 +54,19 @@ async def time_external_service(service_name: str) -> AsyncGenerator[None, None]
     start_time = time.perf_counter()
     exception_occurred = False
     exception_name = "unknown"
+    status = "ok"
 
     try:
         yield
     except Exception as e:
         exception_occurred = True
         exception_name = type(e).__name__
+        status = "error"
         raise
     finally:
         duration = time.perf_counter() - start_time
+        db_service = _classify_service(service_name)
+        telegram_method = _extract_telegram_method(service_name)
 
         # Record duration
         _metrics.external_request_duration_seconds.labels(service=service_name).observe(duration)
@@ -52,6 +77,23 @@ async def time_external_service(service_name: str) -> AsyncGenerator[None, None]
             unit="second",
         )
 
+        if db_service is not None:
+            db_name, operation_name = db_service
+            distribution_metric(
+                "sophie.db.query.duration",
+                duration,
+                attributes={"db": db_name, "operation": operation_name, "status": status},
+                unit="second",
+            )
+
+        if telegram_method is not None:
+            distribution_metric(
+                "sophie.api.telegram.duration",
+                duration,
+                attributes={"method": telegram_method, "status": status},
+                unit="second",
+            )
+
         # Record error if there was an exception
         if exception_occurred:
             _metrics.external_errors_total.labels(service=service_name, exception=exception_name).inc()
@@ -59,6 +101,19 @@ async def time_external_service(service_name: str) -> AsyncGenerator[None, None]
                 "sophie.external_errors",
                 attributes={"service": service_name, "exception": exception_name},
             )
+
+            if db_service is not None:
+                db_name, operation_name = db_service
+                count_metric(
+                    "sophie.db.errors",
+                    attributes={"db": db_name, "operation": operation_name, "error_type": exception_name},
+                )
+
+            if telegram_method is not None:
+                count_metric(
+                    "sophie.api.telegram.errors",
+                    attributes={"method": telegram_method, "error_type": exception_name},
+                )
 
             log.debug(
                 "External service error tracked", service=service_name, exception_type=exception_name, duration=duration
@@ -188,6 +243,9 @@ class ExternalServiceTracker:
             return
 
         duration = time.perf_counter() - self.start_time
+        db_service = _classify_service(self.service_name)
+        telegram_method = _extract_telegram_method(self.service_name)
+        status = "error" if exception else "ok"
 
         # Record duration
         _metrics.external_request_duration_seconds.labels(service=self.service_name).observe(duration)
@@ -198,6 +256,23 @@ class ExternalServiceTracker:
             unit="second",
         )
 
+        if db_service is not None:
+            db_name, operation_name = db_service
+            distribution_metric(
+                "sophie.db.query.duration",
+                duration,
+                attributes={"db": db_name, "operation": operation_name, "status": status},
+                unit="second",
+            )
+
+        if telegram_method is not None:
+            distribution_metric(
+                "sophie.api.telegram.duration",
+                duration,
+                attributes={"method": telegram_method, "status": status},
+                unit="second",
+            )
+
         # Record error if there was an exception
         if exception:
             exception_name = type(exception).__name__
@@ -206,6 +281,19 @@ class ExternalServiceTracker:
                 "sophie.external_errors",
                 attributes={"service": self.service_name, "exception": exception_name},
             )
+
+            if db_service is not None:
+                db_name, operation_name = db_service
+                count_metric(
+                    "sophie.db.errors",
+                    attributes={"db": db_name, "operation": operation_name, "error_type": exception_name},
+                )
+
+            if telegram_method is not None:
+                count_metric(
+                    "sophie.api.telegram.errors",
+                    attributes={"method": telegram_method, "error_type": exception_name},
+                )
 
             log.debug(
                 "External service error tracked manually",

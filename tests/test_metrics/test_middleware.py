@@ -199,6 +199,28 @@ class TestMetricsMiddleware:
         kind = middleware._get_message_kind(message)
         assert kind == "photo"
 
+    def test_extract_command_name_with_alt_prefix(self, middleware: MetricsMiddleware):
+        """Test command extraction with alternate configured prefix."""
+        from datetime import datetime
+
+        user = User(id=123, is_bot=False, first_name="Test")
+        chat = Chat(id=456, type="private")
+        message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="!help test")
+
+        command_name = middleware._extract_command_name(message)
+        assert command_name == "help"
+
+    def test_extract_command_name_with_mention(self, middleware: MetricsMiddleware):
+        """Test command extraction when message contains bot mention."""
+        from datetime import datetime
+
+        user = User(id=123, is_bot=False, first_name="Test")
+        chat = Chat(id=456, type="private")
+        message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="/start@TestBot")
+
+        command_name = middleware._extract_command_name(message)
+        assert command_name == "start"
+
     def test_get_handler_name(self, middleware: MetricsMiddleware):
         """Test handler name extraction"""
 

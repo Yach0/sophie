@@ -15,6 +15,7 @@ from aiogram.types import (
     Update,
 )
 
+from sophie_bot.config import CONFIG
 from sophie_bot.metrics.prom import SophieMetrics
 from sophie_bot.services.sentry_metrics import change_gauge_metric, count_metric, distribution_metric
 from sophie_bot.utils.logger import log
@@ -43,6 +44,7 @@ class MetricsMiddleware(BaseMiddleware):
 
         # Extract update information
         update_info = self._extract_update_info(event, data)
+        command_name = self._extract_command_name(event)
 
         # Increment update counter
         self.metrics.updates_total.labels(
@@ -71,12 +73,14 @@ class MetricsMiddleware(BaseMiddleware):
         # Measure handler duration
         start_time = time.perf_counter()
         handler_name = self._get_handler_name(handler, event)
+        command_status = "ok"
 
         try:
             result = await handler(event, data)
             return result
 
         except Exception as e:
+            command_status = "error"
             # Track handler errors
             exception_name = type(e).__name__
             self.metrics.handler_errors_total.labels(handler=handler_name, exception=exception_name).inc()
@@ -104,6 +108,22 @@ class MetricsMiddleware(BaseMiddleware):
                 attributes={"handler": handler_name},
                 unit="second",
             )
+
+            if command_name is not None:
+                count_metric(
+                    "sophie.commands.executed",
+                    attributes={
+                        "command": command_name,
+                        "chat_type": update_info["chat_type"],
+                        "status": command_status,
+                    },
+                )
+                distribution_metric(
+                    "sophie.commands.duration",
+                    duration,
+                    attributes={"command": command_name, "status": command_status},
+                    unit="second",
+                )
 
     def _extract_update_info(self, event: TelegramObject, data: Dict[str, Any]) -> Dict[str, Optional[str]]:
         """Extract update information for labeling"""
@@ -253,6 +273,43 @@ class MetricsMiddleware(BaseMiddleware):
             return "pinned_message"
         else:
             return "other"
+
+    def _extract_command_name(self, event: TelegramObject) -> str | None:
+        message: Message | None = None
+
+        if isinstance(event, Update):
+            message = event.message or event.edited_message
+        elif isinstance(event, Message):
+            message = event
+
+        if message is None or not message.text:
+            return None
+
+        text = message.text.strip()
+        command_prefix = self._get_command_prefix(text)
+        if command_prefix is None:
+            return None
+
+        first_token = text.split(" ", maxsplit=1)[0]
+        command_without_mention = first_token.split("@", maxsplit=1)[0]
+        command_name = command_without_mention.removeprefix(command_prefix).strip().lower()
+
+        if not command_name:
+            return None
+
+        return command_name[:50]
+
+    def _get_command_prefix(self, text: str) -> str | None:
+        prefixes = CONFIG.commands_prefix
+        if not prefixes:
+            return None
+
+        ordered_prefixes = sorted(prefixes, key=len, reverse=True)
+        for prefix in ordered_prefixes:
+            if text.startswith(prefix):
+                return prefix
+
+        return None
 
     def _get_handler_name(self, handler: Callable, event: TelegramObject) -> str:
         """Extract handler name for labeling"""
