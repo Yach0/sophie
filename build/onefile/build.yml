@@ -1,22 +1,45 @@
 build_linux_onefile:
   stage: build
-  image: python:3.13-slim-trixie
+  image: "$UV_IMAGE"
+  needs:
+    - job: prepare_libs
+      artifacts: true
+  variables:
+    CCACHE_DIR: "$CI_PROJECT_DIR/.cache/ccache"
   before_script:
-    - apt update; apt install patchelf ccache git pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev -y
+    - apt-get update && apt-get install -y --no-install-recommends patchelf ccache pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
     - ccache -s
-    - pip install uv
-    - uv sync --with dev
+    - uv sync --with dev --frozen
   script:
     - uv run make build_onefile
+    - ccache -s
   artifacts:
     name: "$CI_JOB_STAGE-$CI_COMMIT_REF_NAME"
     paths:
       - output/
     expire_in: 1 week
   cache:
-    key: "$CI_JOB_NAME"
-    paths:
-      - ~/.ccache
+    - key:
+        files:
+          - pyproject.toml
+          - uv.lock
+      paths:
+        - .cache/uv
+      policy: pull-push
+    - key: onefile-ccache
+      paths:
+        - .cache/ccache
+      policy: pull-push
+  rules:
+    - changes:
+        - build/onefile/**
+        - build/prepare.yml
+        - sophie_bot/**
+        - locales/**
+        - pyproject.toml
+        - uv.lock
+        - Makefile
+    - when: never
 
 
 #build_windows_onefile:
@@ -53,3 +76,13 @@ build_linux_onefile_container:
   script:
     - docker build --pull -t "$DOCKER_IMAGE" -f build/onefile/Dockerfile .
     - docker push "$DOCKER_IMAGE"
+  rules:
+    - changes:
+        - build/onefile/**
+        - build/prepare.yml
+        - sophie_bot/**
+        - locales/**
+        - pyproject.toml
+        - uv.lock
+        - Makefile
+    - when: never

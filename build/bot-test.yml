@@ -1,56 +1,83 @@
-variables:
-  UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
-  UV_LINK_MODE: copy
+prepare_test_env:
+  stage: prepare
+  image: "$UV_IMAGE"
+  needs:
+    - job: prepare_libs
+      artifacts: true
+  cache:
+    key:
+      files:
+        - pyproject.toml
+        - uv.lock
+    paths:
+      - .cache/uv
+    policy: pull-push
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends pkg-config libicu-dev g++ ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
+  script:
+    - uv sync --dev --frozen
+    - uv run pybabel compile -d locales -D sophie --use-fuzzy
+  artifacts:
+    paths:
+      - .venv/
+      - libs/
+      - locales/
+    expire_in: 1 day
 
 # Base template for all test jobs
 .test-base:
-  image: python:3.13-slim
+  image: "$UV_IMAGE"
+  stage: test
+  needs:
+    - job: prepare_test_env
+      artifacts: true
+  variables:
+    TOKEN: "123456:test"
   cache:
-    - key: uv-cache-${CI_COMMIT_REF_SLUG}
-      paths:
-        - .cache/uv
-      policy: pull-push
-    - key: venv-cache-$CI_COMMIT_REF_SLUG
-      paths:
-        - .venv
-      policy: pull-push
-  before_script:
-    # Install system dependencies required for PyAV source builds on Python 3.13
-    - apt-get update && apt-get install -y --no-install-recommends make git pkg-config libicu-dev g++ ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
-    # Clone/update libs - force remove any existing libs (file or dir) first
-    - rm -rf libs 2>/dev/null || rm -f libs 2>/dev/null || true
-    - mkdir -p libs
-    - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
-    - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
-    # Install uv
-    - pip install uv
-    # Sync dependencies (uses cache, very fast if unchanged)
-    - uv sync --dev --frozen
+    key:
+      files:
+        - pyproject.toml
+        - uv.lock
+    paths:
+      - .cache/uv
+    policy: pull
 
 test-codestyle:
   extends: .test-base
-  stage: test
   script:
-    - uv run pycln . -a -c
-    - uv run ruff format sophie_bot/ --check
-    - uv run ruff check .
+    - .venv/bin/python -m pycln . -a -c
+    - .venv/bin/ruff format sophie_bot/ --check
+    - .venv/bin/ruff check .
 
 test-codeanal:
   extends: .test-base
-  stage: test
   script:
-    - uv run ty check
+    - .venv/bin/ty check
 
-test-code:
+test-unit:
   extends: .test-base
-  stage: test
-  variables:
-    TOKEN: "123456:test"
   script:
-    # Compile locales for tests
-    - uv run pybabel compile -d locales -D sophie --use-fuzzy
-    # Run tests in parallel using all available CPU cores
-    - uv run pytest tests/ -v --alluredir=allure_results -x -n auto
+    - .venv/bin/python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto
+  artifacts:
+    when: always
+    paths:
+      - allure_results
+    expire_in: 1 day
+
+test-e2e:
+  extends: .test-base
+  script:
+    - .venv/bin/python -m pytest tests/e2e -v --alluredir=allure_results/e2e
+  artifacts:
+    when: always
+    paths:
+      - allure_results
+    expire_in: 1 day
+
+test-migrations:
+  extends: .test-base
+  script:
+    - RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations .venv/bin/python -m pytest tests/test_migrations.py -v --alluredir=allure_results/migrations
   artifacts:
     when: always
     paths:

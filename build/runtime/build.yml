@@ -8,32 +8,34 @@ build_runtime_container:
     IMAGE_NAME: "$CI_REGISTRY_IMAGE"
     IMAGE_FULL: "$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-runtime"
   stage: build
+  needs:
+    - job: prepare_libs
+      artifacts: true
   before_script:
-    - if ! command -v make &> /dev/null || ! command -v git &> /dev/null; then
-        dnf install -y make git;
-      fi
     - podman login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" registry.gitlab.com
-    - make pull_libs
-  script: |
-    # build
-    podman manifest create "$IMAGE_FULL"
-    podman build \
+  script:
+    - podman build \
       --platform linux/amd64 \
-      --manifest "$IMAGE_FULL" \
       --file build/runtime/Dockerfile \
       --layers \
       --build-arg BUILDKIT_INLINE_CACHE=1 \
       --build-arg BRANCH_NAME="${CI_COMMIT_BRANCH:-Local}" \
       --build-arg COMMIT_HASH="${CI_COMMIT_SHORT_SHA:-unknown}" \
+      --tag "$IMAGE_FULL" \
       .
-
-    podman manifest push "$IMAGE_FULL"
+    - podman push "$IMAGE_FULL"
   cache:
-    key: bot_runtime_docker_cache
+    key: runtime-container-cache
     paths:
       - $CONTAINERS_STORAGE
-  only:
-    - beta
-    - stable
-    - /^dev_.*/
-    - /^dev-.*/
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^(beta|stable|dev_.*|dev-.*)$/'
+      changes:
+        - build/runtime/**
+        - build/prepare.yml
+        - sophie_bot/**
+        - locales/**
+        - pyproject.toml
+        - uv.lock
+        - Makefile
+    - when: never

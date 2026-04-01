@@ -1,9 +1,11 @@
 stages:
+  - prepare
   - test
   - build
   - deploy
 
 include:
+  - '/build/prepare.yml'
   - '/build/bot-test.yml'
   - "/build/runtime/build.yml"
   - "/deploy/ci_staging.yml"
