@@ -16,16 +16,14 @@ from aiogram.types import (
 )
 
 from sophie_bot.config import CONFIG
-from sophie_bot.metrics.prom import SophieMetrics
 from sophie_bot.services.sentry_metrics import change_gauge_metric, count_metric, distribution_metric
 from sophie_bot.utils.logger import log
 
 
 class MetricsMiddleware(BaseMiddleware):
-    """Aiogram middleware for collecting Prometheus metrics"""
+    """Aiogram middleware for collecting Sentry metrics."""
 
-    def __init__(self, metrics: SophieMetrics, config: Any) -> None:
-        self.metrics = metrics
+    def __init__(self, config: Any) -> None:
         self.config = config
         super().__init__()
 
@@ -47,11 +45,6 @@ class MetricsMiddleware(BaseMiddleware):
         command_name = self._extract_command_name(event)
 
         # Increment update counter
-        self.metrics.updates_total.labels(
-            update_type=update_info["update_type"],
-            chat_type=update_info["chat_type"],
-            transport=update_info["transport"],
-        ).inc()
         count_metric(
             "sophie.updates",
             attributes={
@@ -63,11 +56,9 @@ class MetricsMiddleware(BaseMiddleware):
 
         # Increment message counter if it's a message
         if update_info["message_kind"]:
-            self.metrics.messages_total.labels(message_kind=update_info["message_kind"]).inc()
             count_metric("sophie.messages", attributes={"message_kind": update_info["message_kind"]})
 
         # Track inflight handlers
-        self.metrics.inflight_handlers.inc()
         change_gauge_metric("sophie.inflight_handlers", 1)
 
         # Measure handler duration
@@ -83,7 +74,6 @@ class MetricsMiddleware(BaseMiddleware):
             command_status = "error"
             # Track handler errors
             exception_name = type(e).__name__
-            self.metrics.handler_errors_total.labels(handler=handler_name, exception=exception_name).inc()
             count_metric(
                 "sophie.handler_errors",
                 attributes={"handler": handler_name, "exception": exception_name},
@@ -96,12 +86,10 @@ class MetricsMiddleware(BaseMiddleware):
 
         finally:
             # Always decrement inflight handlers and record duration
-            self.metrics.inflight_handlers.dec()
             change_gauge_metric("sophie.inflight_handlers", -1)
 
             # Record handler duration
             duration = time.perf_counter() - start_time
-            self.metrics.handler_duration_seconds.labels(handler=handler_name).observe(duration)
             distribution_metric(
                 "sophie.handler.duration",
                 duration,
@@ -300,20 +288,22 @@ class MetricsMiddleware(BaseMiddleware):
         return command_name[:50]
 
     def _get_command_prefix(self, text: str) -> str | None:
-        prefixes = CONFIG.commands_prefix
+        prefixes: list[str] = [str(prefix) for prefix in CONFIG.commands_prefix]
         if not prefixes:
             return None
 
         ordered_prefixes = sorted(prefixes, key=len, reverse=True)
-        for prefix in ordered_prefixes:
+        for prefix_value in ordered_prefixes:
+            prefix = str(prefix_value)
             if text.startswith(prefix):
                 return prefix
 
         return None
 
-    def _get_handler_name(self, handler: Callable, event: TelegramObject) -> str:
+    def _get_handler_name(self, handler: Callable, event: TelegramObject | None) -> str:
         """Extract handler name for labeling"""
         handler_name: str = "unknown"
+        _ = event
 
         # Handle functools.partial objects (common with aiogram class-based handlers)
         if hasattr(handler, "func"):

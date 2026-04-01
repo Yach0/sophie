@@ -7,7 +7,6 @@ import pytest
 from aiogram.types import Message, Update, User, Chat
 
 from sophie_bot.metrics.middleware import MetricsMiddleware
-from sophie_bot.metrics.prom import SophieMetrics
 
 
 @pytest.fixture
@@ -20,36 +19,9 @@ def mock_config():
 
 
 @pytest.fixture
-def mock_metrics():
-    """Mock metrics for tests"""
-    metrics = MagicMock(spec=SophieMetrics)
-
-    # Mock counters
-    metrics.updates_total = MagicMock()
-    metrics.updates_total.labels.return_value.inc = MagicMock()
-
-    metrics.messages_total = MagicMock()
-    metrics.messages_total.labels.return_value.inc = MagicMock()
-
-    metrics.handler_errors_total = MagicMock()
-    metrics.handler_errors_total.labels.return_value.inc = MagicMock()
-
-    # Mock gauges
-    metrics.inflight_handlers = MagicMock()
-    metrics.inflight_handlers.inc = MagicMock()
-    metrics.inflight_handlers.dec = MagicMock()
-
-    # Mock histograms
-    metrics.handler_duration_seconds = MagicMock()
-    metrics.handler_duration_seconds.labels.return_value.observe = MagicMock()
-
-    return metrics
-
-
-@pytest.fixture
-def middleware(mock_metrics, mock_config):
+def middleware(mock_config):
     """Create middleware instance for tests"""
-    return MetricsMiddleware(mock_metrics, mock_config)
+    return MetricsMiddleware(mock_config)
 
 
 @pytest.fixture
@@ -72,9 +44,7 @@ class TestMetricsMiddleware:
     """Test suite for MetricsMiddleware"""
 
     @pytest.mark.asyncio
-    async def test_successful_handler_execution(
-        self, middleware: MetricsMiddleware, mock_update: Update, mock_metrics: MagicMock
-    ):
+    async def test_successful_handler_execution(self, middleware: MetricsMiddleware, mock_update: Update):
         """Test successful handler execution metrics"""
         handler = AsyncMock(return_value="success")
         data = {}
@@ -90,21 +60,12 @@ class TestMetricsMiddleware:
         handler.assert_called_once_with(mock_update, data)
         assert result == "success"
 
-        # Check metrics were recorded
-        mock_metrics.updates_total.labels.assert_called_once()
-        mock_metrics.messages_total.labels.assert_called_once()
-        mock_metrics.inflight_handlers.inc.assert_called_once()
-        mock_metrics.inflight_handlers.dec.assert_called_once()
-        mock_metrics.handler_duration_seconds.labels.assert_called_once()
         assert count_metric_mock.call_count == 2
         assert change_gauge_metric_mock.call_count == 2
         distribution_metric_mock.assert_called_once()
 
-        # Check no error metrics
-        mock_metrics.handler_errors_total.labels.assert_not_called()
-
     @pytest.mark.asyncio
-    async def test_handler_exception(self, middleware: MetricsMiddleware, mock_update: Update, mock_metrics: MagicMock):
+    async def test_handler_exception(self, middleware: MetricsMiddleware, mock_update: Update):
         """Test handler exception handling and error metrics"""
         test_exception = ValueError("Test error")
         handler = AsyncMock(side_effect=test_exception)
@@ -118,39 +79,34 @@ class TestMetricsMiddleware:
         ):
             await middleware(handler, mock_update, data)
 
-        # Check error metrics were recorded
-        mock_metrics.handler_errors_total.labels.assert_called_once()
-        error_labels = mock_metrics.handler_errors_total.labels.call_args[1]
-        assert error_labels["exception"] == "ValueError"
-
-        # Check inflight handlers were decremented
-        mock_metrics.inflight_handlers.dec.assert_called_once()
-
-        # Check duration was still recorded
-        mock_metrics.handler_duration_seconds.labels.assert_called_once()
         assert count_metric_mock.call_count == 3
         assert change_gauge_metric_mock.call_count == 2
         distribution_metric_mock.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_sampling_skip(self, mock_metrics: MagicMock, mock_config: MagicMock, mock_update: Update):
+    async def test_sampling_skip(self, mock_config: MagicMock, mock_update: Update):
         """Test that sampling works correctly"""
         mock_config.metrics_sample_ratio = 0.0  # Always skip
-        middleware = MetricsMiddleware(mock_metrics, mock_config)
+        middleware = MetricsMiddleware(mock_config)
 
         handler = AsyncMock(return_value="success")
         data = {}
 
-        with patch("random.random", return_value=0.5):
+        with (
+            patch("random.random", return_value=0.5),
+            patch("sophie_bot.metrics.middleware.count_metric") as count_metric_mock,
+            patch("sophie_bot.metrics.middleware.change_gauge_metric") as change_gauge_metric_mock,
+            patch("sophie_bot.metrics.middleware.distribution_metric") as distribution_metric_mock,
+        ):
             result = await middleware(handler, mock_update, data)
 
         # Handler should still be called
         handler.assert_called_once_with(mock_update, data)
         assert result == "success"
 
-        # But no metrics should be recorded
-        mock_metrics.updates_total.labels.assert_not_called()
-        mock_metrics.messages_total.labels.assert_not_called()
+        count_metric_mock.assert_not_called()
+        change_gauge_metric_mock.assert_not_called()
+        distribution_metric_mock.assert_not_called()
 
     def test_extract_update_info_message(self, middleware: MetricsMiddleware, mock_update: Update):
         """Test update info extraction for messages"""
@@ -289,9 +245,7 @@ class TestMetricsMiddleware:
         assert info["transport"] == "webhook"
 
     @pytest.mark.asyncio
-    async def test_concurrent_handlers(
-        self, middleware: MetricsMiddleware, mock_update: Update, mock_metrics: MagicMock
-    ):
+    async def test_concurrent_handlers(self, middleware: MetricsMiddleware, mock_update: Update):
         """Test that concurrent handlers are tracked correctly"""
         handler1 = AsyncMock()
         handler2 = AsyncMock()
@@ -308,12 +262,9 @@ class TestMetricsMiddleware:
         handler1.side_effect = slow_handler1
         handler2.side_effect = slow_handler2
 
-        # Run handlers concurrently
-        results = await asyncio.gather(middleware(handler1, mock_update, {}), middleware(handler2, mock_update, {}))
+        with patch("sophie_bot.metrics.middleware.change_gauge_metric") as change_gauge_metric_mock:
+            # Run handlers concurrently
+            results = await asyncio.gather(middleware(handler1, mock_update, {}), middleware(handler2, mock_update, {}))
 
         assert results == ["result1", "result2"]
-
-        # Check that inflight handlers were incremented twice
-        assert mock_metrics.inflight_handlers.inc.call_count == 2
-        # And decremented twice
-        assert mock_metrics.inflight_handlers.dec.call_count == 2
+        assert change_gauge_metric_mock.call_count == 4

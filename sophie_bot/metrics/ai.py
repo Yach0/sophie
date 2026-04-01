@@ -11,16 +11,6 @@ from sophie_bot.config import CONFIG
 from sophie_bot.services.sentry_metrics import change_gauge_metric, count_metric, distribution_metric
 from sophie_bot.utils.logger import log
 
-# Global metrics instance - will be set during initialization
-_metrics = None
-
-
-def set_ai_metrics(metrics) -> None:
-    """Set the global metrics instance for AI instrumentation"""
-    global _metrics
-    _metrics = metrics
-    log.info("AI metrics instrumentation enabled")
-
 
 def get_provider_from_model(model: Model) -> str:
     """Extract provider name from AI model"""
@@ -55,7 +45,7 @@ def get_model_name(model: Model) -> str:
 @asynccontextmanager
 async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenerator[None, None]:
     """Context manager for tracking AI API requests"""
-    if not _metrics or not CONFIG.metrics_enable:
+    if not CONFIG.metrics_enable:
         yield
         return
 
@@ -63,8 +53,6 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
     model_name = get_model_name(model)
     start_time = time.perf_counter()
 
-    # Increment request counter
-    _metrics.ai_requests_total.labels(provider=provider, model=model_name, operation=operation).inc()
     count_metric(
         "sophie.ai.requests",
         attributes={"provider": provider, "model": model_name, "operation": operation},
@@ -77,10 +65,6 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
     except Exception as e:
         error_type = type(e).__name__
 
-        # Track AI errors
-        _metrics.ai_errors_total.labels(
-            provider=provider, model=model_name, error_type=error_type, operation=operation
-        ).inc()
         count_metric(
             "sophie.ai.errors",
             attributes={"provider": provider, "model": model_name, "error_type": error_type, "operation": operation},
@@ -91,11 +75,7 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
         )
         raise
     finally:
-        # Record request duration
         duration = time.perf_counter() - start_time
-        _metrics.ai_request_duration_seconds.labels(provider=provider, model=model_name, operation=operation).observe(
-            duration
-        )
         distribution_metric(
             "sophie.ai.request.duration",
             duration,
@@ -106,7 +86,7 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
 
 def track_ai_usage(model: Model, usage: RunUsage) -> None:
     """Track AI token usage metrics"""
-    if not _metrics or not CONFIG.metrics_enable:
+    if not CONFIG.metrics_enable:
         return
 
     provider = get_provider_from_model(model)
@@ -114,9 +94,6 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
 
     # Track different token types
     if usage.request_tokens:
-        _metrics.ai_tokens_total.labels(provider=provider, model=model_name, token_type="request").inc(
-            usage.request_tokens
-        )
         count_metric(
             "sophie.ai.tokens",
             usage.request_tokens,
@@ -124,9 +101,6 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
         )
 
     if usage.response_tokens:
-        _metrics.ai_tokens_total.labels(provider=provider, model=model_name, token_type="response").inc(
-            usage.response_tokens
-        )
         count_metric(
             "sophie.ai.tokens",
             usage.response_tokens,
@@ -134,7 +108,6 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
         )
 
     if usage.total_tokens:
-        _metrics.ai_tokens_total.labels(provider=provider, model=model_name, token_type="total").inc(usage.total_tokens)
         count_metric(
             "sophie.ai.tokens",
             usage.total_tokens,
@@ -145,7 +118,7 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
 @asynccontextmanager
 async def track_ai_tool(tool_name: str) -> AsyncGenerator[None, None]:
     """Context manager for tracking AI tool calls"""
-    if not _metrics or not CONFIG.metrics_enable:
+    if not CONFIG.metrics_enable:
         yield
         return
 
@@ -159,47 +132,42 @@ async def track_ai_tool(tool_name: str) -> AsyncGenerator[None, None]:
         log.debug("AI tool error tracked", tool=tool_name, error=type(e).__name__)
         raise
     finally:
-        # Track tool call
-        _metrics.ai_tool_calls_total.labels(tool_name=tool_name, status=status).inc()
         count_metric("sophie.ai.tool_calls", attributes={"tool_name": tool_name, "status": status})
 
-        # Track tool duration
         duration = time.perf_counter() - start_time
-        _metrics.ai_tool_duration_seconds.labels(tool_name=tool_name).observe(duration)
         distribution_metric("sophie.ai.tool.duration", duration, attributes={"tool_name": tool_name}, unit="second")
 
 
 def track_active_conversation_start() -> None:
     """Track the start of an AI conversation"""
-    if not _metrics or not CONFIG.metrics_enable:
+    if not CONFIG.metrics_enable:
         return
 
-    _metrics.ai_active_conversations.inc()
     change_gauge_metric("sophie.ai.active_conversations", 1)
 
 
 def track_active_conversation_end() -> None:
     """Track the end of an AI conversation"""
-    if not _metrics or not CONFIG.metrics_enable:
+    if not CONFIG.metrics_enable:
         return
 
-    _metrics.ai_active_conversations.dec()
     change_gauge_metric("sophie.ai.active_conversations", -1)
 
 
 class AIConversationTracker:
     """Context manager for tracking active AI conversations"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.tracked = False
 
-    async def __aenter__(self):
-        if _metrics and CONFIG.metrics_enable:
+    async def __aenter__(self) -> AIConversationTracker:
+        if CONFIG.metrics_enable:
             track_active_conversation_start()
             self.tracked = True
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        _ = (exc_type, exc_val, exc_tb)
         if self.tracked:
             track_active_conversation_end()
 
@@ -226,7 +194,7 @@ def instrument_ai_operation(operation: str = "chat"):
             if not model:
                 model = kwargs.get("model")
 
-            if model and _metrics and CONFIG.metrics_enable:
+            if model and CONFIG.metrics_enable:
                 async with track_ai_request(model, operation):
                     result = await func(*args, **kwargs)
 

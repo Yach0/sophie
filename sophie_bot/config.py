@@ -118,21 +118,7 @@ class Config(BaseSettings):
 
     # Metrics configuration
     metrics_enable: bool = True
-    metrics_backend: Literal["prometheus", "prometheus_pushgateway"] = "prometheus"
-    metrics_listen_host: str = "127.0.0.1"
-    metrics_listen_port: int = 9108
-    metrics_path: str = "/metrics"
-    metrics_env: str = "dev"  # const label
-    metrics_instance_id: Optional[str] = None  # default to hostname
-    metrics_enable_default_collectors: bool = True
-    metrics_light_mode: bool = True  # disable some histograms if True
     metrics_sample_ratio: float = 1.0
-    metrics_path_on_webhook: bool = False  # add /metrics to webhook server
-
-    # Pushgateway configuration
-    pushgateway_url: Optional[str] = None
-    pushgateway_job: str = "sophie-bot"
-    push_interval_seconds: int = 10
 
     model_config = SettingsConfigDict(env_parse_none_str="None", env_file="data/config.env", env_file_encoding="utf-8")
 

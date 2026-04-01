@@ -134,11 +134,3 @@ CACHE_LANGUAGE_TTL_SECONDS: Final[int] = 86400  # 24 hours
 
 # Admin cache TTL (in seconds)
 CACHE_ADMIN_TTL_SECONDS: Final[int] = 7200  # 2 hours
-
-
-# =============================================================================
-# Metrics
-# =============================================================================
-
-# Default histogram buckets for Prometheus metrics
-METRICS_HISTOGRAM_BUCKETS: Final[list[float]] = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60]

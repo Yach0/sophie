@@ -31,35 +31,12 @@ async def bot_start():
 async def _init_metrics():
     """Initialize the metrics system"""
     try:
-        from sophie_bot.metrics import (
-            MetricsMiddleware,
-            create_registry,
-            make_metrics,
-            set_metrics,
-            start_background_tasks,
-            start_http_exporter,
-        )
+        from sophie_bot.metrics import MetricsMiddleware, start_background_tasks
 
-        # Create registry and metrics
-        registry = create_registry(CONFIG)
-        metrics = make_metrics(registry, CONFIG)
-
-        # Start HTTP exporter (separate port)
-        start_http_exporter(registry=registry, host=CONFIG.metrics_listen_host, port=CONFIG.metrics_listen_port)
-
-        # Start background tasks
-        await start_background_tasks(metrics, CONFIG)
-
-        # Initialize external service metrics
-        set_metrics(metrics)
-
-        # Initialize AI metrics
-        from sophie_bot.metrics import set_ai_metrics
-
-        set_ai_metrics(metrics)
+        await start_background_tasks()
 
         # Create and set middleware
-        metrics_middleware = MetricsMiddleware(metrics, CONFIG)
+        metrics_middleware = MetricsMiddleware(CONFIG)
         set_metrics_middleware(metrics_middleware)
 
         log.info("Metrics system initialized successfully")
@@ -68,25 +45,6 @@ async def _init_metrics():
         log.error("Failed to initialize metrics system", error=str(e))
         if CONFIG.debug_mode != "off":
             raise
-
-
-def _add_metrics_to_webhook(app: Application) -> None:
-    """Add metrics endpoint to webhook server"""
-    try:
-        from sophie_bot.metrics import aiohttp_handler, create_registry, make_metrics
-
-        # Create registry and metrics for webhook
-        registry = create_registry(CONFIG)
-        make_metrics(registry, CONFIG)
-
-        # Add metrics route
-        metrics_handler = aiohttp_handler(registry)
-        app.router.add_get(CONFIG.metrics_path, metrics_handler)
-
-        log.info("Added metrics endpoint to webhook server", path=CONFIG.metrics_path)
-
-    except Exception as e:
-        log.error("Failed to add metrics endpoint to webhook", error=str(e))
 
 
 def start_bot_mode() -> None:
@@ -126,15 +84,10 @@ def start_bot_mode() -> None:
         ).register(app, path=CONFIG.webhooks_path)
 
         if CONFIG.webhooks_filter_ips:
-            # TODO: Long start
             log.info("Filtering IP addresses", ips=CONFIG.webhooks_allowed_networks)
             app.middlewares.append(ip_filter_middleware(IPFilter(CONFIG.webhooks_allowed_networks)))  # type: ignore
 
         setup_application(app, dp, bot=bot)
-
-        # Add metrics endpoint to webhook server if enabled
-        if CONFIG.metrics_enable and CONFIG.metrics_path_on_webhook:
-            _add_metrics_to_webhook(app)
 
         ssl_context: Optional[ssl.SSLContext]
         if CONFIG.webhooks_https_certificate:

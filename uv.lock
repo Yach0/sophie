@@ -1228,6 +1228,15 @@ wheels = [
 ]
 
 [[package]]
+name = "openfeature-sdk"
+version = "0.8.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/08/f6698d0614b8703170117b786bd77b7b0a04f3ee00f19fbe9b360d2dee69/openfeature_sdk-0.8.4.tar.gz", hash = "sha256:66abf71f928ec8c0db1111072bb0ef2635dfbd09510f77f4b548e5d0ea0e6c1a", size = 29676, upload-time = "2025-12-09T07:31:13.137Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/80/f6532778188c573cc83790b11abccde717d4c1442514e722d6bb6140e55c/openfeature_sdk-0.8.4-py3-none-any.whl", hash = "sha256:805ba090669798fc343ca9fdcbc56ff0f4b57bf6757533f0854d2021192e620a", size = 35986, upload-time = "2025-12-09T07:31:12.092Z" },
+]
+
+[[package]]
 name = "opentelemetry-api"
 version = "1.40.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1403,15 +1412,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
-]
-
-[[package]]
-name = "prometheus-client"
-version = "0.24.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f0/58/a794d23feb6b00fc0c72787d7e87d872a6730dd9ed7c7b3e954637d8f280/prometheus_client-0.24.1.tar.gz", hash = "sha256:7e0ced7fbbd40f7b84962d5d2ab6f17ef88a72504dcf7c0b40737b43b2a461f9", size = 85616, upload-time = "2026-01-14T15:26:26.965Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/c3/24a2f845e3917201628ecaba4f18bab4d18a337834c1df2a159ee9d22a42/prometheus_client-0.24.1-py3-none-any.whl", hash = "sha256:150db128af71a5c2482b36e588fc8a6b95e498750da4b17065947c16070f4055", size = 64057, upload-time = "2026-01-14T15:26:24.42Z" },
 ]
 
 [[package]]
@@ -2128,8 +2128,8 @@ dependencies = [
     { name = "normality" },
     { name = "numpy" },
     { name = "openai" },
+    { name = "openfeature-sdk" },
     { name = "pillow" },
-    { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "pydantic-ai-slim", extra = ["mistral", "openai", "openrouter", "tavily"] },
     { name = "pydantic-settings" },
@@ -2187,8 +2187,8 @@ requires-dist = [
     { name = "normality", specifier = ">=3.0.2" },
     { name = "numpy", specifier = ">=2,<3" },
     { name = "openai", specifier = ">=2,<3" },
+    { name = "openfeature-sdk", specifier = ">=0.8.4,<1" },
     { name = "pillow", specifier = ">=12,<13" },
-    { name = "prometheus-client", specifier = ">=0.24,<0.25" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pydantic-ai-slim", extras = ["mistral", "openai", "openrouter", "tavily"], specifier = ">=1.44,<2" },
     { name = "pydantic-settings", specifier = ">=2,<3" },
