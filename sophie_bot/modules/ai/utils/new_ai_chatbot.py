@@ -4,7 +4,7 @@ from typing import Optional, TypeVar
 from aiogram.types import Message, ReplyKeyboardMarkup
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.exceptions import UnexpectedModelBehavior
+from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior
 from pydantic_ai.models import Model
 
 from sophie_bot.metrics import track_ai_request
@@ -89,6 +89,8 @@ async def new_ai_generate_stream(
                 result_message_history = result_stream.all_messages()
         except UnexpectedModelBehavior as error:
             raise SophieException("AI provider returned an invalid response. Please try again later.") from error
+        except ModelHTTPError as err:
+            raise SophieException(f"AI model error: {err.message}") from err
 
     return AIAgentResult(
         output=output_text,

@@ -16,6 +16,7 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg.doc import Element
 
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
@@ -86,7 +87,7 @@ class SophieCallbackQueryHandler(SophieBaseHandler[CallbackQuery], ABC):
     async def edit_text(self, text: Element | str, **kwargs):
         await self.check_for_message()
         message = cast(Message, self.event.message)
-        await message.edit_text(str(text), **kwargs)
+        await common_try(message.edit_text(str(text), **kwargs))
 
 
 class SophieMessageCallbackQueryHandler(SophieBaseHandler[Message | CallbackQuery], ABC):

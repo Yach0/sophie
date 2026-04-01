@@ -2,7 +2,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.exceptions import UnexpectedModelBehavior
+from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
@@ -40,6 +40,8 @@ async def ai_agent_run(agent: Agent[None, T], **kwargs) -> AIAgentResult:
                     pass
         except UnexpectedModelBehavior:
             raise SophieException("AI provider returned an invalid response. Please try again later.")
+        except ModelHTTPError as err:
+            raise SophieException(f"AI model error: {err.message}") from err
 
         # Sanity checks
         assert result and result.result is not None, "The graph run did not finish properly"

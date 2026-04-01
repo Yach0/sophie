@@ -10,7 +10,9 @@ class FederationPermissionService:
         resolved = await link.fetch()
         if isinstance(resolved, BeanieLink):
             return None
-        return resolved
+        if hasattr(resolved, "tid"):
+            return resolved
+        return None
 
     @staticmethod
     async def is_federation_owner(federation: Federation, user_tid: int) -> bool:

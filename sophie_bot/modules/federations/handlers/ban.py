@@ -15,6 +15,7 @@ from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
+from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
@@ -99,7 +100,11 @@ class FederationBanHandler(FederationCommandHandler):
 
         # Ban user
         user_iid = self.data["user_db"].iid
-        ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason)
+        try:
+            ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason)
+        except FederationBanValidationError as err:
+            await self.event.reply(str(err))
+            return
 
         # Is current chat part of the federation?
         federation_chat_iids = (
@@ -143,7 +148,10 @@ class FederationBanHandler(FederationCommandHandler):
         if silent:
             doc += _("The action is silent, all related messages would be deleted shortly")
 
-        reply_msg = await self.event.reply(doc.to_html())
+        reply_msg = await common_try(
+            self.event.reply(doc.to_html()),
+            reply_not_found=lambda: self.event.answer(doc.to_html()),
+        )
 
         # If silent mode, schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         if silent:

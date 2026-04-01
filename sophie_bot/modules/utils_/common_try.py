@@ -57,12 +57,14 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
             log.debug("common_try: No text in message to edit, ignoring")
             return None
         elif MSG_TOO_LONG in err.message:
-            log.debug("common_try: Message is too long, ignoring")
+            log.warning("common_try: Message is too long, ignoring")
             return None
         elif USER_ALREADY_PARTICIPANT in err.message:
             log.debug("common_try: User already participant, ignoring")
+            return None
         elif CHAT_ADMIN_REQUIRED in err.message:
             log.debug("common_try: Chat admin required, ignoring")
+            return None
         else:
             log.error("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
             raise err

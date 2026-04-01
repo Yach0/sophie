@@ -20,6 +20,7 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.federation_ban_check import FederationBanInfo, get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
@@ -122,7 +123,10 @@ class BanUserHandler(SophieMessageHandler):
             title=_("User banned"),
         )
 
-        await self.event.reply(str(doc))
+        await common_try(
+            self.event.reply(str(doc)),
+            reply_not_found=lambda: self.event.answer(str(doc)),
+        )
 
 
 @flags.help(description=l_("Temporarily bans the user from the chat."))
@@ -222,4 +226,7 @@ class TempBanUserHandler(SophieMessageHandler):
             title=_("User temporarily banned"),
         )
 
-        await self.event.reply(str(doc))
+        await common_try(
+            self.event.reply(str(doc)),
+            reply_not_found=lambda: self.event.answer(str(doc)),
+        )

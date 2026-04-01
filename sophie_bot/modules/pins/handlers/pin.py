@@ -6,6 +6,7 @@ from ass_tg.types import EqualsArg, OptionalArg
 
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -41,8 +42,10 @@ class PinHandler(SophieMessageHandler):
         loud = self.data["loud"] or self.data["notify"]
         disable_notification = not loud
 
-        await bot.pin_chat_message(
-            chat_id=message.chat.id,
-            message_id=message.reply_to_message.message_id,
-            disable_notification=disable_notification,
+        await common_try(
+            bot.pin_chat_message(
+                chat_id=message.chat.id,
+                message_id=message.reply_to_message.message_id,
+                disable_notification=disable_notification,
+            )
         )

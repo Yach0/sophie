@@ -71,7 +71,7 @@ class NewUserMiddleware(BaseMiddleware):
             InlineKeyboardButton(text=_("Support Chat"), url=CONFIG.support_link),
         )
 
-        return await message.reply(str(doc))
+        return await common_try(message.reply(str(doc)))
 
     @staticmethod
     async def is_join_request(chat_db: ChatModel, user_db: ChatModel) -> bool:

@@ -12,6 +12,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import get_admins_rights
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
@@ -61,20 +62,24 @@ class PromoteUserHandler(SophieMessageHandler):
         if admin_title and len(admin_title) > 16:
             return await self.event.reply(_("Admin title is too long."))
 
-        await bot.promote_chat_member(
-            chat_id=connection.tid,
-            user_id=user.chat_id,
-            can_invite_users=True,
-            can_change_info=True,
-            can_restrict_members=True,
-            can_delete_messages=True,
-            can_pin_messages=True,
-            can_delete_stories=True,
+        await common_try(
+            bot.promote_chat_member(
+                chat_id=connection.tid,
+                user_id=user.chat_id,
+                can_invite_users=True,
+                can_change_info=True,
+                can_restrict_members=True,
+                can_delete_messages=True,
+                can_pin_messages=True,
+                can_delete_stories=True,
+            )
         )
 
         if admin_title:
-            await bot.set_chat_administrator_custom_title(
-                chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
+            await common_try(
+                bot.set_chat_administrator_custom_title(
+                    chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
+                )
             )
 
         # Reset admin cache
@@ -88,4 +93,7 @@ class PromoteUserHandler(SophieMessageHandler):
             title=_("Admin promoted successfully"),
         )
 
-        await self.event.reply(str(doc))
+        await common_try(
+            self.event.reply(str(doc)),
+            reply_not_found=lambda: self.event.answer(str(doc)),
+        )

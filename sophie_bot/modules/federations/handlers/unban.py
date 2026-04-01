@@ -17,6 +17,7 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -133,7 +134,10 @@ class FederationUnbanHandler(FederationCommandHandler):
         doc += Template(_("To unban this user, you need to unsubscribe from the parent federation first:"))
         doc += Template(_("`/funsub {fed_id}`"), fed_id=Code(origin_fed.fed_id)).to_html()
 
-        await self.event.reply(str(doc))
+        await common_try(
+            self.event.reply(str(doc)),
+            reply_not_found=lambda: self.event.answer(str(doc)),
+        )
 
     async def _send_success_response(self, federation: Federation, user: ChatModel, unbanned_count: int) -> None:
         """Send success response for unbanning."""
@@ -149,7 +153,10 @@ class FederationUnbanHandler(FederationCommandHandler):
             KeyValue(_("Result"), Template(_("Unbanned in {count} chats"), count=str(unbanned_count))),
         )
 
-        await self.event.reply(str(doc))
+        await common_try(
+            self.event.reply(str(doc)),
+            reply_not_found=lambda: self.event.answer(str(doc)),
+        )
 
         # Log the unban
         log_text = Template(

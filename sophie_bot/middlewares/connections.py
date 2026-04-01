@@ -8,6 +8,7 @@ from beanie.odm.fields import Link as BeanieLink
 
 from sophie_bot.db.models import ChatConnectionModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -108,9 +109,13 @@ class ConnectionsMiddleware(BaseMiddleware):
             await connection.save()
 
             # Notify user
-            await data["bot"].send_message(
-                real_chat.id,
-                _("Connected chat not found in the database. You have been disconnected and will remain disconnected."),
+            await common_try(
+                data["bot"].send_message(
+                    real_chat.id,
+                    _(
+                        "Connected chat not found in the database. You have been disconnected and will remain disconnected."
+                    ),
+                )
             )
 
             data["connection"] = await self.get_current_chat_info(real_chat)
