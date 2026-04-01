@@ -7,7 +7,16 @@ build_linux_onefile:
   variables:
     CCACHE_DIR: "$CI_PROJECT_DIR/.cache/ccache"
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends patchelf ccache pkg-config libicu-dev g++ libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
+    - |
+      apt-get update && \
+      apt-get install -y --no-install-recommends gnupg wget && \
+      echo "deb http://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list && \
+      apt-get update && \
+      apt-get install -y --no-install-recommends -t trixie \
+        patchelf ccache pkg-config libicu-dev g++ \
+        libavformat-dev libavcodec-dev libavdevice-dev \
+        libavutil-dev libavfilter-dev libswscale-dev libswresample-dev && \
+      rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/trixie.list
     - ccache -s
     - uv sync --with dev --frozen
   script:

@@ -13,7 +13,16 @@ prepare_test_env:
       - .cache/uv
     policy: pull-push
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends pkg-config libicu-dev g++ ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev
+    - |
+      apt-get update && \
+      apt-get install -y --no-install-recommends gnupg wget && \
+      echo "deb http://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list && \
+      apt-get update && \
+      apt-get install -y --no-install-recommends -t trixie \
+        pkg-config libicu-dev g++ ffmpeg \
+        libavformat-dev libavcodec-dev libavdevice-dev \
+        libavutil-dev libavfilter-dev libswscale-dev libswresample-dev && \
+      rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/trixie.list
   script:
     - uv sync --dev --frozen
     - uv run pybabel compile -d locales -D sophie --use-fuzzy
