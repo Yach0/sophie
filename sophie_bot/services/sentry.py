@@ -55,5 +55,6 @@ def init_sentry() -> None:
         default_integrations=False,
         enable_logs=CONFIG.sentry_enable_logs,
         traces_sample_rate=CONFIG.sentry_traces_sample_rate,
-        profiles_sample_rate=CONFIG.sentry_profiles_sample_rate,
+        profile_session_sample_rate=CONFIG.sentry_profile_session_sample_rate,
+        profile_lifecycle="trace",
     )
