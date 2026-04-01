@@ -50,6 +50,18 @@ prepare_test_env:
     paths:
       - .cache/uv
     policy: pull
+  before_script:
+    - |
+      apt-get update && \
+      apt-get install -y --no-install-recommends gnupg wget && \
+      echo "deb http://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list && \
+      apt-get update && \
+      apt-get install -y --no-install-recommends -t trixie \
+        libicu76 \
+        ffmpeg \
+        libavformat61 libavcodec61 libavdevice61 \
+        libavutil59 libavfilter10 libswscale8 libswresample5 && \
+      rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/trixie.list
 
 test-codestyle:
   extends: .test-base
