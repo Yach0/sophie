@@ -5,7 +5,9 @@ variables:
 
 prepare_libs:
   stage: prepare
-  image: alpine/git:2.49.1
+  image:
+    name: alpine/git:2.49.1
+    entrypoint: [""]
   script:
     - mkdir -p libs
     - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
