@@ -11,6 +11,11 @@ from sophie_bot.config import CONFIG
 timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
 
 
+class _NotHandledFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "is not handled" not in record.getMessage()
+
+
 def silence_processor(logger: logging.Logger, method_name: str, event_dict: EventDict):
     if event_dict.get("logger", None) == "aiogram.event":
         event_dict["level"] = "debug"
@@ -171,5 +176,6 @@ structlog.configure(
 )
 
 event.setLevel(logging.DEBUG)
+event.addFilter(_NotHandledFilter())
 log = structlog.get_logger()
 security_log = structlog.get_logger("security")
