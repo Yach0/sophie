@@ -3,7 +3,7 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import Message, TelegramObject
-from mistralai import SDKError
+from mistralai.client.errors import SDKError
 from stfu_tg import Doc, KeyValue, Section, Title, UserLink, VList
 
 from sophie_bot.config import CONFIG

@@ -14,8 +14,8 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
-import mistralai.httpclient
-import mistralai.sdk
+import mistralai.client.httpclient
+import mistralai.client.sdk
 import pytest
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -70,8 +70,8 @@ def _safe_close_clients(
     owner.async_client = None
 
 
-mistralai.httpclient.close_clients = _safe_close_clients
-mistralai.sdk.close_clients = _safe_close_clients
+mistralai.client.httpclient.close_clients = _safe_close_clients
+mistralai.client.sdk.close_clients = _safe_close_clients
 
 
 @pytest.fixture(scope="session", autouse=True)

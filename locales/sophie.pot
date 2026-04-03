@@ -839,39 +839,39 @@ msgstr ""
 msgid "{credit_emoji} Quota {percentage}%"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:18
+#: sophie_bot/modules/ai/utils/ai_moderator.py:19
 msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:21
+#: sophie_bot/modules/ai/utils/ai_moderator.py:22
 msgid "Content that expresses prejudice, hostility, or advocates discrimination against individuals or groups based on protected characteristics such as race, ethnicity, religion, gender, sexual orientation, or disability."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:24
+#: sophie_bot/modules/ai/utils/ai_moderator.py:25
 msgid "Content that describes, glorifies, incites, or threatens physical violence against individuals or groups."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:27
+#: sophie_bot/modules/ai/utils/ai_moderator.py:28
 msgid "Content that promotes or provides instructions for illegal activities or extremely hazardous behaviors that pose a significant risk of physical harm, death, or legal consequences."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:30
+#: sophie_bot/modules/ai/utils/ai_moderator.py:31
 msgid "Content that promotes, instructs, plans, or encourages deliberate self-injury, suicide, eating disorders, or other self-destructive behaviors."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:32
+#: sophie_bot/modules/ai/utils/ai_moderator.py:33
 msgid "Content that contains or tries to elicit detailed or tailored medical advice."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:33
+#: sophie_bot/modules/ai/utils/ai_moderator.py:34
 msgid "Content that contains or tries to elicit detailed or tailored financial advice."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:34
+#: sophie_bot/modules/ai/utils/ai_moderator.py:35
 msgid "Content that contains or tries to elicit detailed or tailored legal advice."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:36
+#: sophie_bot/modules/ai/utils/ai_moderator.py:37
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr ""
 
@@ -901,52 +901,52 @@ msgstr ""
 msgid "AI features are disabled till {date}."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:86
+#: sophie_bot/modules/ai/utils/new_message_history.py:84
 msgid "You're a telegram bot named Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:87
+#: sophie_bot/modules/ai/utils/new_message_history.py:85
 msgid "Be funny when the topic is casual."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:89
+#: sophie_bot/modules/ai/utils/new_message_history.py:87
 msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:91
+#: sophie_bot/modules/ai/utils/new_message_history.py:89
 msgid "Send short messages unless longer explanations are needed."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:92
+#: sophie_bot/modules/ai/utils/new_message_history.py:90
 msgid "Focus primarily on answering the LATEST user message."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:93
+#: sophie_bot/modules/ai/utils/new_message_history.py:91
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:94
+#: sophie_bot/modules/ai/utils/new_message_history.py:92
 msgid "Prefer to search information in the internet"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:95
+#: sophie_bot/modules/ai/utils/new_message_history.py:93
 msgid "Today is "
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/new_message_history.py:140
 #: sophie_bot/modules/ai/utils/new_message_history.py:142
-#: sophie_bot/modules/ai/utils/new_message_history.py:144
 msgid "<No text provided>"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:177
+#: sophie_bot/modules/ai/utils/new_message_history.py:175
 msgid "No photo or sticker found"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:182
+#: sophie_bot/modules/ai/utils/new_message_history.py:180
 msgid "Image is empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:218
+#: sophie_bot/modules/ai/utils/new_message_history.py:216
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr ""
@@ -1691,6 +1691,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/chats.py:52
 #: sophie_bot/modules/federations/handlers/chats.py:98
 #: sophie_bot/modules/federations/handlers/create.py:40
+#: sophie_bot/modules/federations/handlers/create.py:49
 #: sophie_bot/modules/federations/handlers/demote.py:49
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:44
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:53
@@ -1745,7 +1746,7 @@ msgid "You are now the owner of federation '{fed_name}'."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:103
-#: sophie_bot/modules/federations/handlers/create.py:63
+#: sophie_bot/modules/federations/handlers/create.py:66
 #: sophie_bot/modules/federations/handlers/join.py:76
 #: sophie_bot/modules/federations/handlers/leave.py:59
 #, python-brace-format
@@ -2050,34 +2051,34 @@ msgstr ""
 msgid "Federation name"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:53
+#: sophie_bot/modules/federations/handlers/create.py:56
 msgid "You have reached the maximum number of federations you can create."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:56
+#: sophie_bot/modules/federations/handlers/create.py:59
 #: sophie_bot/modules/federations/handlers/rename.py:58
 msgid "A federation with this name already exists."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:61
+#: sophie_bot/modules/federations/handlers/create.py:64
 msgid "🏛 Federation Created"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:62
+#: sophie_bot/modules/federations/handlers/create.py:65
 #, python-brace-format
 msgid "Federation '{name}' has been created successfully!"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:64
+#: sophie_bot/modules/federations/handlers/create.py:67
 #, python-brace-format
 msgid "Use {cmd} to join this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:65
+#: sophie_bot/modules/federations/handlers/create.py:68
 msgid "You are the owner of this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/create.py:72
+#: sophie_bot/modules/federations/handlers/create.py:75
 #, python-brace-format
 msgid "🏛 Federation '{name}' has been created by {user}."
 msgstr ""
@@ -5808,15 +5809,15 @@ msgstr ""
 msgid "Welcome Captcha"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:58
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:61
 msgid "It seems like you do not have to pass the welcome security authentication"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:63
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:67
 msgid "It seems like you are not belong to the chat anymore. Are you sure you joined the group?"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:69
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:74
 msgid "You already an admin in the chat, therefore you don't need to pass the authentication!"
 msgstr ""
 

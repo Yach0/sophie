@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from mistralai import Mistral
+from mistralai.client.sdk import Mistral
 
 from sophie_bot.config import CONFIG
 
