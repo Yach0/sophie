@@ -44,7 +44,10 @@ class CreateFederationHandler(SophieMessageHandler):
 
         try:
             # Create federation
-            user_db = self.data["user_db"]
+            user_db = self.data.get("user_db")
+            if not user_db:
+                await self.event.reply(_("This command can only be used by users."))
+                return
             federation = await FederationManageService.create_federation(name, user_db.iid)
         except FederationValidationError as e:
             await self.event.reply(str(e))
