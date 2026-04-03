@@ -19,7 +19,6 @@ from pymongo import ASCENDING, IndexModel
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
 from sophie_bot.db.models._link_type import Link
-from sophie_bot.utils.logger import log
 
 upsert_user_lock = Lock()
 upsert_group_lock = Lock()
