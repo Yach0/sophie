@@ -10,13 +10,13 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language-Team: Czech\n"
 "Language: cs_CZ\n"
-"PO-Revision-Date: 2026-03-04 18:50\n"
+"PO-Revision-Date: 2026-04-02 03:15\n"
 
 #: sophie_bot/args/chats.py:22
 msgid "Could not find the requested Chat ID in the database."
 msgstr "Nebylo možné najít požadované ID chatu v databázi."
 
-#: sophie_bot/args/chats.py:36 sophie_bot/args/users.py:41
+#: sophie_bot/args/chats.py:36 sophie_bot/args/users.py:46
 msgid "Could not find the requested Username in the database."
 msgstr "Nebylo možné najít požadované uživatelské jméno v databázi."
 
@@ -32,60 +32,103 @@ msgstr "Chaty: 'ID chatů (číselné) / Uživatelská jména (začínají @)'"
 msgid "Chat ID"
 msgstr "ID chatu"
 
-#: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:78
+#: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:83
 #: sophie_bot/modules/users/handlers/info.py:52
 msgid "Username"
 msgstr "Uživatelské jméno"
 
-#: sophie_bot/args/users.py:27
+#: sophie_bot/args/lock_type.py:18 sophie_bot/modules/locks/handlers/lock.py:24
+#: sophie_bot/modules/locks/handlers/lock.py:87
+#: sophie_bot/modules/locks/handlers/unlock.py:24
+#: sophie_bot/modules/locks/handlers/unlock.py:82
+msgid "Lock type"
+msgstr "Typ zámku"
+
+#: sophie_bot/args/lock_type.py:38
+msgid "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID or language:LANG format."
+msgstr "Neznámý typ zámku. Použijte /lockable pro zobrazení všech dostupných typů zámků, nebo použijte formát stickerpack:PACK_ID nebo language:LANG."
+
+#: sophie_bot/args/lock_type.py:43
+msgid "Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"
+msgstr "Typ zámku (např. sticker, url, stickerpack:PACK_ID, language:ru)"
+
+#: sophie_bot/args/lock_type.py:43
+msgid "Lock types"
+msgstr "Typy zámků"
+
+#: sophie_bot/args/lock_type.py:48
+msgid "Block stickers"
+msgstr "Blokovat nálepky"
+
+#: sophie_bot/args/lock_type.py:49
+msgid "Block URLs"
+msgstr "Blokovat URL adresy"
+
+#: sophie_bot/args/lock_type.py:50
+msgid "Block forwarded messages"
+msgstr "Blokovat přeposlané zprávy"
+
+#: sophie_bot/args/lock_type.py:51
+msgid "Block specific sticker pack"
+msgstr "Blokovat konkrétní balíček nálepek"
+
+#: sophie_bot/args/lock_type.py:52
+msgid "Block Russian language messages"
+msgstr "Blokovat zprávy v ruském jazyce"
+
+#: sophie_bot/args/users.py:25
+msgid "Invalid user ID."
+msgstr "Neplatné ID uživatele."
+
+#: sophie_bot/args/users.py:32
 msgid "Could not find the requested User ID in the database."
 msgstr "Nebylo možné najít požadované ID uživatele v databázi."
 
-#: sophie_bot/args/users.py:70
+#: sophie_bot/args/users.py:75
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr "Uživatel: 'ID uživatele (číslicové) / Uživatelské jméno (začíná na @) / Zmínka (odkazy na uživatele)'"
 
-#: sophie_bot/args/users.py:71
+#: sophie_bot/args/users.py:76
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr "Uživatelé: 'ID uživatelů (číslicové) / Uživatelská jména (začínají na @) / Zmínky (odkazy na uživatele)'"
 
-#: sophie_bot/args/users.py:77
+#: sophie_bot/args/users.py:82
 msgid "User ID"
 msgstr "ID uživatele"
 
-#: sophie_bot/args/users.py:80
+#: sophie_bot/args/users.py:85
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "Odkaz na uživatele, obvykle se vytvoří zmíněním uživatele bez uživatelského jména."
 
-#: sophie_bot/filters/admin_rights.py:245
+#: sophie_bot/filters/admin_rights.py:263
 msgid "I don't have the following permissions to do this:"
 msgstr "Nemám následující oprávnění k provedení této akce:"
 
-#: sophie_bot/filters/admin_rights.py:247
+#: sophie_bot/filters/admin_rights.py:265
 msgid "You don't have the following permissions to do this:"
 msgstr "Nemáte následující oprávnění k provedení této akce:"
 
-#: sophie_bot/filters/admin_rights.py:252
+#: sophie_bot/filters/admin_rights.py:270
 msgid "I must be an administrator to use this command."
 msgstr "Musím být administrátorem, abych mohl tento příkaz použít."
 
-#: sophie_bot/filters/admin_rights.py:254
+#: sophie_bot/filters/admin_rights.py:272
 msgid "You must be an administrator to use this command."
 msgstr "Musíte být administrátorem, abyste mohli tento příkaz použít."
 
-#: sophie_bot/filters/admin_rights.py:268
+#: sophie_bot/filters/admin_rights.py:286
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr "Anonymní administrátor musí mít vlastní administrátorský titul pro použití tohoto příkazu."
 
-#: sophie_bot/filters/admin_rights.py:280
+#: sophie_bot/filters/admin_rights.py:298
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr "Nelze vyřešit tento anonymní administrátorský titul. Obnovte administrátorskou cache nebo použijte jedinečný titul."
 
-#: sophie_bot/filters/admin_rights.py:294
+#: sophie_bot/filters/admin_rights.py:312
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr "Více anonymních administrátorů sdílí tento titul a ne všichni z nich mohou použít tento příkaz. Použijte jedinečný titul."
 
-#: sophie_bot/filters/admin_rights.py:309
+#: sophie_bot/filters/admin_rights.py:327
 msgid "You must be the chat creator to use this command."
 msgstr "Musíte být tvůrcem chatu, abyste mohli tento příkaz použít."
 
@@ -97,33 +140,37 @@ msgstr "Tento příkaz lze použít pouze ve skupině nebo při připojení ke s
 msgid "Refer to /help for more information about connections."
 msgstr "Odkaz na /help pro více informací o připojeních."
 
-#: sophie_bot/middlewares/connections.py:27
+#: sophie_bot/middlewares/connections.py:28
 msgid "Private chat"
 msgstr "Soukromý chat"
 
-#: sophie_bot/middlewares/connections.py:113
+#: sophie_bot/middlewares/connections.py:116
 msgid "Connected chat not found in the database. You have been disconnected and will remain disconnected."
 msgstr "Připojený chat nebyl nalezen v databázi. Byli jste odpojeni a zůstanete odpojeni."
 
-#: sophie_bot/modules/ai/__init__.py:59
+#: sophie_bot/modules/ai/__init__.py:62
 msgid "Sophie AI"
 msgstr "Sophie AI"
 
-#: sophie_bot/modules/ai/__init__.py:61
+#: sophie_bot/modules/ai/__init__.py:64
 msgid "Rainbow sparkles and shininess"
 msgstr "Duha třpyt a lesk"
 
-#: sophie_bot/modules/ai/__init__.py:64
+#: sophie_bot/modules/ai/__init__.py:67
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr "Sophie podporuje několik způsobů, jak používat funkce AI."
 
-#: sophie_bot/modules/ai/__init__.py:65
+#: sophie_bot/modules/ai/__init__.py:68
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr "Od jednoduchého chat-bota po automatického překladače. Bavte se."
 
-#: sophie_bot/modules/ai/__init__.py:68
-msgid "Please note that you can make a limited amount of AI requests per day."
-msgstr "Upozorňujeme, že můžete denně provést omezený počet požadavků na AI."
+#: sophie_bot/modules/ai/__init__.py:71
+msgid "Please note that each chat has a limited monthly AI quota."
+msgstr "Upozorňujeme, že každý chat má omezenou měsíční kvótu AI."
+
+#: sophie_bot/modules/ai/__init__.py:72
+msgid "Use /aiusage to check your remaining quota."
+msgstr "Použijte /aiusage pro kontrolu zbývající kvóty."
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:15
 msgid "Can be empty"
@@ -179,7 +226,7 @@ msgstr "Ikona"
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:67
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:78
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:177
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:179
 msgid "Description"
 msgstr "Popis"
 
@@ -233,6 +280,7 @@ msgstr "Informace o modulu"
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:105
 #: sophie_bot/modules/help/utils/format_help.py:71
+#: sophie_bot/modules/locks/handlers/lockable.py:36
 msgid "Commands"
 msgstr "Příkazy"
 
@@ -249,10 +297,6 @@ msgstr "Funkce AI jsou aktuálně deaktivovány pro tento chat."
 msgid "Please use \"{cmd}\" to activate them."
 msgstr "Pro aktivaci použijte \"{cmd}\"."
 
-#: sophie_bot/modules/ai/filters/throttle.py:17
-msgid "❗️ You've reached the daily AI limit, please try again tomorrow."
-msgstr "❗️ Dosáhli jste denního limitu AI, zkuste to zítra znovu."
-
 #: sophie_bot/modules/ai/fsm/pm.py:13
 msgid "🛑 Exit AI mode"
 msgstr "🛑 Ukončit režim AI"
@@ -265,17 +309,50 @@ msgstr "🔄 Reset AI context"
 msgid "⚙️ AI Provider"
 msgstr "⚙️ Poskytovatel AI"
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:17
-#: sophie_bot/modules/ai/handlers/aisave.py:30
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:78
+#, python-brace-format
+msgid "Uses AI quota, limited to {limit} evaluations/day per chat"
+msgstr "Využívá kvótu AI, omezeno na {limit} hodnocení/den na chat"
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:83
+msgid "Recommended"
+msgstr "Doporučeno"
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:180
+msgid "Suggests filter handlers from a natural language description"
+msgstr "Navrhuje obsluhy filtrů z popisu v přirozeném jazyce"
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:197
+msgid "Describe what the filter should catch"
+msgstr "Popište, co by měl filtr zachytit"
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:222
+msgid "Could not generate suggestions. Please try again or use /addfilter directly."
+msgstr "Nelze vygenerovat návrhy. Zkuste to prosím znovu nebo použijte /addfilter přímo."
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
+msgid "AI Filter Suggestions"
+msgstr "Návrhy filtrů AI"
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:239
+msgid "Use /addfilter <handler> to create the filter."
+msgstr "Použijte /addfilter <obsluha> k vytvoření filtru."
+
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
+#, python-brace-format
+msgid "For example, {cmd}"
+msgstr "Například, {cmd}"
+
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:19
 #: sophie_bot/modules/ai/handlers/mode.py:15
 msgid "Prompt"
 msgstr "Pokyn"
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:19
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:21
 msgid "Ask Sophie a question"
 msgstr "Položte Sophii otázku"
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:33
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:35
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr "Byli jste automaticky odpojeni od chatu pro použití AI."
 
@@ -336,12 +413,17 @@ msgstr "Neznámý poskytovatel"
 #: sophie_bot/modules/connections/handlers/connect_dm.py:39
 #: sophie_bot/modules/disabling/handlers/disable.py:50
 #: sophie_bot/modules/disabling/handlers/enable.py:52
+#: sophie_bot/modules/locks/handlers/lock.py:86
+#: sophie_bot/modules/locks/handlers/locks_list.py:69
+#: sophie_bot/modules/locks/handlers/locksticker.py:49
+#: sophie_bot/modules/locks/handlers/locksticker.py:63
+#: sophie_bot/modules/locks/handlers/unlock.py:81
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:36
-#: sophie_bot/modules/promotes/handlers/demote.py:66
-#: sophie_bot/modules/promotes/handlers/promote.py:84
-#: sophie_bot/modules/restrictions/handlers/ban.py:98
-#: sophie_bot/modules/restrictions/handlers/ban.py:197
+#: sophie_bot/modules/promotes/handlers/demote.py:69
+#: sophie_bot/modules/promotes/handlers/promote.py:89
+#: sophie_bot/modules/restrictions/handlers/ban.py:99
+#: sophie_bot/modules/restrictions/handlers/ban.py:201
 #: sophie_bot/modules/restrictions/handlers/kick.py:90
 #: sophie_bot/modules/restrictions/handlers/mute.py:93
 #: sophie_bot/modules/restrictions/handlers/mute.py:168
@@ -352,7 +434,7 @@ msgstr "Neznámý poskytovatel"
 #: sophie_bot/modules/restrictions/handlers/silent.py:376
 #: sophie_bot/modules/restrictions/handlers/unban.py:75
 #: sophie_bot/modules/restrictions/handlers/unmute.py:70
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:51
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:53
 #: sophie_bot/modules/utils_/status_handler.py:47
 #: sophie_bot/modules/utils_/status_handler.py:70
 #: sophie_bot/modules/utils_/status_handler.py:124
@@ -371,30 +453,6 @@ msgstr "Poskytovatel AI byl aktualizován"
 msgid "Provider updated"
 msgstr "Poskytovatel aktualizován"
 
-#: sophie_bot/modules/ai/handlers/aisave.py:32
-msgid "Generate a new note using AI"
-msgstr "Vytvoří novou poznámku pomocí AI"
-
-#: sophie_bot/modules/ai/handlers/aisave.py:41
-#, python-brace-format
-msgid "{ai_emoji} Generating..."
-msgstr "{ai_emoji} Generování..."
-
-#: sophie_bot/modules/ai/handlers/aisave.py:51
-msgid "AI Generation failed, note already exists! Please try again."
-msgstr "Generování AI selhalo, poznámka již existuje! Zkuste to prosím znovu."
-
-#: sophie_bot/modules/ai/handlers/aisave.py:60
-#, python-brace-format
-msgid "{ai_emoji} Note was successfully generated"
-msgstr "{ai_emoji} Poznámka byla úspěšně vygenerována"
-
-#: sophie_bot/modules/ai/handlers/aisave.py:63
-#: sophie_bot/modules/notes/handlers/save.py:70
-#, python-brace-format
-msgid "Use {cmd} to retrieve this note."
-msgstr "Použijte {cmd} pro načtení této poznámky."
-
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
 msgid "Controls AI Auto translator"
 msgstr "Ovládat AI Automatický překladač"
@@ -403,32 +461,32 @@ msgstr "Ovládat AI Automatický překladač"
 msgid "Controls AI features"
 msgstr "Ovládat funkce AI"
 
-#: sophie_bot/modules/ai/handlers/filter.py:22
-#: sophie_bot/modules/ai/magic_handlers/filter.py:22
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:45
+#: sophie_bot/modules/ai/handlers/filter.py:23
+#: sophie_bot/modules/ai/magic_handlers/filter.py:23
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:47
 msgid "Please send me the AI instruction to proceed!"
 msgstr "Prosím pošlete mi pokyny AI k pokračování!"
 
-#: sophie_bot/modules/ai/handlers/filter.py:23
-#: sophie_bot/modules/ai/magic_handlers/filter.py:23
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:46
+#: sophie_bot/modules/ai/handlers/filter.py:24
+#: sophie_bot/modules/ai/magic_handlers/filter.py:24
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:48
 msgid "The AI will try to remember the chat context and will respond accordingly!"
 msgstr "AI se pokusí zapamatovat si kontext chatu a bude reagovat odpovídajícím způsobem!"
 
-#: sophie_bot/modules/ai/handlers/filter.py:25
-#: sophie_bot/modules/ai/magic_handlers/filter.py:25
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:47
+#: sophie_bot/modules/ai/handlers/filter.py:26
+#: sophie_bot/modules/ai/magic_handlers/filter.py:26
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:49
 msgid "For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"
 msgstr "Například to můžete zkombinovat s filtrem varování: 'Povězte uživateli, jak špatné je mluvit obscénně'"
 
-#: sophie_bot/modules/ai/handlers/filter.py:35
-#: sophie_bot/modules/ai/magic_handlers/filter.py:35
+#: sophie_bot/modules/ai/handlers/filter.py:36
+#: sophie_bot/modules/ai/magic_handlers/filter.py:36
 msgid "Should be AI prompt, please try again!"
 msgstr "Mělo by to být AI prompt, zkuste to prosím znovu!"
 
-#: sophie_bot/modules/ai/handlers/filter.py:70
-#: sophie_bot/modules/ai/magic_handlers/filter.py:70
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:93
+#: sophie_bot/modules/ai/handlers/filter.py:71
+#: sophie_bot/modules/ai/magic_handlers/filter.py:71
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:99
 #, python-brace-format
 msgid "{ai_emoji} AI Response"
 msgstr "{ai_emoji} AI Odezva"
@@ -437,77 +495,142 @@ msgstr "{ai_emoji} AI Odezva"
 msgid "Generates a new AI mode"
 msgstr "Generates a new AI mode"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:79
+#: sophie_bot/modules/ai/handlers/op_prices.py:48
+msgid "default chat"
+msgstr "výchozí chat"
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:50
+msgid "default translate"
+msgstr "výchozí překlad"
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:71
+msgid "AI Prices"
+msgstr "Ceny AI"
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:72
+msgid "Prices are shown as approximate USD per 1M input/output tokens."
+msgstr "Ceny jsou uvedeny jako přibližné USD za 1M vstupních/výstupních tokenů."
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:21
+msgid "Monthly credit amount"
+msgstr "Měsíční objem kreditů"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:23
+msgid "Set monthly AI quota for a chat"
+msgstr "Nastavit měsíční kvótu AI pro chat"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:35
+#, python-brace-format
+msgid "{credit_emoji} amount must be a positive number."
+msgstr "{credit_emoji} částka musí být kladné číslo."
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:43
+msgid "AI Quota Updated"
+msgstr "Kvóta AI aktualizována"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:45
+msgid "Monthly quota"
+msgstr "Měsíční kvóta"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:47
+#: sophie_bot/modules/ai/handlers/usage.py:59
+msgid "Remaining"
+msgstr "Zbývající"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:50
+#, python-brace-format
+msgid "New quota for {chat}"
+msgstr "Nová kvóta pro {chat}"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:56
+msgid "Reset AI quota usage for a chat"
+msgstr "Resetovat využití kvóty AI pro chat"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:68
+msgid "AI Quota Reset"
+msgstr "Kvóta AI resetována"
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:69
+msgid "Quota usage has been reset for this period."
+msgstr "Využití kvóty bylo pro toto období resetováno."
+
+#: sophie_bot/modules/ai/handlers/op_quota.py:71
+#, python-brace-format
+msgid "New remaining: {remaining}"
+msgstr "Nový zůstatek: {remaining}"
+
+#: sophie_bot/modules/ai/handlers/op_stats.py:33
+#: sophie_bot/modules/ai/handlers/op_stats.py:52
 msgid "No data"
 msgstr "Žádná data"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:186
-msgid "Today"
-msgstr "Dnes"
+#: sophie_bot/modules/ai/handlers/op_stats.py:59
+msgid "Requests today"
+msgstr "Požadavky dnes"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:187
-msgid "This week"
-msgstr "Tento týden"
+#: sophie_bot/modules/ai/handlers/op_stats.py:60
+msgid "Requests this week"
+msgstr "Požadavky tento týden"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:188
-msgid "This month"
-msgstr "Tento měsíc"
+#: sophie_bot/modules/ai/handlers/op_stats.py:61
+msgid "Requests this month"
+msgstr "Požadavky tento měsíc"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:189
+#: sophie_bot/modules/ai/handlers/op_stats.py:62
+msgid "Credits this month"
+msgstr "Kredity tento měsíc"
+
+#: sophie_bot/modules/ai/handlers/op_stats.py:63
 msgid "AI usage"
 msgstr "Použití AI"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:191
-msgid "Top chats — today"
-msgstr "Nejlepší chaty — dnes"
+#: sophie_bot/modules/ai/handlers/op_stats.py:65
+msgid "Top chats by requests"
+msgstr "Nejlepší chaty podle požadavků"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:192
-msgid "Top chats — this week"
-msgstr "Nejlepší chaty — tento týden"
+#: sophie_bot/modules/ai/handlers/op_stats.py:66
+msgid "Top chats by credits"
+msgstr "Nejlepší chaty podle kreditů"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:193
-msgid "Top chats — this month"
-msgstr "Nejlepší chaty — tento měsíc"
+#: sophie_bot/modules/ai/handlers/op_stats.py:67
+msgid "Top users by requests"
+msgstr "Nejlepší uživatelé podle požadavků"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:194
-msgid "Top users — today"
-msgstr "Nejlepší uživatelé — dnes"
+#: sophie_bot/modules/ai/handlers/op_stats.py:68
+msgid "Top users by credits"
+msgstr "Nejlepší uživatelé podle kreditů"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:195
-msgid "Top users — this week"
-msgstr "Nejlepší uživatelé — tento týden"
+#: sophie_bot/modules/ai/handlers/op_stats.py:69
+msgid "Top features this month"
+msgstr "Nejlepší funkce tento měsíc"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:196
-msgid "Top users — this month"
-msgstr "Nejlepší uživatelé — tento měsíc"
-
-#: sophie_bot/modules/ai/handlers/pm.py:25
+#: sophie_bot/modules/ai/handlers/pm.py:26
 msgid "Start the AI ChatBot mode"
 msgstr "Spusťte mód AI ChatBot"
 
-#: sophie_bot/modules/ai/handlers/pm.py:36
+#: sophie_bot/modules/ai/handlers/pm.py:37
 #, python-brace-format
 msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr "{ai_emoji} Vstoupili jste do režimu AI, v tomto režimu můžete přímo interagovat s AI."
 
-#: sophie_bot/modules/ai/handlers/pm.py:41
+#: sophie_bot/modules/ai/handlers/pm.py:42
 #, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr "Používáním AI souhlasíte s {privacy_policy} bota a službami AI třetích stran."
 
-#: sophie_bot/modules/ai/handlers/pm.py:42
+#: sophie_bot/modules/ai/handlers/pm.py:43
 msgid "privacy policy"
 msgstr "zásady ochrany soukromí"
 
-#: sophie_bot/modules/ai/handlers/pm.py:44
+#: sophie_bot/modules/ai/handlers/pm.py:45
 msgid "Click on the button below to exit."
 msgstr "Klikněte na tlačítko níže pro odhlášení."
 
-#: sophie_bot/modules/ai/handlers/pm.py:52
+#: sophie_bot/modules/ai/handlers/pm.py:53
 msgid "Hello! How can I help you?"
 msgstr "Ahoj! Jak mohu pomoci?"
 
-#: sophie_bot/modules/ai/handlers/pm.py:70
+#: sophie_bot/modules/ai/handlers/pm.py:71
 msgid "The AI mode has been exited."
 msgstr "Režim AI byl ukončen."
 
@@ -519,79 +642,126 @@ msgstr "Resetujte AI kontext a paměť chatu"
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 AI kontext a paměť byly úspěšně resetovány. AI nyní bude fungovat ve vyčištěném stavu."
 
-#: sophie_bot/modules/ai/handlers/translate.py:40
+#: sophie_bot/modules/ai/handlers/translate.py:45
 msgid "Text to translate"
 msgstr "Text to translate"
 
-#: sophie_bot/modules/ai/handlers/translate.py:47
+#: sophie_bot/modules/ai/handlers/translate.py:52
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Překládá daný (nebo odpovězený) text do zvoleného jazyka chatu. Také přepisuje odpovězenou hlasovou zprávu do textu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:80
+#: sophie_bot/modules/ai/handlers/translate.py:83
+msgid "Please provide text to translate."
+msgstr "Zadejte prosím text k překladu."
+
+#: sophie_bot/modules/ai/handlers/translate.py:91
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Pokud je to relevantní, přeložte fotografii do {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:88
+#: sophie_bot/modules/ai/handlers/translate.py:99
 msgid "You're a professional AI translator / transcriber."
 msgstr "Jste profesionální AI překladatel/strahovač."
 
-#: sophie_bot/modules/ai/handlers/translate.py:90
+#: sophie_bot/modules/ai/handlers/translate.py:101
 #, python-brace-format
 msgid "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr "Přeložte následující text do {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:95
+#: sophie_bot/modules/ai/handlers/translate.py:106
 msgid "Set translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
 msgstr "Nastavte translation_explanations na null, pokud zdrojový text není nejasný, protichůdný, nevyžaduje kulturálně/kontextuálně podstatné vysvětlení, neobsahuje nepřeložitelné idiomy/hry slov/polysémii ovlivňující význam nebo nevyžaduje vysvětlení vlastních jmen/technických termínů/zkratek; pokud je zahrnuto, udržujte ho stručné (≤2 faktická věty)."
 
-#: sophie_bot/modules/ai/handlers/translate.py:117
+#: sophie_bot/modules/ai/handlers/translate.py:138
 msgid "Error generating translation"
 msgstr "Chyba při generování překladu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:131
+#: sophie_bot/modules/ai/handlers/translate.py:158
 msgid "Auto Translator"
 msgstr "Auto Translator"
 
-#: sophie_bot/modules/ai/handlers/translate.py:131
+#: sophie_bot/modules/ai/handlers/translate.py:158
 msgid "Translator"
 msgstr "Translator"
 
-#: sophie_bot/modules/ai/handlers/translate.py:132
+#: sophie_bot/modules/ai/handlers/translate.py:159
 msgid "Voice"
 msgstr "Hlas"
 
-#: sophie_bot/modules/ai/handlers/translate.py:137
+#: sophie_bot/modules/ai/handlers/translate.py:165
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "From {from_lang} to {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:147
+#: sophie_bot/modules/ai/handlers/translate.py:175
 msgid "Translation Notes"
 msgstr "Translation Notes"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:38
+#: sophie_bot/modules/ai/handlers/usage.py:19
+msgid "Check AI quota and usage details"
+msgstr "Zkontrolovat kvótu AI a podrobnosti o využití"
+
+#: sophie_bot/modules/ai/handlers/usage.py:32
+msgid "AI quota information is not available yet."
+msgstr "Informace o kvótě AI zatím nejsou k dispozici."
+
+#: sophie_bot/modules/ai/handlers/usage.py:49
+msgid "AI Usage"
+msgstr "Využití AI"
+
+#: sophie_bot/modules/ai/handlers/usage.py:51
+msgid "Usage"
+msgstr "Využití"
+
+#: sophie_bot/modules/ai/handlers/usage.py:53
+#, python-brace-format
+msgid "{used} out of {total}"
+msgstr "{used} z {total}"
+
+#: sophie_bot/modules/ai/handlers/usage.py:61
+#, python-brace-format
+msgid "{remaining_credits} ({percentage_remaining}%)"
+msgstr "{remaining_credits} ({percentage_remaining}%)"
+
+#: sophie_bot/modules/ai/handlers/usage.py:66
+msgid "Resets"
+msgstr "Resetuje se"
+
+#: sophie_bot/modules/ai/handlers/usage.py:70
+msgid "Feature breakdown"
+msgstr "Rozdělení funkcí"
+
+#: sophie_bot/modules/ai/handlers/usage.py:72
+msgid "No credit usage data available yet"
+msgstr "Zatím nejsou k dispozici žádné údaje o využití kreditů"
+
+#: sophie_bot/modules/ai/handlers/usage.py:76
+#, python-brace-format
+msgid "Quota exhausted! AI features are disabled until {date}."
+msgstr "Kvóta vyčerpána! Funkce AI jsou zakázány do {date}."
+
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:40
 msgid "Please enter AI prompt"
 msgstr "Prosím, zadejte AI prompt"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:57
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:59
 msgid "AI Response"
 msgstr "AI odpověď"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:61
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:63
 #: sophie_bot/modules/notes/magic_handlers/modern_filter.py:31
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:45
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
 msgid "Reply to message"
 msgstr "Odpověz na zprávu"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:67
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:69
 msgid "Send an AI Respond with prompt"
 msgstr "Odeslat AI odpověď s promptem"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:72
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:74
 msgid "Change AI prompt"
 msgstr "Změnit AI prompt"
 
@@ -608,17 +778,17 @@ msgid "Message author"
 msgstr "Autor zprávy"
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
-#: sophie_bot/modules/federations/handlers/ban.py:135
-#: sophie_bot/modules/federations/handlers/ban.py:179
+#: sophie_bot/modules/federations/handlers/ban.py:140
+#: sophie_bot/modules/federations/handlers/ban.py:187
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
-#: sophie_bot/modules/reports/handlers/report.py:88
+#: sophie_bot/modules/reports/handlers/report.py:93
 #: sophie_bot/modules/restrictions/actions/ban.py:123
 #: sophie_bot/modules/restrictions/actions/kick.py:52
 #: sophie_bot/modules/restrictions/actions/mute.py:123
-#: sophie_bot/modules/restrictions/handlers/ban.py:49
-#: sophie_bot/modules/restrictions/handlers/ban.py:101
-#: sophie_bot/modules/restrictions/handlers/ban.py:146
-#: sophie_bot/modules/restrictions/handlers/ban.py:201
+#: sophie_bot/modules/restrictions/handlers/ban.py:50
+#: sophie_bot/modules/restrictions/handlers/ban.py:102
+#: sophie_bot/modules/restrictions/handlers/ban.py:150
+#: sophie_bot/modules/restrictions/handlers/ban.py:205
 #: sophie_bot/modules/restrictions/handlers/kick.py:46
 #: sophie_bot/modules/restrictions/handlers/kick.py:93
 #: sophie_bot/modules/restrictions/handlers/mute.py:48
@@ -635,8 +805,8 @@ msgstr "Autor zprávy"
 #: sophie_bot/modules/restrictions/handlers/silent.py:308
 #: sophie_bot/modules/restrictions/handlers/silent.py:341
 #: sophie_bot/modules/restrictions/handlers/silent.py:380
-#: sophie_bot/modules/warns/handlers/warn.py:49
-#: sophie_bot/modules/warns/handlers/warn.py:118
+#: sophie_bot/modules/warns/handlers/warn.py:50
+#: sophie_bot/modules/warns/handlers/warn.py:119
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:123
 msgid "Reason"
 msgid_plural "Reasons"
@@ -649,42 +819,51 @@ msgstr[3] "Důvody"
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Používáním funkcí AI souhlasíte s našimi Zásadami ochrany soukromí (/privacy) a se službami AI třetích stran."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:47
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
 msgid "Memory updated 💾"
 msgstr "Paměť byla aktualizována 💾"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:48
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:53
+msgid "Memory forgotten 🗑"
+msgstr "Paměť zapomenuta 🗑"
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
 msgid "Commands help 📋"
 msgstr "Pomocné příkazy 📋"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:49
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
 msgid "Internet Search 🔍"
-msgstr "Hledání na internetu 🔍"
+msgstr "Vyhledávání na internetu 🔍"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:50
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
 msgid "Scanned notes 🗒"
 msgstr "Skenované poznámky 🗒"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:95
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:83
 msgid "You can use Tavily to search for information. Include information sources as links."
-msgstr "Můžeš použít Tavily k hledání informací. Zahrň odkazy na informační zdroje."
+msgstr "Můžete použít Tavily pro vyhledávání informací. Zahrňte zdroje informací jako odkazy."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:96
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:84
 msgid "You can also save important things to the memory."
 msgstr "Můžeš také uložit důležité věci do paměti."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:98
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:86
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr "Pokud uživatel požádá o cokoli týkajícího se používání Sophie bot, ujistěte se, že spustíte nástroj `cmds_help` k získání kontextu nápovědy, nevyhledávejte informace o botu na internetu."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:100
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:88
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr "Dostupné moduly Sophie: {modules}"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:103
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:93
 msgid "You have the following information in your memory"
 msgstr "Máš následující informace ve své paměti"
+
+#: sophie_bot/modules/ai/utils/ai_header.py:21
+#, python-brace-format
+msgid "{credit_emoji} Quota {percentage}%"
+msgstr "{credit_emoji} Kvóta {percentage}%"
 
 #: sophie_bot/modules/ai/utils/ai_moderator.py:18
 msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
@@ -721,6 +900,32 @@ msgstr "Obsah, který obsahuje nebo se snaží získat podrobné či individuál
 #: sophie_bot/modules/ai/utils/ai_moderator.py:36
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr "Obsah, který žádá, sdílí nebo se snaží získat osobní identifikační údaje, jako jsou plná jména, adresy, telefonní čísla, čísla sociálního zabezpečení nebo údaje o finančních účtech."
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:15
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:27
+msgid "AI Quota Exhausted"
+msgstr "Kvóta AI vyčerpána"
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:17
+#, python-brace-format
+msgid "This chat has used all {total} for this month."
+msgstr "Tento chat spotřeboval všech {total} pro tento měsíc."
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:20
+#, python-brace-format
+msgid "Quota resets on {date}."
+msgstr "Kvóta se resetuje dne {date}."
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:21
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:29
+#, python-brace-format
+msgid "Run {cmd} to check usage details."
+msgstr "Spusťte {cmd} pro kontrolu podrobností o využití."
+
+#: sophie_bot/modules/ai/utils/ai_quota_docs.py:28
+#, python-brace-format
+msgid "AI features are disabled till {date}."
+msgstr "Funkce AI jsou zakázány do {date}."
 
 #: sophie_bot/modules/ai/utils/new_message_history.py:86
 msgid "You're a telegram bot named Sophie."
@@ -772,7 +977,7 @@ msgstr "Foto je prázdné"
 msgid "[Video transcription: {text}]"
 msgstr "[Transkripce videa: {text}]"
 
-#: sophie_bot/modules/ai/utils/transform_video.py:66
+#: sophie_bot/modules/ai/utils/transform_video.py:67
 msgid "Failed to download video file"
 msgstr "Selhalo stažení video souboru"
 
@@ -861,7 +1066,7 @@ msgid "Use {cmd} to configure actions"
 msgstr "Použijte {cmd} pro konfiguraci akcí"
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:72
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:180
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:184
 #: sophie_bot/modules/filters/handlers/confirm.py:48
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:64
 msgid "Action"
@@ -871,27 +1076,28 @@ msgstr[1] "Akce"
 msgstr[2] "Akce"
 msgstr[3] "Akce"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:17
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:19
 msgid "Set the message count threshold for antiflood protection"
 msgstr "Nastavte prah počtu zpráv pro ochranu proti záplavám"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:32
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:34
 msgid "Number of messages allowed in 30 seconds"
 msgstr "Počet povolených zpráv za 30 sekund"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:40
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:42
 msgid "Chat not found"
 msgstr "Chat nebyl nalezen"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:44
-msgid "Please provide a number. Usage: /antiflood_count <number>"
-msgstr "Zadejte číslo. Použití: /antiflood_count <číslo>"
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:47
+#, python-brace-format
+msgid "Please provide a number. Usage: {cmd}"
+msgstr "Zadejte prosím číslo. Použití: {cmd}"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:48
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:52
 msgid "Number must be between 1 and 100"
 msgstr "Číslo musí být mezi 1 a 100"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:59
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:63
 #, python-brace-format
 msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
 msgstr "✅ Prah antifloodu aktualizován na {count} zpráv za 30 sekund"
@@ -904,50 +1110,50 @@ msgstr "Povolit nebo zakázat ochranu proti záplavám"
 msgid "📈 Antiflood"
 msgstr "📈 Antiflood"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:124
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:126
 msgid "Banned"
 msgstr "Zabanován"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:125
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:127
 msgid "Kicked"
 msgstr "Vyhozen"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:126
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:128
 msgid "Muted"
 msgstr "Ztlumen"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:128
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:130
 msgid "Restricted"
 msgstr "Omezen"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:177
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:181
 msgid "⚠️ Antiflood"
 msgstr "⚠️ Antiflood"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:178
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:182
 msgid "User has been restricted for flooding."
 msgstr "Uživatel byl omezen pro záplavu."
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:179
-#: sophie_bot/modules/federations/handlers/ban.py:56
-#: sophie_bot/modules/federations/handlers/ban.py:131
-#: sophie_bot/modules/federations/handlers/ban.py:164
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:183
+#: sophie_bot/modules/federations/handlers/ban.py:57
+#: sophie_bot/modules/federations/handlers/ban.py:136
+#: sophie_bot/modules/federations/handlers/ban.py:172
 #: sophie_bot/modules/federations/handlers/demote.py:42
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:129
 #: sophie_bot/modules/federations/handlers/promote.py:42
-#: sophie_bot/modules/federations/handlers/unban.py:38
-#: sophie_bot/modules/federations/handlers/unban.py:147
-#: sophie_bot/modules/promotes/handlers/demote.py:35
-#: sophie_bot/modules/promotes/handlers/demote.py:67
-#: sophie_bot/modules/promotes/handlers/promote.py:39
-#: sophie_bot/modules/promotes/handlers/promote.py:85
-#: sophie_bot/modules/restrictions/handlers/ban.py:47
-#: sophie_bot/modules/restrictions/handlers/ban.py:99
-#: sophie_bot/modules/restrictions/handlers/ban.py:143
-#: sophie_bot/modules/restrictions/handlers/ban.py:198
+#: sophie_bot/modules/federations/handlers/unban.py:39
+#: sophie_bot/modules/federations/handlers/unban.py:151
+#: sophie_bot/modules/promotes/handlers/demote.py:36
+#: sophie_bot/modules/promotes/handlers/demote.py:70
+#: sophie_bot/modules/promotes/handlers/promote.py:40
+#: sophie_bot/modules/promotes/handlers/promote.py:90
+#: sophie_bot/modules/restrictions/handlers/ban.py:48
+#: sophie_bot/modules/restrictions/handlers/ban.py:100
+#: sophie_bot/modules/restrictions/handlers/ban.py:147
+#: sophie_bot/modules/restrictions/handlers/ban.py:202
 #: sophie_bot/modules/restrictions/handlers/kick.py:44
 #: sophie_bot/modules/restrictions/handlers/kick.py:91
 #: sophie_bot/modules/restrictions/handlers/mute.py:46
@@ -971,13 +1177,13 @@ msgstr "Uživatel byl omezen pro záplavu."
 #: sophie_bot/modules/users/handlers/id.py:24
 #: sophie_bot/modules/users/handlers/info.py:21
 #: sophie_bot/modules/warns/handlers/callback.py:94
-#: sophie_bot/modules/warns/handlers/warn.py:112
+#: sophie_bot/modules/warns/handlers/warn.py:113
 #: sophie_bot/modules/warns/handlers/warns.py:11
 msgid "User"
 msgstr "Uživatel"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:183
-#: sophie_bot/modules/restrictions/handlers/ban.py:200
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:187
+#: sophie_bot/modules/restrictions/handlers/ban.py:204
 #: sophie_bot/modules/restrictions/handlers/mute.py:171
 #: sophie_bot/modules/restrictions/handlers/silent.py:239
 #: sophie_bot/modules/restrictions/handlers/silent.py:379
@@ -1508,7 +1714,7 @@ msgstr "ID federace pro přijetí převodu"
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:39
 #: sophie_bot/modules/federations/handlers/admins.py:29
-#: sophie_bot/modules/federations/handlers/ban.py:65
+#: sophie_bot/modules/federations/handlers/ban.py:66
 #: sophie_bot/modules/federations/handlers/banlist.py:37
 #: sophie_bot/modules/federations/handlers/chats.py:52
 #: sophie_bot/modules/federations/handlers/chats.py:98
@@ -1527,7 +1733,7 @@ msgstr "ID federace pro přijetí převodu"
 #: sophie_bot/modules/federations/handlers/subscribe.py:36
 #: sophie_bot/modules/federations/handlers/subscribe.py:106
 #: sophie_bot/modules/federations/handlers/transfer.py:49
-#: sophie_bot/modules/federations/handlers/unban.py:46
+#: sophie_bot/modules/federations/handlers/unban.py:47
 msgid "This command can only be used by users."
 msgstr "Tento příkaz mohou používat pouze uživatelé."
 
@@ -1583,17 +1789,18 @@ msgid "You don't have permission to view this federation's admins."
 msgstr "Nemáte oprávnění zobrazit administrátory této federace."
 
 #: sophie_bot/modules/federations/handlers/admins.py:38
-#: sophie_bot/modules/federations/handlers/ban.py:131
-#: sophie_bot/modules/federations/handlers/ban.py:167
+#: sophie_bot/modules/federations/handlers/ban.py:136
+#: sophie_bot/modules/federations/handlers/ban.py:175
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:129
 #: sophie_bot/modules/federations/handlers/info.py:60
 #: sophie_bot/modules/federations/handlers/info.py:76
-#: sophie_bot/modules/federations/handlers/unban.py:117
-#: sophie_bot/modules/federations/handlers/unban.py:147
-#: sophie_bot/modules/federations/handlers/unban.py:157
+#: sophie_bot/modules/federations/handlers/unban.py:118
+#: sophie_bot/modules/federations/handlers/unban.py:151
+#: sophie_bot/modules/federations/handlers/unban.py:164
+#: sophie_bot/modules/locks/handlers/locksticker.py:50
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
 #: sophie_bot/modules/warns/handlers/warns_group.py:39
 msgid "Unknown"
@@ -1609,7 +1816,7 @@ msgid "🏛 Federation Admins"
 msgstr "🏛 Administrátoři federace"
 
 #: sophie_bot/modules/federations/handlers/admins.py:66
-#: sophie_bot/modules/federations/handlers/ban.py:130
+#: sophie_bot/modules/federations/handlers/ban.py:135
 #: sophie_bot/modules/federations/handlers/banlist.py:53
 #: sophie_bot/modules/federations/handlers/banlist.py:63
 #: sophie_bot/modules/federations/handlers/banlist.py:81
@@ -1620,7 +1827,7 @@ msgstr "🏛 Administrátoři federace"
 #: sophie_bot/modules/federations/handlers/import_banlist.py:72
 #: sophie_bot/modules/federations/handlers/subscribe.py:74
 #: sophie_bot/modules/federations/handlers/subscribe.py:144
-#: sophie_bot/modules/federations/handlers/unban.py:146
+#: sophie_bot/modules/federations/handlers/unban.py:150
 #: sophie_bot/modules/federations/schedules/process_exports.py:145
 #: sophie_bot/modules/federations/schedules/process_imports.py:331
 msgid "Federation"
@@ -1643,69 +1850,69 @@ msgstr "Administrátoři"
 msgid "No additional admins."
 msgstr "Žádní další administrátoři."
 
-#: sophie_bot/modules/federations/handlers/ban.py:39
+#: sophie_bot/modules/federations/handlers/ban.py:40
 msgid "Ban a user from the federation"
 msgstr "Zabanovat uživatele z federace"
 
-#: sophie_bot/modules/federations/handlers/ban.py:57
+#: sophie_bot/modules/federations/handlers/ban.py:58
 msgid "?Reason"
 msgstr "?Důvod"
 
-#: sophie_bot/modules/federations/handlers/ban.py:75
+#: sophie_bot/modules/federations/handlers/ban.py:76
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:59
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:68
-#: sophie_bot/modules/federations/handlers/unban.py:55
+#: sophie_bot/modules/federations/handlers/unban.py:56
 msgid "Please specify a user or reply to a user's message."
 msgstr "Zadejte uživatele nebo odpovězte na uživatelskou zprávu."
 
-#: sophie_bot/modules/federations/handlers/ban.py:86
+#: sophie_bot/modules/federations/handlers/ban.py:87
 msgid "You don't have permission to ban users in this federation."
 msgstr "Nemáte oprávnění banovat uživatele v této federaci."
 
-#: sophie_bot/modules/federations/handlers/ban.py:129
+#: sophie_bot/modules/federations/handlers/ban.py:134
 msgid "🏛 User Banned from Federation"
 msgstr "🏛 Uživatel zabanován z federace"
 
-#: sophie_bot/modules/federations/handlers/ban.py:132
-#: sophie_bot/modules/restrictions/handlers/ban.py:100
-#: sophie_bot/modules/restrictions/handlers/ban.py:199
+#: sophie_bot/modules/federations/handlers/ban.py:137
+#: sophie_bot/modules/restrictions/handlers/ban.py:101
+#: sophie_bot/modules/restrictions/handlers/ban.py:203
 #: sophie_bot/modules/restrictions/handlers/silent.py:167
 #: sophie_bot/modules/restrictions/handlers/silent.py:238
 msgid "Banned by"
 msgstr "Zabanoval"
 
-#: sophie_bot/modules/federations/handlers/ban.py:136
+#: sophie_bot/modules/federations/handlers/ban.py:141
 #, python-brace-format
 msgid "Banned in {count} chats"
 msgstr "Zabanován v {count} chatech"
 
-#: sophie_bot/modules/federations/handlers/ban.py:136
-#: sophie_bot/modules/federations/handlers/unban.py:149
+#: sophie_bot/modules/federations/handlers/ban.py:141
+#: sophie_bot/modules/federations/handlers/unban.py:153
 msgid "Result"
 msgstr "Výsledek"
 
-#: sophie_bot/modules/federations/handlers/ban.py:140
+#: sophie_bot/modules/federations/handlers/ban.py:145
 msgid "Also banned in"
 msgstr "Také zabanován v"
 
-#: sophie_bot/modules/federations/handlers/ban.py:140
+#: sophie_bot/modules/federations/handlers/ban.py:145
 #, python-brace-format
 msgid "{count} subscribed federations"
 msgstr "{count} předplacených federací"
 
-#: sophie_bot/modules/federations/handlers/ban.py:144
+#: sophie_bot/modules/federations/handlers/ban.py:149
 msgid "The action is silent, all related messages would be deleted shortly"
 msgstr "Akce je tichá, všechny související zprávy budou brzy smazány"
 
-#: sophie_bot/modules/federations/handlers/ban.py:159
+#: sophie_bot/modules/federations/handlers/ban.py:167
 msgid "Ban user in the fed #FedBan"
 msgstr "Zabanovat uživatele ve federaci #FedBan"
 
-#: sophie_bot/modules/federations/handlers/ban.py:161
+#: sophie_bot/modules/federations/handlers/ban.py:169
 msgid "Fed"
 msgstr "Federace"
 
-#: sophie_bot/modules/federations/handlers/ban.py:171
+#: sophie_bot/modules/federations/handlers/ban.py:179
 msgid "By"
 msgstr "Od"
 
@@ -1849,13 +2056,9 @@ msgstr "Vlastníte více federací. Zadejte prosím, pro kterou chcete vypsat ch
 msgid "Usage:"
 msgstr "Použití:"
 
-#: sophie_bot/modules/federations/handlers/chats.py:119
-msgid "/fchats <federation_id>"
-msgstr "/fchats <federation_id>"
-
 #: sophie_bot/modules/federations/handlers/chats.py:127
 #: sophie_bot/modules/federations/handlers/info.py:120
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:52
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:53
 msgid "Chat not found in database"
 msgstr "Chat nebyl nalezen v databázi"
 
@@ -1917,7 +2120,7 @@ msgstr "Zadejte uživatele k degradaci nebo odpovězte na jeho zprávu."
 
 #: sophie_bot/modules/federations/handlers/demote.py:64
 #: sophie_bot/modules/federations/handlers/promote.py:64
-#: sophie_bot/modules/warns/handlers/warn.py:66
+#: sophie_bot/modules/warns/handlers/warn.py:67
 msgid "User not found in database."
 msgstr "Uživatel nebyl nalezen v databázi."
 
@@ -2068,8 +2271,8 @@ msgstr "Chcete-li získat podrobné informace o konkrétní federaci, použijte:
 
 #: sophie_bot/modules/federations/handlers/info.py:112
 #, python-brace-format
-msgid "/finfo {var}"
-msgstr "/finfo {var}"
+msgid "{cmd}"
+msgstr "{cmd}"
 
 #: sophie_bot/modules/federations/handlers/join.py:22
 msgid "Join a chat to a federation"
@@ -2350,89 +2553,89 @@ msgstr "Žádost o převod vlastnictví byla odeslána uživateli {user_id}."
 msgid "They have 5 minutes to accept with {cmd}"
 msgstr "Mají 5 minut na přijetí pomocí {cmd}"
 
-#: sophie_bot/modules/federations/handlers/unban.py:24
+#: sophie_bot/modules/federations/handlers/unban.py:25
 msgid "Unban a user from the federation"
 msgstr "Odstranit uživatele z federace"
 
-#: sophie_bot/modules/federations/handlers/unban.py:77
+#: sophie_bot/modules/federations/handlers/unban.py:78
 msgid "Failed to unban user."
 msgstr "Nepodařilo se odblokovat uživatele."
 
-#: sophie_bot/modules/federations/handlers/unban.py:95
+#: sophie_bot/modules/federations/handlers/unban.py:96
 msgid "You don't have permission to unban users in this federation."
 msgstr "Nemáte oprávnění odblokovat uživatele v této federaci."
 
-#: sophie_bot/modules/federations/handlers/unban.py:101
+#: sophie_bot/modules/federations/handlers/unban.py:102
 msgid "This user is not banned in this federation."
 msgstr "Tento uživatel není v této federaci zablokován."
 
-#: sophie_bot/modules/federations/handlers/unban.py:107
+#: sophie_bot/modules/federations/handlers/unban.py:108
 msgid "Cannot unban this user because their ban originated from a subscription."
 msgstr "Tohoto uživatele nelze odblokovat, protože jeho blokace pochází z předplatného."
 
-#: sophie_bot/modules/federations/handlers/unban.py:121
+#: sophie_bot/modules/federations/handlers/unban.py:122
 msgid "🏛 Cannot Unban User"
 msgstr "🏛 Nelze odblokovat uživatele"
 
-#: sophie_bot/modules/federations/handlers/unban.py:122
+#: sophie_bot/modules/federations/handlers/unban.py:123
 msgid "This user cannot be unbanned because they are banned in a federation this federation subscribes to."
 msgstr "Tohoto uživatele nelze odblokovat, protože je zablokován v federaci, kterou tato federace sleduje."
 
-#: sophie_bot/modules/federations/handlers/unban.py:124
+#: sophie_bot/modules/federations/handlers/unban.py:125
 msgid "📅 Banned on"
 msgstr "📅 Zablokován dne"
 
-#: sophie_bot/modules/federations/handlers/unban.py:125
+#: sophie_bot/modules/federations/handlers/unban.py:126
 msgid "🏛 Federation"
 msgstr "🏛 Federace"
 
-#: sophie_bot/modules/federations/handlers/unban.py:126
+#: sophie_bot/modules/federations/handlers/unban.py:127
 msgid "👤 Banned by"
 msgstr "👤 Zablokoval"
 
-#: sophie_bot/modules/federations/handlers/unban.py:130
+#: sophie_bot/modules/federations/handlers/unban.py:131
 msgid "📝 Reason"
 msgstr "📝 Důvod"
 
-#: sophie_bot/modules/federations/handlers/unban.py:133
+#: sophie_bot/modules/federations/handlers/unban.py:134
 msgid "To unban this user, you need to unsubscribe from the parent federation first:"
 msgstr "Chcete-li tohoto uživatele odblokovat, musíte se nejprve odhlásit z nadřazené federace:"
 
-#: sophie_bot/modules/federations/handlers/unban.py:134
+#: sophie_bot/modules/federations/handlers/unban.py:135
 #, python-brace-format
 msgid "`/funsub {fed_id}`"
 msgstr "`/funsub {fed_id}`"
 
-#: sophie_bot/modules/federations/handlers/unban.py:145
+#: sophie_bot/modules/federations/handlers/unban.py:149
 msgid "🏛 User Unbanned from Federation"
 msgstr "🏛 Uživatel odblokován z federace"
 
-#: sophie_bot/modules/federations/handlers/unban.py:148
+#: sophie_bot/modules/federations/handlers/unban.py:152
 #: sophie_bot/modules/restrictions/handlers/unban.py:77
 msgid "Unbanned by"
 msgstr "Odblokoval"
 
-#: sophie_bot/modules/federations/handlers/unban.py:149
+#: sophie_bot/modules/federations/handlers/unban.py:153
 #, python-brace-format
 msgid "Unbanned in {count} chats"
 msgstr "Odblokován v {count} chatech"
 
-#: sophie_bot/modules/federations/handlers/unban.py:156
+#: sophie_bot/modules/federations/handlers/unban.py:163
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr "🏛 Uživatel {unbanned_user} byl odblokován z federace uživatelem {unbanner}."
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:55
+#: sophie_bot/modules/federations/middlewares/check_fban.py:56
 #, python-brace-format
 msgid "{user} has been banned in the current federation <b>{fed_name}</b>."
 msgstr "{user} byl zabanován v aktuální federaci <b>{fed_name}</b>."
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:62
+#: sophie_bot/modules/federations/middlewares/check_fban.py:63
 #, python-brace-format
 msgid "Banned via subscribed federation <b>{fed_name}</b>."
 msgstr "Zabanován prostřednictvím předplacené federace <b>{fed_name}</b>."
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:68
+#: sophie_bot/modules/federations/middlewares/check_fban.py:69
 #, python-brace-format
 msgid "Reason: {text}"
 msgstr "Důvod: {text}"
@@ -2485,20 +2688,20 @@ msgstr "Nedá se určit federace"
 msgid "You don't have permission to perform this action in this federation."
 msgstr "Nemáte oprávnění provádět tuto akci v této federaci."
 
-#: sophie_bot/modules/filters/__init__.py:42
+#: sophie_bot/modules/filters/__init__.py:49
 #: sophie_bot/modules/filters/handlers/filter_del.py:52
 msgid "Filters"
 msgstr "Filtry"
 
-#: sophie_bot/modules/filters/__init__.py:46
+#: sophie_bot/modules/filters/__init__.py:53
 msgid "Filters allows to invoke different actions for different messages."
 msgstr "Filtry umožňují vyvolávat různé akce pro různé zprávy."
 
-#: sophie_bot/modules/filters/__init__.py:47
+#: sophie_bot/modules/filters/__init__.py:54
 msgid "For example muting the users when they mention crypto."
 msgstr "Například ztlumení uživatelů, když zmíní kryptoměnu."
 
-#: sophie_bot/modules/filters/__init__.py:49
+#: sophie_bot/modules/filters/__init__.py:56
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
 msgstr "Sophie podporuje mnoho různých akcí, které můžete nakonfigurovat pro automatizaci moderování chatu mnoha různými způsoby."
 
@@ -2526,8 +2729,8 @@ msgstr "⬅ Zpět"
 #: sophie_bot/modules/filters/handlers/actions_list.py:69
 #: sophie_bot/modules/filters/handlers/add.py:74
 #: sophie_bot/modules/filters/handlers/add.py:91
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:213
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:599
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:215
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:616
 msgid "❌ Cancel"
 msgstr "❌ Cancel"
 
@@ -2562,20 +2765,20 @@ msgstr "Text k vyhledání"
 #: sophie_bot/modules/filters/handlers/add.py:57
 #: sophie_bot/modules/filters/handlers/confirm.py:39
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:50
-#: sophie_bot/modules/filters/handlers/filter_new.py:50
+#: sophie_bot/modules/filters/handlers/filter_new.py:51
 msgid "New filter"
 msgstr "Nový filtr"
 
 #: sophie_bot/modules/filters/handlers/add.py:59
 #: sophie_bot/modules/filters/handlers/confirm.py:40
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:51
-#: sophie_bot/modules/filters/handlers/filter_new.py:51
+#: sophie_bot/modules/filters/handlers/filter_new.py:52
 msgid "Handles"
 msgstr "Zpracovává"
 
 #: sophie_bot/modules/filters/handlers/confirm.py:59
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:84
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:93
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:95
 msgid "➕ Add another action"
 msgstr "➕ Přidat další akci"
 
@@ -2660,7 +2863,7 @@ msgstr "Alternativně můžete tento filtr odstranit a vytvořit znovu."
 msgid "Adds a new filter"
 msgstr "Přidá nový filtr"
 
-#: sophie_bot/modules/filters/handlers/filter_save.py:58
+#: sophie_bot/modules/filters/handlers/filter_save.py:61
 #, python-brace-format
 msgid "Filter on {keyword} was saved."
 msgstr "Filtr na {keyword} byl uložen."
@@ -2682,60 +2885,83 @@ msgstr "Filters in {chat_name}"
 msgid "Additionally rules from 'Antiflood' module can be enforced."
 msgstr "Dodatečné pravidla z modulu 'Antiflood' mohou být vynucena."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:25
+#: sophie_bot/modules/filters/handlers/filters_list.py:39
+msgid "Additionally rules from 'Locks' module can be enforced."
+msgstr "Dále mohou být vynucena pravidla z modulu 'Zámky'."
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:31
+#, python-brace-format
+msgid "The lock type {handler} is already enforced by the Locks module."
+msgstr "Typ zámku {handler} je již vynucen modulem Zámky."
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:35
+#, python-brace-format
+msgid "Delete it there first with {cmd} before adding it as a filter."
+msgstr "Nejprve jej odstraňte pomocí {cmd}, než jej přidáte jako filtr."
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:45
+#, python-brace-format
+msgid "The lock-filter {name} already exists! Please use {cmd} to edit the filter."
+msgstr "Zámek-filtr {name} již existuje! Použijte prosím {cmd} pro úpravu filtru."
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:57
 #, python-brace-format
 msgid "Filter with the handler {handler} already exists!"
 msgstr "Filtr s handlerem {handler} již existuje!"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:28
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:60
 #, python-brace-format
 msgid "You can edit the filter's actions with {cmd}."
 msgstr "Můžete upravit akce filtru s {cmd}."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:39
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:72
 msgid "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
 "Example: ai:Message contains crypto scam"
 msgstr "Vyhledávací dotaz filtru AI nemůže být prázdný. Zadejte popis, kdy spustit filtr.\n"
 "Příklad: ai:Zpráva obsahuje podvod s kryptoměnami"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:63
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:95
 #, python-brace-format
 msgid "Maximum number of AI filter handlers reached ({limit} per chat).\n"
 "AI filters consume tokens and can overload the system. Please remove an existing AI filter before adding a new one."
 msgstr "Maximální počet handlerů AI filtrů dosažen ({limit} na chat).\n"
 "Filtry AI spotřebovávají tokeny a mohou přetížit systém. Prosím odstraňte existující filtr AI před přidáním nového."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:81
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:114
 msgid "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
 msgstr "Poskytnutý vzor regex je příliš pomalý na provedení. Zkontrolujte prosím vzor a zkuste akci filtru přidat znovu."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:88
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:122
+msgid "Provided regex pattern is invalid. Please check the syntax and try again."
+msgstr "Poskytnutý regex vzor je neplatný. Zkontrolujte prosím syntaxi a zkuste to znovu."
+
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:134
 #, python-brace-format
 msgid "When AI detects: {prompt}"
 msgstr "Když AI detekuje: {prompt}"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:91
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:137
 #, python-brace-format
 msgid "When messages matches the regex pattern {pattern}"
 msgstr "Když zprávy odpovídají vzoru regex {pattern}"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:93
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:139
 #, python-brace-format
 msgid "When {handler} in message"
 msgstr "Když je {handler} ve zprávě"
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:106
+#: sophie_bot/modules/filters/utils_/match_legacy.py:145
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr "Jste asistent pro moderování obsahu. Vyhodnoťte, zda poskytnutý obsah zprávy odpovídá kritériím filtru. Buďte přesní a objektivní ve svém hodnocení."
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:113
+#: sophie_bot/modules/filters/utils_/match_legacy.py:152
 #, python-brace-format
 msgid "Filter criteria: {criteria}\n\n"
 "Message content: {content}"
 msgstr "Kritéria filtru: {criteria}\n\n"
 "Obsah zprávy: {content}"
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:115
+#: sophie_bot/modules/filters/utils_/match_legacy.py:154
 msgid "(no text content)"
 msgstr "(žádný textový obsah)"
 
@@ -2914,7 +3140,7 @@ msgstr "Uvítací zpráva"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:22
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:102
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:118
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:85
 msgid "No chat rules, have fun!"
 msgstr "Není zde žádné pravidlo, bavte se!"
@@ -3117,25 +3343,585 @@ msgstr "Jazyk změněn na {lang}"
 msgid "Language set to {lang}"
 msgstr "Jazyk nastaven na {lang}"
 
-#: sophie_bot/modules/locks/__init__.py:8
+#: sophie_bot/modules/locks/__init__.py:17
 msgid "Locks"
 msgstr "Zamky"
 
-#: sophie_bot/modules/locks/__init__.py:10
+#: sophie_bot/modules/locks/__init__.py:19
 msgid "Lock specific message types in chats"
 msgstr "Zamknout specifické typy zpráv v chatech"
 
-#: sophie_bot/modules/locks/__init__.py:13
-msgid "Allows administrators to lock specific types of messages in chats."
-msgstr "Umožňuje správcům zamknout specifické typy zpráv v chatech."
+#: sophie_bot/modules/locks/handlers/lock.py:25
+msgid "Lock a message type in the chat"
+msgstr "Uzamknout typ zprávy v chatu"
 
-#: sophie_bot/modules/locks/__init__.py:14
-msgid "Prevents users from sending certain content types like stickers, GIFs, or URLs."
-msgstr "Zabraňuje uživatelům odesílat určité typy obsahu jako jsou samolepky, GIFy nebo URL."
+#: sophie_bot/modules/locks/handlers/lock.py:43
+#: sophie_bot/modules/locks/handlers/unlock.py:43
+#, python-brace-format
+msgid "Usage: {cmd}"
+msgstr "Použití: {cmd}"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:10
-msgid "Shows all lockable entities"
-msgstr "Zobrazí všechny zamykatelné entity"
+#: sophie_bot/modules/locks/handlers/lock.py:44
+msgid "Use /lockable to see all available lock types."
+msgstr "Použijte /lockable pro zobrazení všech dostupných typů zámků."
+
+#: sophie_bot/modules/locks/handlers/lock.py:57
+#, python-brace-format
+msgid "Unknown lock type: {type}. Use /lockable to see all available types."
+msgstr "Neznámý typ zámku: {type}. Použijte /lockable pro zobrazení všech dostupných typů."
+
+#: sophie_bot/modules/locks/handlers/lock.py:67
+#, python-brace-format
+msgid "Lock type {type} is already enforced by the Filters module."
+msgstr "Typ zámku {type} je již vynucen modulem Filtry."
+
+#: sophie_bot/modules/locks/handlers/lock.py:71
+#, python-brace-format
+msgid "Delete it there first with {cmd} before adding it to Locks."
+msgstr "Nejprve jej odstraňte pomocí {cmd}, než jej přidáte do Zámků."
+
+#: sophie_bot/modules/locks/handlers/lock.py:88
+msgid "Lock added"
+msgstr "Zámek přidán"
+
+#: sophie_bot/modules/locks/handlers/lock.py:92
+#, python-brace-format
+msgid "Lock type {type} is already locked in this chat."
+msgstr "Typ zámku {type} je v tomto chatu již uzamčen."
+
+#: sophie_bot/modules/locks/handlers/lockable.py:26
+msgid "All messages"
+msgstr "Všechny zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:27
+msgid "Media albums"
+msgstr "Multimediální alba"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:28
+msgid "Anonymous channels"
+msgstr "Anonymní kanály"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:29
+msgid "Audio files"
+msgstr "Zvukové soubory"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:30
+msgid "Bot messages"
+msgstr "Zprávy od bota"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:31
+msgid "Bot links"
+msgstr "Odkazy na boty"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:32
+msgid "Inline buttons"
+msgstr "Inline tlačítka"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:33
+msgid "Cashtags ($TAG)"
+msgstr "Cashtagy ($TAG)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:34
+msgid "Checklists"
+msgstr "Kontrolní seznamy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:35
+msgid "CJK characters"
+msgstr "Znaky CJK"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:37
+msgid "Comments"
+msgstr "Komentáře"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:38
+msgid "Contacts"
+msgstr "Kontakty"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:39
+msgid "Cyrillic text"
+msgstr "Cyrilice"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:40
+msgid "Documents"
+msgstr "Dokumenty"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:41
+msgid "Email addresses"
+msgstr "Emailové adresy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:42
+msgid "Emoji"
+msgstr "Emoji"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:43
+msgid "Custom emoji"
+msgstr "Vlastní emoji"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:44
+msgid "Game messages"
+msgstr "Herní zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:45
+msgid "Emoji-only messages"
+msgstr "Pouze emoji zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:46
+msgid "External replies"
+msgstr "Externí odpovědi"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:47
+msgid "Forwarded messages"
+msgstr "Přeposlané zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:48
+msgid "Bot forwards"
+msgstr "Přeposlání od bota"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:49
+msgid "Channel forwards"
+msgstr "Přeposlání z kanálu"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:50
+msgid "Story forwards"
+msgstr "Přeposlání z příběhů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:51
+msgid "User forwards"
+msgstr "Přeposlání od uživatele"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:52
+msgid "Games"
+msgstr "Hry"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:53
+msgid "GIFs"
+msgstr "GIFy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:54
+msgid "Inline results"
+msgstr "Inline výsledky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:55
+msgid "Invite links"
+msgstr "Odkazy na pozvánky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:56
+msgid "Locations"
+msgstr "Polohy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:57
+msgid "Phone numbers"
+msgstr "Telefonní čísla"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:58
+msgid "Photos"
+msgstr "Fotky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:59
+msgid "Polls"
+msgstr "Ankety"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:60
+msgid "RTL text"
+msgstr "RTL text"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:61
+msgid "Spoilers"
+msgstr "Spoilery"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:62
+msgid "Stickers"
+msgstr "Nálepky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:63
+#: sophie_bot/modules/locks/handlers/lockable.py:112
+msgid "Animated stickers"
+msgstr "Animované nálepky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:64
+msgid "Premium stickers"
+msgstr "Premium nálepky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:65
+msgid "Text messages"
+msgstr "Textové zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:66
+msgid "URLs"
+msgstr "URL adresy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:67
+msgid "Videos"
+msgstr "Videa"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:68
+msgid "Video notes"
+msgstr "Video poznámky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:69
+msgid "Voice messages"
+msgstr "Hlasové zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:70
+msgid "Zalgo text"
+msgstr "Zalgo text"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:71
+msgid "Dice"
+msgstr "Kostky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:75
+msgid "Blocks all message types"
+msgstr "Blokuje všechny typy zpráv"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:76
+msgid "Messages with media albums (grouped photos/videos)"
+msgstr "Zprávy s multimediálními alby (seskupené fotografie/videa)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:77
+msgid "Messages sent on behalf of a channel anonymously"
+msgstr "Zprávy odeslané jménem kanálu anonymně"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:78
+msgid "Messages with audio files"
+msgstr "Zprávy se zvukovými soubory"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:79
+msgid "Messages from bot accounts"
+msgstr "Zprávy z účtů botů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:80
+msgid "Links to Telegram bots (t.me/botname)"
+msgstr "Odkazy na Telegram boty (t.me/botname)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:81
+msgid "Messages with inline keyboard buttons"
+msgstr "Zprávy s inline tlačítky klávesnice"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:82
+msgid "Cashtag entities ($TICKER)"
+msgstr "Entity cashtagů ($TICKER)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:83
+msgid "Messages with checklists"
+msgstr "Zprávy s kontrolními seznamy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:84
+msgid "Messages containing CJK characters (Chinese, Japanese, Korean)"
+msgstr "Zprávy obsahující znaky CJK (čínské, japonské, korejské)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:85
+msgid "Bot command entities (/command@bot)"
+msgstr "Entity příkazů bota (/command@bot)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:86
+msgid "Messages sent as comments in channels"
+msgstr "Zprávy odeslané jako komentáře v kanálech"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:87
+msgid "Messages with shared contacts"
+msgstr "Zprávy se sdílenými kontakty"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:88
+msgid "Messages containing Cyrillic characters"
+msgstr "Zprávy obsahující azbuku"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:89
+msgid "Messages with files/documents"
+msgstr "Zprávy s přílohami/dokumenty"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:90
+msgid "Email address entities"
+msgstr "Entity emailových adres"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:91
+msgid "Messages containing emoji"
+msgstr "Zprávy obsahující emoji"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:92
+msgid "Custom emoji entities"
+msgstr "Entity vlastních emoji"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:93
+msgid "Game messages with emoji"
+msgstr "Herní zprávy s emoji"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:94
+msgid "Messages containing only emoji"
+msgstr "Zprávy obsahující pouze emoji"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:95
+msgid "External reply references"
+msgstr "Odkazy na externí odpovědi"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:96
+msgid "All forwarded messages"
+msgstr "Všechny přeposlané zprávy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:97
+msgid "Messages forwarded from bots"
+msgstr "Zprávy přeposlané od botů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:98
+msgid "Messages forwarded from channels"
+msgstr "Zprávy přeposlané z kanálů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:99
+msgid "Messages forwarded from stories"
+msgstr "Zprávy přeposlané z příběhů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:100
+msgid "Messages forwarded from users"
+msgstr "Zprávy přeposlané od uživatelů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:101
+msgid "Messages with Telegram games"
+msgstr "Zprávy s hrami Telegram"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:102
+msgid "Messages with GIF animations"
+msgstr "Zprávy s GIF animacemi"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:103
+msgid "Messages sent via inline bots"
+msgstr "Zprávy odeslané přes inline boty"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:104
+msgid "Telegram invite links (t.me/+)"
+msgstr "Odkazy na pozvánky Telegram (t.me/+)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:105
+msgid "Messages with location or venue"
+msgstr "Zprávy s polohou nebo místem"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:106
+msgid "Phone number entities"
+msgstr "Entity telefonních čísel"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:107
+msgid "Messages with photos"
+msgstr "Zprávy s fotografiemi"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:108
+msgid "Messages with polls or quizzes"
+msgstr "Zprávy s anketami nebo kvízy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:109
+msgid "Messages containing RTL (right-to-left) text"
+msgstr "Zprávy obsahující RTL (zprava doleva) text"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:110
+msgid "Spoiler text entities"
+msgstr "Entity textu spoilerů"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:111
+msgid "Messages with stickers"
+msgstr "Zprávy s nálepkami"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:113
+msgid "Premium animated stickers"
+msgstr "Premium animované nálepky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:114
+msgid "Text-only messages without media"
+msgstr "Pouze textové zprávy bez médií"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:115
+msgid "URL entities in messages"
+msgstr "URL entity ve zprávách"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:116
+msgid "Messages with videos"
+msgstr "Zprávy s videi"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:117
+msgid "Messages with video notes (round videos)"
+msgstr "Zprávy s video poznámkami (kulaté video)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:118
+msgid "Messages with voice recordings"
+msgstr "Zprávy s hlasovými nahrávkami"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:119
+msgid "Messages with excessive formatting characters (glitch text)"
+msgstr "Zprávy s nadměrnými formátovacími znaky (glitch text)"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:120
+msgid "Messages with dice rolls"
+msgstr "Zprávy s hodem kostkou"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:207
+#, python-brace-format
+msgid "Sticker pack: {pack}"
+msgstr "Balíček nálepek: {pack}"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:211
+#, python-brace-format
+msgid "Messages in {lang} language"
+msgstr "Zprávy v jazyce {lang}"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:234
+#, python-brace-format
+msgid "To see all supported languages, use {cmd}"
+msgstr "Pro zobrazení všech podporovaných jazyků použijte {cmd}"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:240
+msgid "Media types"
+msgstr "Typy médií"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:244
+msgid "Entities and links"
+msgstr "Entity a odkazy"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:248
+msgid "Forwards"
+msgstr "Přeposlání"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:252
+msgid "Text patterns"
+msgstr "Textové vzory"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:256
+msgid "Lock a specific sticker pack by its ID"
+msgstr "Uzamknout konkrétní balíček nálepek podle jeho ID"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:257
+msgid "Sticker types"
+msgstr "Typy nálepek"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:261
+msgid "Languages"
+msgstr "Jazyky"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:265
+msgid "Special"
+msgstr "Speciální"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:278
+msgid "Available lock types"
+msgstr "Dostupné typy zámků"
+
+#: sophie_bot/modules/locks/handlers/lockable.py:281
+#, python-brace-format
+msgid "Use {cmd} to lock a specific type."
+msgstr "Použijte {cmd} pro uzamknutí konkrétního typu."
+
+#: sophie_bot/modules/locks/handlers/lockable.py:287
+msgid "Shows all lockable message types"
+msgstr "Zobrazuje všechny uzamykatelné typy zpráv"
+
+#: sophie_bot/modules/locks/handlers/locklanguages.py:17
+msgid "Shows all supported languages for locking"
+msgstr "Zobrazuje všechny podporované jazyky pro uzamykání"
+
+#: sophie_bot/modules/locks/handlers/locklanguages.py:31
+msgid "Supported languages for locking"
+msgstr "Podporované jazyky pro uzamykání"
+
+#: sophie_bot/modules/locks/handlers/locklanguages.py:33
+msgid "Use /lock language:code to block messages in that language."
+msgstr "Použijte /lock language:code pro blokování zpráv v daném jazyce."
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:23
+msgid "Show currently locked message types in the chat"
+msgstr "Zobrazit aktuálně uzamčené typy zpráv v chatu"
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:44
+#, python-brace-format
+msgid "No locks in {chat}"
+msgstr "Žádné zámky v {chat}"
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:45
+#, python-brace-format
+msgid "Use {cmd} to add a lock."
+msgstr "Použijte {cmd} pro přidání zámku."
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:68
+msgid "Active locks"
+msgstr "Aktivní zámky"
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:72
+msgid "No rules from Locks module."
+msgstr "Žádná pravidla z modulu Zámky."
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:77
+msgid "Filter-enforced lock types"
+msgstr "Filtrem vynucené typy zámků"
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:81
+#, python-brace-format
+msgid "Use {cmd} to see all available lock types."
+msgstr "Použijte {cmd} pro zobrazení všech dostupných typů zámků."
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:83
+#, python-brace-format
+msgid "Use {lock_cmd} to add a lock or {filter_cmd} to add a filter lock."
+msgstr "Použijte {lock_cmd} pro přidání zámku nebo {filter_cmd} pro přidání zámku filtru."
+
+#: sophie_bot/modules/locks/handlers/locks_list.py:87
+#, python-brace-format
+msgid "Use {cmd} to remove a lock."
+msgstr "Použijte {cmd} pro odstranění zámku."
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:17
+msgid "Lock a sticker pack in the chat"
+msgstr "Uzamknout balíček nálepek v chatu"
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:33
+msgid "Reply to a sticker to lock its sticker pack."
+msgstr "Odpovězte na nálepku pro uzamknutí jejího balíčku nálepek."
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:40
+#, python-brace-format
+msgid "Reply to a message with a sticker to use {cmd} to lock a sticker pack."
+msgstr "Odpovězte na zprávu s nálepkou pro použití {cmd} k uzamknutí balíčku nálepek."
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:50
+#: sophie_bot/modules/locks/handlers/locksticker.py:64
+msgid "Sticker pack"
+msgstr "Balíček nálepek"
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:51
+#: sophie_bot/modules/locks/handlers/locksticker.py:65
+msgid "Sticker pack locked"
+msgstr "Balíček nálepek uzamčen"
+
+#: sophie_bot/modules/locks/handlers/locksticker.py:69
+#, python-brace-format
+msgid "Sticker pack {pack} is already locked in this chat."
+msgstr "Balíček nálepek {pack} je v tomto chatu již uzamčen."
+
+#: sophie_bot/modules/locks/handlers/unlock.py:25
+msgid "Unlock a message type in the chat"
+msgstr "Odemknout typ zprávy v chatu"
+
+#: sophie_bot/modules/locks/handlers/unlock.py:44
+msgid "Use /locks to see currently locked types."
+msgstr "Použijte /locks pro zobrazení aktuálně uzamčených typů."
+
+#: sophie_bot/modules/locks/handlers/unlock.py:54
+#, python-brace-format
+msgid "Unknown lock type: {type}"
+msgstr "Neznámý typ zámku: {type}"
+
+#: sophie_bot/modules/locks/handlers/unlock.py:62
+#, python-brace-format
+msgid "Lock type {type} is enforced by the Filters module, not Locks."
+msgstr "Typ zámku {type} je vynucen modulem Filtry, nikoli Zámky."
+
+#: sophie_bot/modules/locks/handlers/unlock.py:66
+#, python-brace-format
+msgid "Delete it there with {cmd} if you want to stop enforcing it."
+msgstr "Odstraňte jej tam pomocí {cmd}, pokud jej chcete přestat vynucovat."
+
+#: sophie_bot/modules/locks/handlers/unlock.py:83
+msgid "Lock removed"
+msgstr "Zámek odstraněn"
+
+#: sophie_bot/modules/locks/handlers/unlock.py:87
+#, python-brace-format
+msgid "Lock type {type} is not locked in this chat."
+msgstr "Typ zámku {type} není v tomto chatu uzamčen."
 
 #: sophie_bot/modules/logging/__init__.py:10
 msgid "Logging"
@@ -3194,7 +3980,7 @@ msgid "User unrestricted"
 msgstr "Uživatel neomezen"
 
 #: sophie_bot/modules/logging/events.py:47
-#: sophie_bot/modules/restrictions/handlers/ban.py:122
+#: sophie_bot/modules/restrictions/handlers/ban.py:123
 #: sophie_bot/modules/restrictions/handlers/silent.py:169
 msgid "User banned"
 msgstr "Uživatel zabanován"
@@ -3306,42 +4092,46 @@ msgstr "Získá poznámku."
 msgid "No note was found with {name} name."
 msgstr "Nebyla nalezena žádná poznámka s názvem {name}."
 
-#: sophie_bot/modules/notes/handlers/list.py:18
+#: sophie_bot/modules/notes/handlers/legacy_button.py:40
+msgid "This note no longer exists."
+msgstr "Tato poznámka již neexistuje."
+
+#: sophie_bot/modules/notes/handlers/list.py:19
 msgid "?Search notes"
 msgstr "?Hledat poznámky"
 
-#: sophie_bot/modules/notes/handlers/list.py:19
+#: sophie_bot/modules/notes/handlers/list.py:20
 msgid "Lists available notes."
 msgstr "Zobrazí dostupné poznámky."
 
-#: sophie_bot/modules/notes/handlers/list.py:38
+#: sophie_bot/modules/notes/handlers/list.py:49
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr "Nebyly nalezeny žádné poznámky podle zadaného vzoru hledání {pattern} v {chat_name}."
 
-#: sophie_bot/modules/notes/handlers/list.py:46
+#: sophie_bot/modules/notes/handlers/list.py:57
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr "Nebyly nalezeny žádné poznámky v {chat_name}."
 
-#: sophie_bot/modules/notes/handlers/list.py:51
+#: sophie_bot/modules/notes/handlers/list.py:62
 #: sophie_bot/modules/notes/handlers/search.py:39
 msgid "Search pattern"
 msgstr "Vzor hledání"
 
-#: sophie_bot/modules/notes/handlers/list.py:53
+#: sophie_bot/modules/notes/handlers/list.py:64
 #: sophie_bot/modules/notes/handlers/search.py:41
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr "Poznámky v {chat_name}"
 
-#: sophie_bot/modules/notes/handlers/list.py:57
+#: sophie_bot/modules/notes/handlers/list.py:68
 #: sophie_bot/modules/notes/handlers/search.py:45
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr "Použijte {cmd} pro načtení poznámky. Příklad: {cmd_example}"
 
-#: sophie_bot/modules/notes/handlers/list.py:58
+#: sophie_bot/modules/notes/handlers/list.py:69
 #: sophie_bot/modules/notes/handlers/search.py:46
 msgid "#(Note name)"
 msgstr "#(Název poznámky)"
@@ -3440,6 +4230,11 @@ msgstr "Poznámka byla úspěšně vytvořena"
 #: sophie_bot/modules/notes/handlers/save.py:67
 msgid "Note was successfully updated"
 msgstr "Poznámka byla úspěšně aktualizována"
+
+#: sophie_bot/modules/notes/handlers/save.py:70
+#, python-brace-format
+msgid "Use {cmd} to retrieve this note."
+msgstr "Použijte {cmd} pro načtení této poznámky."
 
 #: sophie_bot/modules/notes/handlers/search.py:18
 msgid "Text to search"
@@ -3617,15 +4412,19 @@ msgstr "Sophie DM tlačítka"
 msgid "Buttons"
 msgstr "Tlačítka"
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:18
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:20
 msgid "URL Button"
 msgstr "URL tlačítko"
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:18
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:20
 msgid "URL Buttons"
 msgstr "URL tlačítka"
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:32
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:38
+msgid "Button style must be one of: primary, danger, success"
+msgstr "Styl tlačítka musí být jeden z: primary, danger, success"
+
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/URLButton.py:53
 msgid "URL must start with http or https"
 msgstr "URL musí začínat http nebo https"
 
@@ -3714,11 +4513,11 @@ msgstr "Umožňuje správcům připnout důležité zprávy v chatu."
 msgid "Also provides the ability to unpin messages when needed."
 msgstr "Také umožňuje odpojit zprávy, když je to potřeba."
 
-#: sophie_bot/modules/pins/handlers/pin.py:15
+#: sophie_bot/modules/pins/handlers/pin.py:16
 msgid "Pins replied message"
 msgstr "Připne odpovězenou zprávu"
 
-#: sophie_bot/modules/pins/handlers/pin.py:35
+#: sophie_bot/modules/pins/handlers/pin.py:36
 msgid "You need to reply to a message to pin it."
 msgstr "Musíte odpovědět na zprávu, abyste ji mohli připnout."
 
@@ -3782,59 +4581,59 @@ msgstr "Umožňuje správcům povýšit a degradovat uživatele v chatech."
 msgid "Manage user permissions and administrative privileges."
 msgstr "Spravovat uživatelská oprávnění a administrativní výsady."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:23
+#: sophie_bot/modules/promotes/handlers/demote.py:24
 msgid "Demotes the user from admins."
 msgstr "Degraduje uživatele z administrátorů."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:46
+#: sophie_bot/modules/promotes/handlers/demote.py:47
 msgid "I cannot demote myself."
 msgstr "Nemohu se degradovat."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:49
+#: sophie_bot/modules/promotes/handlers/demote.py:50
 msgid "You cannot demote yourself."
 msgstr "Nemůžete se degradovat."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:68
+#: sophie_bot/modules/promotes/handlers/demote.py:71
 msgid "Demoted by"
 msgstr "Degradováno od"
 
-#: sophie_bot/modules/promotes/handlers/demote.py:69
+#: sophie_bot/modules/promotes/handlers/demote.py:72
 msgid "User demoted successfully"
 msgstr "Uživatel byl úspěšně degradován"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:24
+#: sophie_bot/modules/promotes/handlers/promote.py:25
 msgid "Promotes the user to admins."
 msgstr "Povýší uživatele na administrátory."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:41
+#: sophie_bot/modules/promotes/handlers/promote.py:42
 msgid "?Admin title"
 msgstr "?Admin titul"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:56
+#: sophie_bot/modules/promotes/handlers/promote.py:57
 msgid "I cannot promote myself."
 msgstr "Nemohu se povýšit."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:59
+#: sophie_bot/modules/promotes/handlers/promote.py:60
 msgid "You cannot promote yourself."
 msgstr "Nemůžete se povýšit."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:62
+#: sophie_bot/modules/promotes/handlers/promote.py:63
 msgid "Admin title is too long."
 msgstr "Titul admina je příliš dlouhý."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:86
+#: sophie_bot/modules/promotes/handlers/promote.py:91
 msgid "Promoted by"
 msgstr "Povýšen od"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:87
+#: sophie_bot/modules/promotes/handlers/promote.py:92
 msgid "Admin title"
 msgstr "Titul admina"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:87
+#: sophie_bot/modules/promotes/handlers/promote.py:92
 msgid "No admin title"
 msgstr "Žádný admin titul"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:88
+#: sophie_bot/modules/promotes/handlers/promote.py:93
 msgid "Admin promoted successfully"
 msgstr "Admin byl úspěšně povýšen"
 
@@ -3910,60 +4709,60 @@ msgstr "Umožňuje uživatelům nahlásit zprávy správcům chatu."
 msgid "Admins will be notified about reported messages and can take appropriate action."
 msgstr "Správci budou informováni o nahlášených zprávách a mohou přijmout vhodná opatření."
 
-#: sophie_bot/modules/reports/handlers/report.py:15
+#: sophie_bot/modules/reports/handlers/report.py:16
 msgid "Reports the replied message."
 msgstr "Nahlásí odpovězenou zprávu."
 
-#: sophie_bot/modules/reports/handlers/report.py:37
+#: sophie_bot/modules/reports/handlers/report.py:38
 msgid "You are an admin, you don't need to report."
 msgstr "Jste správce, nemusíte nic hlásit."
 
-#: sophie_bot/modules/reports/handlers/report.py:41
+#: sophie_bot/modules/reports/handlers/report.py:42
 msgid "You need to reply to a message to report it."
 msgstr "Musíte odpovědět na zprávu, abyste ji mohli nahlásit."
 
-#: sophie_bot/modules/reports/handlers/report.py:46
+#: sophie_bot/modules/reports/handlers/report.py:47
 msgid "You cannot report an admin."
 msgstr "Nemůžete nahlásit správce."
 
-#: sophie_bot/modules/reports/handlers/report.py:76
+#: sophie_bot/modules/reports/handlers/report.py:81
 #, python-brace-format
 msgid "User {user} ({user_id}) has been reported!"
 msgstr "Uživatel {user} ({user_id}) byl nahlášen!"
 
-#: sophie_bot/modules/reports/handlers/report.py:81
+#: sophie_bot/modules/reports/handlers/report.py:86
 msgid "Reported by"
 msgstr "Nahlášeno od"
 
-#: sophie_bot/modules/rest/__init__.py:15
+#: sophie_bot/modules/rest/__init__.py:16
 msgid "REST API"
 msgstr "REST API"
 
-#: sophie_bot/modules/rest/__init__.py:17
+#: sophie_bot/modules/rest/__init__.py:18
 msgid "REST API for external integrations"
 msgstr "REST API pro externí integrace"
 
-#: sophie_bot/modules/rest/__init__.py:20
+#: sophie_bot/modules/rest/__init__.py:21
 msgid "Provides a REST API for external integrations and third-party applications."
 msgstr "Poskytuje REST API pro externí integrace a aplikace třetích stran."
 
-#: sophie_bot/modules/rest/__init__.py:21
+#: sophie_bot/modules/rest/__init__.py:22
 msgid "Allows programmatic access to bot functionality and data."
 msgstr "Umožňuje programový přístup k funkcím a datům bota."
 
-#: sophie_bot/modules/restrictions/__init__.py:19
+#: sophie_bot/modules/restrictions/__init__.py:24
 msgid "Restrictions"
 msgstr "Omezení"
 
-#: sophie_bot/modules/restrictions/__init__.py:21
+#: sophie_bot/modules/restrictions/__init__.py:26
 msgid "Manage user restrictions in chats"
 msgstr "Spravovat omezení uživatelů v chatech"
 
-#: sophie_bot/modules/restrictions/__init__.py:24
+#: sophie_bot/modules/restrictions/__init__.py:29
 msgid "Provides commands to restrict users in chats."
 msgstr "Poskytuje příkazy k omezení uživatelů v chatech."
 
-#: sophie_bot/modules/restrictions/__init__.py:25
+#: sophie_bot/modules/restrictions/__init__.py:30
 msgid "Includes ban, kick, mute, and temporary restrictions."
 msgstr "Zahrnuje zákazy, vyhození, ztlumení a dočasná omezení."
 
@@ -4045,42 +4844,42 @@ msgstr "Změnit dobu ztlumení"
 msgid "User {user} was automatically muted based on a filter action"
 msgstr "Uživatel {user} byl automaticky ztlumen na základě akce filtru"
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:32
+#: sophie_bot/modules/restrictions/handlers/ban.py:33
 msgid "Bans the user from the chat."
 msgstr "Zakáže uživatele v chatu."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:62
-#: sophie_bot/modules/restrictions/handlers/ban.py:159
+#: sophie_bot/modules/restrictions/handlers/ban.py:63
+#: sophie_bot/modules/restrictions/handlers/ban.py:163
 #: sophie_bot/modules/restrictions/handlers/silent.py:145
 #: sophie_bot/modules/restrictions/handlers/silent.py:214
 msgid "I cannot ban myself."
 msgstr "Nemohu zabanovat sám sebe."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:65
-#: sophie_bot/modules/restrictions/handlers/ban.py:162
+#: sophie_bot/modules/restrictions/handlers/ban.py:66
+#: sophie_bot/modules/restrictions/handlers/ban.py:166
 #: sophie_bot/modules/restrictions/handlers/silent.py:148
 #: sophie_bot/modules/restrictions/handlers/silent.py:217
 msgid "You cannot ban yourself."
 msgstr "Nemůžete zabanovat sám sebe."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:68
-#: sophie_bot/modules/restrictions/handlers/ban.py:165
+#: sophie_bot/modules/restrictions/handlers/ban.py:69
+#: sophie_bot/modules/restrictions/handlers/ban.py:169
 #: sophie_bot/modules/restrictions/handlers/silent.py:151
 #: sophie_bot/modules/restrictions/handlers/silent.py:220
 msgid "I cannot ban an admin."
 msgstr "Nemohu zabanovat správce."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:75
-#: sophie_bot/modules/restrictions/handlers/ban.py:174
+#: sophie_bot/modules/restrictions/handlers/ban.py:76
+#: sophie_bot/modules/restrictions/handlers/ban.py:178
 #: sophie_bot/modules/restrictions/handlers/silent.py:154
 #: sophie_bot/modules/restrictions/handlers/silent.py:225
 msgid "Failed to ban the user. Make sure I have the right permissions."
 msgstr "Nepodařilo se zabanovat uživatele. Ujistěte se, že mám správná oprávnění."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:103
-#: sophie_bot/modules/restrictions/handlers/ban.py:113
-#: sophie_bot/modules/restrictions/handlers/ban.py:203
-#: sophie_bot/modules/restrictions/handlers/ban.py:213
+#: sophie_bot/modules/restrictions/handlers/ban.py:104
+#: sophie_bot/modules/restrictions/handlers/ban.py:114
+#: sophie_bot/modules/restrictions/handlers/ban.py:207
+#: sophie_bot/modules/restrictions/handlers/ban.py:217
 #: sophie_bot/modules/restrictions/handlers/unban.py:79
 #: sophie_bot/modules/restrictions/handlers/unban.py:89
 #: sophie_bot/modules/users/handlers/info.py:62
@@ -4089,30 +4888,30 @@ msgstr "Nepodařilo se zabanovat uživatele. Ujistěte se, že mám správná op
 msgid "Notice"
 msgstr "Oznámení"
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:105
-#: sophie_bot/modules/restrictions/handlers/ban.py:205
+#: sophie_bot/modules/restrictions/handlers/ban.py:106
+#: sophie_bot/modules/restrictions/handlers/ban.py:209
 #, python-brace-format
 msgid "The user is already banned in the current federation: {fed_name} ({fed_id})."
 msgstr "Uživatel je již zabanován v aktuální federaci: {fed_name} ({fed_id})."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:115
-#: sophie_bot/modules/restrictions/handlers/ban.py:215
+#: sophie_bot/modules/restrictions/handlers/ban.py:116
+#: sophie_bot/modules/restrictions/handlers/ban.py:219
 #, python-brace-format
 msgid "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr "Uživatel je již zabanován v předplacené federaci: {fed_name} ({fed_id})."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:128
+#: sophie_bot/modules/restrictions/handlers/ban.py:132
 msgid "Temporarily bans the user from the chat."
 msgstr "Dočasně zakáže uživatele v chatu."
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:145
+#: sophie_bot/modules/restrictions/handlers/ban.py:149
 #: sophie_bot/modules/restrictions/handlers/mute.py:120
 #: sophie_bot/modules/restrictions/handlers/silent.py:200
 #: sophie_bot/modules/restrictions/handlers/silent.py:340
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr "Čas (např. 2h, 7d, 2w)"
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:222
+#: sophie_bot/modules/restrictions/handlers/ban.py:226
 #: sophie_bot/modules/restrictions/handlers/silent.py:241
 msgid "User temporarily banned"
 msgstr "Uživatel dočasně zabanován"
@@ -4267,7 +5066,7 @@ msgstr "Odtlumeno uživatelem"
 #: sophie_bot/modules/rules/handlers/legacy_button.py:34
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/handlers/warn.py:131
+#: sophie_bot/modules/warns/handlers/warn.py:132
 msgid "Rules"
 msgstr "Pravidla"
 
@@ -4393,18 +5192,28 @@ msgstr "Aktuální stav již byl vymazán, zde není co dělat..."
 msgid "Current state {state} is cleared."
 msgstr "Aktuální stav {state} byl vymazán."
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:30
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:47
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:65
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:327
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:339
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:351
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:377
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:393
+#: sophie_bot/modules/warns/action_config.py:34
+msgid "Message not found."
+msgstr "Zpráva nebyla nalezena."
+
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:34
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:51
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:71
 msgid "You are not allowed to cancel this action!"
 msgstr "Nemáte oprávnění zrušit tuto akci!"
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:33
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:50
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:37
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:56
 msgid "❌ Cancelled."
 msgstr "❌ Zrušeno."
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:69
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:77
 #, python-brace-format
 msgid "The action was cancelled by {user}."
 msgstr "Akci zrušil uživatel {user}."
@@ -4504,157 +5313,148 @@ msgstr "Tento uživatel je administrátorem tohoto chatu."
 msgid "Shared Chats"
 msgstr "Sdílené chaty"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:76
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:78
 msgid "Current Action"
 msgstr "Aktuální akce"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:84
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:86
 msgid "✅ Save"
 msgstr "✅ Uložit"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:95
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:97
 msgid "➕ Add action"
 msgstr "➕ Přidat akci"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:97
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:99
 msgid "🔄 Change action"
 msgstr "🔄 Změnit akci"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:110
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:141
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:200
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:488
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:112
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:143
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:202
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:505
 msgid "🔙 Back"
 msgstr "🔙 Zpět"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:146
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:148
 msgid "Select an action to add:"
 msgstr "Vyberte akci k přidání:"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:152
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:154
 #, python-brace-format
 msgid "Default action: {icon} {title}"
 msgstr "Výchozí akce: {icon} {title}"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:176
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:178
 msgid "Action configured"
 msgstr "Akce byla nakonfigurována"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:178
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:180
 msgid "Action Configuration Complete"
 msgstr "Konfigurace akce dokončena"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:193
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:195
 msgid "🗑️ Delete this action"
 msgstr "🗑️ Smazat tuto akci"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:207
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:209
 msgid "✅ Done"
 msgstr "✅ Hotovo"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:221
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:223
 msgid "Action configured successfully!"
 msgstr "Akce byla úspěšně nakonfigurována!"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:302
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:319
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:331
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:336
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:348
 msgid "Invalid callback data"
 msgstr "Neplatná data callbacku"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:310
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:322
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:334
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:360
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:376
-#: sophie_bot/modules/warns/action_config.py:34
-msgid "Message not found."
-msgstr "Zpráva nebyla nalezena."
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:326
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:343
 msgid "Action removed."
 msgstr "Akce byla odstraněna."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:337
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:373
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:520
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:354
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:390
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:537
 msgid "Invalid action"
 msgstr "Neplatná akce"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:423
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:440
 msgid "Saved"
 msgstr "Uloženo"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:432
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:449
 msgid "Action configuration cancelled."
 msgstr "Konfigurace akce zrušena."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:433
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:450
 msgid "Cancelled"
 msgstr "Zrušeno"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:465
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:527
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:576
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:482
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:544
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:593
 msgid "State management not available"
 msgstr "Správa stavů není k dispozici"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:477
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:494
 msgid "Action setup not properly configured"
 msgstr "Nastavení akce není správně nakonfigurováno"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:547
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:564
 msgid "Invalid setting"
 msgstr "Neplatné nastavení"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:554
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:571
 msgid "Setting configuration not available"
 msgstr "Konfigurace nastavení není dostupná"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:588
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:605
 msgid "Setting setup not properly configured"
 msgstr "Nastavení není správně nakonfigurováno"
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:664
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:682
 #: sophie_bot/utils/errors.py:51
 msgid "Setup session expired. Please start again."
 msgstr "Relace nastavení vypršela. Prosím začněte znovu."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:680
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:729
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:698
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:747
 #: sophie_bot/utils/errors.py:46
 msgid "Setup data not found. Please try again."
 msgstr "Data pro nastavení nebyla nalezena. Prosím zkuste to znovu."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:687
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:736
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:705
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:754
 #: sophie_bot/utils/errors.py:56
 msgid "Invalid chat context. Please restart the setup."
 msgstr "Neplatný kontext chatu. Prosím restartujte nastavení."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:693
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:711
 #: sophie_bot/utils/errors.py:66
 msgid "Invalid action configuration."
 msgstr "Neplatná konfigurace akce."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:742
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:760
 #: sophie_bot/utils/errors.py:61
 msgid "Invalid action."
 msgstr "Neplatná akce."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:756
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:774
 #: sophie_bot/utils/errors.py:71
 msgid "Invalid setting."
 msgstr "Neplatné nastavení."
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:762
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:780
 #: sophie_bot/utils/errors.py:76
 msgid "Setting configuration not available."
 msgstr "Konfigurace nastavení není dostupná."
 
-#: sophie_bot/modules/utils_/reply_or_edit.py:11
-#: sophie_bot/utils/handlers.py:84 sophie_bot/utils/handlers.py:103
-#: sophie_bot/utils/handlers.py:105 sophie_bot/utils/handlers.py:114
+#: sophie_bot/modules/utils_/reply_or_edit.py:14
+#: sophie_bot/utils/handlers.py:85 sophie_bot/utils/handlers.py:104
+#: sophie_bot/utils/handlers.py:106 sophie_bot/utils/handlers.py:115
 msgid "The message is inaccessible. Please write the command again"
 msgstr "Zpráva je nedostupná. Prosím, napište příkaz znovu"
 
@@ -4782,8 +5582,8 @@ msgstr "Resetuje všechna varování všech uživatelů v aktuálním chatu."
 
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:32
 #: sophie_bot/modules/warns/handlers/reset_warns.py:48
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:96
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:55
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:97
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:70
 msgid "Confirm"
 msgstr "Potvrdit"
 
@@ -4809,42 +5609,42 @@ msgstr "Zadejte uživatele, pro kterého chcete resetovat varování."
 msgid "Are you sure you want to reset warnings of {user}?"
 msgstr "Opravdu chcete resetovat varování pro {user}?"
 
-#: sophie_bot/modules/warns/handlers/warn.py:31
+#: sophie_bot/modules/warns/handlers/warn.py:32
 msgid "Warns a user."
 msgstr "Upozorní uživatele."
 
-#: sophie_bot/modules/warns/handlers/warn.py:47
+#: sophie_bot/modules/warns/handlers/warn.py:48
 msgid "User to warn"
 msgstr "Uživatel k varování"
 
-#: sophie_bot/modules/warns/handlers/warn.py:72
+#: sophie_bot/modules/warns/handlers/warn.py:73
 msgid "I cannot warn myself."
 msgstr "Nemohu varovat sám sebe."
 
-#: sophie_bot/modules/warns/handlers/warn.py:76
+#: sophie_bot/modules/warns/handlers/warn.py:77
 msgid "I cannot warn an admin."
 msgstr "Nemohu varovat administrátora."
 
-#: sophie_bot/modules/warns/handlers/warn.py:111
+#: sophie_bot/modules/warns/handlers/warn.py:112
 msgid "⚠️ User warned"
 msgstr "⚠️ Uživatel varován"
 
-#: sophie_bot/modules/warns/handlers/warn.py:113
+#: sophie_bot/modules/warns/handlers/warn.py:114
 msgid "By admin"
 msgstr "Administrátorem"
 
-#: sophie_bot/modules/warns/handlers/warn.py:114
+#: sophie_bot/modules/warns/handlers/warn.py:115
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:119
 msgid "Warnings count"
 msgstr "Počet varování"
 
-#: sophie_bot/modules/warns/handlers/warn.py:121
+#: sophie_bot/modules/warns/handlers/warn.py:122
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr "Uživatel byl {punishment} kvůli dosažení maximálního počtu varování."
 
-#: sophie_bot/modules/warns/handlers/warn.py:140
+#: sophie_bot/modules/warns/handlers/warn.py:141
 msgid "Delete warn"
 msgstr "Smazat varování"
 
@@ -4984,15 +5784,27 @@ msgstr "Chraňte svůj chat před boty a ověřte nové uživatele"
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr "Bezpečnost vítání obsahuje řadu nástrojů, které mohou pomoci filtrovat roboty, kteří se pokoušejí připojit k vašim skupinám, a také zajistit, aby noví uživatelé potvrdili pravidla chatu před tím, než budou moci mluvit"
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:75
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:32
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:57
+msgid "Captcha expired. Please try again."
+msgstr "Captcha vypršela. Zkuste to prosím znovu."
+
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:76
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:47
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr "Dokončete emoji '{emoji_name}', abyste se dostali přes captcha a mohli se účastnit {group_name}."
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:83
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:84
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ Nesprávné řešení. Prosím, zkuste to znovu."
+
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:37
+msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
+msgstr "Nemohu odeslat ověřovací captcha, protože jste zablokovali Sophie v přímých zprávách. Prosím, odblokujte mě a poté otevřete soukromou zprávu níže pro pokračování."
+
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:42
+msgid "Open DM with Sophie"
+msgstr "Otevřít soukromou zprávu se Sophie"
 
 #: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:25
 msgid "Shows / changes the state of Welcome Restrict (Media restricting)."
@@ -5010,7 +5822,7 @@ msgstr "Uvítací ztlumení (automatické omezování médií pro nové uživate
 msgid "? Action time"
 msgstr "? Čas akce"
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:54
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:55
 #, python-brace-format
 msgid "Enabled, set to {time}"
 msgstr "Povoleno, nastaveno na {time}"
@@ -5023,17 +5835,17 @@ msgstr "Zobrazuje / mění stav Ověření vítání."
 msgid "Welcome Captcha"
 msgstr "Ověření vítání"
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:50
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:58
+msgid "It seems like you do not have to pass the welcome security authentication"
+msgstr "Zdá se, že nemusíte projít ověřením bezpečnosti vítání"
+
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:63
 msgid "It seems like you are not belong to the chat anymore. Are you sure you joined the group?"
 msgstr "Zdá se, že již nepatříte do chatu. Jste si jistý, že jste se připojili ke skupině?"
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:69
 msgid "You already an admin in the chat, therefore you don't need to pass the authentication!"
 msgstr "Již jste adminem v chatu, a proto se nemusíte podrobovat ověření!"
-
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:61
-msgid "It seems like you do not have to pass the welcome security authentication"
-msgstr "Zdá se, že nemusíte projít ověřením bezpečnosti vítání"
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:24
 msgid "Shows Welcome Security settings"
