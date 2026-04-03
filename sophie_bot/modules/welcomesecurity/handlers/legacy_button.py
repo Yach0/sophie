@@ -12,12 +12,12 @@ from sophie_bot.db.models import (
     WSUserModel,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
 )
-from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -58,7 +58,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 _("It seems like you do not have to pass the welcome security authentication")
             )
 
-        if not ws_user.is_join_request and not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
+        if not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
             return await self.event.reply(
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
