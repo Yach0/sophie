@@ -75,7 +75,7 @@ class NewUserMiddleware(BaseMiddleware):
 
     @staticmethod
     async def is_join_request(chat_db: ChatModel, user_db: ChatModel) -> bool:
-        key = f"chat_ws_message:{chat_db.iid}:{user_db.iid}"
+        key = f"chat_ws_join_request:{chat_db.iid}:{user_db.iid}"
         join_request = await aredis.get(key)
         if join_request:
             await aredis.delete(key)

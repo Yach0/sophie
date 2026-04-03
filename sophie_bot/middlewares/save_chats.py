@@ -2,7 +2,7 @@ from typing import Any, Awaitable, Callable, Iterable, List, Optional
 
 import structlog
 from aiogram import BaseMiddleware
-from aiogram.types import Chat, ChatMemberUpdated, Message, TelegramObject, Update, User
+from aiogram.types import Chat, ChatJoinRequest, ChatMemberUpdated, Message, TelegramObject, Update, User
 from typing_extensions import override
 
 from sophie_bot.config import CONFIG
@@ -232,6 +232,18 @@ class SaveChatsMiddleware(BaseMiddleware):
         user = await ChatModel.upsert_user(from_user)
         data["chat_db"] = data["user_db"] = user
 
+    @staticmethod
+    async def save_chat_join_request(join_request: ChatJoinRequest, data: dict[str, Any]) -> None:
+        logger.debug(
+            "SaveChatsMiddleware: Saving chat join request",
+            chat_id=join_request.chat.id,
+            user_id=join_request.from_user.id,
+        )
+        chat = await ChatModel.upsert_group(join_request.chat)
+        user = await ChatModel.upsert_user(join_request.from_user)
+        data["chat_db"] = data["group_db"] = chat
+        data["user_db"] = user
+
     async def save_my_chat_member(self, event: ChatMemberUpdated) -> bool:
         status = event.new_chat_member.status
         logger.debug("SaveChatsMiddleware: Handling my_chat_member update", status=status, chat_id=event.chat.id)
@@ -268,6 +280,8 @@ class SaveChatsMiddleware(BaseMiddleware):
             await self.handle_message(event.edited_channel_post, data)
         elif any([event.callback_query, event.inline_query, event.poll_answer]):
             await self.save_from_user(data)
+        elif event.chat_join_request:
+            await self.save_chat_join_request(event.chat_join_request, data)
         elif event.my_chat_member:
             _continue = await self.save_my_chat_member(event.my_chat_member)
 

@@ -45,6 +45,7 @@ async def complete_captcha(
 
     # Approve join request if applicable
     if is_join_request:
+        await aredis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
         await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
 
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
