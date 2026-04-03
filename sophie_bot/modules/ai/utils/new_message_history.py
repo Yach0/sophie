@@ -4,6 +4,9 @@ from typing import BinaryIO, Optional
 
 from aiogram.types import Message
 from attr import dataclass
+from mistralai.client.models.assistantmessage import AssistantMessage
+from mistralai.client.models.systemmessage import SystemMessage
+from mistralai.client.models.usermessage import UserMessage
 from normality import normalize
 from pydantic_ai.messages import (
     BinaryContent,
@@ -17,11 +20,6 @@ from pydantic_ai.messages import (
 )
 from stfu_tg import HList, KeyValue, Section, VList
 from stfu_tg.doc import Element
-from mistralai.models import (
-    SystemMessage,
-    UserMessage,
-    AssistantMessage,
-)
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel

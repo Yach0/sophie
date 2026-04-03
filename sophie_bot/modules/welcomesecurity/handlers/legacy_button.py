@@ -50,21 +50,26 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         if not (group_db := await ChatModel.get_by_tid(chat_id)):
             raise SophieException("Cannot find group")
 
+        log.debug("LegacyWSButtonHandler: Handling WS button press", group=group_db.iid, chat_id=chat_id)
+
         user_db: ChatModel = self.data["user_db"]
 
         ws_user = await WSUserModel.is_user(user_db.iid, group_db.iid)
         if not ws_user:
+            log.warning("LegacyWSButtonHandler: WSUserModel not found", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("It seems like you do not have to pass the welcome security authentication")
             )
 
-        if not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
+        if not ws_user.is_join_request and not (await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid)):
+            log.warning("LegacyWSButtonHandler: UserInGroupModel not found", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
 
         if await is_user_admin(chat_id, user_db.iid):
             # TODO: Make it unmute the muted user instead
+            log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("You already an admin in the chat, therefore you don't need to pass the authentication!")
             )
@@ -75,7 +80,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         if not ws_db_item.welcome_security or not ws_db_item.welcome_security.enabled:
             # We still allow users to complete it, because it could've been disabled afterwards
-            log.debug("LegacyWSButtonHandler: WS is disabled but we still allow users to complete")
+            log.warning("LegacyWSButtonHandler: WS is disabled but we still allow users to complete")
 
         # Initialize captcha
         self.data["ws_chat_iid"] = group_db.iid

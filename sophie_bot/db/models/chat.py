@@ -19,6 +19,7 @@ from pymongo import ASCENDING, IndexModel
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
 from sophie_bot.db.models._link_type import Link
+from sophie_bot.utils.logger import log
 
 upsert_user_lock = Lock()
 upsert_group_lock = Lock()
@@ -60,10 +61,7 @@ class UserInGroupModel(Document):
     async def ensure_user_in_group(user: "ChatModel", group: "ChatModel"):
         current_timedate = datetime.now(timezone.utc)
 
-        return await UserInGroupModel.find_one(
-            UserInGroupModel.user.id == user.iid,
-            UserInGroupModel.group.id == group.iid,
-        ).upsert(
+        return await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}).upsert(
             Set({UserInGroupModel.last_saw: current_timedate}),
             on_insert=UserInGroupModel(
                 user=user,
@@ -75,18 +73,14 @@ class UserInGroupModel(Document):
 
     @staticmethod
     async def remove_user_in_chat(user_iid: PydanticObjectId, group_iid: PydanticObjectId):
-        user_in_chat = await UserInGroupModel.find_one(
-            UserInGroupModel.user.id == user_iid, UserInGroupModel.group.id == group_iid
-        )
+        user_in_chat = await UserInGroupModel.find_one({"user.$id": user_iid, "group.$id": group_iid})
         if user_in_chat:
             await user_in_chat.delete()
         return user_in_chat
 
     @staticmethod
     async def ensure_delete(user: "ChatModel", group: "ChatModel") -> Optional["UserInGroupModel"]:
-        if user_in_chat := await UserInGroupModel.find_one(
-            UserInGroupModel.user.id == user.iid, UserInGroupModel.group.id == group.iid
-        ):
+        if user_in_chat := await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}):
             await user_in_chat.delete()
             return user_in_chat
         return None
@@ -95,9 +89,7 @@ class UserInGroupModel(Document):
     async def get_user_in_group(
         user_iid: PydanticObjectId, group_iid: PydanticObjectId
     ) -> Optional["UserInGroupModel"]:
-        return await UserInGroupModel.find_one(
-            UserInGroupModel.user.id == user_iid, UserInGroupModel.group.id == group_iid
-        )
+        return await UserInGroupModel.find_one({"user.$id": user_iid, "group.$id": group_iid})
 
 
 class ChatTopicModel(Document):
