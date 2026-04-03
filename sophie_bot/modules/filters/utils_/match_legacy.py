@@ -180,7 +180,7 @@ async def match_ai_handler(
         return result.matches
 
     except Exception as e:
-        log.error("match_ai_handler: AI filter evaluation failed", error=str(e))
+        log.warning("match_ai_handler: AI filter evaluation failed", error=str(e))
         # On error, don't trigger the filter to avoid false positives
         return False
 
