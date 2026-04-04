@@ -23,7 +23,6 @@ __all__ = [
     "__module_name__",
     "__module_emoji__",
     "__module_description__",
-    "__module_info__",
     "__handlers__",
     "__pre_setup__",
 ]
