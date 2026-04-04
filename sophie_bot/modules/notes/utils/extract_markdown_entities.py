@@ -196,7 +196,10 @@ def extract_markdown_entities(
 
         # Did we find some delimiter here at `i`?
         if m:
-            delim = next(filter(None, m.groups()))
+            delim = next(filter(None, m.groups()), None)
+            if not delim:
+                i += 1
+                continue
 
             # +1 to avoid matching right after (e.g. "****")
             end = text.find(delim, i + len(delim) + 1)
