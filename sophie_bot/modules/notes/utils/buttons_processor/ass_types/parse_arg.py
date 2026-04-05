@@ -32,8 +32,6 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
         return l_("Buttons"), l_("Buttons")
 
     def get_start(self, raw_text: str, entities: ArgEntities) -> int:
-        from sophie_bot.modules.notes.utils.buttons_processor.registry import ALL_BUTTONS
-
         indices = [i for i, char in enumerate(raw_text) if char == "["]
         for i in indices:
             if self._check_sequence(raw_text[i:], entities, ALL_BUTTONS):

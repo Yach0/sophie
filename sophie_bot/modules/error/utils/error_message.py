@@ -17,8 +17,6 @@ def get_error_message(exception: Exception) -> tuple[str | Element, ...]:
         return exception.docs
 
     # Return either as itself if the type is based on Core (STFU-able) or stringify as italic
-    from stfu_tg.doc import Element
-
     return tuple(x if isinstance(x, Element) else Italic(str(x)) for x in exception.args)
 
 
