@@ -2,6 +2,7 @@
 """Setup script for git hooks to support worktree dependency syncing."""
 
 import argparse
+import shutil
 import stat
 import subprocess
 import sys
@@ -48,9 +49,13 @@ exit 0
 
 def get_git_common_dir() -> Path | None:
     """Get the git common directory (for worktrees) or git directory."""
+    git = shutil.which("git")
+    if not git:
+        return None
+
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--git-common-dir"],
+            [git, "rev-parse", "--git-common-dir"],
             capture_output=True,
             text=True,
             check=True,
@@ -64,7 +69,7 @@ def get_git_common_dir() -> Path | None:
     # Fallback to git directory
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
+            [git, "rev-parse", "--git-dir"],
             capture_output=True,
             text=True,
             check=True,
