@@ -70,7 +70,10 @@ def legacy_button_parser(chat_id, texts, pm=False) -> tuple[str, InlineKeyboardM
                 continue
 
         if btn:
-            buttons[-1].append(btn) if raw_button[4] and buttons and len(buttons[-1]) > 0 else buttons.append([btn])
+            if raw_button[4] and buttons and len(buttons[-1]) > 0:
+                buttons[-1].append(btn)
+            else:
+                buttons.append([btn])
 
     if not text or text.isspace():  # TODO: Sometimes we can return text == ' '
         text = ""
