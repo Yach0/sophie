@@ -36,9 +36,8 @@ class MetricsMiddleware(BaseMiddleware):
         """Process update and collect metrics"""
 
         # Skip sampling if configured
-        if self.config.metrics_sample_ratio < 1.0:
-            if random.random() > self.config.metrics_sample_ratio:
-                return await handler(event, data)
+        if self.config.metrics_sample_ratio < 1.0 and random.random() > self.config.metrics_sample_ratio:
+            return await handler(event, data)
 
         # Extract update information
         update_info = self._extract_update_info(event, data)
