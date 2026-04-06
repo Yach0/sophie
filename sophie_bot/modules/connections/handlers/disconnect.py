@@ -1,15 +1,14 @@
+from aiogram import F, flags, Router
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import ReplyKeyboardRemove
 from stfu_tg import Template, Bold
 
-from aiogram import F, flags, Router
-from aiogram.types import ReplyKeyboardRemove
-
 from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
 from sophie_bot.modules.connections.utils.constants import CONNECTION_DISCONNECT_TEXT
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_, gettext as _
-from sophie_bot.filters.cmd import CMDFilter
 
 
 @flags.help(description=l_("Disconnects from the current chat."))
