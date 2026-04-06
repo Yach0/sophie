@@ -36,8 +36,6 @@ class PinHandler(SophieMessageHandler):
             await message.reply(_("You need to reply to a message to pin it."))
             return
 
-        self.handler_args
-
         # Determine notification (silent by default unless loud/notify is used)
         loud = self.data["loud"] or self.data["notify"]
         disable_notification = not loud
