@@ -286,13 +286,3 @@ class SaveChatsMiddleware(BaseMiddleware):
             _continue = await self.save_my_chat_member(event.my_chat_member)
 
         return await handler(event, data) if _continue else None
-
-
-#
-# class SaveChatsChatMemberUpdatedMiddleware(SaveChatsMiddlewareABC):
-#
-#     async def __call__(self, handler: Callable[[ChatMemberUpdated, dict[str, Any]], Awaitable[Any]],
-#                        event: ChatMemberUpdated, data: dict[str, Any]) -> Any:
-#         user = await ChatModel.upsert_user(event.new_chat_member.user)
-#         data['user_db'] = user
-#         return await handler(event, data)
