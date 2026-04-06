@@ -42,7 +42,7 @@ from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from .api import api_router as api_router
+from .api import api_router
 
 __all__ = [
     "router",
