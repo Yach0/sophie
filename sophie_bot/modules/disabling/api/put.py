@@ -27,7 +27,7 @@ async def set_disabled_commands(
         raise HTTPException(status_code=404, detail="Chat not found")
 
     # Filter to only allow disableable commands
-    disableable = set(cmd.cmds[0] for cmd in DISABLEABLE_CMDS if cmd.cmds)
+    disableable = {cmd.cmds[0] for cmd in DISABLEABLE_CMDS if cmd.cmds}
     to_disable = [cmd for cmd in payload.disabled if cmd in disableable]
 
     await DisablingModel.find_one(DisablingModel.chat.id == chat.iid).upsert(
