@@ -82,7 +82,7 @@ async def login_tma(data: TMALoginRequest):
         security_log.warning("auth.tma.invalid_init_data")
         raise HTTPException(status_code=400, detail="Invalid init data")
 
-    if not (init_data.validate(CONFIG.token)):
+    if not init_data.validate(CONFIG.token):
         security_log.warning("auth.tma.validation_failed")
         raise HTTPException(status_code=403, detail="Invalid init data")
 
