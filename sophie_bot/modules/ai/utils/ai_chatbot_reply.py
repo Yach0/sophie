@@ -62,7 +62,7 @@ def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -
     all_parts = [part for message in message_history for part in message.parts]
 
     # Filter for tool call and return parts
-    tool_parts = [part for part in all_parts if isinstance(part, ToolCallPart) or isinstance(part, ToolReturnPart)]
+    tool_parts = [part for part in all_parts if isinstance(part, (ToolCallPart, ToolReturnPart))]
 
     # Extract unique tool names that exist in our titles dictionary
     unique_tool_names = {part.tool_name for part in tool_parts if part.tool_name in CHATBOT_TOOLS_TITLES}
