@@ -162,11 +162,11 @@ def status(git_dir: Path) -> None:
         if hook_path.exists():
             content = hook_path.read_text()
             is_our_hook = "Worktree detected" in content
-            status = "✅ installed (ours)" if is_our_hook else "⚠️  installed (custom)"
+            hook_status = "✅ installed (ours)" if is_our_hook else "⚠️  installed (custom)"
         else:
-            status = "❌ not installed"
+            hook_status = "❌ not installed"
 
-        print(f"  {hook_name}: {status}")
+        print(f"  {hook_name}: {hook_status}")
 
 
 def main() -> int:
