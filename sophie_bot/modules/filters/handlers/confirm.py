@@ -28,7 +28,7 @@ class ConfirmAddFilter(SophieMessageHandler):
 
         if not filter_handler:
             raise ValueError("No filter handler in state")
-        elif not filters_raw:
+        if not filters_raw:
             raise ValueError("No filters in state")
 
         filters: tuple[tuple[FilterActionABC, Any], ...] = tuple(

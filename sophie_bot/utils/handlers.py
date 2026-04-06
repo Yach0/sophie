@@ -113,17 +113,16 @@ class SophieMessageCallbackQueryHandler(SophieBaseHandler[Message | CallbackQuer
     async def answer_media(self, f: InputFile, caption: Optional[str] = None, **kwargs) -> Message | bool:
         if isinstance(self.event, InaccessibleMessage):
             raise SophieException(_("The message is inaccessible. Please write the command again"))
-        elif isinstance(self.event, CallbackQuery) and self.event.message:
+        if isinstance(self.event, CallbackQuery) and self.event.message:
             return await bot.edit_message_media(
                 media=InputMediaPhoto(media=f, caption=caption),
                 chat_id=self.event.message.chat.id,
                 message_id=self.event.message.message_id,
                 **kwargs,
             )
-        elif isinstance(self.event, Message):
+        if isinstance(self.event, Message):
             return await bot.send_photo(chat_id=self.event.chat.id, photo=f, caption=caption, **kwargs)
-        else:
-            raise ValueError("answer_media: Wrong event type")
+        raise ValueError("answer_media: Wrong event type")
 
     async def answer(self, text: Element | str, **kwargs) -> Message | bool:
         return await reply_or_edit(self.event, text, **kwargs)
