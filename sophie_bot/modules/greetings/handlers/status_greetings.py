@@ -3,13 +3,13 @@ from typing import Any
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types.base_abc import ParsedArg
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from stfu_tg import Doc, Italic, Template
 
 from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
