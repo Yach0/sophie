@@ -17,7 +17,6 @@ class LockMutedUsers(BaseMiddleware):
         await common_try(message.delete())
 
         # Mute user? Let others know why the message was deleted?
-        pass
 
     async def __call__(
         self,
