@@ -36,7 +36,7 @@ class I18nNew(I18n):
         super().__init__(*args, **kwargs)
 
         log.debug("Loading locales additional data...")
-        for locale in self.locales.keys():
+        for locale in self.locales:
             babel = self.babel(locale)
             self.babels[locale] = babel
             self.stats[locale] = self.parse_stats(locale)
