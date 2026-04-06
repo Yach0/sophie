@@ -5,8 +5,6 @@ from datetime import timedelta
 from typing import Any
 
 from aiogram import flags
-
-from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import ActionTimeArg, OptionalArg, TextArg
@@ -16,6 +14,7 @@ from stfu_tg import KeyValue, Section, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
+from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
