@@ -86,14 +86,14 @@ async def __post_setup__(modules: dict[str, ModuleType]):
     from ..notes.magic_handlers.reply_action import ReplyModernAction
 
     for name, module in modules.items():
-        action_filters: tuple[type[ReplyModernAction], ...] = getattr(module, "__modern_actions__", tuple())
+        action_filters: tuple[type[ReplyModernAction], ...] = getattr(module, "__modern_actions__", ())
 
         for action_filter in action_filters:
             log.debug("Modern filter actions: Adding new action...", name=action_filter.name, module=name)
 
             ALL_MODERN_ACTIONS[action_filter.name] = action_filter()
 
-        legacy_filters: dict[str, dict] = getattr(module, "__filters__", dict())
+        legacy_filters: dict[str, dict] = getattr(module, "__filters__", {})
         for action_name, action in legacy_filters.items():
             log.debug("Legacy filters: Adding new action...", name=action_name, module=name)
             LEGACY_FILTERS_ACTIONS[action_name] = action
