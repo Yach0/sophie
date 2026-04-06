@@ -6,7 +6,6 @@ from sophie_bot.modules.federations.handlers.accept_transfer import AcceptTransf
 from sophie_bot.modules.federations.handlers.admins import FederationAdminsHandler
 from sophie_bot.modules.federations.handlers.ban import FederationBanHandler
 from sophie_bot.modules.federations.handlers.banlist import FederationBanListHandler
-from sophie_bot.modules.federations.handlers.base import FederationCommandHandler as FederationCommandHandler
 from sophie_bot.modules.federations.handlers.chats import FederationChatsHandler
 from sophie_bot.modules.federations.handlers.create import CreateFederationHandler
 from sophie_bot.modules.federations.handlers.demote import FederationDemoteHandler
