@@ -38,7 +38,8 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
                 return i
         return len(raw_text)
 
-    def _check_sequence(self, text: str, entities: ArgEntities, buttons) -> bool:
+    @staticmethod
+    def _check_sequence(text: str, entities: ArgEntities, buttons) -> bool:
         offset = 0
         while offset < len(text):
             while offset < len(text) and text[offset].isspace():
