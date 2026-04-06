@@ -7,7 +7,7 @@ from sophie_bot.modules.notes.utils.buttons_processor.ass_types.parse_arg import
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-class TextWithButtonsArg(ReverseArg):
+class TextWithButtonsArg(ReverseArg):  # pylint: disable=abstract-method
     def __init__(self, description: str | LazyProxy | None = None):
         super().__init__(
             description,
