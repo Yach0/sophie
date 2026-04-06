@@ -33,7 +33,6 @@ class AsyncMongoMockClient:
 
     async def aconnect(self) -> None:
         """PyMongo AsyncMongoClient connection method."""
-        pass
 
     async def aclose(self) -> None:
         """PyMongo AsyncMongoClient close method."""
