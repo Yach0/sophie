@@ -307,12 +307,12 @@ class MetricsMiddleware(BaseMiddleware):
         # Handle functools.partial objects (common with aiogram class-based handlers)
         if hasattr(handler, "func"):
             # This is likely a functools.partial object
-            actual_func = getattr(handler, "func")
+            actual_func = handler.func
             if hasattr(actual_func, "__self__") and hasattr(actual_func, "__class__"):
                 # This is a bound method, get the class name
                 handler_name = actual_func.__self__.__class__.__name__
             elif hasattr(actual_func, "__name__"):
-                handler_name = cast(str, getattr(actual_func, "__name__"))
+                handler_name = cast(str, actual_func.__name__)
             else:
                 handler_name = str(actual_func)
         # Handle bound methods directly
@@ -322,7 +322,7 @@ class MetricsMiddleware(BaseMiddleware):
                 handler_name = self_obj.__class__.__name__
         # Handle regular functions
         elif hasattr(handler, "__name__"):
-            handler_name = cast(str, getattr(handler, "__name__"))
+            handler_name = cast(str, handler.__name__)
         # Check for problematic string representations first (before class check)
         elif callable(handler):
             handler_str = str(handler)
