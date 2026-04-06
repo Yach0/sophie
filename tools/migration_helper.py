@@ -34,16 +34,16 @@ from beanie import Document, iterative_migration
 
 class Forward:
     """<Description of forward migration>"""
-    
+
     @iterative_migration()
     async def migrate(
-        self, 
-        input_document: Document, 
+        self,
+        input_document: Document,
         output_document: Document
     ):
         """
         Apply migration to a single document.
-        
+
         Args:
             input_document: Original document structure
             output_document: New document structure
@@ -54,16 +54,16 @@ class Forward:
 
 class Backward:
     """<Description of backward migration>"""
-    
+
     @iterative_migration()
     async def rollback(
-        self, 
-        input_document: Document, 
+        self,
+        input_document: Document,
         output_document: Document
     ):
         """
         Rollback migration for a single document.
-        
+
         Args:
             input_document: New document structure
             output_document: Original document structure
