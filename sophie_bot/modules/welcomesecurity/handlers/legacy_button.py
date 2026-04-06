@@ -61,7 +61,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 _("It seems like you do not have to pass the welcome security authentication")
             )
 
-        if not ws_user.is_join_request and not (await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid)):
+        if not ws_user.is_join_request and not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
             log.warning("LegacyWSButtonHandler: UserInGroupModel not found", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
