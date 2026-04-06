@@ -140,12 +140,13 @@ def extract_rules_text(rules_model: RulesModel) -> str:
             if "text" in content and content["text"]:
                 return str(content["text"])
         except Exception:
-            pass
+            log.warning("Failed to extract text from Saveable rules model")
 
     # Fallback: convert entire model to string representation
     try:
         return str(rules_model)
     except Exception:
+        log.warning("Failed to convert rules model to string, returning empty")
         return ""
 
 
