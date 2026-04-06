@@ -1,8 +1,4 @@
-try:
-    # Allow tests to patch 'random_parser.choice' via a shim module if present
-    from random_parser import choice  # type: ignore
-except Exception:  # pragma: no cover - fallback for normal runtime
-    from random import choice
+from random import choice
 
 
 def _pick(options: list[str]) -> str:
