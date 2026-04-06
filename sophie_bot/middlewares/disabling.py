@@ -34,7 +34,7 @@ class DisablingMiddleware(BaseMiddleware):
                 if handler_disableable["name"] in disabled and not is_admin:
                     log.debug("DisablingMiddleware: disabled; Skipping handler!")
                     raise SkipHandler
-                elif is_admin:
+                if is_admin:
                     log.debug("DisablingMiddleware: user is admin; Not skipping!")
 
         return await handler(event, data)
