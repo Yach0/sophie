@@ -42,7 +42,6 @@ def init_sentry() -> None:
             LoggingIntegration(
                 level=logging.INFO,
                 event_level=logging.ERROR,
-                sentry_logs_level=logging.INFO,
             )
         )
 
