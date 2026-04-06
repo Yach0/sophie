@@ -122,6 +122,7 @@ class LazyProxy(BabelLazyProxy):
     # evaluate the translation too early (during import / class creation), before an i18n
     # context is installed. Providing the attribute avoids that eager evaluation.
     __isabstractmethod__: bool = False
+    __hash__ = None
 
     def __init__(self, *items: str | Callable, **kwargs):
         if callable(items[0]):
