@@ -41,7 +41,7 @@ async def new_ai_generate(
     Used to generate the AI Chat-bot result text
     """
     if agent_kwargs is None:
-        agent_kwargs = dict()
+        agent_kwargs = {}
 
     kwargs = dict(kwargs)
     _inject_user_tracking(kwargs, user_tracking_id, session_id)
@@ -66,7 +66,7 @@ async def new_ai_generate_stream(
     Generate AI response while streaming cumulative text chunks through a callback.
     """
     if agent_kwargs is None:
-        agent_kwargs = dict()
+        agent_kwargs = {}
 
     kwargs = dict(kwargs)
     _inject_user_tracking(kwargs, user_tracking_id, session_id)
