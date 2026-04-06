@@ -164,7 +164,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         try:
             await message.delete()
         except Exception:
-            pass
+            log.debug("Failed to delete flooding message")
 
         # Execute action
         success = await self._execute_action(message, settings)
