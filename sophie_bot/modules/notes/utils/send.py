@@ -36,7 +36,7 @@ from sophie_bot.modules.notes.utils.parse import (
     PARSABLE_CONTENT_TYPES,
     SUPPORTS_CAPTION,
 )
-from sophie_bot.modules.notes.utils.random_parser import parse_random_text
+from sophie_bot.modules.notes.utils._random_parser import parse_random_text
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
