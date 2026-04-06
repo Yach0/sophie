@@ -150,7 +150,7 @@ def get_default_model_name(provider_name: str, *, translation: bool = False) -> 
     if model:
         return model.name
 
-    fallback_provider = AIProviders.auto.name if translation else AIProviders.auto.name
+    fallback_provider = AIProviders.auto.name
     fallback_model = _get_default_model(fallback_provider, translation=translation)
     if not fallback_model:
         raise ValueError(f"No default AI model configured for provider {provider_name}")
