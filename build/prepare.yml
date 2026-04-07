@@ -2,18 +2,3 @@ variables:
   UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
   UV_LINK_MODE: copy
   UV_IMAGE: "ghcr.io/astral-sh/uv:0.9.26-python3.13-bookworm-slim"
-
-prepare_libs:
-  stage: prepare
-  interruptible: true
-  image:
-    name: alpine/git:2.49.1
-    entrypoint: [""]
-  script:
-    - mkdir -p libs
-    - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
-    - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
-  artifacts:
-    paths:
-      - libs/
-    expire_in: 1 day

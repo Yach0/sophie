@@ -1,11 +1,12 @@
+variables:
+  CI_IMAGE: "registry.gitlab.com/sophiebot/sophie-ci/sophie-ci:main"
+
 stages:
-  - prepare
   - test
   - build
   - deploy
 
 include:
-  - '/build/prepare.yml'
   - '/build/bot-test.yml'
   - '/build/renovate.yml'
   - "/build/runtime/build.yml"

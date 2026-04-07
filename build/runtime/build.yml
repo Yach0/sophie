@@ -9,11 +9,11 @@ build_runtime_container:
     IMAGE_FULL: "$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-runtime"
   stage: build
   interruptible: true
-  needs:
-    - job: prepare_libs
-      artifacts: true
   before_script:
     - podman login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" registry.gitlab.com
+    - mkdir -p libs
+    - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
+    - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
   script:
     - |
       podman build \
@@ -34,10 +34,8 @@ build_runtime_container:
     - if: '$CI_COMMIT_BRANCH =~ /^(beta|stable|dev_.*|dev-.*)$/'
       changes:
         - build/runtime/**
-        - build/prepare.yml
         - sophie_bot/**
         - locales/**
         - pyproject.toml
-        - uv.lock
         - Makefile
     - when: never
