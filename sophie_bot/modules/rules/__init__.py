@@ -4,7 +4,7 @@ from stfu_tg import Doc
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from .api import api_router as api_router
+from .api import api_router
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import BUTTONS
 from sophie_bot.modules.rules.handlers.get import GetRulesHandler
 from sophie_bot.modules.rules.handlers.legacy_button import LegacyRulesButton

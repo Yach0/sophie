@@ -32,5 +32,5 @@ async def get_disabled_commands(
 async def get_disableable_commands(
     user: Annotated[ChatModel, Depends(get_current_user)],
 ):
-    disableable = sorted(list(set(cmd.cmds[0] for cmd in DISABLEABLE_CMDS if cmd.cmds)))
+    disableable = sorted({cmd.cmds[0] for cmd in DISABLEABLE_CMDS if cmd.cmds})
     return DisableableResponse(disableable=disableable)

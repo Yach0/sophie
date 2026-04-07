@@ -1,5 +1,5 @@
-from . import pin as pin
-from . import unpin as unpin
+from . import pin
+from . import unpin
 
 __all__ = (
     "pin",

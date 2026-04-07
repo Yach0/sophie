@@ -123,7 +123,7 @@ async def check_moderator(message: Message, settings: Optional[AIModeratorModel]
 
     # Use float scores and compare with thresholds to determine flags
     categories_bool: dict[str, bool] = {
-        key: category_scores.get(key, 0.0) >= thresholds.get(key, 0.5) for key in CATEGORY_MIN_SCORES.keys()
+        key: category_scores.get(key, 0.0) >= thresholds.get(key, 0.5) for key in CATEGORY_MIN_SCORES
     }
     flagged: bool = any(categories_bool.values())
 

@@ -1,3 +1,3 @@
-from . import report as report
+from . import report
 
 __all__ = ("report",)

@@ -31,7 +31,7 @@ def legacy_button_parser(chat_id, texts, pm=False) -> tuple[str, InlineKeyboardM
         else:
             argument = ""
 
-        if action in BUTTONS.keys():
+        if action in BUTTONS:
             cb = BUTTONS[action]
             string = f"{cb}_{argument}_{chat_id}" if argument else f"{cb}_{chat_id}"
             start_btn = InlineKeyboardButton(text=name, url=f"https://t.me/{CONFIG.username}?start=" + string)
