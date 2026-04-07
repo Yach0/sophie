@@ -175,7 +175,8 @@ async def test_leave_federation_not_joined(test_client: TestClient) -> None:
         )
 
         # Should not crash
-        await test_client.send_command(command="leavefed", from_user=owner_user, chat=group)
+        requests = await test_client.send_command(command="leavefed", from_user=owner_user, chat=group)
+        assert requests, "Bot should respond to /leavefed even when not in federation"
 
 
 @pytest.mark.asyncio
