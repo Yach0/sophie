@@ -12,6 +12,7 @@ from aiogram.methods import TelegramMethod
 from sophie_bot.modules.utils_.telegram_exceptions import (
     CAN_NOT_BE_DELETED,
     CHAT_ADMIN_REQUIRED,
+    INVALID_BUTTON_URL,
     MSG_NOT_MODIFIED,
     NO_TEXT_IN_MSG_TO_EDIT,
     MSG_TO_DEL_NOT_FOUND,
@@ -64,6 +65,9 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
             return None
         elif CHAT_ADMIN_REQUIRED in err.message:
             log.debug("common_try: Chat admin required, ignoring")
+            return None
+        elif INVALID_BUTTON_URL in err.message:
+            log.warning("common_try: Invalid inline keyboard button URL, ignoring", error=str(err))
             return None
         else:
             log.error("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
