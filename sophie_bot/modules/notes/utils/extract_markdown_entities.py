@@ -149,6 +149,94 @@ def _process_headings_surrogate(text: str) -> tuple[str, list[MessageEntity]]:
     return "".join(out_parts), entities
 
 
+def _build_delimiter_regex(delimiters: dict) -> re.Pattern:
+    # Build a regex to efficiently test all delimiters at once.
+    # Note that the largest delimiter should go first, we don't
+    # want ``` to be interpreted as a single back-tick in a code block.
+    return re.compile("|".join("({})".format(re.escape(str(k))) for k in sorted(delimiters, key=len, reverse=True)))
+
+
+def _process_delimiter_match(
+    text: str,
+    i: int,
+    delim: str,
+    delimiters: dict,
+    result: list[MessageEntity],
+) -> tuple[str, int]:
+    """
+    Handle finding a closing delimiter, removing delimiters from text,
+    adjusting existing entity offsets, appending the new entity.
+    Returns (modified_text, i_increment). i_increment is 0 (caller should not advance).
+    """
+    # +1 to avoid matching right after (e.g. "****")
+    end = text.find(delim, i + len(delim) + 1)
+
+    # Did we find the earliest closing tag?
+    if end != -1:
+        # Remove the delimiter from the string
+        text = "".join(
+            (
+                text[:i],
+                text[i + len(delim) : end],
+                text[end + len(delim) :],
+            )
+        )
+
+        # Check other affected entities
+        for ent in result:
+            # If the end is after our start, it is affected
+            if ent.offset + ent.length > i:
+                # If the old start is also before ours, it is fully enclosed
+                if ent.offset <= i:
+                    ent.length -= len(delim) * 2
+                else:
+                    ent.length -= len(delim)
+
+        # Append the found entity
+        ent_type = delimiters[delim]
+        result.append(MessageEntity(type=ent_type, offset=i, length=end - i - len(delim)))
+
+        return text, 0
+
+    return text, 1
+
+
+def _process_url_match(
+    text: str,
+    i: int,
+    url_re: re.Pattern,
+    result: list[MessageEntity],
+) -> tuple[str, int]:
+    """
+    Handle URL regex match, text replacement, entity offset adjustment,
+    entity creation. Returns (modified_text, i_increment).
+    """
+    m = url_re.match(text, pos=i)
+    if m:
+        # Replace the whole match with only the inline URL text.
+        text = "".join((text[: m.start()], m.group(1), text[m.end() :]))
+
+        # Number of characters removed when replacing the whole match with only its text.
+        delim_size = (m.end() - m.start()) - len(m.group(1))
+        for ent in result:
+            # If the end is after our start, it is affected
+            if ent.offset + ent.length > m.start():
+                ent.length -= delim_size
+
+        result.append(
+            MessageEntity(
+                type="text_link",
+                offset=m.start(),
+                length=len(m.group(1)),
+                url=del_surrogate(m.group(2)),
+            )
+        )
+        i += len(m.group(1))
+        return text, i
+
+    return text, 1
+
+
 def extract_markdown_entities(
     text: str, delimiters=None, url_re=None, extract_headings: bool = False
 ) -> tuple[str, list[MessageEntity]]:
@@ -173,10 +261,7 @@ def extract_markdown_entities(
             return text, []
         delimiters = DEFAULT_DELIMITERS
 
-    # Build a regex to efficiently test all delimiters at once.
-    # Note that the largest delimiter should go first, we don't
-    # want ``` to be interpreted as a single back-tick in a code block.
-    delim_re = re.compile("|".join("({})".format(re.escape(str(k))) for k in sorted(delimiters, key=len, reverse=True)))
+    delim_re = _build_delimiter_regex(delimiters)
 
     # Cannot use a for loop because we need to skip some indices
     i = 0
@@ -201,58 +286,16 @@ def extract_markdown_entities(
                 i += 1
                 continue
 
-            # +1 to avoid matching right after (e.g. "****")
-            end = text.find(delim, i + len(delim) + 1)
-
-            # Did we find the earliest closing tag?
-            if end != -1:
-                # Remove the delimiter from the string
-                text = "".join(
-                    (
-                        text[:i],
-                        text[i + len(delim) : end],
-                        text[end + len(delim) :],
-                    )
-                )
-
-                # Check other affected entities
-                for ent in result:
-                    # If the end is after our start, it is affected
-                    if ent.offset + ent.length > i:
-                        # If the old start is also before ours, it is fully enclosed
-                        if ent.offset <= i:
-                            ent.length -= len(delim) * 2
-                        else:
-                            ent.length -= len(delim)
-
-                # Append the found entity
-                ent_type = delimiters[delim]
-                result.append(MessageEntity(type=ent_type, offset=i, length=end - i - len(delim)))
-
+            text, increment = _process_delimiter_match(text, i, delim, delimiters, result)
+            if increment == 0:
                 continue
+            i += increment
+            continue
 
         elif url_re:
-            m = url_re.match(text, pos=i)
-            if m:
-                # Replace the whole match with only the inline URL text.
-                text = "".join((text[: m.start()], m.group(1), text[m.end() :]))
-
-                # Number of characters removed when replacing the whole match with only its text.
-                delim_size = (m.end() - m.start()) - len(m.group(1))
-                for ent in result:
-                    # If the end is after our start, it is affected
-                    if ent.offset + ent.length > m.start():
-                        ent.length -= delim_size
-
-                result.append(
-                    MessageEntity(
-                        type="text_link",
-                        offset=m.start(),
-                        length=len(m.group(1)),
-                        url=del_surrogate(m.group(2)),
-                    )
-                )
-                i += len(m.group(1))
+            text, increment = _process_url_match(text, i, url_re, result)
+            if increment != 1:
+                i = increment
                 continue
 
         i += 1
