@@ -9,6 +9,12 @@ name = "python"
   runtime_version = "3.x.x"
 
 [[analyzers]]
+name = "test-coverage"
+
+  [analyzers.meta]
+  test_patterns = ["tests/"]
+
+[[analyzers]]
 name = "docker"
 
   [analyzers.meta]
