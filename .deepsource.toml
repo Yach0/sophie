@@ -1,6 +1,6 @@
 version = 1
 
-test_patterns = ["sophie_bot/**.py"]
+test_patterns = ["tests/**.py"]
 
 [[analyzers]]
 name = "python"
