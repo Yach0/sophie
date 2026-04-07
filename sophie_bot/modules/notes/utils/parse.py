@@ -78,7 +78,8 @@ def parse_reply_message(message: Message) -> tuple[str, Optional[NoteFile], list
     reply_markup = getattr(message, "reply_markup", None)
     buttons = parse_message_buttons(reply_markup) if reply_markup else []
 
-    # TODO: fuck aiogram
+    # aiogram's html_text property emits <tg-emoji emoji_id=...> but Telegram expects emoji-id (hyphenated),
+    # so we fix the attribute name to ensure custom emoji render correctly.
     return tg_emoji_workaround(message.html_text), extract_file_info(message), buttons
 
 
