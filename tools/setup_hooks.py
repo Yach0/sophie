@@ -222,20 +222,18 @@ Examples:
             print("   Dependencies will be synced automatically when creating new worktrees.")
         return 0 if success else 1
 
-    elif args.command == "uninstall":
+    if args.command == "uninstall":
         success = uninstall_hook(git_dir, "post-checkout")
         if success:
             print()
             print("🗑️  Git hooks uninstalled successfully!")
         return 0 if success else 1
 
-    elif args.command == "status":
+    if args.command == "status":
         status(git_dir)
         return 0
-
-    else:
-        parser.print_help()
-        return 1
+    parser.print_help()
+    return 1
 
 
 if __name__ == "__main__":

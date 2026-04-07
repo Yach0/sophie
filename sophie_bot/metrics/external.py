@@ -160,8 +160,7 @@ def instrument_external_service(service_name: str):
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
-        else:
-            return sync_wrapper  # type: ignore
+        return sync_wrapper  # type: ignore
 
     return decorator
 

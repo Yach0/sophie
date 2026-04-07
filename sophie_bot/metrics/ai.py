@@ -20,18 +20,18 @@ def get_provider_from_model(model: Model) -> str:
         # Convert provider class names to simple provider names
         if "OpenAI" in provider_class_name:
             return "openai"
-        elif "Google" in provider_class_name:
+        if "Google" in provider_class_name:
             return "google"
-        elif "Mistral" in provider_class_name:
+        if "Mistral" in provider_class_name:
             return "mistral"
 
     # Fallback: try to infer from model name
     model_name = model.model_name.lower()
     if "gpt" in model_name or "openai" in model_name:
         return "openai"
-    elif "gemini" in model_name or "google" in model_name:
+    if "gemini" in model_name or "google" in model_name:
         return "google"
-    elif "mistral" in model_name or "codestral" in model_name or "pixtral" in model_name:
+    if "mistral" in model_name or "codestral" in model_name or "pixtral" in model_name:
         return "mistral"
 
     return "unknown"

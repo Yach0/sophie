@@ -41,7 +41,7 @@ class SophieErrorHandler(ErrorHandler):
             log.warning("No sys exception", from_aiogram=exception, from_sys=sys_exception)
             return
 
-        elif exception != sys_exception:
+        if exception != sys_exception:
             log.warning(
                 "Mismatched exception seeking",
                 from_aiogram=exception,

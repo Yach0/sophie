@@ -67,12 +67,11 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
                 if CHANNELS_TOO_MUCH in err.message or USER_CHANNELS_TOO_MUCH in err.message:
                     await self.event.decline()
                     return None
-                elif CHAT_ADMIN_REQUIRED in err.message:
+                if CHAT_ADMIN_REQUIRED in err.message:
                     return None
-                elif HIDE_REQUESTER_MISSING in err.message:
+                if HIDE_REQUESTER_MISSING in err.message:
                     return None
-                else:
-                    raise err
+                raise err
 
         # Check if user is admin
         if await is_user_admin(chat_tid, user_tid):

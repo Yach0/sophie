@@ -52,7 +52,7 @@ class NotesList(SophieMessageHandler):
                     )
                 )
             )
-        elif not notes:
+        if not notes:
             return await self._reply_or_send(
                 str(Template(_("No notes found in {chat_name}."), chat_name=Italic(connection.title)))
             )

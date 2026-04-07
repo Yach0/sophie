@@ -89,7 +89,7 @@ class FederationManageService:
             user_federations = await FederationManageService.get_federations_by_creator(user.iid)
             if len(user_federations) == 1:
                 return user_federations[0]
-            elif len(user_federations) > 1:
+            if len(user_federations) > 1:
                 raise FederationContextError(_("You have multiple federations"))
             else:
                 raise FederationContextError(_("You don't have any federations"))

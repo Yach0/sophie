@@ -37,30 +37,30 @@ def unparse_button(button: Button, chat_id: int) -> InlineKeyboardButton | None:
             return None
         return create_inline_button(text=text, url=data, style=button.style)
 
-    elif action == ButtonAction.sophiedm:
+    if action == ButtonAction.sophiedm:
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}", style=button.style)
 
-    elif action == ButtonAction.rules:
+    if action == ButtonAction.rules:
         cb = "btn_rules"
         string = f"{cb}_{chat_id}"
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
-    elif action == ButtonAction.delmsg:
+    if action == ButtonAction.delmsg:
         cb = "btn_deletemsg_cb"
         string = f"{cb}_{chat_id}"
         return create_inline_button(text=text, callback_data=string, style=button.style)
 
-    elif action == ButtonAction.connect:
+    if action == ButtonAction.connect:
         cb = "btn_connect_start"
         string = f"{cb}_{chat_id}"
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
-    elif action == ButtonAction.captcha:
+    if action == ButtonAction.captcha:
         cb = "btnwelcomesecuritystart"
         string = f"{cb}_{chat_id}"
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
-    elif action == ButtonAction.note:
+    if action == ButtonAction.note:
         cb = "btnnotesm"
         string = f"{cb}_{data}_{chat_id}" if data else f"{cb}_{chat_id}"
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)

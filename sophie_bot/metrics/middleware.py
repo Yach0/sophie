@@ -182,84 +182,83 @@ class MetricsMiddleware(BaseMiddleware):
         """Determine message kind for labeling"""
         if message.text:
             return "text"
-        elif message.photo:
+        if message.photo:
             return "photo"
-        elif message.video:
+        if message.video:
             return "video"
-        elif message.audio:
+        if message.audio:
             return "audio"
-        elif message.voice:
+        if message.voice:
             return "voice"
-        elif message.document:
+        if message.document:
             return "document"
-        elif message.sticker:
+        if message.sticker:
             return "sticker"
-        elif message.animation:
+        if message.animation:
             return "animation"
-        elif message.video_note:
+        if message.video_note:
             return "video_note"
-        elif message.contact:
+        if message.contact:
             return "contact"
-        elif message.location:
+        if message.location:
             return "location"
-        elif message.venue:
+        if message.venue:
             return "venue"
-        elif message.poll:
+        if message.poll:
             return "poll"
-        elif message.dice:
+        if message.dice:
             return "dice"
-        elif message.game:
+        if message.game:
             return "game"
-        elif message.invoice:
+        if message.invoice:
             return "invoice"
-        elif message.successful_payment:
+        if message.successful_payment:
             return "successful_payment"
-        elif message.connected_website:
+        if message.connected_website:
             return "connected_website"
-        elif message.passport_data:
+        if message.passport_data:
             return "passport_data"
-        elif message.proximity_alert_triggered:
+        if message.proximity_alert_triggered:
             return "proximity_alert"
-        elif message.forum_topic_created:
+        if message.forum_topic_created:
             return "forum_topic_created"
-        elif message.forum_topic_closed:
+        if message.forum_topic_closed:
             return "forum_topic_closed"
-        elif message.forum_topic_reopened:
+        if message.forum_topic_reopened:
             return "forum_topic_reopened"
-        elif message.general_forum_topic_hidden:
+        if message.general_forum_topic_hidden:
             return "general_forum_topic_hidden"
-        elif message.general_forum_topic_unhidden:
+        if message.general_forum_topic_unhidden:
             return "general_forum_topic_unhidden"
-        elif message.write_access_allowed:
+        if message.write_access_allowed:
             return "write_access_allowed"
-        elif message.user_shared:
+        if message.user_shared:
             return "user_shared"
-        elif message.chat_shared:
+        if message.chat_shared:
             return "chat_shared"
-        elif message.new_chat_members:
+        if message.new_chat_members:
             return "new_chat_members"
-        elif message.left_chat_member:
+        if message.left_chat_member:
             return "left_chat_member"
-        elif message.new_chat_title:
+        if message.new_chat_title:
             return "new_chat_title"
-        elif message.new_chat_photo:
+        if message.new_chat_photo:
             return "new_chat_photo"
-        elif message.delete_chat_photo:
+        if message.delete_chat_photo:
             return "delete_chat_photo"
-        elif message.group_chat_created:
+        if message.group_chat_created:
             return "group_chat_created"
-        elif message.supergroup_chat_created:
+        if message.supergroup_chat_created:
             return "supergroup_chat_created"
-        elif message.channel_chat_created:
+        if message.channel_chat_created:
             return "channel_chat_created"
-        elif message.migrate_to_chat_id:
+        if message.migrate_to_chat_id:
             return "migrate_to_chat_id"
-        elif message.migrate_from_chat_id:
+        if message.migrate_from_chat_id:
             return "migrate_from_chat_id"
-        elif message.pinned_message:
+        if message.pinned_message:
             return "pinned_message"
-        else:
-            return "other"
+        return "other"
 
     def _extract_command_name(self, event: TelegramObject) -> str | None:
         message: Message | None = None

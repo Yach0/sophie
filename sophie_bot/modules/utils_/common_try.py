@@ -39,39 +39,38 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
         if reply_not_found and REPLIED_NOT_FOUND in err.message:
             log.debug("common_try: Reply not found, trying to execute reply_not_found")
             return await common_try(to_try=reply_not_found())
-        elif REPLIED_NOT_FOUND in err.message:
+        if REPLIED_NOT_FOUND in err.message:
             log.debug("common_try: Reply not found, ignoring")
             return None
-        elif CAN_NOT_BE_DELETED in err.message:
+        if CAN_NOT_BE_DELETED in err.message:
             log.debug("common_try: Message can't be deleted, ignoring")
             return None
-        elif MSG_TO_DEL_NOT_FOUND in err.message:
+        if MSG_TO_DEL_NOT_FOUND in err.message:
             log.debug("common_try: Message to delete not found, ignoring")
             return None
-        elif MSG_TEXT_EMPTY in err.message:
+        if MSG_TEXT_EMPTY in err.message:
             log.debug("common_try: Message text is empty, ignoring")
             return None
-        elif MSG_NOT_MODIFIED in err.message:
+        if MSG_NOT_MODIFIED in err.message:
             log.debug("common_try: Message is not modified, ignoring")
             return None
-        elif NO_TEXT_IN_MSG_TO_EDIT in err.message:
+        if NO_TEXT_IN_MSG_TO_EDIT in err.message:
             log.debug("common_try: No text in message to edit, ignoring")
             return None
-        elif MSG_TOO_LONG in err.message:
+        if MSG_TOO_LONG in err.message:
             log.warning("common_try: Message is too long, ignoring")
             return None
-        elif USER_ALREADY_PARTICIPANT in err.message:
+        if USER_ALREADY_PARTICIPANT in err.message:
             log.debug("common_try: User already participant, ignoring")
             return None
-        elif CHAT_ADMIN_REQUIRED in err.message:
+        if CHAT_ADMIN_REQUIRED in err.message:
             log.debug("common_try: Chat admin required, ignoring")
             return None
-        elif INVALID_BUTTON_URL in err.message:
+        if INVALID_BUTTON_URL in err.message:
             log.warning("common_try: Invalid inline keyboard button URL, ignoring", error=str(err))
             return None
-        else:
-            log.error("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
-            raise err
+        log.error("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
+        raise err
     except IGNORED_EXCEPTIONS as err:
         log.warning("common_try: Caught ignored exception", error=str(err))
         return None

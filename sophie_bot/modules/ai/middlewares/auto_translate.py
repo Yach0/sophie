@@ -49,10 +49,10 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
             if not data["voice"]:
                 if not data["text"]:
                     return result
-                elif data["text"].startswith("http") or data["text"].startswith("/"):
+                if data["text"].startswith("http") or data["text"].startswith("/"):
                     log.debug("AiAutoTranslateMiddleware: Ignoring non-text message")
                     return result
-                elif len(data["text"]) <= 5:
+                if len(data["text"]) <= 5:
                     log.debug("AiAutoTranslateMiddleware: Ignoring short message")
                     return result
 

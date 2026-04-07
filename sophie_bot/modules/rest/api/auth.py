@@ -116,9 +116,8 @@ async def login_operator(data: OperatorLoginRequest):
                 raise HTTPException(status_code=500, detail="Owner not found in database")
             security_log.info("auth.operator.login_success", user_tid=user.tid, method="static_token")
             return await create_tokens(user, scopes=["operator"])
-        else:
-            security_log.error("auth.operator.owner_id_not_configured")
-            raise HTTPException(status_code=500, detail="Owner ID not configured")
+        security_log.error("auth.operator.owner_id_not_configured")
+        raise HTTPException(status_code=500, detail="Owner ID not configured")
 
     hashed = hash_token(data.token)
     api_token = await ApiTokenModel.get_by_hash(hashed)

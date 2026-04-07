@@ -41,8 +41,7 @@ class ActionSetupConfirmHandler(SophieMessageCallbackQueryHandler):
             and filter_action.interactive_setup.setup_confirm
         ):
             return await filter_action.interactive_setup.setup_confirm(self.event, self.data)
-        else:
-            return filter_action.default_data
+        return filter_action.default_data
 
     async def handle(self) -> Any:
         if not (

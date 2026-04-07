@@ -68,6 +68,5 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
 
         if captcha.data.is_correct:
             return await self.captcha_correct(chat_db, data)
-        else:
-            self.data["ws_shuffle"] = True
-            return await CaptchaGetHandler(self.event, **self.data)
+        self.data["ws_shuffle"] = True
+        return await CaptchaGetHandler(self.event, **self.data)
