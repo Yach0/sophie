@@ -1,8 +1,11 @@
+from urllib.parse import urlparse
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes_buttons import Button, ButtonStyle
+from sophie_bot.utils.logger import log
 
 
 def create_inline_button(
@@ -14,12 +17,24 @@ def create_inline_button(
     return InlineKeyboardButton(text=text, url=url, callback_data=callback_data)
 
 
-def unparse_button(button: Button, chat_id: int) -> InlineKeyboardButton:
+def _is_valid_url(url: str) -> bool:
+    """Check if the URL has a valid scheme and netloc."""
+    try:
+        parsed = urlparse(url)
+        return bool(parsed.scheme) and bool(parsed.netloc)
+    except (ValueError, TypeError):
+        return False
+
+
+def unparse_button(button: Button, chat_id: int) -> InlineKeyboardButton | None:
     action = button.action
     text = button.text
     data = button.data
 
     if action == ButtonAction.url:
+        if not data or not _is_valid_url(data):
+            log.warning("unparse_button: skipping invalid URL button", button_text=text, url=data)
+            return None
         return create_inline_button(text=text, url=data, style=button.style)
 
     elif action == ButtonAction.sophiedm:
