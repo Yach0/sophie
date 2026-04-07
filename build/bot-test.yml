@@ -1,89 +1,28 @@
-prepare_test_env:
-  stage: prepare
-  interruptible: true
-  image: "$UV_IMAGE"
-  needs:
-    - job: prepare_libs
-      artifacts: true
-  cache:
-    key:
-      files:
-        - pyproject.toml
-        - uv.lock
-    paths:
-      - .cache/uv
-    policy: pull-push
-  before_script:
-    - |
-      apt-get update && \
-      apt-get install -y --no-install-recommends gnupg wget && \
-      echo "deb http://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list && \
-      apt-get update && \
-      apt-get install -y --no-install-recommends -t trixie \
-        pkg-config libicu-dev g++ ffmpeg \
-        libavformat-dev libavcodec-dev libavdevice-dev \
-        libavutil-dev libavfilter-dev libswscale-dev libswresample-dev && \
-      rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/trixie.list
-  script:
-    - uv sync --dev --frozen
-    - uv run pybabel compile -d locales -D sophie --use-fuzzy
-  artifacts:
-    paths:
-      - .venv/
-      - libs/
-      - locales/
-    expire_in: 1 day
-
-# Base template for all test jobs
 .test-base:
-  image: "$UV_IMAGE"
+  image: "$CI_IMAGE"
   stage: test
   interruptible: true
-  needs:
-    - job: prepare_test_env
-      artifacts: true
   variables:
     TOKEN: "123456:test"
-  cache:
-    key:
-      files:
-        - pyproject.toml
-        - uv.lock
-    paths:
-      - .cache/uv
-    policy: pull
   before_script:
-    - |
-      apt-get update && \
-      apt-get install -y --no-install-recommends gnupg wget && \
-      echo "deb http://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list && \
-      apt-get update && \
-      apt-get install -y --no-install-recommends -t trixie \
-        libicu76 \
-        ffmpeg \
-        libavformat61 libavcodec61 libavdevice61 \
-        libavutil59 libavfilter10 libswscale8 libswresample5 && \
-      rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/trixie.list
+    - uv run pybabel compile -d locales -D sophie --use-fuzzy
 
 test-codestyle:
   extends: .test-base
   script:
-    - .venv/bin/python -m pycln . -a -c
-    - .venv/bin/ruff format sophie_bot/ --check
-    - .venv/bin/ruff check .
+    - pycln . -a -c
+    - ruff format sophie_bot/ --check
+    - ruff check .
 
 test-codeanal:
   extends: .test-base
   script:
-    - .venv/bin/ty check
+    - ty check
 
 deepsource-analyze:
   extends: .test-base
-  before_script:
-    - apt-get update && apt-get install -y --no-install-recommends gnupg wget curl
-    - curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
   script:
-    - ./bin/deepsource report --analyzer python
+    - deepsource report --analyzer python
   rules:
     - if: $DEEPSOURCE_DSN
 
@@ -91,7 +30,7 @@ test-unit:
   extends: .test-base
   coverage: '/^TOTAL.*\s+(\d+%)$/'
   script:
-    - .venv/bin/python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
+    - python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
   artifacts:
     when: always
     paths:
@@ -106,7 +45,7 @@ test-unit:
 test-e2e:
   extends: .test-base
   script:
-    - .venv/bin/python -m pytest tests/e2e -v --alluredir=allure_results/e2e
+    - python -m pytest tests/e2e -v --alluredir=allure_results/e2e
   artifacts:
     when: always
     paths:
@@ -116,7 +55,7 @@ test-e2e:
 test-migrations:
   extends: .test-base
   script:
-    - RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations .venv/bin/python -m pytest tests/test_migrations.py -v --alluredir=allure_results/migrations
+    - RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations python -m pytest tests/test_migrations.py -v --alluredir=allure_results/migrations
   artifacts:
     when: always
     paths:
@@ -128,10 +67,8 @@ report-coverage:
   needs:
     - job: test-unit
       artifacts: true
-  before_script:
-    - apt-get update && apt-get install -y --no-install-recommends curl
-    - curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
+      optional: true
   script:
-    - ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
+    - deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
   rules:
     - if: $DEEPSOURCE_DSN
