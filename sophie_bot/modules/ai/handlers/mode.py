@@ -12,6 +12,7 @@ from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
+@flags.status("typing")
 @flags.args(text=TextArg(l_("Prompt")))
 @flags.help(description=l_("Generates a new AI mode"))
 class AiGenerateMode(SophieMessageHandler):

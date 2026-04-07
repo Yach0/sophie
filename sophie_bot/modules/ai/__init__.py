@@ -31,6 +31,8 @@ from sophie_bot.modules.ai.handlers.translate import AiTranslate, text_or_reply
 from sophie_bot.modules.ai.handlers.usage import AiUsage
 from sophie_bot.modules.ai.magic_handlers.modern_action import AIReplyAction
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
+from sophie_bot.modules.ai.middlewares.ai_status import AiStatusMiddleware
+from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
 from sophie_bot.modules.ai.middlewares.auto_translate import AiAutoTranslateMiddleware
 from sophie_bot.modules.ai.middlewares.cache_bot_messages import (
     CacheBotMessagesMiddleware,
@@ -123,6 +125,11 @@ async def __pre_setup__():
 
     # AI Moderator
     router.message.outer_middleware(AiModeratorMiddleware())
+
+    # AI typing status (outer) — runs before timeout, so typing shows during AI work
+    router.message.outer_middleware(AiStatusMiddleware())
+    # AI timeout (outer) — prevents AI handlers from hanging indefinitely
+    router.message.outer_middleware(AiTimeoutMiddleware())
 
     _register_context_handlers()
     _register_translation_handlers()

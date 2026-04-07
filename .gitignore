@@ -37,3 +37,4 @@ libs/
 *.egg-info/
 
 .junie/
+.opencode-prompt.md

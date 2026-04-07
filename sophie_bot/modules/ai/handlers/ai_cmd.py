@@ -19,6 +19,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_, gettext as _
     text=OptionalArg(TextArg(l_("Prompt"))),
 )
 @flags.help(description=l_("Ask Sophie a question"))
+@flags.status("typing")
 @flags.ai_cache(cache_handler_result=True)
 @flags.disableable(name="ai")
 class AiCmd(SophieMessageHandler):
