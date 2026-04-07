@@ -9,7 +9,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
-from .. import LOADED_MODULES as LOADED_MODULES
+from .. import LOADED_MODULES
 from .enforce_middleware import EnforceFiltersMiddleware
 from .handlers.action_change_setting_confirm import ActionChangeSettingConfirm
 from .handlers.action_remove import ActionRemoveHandler

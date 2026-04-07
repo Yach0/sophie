@@ -38,11 +38,11 @@ class ActionsListHandler(SophieMessageCallbackQueryHandler):
             return await self.event.answer(_("Continuing setup is only possible by the same user who started it."))
 
         # Limit for actions that are not added already
-        available_actions = list(
+        available_actions = [
             action
             for action in ALL_MODERN_ACTIONS.values()
             if not any(action.name == added_action for added_action in filter_item.actions)
-        )
+        ]
 
         # Construct the message
         doc = (
