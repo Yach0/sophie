@@ -7,6 +7,7 @@ stages:
 include:
   - '/build/prepare.yml'
   - '/build/bot-test.yml'
+  - '/build/renovate.yml'
   - "/build/runtime/build.yml"
   - "/deploy/ci_staging.yml"
   - "/deploy/ci_prod.yml"

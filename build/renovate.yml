@@ -1,0 +1,9 @@
+renovate:
+  stage: test
+  image: ghcr.io/renovatebot/renovate:43
+  rules:
+    - if: $RENOVATE_TOKEN
+  variables:
+    RENOVATE_GITLAB_IGNORE_PR_AUTHOR: "true"
+  script:
+    - renovate

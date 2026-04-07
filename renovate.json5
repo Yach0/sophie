@@ -1,0 +1,66 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":automergeMinor",
+    "docker:enableMajor",
+  ],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+
+  // Run on default branch only
+  "baseBranches": ["beta"],
+
+  // Group updates for cleaner MRs
+  "packageRules": [
+    {
+      "description": "Group all dev dependencies together",
+      "groupName": "dev dependencies",
+      "matchDepTypes": ["dev"],
+      "matchManagers": ["pep621"],
+      "automerge": true,
+    },
+    {
+      "description": "Group direct production dependencies",
+      "groupName": "production dependencies",
+      "matchDepTypes": ["dependencies"],
+      "matchManagers": ["pep621"],
+    },
+    {
+      "description": "Group uv Docker image updates",
+      "groupName": "uv Docker image",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/astral-sh/uv"],
+    },
+    {
+      "description": "Group alpine/git Docker image updates",
+      "groupName": "alpine git Docker image",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["alpine/git"],
+    },
+    {
+      "description": "Pin Dockerfile actions (cosign, etc.)",
+      "matchDatasources": ["docker"],
+      "matchFileNames": ["build/**/Dockerfile"],
+      "pinDigests": false,
+    },
+  ],
+
+  // Lockfile maintenance — refresh transitive deps weekly
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["every week"],
+  },
+
+  // uv-specific: minimum release age to match exclude-newer
+  "minimumReleaseAge": "3 days",
+
+  // Don't bump lockfile-only for minor/patch (uv does it automatically)
+  "ignoreDeps": [],
+
+  // Commit message convention
+  "commitMessagePrefix": "deps:",
+  "commitMessageAction": "update",
+  "semanticCommits": "disabled",
+}
