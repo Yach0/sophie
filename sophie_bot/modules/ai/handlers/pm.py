@@ -13,11 +13,7 @@ from sophie_bot.modules.ai.callbacks import AIChatCallback
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_PROVIDER, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-from sophie_bot.utils.handlers import (
-    SophieMessageCallbackQueryHandler,
-    SophieMessageHandler,
-)
-from sophie_bot.services.bot import bot
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -71,6 +67,7 @@ class AiPmStop(SophieMessageHandler):
         await self.event.reply(_("The AI mode has been exited."), reply_markup=ReplyKeyboardRemove())
 
 
+@flags.status("typing")
 @flags.ai_cache(cache_handler_result=True)
 class AiPmHandle(SophieMessageHandler):
     @staticmethod
@@ -78,7 +75,6 @@ class AiPmHandle(SophieMessageHandler):
         return AiPMFSM.in_ai, ChatTypeFilter("private"), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
-        await bot.send_chat_action(self.event.chat.id, "typing")
         buttons = ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text=str(AI_PM_STOP_TEXT)), KeyboardButton(text=str(AI_PM_RESET))],

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
-from aiogram import Bot, flags
+from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from aiogram.utils.chat_action import ChatActionSender
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
 from pydantic_ai import ModelHTTPError
@@ -176,6 +175,7 @@ def _build_system_prompt() -> str:
     return prompt_doc.to_md()
 
 
+@flags.status("typing")
 @flags.help(
     description=l_("Suggests filter handlers from a natural language description"),
     alias_to_modules=["filters"],
@@ -203,20 +203,14 @@ class AIFilterAddHandler(SophieMessageHandler):
         history.prompt = [prompt]
 
         model = await get_chat_default_model(self.connection.db_model.iid)
-        bot = cast(Bot, self.event.bot)
 
         try:
-            async with ChatActionSender.typing(
-                bot=bot,
-                chat_id=self.event.chat.id,
-                message_thread_id=self.event.message_thread_id,
-            ):
-                result = await new_ai_generate_schema_with_result(
-                    history,
-                    AIFilterSuggestionsResponse,
-                    model,
-                    user_tracking_id=self.connection.db_model.iid,
-                )
+            result = await new_ai_generate_schema_with_result(
+                history,
+                AIFilterSuggestionsResponse,
+                model,
+                user_tracking_id=self.connection.db_model.iid,
+            )
             suggestions = _validate_suggestions(result.output.suggestions)
         except (ModelHTTPError, SophieException, TimeoutError):
             await self.event.reply(_("Could not generate suggestions. Please try again or use /addfilter directly."))

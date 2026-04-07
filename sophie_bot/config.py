@@ -115,6 +115,7 @@ class Config(BaseSettings):
     mistral_api_key: str | None = None
 
     ai_autotrans_lowmem: bool = False
+    ai_timeout_seconds: int = 120  # Timeout for AI handler execution (seconds)
 
     # Metrics configuration
     metrics_enable: bool = True

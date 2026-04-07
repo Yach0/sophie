@@ -32,7 +32,6 @@ from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
-from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -222,8 +221,6 @@ async def ai_chatbot_reply(
 
     # Track active AI conversation
     async with track_ai_conversation():
-        await bot.send_chat_action(message.chat.id, "typing")
-
         history = await _prepare_history(message, connection.db_model.iid, user_text)
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         if explicit_debug_mode:

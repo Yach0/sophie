@@ -14,6 +14,7 @@ from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.services.bot import bot
 
 
+@flags.status("typing")
 @flags.ai_cache(cache_handler_result=True)
 class AiReplyHandler(SophieMessageHandler):
     @staticmethod
