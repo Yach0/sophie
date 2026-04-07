@@ -89,8 +89,9 @@ deepsource-analyze:
 
 test-unit:
   extends: .test-base
+  coverage: '/^TOTAL.*\s+(\d+%)$/'
   script:
-    - .venv/bin/python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml
+    - .venv/bin/python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
   artifacts:
     when: always
     paths:
