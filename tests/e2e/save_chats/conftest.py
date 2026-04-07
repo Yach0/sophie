@@ -16,7 +16,8 @@ from tests.utils.mongo_mock import AsyncMongoMockClient
 _mock_mongo_client = AsyncMongoMockClient()
 
 # Patch pymongo before any other imports that might use it
-patch("pymongo.AsyncMongoClient", return_value=_mock_mongo_client).start()
+_save_chats_patcher = patch("pymongo.AsyncMongoClient", return_value=_mock_mongo_client)
+_save_chats_patcher.start()
 
 # Now import models after patching
 from sophie_bot.db.models import models  # noqa: E402
@@ -66,6 +67,9 @@ async def db_init():
     # Cleanup: drop all collections after tests
     for model in models:
         await model.delete_all()
+
+    # Cleanup: stop the pymongo mock
+    _save_chats_patcher.stop()
 
 
 class TestDataFactory:
