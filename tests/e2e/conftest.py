@@ -31,7 +31,8 @@ from tests.utils.mongo_mock import AsyncMongoMockClient
 _mock_mongo_client = AsyncMongoMockClient()
 
 # Patch pymongo before any other imports that might use it
-patch("pymongo.AsyncMongoClient", return_value=_mock_mongo_client).start()
+_patcher = patch("pymongo.AsyncMongoClient", return_value=_mock_mongo_client)
+_mongo_patch = _patcher.start()
 
 # Now import models after patching
 from sophie_bot.db.models import models  # noqa: E402
@@ -46,6 +47,7 @@ async def mock_mongo() -> AsyncGenerator[Any, None]:
     which wraps mongomock and provides async compatibility for Beanie 2.0.
     """
     yield _mock_mongo_client
+    _patcher.stop()
 
 
 @pytest_asyncio.fixture(scope="session")
