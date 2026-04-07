@@ -5,6 +5,7 @@ variables:
 
 prepare_libs:
   stage: prepare
+  interruptible: true
   image:
     name: alpine/git:2.49.1
     entrypoint: [""]

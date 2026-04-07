@@ -1,5 +1,6 @@
 prepare_test_env:
   stage: prepare
+  interruptible: true
   image: "$UV_IMAGE"
   needs:
     - job: prepare_libs
@@ -37,6 +38,7 @@ prepare_test_env:
 .test-base:
   image: "$UV_IMAGE"
   stage: test
+  interruptible: true
   needs:
     - job: prepare_test_env
       artifacts: true

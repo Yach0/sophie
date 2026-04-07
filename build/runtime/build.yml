@@ -8,6 +8,7 @@ build_runtime_container:
     IMAGE_NAME: "$CI_REGISTRY_IMAGE"
     IMAGE_FULL: "$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-runtime"
   stage: build
+  interruptible: true
   needs:
     - job: prepare_libs
       artifacts: true
