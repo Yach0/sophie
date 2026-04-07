@@ -75,6 +75,18 @@ test-codeanal:
   script:
     - .venv/bin/ty check
 
+deepsource-analyze:
+  extends: .test-base
+  variables:
+    DEEPSOURCE_DSN: $DEEPSOURCE_DSN
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends gnupg wget curl
+    - curl -fsSL https://deepsource.io/cli | sh
+  script:
+    - ./bin/deepsource report --analyzer python --analyzer-config test_patterns="sophie_bot/**.py"
+  rules:
+    - if: $DEEPSOURCE_DSN
+
 test-unit:
   extends: .test-base
   script:
