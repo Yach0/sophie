@@ -97,7 +97,7 @@ class UserRestricting(Filter):
             log.debug("Admin rights: Private message without connection")
             return True
 
-        elif is_connected:
+        if is_connected:
             log.debug("Admin rights: Connection to the chat detected")
 
         anonymous_resolution = await self.resolve_anonymous_admin_permissions(

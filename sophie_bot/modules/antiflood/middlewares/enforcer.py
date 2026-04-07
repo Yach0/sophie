@@ -104,9 +104,9 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
 
         if action_name == "ban_user":
             return await ban_user(chat_id, user_id)
-        elif action_name == "kick_user":
+        if action_name == "kick_user":
             return await kick_user(chat_id, user_id)
-        elif action_name == "mute_user":
+        if action_name == "mute_user":
             # Use default 30-minute mute for default action, or check action data
             mute_duration = DEFAULT_MUTE_DURATION
             if settings.actions and settings.actions[0].name == "mute_user" and settings.actions[0].data:
@@ -114,9 +114,8 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
                 if mute_duration and isinstance(mute_duration, (int, float)):
                     mute_duration = timedelta(seconds=mute_duration)
             return await mute_user(chat_id, user_id, until_date=mute_duration)
-        else:
-            log.warning(f"Unknown antiflood action: {action_name}")
-            return False
+        log.warning(f"Unknown antiflood action: {action_name}")
+        return False
 
     def _get_action_text(self, settings: AntifloodModel) -> str:
         """Get human-readable action text."""

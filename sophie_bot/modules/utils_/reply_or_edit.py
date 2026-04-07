@@ -14,7 +14,6 @@ async def reply_or_edit(event: Message | CallbackQuery, text: Element | str, **k
             raise SophieException(_("The message is inaccessible. Please write the command again"))
 
         return await common_try(event.message.edit_text(rendered_text, **kwargs))
-    elif isinstance(event, Message):
+    if isinstance(event, Message):
         return await common_try(event.reply(rendered_text, **kwargs))
-    else:
-        raise ValueError("answer: Wrong event type")
+    raise ValueError("answer: Wrong event type")

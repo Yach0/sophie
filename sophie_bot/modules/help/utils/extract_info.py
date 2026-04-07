@@ -202,5 +202,4 @@ async def gather_module_help(module: ModuleType) -> Optional[ModuleHelp]:
             description=description or "",
             advertise_wiki_page=advertise_wiki_page,
         )
-    else:
-        return None
+    return None

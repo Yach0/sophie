@@ -56,7 +56,7 @@ class PromoteUserHandler(SophieMessageHandler):
         if user.chat_id == CONFIG.bot_id:
             return await self.event.reply(_("I cannot promote myself."))
 
-        elif self.event.from_user and user.chat_id == self.event.from_user.id:
+        if self.event.from_user and user.chat_id == self.event.from_user.id:
             return await self.event.reply(_("You cannot promote yourself."))
 
         if admin_title and len(admin_title) > 16:

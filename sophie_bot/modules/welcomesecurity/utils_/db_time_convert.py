@@ -13,13 +13,13 @@ def convert_timedelta_or_str(value: str | timedelta) -> timedelta:
     value = value.lower()
     if value.endswith("d"):
         return timedelta(days=int(value[:-1]))
-    elif value.endswith("h"):
+    if value.endswith("h"):
         return timedelta(hours=int(value[:-1]))
-    elif value.endswith("m"):
+    if value.endswith("m"):
         return timedelta(minutes=int(value[:-1]))
-    elif value.endswith("s"):
+    if value.endswith("s"):
         return timedelta(seconds=int(value[:-1]))
-    elif value.endswith("w"):
+    if value.endswith("w"):
         return timedelta(weeks=int(value[:-1]))
 
     return timedelta(seconds=0)

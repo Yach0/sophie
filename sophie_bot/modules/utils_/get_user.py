@@ -22,10 +22,9 @@ def get_arg_or_reply_user(message: Message, data: dict[str, Any]) -> User | Chat
 
     if message.reply_to_message and is_real_reply(message) and message.reply_to_message.from_user:
         return message.reply_to_message.from_user
-    elif db_user := data.get("user"):
+    if db_user := data.get("user"):
         return db_user
-    else:
-        raise SophieException("No user found")
+    raise SophieException("No user found")
 
 
 def get_union_user(user: User | ChatModel) -> UnionUser:
@@ -36,9 +35,8 @@ def get_union_user(user: User | ChatModel) -> UnionUser:
             last_name=user.last_name,
             username=user.username,
         )
-    elif isinstance(user, ChatModel):
+    if isinstance(user, ChatModel):
         return UnionUser(
             chat_id=user.tid, first_name=user.first_name_or_title, last_name=user.last_name, username=user.username
         )
-    else:
-        raise ValueError("Invalid user type to cast to UnionUser")
+    raise ValueError("Invalid user type to cast to UnionUser")

@@ -38,7 +38,7 @@ async def check_legacy_filter_handler(
                 ).to_html(),
             )
             return False
-        elif existing_lock_owner == "filters":
+        if existing_lock_owner == "filters":
             await reply_or_edit(
                 event,
                 Template(

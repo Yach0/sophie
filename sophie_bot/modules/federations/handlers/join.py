@@ -52,9 +52,8 @@ class JoinFederationHandler(SophieMessageHandler):
             if existing_fed.fed_id == fed_id.fed_id:
                 await self.event.reply(_("This chat is already in the specified federation."))
                 return
-            else:
-                await self.event.reply(_("This chat is already in another federation. Leave it first."))
-                return
+            await self.event.reply(_("This chat is already in another federation. Leave it first."))
+            return
 
         # Add chat to federation
         joined = await FederationChatService.add_chat_to_federation(

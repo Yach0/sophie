@@ -34,7 +34,7 @@ class GetNote(SophieMessageHandler):
             return await self.event.reply(
                 Template(_("No note was found with {name} name."), name=Italic(note_name)).to_html()
             )
-        elif not note:
+        if not note:
             return
 
         title = Bold(HList(Title(f"📗 #{note_name}", bold=False), note.description or ""))

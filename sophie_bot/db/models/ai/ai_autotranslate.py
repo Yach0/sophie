@@ -25,7 +25,7 @@ class AIAutotranslateModel(Document):
         if model and not new_state:
             return await model.delete()
 
-        elif model:
+        if model:
             return model
 
         model = AIAutotranslateModel(chat=chat)

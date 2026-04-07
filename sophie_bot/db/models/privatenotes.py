@@ -21,7 +21,7 @@ class PrivateNotesModel(Document):
         if model and not new_state:
             return await model.delete()
 
-        elif model:
+        if model:
             return model
 
         model = PrivateNotesModel(chat=chat_iid)

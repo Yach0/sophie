@@ -52,7 +52,7 @@ class BetaMiddleware(BaseMiddleware):
         if model and model.mode:
             if model.mode == CurrentMode.beta:
                 return True
-            elif model.mode == CurrentMode.stable:
+            if model.mode == CurrentMode.stable:
                 return False
 
         # If it has a preferred mode
@@ -63,7 +63,7 @@ class BetaMiddleware(BaseMiddleware):
 
             if model.preferred_mode == PreferredMode.beta:
                 return True
-            elif model.preferred_mode == PreferredMode.stable:
+            if model.preferred_mode == PreferredMode.stable:
                 return False
 
         # Random

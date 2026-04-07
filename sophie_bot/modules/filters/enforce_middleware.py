@@ -130,10 +130,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             triggered_groups = []
         if matched_filter.actions:
             return await self._handle_modern_action(matched_filter, triggered_groups, message, data)  # type: ignore
-        elif matched_filter.action:
+        if matched_filter.action:
             return [await self._handle_legacy_action(matched_filter, triggered_groups, message)], []
-        else:
-            raise SophieException("EnforceFiltersMiddleware: no actions found")
+        raise SophieException("EnforceFiltersMiddleware: no actions found")
 
     async def _process_filters(self, message: Message, data: dict[str, Any]):
         chat_db = data.get("chat_db")
