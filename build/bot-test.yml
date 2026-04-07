@@ -77,24 +77,27 @@ test-codeanal:
 
 deepsource-analyze:
   extends: .test-base
-  variables:
-    DEEPSOURCE_DSN: $DEEPSOURCE_DSN
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends gnupg wget curl
-    - curl -fsSL https://deepsource.io/cli | sh
+    - curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
   script:
-    - ./bin/deepsource report --analyzer python --analyzer-config test_patterns="sophie_bot/**.py"
+    - ./bin/deepsource report --analyzer python
   rules:
     - if: $DEEPSOURCE_DSN
 
 test-unit:
   extends: .test-base
   script:
-    - .venv/bin/python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto
+    - .venv/bin/python -m pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml
   artifacts:
     when: always
     paths:
       - allure_results
+      - coverage.xml
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
     expire_in: 1 day
 
 test-e2e:
@@ -116,3 +119,16 @@ test-migrations:
     paths:
       - allure_results
     expire_in: 1 day
+
+report-coverage:
+  extends: .test-base
+  needs:
+    - job: test-unit
+      artifacts: true
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl
+    - curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
+  script:
+    - ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
+  rules:
+    - if: $DEEPSOURCE_DSN
