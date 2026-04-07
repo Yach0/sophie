@@ -103,7 +103,6 @@ class NewAIMessageHistory:
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.user_id == CONFIG.bot_id:
-            # TODO: remove the line below
             text = cut_titlebar(msg.text) if is_ai_message(msg.text) else msg.text
             return ModelResponse(parts=[TextPart(content=text)])
 
