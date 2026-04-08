@@ -2,8 +2,9 @@ renovate:
   stage: test
   image: ghcr.io/renovatebot/renovate:43
   rules:
-    - if: $RENOVATE_TOKEN
+    - if: $RENOVATE_TOKEN || $RENOVATE_GITHUB_TOKEN
   variables:
+    RENOVATE_PLATFORM: "gitlab"
     RENOVATE_GITLAB_IGNORE_PR_AUTHOR: "true"
   script:
     - renovate SophieBot/sophie
