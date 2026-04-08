@@ -77,10 +77,12 @@ def _run_mode_subprocess(mode: str) -> None:
     env["MODE"] = mode
 
     try:
-        subprocess.run(
+        result = subprocess.run(
             [sys.executable, "-m", "sophie_bot"],
             env=env,
             cwd=Path(__file__).parent.parent.parent,
         )
+        if result.returncode != 0:
+            log.warning(f"Subprocess exited with code {result.returncode}")
     except KeyboardInterrupt:
         log.error("Process interrupted")
