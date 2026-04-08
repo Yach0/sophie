@@ -18,9 +18,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def check_legacy_filter_handler(
-    event: Message | CallbackQuery, keyword: str, connection: ChatConnection, editing_oid: str | None = None
-) -> bool:
+async def _check_lock_conflict(event: Message | CallbackQuery, keyword: str, connection: ChatConnection) -> bool:
     if is_supported_lock_type(keyword):
         existing_lock_owner = await get_lock_type_owner(connection.db_model.iid, keyword)
         if existing_lock_owner == "locks":
@@ -28,11 +26,15 @@ async def check_legacy_filter_handler(
                 event,
                 Doc(
                     Template(
-                        _("The lock type {handler} is already enforced by the Locks module."),
+                        _(
+                            "The lock type {handler} is already enforced by the Locks module.",
+                        ),
                         handler=Code(keyword),
                     ),
                     Template(
-                        _("Delete it there first with {cmd} before adding it as a filter."),
+                        _(
+                            "Delete it there first with {cmd} before adding it as a filter.",
+                        ),
                         cmd=Code(f"/unlock {keyword}"),
                     ),
                 ).to_html(),
@@ -42,87 +44,122 @@ async def check_legacy_filter_handler(
             await reply_or_edit(
                 event,
                 Template(
-                    _("The lock-filter {name} already exists! Please use {cmd} to edit the filter."),
+                    _(
+                        "The lock-filter {name} already exists! Please use {cmd} to edit the filter.",
+                    ),
                     name=Code(keyword),
                     cmd=Code(f"/editfilter {keyword}"),
                 ).to_html(),
             )
             return False
+    return True
 
+
+async def _check_duplicate_filter(event: Message | CallbackQuery, keyword: str, connection: ChatConnection) -> bool:
     if await FiltersModel.get_by_keyword(connection.db_model.iid, keyword):
         await reply_or_edit(
             event,
             Doc(
                 Template(
-                    _("Filter with the handler {handler} already exists!"),
+                    _(
+                        "Filter with the handler {handler} already exists!",
+                    ),
                     handler=Code(keyword),
                 ),
                 Template(_("You can edit the filter's actions with {cmd}."), cmd=Code(f"/editfilter {keyword}")),
             ).to_html(),
         )
         return False
+    return True
 
-    if keyword.startswith("ai:"):
-        prompt = keyword[3:].strip()
-        if not prompt:
-            log.info("check_legacy_filter_handler: empty AI prompt")
+
+async def _check_ai_filter_rules(
+    event: Message | CallbackQuery,
+    keyword: str,
+    connection: ChatConnection,
+    editing_oid: str | None,
+) -> bool:
+    if not keyword.startswith("ai:"):
+        return True
+
+    prompt = keyword[3:].strip()
+    if not prompt:
+        log.info("check_legacy_filter_handler: empty AI prompt")
+        await reply_or_edit(
+            event,
+            _(
+                "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
+                "Example: ai:Message contains crypto scam"
+            ),
+        )
+        return False
+
+    # Check AI filter limit per chat (only when adding a new AI filter)
+    # When editing, we need to check if the existing filter was already an AI filter
+    is_editing_ai_filter = False
+    if editing_oid:
+        existing_filter = await FiltersModel.get_by_id(ObjectId(editing_oid))
+        if existing_filter and existing_filter.handler.startswith("ai:"):
+            is_editing_ai_filter = True
+
+    # Only enforce limit if we're adding a new AI filter (not editing an existing one)
+    if not is_editing_ai_filter:
+        current_ai_filter_count = await FiltersModel.count_ai_filters(connection.db_model.iid)
+        if current_ai_filter_count >= AI_FILTER_LIMIT_PER_CHAT:
+            log.info(f"check_legacy_filter_handler: AI filter limit reached for chat {connection.db_model.iid}")
             await reply_or_edit(
                 event,
-                _(
-                    "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
-                    "Example: ai:Message contains crypto scam"
-                ),
+                Template(
+                    _(
+                        "Maximum number of AI filter handlers reached ({limit} per chat).\n"
+                        "AI filters consume tokens and can overload the system. "
+                        "Please remove an existing AI filter before adding a new one."
+                    ),
+                    limit=AI_FILTER_LIMIT_PER_CHAT,
+                ).to_html(),
             )
             return False
+    return True
 
-        # Check AI filter limit per chat (only when adding a new AI filter)
-        # When editing, we need to check if the existing filter was already an AI filter
-        is_editing_ai_filter = False
-        if editing_oid:
-            existing_filter = await FiltersModel.get_by_id(ObjectId(editing_oid))
-            if existing_filter and existing_filter.handler.startswith("ai:"):
-                is_editing_ai_filter = True
 
-        # Only enforce limit if we're adding a new AI filter (not editing an existing one)
-        if not is_editing_ai_filter:
-            current_ai_filter_count = await FiltersModel.count_ai_filters(connection.db_model.iid)
-            if current_ai_filter_count >= AI_FILTER_LIMIT_PER_CHAT:
-                log.info(f"check_legacy_filter_handler: AI filter limit reached for chat {connection.db_model.iid}")
-                await reply_or_edit(
-                    event,
-                    Template(
-                        _(
-                            "Maximum number of AI filter handlers reached ({limit} per chat).\n"
-                            "AI filters consume tokens and can overload the system. "
-                            "Please remove an existing AI filter before adding a new one."
-                        ),
-                        limit=AI_FILTER_LIMIT_PER_CHAT,
-                    ).to_html(),
-                )
-                return False
+async def _check_regex_validity(event: Message | CallbackQuery, keyword: str) -> bool:
+    if not keyword.startswith("re:"):
+        return True
 
-    if keyword.startswith("re:"):
-        pattern = keyword[3:]
-        random_text_str = "".join(choice(printable) for _q in range(50))
-        try:
-            regex.match(pattern, random_text_str, timeout=0.2)
-        except TimeoutError:
-            log.info("check_legacy_filter_handler: regex too slow")
-            await reply_or_edit(
-                event,
-                _(
-                    "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
-                ),
-            )
-            return False
-        except regex.error:
-            log.info("check_legacy_filter_handler: invalid regex pattern")
-            await reply_or_edit(
-                event,
-                _("Provided regex pattern is invalid. Please check the syntax and try again."),
-            )
-            return False
+    pattern = keyword[3:]
+    random_text_str = "".join(choice(printable) for _q in range(50))
+    try:
+        regex.match(pattern, random_text_str, timeout=0.2)
+    except TimeoutError:
+        log.info("check_legacy_filter_handler: regex too slow")
+        await reply_or_edit(
+            event,
+            _(
+                "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
+            ),
+        )
+        return False
+    except regex.error:
+        log.info("check_legacy_filter_handler: invalid regex pattern")
+        await reply_or_edit(
+            event,
+            _("Provided regex pattern is invalid. Please check the syntax and try again."),
+        )
+        return False
+    return True
 
+
+async def check_legacy_filter_handler(
+    event: Message | CallbackQuery, keyword: str, connection: ChatConnection, editing_oid: str | None = None
+) -> bool:
+    if not await _check_lock_conflict(event, keyword, connection):
+        return False
+    if not await _check_duplicate_filter(event, keyword, connection):
+        return False
+    if not await _check_ai_filter_rules(event, keyword, connection, editing_oid):
+        return False
+    if not await _check_regex_validity(event, keyword):
+        return False
     return True
 
 
