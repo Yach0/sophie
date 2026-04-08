@@ -6,4 +6,4 @@ renovate:
   variables:
     RENOVATE_GITLAB_IGNORE_PR_AUTHOR: "true"
   script:
-    - renovate
+    - renovate --autodiscover

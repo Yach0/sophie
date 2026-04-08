@@ -22,13 +22,6 @@ test-codeanal:
   script:
     - ty check
 
-deepsource-analyze:
-  extends: .test-base
-  script:
-    - deepsource report --analyzer python
-  rules:
-    - if: $DEEPSOURCE_DSN
-
 test-unit:
   extends: .test-base
   coverage: '/^TOTAL.*\s+(\d+%)$/'
