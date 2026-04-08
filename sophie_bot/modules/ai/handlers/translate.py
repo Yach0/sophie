@@ -38,6 +38,60 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
 
+async def _resolve_translation_input(event: Message, data: dict) -> tuple[str, bool]:
+    """Determine what text to translate and whether it's voice."""
+    is_autotranslate: bool = data.get("autotranslate", False)
+
+    is_voice = False
+    if event.reply_to_message and event.reply_to_message.voice and not is_autotranslate:
+        to_translate = await transform_voice_to_text(event.reply_to_message.voice)
+        is_voice = True
+    elif event.reply_to_message and not is_autotranslate:
+        to_translate = event.reply_to_message.text or ""
+    elif data.get("voice"):
+        to_translate = ""
+        is_voice = True
+    else:
+        to_translate = data.get("text", "")
+
+    return to_translate, is_voice
+
+
+def _build_translate_reply_doc(
+    translated,
+    language_name: str,
+    is_autotranslate: bool,
+    is_voice: bool,
+    quota_header,
+) -> Doc:
+    """Format the translation response document."""
+    return Doc(
+        HList(
+            Title(AI_GENERATED_TEXT),
+            _("Auto Translator") if is_autotranslate else _("Translator"),
+            f"({_('Voice')})" if is_voice else None,
+            quota_header,
+        ),
+        (
+            Bold(
+                Template(
+                    _("From {from_lang} to {to_lang}"),
+                    from_lang=f"{translated.origin_language_emoji} {translated.origin_language_name}",
+                    to_lang=language_name,
+                )
+            )
+            if not is_voice
+            else None
+        ),
+        BlockQuote(PreformattedHTML(legacy_markdown_to_html(translated.translated_text)), expandable=True),
+        (
+            Section(translated.translation_explanations, title=_("Translation Notes"))
+            if translated.translation_explanations
+            else None
+        ),
+    )
+
+
 async def text_or_reply(message: Message | None, _data: dict):
     if message and message.reply_to_message:
         return {}
@@ -66,17 +120,7 @@ class AiTranslate(SophieMessageHandler):
 
         language_name = self.data["i18n"].current_locale_display
 
-        is_voice = False
-        if self.event.reply_to_message and self.event.reply_to_message.voice and not is_autotranslate:
-            to_translate = await transform_voice_to_text(self.event.reply_to_message.voice)
-            is_voice = True
-        elif self.event.reply_to_message and not is_autotranslate:
-            to_translate = self.event.reply_to_message.text or ""
-        elif self.data.get("voice"):
-            to_translate = ""
-            is_voice = True
-        else:
-            to_translate = self.data.get("text", "")
+        to_translate, is_voice = await _resolve_translation_input(self.event, self.data)
 
         if not to_translate.strip() and not (self.event.reply_to_message and self.event.reply_to_message.photo):
             if self.data.get("silent_error"):
@@ -152,30 +196,6 @@ class AiTranslate(SophieMessageHandler):
             quota_percentage = int((quota_info.remaining_credits / quota_info.total_credits) * 100)
             quota_header = ai_credit_header(quota_percentage)
 
-        doc = Doc(
-            HList(
-                Title(AI_GENERATED_TEXT),
-                _("Auto Translator") if is_autotranslate else _("Translator"),
-                f"({_('Voice')})" if is_voice else None,
-                quota_header,
-            ),
-            (
-                Bold(
-                    Template(
-                        _("From {from_lang} to {to_lang}"),
-                        from_lang=f"{translated.origin_language_emoji} {translated.origin_language_name}",
-                        to_lang=language_name,
-                    )
-                )
-                if not is_voice
-                else None
-            ),
-            BlockQuote(PreformattedHTML(legacy_markdown_to_html(translated.translated_text)), expandable=True),
-            (
-                Section(translated.translation_explanations, title=_("Translation Notes"))
-                if translated.translation_explanations
-                else None
-            ),
-        )
+        doc = _build_translate_reply_doc(translated, language_name, is_autotranslate, is_voice, quota_header)
 
         await self.event.reply(str(doc))
