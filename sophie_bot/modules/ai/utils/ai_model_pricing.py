@@ -1,29 +1,27 @@
 from __future__ import annotations
 
 from math import ceil
-from time import monotonic
 
+import ujson
 from httpx import AsyncClient, HTTPError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
 from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODELS_BY_NAME
+from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
 ai_http_client = AsyncClient(timeout=30)
 _pricing_cache_ttl_seconds = 3600.0
-_openrouter_pricing_cache: dict[str, tuple[float | None, float | None]] | None = None
-_openrouter_pricing_cache_loaded_at = 0.0
+_PRICING_CACHE_KEY = "sophie:ai:openrouter_pricing"
 
 
-def clear_model_pricing_cache() -> None:
-    global _openrouter_pricing_cache, _openrouter_pricing_cache_loaded_at
-    _openrouter_pricing_cache = None
-    _openrouter_pricing_cache_loaded_at = 0.0
+async def clear_model_pricing_cache() -> None:
+    await aredis.delete(_PRICING_CACHE_KEY)
 
 
 async def refresh_model_pricing_cache() -> dict[str, tuple[float | None, float | None]]:
-    clear_model_pricing_cache()
+    await clear_model_pricing_cache()
     return await _load_openrouter_pricing_cache()
 
 
@@ -52,12 +50,13 @@ def _parse_price_per_million(raw_price: object) -> float | None:
 
 
 async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, float | None]]:
-    global _openrouter_pricing_cache, _openrouter_pricing_cache_loaded_at
-    if (
-        _openrouter_pricing_cache is not None
-        and monotonic() - _openrouter_pricing_cache_loaded_at < _pricing_cache_ttl_seconds
-    ):
-        return _openrouter_pricing_cache
+    cached_data = await aredis.get(_PRICING_CACHE_KEY)
+    if cached_data is not None:
+        try:
+            cache = ujson.loads(cached_data)
+            return cache
+        except (ujson.JSONDecodeError, TypeError):
+            pass
 
     cache: dict[str, tuple[float | None, float | None]] = {}
     try:
@@ -65,8 +64,7 @@ async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, floa
         response.raise_for_status()
     except HTTPError as err:
         log.warning("Failed to load OpenRouter pricing", error=str(err))
-        _openrouter_pricing_cache = cache if _openrouter_pricing_cache is None else _openrouter_pricing_cache
-        return _openrouter_pricing_cache
+        return cache
 
     data = response.json().get("data", [])
     for item in data:
@@ -79,8 +77,10 @@ async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, floa
             _parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
         )
 
-    _openrouter_pricing_cache = cache
-    _openrouter_pricing_cache_loaded_at = monotonic()
+    serialized = ujson.dumps(cache)
+    await aredis.set(_PRICING_CACHE_KEY, serialized)
+    await aredis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
+
     return cache
 
 
