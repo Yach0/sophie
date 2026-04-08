@@ -29,6 +29,32 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from ..callbacks import DeleteWarnCallback
 
 
+def _build_warn_reply_doc(
+    target_user: ChatModel,
+    admin_user_id: int,
+    admin_user_name: str,
+    warn_count: int,
+    max_warns: int,
+    reason: Optional[str],
+    punishment: str | None,
+) -> Doc:
+    # Construct response
+    doc = Doc(
+        Title(_("⚠️ User warned")),
+        KeyValue(_("User"), UserLink(target_user.tid, target_user.first_name_or_title)),
+        KeyValue(_("By admin"), UserLink(admin_user_id, admin_user_name)),
+        KeyValue(_("Warnings count"), f"{warn_count}/{max_warns}"),
+    )
+
+    if reason:
+        doc += Section(Italic(reason), title=_("Reason"))
+
+    if punishment:
+        doc += Section(Template(_("User has been {punishment} due to reaching max warns."), punishment=punishment))
+
+    return doc
+
+
 @flags.help(description=l_("Warns a user."))
 @flags.disableable(name="warn")
 class WarnHandler(SophieMessageHandler):
@@ -107,19 +133,15 @@ class WarnHandler(SophieMessageHandler):
             {"target_user_id": target_user.tid, "reason": reason, "current": current, "limit": limit},
         )
 
-        # Construct response
-        doc = Doc(
-            Title(_("⚠️ User warned")),
-            KeyValue(_("User"), UserLink(target_user.tid, target_user.first_name_or_title)),
-            KeyValue(_("By admin"), UserLink(message.from_user.id, message.from_user.first_name)),
-            KeyValue(_("Warnings count"), f"{current}/{limit}"),
+        doc = _build_warn_reply_doc(
+            target_user,
+            message.from_user.id,
+            message.from_user.first_name,
+            current,
+            limit,
+            reason,
+            punishment,
         )
-
-        if reason:
-            doc += Section(Italic(reason), title=_("Reason"))
-
-        if punishment:
-            doc += Section(Template(_("User has been {punishment} due to reaching max warns."), punishment=punishment))
 
         # Buttons
         builder = InlineKeyboardBuilder()

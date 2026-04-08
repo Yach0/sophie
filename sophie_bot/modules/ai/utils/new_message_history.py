@@ -65,6 +65,104 @@ class AIUserMessageFormatter:
         return f"{name}: {text}"
 
 
+def _extract_message_content(
+    message: Message,
+    custom_text: Optional[str],
+    normalize_texts: bool,
+    is_sophie: bool,
+) -> str:
+    """Extract text, caption, media info from the message. Returns the processed message text."""
+    message_text = custom_text or message.text or message.caption or _("<No text provided>")
+    if normalize_texts:
+        message_text = normalize(message_text) or _("<No text provided>")
+
+    # Cut the AI titlebar
+    if is_sophie and is_ai_message(message_text):
+        message_text = cut_titlebar(message_text)
+
+    return message_text
+
+
+async def _build_message_parts(
+    message: Message,
+    message_text: str,
+    from_user_name: str,
+    replied_user_name: str | None,
+    is_sophie: bool,
+    disable_name: bool,
+) -> list[UserContent]:
+    """Build the list of message parts for the AI context."""
+    prompt: list[UserContent] = []
+
+    # Message's text
+    prompt.append(
+        message_text
+        if disable_name
+        else AIUserMessageFormatter.user_message(
+            text=message_text,
+            name=from_user_name,
+            reply_to_user=replied_user_name,
+        )
+    )
+
+    # Photos
+    if message.photo or message.sticker:
+        # Determine a file_id to download irrespective of underlying Telegram type
+        if message.photo:
+            image_file_id = message.photo[-1].file_id
+        elif (
+            message.sticker and (message.sticker.is_animated or message.sticker.is_video) and message.sticker.thumbnail
+        ):
+            image_file_id = message.sticker.thumbnail.file_id
+        elif message.sticker:
+            image_file_id = message.sticker.file_id
+        else:
+            raise SophieException(_("No photo or sticker found"))
+
+        downloaded_image: Optional[BinaryIO] = await bot.download(image_file_id)
+
+        if not downloaded_image:
+            raise SophieException(_("Image is empty"))
+
+        prompt.append(
+            BinaryContent(
+                media_type="image/jpeg",
+                data=downloaded_image.read(),
+            )
+        )
+
+    # Voice
+    if message.voice:
+        voice_text = await transform_voice_to_text(message.voice)
+        prompt.append(voice_text)
+        # TODO: Cache message somehow again?
+
+    # Video - extract thumbnail and transcribe audio
+    if message.video or message.video_note:
+        video = message.video or message.video_note
+
+        # Add video thumbnail if available
+        if video and video.thumbnail:
+            thumbnail_file_id = video.thumbnail.file_id
+            downloaded_thumbnail: Optional[BinaryIO] = await bot.download(thumbnail_file_id)
+
+            if downloaded_thumbnail:
+                prompt.append(
+                    BinaryContent(
+                        media_type="image/jpeg",
+                        data=downloaded_thumbnail.read(),
+                    )
+                )
+
+        # Transcribe video audio
+        if video:
+            video_transcription = await transform_video_to_text(video)
+            if video_transcription:
+                prompt.append(_("[Video transcription: {text}]").format(text=video_transcription))
+
+    return prompt
+
+
 class NewAIMessageHistory:
     """
     This class is used to store and construct the messages that are sent to the AI.
@@ -133,86 +231,16 @@ class NewAIMessageHistory:
         if not message.from_user:  # Linter insists on checking this
             return
 
-        user_id = message.from_user.id
-        is_sophie = user_id == CONFIG.bot_id
+        is_sophie = message.from_user.id == CONFIG.bot_id
 
-        message_text = custom_text or message.text or message.caption or _("<No text provided>")
-        if normalize_texts:
-            message_text = normalize(message_text) or _("<No text provided>")
+        message_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
 
         prompt: list[UserContent] = self.prompt or []
-
-        # Cut the AI titlebar
-        if is_sophie and is_ai_message(message_text):
-            message_text = cut_titlebar(message_text)
-
-        # Message's text
-        prompt.append(
-            message_text
-            if disable_name
-            else AIUserMessageFormatter.user_message(
-                text=message_text,
-                name=message.from_user.full_name,
-                reply_to_user=replied_user_name,
+        prompt.extend(
+            await _build_message_parts(
+                message, message_text, message.from_user.full_name, replied_user_name, is_sophie, disable_name
             )
         )
-
-        # Photos
-        if message.photo or message.sticker:
-            # Determine a file_id to download irrespective of underlying Telegram type
-            if message.photo:
-                image_file_id = message.photo[-1].file_id
-            elif (
-                message.sticker
-                and (message.sticker.is_animated or message.sticker.is_video)
-                and message.sticker.thumbnail
-            ):
-                image_file_id = message.sticker.thumbnail.file_id
-            elif message.sticker:
-                image_file_id = message.sticker.file_id
-            else:
-                raise SophieException(_("No photo or sticker found"))
-
-            downloaded_image: Optional[BinaryIO] = await bot.download(image_file_id)
-
-            if not downloaded_image:
-                raise SophieException(_("Image is empty"))
-
-            prompt.append(
-                BinaryContent(
-                    media_type="image/jpeg",
-                    data=downloaded_image.read(),
-                )
-            )
-
-        # Voice
-        if message.voice:
-            voice_text = await transform_voice_to_text(message.voice)
-            prompt.append(voice_text)
-            # TODO: Cache message somehow again?
-
-        # Video - extract thumbnail and transcribe audio
-        if message.video or message.video_note:
-            video = message.video or message.video_note
-
-            # Add video thumbnail if available
-            if video and video.thumbnail:
-                thumbnail_file_id = video.thumbnail.file_id
-                downloaded_thumbnail: Optional[BinaryIO] = await bot.download(thumbnail_file_id)
-
-                if downloaded_thumbnail:
-                    prompt.append(
-                        BinaryContent(
-                            media_type="image/jpeg",
-                            data=downloaded_thumbnail.read(),
-                        )
-                    )
-
-            # Transcribe video audio
-            if video:
-                video_transcription = await transform_video_to_text(video)
-                if video_transcription:
-                    prompt.append(_("[Video transcription: {text}]").format(text=video_transcription))
 
         self.prompt = prompt
 

@@ -54,6 +54,125 @@ class BanValidationError(ValueError):
     """Raised when ban validation fails."""
 
 
+async def _send_import_result(task: FederationImportTask, federation: Federation) -> None:
+    """Format and send the import result notification."""
+    try:
+        status_text = _("✅ Import completed successfully")
+        if task.failed_count > 0:
+            status_text = _("⚠️ Import completed with errors")
+
+        doc = Doc(
+            Title(status_text),
+            KeyValue(_("Federation"), federation.fed_name),
+            KeyValue(_("Imported"), task.imported_count),
+            KeyValue(_("Failed"), task.failed_count) if task.failed_count else None,
+        )
+
+        if task.error_message:
+            doc += KeyValue(_("Error"), task.error_message)
+
+        chat = await task.chat.fetch()
+        await bot.send_message(chat.tid, doc.to_html())
+    except TelegramBadRequest as e:
+        log.error("Failed to send import completion notification", task_id=str(task.id), error=str(e))
+
+
+async def _execute_import_task(processor: ProcessFederationImports, task: FederationImportTask) -> dict:
+    """Handles the actual import execution and returns a result dict."""
+    federation = await Federation.find_one(Federation.fed_id == task.fed_id)
+    if not federation:
+        raise CSVValidationError("Federation not found")
+
+    importer_user = await task.user.fetch()
+    if not importer_user:
+        raise CSVValidationError("Importing user not found")
+    importer_user_tid = importer_user.tid
+
+    reader = await processor._download_and_parse_csv(task.file_id)
+
+    imported_count = 0
+    failed_count = 0
+    pending_bans: list[FederationBan] = []
+
+    # Read all rows first
+    rows = list(reader)
+
+    # Group into batches
+    for i in range(0, len(rows), BATCH_SIZE):
+        batch_rows = rows[i : i + BATCH_SIZE]
+
+        # Fetch only existing bans for this batch
+        batch_user_ids = []
+        for row in batch_rows:
+            try:
+                batch_user_ids.append(processor._validate_user_id(row.get("user_id", "").strip()))
+            except BanValidationError:
+                continue
+
+        existing_bans = {}
+        if batch_user_ids:
+            existing_bans_list = await FederationBan.find(
+                FederationBan.fed_id == federation.fed_id, In(FederationBan.user_id, batch_user_ids)
+            ).to_list()
+            existing_bans = {ban.user_id: ban for ban in existing_bans_list}
+
+        # Pre-fetch "by" users
+        by_user_tids = []
+        for row in batch_rows:
+            try:
+                by_user_tids.append(processor._validate_by_field(row.get("by", "").strip()))
+            except BanValidationError:
+                continue
+
+        by_users = {}
+        if by_user_tids:
+            by_users_list = await ChatModel.find(In(ChatModel.tid, by_user_tids)).to_list()
+            by_users = {user.tid: user for user in by_users_list}
+
+        for row_num_in_batch, row in enumerate(batch_rows):
+            real_row_num = i + row_num_in_batch + 2
+            try:
+                user_id = processor._validate_user_id(row.get("user_id", "").strip())
+                reason = processor._validate_reason(row.get("reason", "").strip())
+                by_user_tid = processor._validate_by_field(row.get("by", "").strip())
+                ban_time = processor._parse_ban_time(row.get("time", "").strip())
+
+                await processor._check_ban_permissions(user_id, federation, importer_user_tid)
+
+                by_user = by_users.get(by_user_tid)
+                if not by_user:
+                    raise BanValidationError(f"User {by_user_tid} not found in database")
+
+                ban_data = BanData(
+                    fed_id=federation.fed_id,
+                    user_id=user_id,
+                    time=ban_time,
+                    by=by_user.iid,
+                    reason=reason,
+                )
+
+                existing_ban = existing_bans.get(user_id)
+
+                if existing_ban:
+                    await processor._update_existing_ban(existing_ban, ban_data["reason"])
+                    imported_count += 1
+                else:
+                    ban = processor._create_ban_entry(ban_data, task.id)
+                    pending_bans.append(ban)
+                    imported_count += 1
+
+            except BanValidationError as e:
+                failed_count += 1
+                log.warning("Failed to import ban row", task_id=str(task.id), row=real_row_num, error=str(e))
+
+        if pending_bans:
+            await FederationBan.insert_many(pending_bans)
+            await FederationCacheService.incr_ban_count(federation.fed_id, len(pending_bans))
+            pending_bans.clear()
+
+    return {"imported_count": imported_count, "failed_count": failed_count, "federation": federation}
+
+
 class ProcessFederationImports:
     """Scheduler job to process federation ban list imports."""
 
@@ -75,101 +194,15 @@ class ProcessFederationImports:
         await self._update_task_status(task, TaskStatus.PROCESSING)
 
         try:
-            federation = await Federation.find_one(Federation.fed_id == task.fed_id)
-            if not federation:
-                raise CSVValidationError("Federation not found")
-
-            importer_user = await task.user.fetch()
-            if not importer_user:
-                raise CSVValidationError("Importing user not found")
-            importer_user_tid = importer_user.tid
-
-            reader = await self._download_and_parse_csv(task.file_id)
-
-            imported_count = 0
-            failed_count = 0
-            pending_bans: list[FederationBan] = []
-
-            # Read all rows first
-            rows = list(reader)
-
-            # Group into batches
-            for i in range(0, len(rows), BATCH_SIZE):
-                batch_rows = rows[i : i + BATCH_SIZE]
-
-                # Fetch only existing bans for this batch
-                batch_user_ids = []
-                for row in batch_rows:
-                    try:
-                        batch_user_ids.append(self._validate_user_id(row.get("user_id", "").strip()))
-                    except BanValidationError:
-                        continue
-
-                existing_bans = {}
-                if batch_user_ids:
-                    existing_bans_list = await FederationBan.find(
-                        FederationBan.fed_id == federation.fed_id, In(FederationBan.user_id, batch_user_ids)
-                    ).to_list()
-                    existing_bans = {ban.user_id: ban for ban in existing_bans_list}
-
-                # Pre-fetch "by" users
-                by_user_tids = []
-                for row in batch_rows:
-                    try:
-                        by_user_tids.append(self._validate_by_field(row.get("by", "").strip()))
-                    except BanValidationError:
-                        continue
-
-                by_users = {}
-                if by_user_tids:
-                    by_users_list = await ChatModel.find(In(ChatModel.tid, by_user_tids)).to_list()
-                    by_users = {user.tid: user for user in by_users_list}
-
-                for row_num_in_batch, row in enumerate(batch_rows):
-                    real_row_num = i + row_num_in_batch + 2
-                    try:
-                        user_id = self._validate_user_id(row.get("user_id", "").strip())
-                        reason = self._validate_reason(row.get("reason", "").strip())
-                        by_user_tid = self._validate_by_field(row.get("by", "").strip())
-                        ban_time = self._parse_ban_time(row.get("time", "").strip())
-
-                        await self._check_ban_permissions(user_id, federation, importer_user_tid)
-
-                        by_user = by_users.get(by_user_tid)
-                        if not by_user:
-                            raise BanValidationError(f"User {by_user_tid} not found in database")
-
-                        ban_data = BanData(
-                            fed_id=federation.fed_id,
-                            user_id=user_id,
-                            time=ban_time,
-                            by=by_user.iid,
-                            reason=reason,
-                        )
-
-                        existing_ban = existing_bans.get(user_id)
-
-                        if existing_ban:
-                            await self._update_existing_ban(existing_ban, ban_data["reason"])
-                            imported_count += 1
-                        else:
-                            ban = self._create_ban_entry(ban_data, task.id)
-                            pending_bans.append(ban)
-                            imported_count += 1
-
-                    except BanValidationError as e:
-                        failed_count += 1
-                        log.warning("Failed to import ban row", task_id=str(task.id), row=real_row_num, error=str(e))
-
-                if pending_bans:
-                    await FederationBan.insert_many(pending_bans)
-                    await FederationCacheService.incr_ban_count(federation.fed_id, len(pending_bans))
-                    pending_bans.clear()
+            result = await _execute_import_task(self, task)
+            imported_count = result["imported_count"]
+            failed_count = result["failed_count"]
+            federation = result["federation"]
 
             await self._update_task_status(
                 task, TaskStatus.COMPLETED, imported_count=imported_count, failed_count=failed_count
             )
-            await self._send_completion_notification(task, federation)
+            await _send_import_result(task, federation)
 
         except Exception as e:
             error_message = str(e)
@@ -318,25 +351,3 @@ class ProcessFederationImports:
             task.completed_at = datetime.now(timezone.utc)
 
         await task.save()
-
-    async def _send_completion_notification(self, task: FederationImportTask, federation: Federation) -> None:
-        """Send completion notification to user who initiated the import."""
-        try:
-            status_text = _("✅ Import completed successfully")
-            if task.failed_count > 0:
-                status_text = _("⚠️ Import completed with errors")
-
-            doc = Doc(
-                Title(status_text),
-                KeyValue(_("Federation"), federation.fed_name),
-                KeyValue(_("Imported"), task.imported_count),
-                KeyValue(_("Failed"), task.failed_count) if task.failed_count else None,
-            )
-
-            if task.error_message:
-                doc += KeyValue(_("Error"), task.error_message)
-
-            chat = await task.chat.fetch()
-            await bot.send_message(chat.tid, doc.to_html())
-        except TelegramBadRequest as e:
-            log.error("Failed to send import completion notification", task_id=str(task.id), error=str(e))
