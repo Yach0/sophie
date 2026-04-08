@@ -37,6 +37,67 @@ async def delete_messages_after_delay(
     await common_try(bot.delete_messages(chat_id, message_ids))
 
 
+def _build_ban_reply_doc(
+    federation: Federation,
+    user: ChatModel,
+    banner,
+    reason: str | None,
+    banned_count: int,
+    lazy_ban_count: int,
+    silent: bool,
+) -> Doc:
+    """Format the user-facing ban response document."""
+    doc = Doc(
+        Title(_("🏛 User Banned from Federation")),
+        KeyValue(_("Federation"), federation.fed_name),
+        KeyValue(_("User"), UserLink(user.tid, user.first_name_or_title or _("Unknown"))),
+        KeyValue(_("Banned by"), UserLink(banner.id, banner.first_name)),
+    )
+    if reason:
+        doc += KeyValue(_("Reason"), reason)
+    doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count)))
+
+    if lazy_ban_count > 0:
+        doc += KeyValue(_("Also banned in"), Template(_("{count} subscribed federations"), count=Code(lazy_ban_count)))
+
+    if silent:
+        doc += _("The action is silent, all related messages would be deleted shortly")
+
+    return doc
+
+
+def _build_ban_log_doc(
+    federation: Federation,
+    user: ChatModel,
+    banner,
+    banned_count: int,
+    total_chats: int,
+    reason: str | None,
+) -> Doc:
+    """Format the federation log entry document."""
+    log_doc = Doc(
+        Title(_("Ban user in the fed #FedBan")),
+        KeyValue(_("Fed"), Template("{fed_name} ({fed_id})", fed_name=federation.fed_name, fed_id=federation.fed_id)),
+        KeyValue(
+            _("User"),
+            Template(
+                "{user_name} ({user_id})",
+                user_name=user.first_name_or_title or _("Unknown"),
+                user_id=Code(user.tid),
+            ),
+        ),
+        KeyValue(_("By"), banner.first_name),
+        Template(
+            "User banned in {banned_count} out of {total_chats} chats in the federation",
+            banned_count=banned_count,
+            total_chats=total_chats,
+        ),
+    )
+    if reason:
+        log_doc += KeyValue(_("Reason"), reason)
+    return log_doc
+
+
 @flags.help(description=l_("Ban a user from the federation"))
 class FederationBanHandler(FederationCommandHandler):
     """Handler for banning users from federations."""
@@ -129,24 +190,8 @@ class FederationBanHandler(FederationCommandHandler):
             lazy_ban_count = len(lazy_bans)
 
         # Format response
-        silent = self.event.text and self.event.text.startswith("/sfban")
-        doc = Doc(
-            Title(_("🏛 User Banned from Federation")),
-            KeyValue(_("Federation"), federation.fed_name),
-            KeyValue(_("User"), UserLink(user.tid, user.first_name_or_title or _("Unknown"))),
-            KeyValue(_("Banned by"), UserLink(self.event.from_user.id, self.event.from_user.first_name)),
-        )
-        if reason:
-            doc += KeyValue(_("Reason"), reason)
-        doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count)))
-
-        if lazy_ban_count > 0:
-            doc += KeyValue(
-                _("Also banned in"), Template(_("{count} subscribed federations"), count=Code(lazy_ban_count))
-            )
-
-        if silent:
-            doc += _("The action is silent, all related messages would be deleted shortly")
+        silent = bool(self.event.text and self.event.text.startswith("/sfban"))
+        doc = _build_ban_reply_doc(federation, user, self.event.from_user, reason, banned_count, lazy_ban_count, silent)
 
         reply_msg = await common_try(
             self.event.reply(doc.to_html()),
@@ -162,27 +207,5 @@ class FederationBanHandler(FederationCommandHandler):
 
         # Log the ban
         total_chats = len(federation.chats) if federation.chats else 0
-
-        log_doc = Doc(
-            Title(_("Ban user in the fed #FedBan")),
-            KeyValue(
-                _("Fed"), Template("{fed_name} ({fed_id})", fed_name=federation.fed_name, fed_id=federation.fed_id)
-            ),
-            KeyValue(
-                _("User"),
-                Template(
-                    "{user_name} ({user_id})",
-                    user_name=user.first_name_or_title or _("Unknown"),
-                    user_id=Code(user.tid),
-                ),
-            ),
-            KeyValue(_("By"), self.event.from_user.first_name),
-            Template(
-                "User banned in {banned_count} out of {total_chats} chats in the federation",
-                banned_count=banned_count,
-                total_chats=total_chats,
-            ),
-        )
-        if reason:
-            log_doc += KeyValue(_("Reason"), reason)
+        log_doc = _build_ban_log_doc(federation, user, self.event.from_user, banned_count, total_chats, reason)
         await FederationManageService.post_federation_log(federation, log_doc.to_html(), self.event.bot)
