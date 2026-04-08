@@ -300,7 +300,7 @@ class FederationBanService:
     @staticmethod
     async def count_user_fed_bans(user_tid: int) -> int:
         fed_ids: set[str] = set()
-        async for ban in FederationBan.find(FederationBan.user_id == user_tid):
+        async for ban in FederationBan.find(FederationBan.user_id == user_tid):  # pylint: disable=not-an-iterable
             fed_ids.add(ban.fed_id)
         return len(fed_ids)
 
