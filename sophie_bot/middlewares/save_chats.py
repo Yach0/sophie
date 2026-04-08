@@ -126,7 +126,7 @@ class SaveChatsMiddleware(BaseMiddleware):
         await self.save_topic(message, chat)
 
         # New chat members
-        data["new_users"] = await self._handle_new_chat_members(message, chat, user)
+        data["new_users"] = await self._handle_new_chat_members(message, chat)
 
         # Left chat members
         await self._handle_left_chat_member(message, chat)
@@ -192,15 +192,16 @@ class SaveChatsMiddleware(BaseMiddleware):
         return chats_to_update
 
     @staticmethod
-    async def _handle_new_chat_members(message: Message, group: ChatModel, user_db: ChatModel) -> list[ChatModel]:
+    async def _handle_new_chat_members(message: Message, group: ChatModel) -> list[ChatModel]:
         if not message.new_chat_members:
             return []
 
         logger.debug("SaveChatsMiddleware: Handling new chat members", members_count=len(message.new_chat_members))
         new_users = []
         for member in message.new_chat_members:
-            # Let's skip updating the user if it was already updated before in the _handle_message_update.
-            if member.id == user_db.iid:
+            # Skip upserting the message sender — already handled by update_from_user.
+            # When message.from_user is None (anonymous admin), all members get upserted.
+            if message.from_user and member.id == message.from_user.id:
                 continue
 
             logger.debug("SaveChatsMiddleware: Saving new chat member", user_id=member.id)
