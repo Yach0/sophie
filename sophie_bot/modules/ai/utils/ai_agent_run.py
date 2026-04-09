@@ -44,7 +44,8 @@ async def ai_agent_run(agent: Agent[None, T], **kwargs) -> AIAgentResult:
             raise SophieException(f"AI model error: {err.message}") from err
 
         # Sanity checks
-        assert result and result.result is not None, "The graph run did not finish properly"
+        if not result or result.result is None:
+            raise SophieException("The graph run did not finish properly")
 
         context = result.ctx
         state = context.state

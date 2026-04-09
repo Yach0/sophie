@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from beanie import Link as BeanieLink
 
-if TYPE_CHECKING:  # pylint: disable=undefined-variable
-    type Link[T] = T
+if TYPE_CHECKING:
+    type Link[T] = T  # pylint: disable=undefined-variable
 else:
     Link = BeanieLink
