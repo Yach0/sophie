@@ -116,6 +116,9 @@ async def parse_saveable(
         if parsed_inline_html is not None:
             note_text = parsed_inline_html
 
+    if note_text:
+        note_text = tg_emoji_workaround(note_text)
+
     buttons.extend(replied_buttons)
 
     # TODO: Length of the message with or without HTML entities??
