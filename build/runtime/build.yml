@@ -34,7 +34,7 @@ build_runtime_container:
     - if: '$CI_COMMIT_BRANCH =~ /^(beta|stable|dev_.*|dev-.*)$/'
       changes:
         - build/runtime/**
-        - sophie_bot/**
+        - sophie_bot/**/*
         - locales/**
         - pyproject.toml
         - Makefile
