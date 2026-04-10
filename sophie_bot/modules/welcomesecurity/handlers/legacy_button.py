@@ -2,7 +2,9 @@ from re import search
 from typing import Any
 
 from aiogram import F
+from aiogram.enums import ChatMemberStatus
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.exceptions import TelegramBadRequest
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import (
@@ -13,6 +15,7 @@ from sophie_bot.db.models import (
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
+from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
@@ -36,6 +39,28 @@ class LegacyWSButtonHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (F.text.regexp(r"/start btnwelcomesecuritystart_(.*)"),)
+
+    @staticmethod
+    async def _user_is_still_in_group(user_db: ChatModel, group_db: ChatModel) -> bool:
+        if await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
+            return True
+
+        try:
+            member = await bot.get_chat_member(chat_id=group_db.tid, user_id=user_db.tid)
+        except TelegramBadRequest as err:
+            log.warning(
+                "LegacyWSButtonHandler: failed to validate membership via Telegram",
+                user=user_db.iid,
+                group=group_db.iid,
+                error=str(err),
+            )
+            return False
+
+        if member.status in {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}:
+            return False
+
+        await UserInGroupModel.ensure_user_in_group(user_db, group_db)
+        return True
 
     async def handle(self) -> Any:
         if not self.event.text:
@@ -61,7 +86,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 _("It seems like you do not have to pass the welcome security authentication")
             )
 
-        if not ws_user.is_join_request and not await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
+        if not ws_user.is_join_request and not await self._user_is_still_in_group(user_db, group_db):
             log.warning("LegacyWSButtonHandler: UserInGroupModel not found", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
