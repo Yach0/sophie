@@ -30,13 +30,6 @@ class DelMsgModernModern(ModernActionABC[None]):
 
     def settings(self, data: None) -> dict[str, ModernActionSetting]:
         return {}
-        # return (
-        # ModernActionSetting(
-        #     name_id="delmsg_allow_admins",
-        #     title=l_("Allow deleting admins messages"),
-        #     icon="🗑",
-        # ),
-        # )
 
     async def handle(self, message: Message, data: dict, filter_data: None):
         if not message.from_user:
