@@ -88,7 +88,6 @@ async def _build_message_parts(
     message_text: str,
     from_user_name: str,
     replied_user_name: str | None,
-    is_sophie: bool,
     disable_name: bool,
 ) -> list[UserContent]:
     """Build the list of message parts for the AI context."""
@@ -238,7 +237,7 @@ class NewAIMessageHistory:
         prompt: list[UserContent] = self.prompt or []
         prompt.extend(
             await _build_message_parts(
-                message, message_text, message.from_user.full_name, replied_user_name, is_sophie, disable_name
+                message, message_text, message.from_user.full_name, replied_user_name, disable_name
             )
         )
 
