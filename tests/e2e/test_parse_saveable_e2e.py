@@ -237,7 +237,7 @@ async def test_parse_saveable_e2e_preserves_combined_custom_emoji_and_html(
     response_text = _extract_last_response_text(requests)
 
     assert response_text
-    assert '<tg-emoji emoji_id="123123123">🙂</tg-emoji>' in response_text
+    assert '<tg-emoji emoji-id="123123123">🙂</tg-emoji>' in response_text
     assert "<b>bold</b>" in response_text
 
 
