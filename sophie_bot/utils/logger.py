@@ -164,7 +164,6 @@ logging.config.dictConfig(
 structlog.configure(
     processors=[
         structlog.stdlib.add_log_level,
-        # structlog.stdlib.PositionalArgumentsFormatter(),
         timestamper,
         structlog.processors.StackInfoRenderer(),
         structlog.stdlib.add_logger_name,
