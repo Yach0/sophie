@@ -159,7 +159,7 @@ class UserRestricting(Filter):
         if user_tid != TELEGRAM_ANONYMOUS_ADMIN_BOT_ID:
             return None
 
-        message: Any = event.message if isinstance(event, CallbackQuery) else event
+        message = self._resolve_message(event)
         if not hasattr(message, "sender_chat") or not hasattr(message, "author_signature"):
             return None
 
@@ -239,6 +239,10 @@ class UserRestricting(Filter):
             raise ValueError("Event must expose a from_user")
         return from_user.id
 
+    def _resolve_message(self, event: TelegramObject) -> Any:
+        """Resolve the actual message from a Telegram event for dynamic reply/answer access."""
+        return event.message if isinstance(event, CallbackQuery) else event
+
     def get_event_message(self, event: TelegramObject) -> Optional[Any]:
         if isinstance(event, CallbackQuery):
             return event.message
@@ -249,12 +253,12 @@ class UserRestricting(Filter):
         if hasattr(event, "chat"):
             return event
         if hasattr(event, "message"):
-            return getattr(event, "message")
+            return event.message
 
         return None
 
     async def no_rights_msg(self, event: TelegramObject, required_permissions: Union[bool, list[str]]) -> None:
-        actual_message: Any = event.message if isinstance(event, CallbackQuery) else event
+        actual_message = self._resolve_message(event)
         is_bot = await self.get_target_id(event) == CONFIG.bot_id
 
         if not isinstance(required_permissions, bool):  # Check if check_user_admin_permissions returned missing perm
@@ -274,39 +278,39 @@ class UserRestricting(Filter):
             doc = Doc(text)
 
         async def answer() -> Any:
-            return await getattr(actual_message, "answer")(str(doc))
+            return await actual_message.answer(str(doc))
 
         if hasattr(actual_message, "reply"):
-            await common_try(getattr(actual_message, "reply")(str(doc)), reply_not_found=answer)
+            await common_try(actual_message.reply(str(doc)), reply_not_found=answer)
         elif hasattr(actual_message, "answer"):
             await answer()
 
     async def no_anon_title_msg(self, event: TelegramObject) -> None:
-        actual_message: Any = event.message if isinstance(event, CallbackQuery) else event
+        actual_message = self._resolve_message(event)
         doc = Doc(_("Anonymous admin must have a custom admin title to use this command."))
 
         async def answer() -> Any:
-            return await getattr(actual_message, "answer")(str(doc))
+            return await actual_message.answer(str(doc))
 
         if hasattr(actual_message, "reply"):
-            await common_try(getattr(actual_message, "reply")(str(doc)), reply_not_found=answer)
+            await common_try(actual_message.reply(str(doc)), reply_not_found=answer)
         elif hasattr(actual_message, "answer"):
             await answer()
 
     async def no_anon_title_match_msg(self, event: TelegramObject) -> None:
-        actual_message: Any = event.message if isinstance(event, CallbackQuery) else event
+        actual_message = self._resolve_message(event)
         doc = Doc(_("Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."))
 
         async def answer() -> Any:
-            return await getattr(actual_message, "answer")(str(doc))
+            return await actual_message.answer(str(doc))
 
         if hasattr(actual_message, "reply"):
-            await common_try(getattr(actual_message, "reply")(str(doc)), reply_not_found=answer)
+            await common_try(actual_message.reply(str(doc)), reply_not_found=answer)
         elif hasattr(actual_message, "answer"):
             await answer()
 
     async def no_anon_ambiguous_msg(self, event: TelegramObject) -> None:
-        actual_message: Any = event.message if isinstance(event, CallbackQuery) else event
+        actual_message = self._resolve_message(event)
         doc = Doc(
             _(
                 "Multiple anonymous admins share this title, and not all of them can use this command. "
@@ -315,22 +319,22 @@ class UserRestricting(Filter):
         )
 
         async def answer() -> Any:
-            return await getattr(actual_message, "answer")(str(doc))
+            return await actual_message.answer(str(doc))
 
         if hasattr(actual_message, "reply"):
-            await common_try(getattr(actual_message, "reply")(str(doc)), reply_not_found=answer)
+            await common_try(actual_message.reply(str(doc)), reply_not_found=answer)
         elif hasattr(actual_message, "answer"):
             await answer()
 
     async def no_owner_msg(self, event: TelegramObject) -> None:
-        actual_message: Any = event.message if isinstance(event, CallbackQuery) else event
+        actual_message = self._resolve_message(event)
         doc = Doc(_("You must be the chat creator to use this command."))
 
         async def answer() -> Any:
-            return await getattr(actual_message, "answer")(str(doc))
+            return await actual_message.answer(str(doc))
 
         if hasattr(actual_message, "reply"):
-            await common_try(getattr(actual_message, "reply")(str(doc)), reply_not_found=answer)
+            await common_try(actual_message.reply(str(doc)), reply_not_found=answer)
         elif hasattr(actual_message, "answer"):
             await answer()
 
