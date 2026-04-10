@@ -95,6 +95,7 @@ class TestNonMessageEvents:
             poll_id="test_poll",
             user=user,
             option_ids=[0],
+            option_persistent_ids=[],
         )
 
         update = Update(update_id=1, poll_answer=poll_answer)
