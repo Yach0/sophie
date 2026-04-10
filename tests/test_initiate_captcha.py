@@ -39,4 +39,5 @@ async def test_initiate_captcha_raises_when_user_blocked(monkeypatch: pytest.Mon
     state.set_state.assert_awaited_once_with(WelcomeSecurityFSM.captcha)
     state.update_data.assert_awaited_once()
     assert state.update_data.await_args.kwargs["ws_chat_iid"] == str(group.iid)
+    assert state.update_data.await_args.kwargs["ws_is_join_request"] is True
     assert "captcha" in state.update_data.await_args.kwargs

@@ -17,10 +17,14 @@ class CaptchaDMBlockedError(Exception):
     """Raised when the captcha cannot be delivered because the user blocked the bot."""
 
 
-async def _prepare_captcha_state(user_tid: int, group: ChatModel, captcha: EmojiCaptcha) -> None:
+async def _prepare_captcha_state(user_tid: int, group: ChatModel, captcha: EmojiCaptcha, is_join_request: bool) -> None:
     state: FSMContext = dp.fsm.get_context(bot=bot, chat_id=user_tid, user_id=user_tid)
     await state.set_state(WelcomeSecurityFSM.captcha)
-    await state.update_data(captcha=captcha.data.model_dump(), ws_chat_iid=str(group.iid))
+    await state.update_data(
+        captcha=captcha.data.model_dump(),
+        ws_chat_iid=str(group.iid),
+        ws_is_join_request=is_join_request,
+    )
 
 
 async def initiate_captcha(
@@ -40,7 +44,7 @@ async def initiate_captcha(
     """
     # Generate captcha
     captcha = EmojiCaptcha()
-    await _prepare_captcha_state(user.tid, group, captcha)
+    await _prepare_captcha_state(user.tid, group, captcha, is_join_request)
 
     # Create text
     text = Template(
