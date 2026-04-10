@@ -29,14 +29,12 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
             raise SophieException("Invalid message type. Try initializing the captcha again.")
 
         user = self.data["user_db"]
+        is_join_request = self.callback_data.is_join_request if self.callback_data else False
 
         if not isinstance(self.data["callback_data"], WelcomeSecurityRulesAgreeCB) and (
             rules := await RulesModel.get_rules(group.iid)
         ):
-            return await captcha_send_rules(self.event.message, rules)
-
-        # Get if this is from join request
-        is_join_request = self.callback_data.is_join_request if self.callback_data else False
+            return await captcha_send_rules(self.event.message, rules, group.iid, is_join_request)
 
         await self.state.clear()
 
