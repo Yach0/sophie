@@ -53,13 +53,21 @@ async def complete_captcha(
 
     # Send rules if available
     rules = await RulesModel.get_rules(group.iid)
+    send_to_chat_id = group.tid if captcha_message.chat.id == user.tid else None
     if rules:
-        await send_welcome(captcha_message, rules, False, None, captcha_message.from_user)
+        await send_welcome(
+            captcha_message,
+            rules,
+            False,
+            None,
+            captcha_message.from_user,
+            send_to_chat_id=send_to_chat_id,
+        )
 
     # Send welcome message
     if not greetings.welcome_disabled:
         welcome_saveable = greetings.note or get_default_welcome_message(bool(rules))
-        await send_welcome(captcha_message, welcome_saveable, False, rules)
+        await send_welcome(captcha_message, welcome_saveable, False, rules, send_to_chat_id=send_to_chat_id)
 
     # Clean up
     if msg_to_clean := await aredis.get(f"chat_ws_message:{group.iid}:{user.iid}"):

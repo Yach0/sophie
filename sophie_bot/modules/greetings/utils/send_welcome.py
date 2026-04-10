@@ -16,8 +16,9 @@ async def send_welcome(
     cleanservice_enabled: bool,
     chat_rules: Optional[RulesModel],
     user: Optional[User] = None,
+    send_to_chat_id: Optional[int] = None,
 ) -> Message:
-    chat_id = message.chat.id
+    chat_id = send_to_chat_id or message.chat.id
 
     rules_text = chat_rules.text or "" if chat_rules else _("No chat rules, have fun!")
     if chat_rules and chat_rules.parse_mode != SaveableParseMode.html:
@@ -31,7 +32,7 @@ async def send_welcome(
         message,
         chat_id,
         saveable,
-        reply_to=message.message_id if not cleanservice_enabled else None,
+        reply_to=message.message_id if not cleanservice_enabled and send_to_chat_id is None else None,
         additional_fillings=additional_fillings,
         user=user,
     )
