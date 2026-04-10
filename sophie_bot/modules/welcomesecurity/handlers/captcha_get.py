@@ -60,7 +60,9 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         captcha = EmojiCaptcha(data=state_data.get("captcha") if not shuffle else None)
 
         cb_data: Optional[WelcomeSecurityMoveCB] = self.data.get("callback_data")
-        is_join_request: bool = cb_data.is_join_request if cb_data else False
+        is_join_request: bool = bool(state_data.get("ws_is_join_request", False))
+        if cb_data:
+            is_join_request = cb_data.is_join_request
 
         if not cb_data or not isinstance(cb_data, WelcomeSecurityMoveCB):
             pass
@@ -86,15 +88,29 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         buttons = InlineKeyboardBuilder()
         buttons.row(
             InlineKeyboardButton(
-                text="⬅️", callback_data=WelcomeSecurityMoveCB(direction="left", is_join_request=is_join_request).pack()
+                text="⬅️",
+                callback_data=WelcomeSecurityMoveCB(
+                    direction="left",
+                    chat_iid=str(chat_db.iid),
+                    is_join_request=is_join_request,
+                ).pack(),
             ),
             InlineKeyboardButton(
-                text="▶️", callback_data=WelcomeSecurityMoveCB(direction="right", is_join_request=is_join_request).pack()
+                text="▶️",
+                callback_data=WelcomeSecurityMoveCB(
+                    direction="right",
+                    chat_iid=str(chat_db.iid),
+                    is_join_request=is_join_request,
+                ).pack(),
             ),
         )
         buttons.row(
             InlineKeyboardButton(
-                text=f"☑️ {_('Confirm')}", callback_data=WelcomeSecurityConfirmCB(is_join_request=is_join_request).pack()
+                text=f"☑️ {_('Confirm')}",
+                callback_data=WelcomeSecurityConfirmCB(
+                    chat_iid=str(chat_db.iid),
+                    is_join_request=is_join_request,
+                ).pack(),
             )
         )
 
@@ -105,4 +121,10 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         )
 
         await self.state.set_state(WelcomeSecurityFSM.captcha)
-        await self.state.update_data({"captcha": captcha.data.model_dump(), "ws_chat_iid": str(chat_db.iid)})
+        await self.state.update_data(
+            {
+                "captcha": captcha.data.model_dump(),
+                "ws_chat_iid": str(chat_db.iid),
+                "ws_is_join_request": is_join_request,
+            }
+        )
