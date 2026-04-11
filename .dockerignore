@@ -11,6 +11,8 @@ __pycache__
 *.egg-info
 dist
 build
+output
+.cache
 .pytest_cache
 .coverage
 .htmlcov
@@ -28,6 +30,7 @@ node_modules
 .env.*
 config.env
 coverage.xml
+allure_results
 allure-results
 allure-report
 *.png

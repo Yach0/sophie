@@ -1,12 +1,9 @@
 image: quay.io/podman/stable:latest
 
-variables:
-  CONTAINERS_STORAGE: /var/lib/containers/storage
-
 build_runtime_container:
   variables:
-    IMAGE_NAME: "$CI_REGISTRY_IMAGE"
     IMAGE_FULL: "$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-runtime"
+    CACHE_IMAGE: "$CI_REGISTRY_IMAGE/cache/runtime"
   stage: build
   interruptible: true
   before_script:
@@ -20,16 +17,14 @@ build_runtime_container:
         --platform linux/amd64 \
         --file build/runtime/Dockerfile \
         --layers \
+        --cache-from "$CACHE_IMAGE" \
+        --cache-to "$CACHE_IMAGE" \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
         --build-arg BRANCH_NAME="${CI_COMMIT_BRANCH:-Local}" \
         --build-arg COMMIT_HASH="${CI_COMMIT_SHORT_SHA:-unknown}" \
         --tag "$IMAGE_FULL" \
         .
     - podman push "$IMAGE_FULL"
-  cache:
-    key: runtime-container-cache
-    paths:
-      - $CONTAINERS_STORAGE
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^(beta|stable|dev_.*|dev-.*)$/'
       changes:
