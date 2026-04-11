@@ -37,5 +37,6 @@ build_runtime_container:
         - sophie_bot/**/*
         - locales/**
         - pyproject.toml
+        - uv.lock
         - Makefile
     - when: never
