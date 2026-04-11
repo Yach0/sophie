@@ -199,11 +199,6 @@ class SaveChatsMiddleware(BaseMiddleware):
         logger.debug("SaveChatsMiddleware: Handling new chat members", members_count=len(message.new_chat_members))
         new_users = []
         for member in message.new_chat_members:
-            # Skip upserting the message sender — already handled by update_from_user.
-            # When message.from_user is None (anonymous admin), all members get upserted.
-            if message.from_user and member.id == message.from_user.id:
-                continue
-
             logger.debug("SaveChatsMiddleware: Saving new chat member", user_id=member.id)
             new_user = await ChatModel.upsert_user(member)
             await UserInGroupModel.ensure_user_in_group(new_user, group)
