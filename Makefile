@@ -8,7 +8,7 @@ ASS_PATH := $(shell uv run python -c "import ass_tg as _; print(_.__path__[0])" 
 export PYTHONPATH := $(CURDIR)
 
 # Use uv run for pybabel
-PYBABEL := "pybabel"
+PYBABEL := uv run pybabel
 
 NUITKA := "python" "-m" "nuitka"
 NUITKA_ARGS := "--prefer-source-code" "--plugin-enable=pylint-warnings" "--follow-imports" \
