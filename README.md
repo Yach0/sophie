@@ -90,7 +90,7 @@ make dev_scheduler
 
 ## 🛠️ Development
 
-We use `make` for common development tasks.
+We use `make` for common development tasks. Please read our **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines.
 
 - **Check everything:** `make commit` (runs formatters, linters, tests, and generates docs)
 - **Format code:** `make fix_code_style`

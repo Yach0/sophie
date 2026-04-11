@@ -53,15 +53,14 @@ async def process_message(message: Message) -> dict[str, str]:
 
 ## Translation System
 
-The project uses a dual translation system:
+The project uses a translation system based on Gettext and Crowdin:
 
 ### Crowdin Integration
 
 - Main translation management through Crowdin platform
 - Configuration in `crowdin.yml`
-- Two translation formats supported:
-    1. **YAML files (legacy / outdated)**: `sophie_bot/localization/en.yaml` → `sophie_bot/localization/{locale}.yaml`
-    2. **Gettext POT/PO**: `locales/sophie.pot` → `locales/{locale}/LC_MESSAGES/sophie.po`
+- Translation format supported:
+    - **Gettext POT/PO**: `locales/sophie.pot` → `locales/{locale}/LC_MESSAGES/sophie.po`
 
 ### Making Text Translatable
 
@@ -77,9 +76,15 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 - Example:
 
 ```python
-@flags.help(description=l_("Translates text to the chat's selected language"))
-async def translate_command():
-    await message.reply(_("Translation completed"))
+@flags.help(description=l_("Command description"))
+@flags.disableable(name="command_name")
+class MyHandler(MessageHandler):
+    @staticmethod
+    def filters():
+        return (CMDFilter(("command", "alias")),)
+
+    async def handle(self):
+        await self.event.reply(_("Action completed"))
 ```
 
 ### Translation Workflow
@@ -104,7 +109,7 @@ async def translate_command():
 
 ### Individual Tools
 
-- `make fix_code_style`: Auto-format code (pycln + isort + black)
+- `make fix_code_style`: Auto-format code (pycln + ruff)
 - `make test_code_style`: Check code style without fixing
 - `make test_codeanalysis`: Run ty type checker
 - `make run_tests`: Run pytest with Allure reporting
@@ -177,7 +182,6 @@ sophie_bot/
 │   ├── cache/         # Caching mechanisms
 │   └── models/        # Database models (Beanie ORM)
 ├── filters/           # Custom aiogram filters
-├── localization/      # Translation YAML files
 ├── middlewares/       # Aiogram middlewares
 ├── modules/           # Feature modules
 │   └── {module_name}/
@@ -282,19 +286,19 @@ await message.reply(doc.to_html())
 - **ass-tg 2.4.3**: Argument parsing system (in-house)
 - **beanie 2+**: MongoDB ODM built on Pydantic
 - **pydantic 2+**: Data validation and settings management
-- **pydantic-ai-slim**: AI integration framework
+- **pydantic-ai-slim 1.44+**: AI integration framework
 - **redis 6+**: Redis client for caching
 
 ### Development Dependencies
 
-- **ty 0.0.10+**: Static type checker
+- **ty 0.0.23+**: Static type checker
 - **ruff**: Code formatter and linter
 - **pytest 8.3+**: Testing framework
 
 ### AI and ML Libraries
 
 - **openai 1+**: OpenAI API client
-- **pydantic-ai-slim**: AI agent framework
+- **pydantic-ai-slim 1.44+**: AI agent framework
 - **lingua-language-detector 2+**: Language detection
 - **numpy 2+**: Numerical computations
 
@@ -803,8 +807,8 @@ The project includes these initial migrations:
 ## Quality Assurance
 
 - All code must pass ty type checking
-- All code must pass flake8 linting
-- All code must be formatted with Black
+- All code must pass Ruff linting
+- All code must be formatted with Ruff
 - All user-facing text must be translatable
 - All functions must have proper type annotations
 - Test coverage should be maintained
