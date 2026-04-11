@@ -11,10 +11,14 @@ build_runtime_container:
     - mkdir -p libs
     - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
     - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
+    - rm -rf libs/*/.git
+    # Fix mtimes to ensure deterministic build cache layers
+    - find libs pyproject.toml uv.lock -exec touch -t 200001010000 {} + || true
   script:
     - |
       podman build \
         --platform linux/amd64 \
+        --format docker \
         --file build/runtime/Dockerfile \
         --layers \
         --cache-from "$CACHE_IMAGE" \
