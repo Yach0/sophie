@@ -86,35 +86,35 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:267
+#: sophie_bot/filters/admin_rights.py:270
 msgid "I don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:269
+#: sophie_bot/filters/admin_rights.py:272
 msgid "You don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:274
+#: sophie_bot/filters/admin_rights.py:277
 msgid "I must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:276
+#: sophie_bot/filters/admin_rights.py:279
 msgid "You must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:290
+#: sophie_bot/filters/admin_rights.py:293
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:302
+#: sophie_bot/filters/admin_rights.py:305
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:316
+#: sophie_bot/filters/admin_rights.py:319
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:331
+#: sophie_bot/filters/admin_rights.py:334
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
@@ -3114,28 +3114,28 @@ msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:23
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:117
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:122
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:85
 msgid "No chat rules, have fun!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:64
+#: sophie_bot/modules/greetings/middlewares/new_user.py:65
 msgid "Hi, Thank you for choosing Sophie for your group!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:65
+#: sophie_bot/modules/greetings/middlewares/new_user.py:66
 msgid "Please read the documentation to learn more about Sophie and do not hesitate to join the Support Chat"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:70
+#: sophie_bot/modules/greetings/middlewares/new_user.py:71
 msgid "Documentation"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:71
+#: sophie_bot/modules/greetings/middlewares/new_user.py:72
 msgid "Support Chat"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:104
+#: sophie_bot/modules/greetings/middlewares/new_user.py:105
 msgid "I am not a robot"
 msgstr ""
 
@@ -4426,16 +4426,16 @@ msgstr ""
 msgid "Reply message content is not parsable as the note."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:126
+#: sophie_bot/modules/notes/utils/parse.py:129
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:128
+#: sophie_bot/modules/notes/utils/parse.py:131
 msgid "Please try to reduce the length of note."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:129
+#: sophie_bot/modules/notes/utils/parse.py:132
 msgid "Note is too long."
 msgstr ""
 
@@ -5772,11 +5772,11 @@ msgstr ""
 msgid "❌ Incorrect solution. Please, try again."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:37
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:38
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:42
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:43
 msgid "Open DM with Sophie"
 msgstr ""
 
@@ -5858,7 +5858,7 @@ msgid "Welcome Security message"
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_done.py:31
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:40
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:43
 msgid "You're all set, and can now participate in the conversation"
 msgstr ""
 

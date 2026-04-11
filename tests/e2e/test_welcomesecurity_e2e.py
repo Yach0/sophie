@@ -103,16 +103,12 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     greetings = GreetingsModel(
         chat=group_db.iid,
         welcome_security=WelcomeSecurity(enabled=True),
-        note=Saveable(text="Welcome to the group"),
+        note=Saveable(text="Welcome to the group\n{rules}"),
     )
     rules = RulesModel(chat=group_db.iid, text="Be nice to each other.")
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.captcha_confirm.RulesModel.get_rules",
-        AsyncMock(return_value=rules),
-    )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.RulesModel.get_rules",
         AsyncMock(return_value=rules),
     )
     monkeypatch.setattr(
@@ -150,8 +146,9 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
 
     approve_join_request.assert_awaited_once_with(chat_id=group.id, user_id=user_wrapper.user.id)
 
+    # Captcha flow already showed rules in DM; no welcome/rules should be sent to the group
     group_messages = [request for request in completion_requests if request.chat_id == group.id and request.text]
-    assert any("Be nice to each other." in (request.text or "") for request in group_messages)
-    assert any("Welcome to the group" in (request.text or "") for request in group_messages)
+    assert not any("Be nice to each other." in (request.text or "") for request in group_messages)
+    assert not any("Welcome to the group" in (request.text or "") for request in group_messages)
 
     await aredis.delete(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}")

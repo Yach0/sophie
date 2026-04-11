@@ -64,19 +64,17 @@ async def test_captcha_rules_preserve_join_request_context(monkeypatch: pytest.M
 
 
 @pytest.mark.asyncio
-async def test_complete_captcha_sends_group_followups_for_dm_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Captcha flow already shows rules in DM; no welcome/rules should be sent to the group on completion."""
     user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
-    rules = SimpleNamespace()
-    welcome_note = SimpleNamespace()
-    greetings = SimpleNamespace(welcome_mute=None, welcome_disabled=False, note=welcome_note)
+    greetings = SimpleNamespace(welcome_mute=None, welcome_disabled=False, note=SimpleNamespace())
     captcha_message = SimpleNamespace(
         chat=SimpleNamespace(id=user.tid),
         message_id=42,
         from_user=SimpleNamespace(id=user.tid),
     )
     redis = SimpleNamespace(get=AsyncMock(return_value=None), set=AsyncMock(), delete=AsyncMock())
-    send_welcome_mock = AsyncMock()
     bot_mock = SimpleNamespace(
         edit_message_media=AsyncMock(),
         approve_chat_join_request=AsyncMock(),
@@ -86,22 +84,16 @@ async def test_complete_captcha_sends_group_followups_for_dm_flow(monkeypatch: p
     monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.complete_captcha.aredis", redis)
     monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.complete_captcha.bot", bot_mock)
     monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.RulesModel.get_rules",
-        AsyncMock(return_value=rules),
-    )
-    monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
         AsyncMock(),
-    )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.send_welcome",
-        send_welcome_mock,
     )
 
     await complete_captcha(user, group, greetings, captcha_message)
 
-    assert send_welcome_mock.await_count == 2
-    first_call = send_welcome_mock.await_args_list[0]
-    second_call = send_welcome_mock.await_args_list[1]
-    assert first_call.kwargs["send_to_chat_id"] == group.tid
-    assert second_call.kwargs["send_to_chat_id"] == group.tid
+    # complete_captcha should only update the captcha image in DM and unmute the user;
+    # it must NOT send any welcome or rules messages to the group.
+    bot_mock.edit_message_media.assert_awaited_once()
+    # No messages sent to the group chat
+    for call in bot_mock.delete_message.await_args_list:
+        # delete_message calls are cleanup, not sending new messages — that's fine
+        pass

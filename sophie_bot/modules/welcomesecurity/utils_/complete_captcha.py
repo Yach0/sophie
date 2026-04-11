@@ -1,9 +1,7 @@
-from aiogram.types import Message, InputMediaPhoto, BufferedInputFile
+from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 
-from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
+from sophie_bot.db.models import ChatModel, GreetingsModel
 from sophie_bot.db.models.greetings import WelcomeMute
-from sophie_bot.modules.greetings.default_welcome import get_default_welcome_message
-from sophie_bot.modules.greetings.utils.send_welcome import send_welcome
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
@@ -21,6 +19,11 @@ async def complete_captcha(
 ):
     """
     Generic function to complete captcha process.
+
+    The captcha flow already shows rules in DM (via captcha_send_rules) and the security
+    note in the group. No welcome or rules messages are sent to the group after captcha
+    completion — welcome messages are only sent to the group when captcha is disabled
+    (handled by NewUserMiddleware).
 
     Args:
         user: The user who completed captcha
@@ -51,25 +54,7 @@ async def complete_captcha(
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
     await ws_on_user_passed(user, group, greetings.welcome_mute or WelcomeMute())
 
-    # Send rules if available
-    rules = await RulesModel.get_rules(group.iid)
-    send_to_chat_id = group.tid if captcha_message.chat.id == user.tid else None
-    if rules:
-        await send_welcome(
-            captcha_message,
-            rules,
-            False,
-            None,
-            captcha_message.from_user,
-            send_to_chat_id=send_to_chat_id,
-        )
-
-    # Send welcome message
-    if not greetings.welcome_disabled:
-        welcome_saveable = greetings.note or get_default_welcome_message(bool(rules))
-        await send_welcome(captcha_message, welcome_saveable, False, rules, send_to_chat_id=send_to_chat_id)
-
-    # Clean up
+    # Clean up the security note message from the group
     if msg_to_clean := await aredis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
         await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
         await aredis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
