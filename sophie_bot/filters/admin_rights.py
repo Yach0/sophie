@@ -233,17 +233,20 @@ class UserRestricting(Filter):
 
         return missing_permissions or True
 
-    async def get_target_id(self, message: TelegramObject) -> int:
+    @staticmethod
+    async def get_target_id(message: TelegramObject) -> int:
         from_user = getattr(message, "from_user", None)
         if not from_user:
             raise ValueError("Event must expose a from_user")
         return from_user.id
 
-    def _resolve_message(self, event: TelegramObject) -> Any:
+    @staticmethod
+    def _resolve_message(event: TelegramObject) -> Any:
         """Resolve the actual message from a Telegram event for dynamic reply/answer access."""
         return event.message if isinstance(event, CallbackQuery) else event
 
-    def get_event_message(self, event: TelegramObject) -> Optional[Any]:
+    @staticmethod
+    def get_event_message(event: TelegramObject) -> Optional[Any]:
         if isinstance(event, CallbackQuery):
             return event.message
         if isinstance(event, Message):
