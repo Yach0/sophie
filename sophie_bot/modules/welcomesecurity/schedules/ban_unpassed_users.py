@@ -8,6 +8,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -85,6 +86,10 @@ class BanUnpassedUsers:
         await ws_user.delete()
 
     async def handle(self):
+        if not await is_enabled("welcomecaptcha_autokick"):
+            log.info("ban_unpassed_users: skipped because auto-kick feature flag is disabled")
+            return
+
         log.debug("ban_unpassed_users: starting")
 
         async for ws_user in WSUserModel.find({"passed": False}):  # deepsource-ignore[PYL-E1133]

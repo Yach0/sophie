@@ -22,6 +22,7 @@ from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -160,22 +161,30 @@ class NewUserMiddleware(BaseMiddleware):
             sent_message: Optional[Message] = None
 
             chat_rules = await RulesModel.get_rules(chat_db.iid)
+            welcomecaptcha_enabled = await is_enabled("welcomecaptcha")
 
             # The origin user of the message is admin could indite:
             # 1. Chat owner joined the chat back
             # 2. One of admins added user/users, we do not want to enforce welcomesecurity
             # 3. Join message is too old (bot was down/lagging), skip captcha enforcement
             join_is_too_old = self.is_join_too_old(event)
-            if not (db_item.welcome_disabled or (db_item.welcome_security and db_item.welcome_security.enabled)) or (
-                not db_item.welcome_disabled and is_admin
-            ):
+            if not (
+                db_item.welcome_disabled
+                or (db_item.welcome_security and db_item.welcome_security.enabled and welcomecaptcha_enabled)
+            ) or (not db_item.welcome_disabled and is_admin):
                 welcome_saveable: Saveable = db_item.note or get_default_welcome_message(bool(chat_rules))
                 sent_message = await send_welcome(event, welcome_saveable, cleanservice_enabled, chat_rules)
 
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:
                     await on_welcomemute(chat_id, user_id, db_item.welcome_mute.time)
 
-            elif not is_admin and db_item.welcome_security and db_item.welcome_security.enabled and not join_is_too_old:
+            elif (
+                not is_admin
+                and db_item.welcome_security
+                and db_item.welcome_security.enabled
+                and welcomecaptcha_enabled
+                and not join_is_too_old
+            ):
                 # If group has join_by_request enabled, captcha is handled by join request handler
                 # Otherwise, use normal captcha
                 if not event.chat.join_by_request:

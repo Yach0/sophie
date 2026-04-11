@@ -22,6 +22,8 @@ FeatureType = Literal[
     "antiflood",
     "locks",
     "filters_rest_api",
+    "welcomecaptcha",
+    "welcomecaptcha_autokick",
     "new_feds_newfed",
     "new_feds_joinfed",
     "new_feds_leavefed",
@@ -59,6 +61,8 @@ class FeatureStates(TypedDict):
     antiflood: bool
     locks: bool
     filters_rest_api: bool
+    welcomecaptcha: bool
+    welcomecaptcha_autokick: bool
     new_feds_newfed: bool
     new_feds_joinfed: bool
     new_feds_leavefed: bool
@@ -95,6 +99,8 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "antiflood",
     "locks",
     "filters_rest_api",
+    "welcomecaptcha",
+    "welcomecaptcha_autokick",
     "new_feds_newfed",
     "new_feds_joinfed",
     "new_feds_leavefed",
@@ -133,6 +139,8 @@ def _default_state_map() -> FeatureStates:
         antiflood=_DEFAULT_STATES["antiflood"],
         locks=_DEFAULT_STATES["locks"],
         filters_rest_api=_DEFAULT_STATES["filters_rest_api"],
+        welcomecaptcha=_DEFAULT_STATES["welcomecaptcha"],
+        welcomecaptcha_autokick=_DEFAULT_STATES["welcomecaptcha_autokick"],
         new_feds_newfed=_DEFAULT_STATES["new_feds_newfed"],
         new_feds_joinfed=_DEFAULT_STATES["new_feds_joinfed"],
         new_feds_leavefed=_DEFAULT_STATES["new_feds_leavefed"],
@@ -170,6 +178,8 @@ _DEFAULT_STATES: Final[dict[FeatureType, bool]] = {
     "antiflood": True,
     "locks": True,
     "filters_rest_api": False,
+    "welcomecaptcha": True,
+    "welcomecaptcha_autokick": True,
     "new_feds_newfed": True,
     "new_feds_joinfed": True,
     "new_feds_leavefed": True,

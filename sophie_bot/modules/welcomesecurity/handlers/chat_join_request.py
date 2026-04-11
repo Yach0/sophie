@@ -23,6 +23,7 @@ from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDM
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -99,6 +100,10 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         if not (greetings.welcome_security and greetings.welcome_security.enabled):
             # If welcome security is not enabled, don't auto-approve
             # Let admins handle the approval manually
+            return
+
+        if not await is_enabled("welcomecaptcha"):
+            await _approve_request()
             return
 
         # Get user model

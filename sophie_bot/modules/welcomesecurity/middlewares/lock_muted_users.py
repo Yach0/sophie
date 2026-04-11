@@ -7,6 +7,7 @@ from aiogram.types import Message, TelegramObject
 from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -25,6 +26,9 @@ class LockMutedUsers(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         if isinstance(event, Message) and event.from_user and event.chat.type == "private":
+            if not await is_enabled("welcomecaptcha"):
+                return await handler(event, data)
+
             chat_db: ChatModel = data["chat_db"]
             user_db: ChatModel = data["user_db"]
 
