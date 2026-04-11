@@ -16,8 +16,13 @@ data/*.yaml
 .vscode/
 .idea/
 
-# Jetbrains Junie
+# AI Agents love to create those files
 *.txt
+.*.md
+.codex
+
+# JetBrains Junie
+.junie/
 
 # Localization
 sophie.mo
@@ -35,6 +40,3 @@ openapi.json
 libs/
 
 *.egg-info/
-
-.junie/
-.opencode-prompt.md
