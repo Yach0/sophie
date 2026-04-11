@@ -1,0 +1,57 @@
+from __future__ import annotations
+
+import pytest
+
+from sophie_bot.modules.help.handlers import op
+from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp
+
+
+def _handler(command: str, description: str = "description") -> HandlerHelp:
+    return HandlerHelp(
+        cmds=(command,),
+        args=None,
+        description=description,
+        only_admin=False,
+        only_op=False,
+        only_pm=False,
+        only_chats=False,
+        alias_to_modules=[],
+        disableable=None,
+    )
+
+
+def _module(name: str, handlers: list[HandlerHelp]) -> ModuleHelp:
+    return ModuleHelp(
+        handlers=handlers,
+        name=name,
+        icon="?",
+        exclude_public=False,
+        info="",
+        description="",
+        advertise_wiki_page=False,
+    )
+
+
+def test_format_op_commands_messages_splits_between_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+    first_module = _module("First", [_handler("first")])
+    second_module = _module("Second", [_handler("second")])
+    first_module_text = op._format_module_commands(first_module)
+    second_module_text = op._format_module_commands(second_module)
+    limit = max(len(first_module_text), len(second_module_text)) + 5
+
+    monkeypatch.setattr(op, "OP_COMMANDS_MESSAGE_LENGTH_LIMIT", limit)
+
+    assert op.format_op_commands_messages([first_module, second_module]) == [first_module_text, second_module_text]
+
+
+def test_format_op_commands_messages_splits_large_module_by_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    first_handler = _handler("first", "first description " * 8)
+    second_handler = _handler("second", "second description " * 8)
+    module = _module("Large", [first_handler, second_handler])
+    first_handler_text = op._format_module_commands(module, [first_handler])
+    second_handler_text = op._format_module_commands(module, [second_handler])
+    limit = max(len(first_handler_text), len(second_handler_text)) + 5
+
+    monkeypatch.setattr(op, "OP_COMMANDS_MESSAGE_LENGTH_LIMIT", limit)
+
+    assert op.format_op_commands_messages([module]) == [first_handler_text, second_handler_text]
