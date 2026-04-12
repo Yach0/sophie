@@ -24,10 +24,13 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
+_REGEX_TIMEOUT_SECONDS = 0.5
+
+
 def match_regex_handler(message_text: str, pattern: str) -> bool:
     """Match message text against a regex pattern."""
     try:
-        return bool(regex.search(pattern, message_text))
+        return bool(regex.search(pattern, message_text, timeout=_REGEX_TIMEOUT_SECONDS))
     except TimeoutError:
         raise SophieException(
             f'The regex in the filter with pattern "{pattern}" is taking too long to execute. '

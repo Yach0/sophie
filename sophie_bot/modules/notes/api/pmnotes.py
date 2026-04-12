@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from typing import Annotated
 
 from beanie import PydanticObjectId
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.privatenotes import PrivateNotesModel
+from sophie_bot.utils.api.auth import get_current_user, rest_require_admin
+
 from .schemas import PMNotesStateResponse, PMNotesStateUpdate
 
 router = APIRouter(prefix="/pmnotes")
@@ -14,7 +17,9 @@ router = APIRouter(prefix="/pmnotes")
 @router.get("/{chat_iid}", response_model=PMNotesStateResponse)
 async def get_pmnotes_state(
     chat_iid: PydanticObjectId,
+    user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> PMNotesStateResponse:
+    _ = user
     chat = await ChatModel.get(chat_iid)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
@@ -27,7 +32,9 @@ async def get_pmnotes_state(
 async def update_pmnotes_state(
     chat_iid: PydanticObjectId,
     update: PMNotesStateUpdate,
+    user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
 ) -> PMNotesStateResponse:
+    _ = user
     chat = await ChatModel.get(chat_iid)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
