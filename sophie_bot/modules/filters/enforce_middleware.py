@@ -43,8 +43,6 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: not a group, dropping...")
             return True
 
-        # TODO: Other people send as channel / anon admins
-
         # Check for the filter setup states
         if state and FilterEditFSM.__name__ in (await state.get_state() or ""):
             log.debug("EnforceFiltersMiddleware: filter setup state, dropping...")

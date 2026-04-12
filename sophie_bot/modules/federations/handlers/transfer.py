@@ -10,11 +10,13 @@ from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Code, Doc, Template, Title
 
-from sophie_bot.db.models import Federation
+from sophie_bot.config import CONFIG
+from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
+from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -72,8 +74,18 @@ class TransferOwnershipHandler(FederationCommandHandler):
             return
 
         # Check if new owner is in the federation
-        # TODO: Add validation to ensure new owner is eligible
-        # (e.g., not bot operator, has not exceeded federation limit, etc.)
+        if new_owner_id in CONFIG.operators:
+            await self.event.reply(_("You cannot transfer ownership to a bot operator."))
+            return
+
+        new_owner_chat = await ChatModel.get_by_tid(new_owner_id)
+        if not new_owner_chat:
+            await self.event.reply(_("User has not started the bot yet."))
+            return
+
+        if not await FederationManageService._can_user_create_federation(new_owner_chat.iid):
+            await self.event.reply(_("The new owner has reached the maximum number of federations they can own."))
+            return
 
         # Create transfer request
         transfer_key = f"{self.TRANSFER_KEY_PREFIX}{federation.fed_id}"

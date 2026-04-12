@@ -18,7 +18,7 @@ from pydantic_ai.messages import (
     UserContent,
     UserPromptPart,
 )
-from stfu_tg import HList, KeyValue, Section, VList
+from stfu_tg import HList, KeyValue, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
@@ -157,7 +157,7 @@ async def _build_message_parts(
         if video:
             video_transcription = await transform_video_to_text(video)
             if video_transcription:
-                prompt.append(_("[Video transcription: {text}]").format(text=video_transcription))
+                prompt.append(str(Template(_("[Video transcription: {text}]"), text=video_transcription)))
 
     return prompt
 
