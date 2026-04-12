@@ -1,8 +1,8 @@
 from typing import Any
 
 from aiogram import flags
-from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
+from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import KeyValue, Section, UserLink
 
@@ -12,11 +12,11 @@ from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import get_admins_rights
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -49,17 +49,15 @@ class DemoteUserHandler(SophieMessageHandler):
         if self.event.from_user and user.chat_id == self.event.from_user.id:
             return await self.event.reply(_("You cannot demote yourself."))
 
-        await common_try(
-            bot.promote_chat_member(
-                chat_id=connection.tid,
-                user_id=user.chat_id,
-                can_invite_users=False,
-                can_change_info=False,
-                can_restrict_members=False,
-                can_delete_messages=False,
-                can_pin_messages=False,
-                can_delete_stories=False,
-            )
+        await bot.promote_chat_member(
+            chat_id=connection.tid,
+            user_id=user.chat_id,
+            can_invite_users=False,
+            can_change_info=False,
+            can_restrict_members=False,
+            can_delete_messages=False,
+            can_pin_messages=False,
+            can_delete_stories=False,
         )
 
         # Reset admin cache

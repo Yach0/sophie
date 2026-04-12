@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from aiogram import flags
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 from ass_tg.types import EqualsArg, OptionalArg
 
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.bot import bot
-from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -42,11 +40,4 @@ class UnpinHandler(SophieMessageHandler):
         if message.reply_to_message:
             message_id = message.reply_to_message.message_id
 
-        try:
-            await bot.unpin_chat_message(chat_id, message_id=message_id)
-        except TelegramBadRequest as e:
-            # Handle "chat not modified" or "message is not pinned"
-            if "not modified" in str(e) or "not pinned" in str(e):
-                await message.reply(_("The message is not pinned."))
-            else:
-                raise
+        await bot.unpin_chat_message(chat_id, message_id=message_id)

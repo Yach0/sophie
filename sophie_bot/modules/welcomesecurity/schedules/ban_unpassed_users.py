@@ -29,7 +29,7 @@ class BanUnpassedUsers:
         try:
             user = await ChatModel.get_by_iid(ws_user.user.ref.id)
             group = await ChatModel.get_by_iid(ws_user.group.ref.id)
-        except (AttributeError, Exception) as e:
+        except AttributeError as e:
             log.warning(
                 "ban_unpassed_users: skipping ws_user due to invalid link references",
                 ws_user_tid=str(ws_user.id),

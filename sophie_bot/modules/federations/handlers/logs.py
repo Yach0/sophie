@@ -61,14 +61,10 @@ class SetFederationLogHandler(SophieMessageHandler):
             if not bot:
                 await self.event.reply(_("Unable to verify permissions in this channel."))
                 return
-            try:
-                bot_member = await bot.get_chat_member(self.connection.tid, bot.id)
-                # can_post_messages is only available on ChatMemberAdministrator and ChatMemberOwner
-                if not hasattr(bot_member, "can_post_messages") or not bot_member.can_post_messages:
-                    await self.event.reply(_("I don't have permission to post messages in this channel."))
-                    return
-            except Exception:
-                await self.event.reply(_("Unable to verify permissions in this channel."))
+            bot_member = await bot.get_chat_member(self.connection.tid, bot.id)
+            # can_post_messages is only available on ChatMemberAdministrator and ChatMemberOwner
+            if not hasattr(bot_member, "can_post_messages") or not bot_member.can_post_messages:
+                await self.event.reply(_("I don't have permission to post messages in this channel."))
                 return
 
         # Set the log channel
