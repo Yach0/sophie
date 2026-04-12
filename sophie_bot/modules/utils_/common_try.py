@@ -11,15 +11,14 @@ from aiogram.methods import TelegramMethod
 
 from sophie_bot.modules.utils_.telegram_exceptions import (
     CAN_NOT_BE_DELETED,
-    CHAT_ADMIN_REQUIRED,
+    CHAT_WRITE_FORBIDDEN,
     INVALID_BUTTON_URL,
     MSG_NOT_MODIFIED,
-    NO_TEXT_IN_MSG_TO_EDIT,
-    MSG_TO_DEL_NOT_FOUND,
     MSG_TEXT_EMPTY,
-    REPLIED_NOT_FOUND,
-    USER_ALREADY_PARTICIPANT,
+    MSG_TO_DEL_NOT_FOUND,
     MSG_TOO_LONG,
+    NO_TEXT_IN_MSG_TO_EDIT,
+    REPLIED_NOT_FOUND,
 )
 from sophie_bot.utils.logger import log
 
@@ -60,20 +59,21 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
         if MSG_TOO_LONG in err.message:
             log.warning("common_try: Message is too long, ignoring")
             return None
-        if USER_ALREADY_PARTICIPANT in err.message:
-            log.debug("common_try: User already participant, ignoring")
-            return None
-        if CHAT_ADMIN_REQUIRED in err.message:
-            log.debug("common_try: Chat admin required, ignoring")
-            return None
         if INVALID_BUTTON_URL in err.message:
             log.warning("common_try: Invalid inline keyboard button URL, ignoring", error=str(err))
             return None
-        log.error("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
+        if CHAT_WRITE_FORBIDDEN in err.message:
+            log.debug("common_try: Chat write forbidden, ignoring")
+            return None
+        log.warning("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
         raise err
     except IGNORED_EXCEPTIONS as err:
         log.warning("common_try: Caught ignored exception", error=str(err))
         return None
     except TelegramAPIError as err:
-        log.error("common_try: Other unhandled Telegram API error", error=str(err))
+        err_str = str(err).lower()
+        if "timeout" in err_str:
+            log.warning("common_try: Telegram API timeout", error=str(err))
+            raise
+        log.warning("common_try: Other unhandled Telegram API error", error=str(err))
         raise err

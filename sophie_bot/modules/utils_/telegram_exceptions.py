@@ -6,6 +6,7 @@ USER_ALREADY_PARTICIPANT = "USER_ALREADY_PARTICIPANT"
 MSG_NOT_MODIFIED = "message is not modified"
 NO_TEXT_IN_MSG_TO_EDIT = "there is no text in the message to edit"
 MSG_TOO_LONG = "message is too long"
+BOTS_CANT_ADD_NEW_CHAT_MEMBERS = "bots can't add new chat members"
 INVALID_BUTTON_URL = "inline keyboard button URL"
 
 CHANNELS_TOO_MUCH = "CHANNELS_TOO_MUCH"
