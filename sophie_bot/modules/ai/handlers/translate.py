@@ -178,9 +178,10 @@ class AiTranslate(SophieMessageHandler):
             event_id = capture_sentry(err)
             if self.data.get("silent_error"):
                 return
-            return self.event.reply(
+            await self.event.reply(
                 **generic_error_message(err, sentry_event_id=event_id, title=_("Error generating translation"))
             )
+            return
 
         # Prevent extra translating
         if is_autotranslate and not is_voice and not translated.needs_translation:

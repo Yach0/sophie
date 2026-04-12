@@ -30,10 +30,11 @@ async def cache_message(text: Optional[str], chat_id: int, user_id: int, message
     key = get_message_cache_key(chat_id)
 
     # Group commands in a pipeline to ensure atomic execution.
+    # rpush must come before ltrim so the new message is included in the trim window.
     async with aredis.pipeline(transaction=True) as pipe:
+        await pipe.rpush(key, json_str)  # type: ignore[misc]  # ty: ignore[invalid-await]
         await pipe.ltrim(key, -15, -1)  # type: ignore[misc]  # ty: ignore[invalid-await]
         await pipe.expire(key, 86400 * 2, lt=True)
-        await pipe.rpush(key, json_str)  # type: ignore[misc]  # ty: ignore[invalid-await]
         await pipe.execute()
 
 
