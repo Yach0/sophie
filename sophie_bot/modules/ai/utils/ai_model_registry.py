@@ -100,8 +100,8 @@ AI_MODEL_REGISTRY: list[SophieAIModel] = [
     SophieAIModel(AIProviders.zai, "z-ai/glm-4.7", "GLM-4.7"),
     SophieAIModel(
         AIProviders.zai,
-        "z-ai/glm-4.6v",
-        "GLM-4.6V",
+        "z-ai/glm-5v-turbo",
+        "GLM-5V Turbo",
         supports_vision=True,
         default_for_chatbot=True,
         default_for_translation=True,
