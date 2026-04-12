@@ -13,6 +13,7 @@ from sophie_bot.db.models import (
     UserInGroupModel,
     WSUserModel,
 )
+from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
 from sophie_bot.services.bot import bot
@@ -99,7 +100,22 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 _("You already an admin in the chat, therefore you don't need to pass the authentication!")
             )
 
-        # TODO: Check if not banned / fedbanned
+        # Check if banned
+        try:
+            member = await bot.get_chat_member(chat_id=chat_id, user_id=user_db.tid)
+            if member.status == ChatMemberStatus.KICKED:
+                return await self.event.reply(_("You are banned in this chat, so you cannot pass the authentication!"))
+        except TelegramBadRequest:
+            pass
+
+        # Check fedban
+        federation = await FederationManageService.get_federation_for_chat(group_db.iid)
+        if federation:
+            ban_info = await FederationBanService.is_user_banned_in_chain(federation.fed_id, user_db.tid)
+            if ban_info:
+                return await self.event.reply(
+                    _("You are banned in the federation, so you cannot pass the authentication!")
+                )
 
         ws_db_item = await GreetingsModel.get_by_chat_iid(group_db.iid)
 

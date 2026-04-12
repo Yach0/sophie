@@ -32,7 +32,7 @@ class SetQuota(SophieMessageHandler):
 
         if credits < 0:
             await self.event.reply(
-                _("{credit_emoji} amount must be a positive number.").format(credit_emoji=AI_CREDIT_EMOJI)
+                str(Template(_("{credit_emoji} amount must be a positive number."), credit_emoji=AI_CREDIT_EMOJI))
             )
             return
 
@@ -47,7 +47,7 @@ class SetQuota(SophieMessageHandler):
                     _("Remaining"),
                     Code(format_credit_amount(quota_info.remaining_credits)) if quota_info else Code("N/A"),
                 ),
-                title=_("New quota for {chat}").format(chat=connection.title),
+                title=Template(_("New quota for {chat}"), chat=connection.title),
             ),
         )
         await self.event.reply(str(doc))

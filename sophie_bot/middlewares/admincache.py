@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import TelegramObject, Update
 from beanie import PydanticObjectId
 
@@ -57,7 +58,7 @@ class AdmincacheMiddleware(BaseMiddleware):
             log.debug("AdmincacheMiddleware: Refreshing admin cache", chat_id=chat_tid)
             try:
                 await update_chat_members(chat_db)
-            except Exception as e:
+            except TelegramAPIError as e:
                 log.warning("AdmincacheMiddleware: Failed to refresh admin cache", chat_id=chat_tid, error=str(e))
         else:
             log.debug("AdmincacheMiddleware: Admin cache is up to date", chat_id=chat_tid)
