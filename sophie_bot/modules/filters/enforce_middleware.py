@@ -170,7 +170,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         triggered_groups: list[str] = []  # Handled action groups, to stop same actions from repeating
 
         for idx, matched_filter in enumerate(matched_filters):
-            if idx > FILTERS_MAX_TRIGGERS:
+            if idx >= FILTERS_MAX_TRIGGERS:
                 log.debug("EnforceFiltersMiddleware: triggered maximum number of filters, dropping...")
                 break
 

@@ -46,7 +46,7 @@ async def ai_filter_handle(message: Message, chat: dict, data: dict):
     if not chat_db:
         raise SophieException("Chat not found in database")
 
-    if message.text or message.caption and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db):
+    if (message.text or message.caption) and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db):
         from sophie_bot.middlewares.connections import ChatConnection
 
         connection = ChatConnection(
