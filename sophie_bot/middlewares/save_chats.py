@@ -238,7 +238,8 @@ class SaveChatsMiddleware(BaseMiddleware):
         data["chat_db"] = data["group_db"] = chat
         data["user_db"] = user
 
-    async def save_my_chat_member(self, event: ChatMemberUpdated) -> bool:
+    @staticmethod
+    async def save_my_chat_member(event: ChatMemberUpdated) -> bool:
         status = event.new_chat_member.status
         logger.debug("SaveChatsMiddleware: Handling my_chat_member update", status=status, chat_id=event.chat.id)
         if status == "kicked":
