@@ -9,7 +9,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.auth import get_current_user, rest_require_admin
+from sophie_bot.utils.api.auth import rest_require_admin
 
 from .dependencies import require_filters_feature, require_filters_rest_api
 from .schemas import FilterCreate, FilterResponse, FiltersResponse, FilterUpdate
@@ -25,7 +25,7 @@ router = APIRouter(
 @router.get("/{chat_iid}", response_model=FiltersResponse)
 async def list_filters(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin())],
 ) -> FiltersResponse:
     _ = user
     await get_chat_or_404(chat_iid)
@@ -37,7 +37,7 @@ async def list_filters(
 async def get_filter(
     chat_iid: PydanticObjectId,
     filter_id: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin())],
 ) -> FilterResponse:
     _ = user
     chat = await get_chat_or_404(chat_iid)

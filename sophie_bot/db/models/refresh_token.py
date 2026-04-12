@@ -3,6 +3,7 @@ from typing import Annotated
 
 from beanie import Document, Indexed
 from pydantic import Field
+from pymongo import IndexModel
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
 from sophie_bot.db.models._link_type import Link
@@ -17,6 +18,9 @@ class RefreshTokenModel(Document):
 
     class Settings:
         name = "refresh_tokens"
+        indexes = [
+            IndexModel("expires_at", expireAfterSeconds=0),
+        ]
 
     @staticmethod
     async def get_by_hash(token_hash: str) -> "RefreshTokenModel":

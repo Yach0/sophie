@@ -26,12 +26,15 @@ def user_fillings(text: str, message: Optional[Message], user: Optional[User]) -
 
     users: list[User] = (message.new_chat_members if message else None) or [user]
 
+    full_name = f"{user.first_name} {user.last_name}".strip() if user.last_name else user.first_name
+    username = user.username or user.first_name
+
     return (
         text.replace("{first}", str(EscapedStr(user.first_name)))
         .replace("{last}", str(EscapedStr(user.last_name or "")))
-        .replace("{fullname}", f"{user.first_name} {user.last_name}")
+        .replace("{fullname}", str(EscapedStr(full_name)))
         .replace("{id}", str(user.id))
-        .replace("{username}", user.first_name or user.first_name)
+        .replace("{username}", str(EscapedStr(username)))
         .replace(
             "{mention}",
             str(HList(*(UserLink(user.id, user.first_name) for user in users), divider=",")),

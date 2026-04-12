@@ -235,10 +235,13 @@ async def resolve_media(
     "/media/proxy/{file_id}",
     summary="Proxy Telegram media asset",
     description="Fetch and proxy a Telegram media file. Returns the raw bytes with appropriate content type.",
+    dependencies=[Depends(rate_limit)],
 )
 async def proxy_media(
     file_id: str = Path(..., description="Telegram file ID to fetch"),
+    user: Annotated[Any, Depends(get_current_user)] = None,
 ) -> Response:
+    _ = user
     file_path = await TelegramMediaService.get_file_path(file_id)
     if not file_path:
         raise HTTPException(status_code=404, detail="File not found")
@@ -255,12 +258,17 @@ async def proxy_media(
     elif file_path.endswith(".webm"):
         content_type = "video/webm"
 
+    # Use only the known extension from the resolved file_path; never embed the
+    # caller-supplied file_id directly in the header to prevent header injection.
+    ext = file_path.rsplit(".", 1)[-1] if "." in file_path else "bin"
+    safe_ext = ext if ext.isalnum() else "bin"
+
     return Response(
         content=content,
         media_type=content_type,
         headers={
             "Cache-Control": "public, max-age=86400",
-            "Content-Disposition": f'inline; filename="{file_id}.{file_path.split(".")[-1]}"',
+            "Content-Disposition": f'inline; filename="media.{safe_ext}"',
         },
     )
 
@@ -268,13 +276,16 @@ async def proxy_media(
 @router.get(
     "/sticker-set/{set_name}",
     response_model=StickerSetResponse,
+    dependencies=[Depends(rate_limit)],
     summary="Resolve sticker set",
     description="Fetch and resolve a Telegram sticker set by name. Returns all stickers with their metadata.",
 )
 async def resolve_sticker_set(
     request: Request,
     set_name: str = Path(..., description="Name of the sticker set to resolve"),
+    user: Annotated[Any, Depends(get_current_user)] = None,
 ) -> StickerSetResponse:
+    _ = user
     result = await TelegramMediaService.resolve_sticker_set(set_name)
     if not result:
         raise HTTPException(status_code=404, detail="Sticker set not found")

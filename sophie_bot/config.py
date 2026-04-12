@@ -70,7 +70,7 @@ class Config(BaseSettings):
     webhooks_secret_token: Optional[str] = None
     webhooks_handle_in_background: bool = True
 
-    api_listen: str = "0.0.0.0"
+    api_listen: str = "127.0.0.1"
     api_port: int = 8075
     api_jwt_secret: str = "change_me_in_production"
     api_operator_token: Optional[str] = "test"

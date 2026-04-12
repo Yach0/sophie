@@ -93,7 +93,7 @@ def start_bot_mode() -> None:
         if CONFIG.webhooks_https_certificate:
             log.info("Using HTTPs!")
 
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ssl_context.load_cert_chain(CONFIG.webhooks_https_certificate, CONFIG.webhooks_https_certificate_key)
         else:
             ssl_context = None
