@@ -33,8 +33,13 @@ class SetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
+        connection = getattr(self, "connection", None)
+        if not connection or not connection.db_model:
+            await self.event.reply(_("This chat is not initialized yet."))
+            return
+
         # Get federation for this chat
-        chat_iid = self.connection.db_model.iid
+        chat_iid = connection.db_model.iid
         federation = await FederationManageService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
@@ -104,8 +109,13 @@ class UnsetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
+        connection = getattr(self, "connection", None)
+        if not connection or not connection.db_model:
+            await self.event.reply(_("This chat is not initialized yet."))
+            return
+
         # Get federation for this chat
-        chat_iid = self.connection.db_model.iid
+        chat_iid = connection.db_model.iid
         federation = await FederationManageService.get_federation_for_chat(chat_iid)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
