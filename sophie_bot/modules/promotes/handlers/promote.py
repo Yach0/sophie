@@ -75,7 +75,9 @@ class PromoteUserHandler(SophieMessageHandler):
         )
 
         if admin_title:
-            await bot.set_chat_administrator_custom_title(chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title)
+            await bot.set_chat_administrator_custom_title(
+                chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
+            )
 
         # Reset admin cache
         await get_admins_rights(connection.tid, force_update=True)
