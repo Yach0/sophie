@@ -1,7 +1,5 @@
 # AI Development Guidelines for Sophie Bot
 
-Keep this file short and always-on. Load focused guidance from `.agents/skills/` whenever the task matches a skill.
-
 ## How to use project skills
 
 - Skills live in `.agents/skills/<skill-name>/SKILL.md`.
@@ -18,6 +16,7 @@ Keep this file short and always-on. Load focused guidance from `.agents/skills/`
 | `database-migrations` | Making schema/data migrations under `sophie_bot/db/migrations/`. |
 | `feature-flags` | Shipping new medium/high-risk features, external integrations, or large refactors. |
 | `e2e-testing` | Writing or updating bot end-to-end tests in `tests/e2e/`. |
+| `issue-fixer` | Diagnosing and fixing bugs, errors, or unexpected behavior by tracing root causes instead of masking symptoms. |
 | `code-review` | Reviewing a change set or doing a pre-submit self-review. |
 
 ## Always-on project rules
@@ -37,7 +36,8 @@ Keep this file short and always-on. Load focused guidance from `.agents/skills/`
 - Default to a functional, async-first style.
 - Prefer pure functions, immutable data where practical, and small focused units of logic.
 - Prefer composition over inheritance.
-- Avoid broad guard code and broad `except Exception` handlers; catch specific exceptions and let the framework handle unexpected failures.
+- Avoid overly guarding code
+- Avoid broad `except Exception` handlers; catch specific exceptions and let the framework handle unexpected failures.
 
 ### Bot-specific rules
 
@@ -51,7 +51,7 @@ Keep this file short and always-on. Load focused guidance from `.agents/skills/`
 
 ### Delivery workflow
 
-- Run `make commit` after every task.
+- Run `make commit` after every task. This is very important!
 - Keep documentation updated when behavior or workflows change.
 - New handlers should have E2E coverage; use the `e2e-testing` skill.
 - New medium/high-risk features, integrations, and large refactors must ship behind a feature flag; use the `feature-flags` skill.
