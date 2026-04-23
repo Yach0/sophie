@@ -17,13 +17,13 @@
 | `feature-flags` | Shipping new medium/high-risk features, external integrations, or large refactors. |
 | `e2e-testing` | Writing or updating bot end-to-end tests in `tests/e2e/`. |
 | `issue-fixer` | Diagnosing and fixing bugs, errors, or unexpected behavior by tracing root causes instead of masking symptoms. |
+| `deep-source-issue-fixer` | Fixing DeepSource static analysis issues, covering common false positives with Beanie async and staticmethod suggestions. |
 | `code-review` | Reviewing a change set or doing a pre-submit self-review. |
 
 ## Always-on project rules
 
 ### Code style and typing
 
-- Follow PEP 8 and the repo formatter configuration (`120` character line length).
 - Use Ruff for formatting and import ordering, and `pycln` for unused imports.
 - Put imports at the top of the module only; never import inside functions or conditionals.
 - Never use single-character variable names, even in short comprehensions.
