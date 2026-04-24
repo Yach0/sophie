@@ -20,9 +20,11 @@ from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC 
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
 from sophie_bot.modules.notes.utils.parse import parse_saveable
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.logger import log
 
 
 @flags.args(
@@ -55,7 +57,13 @@ class SaveNote(SophieMessageHandler):
 
         notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"])
 
-        saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
+        try:
+            saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
+        except SophieException as exc:
+            log.warning("SaveNote: validation failed", error="\n".join(str(doc) for doc in exc.docs))
+            await self.event.reply("\n".join(str(doc) for doc in exc.docs))
+            return
+
         is_created = await self.save(saveable, notenames, connection.db_model.iid, self.event.from_user.id, self.data)
 
         await self.event.reply(

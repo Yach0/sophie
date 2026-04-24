@@ -3,6 +3,7 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardButton, Message, TelegramObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc
@@ -18,12 +19,14 @@ from sophie_bot.modules.greetings.default_welcome import (
 from sophie_bot.modules.greetings.utils.send_welcome import send_welcome
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.telegram_exceptions import REPLY_MESSAGE_INVALID
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_users_mute
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 
 class NewUserMiddleware(BaseMiddleware):
@@ -72,7 +75,13 @@ class NewUserMiddleware(BaseMiddleware):
             InlineKeyboardButton(text=_("Support Chat"), url=CONFIG.support_link),
         )
 
-        return await common_try(message.reply(str(doc)))
+        try:
+            return await message.reply(str(doc))
+        except TelegramBadRequest as err:
+            if REPLY_MESSAGE_INVALID in err.message:
+                log.debug("NewUserMiddleware: Reply message invalid on self_welcome, falling back to answer")
+                return await message.answer(str(doc))
+            raise
 
     @staticmethod
     async def is_join_request(chat_db: ChatModel, user_db: ChatModel) -> bool:

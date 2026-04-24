@@ -2,6 +2,7 @@ from typing import Any, Optional
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 
 from ass_tg.types import OptionalArg, TextArg
@@ -16,11 +17,13 @@ from sophie_bot.modules.utils_.admin import get_admins_rights
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
+from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.logger import log
 
 
 @flags.help(description=l_("Promotes the user to admins."))
@@ -63,21 +66,33 @@ class PromoteUserHandler(SophieMessageHandler):
         if admin_title and len(admin_title) > 16:
             return await self.event.reply(_("Admin title is too long."))
 
-        await bot.promote_chat_member(
-            chat_id=connection.tid,
-            user_id=user.chat_id,
-            can_invite_users=True,
-            can_change_info=True,
-            can_restrict_members=True,
-            can_delete_messages=True,
-            can_pin_messages=True,
-            can_delete_stories=True,
-        )
+        try:
+            await bot.promote_chat_member(
+                chat_id=connection.tid,
+                user_id=user.chat_id,
+                can_invite_users=True,
+                can_change_info=True,
+                can_restrict_members=True,
+                can_delete_messages=True,
+                can_pin_messages=True,
+                can_delete_stories=True,
+            )
+        except TelegramBadRequest as err:
+            if RIGHT_FORBIDDEN in err.message:
+                log.debug("PromoteUser: Bot lacks required right, ignoring", error=str(err))
+                return
+            raise
 
         if admin_title:
-            await bot.set_chat_administrator_custom_title(
-                chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
-            )
+            try:
+                await bot.set_chat_administrator_custom_title(
+                    chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
+                )
+            except TelegramBadRequest as err:
+                if RIGHT_FORBIDDEN in err.message or NOT_ENOUGH_RIGHTS in err.message:
+                    log.debug("PromoteUser: Can't set admin title, ignoring", error=str(err))
+                else:
+                    raise
 
         # Reset admin cache
         await get_admins_rights(connection.tid, force_update=True)
