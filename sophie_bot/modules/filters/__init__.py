@@ -4,12 +4,12 @@ from aiogram import Router
 from fastapi import APIRouter
 from stfu_tg import Doc
 
-from .api import api_router as filters_api_router
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
 from .. import LOADED_MODULES
+from .api import api_router as filters_api_router
 from .enforce_middleware import EnforceFiltersMiddleware
 from .handlers.action_change_setting_confirm import ActionChangeSettingConfirm
 from .handlers.action_remove import ActionRemoveHandler
@@ -25,7 +25,7 @@ from .handlers.filter_new import FilterNewHandler
 from .handlers.filter_save import FilterSaveHandler
 from .handlers.filters_list import FiltersListHandler
 from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS
+from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS, LegacyFilterAction
 
 __all__ = (
     "api_router",
@@ -76,13 +76,13 @@ __handlers__ = (
 )
 
 
-async def __pre_setup__():
+async def __pre_setup__() -> None:
     # Enforce filters middleware
     router.message.outer_middleware(EnforceFiltersMiddleware())
     router.edited_message.outer_middleware(EnforceFiltersMiddleware())
 
 
-async def __post_setup__(modules: dict[str, ModuleType]):
+async def __post_setup__(modules: dict[str, ModuleType]) -> None:
     from ..notes.magic_handlers.reply_action import ReplyModernAction
 
     for name, module in modules.items():
@@ -93,7 +93,7 @@ async def __post_setup__(modules: dict[str, ModuleType]):
 
             ALL_MODERN_ACTIONS[action_filter.name] = action_filter()
 
-        legacy_filters: dict[str, dict] = getattr(module, "__filters__", {})
+        legacy_filters: dict[str, LegacyFilterAction] = getattr(module, "__filters__", {})
         for action_name, action in legacy_filters.items():
             log.debug("Legacy filters: Adding new action...", name=action_name, module=name)
             LEGACY_FILTERS_ACTIONS[action_name] = action

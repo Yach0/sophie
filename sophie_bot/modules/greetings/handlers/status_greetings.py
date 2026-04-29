@@ -8,6 +8,7 @@ from stfu_tg import Doc, Italic, Template
 from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
@@ -31,7 +32,8 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
         raw_text = raw_text_parsed.value if raw_text_parsed else None
         text_offset = raw_text_parsed.offset if raw_text_parsed else 0
 
-        raw_buttons = text_with_buttons.get("buttons").value if text_with_buttons.get("buttons") else []
+        raw_buttons_parsed: ParsedArg[list[AssButtonData]] | None = text_with_buttons.get("buttons")
+        raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
         buttons = ButtonsList.from_ass(raw_buttons)
 
         # Workaround for the old syntax

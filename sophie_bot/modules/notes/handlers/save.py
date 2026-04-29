@@ -15,8 +15,8 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
 from sophie_bot.modules.notes.utils.parse import parse_saveable
@@ -50,9 +50,8 @@ class SaveNote(SophieMessageHandler):
         raw_text = raw_text_parsed.value if raw_text_parsed else None
         text_offset = raw_text_parsed.offset if raw_text_parsed else 0
 
-        raw_buttons: list[AssButtonData] = (
-            text_with_buttons.get("buttons").value if text_with_buttons.get("buttons") else []
-        )
+        raw_buttons_parsed: ParsedArg[list[AssButtonData]] | None = text_with_buttons.get("buttons")
+        raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
         buttons = ButtonsList.from_ass(raw_buttons)
 
         notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"])
