@@ -14,6 +14,7 @@
 | `bot-handler-development` | Creating or editing bot handlers, module structure, ASS/STFU usage, i18n, and chat ID handling. |
 | `rest-api-development` | Adding or changing FastAPI routers, auth dependencies, response models, or REST endpoints. |
 | `database-migrations` | Making schema/data migrations under `sophie_bot/db/migrations/`. |
+| `db-references` | Adding or changing Beanie links, DBRef handling, or queries over linked document fields. |
 | `feature-flags` | Shipping new medium/high-risk features, external integrations, or large refactors. |
 | `e2e-testing` | Writing or updating bot end-to-end tests in `tests/e2e/`. |
 | `issue-fixer` | Diagnosing and fixing bugs, errors, or unexpected behavior by tracing root causes instead of masking symptoms. |
