@@ -1,5 +1,5 @@
-from typing import Annotated, Optional
 from datetime import datetime
+from typing import Annotated, Optional
 
 from beanie import Document, Indexed, PydanticObjectId
 from pymongo import ASCENDING, IndexModel

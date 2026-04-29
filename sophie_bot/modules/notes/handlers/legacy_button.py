@@ -6,7 +6,8 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 from stfu_tg import Bold, HList, Title
 
-from sophie_bot.db.models import NoteModel, ChatModel
+from sophie_bot.db.models import ChatModel, NoteModel
+from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -42,11 +43,19 @@ class LegacyStartNoteButton(SophieMessageHandler):
 
         title = Bold(HList(Title(f"📗 #{note_name}", bold=False), note.description or ""))
 
+        note_connection = ChatConnection(
+            type=chat.type,
+            is_connected=False,
+            tid=chat.tid,
+            title=chat.first_name_or_title,
+            db_model=chat,
+        )
+
         await send_saveable(
             message,
             user_id,
             note,
             title=title,
             reply_to=message.message_id,
-            connection=self.connection,
+            connection=note_connection,
         )

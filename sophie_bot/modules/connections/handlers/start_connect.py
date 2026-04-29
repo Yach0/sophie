@@ -4,6 +4,7 @@ from re import search
 from typing import Any
 
 from aiogram import F, flags
+from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 
 from sophie_bot.db.models.chat import ChatModel
@@ -20,14 +21,14 @@ from sophie_bot.utils.i18n import gettext as _
 @flags.help(exclude=True)
 class StartConnectHandler(SophieMessageHandler):
     @staticmethod
-    def filters():
-        return (CommandStart(deep_link=True, magic=F.args.regexp(r"connect_(-?\d+)")),)
+    def filters() -> tuple[CallbackType, ...]:
+        return (CommandStart(deep_link=True, magic=F.args.regexp(r"(?:connect|btn_connect_start)_(-?\d+)")),)
 
     async def handle(self) -> Any:
         if not self.event.from_user or not self.event.text:
             return
 
-        regex = search(r"connect_(-?\d+)", self.event.text)
+        regex = search(r"(?:connect|btn_connect_start)_(-?\d+)", self.event.text)
         if not regex:
             return
 

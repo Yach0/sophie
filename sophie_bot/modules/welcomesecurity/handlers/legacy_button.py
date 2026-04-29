@@ -2,8 +2,8 @@ from re import search
 from typing import Any
 
 from aiogram import F
-from aiogram.enums import ChatMemberStatus
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramBadRequest
 
 from sophie_bot.config import CONFIG
@@ -33,7 +33,7 @@ class LegacyStableWSButtonRedirectHandler(SophieCallbackQueryHandler):
 
     async def handle(self) -> Any:
         chat_id = self.event.message.chat.id
-        return self.event.answer(url=f"https://t.me/{CONFIG.username}?start=btnwelcomesecuritystart_{chat_id}")
+        return await self.event.answer(url=f"https://t.me/{CONFIG.username}?start=btnwelcomesecuritystart_{chat_id}")
 
 
 class LegacyWSButtonHandler(SophieMessageHandler):

@@ -6,7 +6,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 from stfu_tg import Bold, Section, Title
 
-from sophie_bot.db.models import RulesModel
+from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -22,9 +22,10 @@ class LegacyRulesButton(SophieMessageHandler):
         if not regex:
             return
 
-        chat_id = int(regex.group(1))
+        chat_tid = int(regex.group(1))
 
-        rules = await RulesModel.get_rules(chat_id)
+        chat = await ChatModel.get_by_tid(chat_tid)
+        rules = await RulesModel.get_rules(chat.iid) if chat else None
 
         if not rules:
             return await self.event.reply(
