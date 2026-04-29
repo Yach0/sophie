@@ -124,16 +124,20 @@ class LazyProxy(BabelLazyProxy):
     __isabstractmethod__: bool = False
     __hash__ = None
 
-    def __init__(self, *items: str | Callable, **kwargs):
+    def __init__(self, *items: str | Callable, **kwargs: Any) -> None:
         if callable(items[0]):
             func = items[0]
             args = items[1:]
         else:
             func = gettext
             args = items
+
+        # Babel caches LazyProxy values by default. These proxies are reused across
+        # update contexts, so caching would pin the first locale that evaluated them.
+        kwargs["enable_cache"] = False
         super().__init__(func, *args, **kwargs)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return str(self) == other
 
     def __contains__(self, key: object) -> bool:
