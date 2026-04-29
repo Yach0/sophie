@@ -40,6 +40,7 @@ FeatureType = Literal[
     "new_feds_funsub",
     "new_feds_import",
     "new_feds_frename",
+    "new_feds_fdelete",
     "new_feds_fchats",
     "new_feds_fpromote",
     "new_feds_fdemote",
@@ -79,6 +80,7 @@ class FeatureStates(TypedDict):
     new_feds_funsub: bool
     new_feds_import: bool
     new_feds_frename: bool
+    new_feds_fdelete: bool
     new_feds_fchats: bool
     new_feds_fpromote: bool
     new_feds_fdemote: bool
@@ -117,6 +119,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "new_feds_funsub",
     "new_feds_import",
     "new_feds_frename",
+    "new_feds_fdelete",
     "new_feds_fchats",
     "new_feds_fpromote",
     "new_feds_fdemote",
@@ -157,6 +160,7 @@ def _default_state_map() -> FeatureStates:
         new_feds_funsub=_DEFAULT_STATES["new_feds_funsub"],
         new_feds_import=_DEFAULT_STATES["new_feds_import"],
         new_feds_frename=_DEFAULT_STATES["new_feds_frename"],
+        new_feds_fdelete=_DEFAULT_STATES["new_feds_fdelete"],
         new_feds_fchats=_DEFAULT_STATES["new_feds_fchats"],
         new_feds_fpromote=_DEFAULT_STATES["new_feds_fpromote"],
         new_feds_fdemote=_DEFAULT_STATES["new_feds_fdemote"],
@@ -196,6 +200,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, bool]] = {
     "new_feds_funsub": True,
     "new_feds_import": True,
     "new_feds_frename": True,
+    "new_feds_fdelete": True,
     "new_feds_fchats": True,
     "new_feds_fpromote": True,
     "new_feds_fdemote": True,

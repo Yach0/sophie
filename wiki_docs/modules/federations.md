@@ -27,6 +27,7 @@ icon: 🏛
 | `/funsub` | `<Federation ID to unsubscribe from>` | Unsubscribe federation from another federation |  |
 | `/importfbans` `/fimport` | `<?Federation ID>` | Import federation ban list from CSV file |  |
 | `/frename` | `<?Federation ID>` `<New federation name>` | Rename a federation (owner only) |  |
+| `/fdelete` | `<?Federation ID>` | Delete a federation (owner only) |  |
 | `/fchats` | `<Federation ID to list chats for (optional)>` | List all chats in a federation |  |
 | `/fadmins` `/fedadmins` | `<?Federation ID>` | List all admins of a federation | *Disable-able* |
 | `/fpromote` | `<?Federation ID>` `<User>` | Promote a user to federation admin |  |

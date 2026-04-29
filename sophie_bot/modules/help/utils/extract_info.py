@@ -5,10 +5,9 @@ from itertools import chain
 from types import ModuleType
 from typing import Any, Callable, Coroutine, Dict, Optional, cast
 
-from aiogram.types import Message
-
 from aiogram import Router
 from aiogram.filters.logic import _InvertFilter
+from aiogram.types import Message
 from ass_tg.types.base_abc import ArgFabric
 from babel.support import LazyProxy
 from stfu_tg import Doc
@@ -22,7 +21,7 @@ from sophie_bot.filters.chat_status import (
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.utils.feature_flags import FeatureType, is_enabled
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 ARGS_DICT = dict[str, ArgFabric]
@@ -97,20 +96,27 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
         if not handler.filters:
             continue
 
-        cmd_filters = list(filter(lambda x: isinstance(x.callback, CMDFilter), handler.filters))
+        cmd_filters = [
+            handler_filter for handler_filter in handler.filters if isinstance(handler_filter.callback, CMDFilter)
+        ]
 
         if not cmd_filters:
             continue
-        cmds = cmd_filters[0].callback.cmd
+        cmd_filter = cast(CMDFilter, cmd_filters[0].callback)
+        cmds = cast(tuple[str, ...], cmd_filter.cmd)
 
         # Check feature flags
-        feature_flag_filters = list(filter(lambda x: isinstance(x.callback, FeatureFlagFilter), handler.filters))
+        feature_flag_filters = [
+            handler_filter
+            for handler_filter in handler.filters
+            if isinstance(handler_filter.callback, FeatureFlagFilter)
+        ]
         if feature_flag_filters:
             # Check if any feature flag filter would disable this handler
             skip_handler = False
-            for f in feature_flag_filters:
-                ff_filter = cast(FeatureFlagFilter, f.callback)
-                feature_enabled = await is_enabled(cast(FeatureType, ff_filter.feature))
+            for feature_flag_event_filter in feature_flag_filters:
+                ff_filter = cast(FeatureFlagFilter, feature_flag_event_filter.callback)
+                feature_enabled = await is_enabled(ff_filter.feature)
                 if feature_enabled != ff_filter.enabled:
                     skip_handler = True
                     break

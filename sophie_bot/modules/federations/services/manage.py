@@ -106,6 +106,12 @@ class FederationManageService:
     @staticmethod
     async def delete_federation(federation: Federation) -> None:
         await FederationBan.find(FederationBan.fed_id == federation.fed_id).delete()
+
+        subscribing_federations = await FederationManageService.get_subscribing_federations(federation.fed_id)
+        for subscribing_federation in subscribing_federations:
+            subscribing_federation.subscribed.remove(federation.fed_id)
+            await subscribing_federation.save()
+
         if federation.chats:
             for chat in federation.chats:
                 await FederationCacheService.invalidate_federation_for_chat(chat.to_ref().id)
