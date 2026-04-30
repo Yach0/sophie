@@ -20,12 +20,12 @@ from sophie_bot.modules.filters.utils_.filter_abc import (
     FilterActionABC,
 )
 from sophie_bot.modules.filters.utils_.legacy_filter_handler import text_legacy_handler_handles_on
+from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
 )
-from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -114,8 +114,7 @@ class FilterActionClickHandler(SophieCallbackQueryHandler):
 class FilterActionConfirmHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        # No admin verification to omit the possibility to stuck in the state if admin was removed in the middle of the process
-        return FilterEditFSM.action_setup, ~ChatTypeFilter("private")
+        return FilterEditFSM.action_setup, ~ChatTypeFilter("private"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         filter_action_raw: Optional[str] = await self.state.get_value("filter_action")

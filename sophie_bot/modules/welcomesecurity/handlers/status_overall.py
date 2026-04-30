@@ -10,13 +10,14 @@ from sophie_bot.db.models.greetings import (
     WELCOMEMUTE_DEFALT_VALUE,
     WELCOMESECURITY_EXPIRE_DEFALT_VALUE,
 )
+from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.greetings.default_welcome import get_default_security_message
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
     convert_timedelta_or_str,
 )
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -26,7 +27,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("welcomesecurity"),)
+        return (CMDFilter("welcomesecurity"), UserRestricting(admin=True))
 
     async def handle(self) -> Any:
         connection = self.connection

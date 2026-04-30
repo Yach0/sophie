@@ -15,13 +15,13 @@ icon: 🚫
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/disableable` | - | Lists all commands that can be disabled. | *Disable-able* |
-| `/disabled` | - | Lists all disabled commands. | *Disable-able* |
 {.card-view-on-mobile}
 
 ### Only admins
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
+| `/disabled` | - | Lists all disabled commands. | *Disable-able* |
 | `/disable` | `<Command>` | Disables the command. |  |
 | `/enable` | `<Command>` | Enables previously disabled command. |  |
 | `/enableall` | - | - |  |
