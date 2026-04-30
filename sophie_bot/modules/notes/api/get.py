@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.services.telegram_media import TelegramMediaService
-from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.auth import rest_require_admin
+
 from .schemas import NoteResponse, NotesListResponse
-from .utils import verify_admin
 
 router = APIRouter()
 
@@ -18,12 +18,11 @@ router = APIRouter()
 @router.get("/{chat_iid}", response_model=NotesListResponse)
 async def list_notes(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin())],
 ) -> NotesListResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    await verify_admin(chat, user)
 
     notes = await NoteModel.get_chat_notes(chat.iid)
 
@@ -56,12 +55,11 @@ async def list_notes(
 async def get_note(
     chat_iid: PydanticObjectId,
     note_id: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin())],
 ) -> NoteResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    await verify_admin(chat, user)
 
     note = await NoteModel.get(note_id)
     if not note or (note.chat and note.chat.ref.id != chat.iid) or (not note.chat and note.chat_tid != chat.tid):

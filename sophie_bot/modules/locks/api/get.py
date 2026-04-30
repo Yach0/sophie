@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.locks import LocksModel
-from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.auth import rest_require_admin
 
 from .schemas import LocksResponse
 
@@ -17,7 +17,7 @@ router = APIRouter()
 @router.get("/locked/{chat_iid}", response_model=LocksResponse)
 async def get_locked_types(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin())],
 ):
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:

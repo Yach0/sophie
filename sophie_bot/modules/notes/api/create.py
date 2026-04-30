@@ -10,9 +10,9 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.auth import rest_require_admin
+
 from .schemas import NoteCreate, NoteResponse
-from .utils import verify_admin
 
 router = APIRouter()
 
@@ -21,12 +21,11 @@ router = APIRouter()
 async def create_note(
     chat_iid: PydanticObjectId,
     note_data: NoteCreate,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
 ) -> NoteResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    await verify_admin(chat, user)
 
     if not note_data.names:
         raise HTTPException(status_code=400, detail="Note names cannot be empty")

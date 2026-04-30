@@ -9,10 +9,9 @@ from pydantic import BaseModel, Field, field_validator
 from sophie_bot.constants import ANTIFOOD_MAX_ACTIONS
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.auth import rest_require_admin
 
 router = APIRouter(prefix="/antiflood", tags=["antiflood"])
 
@@ -84,36 +83,18 @@ class AntifloodSettingsResponse(BaseModel):
     actions: list[ActionResponse]
 
 
-async def verify_chat_admin(
-    user: ChatModel,
+@router.get("/{chat_iid}", response_model=AntifloodSettingsResponse)
+async def get_antiflood_settings(
     chat_iid: PydanticObjectId,
-) -> ChatModel:
-    """Verify that the user is an admin in the specified chat."""
-    admin = await ChatAdminModel.find_one(
-        ChatAdminModel.chat.id == chat_iid,
-        ChatAdminModel.user.id == user.iid,
-    )
-    if not admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not an admin in this chat",
-        )
+    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+) -> AntifloodSettingsResponse:
+    """Get antiflood settings for a chat."""
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chat not found",
         )
-    return chat
-
-
-@router.get("/{chat_iid}", response_model=AntifloodSettingsResponse)
-async def get_antiflood_settings(
-    chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
-) -> AntifloodSettingsResponse:
-    """Get antiflood settings for a chat."""
-    chat = await verify_chat_admin(user, chat_iid)
 
     settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
 
@@ -139,10 +120,15 @@ async def get_antiflood_settings(
 async def update_antiflood_settings(
     chat_iid: PydanticObjectId,
     request: AntifloodSettingsRequest,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
 ) -> AntifloodSettingsResponse:
     """Update antiflood settings for a chat."""
-    chat = await verify_chat_admin(user, chat_iid)
+    chat = await ChatModel.get_by_iid(chat_iid)
+    if not chat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat not found",
+        )
 
     settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
 
@@ -168,11 +154,9 @@ async def update_antiflood_settings(
 @router.delete("/{chat_iid}", status_code=status.HTTP_204_NO_CONTENT)
 async def disable_antiflood(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
 ) -> None:
     """Disable antiflood for a chat (deletes settings)."""
-    await verify_chat_admin(user, chat_iid)
-
     settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
     if settings:
         await settings.delete()

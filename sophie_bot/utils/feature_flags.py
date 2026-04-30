@@ -22,6 +22,14 @@ FeatureType = Literal[
     "antiflood",
     "locks",
     "filters_rest_api",
+    "notes_rest_api",
+    "warns_rest_api",
+    "rules_rest_api",
+    "locks_rest_api",
+    "disabling_rest_api",
+    "logging_rest_api",
+    "ai_moderator_rest_api",
+    "antiflood_rest_api",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
     "new_feds_newfed",
@@ -62,6 +70,14 @@ class FeatureStates(TypedDict):
     antiflood: bool
     locks: bool
     filters_rest_api: bool
+    notes_rest_api: bool
+    warns_rest_api: bool
+    rules_rest_api: bool
+    locks_rest_api: bool
+    disabling_rest_api: bool
+    logging_rest_api: bool
+    ai_moderator_rest_api: bool
+    antiflood_rest_api: bool
     welcomecaptcha: bool
     welcomecaptcha_autokick: bool
     new_feds_newfed: bool
@@ -101,6 +117,14 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "antiflood",
     "locks",
     "filters_rest_api",
+    "notes_rest_api",
+    "warns_rest_api",
+    "rules_rest_api",
+    "locks_rest_api",
+    "disabling_rest_api",
+    "logging_rest_api",
+    "ai_moderator_rest_api",
+    "antiflood_rest_api",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
     "new_feds_newfed",
@@ -142,6 +166,14 @@ def _default_state_map() -> FeatureStates:
         antiflood=_DEFAULT_STATES["antiflood"],
         locks=_DEFAULT_STATES["locks"],
         filters_rest_api=_DEFAULT_STATES["filters_rest_api"],
+        notes_rest_api=_DEFAULT_STATES["notes_rest_api"],
+        warns_rest_api=_DEFAULT_STATES["warns_rest_api"],
+        rules_rest_api=_DEFAULT_STATES["rules_rest_api"],
+        locks_rest_api=_DEFAULT_STATES["locks_rest_api"],
+        disabling_rest_api=_DEFAULT_STATES["disabling_rest_api"],
+        logging_rest_api=_DEFAULT_STATES["logging_rest_api"],
+        ai_moderator_rest_api=_DEFAULT_STATES["ai_moderator_rest_api"],
+        antiflood_rest_api=_DEFAULT_STATES["antiflood_rest_api"],
         welcomecaptcha=_DEFAULT_STATES["welcomecaptcha"],
         welcomecaptcha_autokick=_DEFAULT_STATES["welcomecaptcha_autokick"],
         new_feds_newfed=_DEFAULT_STATES["new_feds_newfed"],
@@ -182,6 +214,14 @@ _DEFAULT_STATES: Final[dict[FeatureType, bool]] = {
     "antiflood": True,
     "locks": True,
     "filters_rest_api": False,
+    "notes_rest_api": True,
+    "warns_rest_api": True,
+    "rules_rest_api": True,
+    "locks_rest_api": True,
+    "disabling_rest_api": True,
+    "logging_rest_api": True,
+    "ai_moderator_rest_api": True,
+    "antiflood_rest_api": True,
     "welcomecaptcha": True,
     "welcomecaptcha_autokick": True,
     "new_feds_newfed": True,

@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnModel
-from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.auth import rest_require_admin
+
 from .schemas import WarnResponse
 
 router = APIRouter(prefix="/warns", tags=["warns"])
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/warns", tags=["warns"])
 async def get_user_warns(
     chat_iid: PydanticObjectId,
     user_tid: int,
-    current_user: Annotated[ChatModel, Depends(get_current_user)],
+    current_user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
 ) -> List[WarnResponse]:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
