@@ -15,7 +15,7 @@ ACTION_DATA = TypeVar("ACTION_DATA", bound=type[BaseModel] | None)
 
 class FilterActionType(BaseModel):
     name: str
-    data: Any
+    data: dict[str, Any] | None = None
 
 
 class FilterHandlerType(BaseModel):
@@ -35,7 +35,7 @@ class FiltersModel(Document):
     time: Optional[Any] = None
 
     model_config = ConfigDict(
-        extra="allow",  # legacy workaround
+        extra="ignore",
     )
 
     class Settings:

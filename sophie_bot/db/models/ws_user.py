@@ -3,6 +3,7 @@ from typing import Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set
+from pydantic import Field
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models._link_type import Link
@@ -13,7 +14,7 @@ class WSUserModel(Document):
     group: Link["ChatModel"]
     passed: bool = False
     is_join_request: bool = False
-    added_at: datetime = datetime.now(timezone.utc)
+    added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = "ws_users"
