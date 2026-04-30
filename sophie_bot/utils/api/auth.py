@@ -46,7 +46,7 @@ def hash_token(token: str) -> str:
 
 def _verify_telegram_data(data: dict, hash_value: str, secret_key: bytes) -> None:
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if v is not None)
-    calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    calculated_hash = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(calculated_hash, hash_value):
         raise HTTPException(status_code=403, detail="Invalid hash")
@@ -77,7 +77,7 @@ def verify_tma_launch_params(init_data: str) -> tuple[dict, str]:
         raise HTTPException(status_code=400, detail="Missing hash")
 
     hash_value = parsed_data.pop("hash")
-    secret_key = hmac.new(b"WebAppData", CONFIG.token.encode(), hashlib.sha256).digest()
+    secret_key = hmac.HMAC(b"WebAppData", CONFIG.token.encode(), hashlib.sha256).digest()
     _verify_telegram_data(parsed_data, hash_value, secret_key)
 
     return parsed_data, hash_value

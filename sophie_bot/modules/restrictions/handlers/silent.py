@@ -4,6 +4,7 @@ import asyncio
 from datetime import timedelta
 from typing import Any
 
+import structlog
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
@@ -30,6 +31,25 @@ from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
+_log = structlog.get_logger(__name__)
+
+# Strong references to background tasks to prevent GC before completion
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _task_done_callback(task: asyncio.Task) -> None:
+    """Remove completed task from the set and log exceptions."""
+    _background_tasks.discard(task)
+    if not task.cancelled() and (exc := task.exception()):
+        _log.error("Silent mode message deletion failed", exc_info=exc)
+
+
+def _schedule_message_deletion(chat_id: int, message_ids: list[int]) -> None:
+    """Schedule message deletion with proper task lifecycle management."""
+    task = asyncio.create_task(delete_messages_after_delay(chat_id, message_ids))
+    _background_tasks.add(task)
+    task.add_done_callback(_task_done_callback)
 
 
 async def delete_messages_after_delay(
@@ -107,7 +127,7 @@ class SilentKickUserHandler(SophieMessageHandler):
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
 
-        asyncio.create_task(delete_messages_after_delay(connection.tid, messages_to_delete))
+        _schedule_message_deletion(connection.tid, messages_to_delete)
 
 
 @flags.help(description=l_("Silently bans the user from the chat. Deletes messages after 10 seconds."))
@@ -175,7 +195,7 @@ class SilentBanUserHandler(SophieMessageHandler):
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
 
-        asyncio.create_task(delete_messages_after_delay(connection.tid, messages_to_delete))
+        _schedule_message_deletion(connection.tid, messages_to_delete)
 
 
 @flags.help(description=l_("Silently temporarily bans the user from the chat. Deletes messages after 10 seconds."))
@@ -247,7 +267,7 @@ class SilentTempBanUserHandler(SophieMessageHandler):
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
 
-        asyncio.create_task(delete_messages_after_delay(connection.tid, messages_to_delete))
+        _schedule_message_deletion(connection.tid, messages_to_delete)
 
 
 @flags.help(description=l_("Silently mutes the user in the chat. Deletes messages after 10 seconds."))
@@ -315,7 +335,7 @@ class SilentMuteUserHandler(SophieMessageHandler):
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
 
-        asyncio.create_task(delete_messages_after_delay(connection.tid, messages_to_delete))
+        _schedule_message_deletion(connection.tid, messages_to_delete)
 
 
 @flags.help(description=l_("Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds."))
@@ -387,4 +407,4 @@ class SilentTempMuteUserHandler(SophieMessageHandler):
         if self.event.reply_to_message:
             messages_to_delete.append(self.event.reply_to_message.message_id)
 
-        asyncio.create_task(delete_messages_after_delay(connection.tid, messages_to_delete))
+        _schedule_message_deletion(connection.tid, messages_to_delete)

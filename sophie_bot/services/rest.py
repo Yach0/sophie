@@ -111,8 +111,13 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         key = f"global_rate_limit:{client_ip}"
 
         try:
-            current = await aredis.get(key)
-            if current and int(current) >= GLOBAL_RATE_LIMIT:
+            async with aredis.pipeline() as pipe:
+                await pipe.incr(key)
+                await pipe.expire(key, GLOBAL_RATE_WINDOW)
+                results = await pipe.execute()
+
+            current_count = results[0]
+            if current_count > GLOBAL_RATE_LIMIT:
                 ttl = await aredis.ttl(key)
                 logger.warning(
                     "Global rate limit exceeded",
@@ -124,11 +129,6 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Too many requests"},
                     headers={"Retry-After": str(max(ttl, 1))},
                 )
-
-            async with aredis.pipeline() as pipe:
-                await pipe.incr(key)
-                await pipe.expire(key, GLOBAL_RATE_WINDOW)
-                await pipe.execute()
         except Exception:
             # Fail-open: allow the request through rather than blocking all
             # traffic. Track failure count for operator alerting.

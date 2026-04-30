@@ -26,7 +26,7 @@ from sophie_bot.utils.api.auth import (
 @pytest.fixture
 def mock_config():
     with patch("sophie_bot.utils.api.auth.CONFIG") as mock:
-        mock.api_jwt_secret = "test_secret"
+        mock.api_jwt_secret = "test_secret_that_is_at_least_32_bytes_long"
         mock.token = "12345:TEST_TOKEN"
         mock.operators = [12345]
         yield mock
@@ -69,8 +69,8 @@ def test_verify_tma_init_data_success(mock_config):
     auth_date = int(time.time())
     parsed_data = {"auth_date": str(auth_date), "user": '{"id": 12345, "first_name": "Test"}'}
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
-    secret_key = hmac.new(b"WebAppData", mock_config.token.encode(), hashlib.sha256).digest()
-    hash_value = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    secret_key = hmac.HMAC(b"WebAppData", mock_config.token.encode(), hashlib.sha256).digest()
+    hash_value = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     init_data = "&".join(f"{k}={v}" for k, v in parsed_data.items()) + f"&hash={hash_value}"
 
@@ -99,8 +99,8 @@ def test_verify_tma_init_data_outdated(mock_config):
     auth_date = int(time.time()) - 90000  # More than 24 hours ago
     parsed_data = {"auth_date": str(auth_date)}
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
-    secret_key = hmac.new(b"WebAppData", mock_config.token.encode(), hashlib.sha256).digest()
-    hash_value = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    secret_key = hmac.HMAC(b"WebAppData", mock_config.token.encode(), hashlib.sha256).digest()
+    hash_value = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     init_data = f"auth_date={auth_date}&hash={hash_value}"
 
     with pytest.raises(HTTPException) as excinfo:
@@ -113,8 +113,8 @@ def test_verify_tma_init_data_future(mock_config):
     auth_date = int(time.time()) + 120  # 2 minutes in the future
     parsed_data = {"auth_date": str(auth_date)}
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
-    secret_key = hmac.new(b"WebAppData", mock_config.token.encode(), hashlib.sha256).digest()
-    hash_value = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    secret_key = hmac.HMAC(b"WebAppData", mock_config.token.encode(), hashlib.sha256).digest()
+    hash_value = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     init_data = f"auth_date={auth_date}&hash={hash_value}"
 
     with pytest.raises(HTTPException) as excinfo:
@@ -128,7 +128,7 @@ def test_verify_telegram_login_widget_success(mock_config):
     data = {"id": "12345", "first_name": "Test", "auth_date": str(auth_date)}
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
     secret_key = hashlib.sha256(mock_config.token.encode()).digest()
-    hash_value = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    hash_value = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     data_with_hash = data.copy()
     data_with_hash["hash"] = hash_value
@@ -152,7 +152,7 @@ def test_verify_telegram_login_widget_with_none_values(mock_config):
     # Hash should be calculated excluding None values
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if v is not None and k != "hash")
     secret_key = hashlib.sha256(mock_config.token.encode()).digest()
-    hash_value = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    hash_value = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     data_with_hash = data.copy()
     data_with_hash["hash"] = hash_value
@@ -222,9 +222,11 @@ async def test_rest_require_admin_owner_allows_creator(mock_config):
 
     dependency = rest_require_admin(permission="can_restrict_members", require_owner=True)
 
-    with patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True), patch.object(
-        ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True
-    ), patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one:
+    with (
+        patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True),
+        patch.object(ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True),
+        patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one,
+    ):
         mock_find_one.return_value = admin_record
         result = await dependency(chat_iid_value, user)
         assert result == user
@@ -245,9 +247,11 @@ async def test_rest_require_admin_owner_rejects_non_creator(mock_config):
 
     dependency = rest_require_admin(require_owner=True)
 
-    with patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True), patch.object(
-        ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True
-    ), patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one:
+    with (
+        patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True),
+        patch.object(ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True),
+        patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one,
+    ):
         mock_find_one.return_value = admin_record
         with pytest.raises(HTTPException) as excinfo:
             await dependency(chat_iid_value, user)
@@ -271,9 +275,11 @@ async def test_rest_require_admin_owner_bypasses_permission_check(mock_config):
 
     dependency = rest_require_admin(permission="can_restrict_members")
 
-    with patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True), patch.object(
-        ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True
-    ), patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one:
+    with (
+        patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True),
+        patch.object(ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True),
+        patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one,
+    ):
         mock_find_one.return_value = admin_record
         result = await dependency(chat_iid_value, user)
         assert result == user

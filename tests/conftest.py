@@ -189,10 +189,20 @@ async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient,
 
 
 @pytest.fixture(autouse=True)
-def reset_redis() -> None:
+async def reset_redis() -> None:
     """Reset fakeredis state between tests."""
     # Import here to avoid circular imports
     from sophie_bot.services.redis import aredis
 
     if hasattr(aredis, "flushall"):
-        asyncio.get_event_loop().run_until_complete(aredis.flushall())
+        await aredis.flushall()
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def close_redis_on_shutdown() -> AsyncGenerator[None, None]:
+    """Close the global fakeredis client after all tests to avoid ResourceWarning."""
+    yield
+
+    from sophie_bot.services.redis import aredis
+
+    await aredis.aclose()

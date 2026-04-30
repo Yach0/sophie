@@ -1,4 +1,4 @@
-from asyncio import Lock
+import asyncio
 from enum import Enum
 from typing import Optional
 
@@ -7,6 +7,8 @@ from beanie.odm.operators.update.general import Set, Unset
 
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
+
+_set_mode_lock: asyncio.Lock = asyncio.Lock()
 
 
 class PreferredMode(Enum):
@@ -39,7 +41,7 @@ class BetaModeModel(Document):
 
     @staticmethod
     async def set_mode(chat_iid: PydanticObjectId, new_mode: CurrentMode) -> "BetaModeModel":
-        async with Lock():
+        async with _set_mode_lock:
             return await BetaModeModel.find_one(BetaModeModel.chat.id == chat_iid).upsert(
                 Set({BetaModeModel.mode: new_mode}),
                 on_insert=BetaModeModel(

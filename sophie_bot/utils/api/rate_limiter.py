@@ -33,19 +33,19 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
     key = f"rate_limit:{request.url.path}:{client_ip}"
 
     try:
-        current = await aredis.get(key)
-        if current and int(current) >= limit:
+        async with aredis.pipeline() as pipe:
+            await pipe.incr(key)
+            await pipe.expire(key, window)
+            results = await pipe.execute()
+
+        current_count = results[0]
+        if current_count > limit:
             ttl = await aredis.ttl(key)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many requests",
                 headers={"Retry-After": str(max(ttl, 1))},
             )
-
-        async with aredis.pipeline() as pipe:
-            await pipe.incr(key)
-            await pipe.expire(key, window)
-            await pipe.execute()
     except HTTPException:
         raise
     except Exception:

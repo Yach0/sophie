@@ -1,10 +1,11 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from beanie import Document
-from ._link_type import Link
 from bson import ObjectId
 from pydantic import Field
+
+from ._link_type import Link
 
 if TYPE_CHECKING:
     from sophie_bot.db.models import ChatModel
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 class ChatPhotoModel(Document):
     chat: Link["ChatModel"]
     url: str
-    last_updated: datetime = Field(default_factory=lambda _: datetime.now(tz=UTC))
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(tz=UTC))
 
     class Settings:
         name = "chat_photo"
