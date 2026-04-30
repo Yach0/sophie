@@ -1,10 +1,10 @@
 from random import randint
-from typing_extensions import override
 
 from aiohttp import ClientError, ClientSession
+from typing_extensions import override
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import BetaModeModel, GlobalSettings, ChatModel
+from sophie_bot.db.models import BetaModeModel, ChatModel, GlobalSettings
 from sophie_bot.db.models.beta import CurrentMode, PreferredMode
 from sophie_bot.utils.logger import log
 

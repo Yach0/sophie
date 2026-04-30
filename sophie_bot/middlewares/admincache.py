@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
@@ -75,7 +75,7 @@ class AdmincacheMiddleware(BaseMiddleware):
         if not oldest_admin:
             return True
 
-        cache_age = (datetime.now() - oldest_admin.last_updated).total_seconds()
+        cache_age = (datetime.now(timezone.utc) - oldest_admin.last_updated).total_seconds()
         return cache_age > CACHE_ADMIN_TTL_SECONDS
 
     async def _get_oldest_admin(self, chat_iid: PydanticObjectId) -> ChatAdminModel | None:

@@ -1,16 +1,21 @@
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Optional
 from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, Optional
 
 from aiogram import BaseMiddleware
 from aiogram.types import Chat, TelegramObject
+from beanie import PydanticObjectId
 from beanie.odm.fields import Link as BeanieLink
 
-from sophie_bot.db.models import ChatConnectionModel, ChatModel
+from sophie_bot.db.models import ChatConnectionModel, ChatConnectionSettingsModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
+
+_PERMISSION_RECHECK_TTL_SECONDS = 300  # Re-validate connection permissions every 5 minutes
 
 
 @dataclass
@@ -121,6 +126,32 @@ class ConnectionsMiddleware(BaseMiddleware):
             data["connection"] = await self.get_current_chat_info(real_chat)
             return await handler(event, data)
 
+        # Re-validate that the user still has permission for this connection.
+        # Throttled via Redis to avoid a DB query on every single request.
+        user_iid: PydanticObjectId = connection.user.ref.id
+        if not await self._is_permission_cached(user_iid, connection_chat.iid):
+            if not await self._check_connection_permissions(connection_chat.iid, user_iid):
+                log.info(
+                    "ConnectionsMiddleware: permission denied on re-check, disconnecting",
+                    user_iid=str(user_iid),
+                    chat_iid=str(connection_chat.iid),
+                )
+                connection.chat = None
+                connection.expires_at = None
+                await connection.save()
+
+                await common_try(
+                    data["bot"].send_message(
+                        real_chat.id,
+                        _("You no longer have permission to connect to this chat. You have been disconnected."),
+                    )
+                )
+
+                data["connection"] = await self.get_current_chat_info(real_chat)
+                return await handler(event, data)
+
+            await self._cache_permission(user_iid, connection_chat.iid)
+
         log.debug("ConnectionsMiddleware: connected!")
         data["connection"] = ChatConnection(
             is_connected=True,
@@ -130,3 +161,29 @@ class ConnectionsMiddleware(BaseMiddleware):
             db_model=connection_chat,
         )
         return await handler(event, data)
+
+    @staticmethod
+    async def _check_connection_permissions(chat_iid: PydanticObjectId, user_iid: PydanticObjectId) -> bool:
+        """Check if a user still has permission to connect to a chat."""
+        if await is_user_admin(chat_iid, user_iid):
+            return True
+        settings = await ChatConnectionSettingsModel.get_by_chat_iid(chat_iid)
+        if settings and not settings.allow_users_connect:
+            return False
+        return True
+
+    @staticmethod
+    def _permission_cache_key(user_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> str:
+        return f"conn_perm_ok:{user_iid}:{chat_iid}"
+
+    @staticmethod
+    async def _is_permission_cached(user_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> bool:
+        """Return True if permissions were recently validated (within TTL)."""
+        key = ConnectionsMiddleware._permission_cache_key(user_iid, chat_iid)
+        return await aredis.exists(key) == 1
+
+    @staticmethod
+    async def _cache_permission(user_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> None:
+        """Mark permissions as validated for the throttle window."""
+        key = ConnectionsMiddleware._permission_cache_key(user_iid, chat_iid)
+        await aredis.set(key, b"1", ex=_PERMISSION_RECHECK_TTL_SECONDS)
