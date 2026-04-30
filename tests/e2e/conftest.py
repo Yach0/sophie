@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
 
 import pytest_asyncio
 from aiogram import Dispatcher
@@ -16,26 +15,25 @@ from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.memory import SimpleEventIsolation
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_test_framework import TestClient
-from beanie import init_beanie
 from fakeredis import FakeAsyncRedis
 
 from sophie_bot.config import CONFIG
+from tests.utils.db_fixture import (
+    cleanup_beanie,
+    create_mock_mongo,
+    initialize_beanie,
+    patch_pymongo,
+)
 
 if TYPE_CHECKING:
     pass
 
-# Import and set up mock BEFORE any Beanie imports
-from tests.utils.mongo_mock import AsyncMongoMockClient
-
-# Create mock client early
-_mock_mongo_client = AsyncMongoMockClient()
-
-# Patch pymongo before any other imports that might use it
-_patcher = patch("pymongo.AsyncMongoClient", return_value=_mock_mongo_client)
+# Create mock client and patch pymongo BEFORE any Beanie/model imports
+_mock_mongo_client = create_mock_mongo()
+_patcher = patch_pymongo(_mock_mongo_client)
 _mongo_patch = _patcher.start()
 
-# Now import models after patching
-from sophie_bot.db.models import models  # noqa: E402
+# Import modules after patching (models are loaded within db_fixture)
 from sophie_bot.modules import load_modules  # noqa: E402
 
 
@@ -56,22 +54,11 @@ async def db_init(mock_mongo: Any) -> AsyncGenerator[Any, None]:
 
     This fixture sets up Beanie ODM with all models using the mocked MongoDB.
     """
-    # Get database from mock client
-    db = mock_mongo[CONFIG.mongo_db]
+    database = await initialize_beanie(mock_mongo)
 
-    # Initialize Beanie with all models
-    await init_beanie(
-        database=db,
-        document_models=models,
-        allow_index_dropping=True,
-        skip_indexes=True,  # Skip indexes for faster tests
-    )
+    yield database
 
-    yield db
-
-    # Cleanup: drop all collections after tests
-    for model in models:
-        await model.delete_all()
+    await cleanup_beanie()
 
 
 @pytest_asyncio.fixture(scope="session")

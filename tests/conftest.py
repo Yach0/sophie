@@ -24,13 +24,16 @@ from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.memory import SimpleEventIsolation
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_test_framework import TestClient
-from beanie import init_beanie
 from fakeredis import FakeAsyncRedis
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import models
 from sophie_bot.modules import load_modules
 from sophie_bot.utils.i18n import I18nNew
+from tests.utils.db_fixture import (
+    cleanup_beanie,
+    create_mock_mongo,
+    initialize_beanie,
+)
 
 if TYPE_CHECKING:
     pass
@@ -95,10 +98,7 @@ async def mock_mongo() -> AsyncGenerator[Any, None]:
     This fixture patches pymongo.AsyncMongoClient to use our AsyncMongoMockClient
     which wraps mongomock and provides async compatibility for Beanie 2.0.
     """
-    from tests.utils.mongo_mock import AsyncMongoMockClient
-
-    # Create mock client
-    mock_client = AsyncMongoMockClient()
+    mock_client = create_mock_mongo()
 
     # Patch AsyncMongoClient at the module level
     with patch("pymongo.AsyncMongoClient", return_value=mock_client):
@@ -114,22 +114,11 @@ async def db_init(mock_mongo: Any) -> AsyncGenerator[Any, None]:
 
     This fixture sets up Beanie ODM with all models using the mocked MongoDB.
     """
-    # Get database from mock client
-    db = mock_mongo[CONFIG.mongo_db]
+    database = await initialize_beanie(mock_mongo)
 
-    # Initialize Beanie with all models
-    await init_beanie(
-        database=db,
-        document_models=models,
-        allow_index_dropping=True,
-        skip_indexes=True,  # Skip indexes for faster tests
-    )
+    yield database
 
-    yield db
-
-    # Cleanup: drop all collections after tests
-    for model in models:
-        await model.delete_all()
+    await cleanup_beanie()
 
 
 @pytest.fixture(scope="session")

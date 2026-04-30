@@ -4,27 +4,25 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest_asyncio
 from aiogram.types import Chat, Message, Update, User
 
-# Import and set up mock BEFORE any Beanie imports
-from tests.utils.mongo_mock import AsyncMongoMockClient
+from tests.utils.db_fixture import (
+    cleanup_beanie,
+    create_mock_mongo,
+    initialize_beanie,
+    patch_pymongo,
+)
 
-# Create mock client early
-_mock_mongo_client = AsyncMongoMockClient()
-
-# Patch pymongo before any other imports that might use it
-_save_chats_patcher = patch("pymongo.AsyncMongoClient", return_value=_mock_mongo_client)
+# Create mock client and patch pymongo BEFORE any Beanie/model imports
+_mock_mongo_client = create_mock_mongo()
+_save_chats_patcher = patch_pymongo(_mock_mongo_client)
 _save_chats_patcher.start()
 
 # Now import models after patching
-from sophie_bot.db.models import models  # noqa: E402
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware  # noqa: E402
-
-from beanie import init_beanie  # noqa: E402
-from sophie_bot.config import CONFIG  # noqa: E402
 
 
 @pytest_asyncio.fixture
@@ -51,22 +49,11 @@ async def base_data() -> dict[str, Any]:
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def db_init():
     """Initialize Beanie with mocked MongoDB for all tests in this directory."""
-    # Get database from mock client
-    db = _mock_mongo_client[CONFIG.mongo_db]
+    database = await initialize_beanie(_mock_mongo_client)
 
-    # Initialize Beanie with all models
-    await init_beanie(
-        database=db,
-        document_models=models,
-        allow_index_dropping=True,
-        skip_indexes=True,  # Skip indexes for faster tests
-    )
+    yield database
 
-    yield db
-
-    # Cleanup: drop all collections after tests
-    for model in models:
-        await model.delete_all()
+    await cleanup_beanie()
 
     # Cleanup: stop the pymongo mock
     _save_chats_patcher.stop()
