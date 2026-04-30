@@ -4927,8 +4927,8 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/unban.py:79
 #: sophie_bot/modules/restrictions/handlers/unban.py:89
 #: sophie_bot/modules/users/handlers/info.py:62
-#: sophie_bot/modules/users/handlers/info.py:73
-#: sophie_bot/modules/users/handlers/info.py:82
+#: sophie_bot/modules/users/handlers/info.py:67
+#: sophie_bot/modules/users/handlers/info.py:76
 msgid "Notice"
 msgstr ""
 
@@ -5074,13 +5074,13 @@ msgid "Failed to unban the user. Make sure I have the right permissions."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/unban.py:81
-#: sophie_bot/modules/users/handlers/info.py:75
+#: sophie_bot/modules/users/handlers/info.py:69
 #, python-brace-format
 msgid "The user is banned in the current federation: {fed_name} ({fed_id})."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/unban.py:91
-#: sophie_bot/modules/users/handlers/info.py:84
+#: sophie_bot/modules/users/handlers/info.py:78
 #, python-brace-format
 msgid "The user is banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr ""
@@ -5353,7 +5353,7 @@ msgstr ""
 msgid "This user is an admin in this chat."
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/info.py:94
+#: sophie_bot/modules/users/handlers/info.py:88
 msgid "Shared Chats"
 msgstr ""
 
