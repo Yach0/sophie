@@ -2,15 +2,17 @@ from typing import Any, Optional
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
-
 from ass_tg.types import OptionalArg, TextArg
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import KeyValue, Section, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import get_admins_rights
@@ -24,6 +26,15 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
+
+PROMOTE_PERMISSIONS = (
+    "can_invite_users",
+    "can_change_info",
+    "can_restrict_members",
+    "can_delete_messages",
+    "can_pin_messages",
+    "can_delete_stories",
+)
 
 
 @flags.help(description=l_("Promotes the user to admins."))
@@ -66,16 +77,40 @@ class PromoteUserHandler(SophieMessageHandler):
         if admin_title and len(admin_title) > 16:
             return await self.event.reply(_("Admin title is too long."))
 
+        # Determine which permissions the invoking admin is allowed to grant.
+        # Operators and chat creators may grant the full set; regular admins
+        # can only delegate permissions they themselves hold.
+        invoker_id = self.event.from_user.id
+        grant_all = invoker_id in CONFIG.operators
+
+        admin_record = None
+        if not grant_all:
+            user_model = await ChatModel.get_by_tid(invoker_id)
+            chat_model = connection.db_model
+            if user_model and chat_model:
+                admin_record = await ChatAdminModel.find_one(
+                    ChatAdminModel.chat.id == chat_model.iid,
+                    ChatAdminModel.user.id == user_model.iid,
+                )
+                if admin_record and admin_record.member.status == ChatMemberStatus.CREATOR:
+                    grant_all = True
+
+        if grant_all:
+            granted_permissions = {perm: True for perm in PROMOTE_PERMISSIONS}
+        else:
+            granted_permissions = {}
+            if user_model and chat_model and admin_record:
+                for perm in PROMOTE_PERMISSIONS:
+                    granted_permissions[perm] = bool(getattr(admin_record.member, perm, False))
+            else:
+                # Fallback: cannot determine permissions, grant nothing extra
+                granted_permissions = {perm: False for perm in PROMOTE_PERMISSIONS}
+
         try:
             await bot.promote_chat_member(
                 chat_id=connection.tid,
                 user_id=user.chat_id,
-                can_invite_users=True,
-                can_change_info=True,
-                can_restrict_members=True,
-                can_delete_messages=True,
-                can_pin_messages=True,
-                can_delete_stories=True,
+                **granted_permissions,
             )
         except TelegramBadRequest as err:
             if RIGHT_FORBIDDEN in err.message:
