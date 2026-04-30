@@ -94,7 +94,7 @@ class AIProviderSelectCallback(SophieCallbackQueryHandler):
         user = self.event.from_user
 
         # ensure only admins can change
-        if not is_user_admin(chat_id, user.id):
+        if not await is_user_admin(chat_id, user.id):
             return await self.event.answer(_("You are not allowed to change this setting"))
 
         # validate provider

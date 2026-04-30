@@ -4,28 +4,29 @@ from typing import Any, Optional
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import Message, InlineKeyboardButton, User
+from aiogram.types import InlineKeyboardButton, Message, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from ass_tg.types import TextArg, OptionalArg
+from ass_tg.types import OptionalArg, TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Doc, Title, Section, KeyValue, UserLink, Italic, Template
+from stfu_tg import Doc, Italic, KeyValue, Section, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
-from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
 from ..callbacks import DeleteWarnCallback
 
 
@@ -97,6 +98,10 @@ class WarnHandler(SophieMessageHandler):
 
         if target_user.tid == CONFIG.bot_id:
             await message.reply(_("I cannot warn myself."))
+            return
+
+        if message.from_user and target_user.tid == message.from_user.id:
+            await message.reply(_("You cannot warn yourself."))
             return
 
         if await is_user_admin(connection.db_model.iid, target_user.iid):

@@ -2,15 +2,16 @@ from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 from beanie import PydanticObjectId
-from stfu_tg import Doc, Title, Section, UserLink, Template
+from stfu_tg import Doc, Section, Template, Title, UserLink
 
-from sophie_bot.db.models import WarnModel, ChatModel
+from sophie_bot.db.models import ChatModel, WarnModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
-from ..callbacks import DeleteWarnCallback, ResetWarnsCallback, ResetAllWarnsCallback
+
+from ..callbacks import DeleteWarnCallback, ResetAllWarnsCallback, ResetWarnsCallback
 from ..utils import delete_warn
 
 
@@ -32,7 +33,8 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
             return
 
         warn_iid = PydanticObjectId(callback_data.warn_iid)
-        if await delete_warn(warn_iid):
+        chat_iid = self.connection.db_model.iid
+        if await delete_warn(warn_iid, chat_iid):
             await log_event(
                 self.connection.tid,
                 self.event.from_user.id,

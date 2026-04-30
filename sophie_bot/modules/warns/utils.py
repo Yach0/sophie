@@ -7,12 +7,12 @@ from aiogram.types import Message
 from beanie import PydanticObjectId
 from pydantic import TypeAdapter, ValidationError
 
-from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user, kick_user, mute_user
+from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -181,10 +181,12 @@ async def warn_user(
     return current_warns, max_warns, punishment, warn
 
 
-async def delete_warn(warn_iid: PydanticObjectId) -> bool:
-    """Deletes a warn record by its internal ID."""
+async def delete_warn(warn_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> bool:
+    """Deletes a warn record by its internal ID, verifying it belongs to the given chat."""
     warn = await WarnModel.get(warn_iid)
     if not warn:
+        return False
+    if warn.chat.ref.id != chat_iid:
         return False
     await warn.delete()
     return True

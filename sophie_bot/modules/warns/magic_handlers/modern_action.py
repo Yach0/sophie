@@ -6,6 +6,7 @@ from stfu_tg import Doc, KeyValue, Section, Template, Title, UserLink
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
@@ -70,8 +71,13 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
             return
 
         chat_db = data["chat_db"]
-        admin_db = data["user_db"]
-        target_db = data["user_db"]  # In filter/action context, usually the user who triggered it
+        admin_db = await ChatModel.get_by_tid(CONFIG.bot_id)
+        if not admin_db:
+            if not message.bot:
+                return
+            bot_me = await message.bot.get_me()
+            admin_db = await ChatModel.upsert_user(bot_me)
+        target_db = data["user_db"]  # In filter/action context, the user who triggered it
 
         text = filter_data.reason
         if not text:
