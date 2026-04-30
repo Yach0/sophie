@@ -16,7 +16,7 @@ from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services import FederationManageService, FederationAdminService
+from sophie_bot.modules.federations.services import FederationAdminService, FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
@@ -71,9 +71,9 @@ class FederationDemoteHandler(FederationCommandHandler):
             await self.event.reply(_("Can only demote individual users from admin."))
             return
 
-        # Check permissions - only federation admins can demote
-        if not await FederationPermissionService.validate_federation_admin(federation, self.event.from_user.id):
-            await self.event.reply(_("Only federation admins can demote users."))
+        # Check permissions - only the federation owner can demote
+        if not await FederationPermissionService.validate_federation_owner(federation, self.event.from_user.id):
+            await self.event.reply(_("Only the federation owner can demote users."))
             return
 
         # Prevent demoting the owner (creator)

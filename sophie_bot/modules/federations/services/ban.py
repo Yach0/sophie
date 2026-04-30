@@ -5,14 +5,13 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.fields import Link as BeanieLink
 from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationExportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
-from beanie.odm.fields import Link as BeanieLink
-
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.manage import FederationManageService
@@ -235,8 +234,12 @@ class FederationBanService:
         return sum(1 for res in results if res)
 
     @staticmethod
-    async def get_federation_bans(fed_id: str) -> List[FederationBan]:
-        return await FederationBan.find(FederationBan.fed_id == fed_id).to_list()
+    async def get_federation_bans(
+        fed_id: str,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[FederationBan]:
+        return await FederationBan.find(FederationBan.fed_id == fed_id).skip(offset).limit(limit).to_list()
 
     @staticmethod
     async def is_user_banned(fed_id: str, user_tid: int) -> Optional[FederationBan]:

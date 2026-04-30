@@ -43,9 +43,9 @@ class AcceptTransferHandler(SophieMessageHandler):
         user_db = self.data["user_db"]
         user_tid = self.connection.tid
 
-        # Get transfer request from Redis
+        # Atomically get and delete the transfer token to prevent replay attacks
         transfer_key = f"{self.TRANSFER_KEY_PREFIX}{fed_id_input}"
-        transfer_data_raw = await aredis.get(
+        transfer_data_raw = await aredis.getdel(
             transfer_key,
         )
 
@@ -89,11 +89,6 @@ class AcceptTransferHandler(SophieMessageHandler):
         await FederationManageService.update_federation(
             federation,
             {"creator": user_db},
-        )
-
-        # Clean up transfer request
-        await aredis.delete(
-            transfer_key,
         )
 
         # Format success message

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
@@ -18,13 +18,15 @@ router = APIRouter()
 async def list_federation_bans(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
+    limit: int = Query(50, ge=1, le=200, description="Maximum number of bans to return"),
+    offset: int = Query(0, ge=0, description="Number of bans to skip"),
 ) -> list[FederationBanResponse]:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_admin(federation, user)
 
-    bans = await FederationBanService.get_federation_bans(fed_id)
+    bans = await FederationBanService.get_federation_bans(fed_id, limit=limit, offset=offset)
     result = []
     for ban in bans:
         by_user = await ban.by.fetch()
