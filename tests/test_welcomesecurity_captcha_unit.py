@@ -230,9 +230,17 @@ async def test_lock_muted_users_middleware_blocks_unpassed_users(monkeypatch: py
         "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.is_enabled",
         AsyncMock(return_value=True),
     )
+
+    async def _consume_common_try(coro, *_args, **_kwargs):
+        """Mock common_try that properly consumes the passed coroutine."""
+        try:
+            await coro
+        except Exception:
+            pass
+
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.common_try",
-        AsyncMock(),
+        _consume_common_try,
     )
 
     middleware = LockMutedUsers()
