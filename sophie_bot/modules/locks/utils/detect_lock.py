@@ -14,7 +14,7 @@ from sophie_bot.modules.locks.utils.lock_types import (
     is_language_lock,
     is_stickerpack_lock,
 )
-from sophie_bot.modules.ai.utils.detect_lang import lang_code_to_language, is_text_language
+from sophie_bot.shared.lang_detect import is_text_language, lang_code_to_language
 from sophie_bot.utils.logger import log
 
 CJK_REGEX = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f]")

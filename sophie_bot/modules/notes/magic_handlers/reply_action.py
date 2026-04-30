@@ -10,14 +10,14 @@ from stfu_tg import Bold, Doc, Italic, PreformattedHTML, Section, Template, Titl
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models.notes import Saveable
-from sophie_bot.modules.filters.types.modern_action_abc import (
+from sophie_bot.modules.notes.utils.parse import parse_saveable
+from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.modern_action_abc import (
     ActionSetupMessage,
     ModernActionABC,
     ModernActionSetting,
 )
-from sophie_bot.modules.notes.utils.parse import parse_saveable
-from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

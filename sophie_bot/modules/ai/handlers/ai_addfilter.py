@@ -25,7 +25,7 @@ from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
-from sophie_bot.modules.locks.handlers.lockable import (
+from sophie_bot.shared.lock_constants import (
     CONTENT_TYPES,
     ENTITY_TYPES,
     FORWARD_TYPES,

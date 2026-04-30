@@ -1,6 +1,5 @@
-from typing import Any, TypeVar
+from typing import Any
 
-from pydantic import BaseModel
+from sophie_bot.shared.modern_action_abc import ACTION_DATA as ACTION_DATA  # nopycln: import
 
 ACTION_DATA_DUMPED = dict[str, Any] | None
-ACTION_DATA = TypeVar("ACTION_DATA", bound=BaseModel | None)
