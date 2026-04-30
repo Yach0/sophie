@@ -1,24 +1,10 @@
-import os
-import sys
+from __future__ import annotations
 
 from redis.asyncio import Redis
 
-from sophie_bot.config import CONFIG
+from sophie_bot.services.registry import registry
 
-if "pytest" in sys.modules or os.environ.get("TESTING") == "1":
-    from fakeredis import FakeAsyncRedis
-
-    aredis: Redis = FakeAsyncRedis(
-        decode_responses=False,
-        single_connection_client=True,
-    )
-else:
-    aredis: Redis = Redis(
-        host=CONFIG.redis_host,
-        port=CONFIG.redis_port,
-        username=CONFIG.redis_username,
-        password=CONFIG.redis_password,
-        db=CONFIG.redis_db_states,
-        decode_responses=False,
-        single_connection_client=True,
-    )
+# Backward-compatible module-level variable.
+# Delegates to the registry which uses os.environ.get("TESTING") to decide
+# between FakeAsyncRedis and a real Redis connection.
+aredis: Redis = registry.get_redis()
