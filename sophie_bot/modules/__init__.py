@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from asyncio import gather
 from importlib import import_module
 from types import ModuleType
@@ -48,7 +50,8 @@ async def load_modules(
     dp: Union[Dispatcher, Router],
     to_load: Sequence[str],
     to_not_load: Sequence[str] = (),
-):
+    register_handlers: bool = True,
+) -> None:
     log.info("Importing modules...")
     if "*" in to_load:
         log.debug("Loading all modules...", modules=MODULES)
@@ -71,16 +74,19 @@ async def load_modules(
 
         LOADED_MODULES[module.__name__.split(".", 3)[2]] = module
 
-    for module_name, module in LOADED_MODULES.items():
-        log.debug(f"Loading module {module_name}...")
-        # Load handlers
-        if not (router := getattr(module, "router", None)):
-            continue
+    if register_handlers:
+        for module_name, module in LOADED_MODULES.items():
+            log.debug(f"Loading module {module_name}...")
+            # Load handlers
+            if not (router := getattr(module, "router", None)):
+                continue
 
-        handlers: Sequence[Type["SophieBaseHandler"]] = getattr(module, "__handlers__", [])
-        for handler in handlers:
-            log.debug(f"Registering handler {handler.__name__}...")
-            handler.register(router)
+            handlers: Sequence[Type["SophieBaseHandler"]] = getattr(module, "__handlers__", [])
+            for handler in handlers:
+                log.debug(f"Registering handler {handler.__name__}...")
+                handler.register(router)
+    else:
+        log.info("Skipping handler registration (register_handlers=False)")
 
     # Pre setup
     await gather(

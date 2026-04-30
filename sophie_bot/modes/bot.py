@@ -13,13 +13,15 @@ from aiohttp.web_app import Application
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares import enable_middlewares, set_metrics_middleware
 from sophie_bot.services.bot import bot, dp
-from sophie_bot.startup import start_init
+from sophie_bot.startup import ensure_bot_in_db, init_database, init_modules_bot
 from sophie_bot.utils.logger import log
 
 
 @dp.startup()
 async def bot_start():
-    await start_init(dp)
+    await init_database()
+    await init_modules_bot(dp)
+    await ensure_bot_in_db()
 
     # Initialize metrics system if enabled
     if CONFIG.metrics_enable:
