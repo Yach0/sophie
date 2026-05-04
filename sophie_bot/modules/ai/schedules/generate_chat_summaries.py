@@ -137,7 +137,7 @@ def _build_summary_doc(chat_tid: int, summary_date: date, overview: str, lines: 
                         ),
                         emoji=line.emoji,
                         title=Italic(line.title),
-                        users=HList(*line.usernames) if line.usernames else "-",
+                        users=HList(*line.usernames, divider=", ") if line.usernames else "-",
                     ),
                     _build_message_url(chat_tid, line.first_message_id),
                 )
