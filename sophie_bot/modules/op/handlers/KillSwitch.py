@@ -49,6 +49,6 @@ class KillSwitchHandler(SophieMessageHandler):
             return await self.event.reply(f"Unknown feature '{feature}'. Allowed: {allowed}")
 
         await set_enabled(feature, value)
-        # Read back for confirmation (uses in-memory cache)
+        # Read back for confirmation from the runtime backend.
         current = await is_enabled(feature)
         return await self.event.reply(f"{feature}: {str(current).lower()}")

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from threading import Lock
-from typing import Final, Literal, Mapping, Sequence, TypedDict, cast
+from collections.abc import Awaitable
+from typing import Final, Literal, TypedDict, cast
 
-from openfeature import api
-from openfeature.evaluation_context import EvaluationContext
-from openfeature.flag_evaluation import FlagResolutionDetails, FlagValueType
-from openfeature.hook import Hook
-from openfeature.provider import FeatureProvider, Metadata
 from sentry_sdk import feature_flags as sentry_feature_flags
+
+from sophie_bot.services.redis import aredis
 
 # Public types
 FeatureType = Literal[
@@ -261,83 +258,48 @@ _DEFAULT_STATES: Final[dict[FeatureType, bool]] = {
 }
 
 
-class OpenFeatureSentryProvider(FeatureProvider):
-    def __init__(self) -> None:
-        self._overrides: dict[FeatureType, bool] = {}
-        self._lock: Final[Lock] = Lock()
+_REDIS_KEY: Final[str] = "sophie:kill_switch"
+_TRUE_VALUE: Final[str] = "1"
+_FALSE_VALUE: Final[str] = "0"
 
-    def get_metadata(self) -> Metadata:
-        return Metadata(name="sophie-openfeature-sentry")
 
-    def get_provider_hooks(self) -> list[Hook]:
-        return []
-
-    def initialize(self, evaluation_context: EvaluationContext) -> None:
-        _ = evaluation_context
-
-    def shutdown(self) -> None:
+def _parse_bool_override(value: bytes | str | None) -> bool | None:
+    if value is None:
         return None
-
-    def resolve_boolean_details(
-        self,
-        flag_key: str,
-        default_value: bool,
-        evaluation_context: EvaluationContext | None = None,
-    ) -> FlagResolutionDetails[bool]:
-        _ = evaluation_context
-        if flag_key in FEATURE_FLAGS:
-            feature = cast(FeatureType, flag_key)
-            with self._lock:
-                if feature in self._overrides:
-                    return FlagResolutionDetails(value=self._overrides[feature], reason="STATIC")
-                return FlagResolutionDetails(value=_DEFAULT_STATES[feature], reason="DEFAULT")
-
-        return FlagResolutionDetails(value=default_value, reason="DEFAULT")
-
-    def resolve_string_details(
-        self,
-        flag_key: str,
-        default_value: str,
-        evaluation_context: EvaluationContext | None = None,
-    ) -> FlagResolutionDetails[str]:
-        _ = (flag_key, evaluation_context)
-        return FlagResolutionDetails(value=default_value, reason="DEFAULT")
-
-    def resolve_integer_details(
-        self,
-        flag_key: str,
-        default_value: int,
-        evaluation_context: EvaluationContext | None = None,
-    ) -> FlagResolutionDetails[int]:
-        _ = (flag_key, evaluation_context)
-        return FlagResolutionDetails(value=default_value, reason="DEFAULT")
-
-    def resolve_float_details(
-        self,
-        flag_key: str,
-        default_value: float,
-        evaluation_context: EvaluationContext | None = None,
-    ) -> FlagResolutionDetails[float]:
-        _ = (flag_key, evaluation_context)
-        return FlagResolutionDetails(value=default_value, reason="DEFAULT")
-
-    def resolve_object_details(
-        self,
-        flag_key: str,
-        default_value: Sequence[FlagValueType] | Mapping[str, FlagValueType],
-        evaluation_context: EvaluationContext | None = None,
-    ) -> FlagResolutionDetails[Sequence[FlagValueType] | Mapping[str, FlagValueType]]:
-        _ = (flag_key, evaluation_context)
-        return FlagResolutionDetails(value=default_value, reason="DEFAULT")
-
-    def set_override(self, feature: FeatureType, enabled: bool) -> None:
-        with self._lock:
-            self._overrides[feature] = enabled
+    normalized_value = value.decode() if isinstance(value, bytes) else value
+    if normalized_value == _TRUE_VALUE:
+        return True
+    if normalized_value == _FALSE_VALUE:
+        return False
+    return None
 
 
-_provider: Final[OpenFeatureSentryProvider] = OpenFeatureSentryProvider()
-api.set_provider(_provider)
-_client = api.get_client()
+async def _get_override(feature: FeatureType) -> bool | None:
+    value = await cast(Awaitable[bytes | str | None], aredis.hget(_REDIS_KEY, feature))
+    return _parse_bool_override(value)
+
+
+async def _set_override(feature: FeatureType, enabled: bool) -> None:
+    encoded_value = _TRUE_VALUE if enabled else _FALSE_VALUE
+    await cast(Awaitable[int], aredis.hset(_REDIS_KEY, feature, encoded_value))
+
+
+async def _get_all_overrides() -> dict[FeatureType, bool]:
+    raw_overrides = await cast(Awaitable[dict[bytes | str, bytes | str]], aredis.hgetall(_REDIS_KEY))
+    parsed_overrides: dict[FeatureType, bool] = {}
+
+    for raw_feature, raw_value in raw_overrides.items():
+        feature_name = raw_feature.decode() if isinstance(raw_feature, bytes) else raw_feature
+        if feature_name not in FEATURE_FLAGS:
+            continue
+
+        parsed_value = _parse_bool_override(raw_value)
+        if parsed_value is None:
+            continue
+
+        parsed_overrides[cast(FeatureType, feature_name)] = parsed_value
+
+    return parsed_overrides
 
 
 def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
@@ -345,18 +307,20 @@ def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
 
 
 async def is_enabled(feature: FeatureType) -> bool:
-    enabled = _client.get_boolean_value(feature, _DEFAULT_STATES[feature])
+    override = await _get_override(feature)
+    enabled = override if override is not None else _DEFAULT_STATES[feature]
     _track_feature_in_sentry(feature, enabled)
     return enabled
 
 
 async def set_enabled(feature: FeatureType, enabled: bool) -> None:
-    _provider.set_override(feature, enabled)
+    await _set_override(feature, enabled)
     _track_feature_in_sentry(feature, enabled)
 
 
 async def list_all() -> FeatureStates:
     merged = _default_state_map()
+    overrides = await _get_all_overrides()
     for feature in FEATURE_FLAGS:
-        merged[feature] = await is_enabled(feature)
+        merged[feature] = overrides.get(feature, _DEFAULT_STATES[feature])
     return merged
