@@ -78,7 +78,12 @@ async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: 
     return tuple(sorted(valid_messages, key=lambda message: (message.created_at, message.message_id)))
 
 
-async def get_cached_messages(chat_id: int, now: datetime | None = None) -> Tuple[MessageType, ...]:
-    """Retrieves and parses all the cached messages for a given chat."""
+async def get_cached_messages(
+    chat_id: int, now: datetime | None = None, limit: int | None = None
+) -> Tuple[MessageType, ...]:
+    """Retrieves and parses cached messages for a given chat."""
     current_time = now or datetime.now(timezone.utc)
-    return await get_cached_messages_between(chat_id, _build_cutoff(current_time), current_time)
+    messages = await get_cached_messages_between(chat_id, _build_cutoff(current_time), current_time)
+    if limit is None:
+        return messages
+    return messages[-limit:]

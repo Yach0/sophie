@@ -951,53 +951,53 @@ msgstr ""
 msgid "AI features are disabled till {date}."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:75
-#: sophie_bot/modules/ai/utils/new_message_history.py:77
+#: sophie_bot/modules/ai/utils/new_message_history.py:78
+#: sophie_bot/modules/ai/utils/new_message_history.py:80
 msgid "<No text provided>"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:119
+#: sophie_bot/modules/ai/utils/new_message_history.py:122
 msgid "No photo or sticker found"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:124
+#: sophie_bot/modules/ai/utils/new_message_history.py:127
 msgid "Image is empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:160
+#: sophie_bot/modules/ai/utils/new_message_history.py:163
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:181
+#: sophie_bot/modules/ai/utils/new_message_history.py:184
 msgid "You're a telegram bot named Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:182
+#: sophie_bot/modules/ai/utils/new_message_history.py:185
 msgid "Be funny when the topic is casual."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:184
+#: sophie_bot/modules/ai/utils/new_message_history.py:187
 msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:186
+#: sophie_bot/modules/ai/utils/new_message_history.py:189
 msgid "Send short messages unless longer explanations are needed."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:187
+#: sophie_bot/modules/ai/utils/new_message_history.py:190
 msgid "Focus primarily on answering the LATEST user message."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:188
+#: sophie_bot/modules/ai/utils/new_message_history.py:191
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:189
+#: sophie_bot/modules/ai/utils/new_message_history.py:192
 msgid "Prefer to search information in the internet"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:190
+#: sophie_bot/modules/ai/utils/new_message_history.py:193
 msgid "Today is "
 msgstr ""
 

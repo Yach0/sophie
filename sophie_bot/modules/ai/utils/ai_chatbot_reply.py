@@ -29,7 +29,7 @@ from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.utils.feature_flags import is_enabled
@@ -111,7 +111,11 @@ async def _build_system_prompt(chat_iid: PydanticObjectId) -> Doc:
 async def _prepare_history(message: Message, chat_iid: PydanticObjectId, user_text: str | None) -> NewAIMessageHistory:
     history = NewAIMessageHistory()
     system_prompt = await _build_system_prompt(chat_iid)
-    await history.initialize_chat_history(message.chat.id, additional_system_prompt=system_prompt.to_md())
+    await history.initialize_chat_history(
+        message.chat.id,
+        additional_system_prompt=system_prompt.to_md(),
+        cache_limit=CHATBOT_CACHE_MESSAGE_LIMIT,
+    )
     await history.add_from_message(message, custom_text=user_text)
     return history
 

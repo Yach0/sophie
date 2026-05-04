@@ -47,6 +47,30 @@ async def test_get_cached_messages_filters_out_entries_older_than_48h(monkeypatc
     assert messages == (recent_message,)
 
 
+@pytest.mark.asyncio
+async def test_get_cached_messages_returns_only_last_n_messages(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    cached_messages = [
+        MessageType(
+            user_id=index,
+            message_id=index,
+            text=f"message-{index}",
+            created_at=now - timedelta(minutes=40 - index),
+            username=f"user-{index}",
+        )
+        for index in range(40)
+    ]
+    zrangebyscore = AsyncMock(return_value=[message.model_dump_json() for message in cached_messages])
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.cache_messages.aredis",
+        SimpleNamespace(zrangebyscore=zrangebyscore),
+    )
+
+    messages = await get_cached_messages(123, now=now, limit=35)
+
+    assert tuple(message.message_id for message in messages) == tuple(range(5, 40))
+
+
 def test_derive_summary_line_uses_first_message_and_unique_usernames() -> None:
     earlier = MessageType(
         user_id=1,

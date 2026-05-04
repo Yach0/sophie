@@ -36,6 +36,9 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
+CHATBOT_CACHE_MESSAGE_LIMIT = 35
+
+
 @dataclass
 class ToCache:
     text: str
@@ -205,10 +208,10 @@ class NewAIMessageHistory:
 
         return ModelRequest(parts=[UserPromptPart(content=AIUserMessageFormatter.user_message(msg.text, first_name))])
 
-    async def add_from_cache(self, chat_id: int):
+    async def add_from_cache(self, chat_id: int, limit: int | None = None):
         """Adds messages from the cache to the message history."""
         self.message_history.extend(
-            await gather(*[self._cache_transform_msg(msg) for msg in await get_cached_messages(chat_id)])
+            await gather(*[self._cache_transform_msg(msg) for msg in await get_cached_messages(chat_id, limit=limit)])
         )
 
     async def add_from_message(
@@ -243,12 +246,14 @@ class NewAIMessageHistory:
 
         self.prompt = prompt
 
-    async def initialize_chat_history(self, chat_id: int, additional_system_prompt: str = ""):
+    async def initialize_chat_history(
+        self, chat_id: int, additional_system_prompt: str = "", cache_limit: int | None = None
+    ):
         # Add system message
         self.add_chatbot_system_msg(additional=additional_system_prompt)
 
         # Add messages from cache
-        await self.add_from_cache(chat_id)
+        await self.add_from_cache(chat_id, limit=cache_limit)
 
         log.debug("MessageHistory: message_history", history=self.message_history)
         return self
