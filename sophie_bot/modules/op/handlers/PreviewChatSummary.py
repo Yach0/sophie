@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from aiogram import flags
@@ -16,8 +16,8 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-def _yesterday_summary_date() -> date:
-    return datetime.now(timezone.utc).date() - timedelta(days=1)
+def _current_summary_date() -> date:
+    return datetime.now(timezone.utc).date()
 
 
 @flags.help(description=l_("Preview the stored daily chat summary for the current chat"))
@@ -28,7 +28,7 @@ class OpPreviewChatSummaryHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         chat_tid = self.event.chat.id
-        summary_date = _yesterday_summary_date()
+        summary_date = _current_summary_date()
         chat = await ChatModel.get_by_tid(chat_tid)
         if not chat:
             await self.event.reply(Doc(Title(_("Chat not found"))).to_html())
@@ -47,7 +47,7 @@ class OpPreviewChatSummaryHandler(SophieMessageHandler):
         await self.event.reply(_build_summary_doc(chat_tid, summary_date, summary.overview, summary.lines).to_html())
 
 
-@flags.help(description=l_("Force-regenerate yesterday's daily chat summary for the current chat"))
+@flags.help(description=l_("Force-regenerate the current rolling chat summary for the current chat"))
 class OpRegenerateChatSummaryHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -55,7 +55,7 @@ class OpRegenerateChatSummaryHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         chat_tid = self.event.chat.id
-        summary_date = _yesterday_summary_date()
+        summary_date = _current_summary_date()
         chat = await ChatModel.get_by_tid(chat_tid)
         if not chat:
             await self.event.reply(Doc(Title(_("Chat not found"))).to_html())

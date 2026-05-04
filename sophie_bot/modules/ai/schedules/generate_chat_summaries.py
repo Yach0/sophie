@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from itertools import chain
 
 from beanie import PydanticObjectId
@@ -31,10 +31,10 @@ MIN_TOPIC_PARTICIPANT_COUNT = 2
 SOURCE_EXCERPT_MAX_LENGTH = 160
 
 
-def _build_day_window(summary_date: date) -> tuple[datetime, datetime]:
-    day_start = datetime.combine(summary_date, time.min, tzinfo=timezone.utc)
-    day_end = datetime.combine(summary_date, time.max, tzinfo=timezone.utc)
-    return day_start, day_end
+def _build_summary_window(now: datetime) -> tuple[datetime, datetime]:
+    window_end = now.astimezone(timezone.utc)
+    window_start = window_end - timedelta(hours=24)
+    return window_start, window_end
 
 
 def _render_message_line(message: MessageType) -> str:
@@ -215,19 +215,32 @@ class GenerateChatSummaries:
         await bot.send_message(chat_tid, _build_summary_doc(chat_tid, summary_date, overview, lines).to_html())
 
     async def process_chat(
-        self, chat: ChatModel, summary_date: date, force: bool = False, target_chat_tid: int | None = None
+        self,
+        chat: ChatModel,
+        summary_date: date,
+        force: bool = False,
+        target_chat_tid: int | None = None,
+        now: datetime | None = None,
     ) -> None:
-        if not force and await AIChatSummaryModel.get_for_date(chat.iid, summary_date):
+        existing_summary = None if force else await AIChatSummaryModel.get_for_date(chat.iid, summary_date)
+        if existing_summary and not existing_summary.lines:
             log.debug(
-                "generate_chat_summaries: summary already exists, skipping", chat=chat.tid, summary_date=summary_date
+                "generate_chat_summaries: empty summary already exists, skipping",
+                chat=chat.tid,
+                summary_date=summary_date,
             )
             return
 
-        window_start, window_end = _build_day_window(summary_date)
+        current_time = now or datetime.now(timezone.utc)
+        window_start, window_end = _build_summary_window(current_time)
         cached_messages = await get_cached_messages_between(chat.tid, window_start, window_end)
         if len(cached_messages) < 3:
             log.debug(
-                "generate_chat_summaries: not enough messages, skipping", chat=chat.tid, count=len(cached_messages)
+                "generate_chat_summaries: not enough messages, skipping",
+                chat=chat.tid,
+                count=len(cached_messages),
+                window_start=window_start,
+                window_end=window_end,
             )
             return
 
@@ -257,6 +270,7 @@ class GenerateChatSummaries:
         low_signal_line_count = max(len(groups.lines) - len(lines), 0)
         if not lines:
             log.debug("generate_chat_summaries: no summary lines generated", chat=chat.tid, summary_date=summary_date)
+            await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, [])
             _track_summary_metrics(
                 len(cached_messages),
                 grouped_message_count,
@@ -283,11 +297,12 @@ class GenerateChatSummaries:
             log.debug("generate_chat_summaries: feature flag disabled, skipping run")
             return
 
-        summary_date = datetime.now(timezone.utc).date() - timedelta(days=1)
+        current_time = datetime.now(timezone.utc)
+        summary_date = current_time.date()
         async for chat in ForChats():
             if not await AIEnabledModel.get_state(chat.iid):
                 log.debug("generate_chat_summaries: AI disabled for chat, skipping", chat=chat.tid)
                 continue
 
             async with UseChatLanguage(chat.iid):
-                await self.process_chat(chat, summary_date)
+                await self.process_chat(chat, summary_date, now=current_time)

@@ -4423,7 +4423,7 @@ msgid "Summary day"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:50
-msgid "Force-regenerate yesterday's daily chat summary for the current chat"
+msgid "Force-regenerate the current rolling chat summary for the current chat"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:67
