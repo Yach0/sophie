@@ -11,9 +11,9 @@ from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import (
     GenerateChatSummaries,
-    _build_summary_window,
-    _build_summary_doc,
     _build_message_url,
+    _build_summary_doc,
+    _build_summary_window,
     _derive_summary_line,
 )
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
@@ -346,25 +346,96 @@ async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkey
 
 
 @pytest.mark.asyncio
-async def test_process_chat_skips_when_empty_summary_already_exists(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_process_chat_skips_when_summary_already_exists(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(iid="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
+    for has_lines in (True, False):
+        existing_lines = (
+            [
+                AIChatSummaryLine(
+                    emoji="💡",
+                    title="Topic",
+                    first_message_id=100,
+                    first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                    usernames=["alice"],
+                )
+            ]
+            if has_lines
+            else []
+        )
+        monkeypatch.setattr(
+            "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.get_for_date",
+            AsyncMock(return_value=SimpleNamespace(lines=existing_lines)),
+        )
+        get_cached_messages_between = AsyncMock()
+        monkeypatch.setattr(
+            "sophie_bot.modules.ai.schedules.generate_chat_summaries.get_cached_messages_between",
+            get_cached_messages_between,
+        )
+        generate_summary_groups = AsyncMock()
+        monkeypatch.setattr(GenerateChatSummaries, "generate_summary_groups", generate_summary_groups)
+
+        await GenerateChatSummaries().process_chat(chat, summary_date)
+
+        get_cached_messages_between.assert_not_awaited()
+        generate_summary_groups.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    chat = SimpleNamespace(iid="chat-iid", tid=-100123)
+    summary_date = date(2026, 5, 3)
+
+    # An existing summary with lines would normally cause a skip.
+    existing_line = AIChatSummaryLine(
+        emoji="\U0001f4a1",
+        title="Old Topic",
+        first_message_id=50,
+        first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+        usernames=["alice"],
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.get_for_date",
-        AsyncMock(return_value=SimpleNamespace(lines=[])),
+        AsyncMock(return_value=SimpleNamespace(lines=[existing_line])),
     )
-    get_cached_messages_between = AsyncMock()
+    cached_messages = tuple(
+        MessageType(
+            user_id=user_id,
+            message_id=msg_id,
+            text=f"message {msg_id}",
+            created_at=datetime(2026, 5, 3, 10, 0, tzinfo=timezone.utc),
+            username=f"user{user_id}",
+        )
+        for user_id, msg_id in enumerate((100, 101, 102), start=1)
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.get_cached_messages_between",
-        get_cached_messages_between,
+        AsyncMock(return_value=cached_messages),
     )
-    generate_summary_groups = AsyncMock()
-    monkeypatch.setattr(GenerateChatSummaries, "generate_summary_groups", generate_summary_groups)
+    monkeypatch.setattr(
+        GenerateChatSummaries,
+        "generate_summary_groups",
+        AsyncMock(
+            return_value=SimpleNamespace(
+                overview="Overview",
+                lines=[AIChatSummaryGroup(emoji="\U0001f4a1", title="Topic", message_ids=[100, 101, 102])],
+            )
+        ),
+    )
+    upsert_for_date = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
+        upsert_for_date,
+    )
+    send_summary = AsyncMock()
+    monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
-    await GenerateChatSummaries().process_chat(chat, summary_date)
+    await GenerateChatSummaries().process_chat(
+        chat, summary_date, force=True, now=datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc)
+    )
 
-    get_cached_messages_between.assert_not_awaited()
-    generate_summary_groups.assert_not_awaited()
+    upsert_for_date.assert_awaited_once()
+    send_summary.assert_awaited_once()
 
 
 def test_build_summary_window_returns_last_24_hours() -> None:

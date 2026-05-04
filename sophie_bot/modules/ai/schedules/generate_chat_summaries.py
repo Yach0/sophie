@@ -4,8 +4,8 @@ from collections import OrderedDict
 from datetime import date, datetime, timedelta, timezone
 from itertools import chain
 
-from beanie import PydanticObjectId
 from babel.dates import format_date, format_time
+from beanie import PydanticObjectId
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 
 from sophie_bot.config import CONFIG
@@ -22,8 +22,8 @@ from sophie_bot.services.bot import bot
 from sophie_bot.services.sentry_metrics import count_metric
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import is_enabled
-from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import get_i18n
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 MIN_TOPIC_MESSAGE_COUNT = 3
@@ -223,11 +223,12 @@ class GenerateChatSummaries:
         now: datetime | None = None,
     ) -> None:
         existing_summary = None if force else await AIChatSummaryModel.get_for_date(chat.iid, summary_date)
-        if existing_summary and not existing_summary.lines:
+        if existing_summary:
             log.debug(
-                "generate_chat_summaries: empty summary already exists, skipping",
+                "generate_chat_summaries: summary already exists for date, skipping",
                 chat=chat.tid,
                 summary_date=summary_date,
+                has_lines=bool(existing_summary.lines),
             )
             return
 
