@@ -17,6 +17,8 @@ FeatureType = Literal[
     "ai_moderation",
     "ai_moderation_reasons",
     "ai_filters",
+    "ai_chat_summaries",
+    "ai_system_prompt_summaries",
     "ai_provider_zai",
     "filters",
     "antiflood",
@@ -65,6 +67,8 @@ class FeatureStates(TypedDict):
     ai_moderation: bool
     ai_moderation_reasons: bool
     ai_filters: bool
+    ai_chat_summaries: bool
+    ai_system_prompt_summaries: bool
     ai_provider_zai: bool
     filters: bool
     antiflood: bool
@@ -112,6 +116,8 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_moderation",
     "ai_moderation_reasons",
     "ai_filters",
+    "ai_chat_summaries",
+    "ai_system_prompt_summaries",
     "ai_provider_zai",
     "filters",
     "antiflood",
@@ -161,6 +167,8 @@ def _default_state_map() -> FeatureStates:
         ai_moderation=_DEFAULT_STATES["ai_moderation"],
         ai_moderation_reasons=_DEFAULT_STATES["ai_moderation_reasons"],
         ai_filters=_DEFAULT_STATES["ai_filters"],
+        ai_chat_summaries=_DEFAULT_STATES["ai_chat_summaries"],
+        ai_system_prompt_summaries=_DEFAULT_STATES["ai_system_prompt_summaries"],
         ai_provider_zai=_DEFAULT_STATES["ai_provider_zai"],
         filters=_DEFAULT_STATES["filters"],
         antiflood=_DEFAULT_STATES["antiflood"],
@@ -209,6 +217,8 @@ _DEFAULT_STATES: Final[dict[FeatureType, bool]] = {
     "ai_moderation": True,
     "ai_moderation_reasons": True,
     "ai_filters": True,
+    "ai_chat_summaries": True,
+    "ai_system_prompt_summaries": False,
     "ai_provider_zai": True,
     "filters": True,
     "antiflood": True,

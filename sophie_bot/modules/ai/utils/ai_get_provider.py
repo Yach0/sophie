@@ -28,3 +28,11 @@ async def get_chat_translations_model(chat_id: PydanticObjectId) -> Model:
     log.debug(f"Default model for chat {chat_id}: {default_model_name}", provider_name=provider_name)
 
     return AI_MODELS[default_model_name]
+
+
+async def get_chat_summary_model(chat_id: PydanticObjectId) -> Model:
+    model_name = await AIProviderModel.get_summary_model_name(chat_id)
+
+    log.debug(f"Summary model for chat {chat_id}: {model_name}")
+
+    return AI_MODELS[model_name]

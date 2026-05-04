@@ -89,6 +89,7 @@ AI_MODEL_REGISTRY: list[SophieAIModel] = [
     SophieAIModel(AIProviders.openai, "openai/gpt-5.2-chat", "GPT-5.2 Chat"),
     SophieAIModel(AIProviders.openai, "openai/gpt-oss-120b", "GPT-OSS 120B"),
     SophieAIModel(AIProviders.openai, "openai/gpt-oss-20b", "GPT-OSS 20B"),
+    SophieAIModel(AIProviders.openai, "openai/gpt-5.4", "GPT-5.4", show_in_playground=False),
     SophieAIModel(
         AIProviders.openai,
         "openai/gpt-5.4-mini",

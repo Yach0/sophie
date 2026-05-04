@@ -4,6 +4,7 @@ from stfu_tg import Doc
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.ai_moderator_setting import AIModerator
@@ -40,7 +41,9 @@ from sophie_bot.modules.ai.middlewares.cache_bot_messages import (
 from sophie_bot.modules.ai.middlewares.cache_user_messages import (
     CacheUserMessagesMiddleware,
 )
+from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
 from sophie_bot.modules.ai.texts import AI_POLICY
+from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -136,3 +139,8 @@ async def __pre_setup__():
     _register_usage_handlers()
     _register_quota_handlers()
     _register_chat_handlers()
+
+
+async def __post_setup__(_):
+    if SOPHIE_MODE == "scheduler":
+        scheduler.add_job(GenerateChatSummaries().handle, "interval", minutes=1, jobstore="ram")

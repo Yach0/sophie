@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from aiogram import BaseMiddleware
@@ -49,6 +50,13 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
                 to_cache = cut_titlebar(to_cache)
 
             log.debug("CacheBotMessagesMiddleware: caching message", message=to_cache)
-            await cache_message(to_cache, chat_db.tid, CONFIG.bot_id, sent_message_id)
+            created_at = (
+                result.date
+                if isinstance(result, Message)
+                else event.date
+                if isinstance(event, Message)
+                else datetime.now(timezone.utc)
+            )
+            await cache_message(to_cache, chat_db.tid, CONFIG.bot_id, sent_message_id, created_at, "Sophie")
 
         return result

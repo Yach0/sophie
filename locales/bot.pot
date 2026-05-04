@@ -15,6 +15,8 @@ msgid "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
 msgstr ""
 
 #: sophie_bot/args/chats.py:56
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:69
+#: sophie_bot/modules/op/handlers/TestSummarizeHistory.py:113
 msgid "Chat ID"
 msgstr ""
 
@@ -138,27 +140,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:64
+#: sophie_bot/modules/ai/__init__.py:67
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:66
+#: sophie_bot/modules/ai/__init__.py:69
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:69
+#: sophie_bot/modules/ai/__init__.py:72
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:70
+#: sophie_bot/modules/ai/__init__.py:73
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:73
+#: sophie_bot/modules/ai/__init__.py:76
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:74
+#: sophie_bot/modules/ai/__init__.py:77
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -794,6 +796,40 @@ msgid_plural "Reasons"
 msgstr[0] ""
 msgstr[1] ""
 
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:51
+msgid "Summarize the chat day into one short general overview and several topic lines."
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:52
+msgid "Each topic line must contain a short title, one fitting emoji, and the list of source message IDs."
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:53
+msgid "Do not include any IDs that are not present in the provided transcript."
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:54
+msgid "Skip one-off chatter that does not form a meaningful discussion."
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:56
+msgid "Prefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:134
+#, python-brace-format
+msgid "{time} - {emoji} {title}, {users}"
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:150
+#, python-brace-format
+msgid "Chat history of {today}"
+msgstr ""
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:200
+msgid "You summarize Telegram group discussions into structured topic lines."
+msgstr ""
+
 #: sophie_bot/modules/ai/texts.py:3
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
@@ -835,7 +871,16 @@ msgstr ""
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:92
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:94
+#, python-brace-format
+msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:102
+msgid "Recent chat summaries"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:106
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -1062,6 +1107,8 @@ msgid "Number of messages allowed in 30 seconds"
 msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:41
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:34
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:61
 msgid "Chat not found"
 msgstr ""
 
@@ -4341,24 +4388,62 @@ msgstr ""
 msgid "The text is too long"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:24
+#: sophie_bot/modules/op/__init__.py:29
 msgid "Operator"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:26
+#: sophie_bot/modules/op/__init__.py:31
 msgid "Operator-only commands and tools"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:29
+#: sophie_bot/modules/op/__init__.py:34
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:30
+#: sophie_bot/modules/op/__init__.py:35
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/Captcha.py:17
 msgid "Generate a test emoji captcha"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:23
+msgid "Preview the stored daily chat summary for the current chat"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:41
+msgid "No stored summary"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:42
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:70
+#: sophie_bot/modules/op/handlers/TestSummarizeHistory.py:114
+msgid "Summary day"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:50
+msgid "Force-regenerate yesterday's daily chat summary for the current chat"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:67
+msgid "Chat summary regenerated"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/TestSummarizeHistory.py:88
+msgid "Seed test history into the current chat AI cache"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/TestSummarizeHistory.py:111
+msgid "Test summarize history added"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/TestSummarizeHistory.py:115
+msgid "Messages added"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/TestSummarizeHistory.py:116
+msgid "First seeded message ID"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/event.py:13

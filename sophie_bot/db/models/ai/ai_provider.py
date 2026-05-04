@@ -10,6 +10,7 @@ from sophie_bot.db.models.chat import ChatModel
 class AIProviderModel(Document):
     chat: Link[ChatModel]
     provider: str = Field(default="auto")  # stores AIProviders enum name ('auto' | 'openai' | 'google')
+    summary_model: str = Field(default="openai/gpt-5.4")
 
     class Settings:
         name = "ai_provider"
@@ -18,6 +19,13 @@ class AIProviderModel(Document):
     async def get_provider_name(chat_iid: PydanticObjectId) -> str | None:
         model = await AIProviderModel.find_one(AIProviderModel.chat.id == chat_iid)
         return model.provider if model else None
+
+    @staticmethod
+    async def get_summary_model_name(chat_iid: PydanticObjectId) -> str:
+        model = await AIProviderModel.find_one(AIProviderModel.chat.id == chat_iid)
+        if model and model.summary_model:
+            return model.summary_model
+        return "openai/gpt-5.4"
 
     @staticmethod
     async def set_provider(chat: ChatModel, provider_name: str) -> AIProviderModel:

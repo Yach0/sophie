@@ -4,6 +4,8 @@ from beanie import Document
 
 from sophie_bot.db.models.ai import (
     AIAutotranslateModel,
+    AIChatSummaryLine as AIChatSummaryLine,
+    AIChatSummaryModel,
     AIEnabledModel,
     AIMemoryModel,
     AIModeratorModel,
@@ -56,6 +58,7 @@ models: List[Type[Document]] = [
     AIAutotranslateModel,
     AIModeratorModel,
     AIMemoryModel,
+    AIChatSummaryModel,
     DisablingModel,
     PrivateNotesModel,
     RulesModel,

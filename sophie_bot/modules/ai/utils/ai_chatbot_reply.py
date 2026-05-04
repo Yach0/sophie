@@ -15,7 +15,7 @@ from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section,
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import AIMemoryModel
+from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
@@ -86,6 +86,20 @@ async def _build_system_prompt(chat_iid: PydanticObjectId) -> Doc:
         ),
         Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
     )
+    if await is_enabled("ai_system_prompt_summaries"):
+        summary_lines = await AIChatSummaryModel.get_recent_lines(chat_iid)
+        if summary_lines:
+            rendered_summaries = [
+                Template(
+                    _("{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"),
+                    title=line.title,
+                    message_id=line.first_message_id,
+                    users=", ".join(line.usernames) if line.usernames else "-",
+                    excerpt=line.source_excerpt or "-",
+                )
+                for line in summary_lines
+            ]
+            system_prompt += Section(VList(*rendered_summaries), title=_("Recent chat summaries"))
     if memory_lines:
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         system_prompt += Section(

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from aiogram.types import ResultChatMemberUnion
 from beanie import Document
 from bson import ObjectId
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models._link_type import Link
@@ -17,6 +17,13 @@ class ChatAdminModel(Document):
 
     member: ResultChatMemberUnion
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("last_updated", mode="after")
+    @classmethod
+    def _normalize_last_updated(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
 
     class Settings:
         name = "chat_admin"

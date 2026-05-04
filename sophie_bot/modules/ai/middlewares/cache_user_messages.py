@@ -41,6 +41,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             user_id = event.from_user.id
             msg_id = event.message_id
             log.debug("CacheUserMessagesMiddleware: caching message", chat_id=chat_db.tid)
-            await cache_message(text, chat_db.tid, user_id, msg_id)
+            username = event.from_user.username or event.from_user.full_name
+            await cache_message(text, chat_db.tid, user_id, msg_id, event.date, username)
 
         return result

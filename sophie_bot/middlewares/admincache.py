@@ -75,7 +75,7 @@ class AdmincacheMiddleware(BaseMiddleware):
         if not oldest_admin:
             return True
 
-        cache_age = (datetime.now(timezone.utc) - oldest_admin.last_updated).total_seconds()
+        cache_age = (datetime.now(timezone.utc) - self._ensure_utc_datetime(oldest_admin.last_updated)).total_seconds()
         return cache_age > CACHE_ADMIN_TTL_SECONDS
 
     async def _get_oldest_admin(self, chat_iid: PydanticObjectId) -> ChatAdminModel | None:
@@ -83,3 +83,9 @@ class AdmincacheMiddleware(BaseMiddleware):
         return await (
             ChatAdminModel.find(ChatAdminModel.chat.id == chat_iid).sort(ChatAdminModel.last_updated).first_or_none()
         )
+
+    @staticmethod
+    def _ensure_utc_datetime(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
