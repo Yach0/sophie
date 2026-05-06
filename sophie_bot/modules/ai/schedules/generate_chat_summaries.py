@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timezone
 from itertools import chain
 
 from babel.dates import format_date, format_time
 from beanie import PydanticObjectId
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 
-from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, AIEnabledModel, ChatModel
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_summary_model
@@ -33,7 +32,7 @@ SOURCE_EXCERPT_MAX_LENGTH = 160
 
 def _build_summary_window(now: datetime) -> tuple[datetime, datetime]:
     window_end = now.astimezone(timezone.utc)
-    window_start = window_end - timedelta(hours=24)
+    window_start = datetime.combine(window_end.date(), time.min, tzinfo=timezone.utc)
     return window_start, window_end
 
 
@@ -110,40 +109,27 @@ def _derive_summary_line(group: AIChatSummaryGroup, messages_by_id: dict[int, Me
     )
 
 
-def _build_message_url(chat_tid: int, message_id: int) -> str | None:
-    chat_tid_str = str(chat_tid)
-    if not chat_tid_str.startswith("-100"):
-        return None
+def _build_message_url(chat_tid: int, message_id: int) -> str:
+    chat_path = str(chat_tid).removeprefix("-100")
+    return f"https://t.me/c/{chat_path}/{message_id}"
 
-    return f"https://t.me/c/{chat_tid_str.removeprefix('-100')}/{message_id}"
+
+def _build_summary_line_doc(chat_tid: int, line: AIChatSummaryLine, current_locale: str) -> Template:
+    message_url = _build_message_url(chat_tid, line.first_message_id)
+
+    return Template(
+        _("{time} - {emoji} {title}, {users}"),
+        time=format_time(line.first_message_at.astimezone(timezone.utc), format="short", locale=current_locale),
+        emoji=line.emoji,
+        title=Url(Italic(line.title), message_url),
+        users=HList(*line.usernames, divider=", ") if line.usernames else "-",
+    )
 
 
 def _build_summary_doc(chat_tid: int, summary_date: date, overview: str, lines: list[AIChatSummaryLine]) -> Doc:
-    try:
-        current_locale = get_i18n().current_locale
-    except LookupError:
-        current_locale = CONFIG.default_locale
-
-    rendered_lines = VList(
-        *[
-            Url(line_doc, message_url) if message_url else line_doc
-            for line in lines
-            for line_doc, message_url in [
-                (
-                    Template(
-                        _("{time} - {emoji} {title}, {users}"),
-                        time=format_time(
-                            line.first_message_at.astimezone(timezone.utc), format="short", locale=current_locale
-                        ),
-                        emoji=line.emoji,
-                        title=Italic(line.title),
-                        users=HList(*line.usernames, divider=", ") if line.usernames else "-",
-                    ),
-                    _build_message_url(chat_tid, line.first_message_id),
-                )
-            ]
-        ]
-    )
+    current_locale = get_i18n().current_locale
+    sorted_lines = sorted(lines, key=lambda line: line.first_message_at)
+    rendered_lines = VList(*[_build_summary_line_doc(chat_tid, line, current_locale) for line in sorted_lines])
     return Doc(
         Title(
             Template(

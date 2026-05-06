@@ -143,4 +143,11 @@ async def __pre_setup__():
 
 async def __post_setup__(_):
     if SOPHIE_MODE == "scheduler":
-        scheduler.add_job(GenerateChatSummaries().handle, "interval", minutes=1, jobstore="ram")
+        scheduler.add_job(
+            GenerateChatSummaries().handle,
+            "cron",
+            hour=23,
+            minute=30,
+            timezone="UTC",
+            jobstore="ram",
+        )

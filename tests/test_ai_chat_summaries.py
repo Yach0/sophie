@@ -438,13 +438,13 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
     send_summary.assert_awaited_once()
 
 
-def test_build_summary_window_returns_last_24_hours() -> None:
-    current_time = datetime(2026, 5, 4, 21, 29, 8, tzinfo=timezone.utc)
+def test_build_summary_window_returns_current_day_to_now() -> None:
+    current_time = datetime(2026, 5, 4, 23, 30, 8, tzinfo=timezone.utc)
 
     window_start, window_end = _build_summary_window(current_time)
 
     assert window_end == current_time
-    assert window_start == datetime(2026, 5, 3, 21, 29, 8, tzinfo=timezone.utc)
+    assert window_start == datetime(2026, 5, 4, 0, 0, tzinfo=timezone.utc)
 
 
 def test_build_summary_doc_renders_lines() -> None:
@@ -477,6 +477,36 @@ def test_build_summary_doc_renders_lines() -> None:
     assert "alice" in html
     assert "bob" in html
     assert 'href="https://t.me/c/1234567890/100"' in html
+
+
+def test_build_summary_doc_orders_lines_by_first_message_time() -> None:
+    doc = _build_summary_doc(
+        -1001234567890,
+        date(2026, 5, 3),
+        "General overview",
+        [
+            AIChatSummaryLine(
+                emoji="🌙",
+                title="Evening topic",
+                first_message_id=200,
+                first_message_at=datetime(2026, 5, 3, 20, 0, tzinfo=timezone.utc),
+                usernames=["bob"],
+                source_excerpt="later",
+            ),
+            AIChatSummaryLine(
+                emoji="☀️",
+                title="Morning topic",
+                first_message_id=100,
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                usernames=["alice"],
+                source_excerpt="earlier",
+            ),
+        ],
+    )
+
+    html = doc.to_html()
+
+    assert html.index("Morning topic") < html.index("Evening topic")
 
 
 def test_build_summary_doc_renders_lines_with_non_default_locale(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -512,7 +542,3 @@ def test_build_summary_doc_renders_lines_with_non_default_locale(monkeypatch: py
 
 def test_build_message_url_returns_supergroup_message_url() -> None:
     assert _build_message_url(-1001519075655, 321) == "https://t.me/c/1519075655/321"
-
-
-def test_build_message_url_returns_none_for_non_supergroup_chat() -> None:
-    assert _build_message_url(-123456789, 321) is None
