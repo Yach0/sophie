@@ -17,7 +17,7 @@ class EventHandler(SophieMessageHandler):
         return (CMDFilter(("event",)), IsOP(True))
 
     async def handle(self):
-        event_data = self.event.model_dump(mode="json")
-        text = ujson.dumps(event_data, indent=2)
+        event_data = self.event.model_dump()
+        text = ujson.dumps(event_data, indent=2, default=str)
 
         await self.event.reply(str(Code(text)))
