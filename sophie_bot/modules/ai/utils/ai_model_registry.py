@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Any, Mapping
 
 from sophie_bot.modules.ai.utils.ai_providers import AIProviders
 
@@ -22,6 +22,11 @@ class SophieAIModel:
     show_in_playground: bool = True
     default_for_chatbot: bool = False
     default_for_translation: bool = False
+    default_for_summary: bool = False
+    extra_params: dict[str, Any] | None = None
+
+
+DEFAULT_SUMMARY_MODEL_NAME = "openai/gpt-5.5"
 
 
 AI_PROVIDER_TO_NAME = {
@@ -92,6 +97,14 @@ AI_MODEL_REGISTRY: list[SophieAIModel] = [
     SophieAIModel(AIProviders.openai, "openai/gpt-5.4", "GPT-5.4", show_in_playground=False),
     SophieAIModel(
         AIProviders.openai,
+        DEFAULT_SUMMARY_MODEL_NAME,
+        "GPT-5.5",
+        show_in_playground=False,
+        default_for_summary=True,
+        extra_params={"openrouter_reasoning": {"effort": "low"}},
+    ),
+    SophieAIModel(
+        AIProviders.openai,
         "openai/gpt-5.4-mini",
         "GPT-5.4 mini",
         default_for_chatbot=True,
@@ -156,3 +169,10 @@ def get_default_model_name(provider_name: str, *, translation: bool = False) -> 
     if not fallback_model:
         raise ValueError(f"No default AI model configured for provider {provider_name}")
     return fallback_model.name
+
+
+def get_default_summary_model_name() -> str:
+    for model in AI_MODEL_REGISTRY:
+        if model.default_for_summary:
+            return model.name
+    return DEFAULT_SUMMARY_MODEL_NAME

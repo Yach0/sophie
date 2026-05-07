@@ -25,5 +25,5 @@ async def test_get_chat_summary_model_uses_stored_summary_model(monkeypatch: pyt
     assert model is summary_model
 
 
-def test_ai_provider_summary_model_defaults_to_gpt_5_4() -> None:
-    assert AIProviderModel.model_fields["summary_model"].default == "openai/gpt-5.4"
+def test_ai_provider_summary_model_defaults_to_gpt_5_5() -> None:
+    assert AIProviderModel.model_fields["summary_model"].default == "openai/gpt-5.5"

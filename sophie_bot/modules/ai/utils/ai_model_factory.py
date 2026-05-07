@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic_ai.models import Model
 from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODEL_REGISTRY, AI_MODELS_BY_NAME
 from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS
@@ -15,7 +16,8 @@ def _build_model(model_name: str) -> Model:
     model_metadata = AI_MODELS_BY_NAME[model_name]
     provider_factory = AI_PROVIDERS[model_metadata.provider.name]
     provider_instance = provider_factory()
-    return OpenRouterModel(model_metadata.name, provider=provider_instance)
+    settings = OpenRouterModelSettings(**model_metadata.extra_params) if model_metadata.extra_params else None
+    return OpenRouterModel(model_metadata.name, provider=provider_instance, settings=settings)
 
 
 def _get_ai_models() -> dict[str, Model]:
