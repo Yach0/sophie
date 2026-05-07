@@ -6,11 +6,13 @@ from pydantic import Field
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
 
+_DEFAULT_SUMMARY_MODEL = "openai/gpt-5.5"
+
 
 class AIProviderModel(Document):
     chat: Link[ChatModel]
     provider: str = Field(default="auto")  # stores AIProviders enum name ('auto' | 'openai' | 'google')
-    summary_model: str = Field(default="openai/gpt-5.4")
+    summary_model: str = Field(default=_DEFAULT_SUMMARY_MODEL)
 
     class Settings:
         name = "ai_provider"
@@ -25,7 +27,7 @@ class AIProviderModel(Document):
         model = await AIProviderModel.find_one(AIProviderModel.chat.id == chat_iid)
         if model and model.summary_model:
             return model.summary_model
-        return "openai/gpt-5.4"
+        return _DEFAULT_SUMMARY_MODEL
 
     @staticmethod
     async def set_provider(chat: ChatModel, provider_name: str) -> AIProviderModel:
