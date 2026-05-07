@@ -14,7 +14,6 @@ class AIProviders(str, Enum):
     google = "google"
     mistral = "mistral"
     openai = "openai"
-    zai = "zai"
 
 
 # Check if we're in testing mode
@@ -41,5 +40,4 @@ else:
         AIProviders.google.name: _get_openrouter_provider,
         AIProviders.mistral.name: _get_openrouter_provider,
         AIProviders.openai.name: _get_openrouter_provider,
-        AIProviders.zai.name: _get_openrouter_provider,
     }

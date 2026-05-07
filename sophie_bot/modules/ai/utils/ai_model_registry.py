@@ -30,7 +30,6 @@ AI_PROVIDER_TO_NAME = {
     AIProviders.google.name: "Google Gemini",
     AIProviders.mistral.name: "Mistral AI",
     AIProviders.openai.name: "OpenAI ChatGPT",
-    AIProviders.zai.name: "Z.AI",
 }
 
 AVAILABLE_PROVIDER_NAMES: tuple[str, ...] = (
@@ -39,7 +38,6 @@ AVAILABLE_PROVIDER_NAMES: tuple[str, ...] = (
     AIProviders.openai.name,
     AIProviders.google.name,
     AIProviders.mistral.name,
-    AIProviders.zai.name,
 )
 
 AI_MODEL_REGISTRY: list[SophieAIModel] = [
@@ -98,16 +96,6 @@ AI_MODEL_REGISTRY: list[SophieAIModel] = [
         default_for_translation=True,
     ),
     SophieAIModel(AIProviders.openai, "openai/gpt-5.4-nano", "GPT-5.4 nano"),
-    SophieAIModel(AIProviders.zai, "z-ai/glm-4.7", "GLM-4.7"),
-    SophieAIModel(
-        AIProviders.zai,
-        "z-ai/glm-5v-turbo",
-        "GLM-5V Turbo",
-        supports_vision=True,
-        default_for_chatbot=True,
-        default_for_translation=True,
-    ),
-    SophieAIModel(AIProviders.zai, "z-ai/glm-4.5-air", "GLM-4.5 Air"),
 ]
 
 AI_MODELS_BY_NAME: dict[str, SophieAIModel] = {model.name: model for model in AI_MODEL_REGISTRY}
