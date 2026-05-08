@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 from pydantic import BaseModel
 
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils.logger import log
 
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
@@ -52,11 +53,26 @@ async def cache_message(
     message_score = created_at.timestamp()
     cutoff_score = _build_cutoff(created_at).timestamp()
 
-    async with aredis.pipeline(transaction=True) as pipe:
-        await pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
-        await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
-        await pipe.expire(key, 86400 * 2, lt=True)
-        await pipe.execute()
+    try:
+        async with aredis.pipeline(transaction=True) as pipe:
+            await pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
+            await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
+            await pipe.expire(key, 86400 * 2, lt=True)
+            await pipe.execute()
+    except Exception as exc:
+        if "WRONGTYPE" in str(exc):
+            log.warning(
+                "Stale Redis key with wrong type detected, deleting and retrying",
+                key=key,
+            )
+            await aredis.delete(key)
+            async with aredis.pipeline(transaction=True) as pipe:
+                await pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
+                await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
+                await pipe.expire(key, 86400 * 2, lt=True)
+                await pipe.execute()
+        else:
+            raise
 
 
 async def reset_messages(chat_id: int) -> None:
@@ -68,9 +84,19 @@ async def reset_messages(chat_id: int) -> None:
 async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: datetime) -> Tuple[MessageType, ...]:
     """Retrieve cached messages in a given inclusive time window."""
     key = get_message_cache_key(chat_id)
-    raw_messages = await aredis.zrangebyscore(  # type: ignore[misc]
-        key, start_at.timestamp(), end_at.timestamp()
-    )
+    try:
+        raw_messages = await aredis.zrangebyscore(  # type: ignore[misc]
+            key, start_at.timestamp(), end_at.timestamp()
+        )
+    except Exception as exc:
+        if "WRONGTYPE" in str(exc):
+            log.warning(
+                "Stale Redis key with wrong type detected on read, deleting",
+                key=key,
+            )
+            await aredis.delete(key)
+            return ()
+        raise
     messages = [MessageType.model_validate_json(raw_msg) for raw_msg in raw_messages]
     valid_messages = [
         message for message in messages if message.created_at and start_at <= message.created_at <= end_at
