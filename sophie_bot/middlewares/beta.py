@@ -80,12 +80,11 @@ class BetaMiddleware(BaseMiddleware):
         return new_mode == CurrentMode.beta
 
     def get_data(self, update: TelegramObject):
-        raw_json = update.model_dump_json(by_alias=True, exclude_none=True, exclude_defaults=True, indent=1)
-        raw_data = json.loads(raw_json)
+        raw_data = update.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
 
         data = self.change_data_type(raw_data)
 
-        return json.dumps(data)
+        return json.dumps(data, default=str)
 
     def change_data_type(self, data: dict) -> dict:
         # Recursively convert all date fields to unix timestamps
