@@ -18,7 +18,7 @@ class LegacyRulesButton(SophieMessageHandler):
         return (CommandStart(deep_link=True, magic=F.args.regexp(r"btn_rules_")),)
 
     async def handle(self) -> Any:
-        regex = search(r"btn_rules_(.*)", self.event.text)
+        regex = search(r"btn_rules_(-?\d+)", self.event.text)
         if not regex:
             return
 
