@@ -127,7 +127,7 @@ class ModuleWikiPage:
 
 
 async def generate_wiki_pages():
-    log.warn("Generating wiki documentation...")
+    log.info("Generating wiki documentation...")
 
     if not wiki_modules.exists():
         wiki_modules.mkdir()
@@ -157,4 +157,4 @@ async def generate_wiki_pages():
 
         readme_file.close()
 
-    log.warn("Generating wiki documentation done!")
+    log.info("Generating wiki documentation done!")

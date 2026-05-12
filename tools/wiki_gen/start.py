@@ -9,7 +9,11 @@ from sophie_bot.utils.logger import log
 
 
 class RedisStub:
-    async def hget(self, key: str, field: str) -> None:
+    async def hget(self, key: str, field: str) -> bytes | None:
+        from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _DEFAULT_STATES, _serialize_value
+
+        if field in FEATURE_FLAGS:
+            return _serialize_value(_DEFAULT_STATES[field]).encode()
         return None
 
     async def hset(self, key: str, field: str, value: str) -> int:
