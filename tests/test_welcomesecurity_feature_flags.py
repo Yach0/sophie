@@ -27,7 +27,7 @@ async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_fl
         message_id=77,
     )
     chat_db = SimpleNamespace(iid=chat_iid, tid=event.chat.id)
-    new_users = [SimpleNamespace(iid=user_iid, tid=123)]
+    new_users = [SimpleNamespace(iid=user_iid, tid=123, is_bot=False)]
     greetings = SimpleNamespace(
         welcome_disabled=False,
         welcome_security=SimpleNamespace(enabled=True),

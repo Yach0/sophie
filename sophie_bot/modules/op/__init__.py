@@ -10,6 +10,7 @@ from sophie_bot.modules.op.handlers.ListJobs import ListJobsHandler
 from sophie_bot.modules.op.handlers.PreviewChatSummary import OpRegenerateChatSummaryHandler
 from sophie_bot.modules.op.handlers.StopJobs import StopJobsHandler
 from sophie_bot.modules.op.handlers.event import EventHandler
+from sophie_bot.modules.op.handlers.op_debug import OpDebugHandler
 from sophie_bot.modules.op.handlers.stats import StatsHandler, get_system_stats
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -44,5 +45,6 @@ __handlers__ = (
     ButtonsTestHandler,
     EventHandler,
     StatsHandler,
+    OpDebugHandler,
 )
 __stats__ = get_system_stats

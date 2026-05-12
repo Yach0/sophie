@@ -38,6 +38,7 @@ from sophie_bot.db.models.privatenotes import PrivateNotesModel
 from sophie_bot.db.models.refresh_token import RefreshTokenModel
 from sophie_bot.db.models.rules import RulesModel
 from sophie_bot.db.models.settings_keyvalue import GlobalSettings
+from sophie_bot.db.models.op_debug_snapshot import OpDebugSnapshotModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.db.models.ws_user import WSUserModel
 
@@ -80,5 +81,6 @@ models: List[Type[Document]] = [
     FederationImportTask,
     FederationExportTask,
     RefreshTokenModel,
+    OpDebugSnapshotModel,
     FeatureFlagOverride,
 ]
