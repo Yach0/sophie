@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language-Team: German\n"
 "Language: de_DE\n"
-"PO-Revision-Date: 2026-04-02 03:15\n"
+"PO-Revision-Date: 2026-05-12 14:03\n"
 
 #: sophie_bot/args/chats.py:22
 msgid "Could not find the requested Chat ID in the database."
@@ -29,6 +29,7 @@ msgid "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
 msgstr "Chats: 'Chat-IDs (numerisch) / Benutzernamen (beginnt mit @)'"
 
 #: sophie_bot/args/chats.py:56
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:42
 msgid "Chat ID"
 msgstr "Chat-ID"
 
@@ -100,35 +101,35 @@ msgstr "Benutzer-ID"
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "Ein Link zu einem Benutzer, in der Regel erstellt, indem ein Benutzer ohne Benutzernamen erwähnt wird."
 
-#: sophie_bot/filters/admin_rights.py:263
+#: sophie_bot/filters/admin_rights.py:270
 msgid "I don't have the following permissions to do this:"
 msgstr "Ich habe nicht die folgenden Berechtigungen, um dies zu tun:"
 
-#: sophie_bot/filters/admin_rights.py:265
+#: sophie_bot/filters/admin_rights.py:272
 msgid "You don't have the following permissions to do this:"
 msgstr "Sie haben nicht die folgenden Berechtigungen, um dies zu tun:"
 
-#: sophie_bot/filters/admin_rights.py:270
+#: sophie_bot/filters/admin_rights.py:277
 msgid "I must be an administrator to use this command."
 msgstr "Ich muss Administrator sein, um diesen Befehl zu verwenden."
 
-#: sophie_bot/filters/admin_rights.py:272
+#: sophie_bot/filters/admin_rights.py:279
 msgid "You must be an administrator to use this command."
 msgstr "Sie müssen Administrator sein, um diesen Befehl zu verwenden."
 
-#: sophie_bot/filters/admin_rights.py:286
+#: sophie_bot/filters/admin_rights.py:293
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr "Anonyme Administratoren müssen einen benutzerdefinierten Admin-Titel haben, um diesen Befehl verwenden zu können."
 
-#: sophie_bot/filters/admin_rights.py:298
+#: sophie_bot/filters/admin_rights.py:305
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr "Dieser anonyme Admin-Titel konnte nicht aufgelöst werden. Aktualisieren Sie den Admin-Cache oder verwenden Sie einen eindeutigen Titel."
 
-#: sophie_bot/filters/admin_rights.py:312
+#: sophie_bot/filters/admin_rights.py:319
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr "Mehrere anonyme Administratoren teilen diesen Titel, und nicht alle können diesen Befehl verwenden. Verwenden Sie einen eindeutigen Titel."
 
-#: sophie_bot/filters/admin_rights.py:327
+#: sophie_bot/filters/admin_rights.py:334
 msgid "You must be the chat creator to use this command."
 msgstr "Sie müssen der Chat-Ersteller sein, um diesen Befehl zu verwenden."
 
@@ -140,35 +141,39 @@ msgstr "Dieser Befehl kann nur in einer Gruppe oder während der Verbindung zu e
 msgid "Refer to /help for more information about connections."
 msgstr "Verweisen Sie auf /help für weitere Informationen zu Verbindungen."
 
-#: sophie_bot/middlewares/connections.py:28
+#: sophie_bot/middlewares/connections.py:33
 msgid "Private chat"
 msgstr "Privater Chat"
 
-#: sophie_bot/middlewares/connections.py:116
+#: sophie_bot/middlewares/connections.py:121
 msgid "Connected chat not found in the database. You have been disconnected and will remain disconnected."
 msgstr "Verbundener Chat wurde nicht in der Datenbank gefunden. Sie wurden getrennt und bleiben getrennt."
 
-#: sophie_bot/modules/ai/__init__.py:62
+#: sophie_bot/middlewares/connections.py:146
+msgid "You no longer have permission to connect to this chat. You have been disconnected."
+msgstr "Sie haben keine Berechtigung mehr, sich mit diesem Chat zu verbinden. Sie wurden getrennt."
+
+#: sophie_bot/modules/ai/__init__.py:67
 msgid "Sophie AI"
 msgstr "Sophie AI"
 
-#: sophie_bot/modules/ai/__init__.py:64
+#: sophie_bot/modules/ai/__init__.py:69
 msgid "Rainbow sparkles and shininess"
 msgstr "Regenbogenfunkeln und Glanz"
 
-#: sophie_bot/modules/ai/__init__.py:67
+#: sophie_bot/modules/ai/__init__.py:72
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr "Sophie unterstützt mehrere Möglichkeiten, AI-Funktionen zu nutzen."
 
-#: sophie_bot/modules/ai/__init__.py:68
+#: sophie_bot/modules/ai/__init__.py:73
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr "Von einem einfachen Chatbot bis hin zum automatischen Übersetzer. Viel Spaß."
 
-#: sophie_bot/modules/ai/__init__.py:71
+#: sophie_bot/modules/ai/__init__.py:76
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Bitte beachten Sie, dass jeder Chat ein begrenztes monatliches KI-Kontingent hat."
 
-#: sophie_bot/modules/ai/__init__.py:72
+#: sophie_bot/modules/ai/__init__.py:77
 msgid "Use /aiusage to check your remaining quota."
 msgstr "Verwenden Sie /aiusage, um Ihr verbleibendes Kontingent zu überprüfen."
 
@@ -280,7 +285,7 @@ msgstr "Modulinformationen"
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:105
 #: sophie_bot/modules/help/utils/format_help.py:71
-#: sophie_bot/modules/locks/handlers/lockable.py:36
+#: sophie_bot/modules/locks/handlers/lockable.py:59
 msgid "Commands"
 msgstr "Befehle"
 
@@ -309,12 +314,12 @@ msgstr "🔄 AI-Kontext zurücksetzen"
 msgid "⚙️ AI Provider"
 msgstr "⚙️ KI-Anbieter"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:78
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:77
 #, python-brace-format
 msgid "Uses AI quota, limited to {limit} evaluations/day per chat"
 msgstr "Verwendet KI-Kontingent, begrenzt auf {limit} Auswertungen/Tag pro Chat"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:83
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:82
 msgid "Recommended"
 msgstr "Empfohlen"
 
@@ -326,25 +331,25 @@ msgstr "Schlägt Filter-Handler basierend auf einer natürlicher Sprachbeschreib
 msgid "Describe what the filter should catch"
 msgstr "Beschreiben Sie, was der Filter erkennen soll"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:222
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:216
 msgid "Could not generate suggestions. Please try again or use /addfilter directly."
 msgstr "Vorschläge konnten nicht generiert werden. Bitte versuchen Sie es erneut oder verwenden Sie /addfilter direkt."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:222
 msgid "AI Filter Suggestions"
 msgstr "KI-Filter-Vorschläge"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:239
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:233
 msgid "Use /addfilter <handler> to create the filter."
 msgstr "Verwenden Sie /addfilter <handler>, um den Filter zu erstellen."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:234
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr "Zum Beispiel, {cmd}"
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:19
-#: sophie_bot/modules/ai/handlers/mode.py:15
+#: sophie_bot/modules/ai/handlers/mode.py:16
 msgid "Prompt"
 msgstr "Eingabeaufforderung"
 
@@ -352,7 +357,7 @@ msgstr "Eingabeaufforderung"
 msgid "Ask Sophie a question"
 msgstr "Fragen Sie Sophie eine Frage"
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:35
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:36
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr "Sie wurden automatisch vom Chat getrennt, um KI zu verwenden."
 
@@ -398,6 +403,7 @@ msgid "AI Provider"
 msgstr "KI-Anbieter"
 
 #: sophie_bot/modules/ai/handlers/aiprovider.py:90
+#: sophie_bot/modules/federations/handlers/delete.py:88
 msgid "Invalid message type"
 msgstr "Ungültiger Nachrichtentyp"
 
@@ -420,18 +426,18 @@ msgstr "Unbekannter Anbieter"
 #: sophie_bot/modules/locks/handlers/unlock.py:81
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:36
-#: sophie_bot/modules/promotes/handlers/demote.py:69
-#: sophie_bot/modules/promotes/handlers/promote.py:89
+#: sophie_bot/modules/promotes/handlers/demote.py:76
+#: sophie_bot/modules/promotes/handlers/promote.py:136
 #: sophie_bot/modules/restrictions/handlers/ban.py:99
 #: sophie_bot/modules/restrictions/handlers/ban.py:201
 #: sophie_bot/modules/restrictions/handlers/kick.py:90
 #: sophie_bot/modules/restrictions/handlers/mute.py:93
 #: sophie_bot/modules/restrictions/handlers/mute.py:168
-#: sophie_bot/modules/restrictions/handlers/silent.py:97
-#: sophie_bot/modules/restrictions/handlers/silent.py:165
-#: sophie_bot/modules/restrictions/handlers/silent.py:236
-#: sophie_bot/modules/restrictions/handlers/silent.py:305
-#: sophie_bot/modules/restrictions/handlers/silent.py:376
+#: sophie_bot/modules/restrictions/handlers/silent.py:116
+#: sophie_bot/modules/restrictions/handlers/silent.py:184
+#: sophie_bot/modules/restrictions/handlers/silent.py:255
+#: sophie_bot/modules/restrictions/handlers/silent.py:324
+#: sophie_bot/modules/restrictions/handlers/silent.py:395
 #: sophie_bot/modules/restrictions/handlers/unban.py:75
 #: sophie_bot/modules/restrictions/handlers/unmute.py:70
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:53
@@ -491,7 +497,7 @@ msgstr "Sollte ein KI-Prompt sein, bitte versuchen Sie es erneut!"
 msgid "{ai_emoji} AI Response"
 msgstr "{ai_emoji} KI-Antwort"
 
-#: sophie_bot/modules/ai/handlers/mode.py:16
+#: sophie_bot/modules/ai/handlers/mode.py:17
 msgid "Generates a new AI mode"
 msgstr "Generiert einen neuen KI-Modus"
 
@@ -604,33 +610,33 @@ msgstr "Top-Benutzer nach Credits"
 msgid "Top features this month"
 msgstr "Top-Funktionen diesen Monat"
 
-#: sophie_bot/modules/ai/handlers/pm.py:26
+#: sophie_bot/modules/ai/handlers/pm.py:22
 msgid "Start the AI ChatBot mode"
 msgstr "Starte den KI-ChatBot-Modus"
 
-#: sophie_bot/modules/ai/handlers/pm.py:37
+#: sophie_bot/modules/ai/handlers/pm.py:33
 #, python-brace-format
 msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr "{ai_emoji} Eingetreten in den KI-Modus, in diesem Modus kannst du direkt mit der KI interagieren."
 
-#: sophie_bot/modules/ai/handlers/pm.py:42
+#: sophie_bot/modules/ai/handlers/pm.py:38
 #, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr "Durch die Nutzung der KI erklärst du dich mit der {privacy_policy} des Bots und der verwendeten KI-Dienste Dritter einverstanden."
 
-#: sophie_bot/modules/ai/handlers/pm.py:43
+#: sophie_bot/modules/ai/handlers/pm.py:39
 msgid "privacy policy"
 msgstr "Datenschutzerklärung"
 
-#: sophie_bot/modules/ai/handlers/pm.py:45
+#: sophie_bot/modules/ai/handlers/pm.py:41
 msgid "Click on the button below to exit."
 msgstr "Klicke auf den Button unten, um zu beenden."
 
-#: sophie_bot/modules/ai/handlers/pm.py:53
+#: sophie_bot/modules/ai/handlers/pm.py:49
 msgid "Hello! How can I help you?"
 msgstr "Hallo! Wie kann ich dir helfen?"
 
-#: sophie_bot/modules/ai/handlers/pm.py:71
+#: sophie_bot/modules/ai/handlers/pm.py:67
 msgid "The AI mode has been exited."
 msgstr "Der KI-Modus wurde beendet."
 
@@ -642,62 +648,62 @@ msgstr "Setze den AI-Kontext des Chats und das AI-Gedächtnis zurück"
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 AI-Kontext und AI-Gedächtnis wurden erfolgreich zurückgesetzt. AI wird jetzt im sauberen Zustand betrieben."
 
-#: sophie_bot/modules/ai/handlers/translate.py:45
+#: sophie_bot/modules/ai/handlers/translate.py:71
+msgid "Auto Translator"
+msgstr "Automatische Übersetzung"
+
+#: sophie_bot/modules/ai/handlers/translate.py:71
+msgid "Translator"
+msgstr "Übersetzer"
+
+#: sophie_bot/modules/ai/handlers/translate.py:72
+msgid "Voice"
+msgstr "Stimme"
+
+#: sophie_bot/modules/ai/handlers/translate.py:78
+#, python-brace-format
+msgid "From {from_lang} to {to_lang}"
+msgstr "Von {from_lang} nach {to_lang}"
+
+#: sophie_bot/modules/ai/handlers/translate.py:88
+msgid "Translation Notes"
+msgstr "Übersetzungsnotizen"
+
+#: sophie_bot/modules/ai/handlers/translate.py:99
 msgid "Text to translate"
 msgstr "Text zur Übersetzung"
 
-#: sophie_bot/modules/ai/handlers/translate.py:52
+#: sophie_bot/modules/ai/handlers/translate.py:106
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Übersetzt den gegebenen (oder beantworteten) Text in die ausgewählte Sprache des Chats. Transkribiert auch die beantwortete Sprachnachricht in Text"
 
-#: sophie_bot/modules/ai/handlers/translate.py:83
+#: sophie_bot/modules/ai/handlers/translate.py:128
 msgid "Please provide text to translate."
 msgstr "Bitte geben Sie den zu übersetzenden Text an."
 
-#: sophie_bot/modules/ai/handlers/translate.py:91
+#: sophie_bot/modules/ai/handlers/translate.py:136
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Falls zutreffend, übersetzen Sie das Foto in {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:99
+#: sophie_bot/modules/ai/handlers/translate.py:144
 msgid "You're a professional AI translator / transcriber."
 msgstr "Du bist der professionelle KI-Übersetzer / Transkribierer."
 
-#: sophie_bot/modules/ai/handlers/translate.py:101
+#: sophie_bot/modules/ai/handlers/translate.py:146
 #, python-brace-format
 msgid "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr "Übersetzen Sie den folgenden Text ins {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:106
+#: sophie_bot/modules/ai/handlers/translate.py:151
 msgid "Set translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
 msgstr "Setze translation_explanations auf null, außer die Quelle ist mehrdeutig, selbstwidersprüchlich, erfordert kulturell/kontекстuell wesentliche Erklärungen, enthält unübersetzbare Idiome/Wortspiele/Polysemie, die die Bedeutung beeinflussen, oder benötigt eine Disambiguierung eines Eigennamens/technischen Begriffs/Abkürzung; falls enthalten, halte es knapp (≤2 sachliche Sätze)."
 
-#: sophie_bot/modules/ai/handlers/translate.py:138
+#: sophie_bot/modules/ai/handlers/translate.py:182
 msgid "Error generating translation"
 msgstr "Fehler beim Generieren der Übersetzung"
-
-#: sophie_bot/modules/ai/handlers/translate.py:158
-msgid "Auto Translator"
-msgstr "Automatische Übersetzung"
-
-#: sophie_bot/modules/ai/handlers/translate.py:158
-msgid "Translator"
-msgstr "Übersetzer"
-
-#: sophie_bot/modules/ai/handlers/translate.py:159
-msgid "Voice"
-msgstr "Stimme"
-
-#: sophie_bot/modules/ai/handlers/translate.py:165
-#, python-brace-format
-msgid "From {from_lang} to {to_lang}"
-msgstr "Von {from_lang} nach {to_lang}"
-
-#: sophie_bot/modules/ai/handlers/translate.py:175
-msgid "Translation Notes"
-msgstr "Übersetzungsnotizen"
 
 #: sophie_bot/modules/ai/handlers/usage.py:19
 msgid "Check AI quota and usage details"
@@ -778,8 +784,8 @@ msgid "Message author"
 msgstr "Autoren der Nachricht"
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
-#: sophie_bot/modules/federations/handlers/ban.py:140
-#: sophie_bot/modules/federations/handlers/ban.py:187
+#: sophie_bot/modules/federations/handlers/ban.py:57
+#: sophie_bot/modules/federations/handlers/ban.py:97
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
 #: sophie_bot/modules/reports/handlers/report.py:93
 #: sophie_bot/modules/restrictions/actions/ban.py:123
@@ -795,66 +801,109 @@ msgstr "Autoren der Nachricht"
 #: sophie_bot/modules/restrictions/handlers/mute.py:96
 #: sophie_bot/modules/restrictions/handlers/mute.py:121
 #: sophie_bot/modules/restrictions/handlers/mute.py:172
-#: sophie_bot/modules/restrictions/handlers/silent.py:64
-#: sophie_bot/modules/restrictions/handlers/silent.py:100
-#: sophie_bot/modules/restrictions/handlers/silent.py:132
-#: sophie_bot/modules/restrictions/handlers/silent.py:168
-#: sophie_bot/modules/restrictions/handlers/silent.py:201
-#: sophie_bot/modules/restrictions/handlers/silent.py:240
-#: sophie_bot/modules/restrictions/handlers/silent.py:272
-#: sophie_bot/modules/restrictions/handlers/silent.py:308
-#: sophie_bot/modules/restrictions/handlers/silent.py:341
-#: sophie_bot/modules/restrictions/handlers/silent.py:380
-#: sophie_bot/modules/warns/handlers/warn.py:50
-#: sophie_bot/modules/warns/handlers/warn.py:119
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:123
+#: sophie_bot/modules/restrictions/handlers/silent.py:83
+#: sophie_bot/modules/restrictions/handlers/silent.py:119
+#: sophie_bot/modules/restrictions/handlers/silent.py:151
+#: sophie_bot/modules/restrictions/handlers/silent.py:187
+#: sophie_bot/modules/restrictions/handlers/silent.py:220
+#: sophie_bot/modules/restrictions/handlers/silent.py:259
+#: sophie_bot/modules/restrictions/handlers/silent.py:291
+#: sophie_bot/modules/restrictions/handlers/silent.py:327
+#: sophie_bot/modules/restrictions/handlers/silent.py:360
+#: sophie_bot/modules/restrictions/handlers/silent.py:399
+#: sophie_bot/modules/warns/handlers/warn.py:51
+#: sophie_bot/modules/warns/handlers/warn.py:77
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:129
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] "Grund"
 msgstr[1] "Gründe"
 
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:50
+msgid "Summarize the chat day into one short general overview and several topic lines."
+msgstr "Fassen Sie den Chattag in einer kurzen allgemeinen Übersicht und mehreren Themenzeilen zusammen."
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:51
+msgid "Each topic line must contain a short title, one fitting emoji, and the list of source message IDs."
+msgstr "Jede Themenzeile muss einen kurzen Titel, ein passendes Emoji und die Liste der Quellnachrichten-IDs enthalten."
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:52
+msgid "Do not include any IDs that are not present in the provided transcript."
+msgstr "Fügen Sie keine IDs hinzu, die nicht im bereitgestellten Transkript enthalten sind."
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:53
+msgid "Skip one-off chatter that does not form a meaningful discussion."
+msgstr "Überspringen Sie einmalige Unterhaltungen, die keine sinnvolle Diskussion bilden."
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:55
+msgid "Prefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
+msgstr "Bevorzugen Sie Themen, die mindestens drei Nachrichten oder mindestens zwei Teilnehmer umfassen, und vermeiden Sie schwache Ein-Personen-Fragmente."
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:121
+#, python-brace-format
+msgid "{time} - {emoji} {title}, {users}"
+msgstr "{time} - {emoji} {title}, {users}"
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:136
+#, python-brace-format
+msgid "Chat history of {today}"
+msgstr "Chatverlauf von {today}"
+
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:186
+msgid "You summarize Telegram group discussions into structured topic lines."
+msgstr "Sie fassen Telegram-Gruppendiskussionen in strukturierten Themenzeilen zusammen."
+
 #: sophie_bot/modules/ai/texts.py:3
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Durch die Verwendung der KI-Funktionen stimmen Sie unserer Datenschutzrichtlinie (/privacy) und den verwendeten KI-Diensten Dritter zu."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:51
 msgid "Memory updated 💾"
 msgstr "Speicher aktualisiert 💾"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:53
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
 msgid "Memory forgotten 🗑"
 msgstr "Gedächtnis vergessen 🗑"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:53
 msgid "Commands help 📋"
 msgstr "Befehle helfen 📋"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
 msgid "Internet Search 🔍"
 msgstr "Internetsuche 🔍"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
 msgid "Scanned notes 🗒"
 msgstr "Gescannten Notizen 🗒"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:83
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:82
 msgid "You can use Tavily to search for information. Include information sources as links."
 msgstr "Sie können Tavily verwenden, um nach Informationen zu suchen. Fügen Sie Informationsquellen als Links ein."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:84
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:83
 msgid "You can also save important things to the memory."
 msgstr "Du kannst auch wichtige Dinge im Gedächtnis speichern."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:86
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:85
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr "Wenn der Benutzer etwas über die Verwendung des Sophie-Bots fragt, stellen Sie sicher, dass Sie das Tool `cmds_help` ausführen, um einen Hilfe-Kontext zu erhalten, suchen Sie nicht im Internet nach Bot-Informationen."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:88
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:87
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr "Verfügbare Sophie-Module: {modules}"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:93
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:94
+#, python-brace-format
+msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
+msgstr "{title} | erste Nachricht #{message_id} | Benutzer: {users} | Auszug: {excerpt}"
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:102
+msgid "Recent chat summaries"
+msgstr "Aktuelle Chat-Zusammenfassungen"
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:106
 msgid "You have the following information in your memory"
 msgstr "Du hast die folgenden Informationen in deinem Speicher"
 
@@ -863,39 +912,39 @@ msgstr "Du hast die folgenden Informationen in deinem Speicher"
 msgid "{credit_emoji} Quota {percentage}%"
 msgstr "{credit_emoji} Kontingent {percentage}%"
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:18
+#: sophie_bot/modules/ai/utils/ai_moderator.py:19
 msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
 msgstr "Inhalt, der dazu bestimmt ist, sexuelle Erregung zu wecken, wie die Beschreibung sexueller Aktivitäten, oder der sexuelle Dienstleistungen fördert (ausgenommen Sexualerziehung und Wellness)."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:21
+#: sophie_bot/modules/ai/utils/ai_moderator.py:22
 msgid "Content that expresses prejudice, hostility, or advocates discrimination against individuals or groups based on protected characteristics such as race, ethnicity, religion, gender, sexual orientation, or disability."
 msgstr "Inhalte, die Vorurteile oder Feindseligkeit ausdrücken oder Diskriminierung gegen Personen oder Gruppen aufgrund geschützter Merkmale wie Rasse, ethnischer Herkunft, Religion, Geschlecht, sexueller Orientierung oder Behinderung befürworten."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:24
+#: sophie_bot/modules/ai/utils/ai_moderator.py:25
 msgid "Content that describes, glorifies, incites, or threatens physical violence against individuals or groups."
 msgstr "Inhalte, die physische Gewalt gegen Personen oder Gruppen beschreiben, verherrlichen, anstiften oder androhen."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:27
+#: sophie_bot/modules/ai/utils/ai_moderator.py:28
 msgid "Content that promotes or provides instructions for illegal activities or extremely hazardous behaviors that pose a significant risk of physical harm, death, or legal consequences."
 msgstr "Inhalte, die illegale Aktivitäten oder extrem gefährliches Verhalten fördern oder Anleitungen dazu geben, welche ein erhebliches Risiko für körperliche Schäden, Tod oder rechtliche Konsequenzen darstellen."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:30
+#: sophie_bot/modules/ai/utils/ai_moderator.py:31
 msgid "Content that promotes, instructs, plans, or encourages deliberate self-injury, suicide, eating disorders, or other self-destructive behaviors."
 msgstr "Inhalte, die vorsätzliche Selbstverletzung, Suizid, Essstörungen oder andere selbstschädigende Verhaltensweisen fördern, anleiten, planen oder dazu ermutigen."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:32
+#: sophie_bot/modules/ai/utils/ai_moderator.py:33
 msgid "Content that contains or tries to elicit detailed or tailored medical advice."
 msgstr "Inhalte, die detaillierte oder individuell zugeschnittene medizinische Ratschläge enthalten oder versuchen zu erhalten."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:33
+#: sophie_bot/modules/ai/utils/ai_moderator.py:34
 msgid "Content that contains or tries to elicit detailed or tailored financial advice."
 msgstr "Inhalte, die detaillierte oder individuell zugeschnittene Finanzberatung enthalten oder versuchen zu erhalten."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:34
+#: sophie_bot/modules/ai/utils/ai_moderator.py:35
 msgid "Content that contains or tries to elicit detailed or tailored legal advice."
 msgstr "Inhalte, die detaillierte oder individuell zugeschnittene Rechtsberatung enthalten oder versuchen zu erhalten."
 
-#: sophie_bot/modules/ai/utils/ai_moderator.py:36
+#: sophie_bot/modules/ai/utils/ai_moderator.py:37
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr "Inhalte, die nach personenbezogenen Identifizierungsdaten fragen, diese teilen oder versuchen zu erhalten, wie vollständige Namen, Adressen, Telefonnummern, Sozialversicherungsnummern oder Finanzkontodaten."
 
@@ -925,67 +974,67 @@ msgstr "Führen Sie {cmd} aus, um die Nutzungsdetails zu überprüfen."
 msgid "AI features are disabled till {date}."
 msgstr "KI-Funktionen sind bis zum {date} deaktiviert."
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:86
-msgid "You're a telegram bot named Sophie."
-msgstr "Du bist ein Telegram-Bot namens Sophie."
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:87
-msgid "Be funny when the topic is casual."
-msgstr "Sei lustig, wenn das Thema lässig ist."
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:89
-msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
-msgstr "Verwende keine Tabellen, benutze nur die folgenden Markdown-Elemente: ** für fett, ~~ für durchgestrichen, ` für Code, ``` für Codeblöcke und []() für Links."
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:91
-msgid "Send short messages unless longer explanations are needed."
-msgstr "Sende kurze Nachrichten, es sei denn, längere Erklärungen sind nötig."
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:92
-msgid "Focus primarily on answering the LATEST user message."
-msgstr "Konzentriere dich in erster Linie darauf, auf die NEUESTE Nachricht des Benutzers zu antworten."
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:93
-msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
-msgstr "Verwende den Gesprächsverlauf nur als Kontext, antworte jedoch gezielt auf die neueste Frage."
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:94
-msgid "Prefer to search information in the internet"
-msgstr "Bevorzuge die Suche nach Informationen im Internet"
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:95
-msgid "Today is "
-msgstr "Heute ist "
-
-#: sophie_bot/modules/ai/utils/new_message_history.py:142
-#: sophie_bot/modules/ai/utils/new_message_history.py:144
+#: sophie_bot/modules/ai/utils/new_message_history.py:78
+#: sophie_bot/modules/ai/utils/new_message_history.py:80
 msgid "<No text provided>"
 msgstr "<Kein Text angegeben>"
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:177
+#: sophie_bot/modules/ai/utils/new_message_history.py:122
 msgid "No photo or sticker found"
 msgstr "Kein Foto oder Sticker gefunden."
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:182
+#: sophie_bot/modules/ai/utils/new_message_history.py:127
 msgid "Image is empty"
 msgstr "Bild ist leer."
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:218
+#: sophie_bot/modules/ai/utils/new_message_history.py:163
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[Video-Transkription: {text}]"
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:184
+msgid "You're a telegram bot named Sophie."
+msgstr "Du bist ein Telegram-Bot namens Sophie."
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:185
+msgid "Be funny when the topic is casual."
+msgstr "Sei lustig, wenn das Thema lässig ist."
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:187
+msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
+msgstr "Verwende keine Tabellen, benutze nur die folgenden Markdown-Elemente: ** für fett, ~~ für durchgestrichen, ` für Code, ``` für Codeblöcke und []() für Links."
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:189
+msgid "Send short messages unless longer explanations are needed."
+msgstr "Sende kurze Nachrichten, es sei denn, längere Erklärungen sind nötig."
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:190
+msgid "Focus primarily on answering the LATEST user message."
+msgstr "Konzentriere dich in erster Linie darauf, auf die NEUESTE Nachricht des Benutzers zu antworten."
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:191
+msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
+msgstr "Verwende den Gesprächsverlauf nur als Kontext, antworte jedoch gezielt auf die neueste Frage."
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:192
+msgid "Prefer to search information in the internet"
+msgstr "Bevorzuge die Suche nach Informationen im Internet"
+
+#: sophie_bot/modules/ai/utils/new_message_history.py:193
+msgid "Today is "
+msgstr "Heute ist "
 
 #: sophie_bot/modules/ai/utils/transform_video.py:67
 msgid "Failed to download video file"
 msgstr "Video-Datei konnte nicht heruntergeladen werden"
 
-#: sophie_bot/modules/antiflood/__init__.py:33
+#: sophie_bot/modules/antiflood/__init__.py:32
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:42
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:79
 msgid "Antiflood"
 msgstr "Antiflood"
 
-#: sophie_bot/modules/antiflood/__init__.py:35
+#: sophie_bot/modules/antiflood/__init__.py:34
 msgid "Protect your chat from message flooding"
 msgstr "Schützen Sie Ihren Chat vor Nachrichtenflut"
 
@@ -1064,7 +1113,7 @@ msgid "Use {cmd} to configure actions"
 msgstr "Verwenden Sie {cmd}, um Aktionen zu konfigurieren"
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:72
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:184
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:183
 #: sophie_bot/modules/filters/handlers/confirm.py:48
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:64
 msgid "Action"
@@ -1072,28 +1121,29 @@ msgid_plural "Actions"
 msgstr[0] "Aktion"
 msgstr[1] "Aktionen"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:19
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:18
 msgid "Set the message count threshold for antiflood protection"
 msgstr "Legen Sie die Nachrichtenzahlenschwelle für den Antiflood-Schutz fest"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:34
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:33
 msgid "Number of messages allowed in 30 seconds"
 msgstr "Anzahl der Nachrichten, die in 30 Sekunden erlaubt sind"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:42
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:41
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:34
 msgid "Chat not found"
 msgstr "Chat nicht gefunden"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:47
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:46
 #, python-brace-format
 msgid "Please provide a number. Usage: {cmd}"
 msgstr "Bitte geben Sie eine Zahl an. Verwendung: {cmd}"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:52
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:51
 msgid "Number must be between 1 and 100"
 msgstr "Zahl muss zwischen 1 und 100 liegen"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:63
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:62
 #, python-brace-format
 msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
 msgstr "✅ Antiflood-Schwelle auf {count} Nachrichten pro 30 Sekunden aktualisiert"
@@ -1106,34 +1156,34 @@ msgstr "Aktiviert oder deaktiviert den Antiflood-Schutz"
 msgid "📈 Antiflood"
 msgstr "📈 Antiflood"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:126
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:125
 msgid "Banned"
 msgstr "Gebannt"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:127
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:126
 msgid "Kicked"
 msgstr "Gekickt"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:128
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:127
 msgid "Muted"
 msgstr "Stummschaltung"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:130
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:129
 msgid "Restricted"
 msgstr "Eingeschränkt"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:181
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:180
 msgid "⚠️ Antiflood"
 msgstr "⚠️ Antiflood"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:182
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:181
 msgid "User has been restricted for flooding."
 msgstr "Benutzer wurde wegen Flooding eingeschränkt."
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:183
-#: sophie_bot/modules/federations/handlers/ban.py:57
-#: sophie_bot/modules/federations/handlers/ban.py:136
-#: sophie_bot/modules/federations/handlers/ban.py:172
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:182
+#: sophie_bot/modules/federations/handlers/ban.py:53
+#: sophie_bot/modules/federations/handlers/ban.py:82
+#: sophie_bot/modules/federations/handlers/ban.py:118
 #: sophie_bot/modules/federations/handlers/demote.py:42
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
@@ -1142,10 +1192,10 @@ msgstr "Benutzer wurde wegen Flooding eingeschränkt."
 #: sophie_bot/modules/federations/handlers/promote.py:42
 #: sophie_bot/modules/federations/handlers/unban.py:39
 #: sophie_bot/modules/federations/handlers/unban.py:151
-#: sophie_bot/modules/promotes/handlers/demote.py:36
-#: sophie_bot/modules/promotes/handlers/demote.py:70
-#: sophie_bot/modules/promotes/handlers/promote.py:40
-#: sophie_bot/modules/promotes/handlers/promote.py:90
+#: sophie_bot/modules/promotes/handlers/demote.py:39
+#: sophie_bot/modules/promotes/handlers/demote.py:77
+#: sophie_bot/modules/promotes/handlers/promote.py:55
+#: sophie_bot/modules/promotes/handlers/promote.py:137
 #: sophie_bot/modules/restrictions/handlers/ban.py:48
 #: sophie_bot/modules/restrictions/handlers/ban.py:100
 #: sophie_bot/modules/restrictions/handlers/ban.py:147
@@ -1156,50 +1206,50 @@ msgstr "Benutzer wurde wegen Flooding eingeschränkt."
 #: sophie_bot/modules/restrictions/handlers/mute.py:94
 #: sophie_bot/modules/restrictions/handlers/mute.py:118
 #: sophie_bot/modules/restrictions/handlers/mute.py:169
-#: sophie_bot/modules/restrictions/handlers/silent.py:62
-#: sophie_bot/modules/restrictions/handlers/silent.py:98
-#: sophie_bot/modules/restrictions/handlers/silent.py:130
-#: sophie_bot/modules/restrictions/handlers/silent.py:166
-#: sophie_bot/modules/restrictions/handlers/silent.py:198
-#: sophie_bot/modules/restrictions/handlers/silent.py:237
-#: sophie_bot/modules/restrictions/handlers/silent.py:270
-#: sophie_bot/modules/restrictions/handlers/silent.py:306
-#: sophie_bot/modules/restrictions/handlers/silent.py:338
-#: sophie_bot/modules/restrictions/handlers/silent.py:377
+#: sophie_bot/modules/restrictions/handlers/silent.py:81
+#: sophie_bot/modules/restrictions/handlers/silent.py:117
+#: sophie_bot/modules/restrictions/handlers/silent.py:149
+#: sophie_bot/modules/restrictions/handlers/silent.py:185
+#: sophie_bot/modules/restrictions/handlers/silent.py:217
+#: sophie_bot/modules/restrictions/handlers/silent.py:256
+#: sophie_bot/modules/restrictions/handlers/silent.py:289
+#: sophie_bot/modules/restrictions/handlers/silent.py:325
+#: sophie_bot/modules/restrictions/handlers/silent.py:357
+#: sophie_bot/modules/restrictions/handlers/silent.py:396
 #: sophie_bot/modules/restrictions/handlers/unban.py:42
 #: sophie_bot/modules/restrictions/handlers/unban.py:76
 #: sophie_bot/modules/restrictions/handlers/unmute.py:41
 #: sophie_bot/modules/restrictions/handlers/unmute.py:71
 #: sophie_bot/modules/users/handlers/id.py:24
 #: sophie_bot/modules/users/handlers/info.py:21
-#: sophie_bot/modules/warns/handlers/callback.py:94
-#: sophie_bot/modules/warns/handlers/warn.py:113
+#: sophie_bot/modules/warns/handlers/callback.py:96
+#: sophie_bot/modules/warns/handlers/warn.py:45
 #: sophie_bot/modules/warns/handlers/warns.py:11
 msgid "User"
 msgstr "Benutzer"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:187
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:186
 #: sophie_bot/modules/restrictions/handlers/ban.py:204
 #: sophie_bot/modules/restrictions/handlers/mute.py:171
-#: sophie_bot/modules/restrictions/handlers/silent.py:239
-#: sophie_bot/modules/restrictions/handlers/silent.py:379
+#: sophie_bot/modules/restrictions/handlers/silent.py:258
+#: sophie_bot/modules/restrictions/handlers/silent.py:398
 msgid "Duration"
 msgstr "Dauer"
 
-#: sophie_bot/modules/connections/__init__.py:18
+#: sophie_bot/modules/connections/__init__.py:21
 #: sophie_bot/modules/connections/handlers/connect_dm.py:63
 msgid "Connections"
 msgstr "Verbindungen"
 
-#: sophie_bot/modules/connections/__init__.py:20
+#: sophie_bot/modules/connections/__init__.py:23
 msgid "Connect to chats from private messages"
 msgstr "Verbindet zu Chats aus privaten Nachrichten"
 
-#: sophie_bot/modules/connections/__init__.py:23
+#: sophie_bot/modules/connections/__init__.py:26
 msgid "Allows users to connect to chats from private messages."
 msgstr "Erlaubt Benutzern, sich mit Chats aus privaten Nachrichten zu verbinden."
 
-#: sophie_bot/modules/connections/__init__.py:24
+#: sophie_bot/modules/connections/__init__.py:27
 msgid "Enables managing chat settings and using commands without being in the chat."
 msgstr "Ermöglicht das Verwalten von Chateinstellungen und die Verwendung von Befehlen, ohne sich im Chat zu befinden."
 
@@ -1210,7 +1260,7 @@ msgstr "Verbindet mit dem Chat."
 #: sophie_bot/modules/connections/handlers/connect_dm.py:54
 #: sophie_bot/modules/connections/handlers/connect_dm.py:107
 #: sophie_bot/modules/connections/handlers/connect_group.py:42
-#: sophie_bot/modules/connections/handlers/start_connect.py:45
+#: sophie_bot/modules/connections/handlers/start_connect.py:46
 msgid "You are not allowed to connect to this chat."
 msgstr "Sie sind nicht berechtigt, sich mit diesem Chat zu verbinden."
 
@@ -1242,15 +1292,15 @@ msgstr "Sie müssen den Bot zuerst in DM starten, um eine Verbindung herzustelle
 msgid "Start Sophie"
 msgstr "Start Sophie"
 
-#: sophie_bot/modules/connections/handlers/disconnect.py:15
+#: sophie_bot/modules/connections/handlers/disconnect.py:14
 msgid "Disconnects from the current chat."
 msgstr "Trennt die Verbindung zum aktuellen Chat."
 
-#: sophie_bot/modules/connections/handlers/disconnect.py:35
+#: sophie_bot/modules/connections/handlers/disconnect.py:34
 msgid "You are not currently connected to any chat."
 msgstr "Sie sind derzeit nicht mit einem Chat verbunden."
 
-#: sophie_bot/modules/connections/handlers/disconnect.py:45
+#: sophie_bot/modules/connections/handlers/disconnect.py:44
 #, python-brace-format
 msgid "Successfully disconnected from the {chat_name} chat."
 msgstr "Erfolgreich vom {chat_name}-Chat getrennt."
@@ -1337,15 +1387,15 @@ msgstr "Listet alle Befehle auf, die deaktiviert werden können."
 msgid "Disable-able commands"
 msgstr "Deaktivierbare Befehle"
 
-#: sophie_bot/modules/disabling/handlers/disabled.py:15
+#: sophie_bot/modules/disabling/handlers/disabled.py:16
 msgid "Lists all disabled commands."
 msgstr "Listet alle deaktivierten Befehle auf."
 
-#: sophie_bot/modules/disabling/handlers/disabled.py:26
+#: sophie_bot/modules/disabling/handlers/disabled.py:27
 msgid "No disabled commands found."
 msgstr "Keine deaktivierten Befehle gefunden."
 
-#: sophie_bot/modules/disabling/handlers/disabled.py:29
+#: sophie_bot/modules/disabling/handlers/disabled.py:30
 msgid "Disabled commands"
 msgstr "Deaktivierte Befehle"
 
@@ -1383,7 +1433,7 @@ msgid "✅ All the commands ({removed_count}) have been enabled in the {chat_nam
 msgstr "✅ Alle Befehle ({removed_count}) wurden in den {chat_name} aktiviert"
 
 #: sophie_bot/modules/error/__init__.py:14
-#: sophie_bot/modules/federations/schedules/process_imports.py:337
+#: sophie_bot/modules/federations/schedules/process_imports.py:72
 #: sophie_bot/modules/federations/utils/federation_context.py:79
 msgid "Error"
 msgstr "Fehler"
@@ -1400,15 +1450,15 @@ msgstr "Behandelt Fehler und Ausnahmen, die während des Bot-Betriebs auftreten.
 msgid "Provides error reporting and recovery mechanisms."
 msgstr "Bietet Mechanismen zur Fehlerberichterstattung und -wiederherstellung."
 
-#: sophie_bot/modules/error/utils/error_message.py:29
+#: sophie_bot/modules/error/utils/error_message.py:27
 msgid "😞 I've got an error trying to process this update"
 msgstr "😞 Ich habe einen Fehler beim Verarbeiten dieses Updates erhalten"
 
-#: sophie_bot/modules/error/utils/error_message.py:47
+#: sophie_bot/modules/error/utils/error_message.py:45
 msgid "Reference ID"
 msgstr "Referenz-ID"
 
-#: sophie_bot/modules/error/utils/error_message.py:55
+#: sophie_bot/modules/error/utils/error_message.py:53
 msgid "💬 Contact Sophie support"
 msgstr "💬 Kontaktiere den Sophie-Support"
 
@@ -1665,6 +1715,8 @@ msgid "Federations allow you to manage multiple chats as a group. You can ban us
 msgstr "Föderationen ermöglichen es Ihnen, mehrere Chats als Gruppe zu verwalten. Sie können Benutzer in allen Chats einer Föderation sperren, andere Föderationen abonnieren und Berechtigungen verwalten."
 
 #: sophie_bot/modules/federations/args/fed_id.py:19
+#: sophie_bot/modules/federations/handlers/delete.py:68
+#: sophie_bot/modules/federations/handlers/delete.py:117
 #: sophie_bot/modules/federations/handlers/rename.py:70
 msgid "Federation ID"
 msgstr "Föderations-ID"
@@ -1710,11 +1762,13 @@ msgstr "Föderations-ID zur Übernahme der Übertragung"
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:39
 #: sophie_bot/modules/federations/handlers/admins.py:29
-#: sophie_bot/modules/federations/handlers/ban.py:66
+#: sophie_bot/modules/federations/handlers/ban.py:127
 #: sophie_bot/modules/federations/handlers/banlist.py:37
 #: sophie_bot/modules/federations/handlers/chats.py:52
 #: sophie_bot/modules/federations/handlers/chats.py:98
 #: sophie_bot/modules/federations/handlers/create.py:40
+#: sophie_bot/modules/federations/handlers/create.py:49
+#: sophie_bot/modules/federations/handlers/delete.py:55
 #: sophie_bot/modules/federations/handlers/demote.py:49
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:44
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:53
@@ -1723,12 +1777,12 @@ msgstr "Föderations-ID zur Übernahme der Übertragung"
 #: sophie_bot/modules/federations/handlers/join.py:41
 #: sophie_bot/modules/federations/handlers/leave.py:33
 #: sophie_bot/modules/federations/handlers/logs.py:33
-#: sophie_bot/modules/federations/handlers/logs.py:108
+#: sophie_bot/modules/federations/handlers/logs.py:109
 #: sophie_bot/modules/federations/handlers/promote.py:49
 #: sophie_bot/modules/federations/handlers/rename.py:40
 #: sophie_bot/modules/federations/handlers/subscribe.py:36
 #: sophie_bot/modules/federations/handlers/subscribe.py:106
-#: sophie_bot/modules/federations/handlers/transfer.py:49
+#: sophie_bot/modules/federations/handlers/transfer.py:51
 #: sophie_bot/modules/federations/handlers/unban.py:47
 msgid "This command can only be used by users."
 msgstr "Dieser Befehl kann nur von Benutzern verwendet werden."
@@ -1759,18 +1813,18 @@ msgstr "Föderation nicht gefunden."
 msgid "Transfer request is outdated. The federation owner has changed."
 msgstr "Übertragungsanfrage ist veraltet. Der Besitzer der Föderation hat sich geändert."
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:101
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:96
 msgid "🏛 Ownership Transferred"
 msgstr "🏛 Besitz übertragen"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:102
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:97
 #, python-brace-format
 msgid "You are now the owner of federation '{fed_name}'."
 msgstr "Sie sind jetzt der Besitzer der Föderation '{fed_name}'."
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:103
-#: sophie_bot/modules/federations/handlers/create.py:63
-#: sophie_bot/modules/federations/handlers/join.py:76
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:98
+#: sophie_bot/modules/federations/handlers/create.py:66
+#: sophie_bot/modules/federations/handlers/join.py:75
 #: sophie_bot/modules/federations/handlers/leave.py:59
 #, python-brace-format
 msgid "Federation ID: {fed_id}"
@@ -1785,8 +1839,8 @@ msgid "You don't have permission to view this federation's admins."
 msgstr "Sie haben keine Berechtigung, die Administratoren dieser Föderation anzuzeigen."
 
 #: sophie_bot/modules/federations/handlers/admins.py:38
-#: sophie_bot/modules/federations/handlers/ban.py:136
-#: sophie_bot/modules/federations/handlers/ban.py:175
+#: sophie_bot/modules/federations/handlers/ban.py:53
+#: sophie_bot/modules/federations/handlers/ban.py:85
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
@@ -1812,7 +1866,7 @@ msgid "🏛 Federation Admins"
 msgstr "🏛 Föderations-Administratoren"
 
 #: sophie_bot/modules/federations/handlers/admins.py:66
-#: sophie_bot/modules/federations/handlers/ban.py:135
+#: sophie_bot/modules/federations/handlers/ban.py:52
 #: sophie_bot/modules/federations/handlers/banlist.py:53
 #: sophie_bot/modules/federations/handlers/banlist.py:63
 #: sophie_bot/modules/federations/handlers/banlist.py:81
@@ -1825,7 +1879,7 @@ msgstr "🏛 Föderations-Administratoren"
 #: sophie_bot/modules/federations/handlers/subscribe.py:144
 #: sophie_bot/modules/federations/handlers/unban.py:150
 #: sophie_bot/modules/federations/schedules/process_exports.py:145
-#: sophie_bot/modules/federations/schedules/process_imports.py:331
+#: sophie_bot/modules/federations/schedules/process_imports.py:66
 msgid "Federation"
 msgstr "Föderation"
 
@@ -1846,71 +1900,71 @@ msgstr "Administratoren"
 msgid "No additional admins."
 msgstr "Keine zusätzlichen Administratoren."
 
-#: sophie_bot/modules/federations/handlers/ban.py:40
+#: sophie_bot/modules/federations/handlers/ban.py:51
+msgid "🏛 User Banned from Federation"
+msgstr "🏛 Benutzer aus der Föderation gesperrt"
+
+#: sophie_bot/modules/federations/handlers/ban.py:54
+#: sophie_bot/modules/restrictions/handlers/ban.py:101
+#: sophie_bot/modules/restrictions/handlers/ban.py:203
+#: sophie_bot/modules/restrictions/handlers/silent.py:186
+#: sophie_bot/modules/restrictions/handlers/silent.py:257
+msgid "Banned by"
+msgstr "Gesperrt von"
+
+#: sophie_bot/modules/federations/handlers/ban.py:58
+#, python-brace-format
+msgid "Banned in {count} chats"
+msgstr "In {count} Chats gesperrt"
+
+#: sophie_bot/modules/federations/handlers/ban.py:58
+#: sophie_bot/modules/federations/handlers/unban.py:153
+msgid "Result"
+msgstr "Ergebnis"
+
+#: sophie_bot/modules/federations/handlers/ban.py:61
+msgid "Also banned in"
+msgstr "Auch gesperrt in"
+
+#: sophie_bot/modules/federations/handlers/ban.py:61
+#, python-brace-format
+msgid "{count} subscribed federations"
+msgstr "{count} abonnierte Föderationen"
+
+#: sophie_bot/modules/federations/handlers/ban.py:64
+msgid "The action is silent, all related messages would be deleted shortly"
+msgstr "Die Aktion ist still, alle zugehörigen Nachrichten werden in Kürze gelöscht"
+
+#: sophie_bot/modules/federations/handlers/ban.py:79
+msgid "Ban user in the fed #FedBan"
+msgstr "Benutzer in der Föderation sperren #FedBan"
+
+#: sophie_bot/modules/federations/handlers/ban.py:80
+msgid "Fed"
+msgstr "Föderation"
+
+#: sophie_bot/modules/federations/handlers/ban.py:89
+msgid "By"
+msgstr "Von"
+
+#: sophie_bot/modules/federations/handlers/ban.py:101
 msgid "Ban a user from the federation"
 msgstr "Einen Benutzer aus der Föderation sperren"
 
-#: sophie_bot/modules/federations/handlers/ban.py:58
+#: sophie_bot/modules/federations/handlers/ban.py:119
 msgid "?Reason"
 msgstr "?Grund"
 
-#: sophie_bot/modules/federations/handlers/ban.py:76
+#: sophie_bot/modules/federations/handlers/ban.py:137
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:59
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:68
 #: sophie_bot/modules/federations/handlers/unban.py:56
 msgid "Please specify a user or reply to a user's message."
 msgstr "Bitte geben Sie einen Benutzer an oder antworten Sie auf eine Nachricht eines Benutzers."
 
-#: sophie_bot/modules/federations/handlers/ban.py:87
+#: sophie_bot/modules/federations/handlers/ban.py:148
 msgid "You don't have permission to ban users in this federation."
 msgstr "Sie haben keine Berechtigung, Benutzer in dieser Föderation zu sperren."
-
-#: sophie_bot/modules/federations/handlers/ban.py:134
-msgid "🏛 User Banned from Federation"
-msgstr "🏛 Benutzer aus der Föderation gesperrt"
-
-#: sophie_bot/modules/federations/handlers/ban.py:137
-#: sophie_bot/modules/restrictions/handlers/ban.py:101
-#: sophie_bot/modules/restrictions/handlers/ban.py:203
-#: sophie_bot/modules/restrictions/handlers/silent.py:167
-#: sophie_bot/modules/restrictions/handlers/silent.py:238
-msgid "Banned by"
-msgstr "Gesperrt von"
-
-#: sophie_bot/modules/federations/handlers/ban.py:141
-#, python-brace-format
-msgid "Banned in {count} chats"
-msgstr "In {count} Chats gesperrt"
-
-#: sophie_bot/modules/federations/handlers/ban.py:141
-#: sophie_bot/modules/federations/handlers/unban.py:153
-msgid "Result"
-msgstr "Ergebnis"
-
-#: sophie_bot/modules/federations/handlers/ban.py:145
-msgid "Also banned in"
-msgstr "Auch gesperrt in"
-
-#: sophie_bot/modules/federations/handlers/ban.py:145
-#, python-brace-format
-msgid "{count} subscribed federations"
-msgstr "{count} abonnierte Föderationen"
-
-#: sophie_bot/modules/federations/handlers/ban.py:149
-msgid "The action is silent, all related messages would be deleted shortly"
-msgstr "Die Aktion ist still, alle zugehörigen Nachrichten werden in Kürze gelöscht"
-
-#: sophie_bot/modules/federations/handlers/ban.py:167
-msgid "Ban user in the fed #FedBan"
-msgstr "Benutzer in der Föderation sperren #FedBan"
-
-#: sophie_bot/modules/federations/handlers/ban.py:169
-msgid "Fed"
-msgstr "Föderation"
-
-#: sophie_bot/modules/federations/handlers/ban.py:179
-msgid "By"
-msgstr "Von"
 
 #: sophie_bot/modules/federations/handlers/banlist.py:23
 msgid "Show list of banned users in federation"
@@ -1976,7 +2030,7 @@ msgstr "Ihre Sperrliste wird in Kürze an diesen Chat gesendet."
 
 #: sophie_bot/modules/federations/handlers/base.py:54
 #: sophie_bot/modules/federations/handlers/info.py:37
-#: sophie_bot/modules/federations/handlers/transfer.py:42
+#: sophie_bot/modules/federations/handlers/transfer.py:44
 msgid "?Federation ID"
 msgstr "?Föderations-ID"
 
@@ -1994,6 +2048,7 @@ msgid "This chat is not in any federation. Use {cmd} to specify federation."
 msgstr "Dieser Chat ist in keiner Föderation. Verwenden Sie {cmd}, um die Föderation anzugeben."
 
 #: sophie_bot/modules/federations/handlers/base.py:130
+#: sophie_bot/modules/federations/handlers/delete.py:98
 msgid "Only federation owners can perform this action."
 msgstr "Nur Föderationsbesitzer können diese Aktion ausführen."
 
@@ -2061,8 +2116,8 @@ msgstr "Chat nicht in der Datenbank gefunden"
 #: sophie_bot/modules/federations/handlers/chats.py:133
 #: sophie_bot/modules/federations/handlers/info.py:126
 #: sophie_bot/modules/federations/handlers/leave.py:42
-#: sophie_bot/modules/federations/handlers/logs.py:40
-#: sophie_bot/modules/federations/handlers/logs.py:115
+#: sophie_bot/modules/federations/handlers/logs.py:45
+#: sophie_bot/modules/federations/handlers/logs.py:121
 msgid "This chat is not in any federation."
 msgstr "Dieser Chat ist in keiner Föderation."
 
@@ -2074,37 +2129,96 @@ msgstr "Erstellt eine neue Föderation"
 msgid "Federation name"
 msgstr "Föderationsname"
 
-#: sophie_bot/modules/federations/handlers/create.py:53
+#: sophie_bot/modules/federations/handlers/create.py:56
 msgid "You have reached the maximum number of federations you can create."
 msgstr "Sie haben die maximale Anzahl von Föderationen erreicht, die Sie erstellen können."
 
-#: sophie_bot/modules/federations/handlers/create.py:56
+#: sophie_bot/modules/federations/handlers/create.py:59
 #: sophie_bot/modules/federations/handlers/rename.py:58
 msgid "A federation with this name already exists."
 msgstr "Eine Föderation mit diesem Namen existiert bereits."
 
-#: sophie_bot/modules/federations/handlers/create.py:61
+#: sophie_bot/modules/federations/handlers/create.py:64
 msgid "🏛 Federation Created"
 msgstr "🏛 Föderation erstellt"
 
-#: sophie_bot/modules/federations/handlers/create.py:62
+#: sophie_bot/modules/federations/handlers/create.py:65
 #, python-brace-format
 msgid "Federation '{name}' has been created successfully!"
 msgstr "Föderation '{name}' wurde erfolgreich erstellt!"
 
-#: sophie_bot/modules/federations/handlers/create.py:64
+#: sophie_bot/modules/federations/handlers/create.py:67
 #, python-brace-format
 msgid "Use {cmd} to join this federation."
 msgstr "Verwenden Sie {cmd}, um dieser Föderation beizutreten."
 
-#: sophie_bot/modules/federations/handlers/create.py:65
+#: sophie_bot/modules/federations/handlers/create.py:68
 msgid "You are the owner of this federation."
 msgstr "Sie sind der Besitzer dieser Föderation."
 
-#: sophie_bot/modules/federations/handlers/create.py:72
+#: sophie_bot/modules/federations/handlers/create.py:75
 #, python-brace-format
 msgid "🏛 Federation '{name}' has been created by {user}."
 msgstr "🏛 Föderation '{name}' wurde von {user} erstellt."
+
+#: sophie_bot/modules/federations/handlers/delete.py:32
+#: sophie_bot/modules/filters/handlers/confirm.py:64
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:101
+msgid "✅ Confirm"
+msgstr "✅ Bestätigen"
+
+#: sophie_bot/modules/federations/handlers/delete.py:36
+#: sophie_bot/modules/filters/handlers/action_select.py:50
+#: sophie_bot/modules/filters/handlers/actions_list.py:69
+#: sophie_bot/modules/filters/handlers/add.py:74
+#: sophie_bot/modules/filters/handlers/add.py:91
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:215
+#: sophie_bot/modules/utils_/action_config_wizard/handler.py:616
+msgid "❌ Cancel"
+msgstr "❌ Abbrechen"
+
+#: sophie_bot/modules/federations/handlers/delete.py:44
+msgid "Delete a federation (owner only)"
+msgstr "Eine Föderation löschen (nur Eigentümer)"
+
+#: sophie_bot/modules/federations/handlers/delete.py:63
+msgid "🏛 Delete Federation?"
+msgstr "🏛 Föderation löschen?"
+
+#: sophie_bot/modules/federations/handlers/delete.py:65
+#, python-brace-format
+msgid "Are you sure you want to delete federation '{name}'?"
+msgstr "Möchten Sie die Föderation „{name}“ wirklich löschen?"
+
+#: sophie_bot/modules/federations/handlers/delete.py:69
+msgid "This will delete the federation and all federation bans. This action cannot be undone."
+msgstr "Dadurch werden die Föderation und alle Föderationsverbote gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+
+#: sophie_bot/modules/federations/handlers/delete.py:93
+msgid "This federation no longer exists."
+msgstr "Diese Föderation existiert nicht mehr."
+
+#: sophie_bot/modules/federations/handlers/delete.py:94
+msgid "Federation not found"
+msgstr "Föderation nicht gefunden"
+
+#: sophie_bot/modules/federations/handlers/delete.py:105
+#, python-brace-format
+msgid "🏛 Federation '{name}' has been deleted by {user}."
+msgstr "🏛 Föderation „{name}“ wurde von {user} gelöscht."
+
+#: sophie_bot/modules/federations/handlers/delete.py:115
+msgid "🏛 Federation Deleted"
+msgstr "🏛 Föderation gelöscht"
+
+#: sophie_bot/modules/federations/handlers/delete.py:116
+#, python-brace-format
+msgid "Federation '{name}' has been deleted."
+msgstr "Föderation „{name}“ wurde gelöscht."
+
+#: sophie_bot/modules/federations/handlers/delete.py:120
+msgid "Federation deleted"
+msgstr "Föderation gelöscht"
 
 #: sophie_bot/modules/federations/handlers/demote.py:27
 msgid "Demote a user from federation admin"
@@ -2116,7 +2230,7 @@ msgstr "Bitte geben Sie einen zu degradierenden Benutzer an oder antworten Sie a
 
 #: sophie_bot/modules/federations/handlers/demote.py:64
 #: sophie_bot/modules/federations/handlers/promote.py:64
-#: sophie_bot/modules/warns/handlers/warn.py:67
+#: sophie_bot/modules/warns/handlers/warn.py:94
 msgid "User not found in database."
 msgstr "Benutzer nicht in der Datenbank gefunden."
 
@@ -2125,8 +2239,8 @@ msgid "Can only demote individual users from admin."
 msgstr "Es können nur einzelne Benutzer als Admin degradiert werden."
 
 #: sophie_bot/modules/federations/handlers/demote.py:76
-msgid "Only federation admins can demote users."
-msgstr "Nur Föderationsadministratoren können Benutzer degradieren."
+msgid "Only the federation owner can demote users."
+msgstr "Nur der Föderationseigentümer kann Benutzer degradieren."
 
 #: sophie_bot/modules/federations/handlers/demote.py:82
 msgid "Cannot demote the federation owner."
@@ -2282,24 +2396,24 @@ msgstr "Föderations-ID zum Beitritt"
 msgid "This chat is already in the specified federation."
 msgstr "Dieser Chat ist bereits in der angegebenen Föderation."
 
-#: sophie_bot/modules/federations/handlers/join.py:56
+#: sophie_bot/modules/federations/handlers/join.py:55
 msgid "This chat is already in another federation. Leave it first."
 msgstr "Dieser Chat ist bereits in einer anderen Föderation. Beende sie zuerst."
 
-#: sophie_bot/modules/federations/handlers/join.py:65
+#: sophie_bot/modules/federations/handlers/join.py:64
 msgid "Unable to join the federation right now. Please try again."
 msgstr "Der Föderation kann derzeit nicht beigetreten werden. Bitte versuchen Sie es erneut."
 
-#: sophie_bot/modules/federations/handlers/join.py:70
+#: sophie_bot/modules/federations/handlers/join.py:69
 msgid "🏛 Chat Joined Federation"
 msgstr "🏛 Chat ist Föderation beigetreten"
 
-#: sophie_bot/modules/federations/handlers/join.py:72
+#: sophie_bot/modules/federations/handlers/join.py:71
 #, python-brace-format
 msgid "Chat '{chat_title}' has been added to federation '{fed_name}'."
 msgstr "Chat '{chat_title}' wurde zur Föderation '{fed_name}' hinzugefügt."
 
-#: sophie_bot/modules/federations/handlers/join.py:83
+#: sophie_bot/modules/federations/handlers/join.py:82
 #, python-brace-format
 msgid "🏛 Chat '{chat_title}' has been added to federation by {user}."
 msgstr "🏛 Chat '{chat_title}' wurde von {user} zur Föderation hinzugefügt."
@@ -2330,63 +2444,67 @@ msgstr "🏛 Chat '{chat_title}' hat die Föderation durch {user} verlassen."
 msgid "Sets the Federation logs channel"
 msgstr "Legt den Föderations-Log-Kanal fest"
 
-#: sophie_bot/modules/federations/handlers/logs.py:47
+#: sophie_bot/modules/federations/handlers/logs.py:38
+#: sophie_bot/modules/federations/handlers/logs.py:114
+msgid "This chat is not initialized yet."
+msgstr "Dieser Chat ist noch nicht initialisiert."
+
+#: sophie_bot/modules/federations/handlers/logs.py:52
 msgid "Only the federation owner can set the log channel."
 msgstr "Nur der Föderationsbesitzer kann den Log-Kanal festlegen."
 
-#: sophie_bot/modules/federations/handlers/logs.py:53
+#: sophie_bot/modules/federations/handlers/logs.py:58
 msgid "This federation already has a log channel set. Use /funsetlog to remove it first."
 msgstr "Diese Föderation hat bereits einen Log-Kanal festgelegt. Verwende /funsetlog, um ihn zuerst zu entfernen."
 
-#: sophie_bot/modules/federations/handlers/logs.py:62
-#: sophie_bot/modules/federations/handlers/logs.py:71
+#: sophie_bot/modules/federations/handlers/logs.py:67
 msgid "Unable to verify permissions in this channel."
 msgstr "Kann Berechtigungen in diesem Kanal nicht überprüfen."
 
-#: sophie_bot/modules/federations/handlers/logs.py:68
+#: sophie_bot/modules/federations/handlers/logs.py:72
 msgid "I don't have permission to post messages in this channel."
 msgstr "Ich habe keine Berechtigung, Nachrichten in diesem Kanal zu posten."
 
-#: sophie_bot/modules/federations/handlers/logs.py:79
+#: sophie_bot/modules/federations/handlers/logs.py:80
 msgid "🏛 Federation Log Channel Set"
 msgstr "🏛 Föderations-Log-Kanal festgelegt"
 
-#: sophie_bot/modules/federations/handlers/logs.py:80
+#: sophie_bot/modules/federations/handlers/logs.py:81
 #, python-brace-format
 msgid "Log channel has been set for federation '{name}'."
 msgstr "Log-Kanal wurde für die Föderation '{name}' festgelegt."
 
-#: sophie_bot/modules/federations/handlers/logs.py:81
+#: sophie_bot/modules/federations/handlers/logs.py:82
 msgid "All federation actions will now be logged here."
 msgstr "Alle Föderationsaktionen werden nun hier protokolliert."
 
-#: sophie_bot/modules/federations/handlers/logs.py:87
+#: sophie_bot/modules/federations/handlers/logs.py:88
 #, python-brace-format
 msgid "🏛 Federation '{name}' log channel has been set to this chat."
 msgstr "🏛 Föderations-Log-Kanal '{name}' wurde auf diesen Chat festgelegt."
 
-#: sophie_bot/modules/federations/handlers/logs.py:93
+#: sophie_bot/modules/federations/handlers/logs.py:94
 msgid "Removes the Federation logs channel"
 msgstr "Entfernt den Föderations-Log-Kanal"
 
-#: sophie_bot/modules/federations/handlers/logs.py:122
+#: sophie_bot/modules/federations/handlers/logs.py:128
 msgid "Only the federation owner can remove the log channel."
 msgstr "Nur der Föderationsbesitzer kann den Log-Kanal entfernen."
 
-#: sophie_bot/modules/federations/handlers/logs.py:127
+#: sophie_bot/modules/federations/handlers/logs.py:133
 msgid "This federation doesn't have a log channel set."
 msgstr "Diese Föderation hat keinen Log-Kanal festgelegt."
 
-#: sophie_bot/modules/federations/handlers/logs.py:132
+#: sophie_bot/modules/federations/handlers/logs.py:138
 #, python-brace-format
 msgid "🏛 Federation '{name}' log channel has been removed."
 msgstr "🏛 Föderations-Log-Kanal '{name}' wurde entfernt."
 
-#: sophie_bot/modules/federations/handlers/logs.py:141
+#: sophie_bot/modules/federations/handlers/logs.py:147
 msgid "🏛 Federation Log Channel Removed"
 msgstr "🏛 Föderations-Log-Kanal entfernt"
 
-#: sophie_bot/modules/federations/handlers/logs.py:142
+#: sophie_bot/modules/federations/handlers/logs.py:148
 #, python-brace-format
 msgid "Log channel has been removed for federation '{name}'."
 msgstr "Log-Kanal wurde für die Föderation '{name}' entfernt."
@@ -2404,8 +2522,8 @@ msgid "Can only promote individual users to admin."
 msgstr "Es können nur einzelne Benutzer zum Administrator befördert werden."
 
 #: sophie_bot/modules/federations/handlers/promote.py:76
-msgid "Only federation admins can promote users."
-msgstr "Nur Föderationsadministratoren können Benutzer befördern."
+msgid "Only the federation owner can promote users."
+msgstr "Nur der Föderationseigentümer kann Benutzer befördern."
 
 #: sophie_bot/modules/federations/handlers/promote.py:86
 #, python-brace-format
@@ -2515,36 +2633,48 @@ msgstr "Abgemeldet von"
 msgid "🏛 Federation '{fed_name}' ({fed_id}) unsubscribed from '{target_fed_name}' ({target_fed_id})"
 msgstr "🏛 Föderation '{fed_name}' ({fed_id}) hat sich von '{target_fed_name}' ({target_fed_id}) abgemeldet"
 
-#: sophie_bot/modules/federations/handlers/transfer.py:23
+#: sophie_bot/modules/federations/handlers/transfer.py:25
 msgid "Transfer federation ownership"
 msgstr "Föderationsbesitz übertragen"
 
-#: sophie_bot/modules/federations/handlers/transfer.py:43
+#: sophie_bot/modules/federations/handlers/transfer.py:45
 msgid "New owner"
 msgstr "Neuer Besitzer"
 
-#: sophie_bot/modules/federations/handlers/transfer.py:58
+#: sophie_bot/modules/federations/handlers/transfer.py:60
 msgid "Only the federation owner can transfer ownership."
 msgstr "Nur der Föderationsbesitzer kann den Besitz übertragen."
 
-#: sophie_bot/modules/federations/handlers/transfer.py:66
+#: sophie_bot/modules/federations/handlers/transfer.py:68
 msgid "Invalid user. Please provide a valid username or user ID."
 msgstr "Ungültiger Benutzer. Bitte geben Sie einen gültigen Benutzernamen oder eine gültige Benutzer-ID an."
 
-#: sophie_bot/modules/federations/handlers/transfer.py:71
+#: sophie_bot/modules/federations/handlers/transfer.py:73
 msgid "You cannot transfer ownership to yourself."
 msgstr "Sie können den Besitz nicht an sich selbst übertragen."
 
-#: sophie_bot/modules/federations/handlers/transfer.py:96
+#: sophie_bot/modules/federations/handlers/transfer.py:78
+msgid "You cannot transfer ownership to a bot operator."
+msgstr "Sie können die Eigentümerschaft nicht an einen Bot-Betreiber übertragen."
+
+#: sophie_bot/modules/federations/handlers/transfer.py:83
+msgid "User has not started the bot yet."
+msgstr "Der Benutzer hat den Bot noch nicht gestartet."
+
+#: sophie_bot/modules/federations/handlers/transfer.py:87
+msgid "The new owner has reached the maximum number of federations they can own."
+msgstr "Der neue Eigentümer hat die maximale Anzahl von Föderationen erreicht, die er besitzen kann."
+
+#: sophie_bot/modules/federations/handlers/transfer.py:108
 msgid "🏛 Transfer Request Sent"
 msgstr "🏛 Übertragungsanfrage gesendet"
 
-#: sophie_bot/modules/federations/handlers/transfer.py:98
+#: sophie_bot/modules/federations/handlers/transfer.py:110
 #, python-brace-format
 msgid "Ownership transfer request sent to user {user_id}."
 msgstr "Besitzübertragungsanfrage an Benutzer {user_id} gesendet."
 
-#: sophie_bot/modules/federations/handlers/transfer.py:102
+#: sophie_bot/modules/federations/handlers/transfer.py:114
 #, python-brace-format
 msgid "They have 5 minutes to accept with {cmd}"
 msgstr "Sie haben 5 Minuten Zeit, mit {cmd} zu akzeptieren"
@@ -2644,19 +2774,19 @@ msgstr "🏛 Export der Föderations-Sperrliste"
 msgid "Exported at"
 msgstr "Exportiert am"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:325
+#: sophie_bot/modules/federations/schedules/process_imports.py:60
 msgid "✅ Import completed successfully"
 msgstr "✅ Import erfolgreich abgeschlossen"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:327
+#: sophie_bot/modules/federations/schedules/process_imports.py:62
 msgid "⚠️ Import completed with errors"
 msgstr "⚠️ Import mit Fehlern abgeschlossen"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:332
+#: sophie_bot/modules/federations/schedules/process_imports.py:67
 msgid "Imported"
 msgstr "Importiert"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:333
+#: sophie_bot/modules/federations/schedules/process_imports.py:68
 msgid "Failed"
 msgstr "Fehlgeschlagen"
 
@@ -2704,7 +2834,7 @@ msgstr "Sophie unterstützt viele verschiedene Aktionen, die Sie konfigurieren k
 #: sophie_bot/modules/filters/handlers/action_change_setting_confirm.py:59
 #: sophie_bot/modules/filters/handlers/action_remove.py:28
 #: sophie_bot/modules/filters/handlers/action_setting_select.py:32
-#: sophie_bot/modules/filters/handlers/action_setup_confirm.py:68
+#: sophie_bot/modules/filters/handlers/action_setup_confirm.py:67
 #: sophie_bot/modules/filters/handlers/actions_list.py:38
 #: sophie_bot/modules/filters/handlers/actions_list_to_remove.py:35
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:43
@@ -2720,15 +2850,6 @@ msgstr "einrichten"
 #: sophie_bot/modules/filters/handlers/action_select.py:47
 msgid "⬅ Back"
 msgstr "⬅ Zurück"
-
-#: sophie_bot/modules/filters/handlers/action_select.py:50
-#: sophie_bot/modules/filters/handlers/actions_list.py:69
-#: sophie_bot/modules/filters/handlers/add.py:74
-#: sophie_bot/modules/filters/handlers/add.py:91
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:215
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:616
-msgid "❌ Cancel"
-msgstr "❌ Abbrechen"
 
 #: sophie_bot/modules/filters/handlers/actions_list.py:51
 #: sophie_bot/modules/filters/handlers/add.py:61
@@ -2777,11 +2898,6 @@ msgstr "Bearbeitet"
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:95
 msgid "➕ Add another action"
 msgstr "➕ Eine weitere Aktion hinzufügen"
-
-#: sophie_bot/modules/filters/handlers/confirm.py:64
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:101
-msgid "✅ Confirm"
-msgstr "✅ Bestätigen"
 
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:89
 msgid "➖ Remove actions"
@@ -2885,79 +3001,79 @@ msgstr "Zusätzliche Regeln aus dem 'Antiflood'-Modul können durchgesetzt werde
 msgid "Additionally rules from 'Locks' module can be enforced."
 msgstr "Zusätzlich können Regeln aus dem 'Sperren'-Modul erzwungen werden."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:31
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:30
 #, python-brace-format
 msgid "The lock type {handler} is already enforced by the Locks module."
 msgstr "Der Sperrtyp {handler} wird bereits vom Sperren-Modul erzwungen."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:35
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:36
 #, python-brace-format
 msgid "Delete it there first with {cmd} before adding it as a filter."
 msgstr "Löschen Sie es zuerst dort mit {cmd}, bevor Sie es als Filter hinzufügen."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:45
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:48
 #, python-brace-format
 msgid "The lock-filter {name} already exists! Please use {cmd} to edit the filter."
 msgstr "Der Sperrfilter {name} existiert bereits! Bitte verwenden Sie {cmd}, um den Filter zu bearbeiten."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:57
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:65
 #, python-brace-format
 msgid "Filter with the handler {handler} already exists!"
 msgstr "Der Filter mit dem Handler {handler} existiert bereits!"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:60
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:69
 #, python-brace-format
 msgid "You can edit the filter's actions with {cmd}."
 msgstr "Sie können die Aktionen des Filters mit {cmd} bearbeiten."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:72
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:91
 msgid "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
 "Example: ai:Message contains crypto scam"
 msgstr "Das AI-Filter-Prompt darf nicht leer sein. Bitte geben Sie eine Beschreibung an, wann der Filter ausgelöst werden soll.\n"
 "Beispiel: ai: Nachricht enthält Crypto-Scam"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:95
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:114
 #, python-brace-format
 msgid "Maximum number of AI filter handlers reached ({limit} per chat).\n"
 "AI filters consume tokens and can overload the system. Please remove an existing AI filter before adding a new one."
 msgstr "Maximale Anzahl von AI-Filter-Handlern erreicht ({limit} pro Chat).\n"
 "AI-Filter verbrauchen Token und können das System überlasten. Bitte entfernen Sie einen bestehenden AI-Filter, bevor Sie einen neuen hinzufügen."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:114
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:138
 msgid "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
 msgstr "Das angegebene Regex-Muster ist zu langsam, um es auszuführen. Bitte überprüfen Sie das Muster und versuchen Sie erneut, den Filter hinzuzufügen."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:122
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:146
 msgid "Provided regex pattern is invalid. Please check the syntax and try again."
 msgstr "Das angegebene Regex-Muster ist ungültig. Bitte überprüfen Sie die Syntax und versuchen Sie es erneut."
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:134
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:171
 #, python-brace-format
 msgid "When AI detects: {prompt}"
 msgstr "Wenn AI erkennt: {prompt}"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:137
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:174
 #, python-brace-format
 msgid "When messages matches the regex pattern {pattern}"
 msgstr "Wenn Nachrichten mit dem Regex-Muster {pattern} übereinstimmen"
 
-#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:139
+#: sophie_bot/modules/filters/utils_/legacy_filter_handler.py:176
 #, python-brace-format
 msgid "When {handler} in message"
 msgstr "Wenn {handler} in der Nachricht"
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:145
+#: sophie_bot/modules/filters/utils_/match_legacy.py:148
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr "Sie sind ein Assistent für die Inhaltsmoderation. Bewerten Sie, ob der bereitgestellte Nachrichteninhalt den Filterkriterien entspricht. Seien Sie präzise und objektiv in Ihrer Bewertung."
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:152
+#: sophie_bot/modules/filters/utils_/match_legacy.py:155
 #, python-brace-format
 msgid "Filter criteria: {criteria}\n\n"
 "Message content: {content}"
 msgstr "Filterkriterien: {criteria}\n\n"
 "Nachrichteninhalt: {content}"
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:154
+#: sophie_bot/modules/filters/utils_/match_legacy.py:157
 msgid "(no text content)"
 msgstr "(kein Textinhalt)"
 
@@ -3018,33 +3134,33 @@ msgstr "Zeigt / ändert den Zustand des Sendens von Begrüßungen"
 msgid "Welcome messages"
 msgstr "Willkommensnachrichten"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:19
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:19
-#: sophie_bot/modules/notes/handlers/save.py:32
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:20
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:20
+#: sophie_bot/modules/notes/handlers/save.py:33
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/TextWithButtonsArg.py:14
 #: sophie_bot/modules/rules/handlers/set.py:20
 msgid "Content"
 msgstr "Inhalt"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:20
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:21
 msgid "Sets join request message."
 msgstr "Setzt die Beitrittsanfragenachricht."
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:41
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:43
 #, python-brace-format
 msgid "Join request message was saved in {chat_title}."
 msgstr "Beitrittsanfragenachricht wurde in {chat_title} gespeichert."
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:47
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:49
 msgid "Deletes the join request message"
 msgstr "Löscht die Beitrittsanfragenachricht"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:60
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:62
 #, python-brace-format
 msgid "Join request message in {chat_title} has not been set before"
 msgstr "Beitrittsanfragenachricht in {chat_title} wurde bisher nicht festgelegt"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:70
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:72
 #, python-brace-format
 msgid "Join request message was reset to default in {chat_title}."
 msgstr "Beitrittsanfragenachricht wurde in {chat_title} auf Standard zurückgesetzt."
@@ -3065,26 +3181,26 @@ msgstr "Zeigt / ändert den Zustand der automatischen Bereinigung von Willkommen
 msgid "Automatic welcome messages cleanup"
 msgstr "Automatische Bereinigung von Willkommensnachrichten"
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:20
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:21
 msgid "Sets welcome message."
 msgstr "Legt die Willkommensnachricht fest."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:42
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:44
 #, python-brace-format
 msgid "Please the '{cmd}' to control the welcome status."
 msgstr "Benutzen Sie '{cmd}', um den Willkommensstatus zu steuern."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:52
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:54
 #, python-brace-format
 msgid "Welcome message was successfully updated in {chat_title}."
 msgstr "Willkommensnachricht wurde erfolgreich in {chat_title} aktualisiert."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:54
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:56
 #, python-brace-format
 msgid "Use {cmd} to retrieve the welcome message."
 msgstr "Benutze {cmd}, um die Willkommensnachricht abzurufen."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:61
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:63
 #, python-brace-format
 msgid "⚠️ Please note, that the welcome messages are currently disabled in the chat, use '{cmd}' to enable it."
 msgstr "⚠️ Bitte beachten Sie, dass die Willkommensnachrichten derzeit im Chat deaktiviert sind, verwenden Sie '{cmd}', um sie zu aktivieren."
@@ -3125,7 +3241,7 @@ msgid "Use {cmd} to retrieve Welcome Security settings"
 msgstr "Benutze {cmd}, um die Willkommenssicherheitseinstellungen abzurufen"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:47
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:78
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 #, python-brace-format
 msgid "Check out {cmd} to learn more about Welcome settings."
 msgstr "Schauen Sie sich {cmd} an, um mehr über die Willkommenseinstellungen zu erfahren."
@@ -3135,29 +3251,29 @@ msgid "Welcome Message"
 msgstr "Willkommensnachricht"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
-#: sophie_bot/modules/greetings/utils/send_welcome.py:22
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:118
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:85
+#: sophie_bot/modules/greetings/utils/send_welcome.py:23
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:122
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:86
 msgid "No chat rules, have fun!"
 msgstr "Keine Chatregeln, viel Spaß!"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:64
+#: sophie_bot/modules/greetings/middlewares/new_user.py:68
 msgid "Hi, Thank you for choosing Sophie for your group!"
 msgstr "Hallo, danke, dass Sie sich für Sophie für Ihre Gruppe entschieden haben!"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:65
+#: sophie_bot/modules/greetings/middlewares/new_user.py:69
 msgid "Please read the documentation to learn more about Sophie and do not hesitate to join the Support Chat"
 msgstr "Bitte lesen Sie die Dokumentation, um mehr über Sophie zu erfahren, und zögern Sie nicht, den Support-Chat zu betreten"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:70
+#: sophie_bot/modules/greetings/middlewares/new_user.py:74
 msgid "Documentation"
 msgstr "Dokumentation"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:71
+#: sophie_bot/modules/greetings/middlewares/new_user.py:75
 msgid "Support Chat"
 msgstr "Support-Chat"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:104
+#: sophie_bot/modules/greetings/middlewares/new_user.py:114
 msgid "I am not a robot"
 msgstr "Ich bin kein Roboter"
 
@@ -3265,7 +3381,7 @@ msgid "Add me to your chat"
 msgstr "Fügen Sie mich zu Ihrem Chat hinzu"
 
 #: sophie_bot/modules/help/handlers/start_pm.py:43
-#: sophie_bot/modules/privacy/__init__.py:19
+#: sophie_bot/modules/privacy/__init__.py:20
 msgid "Privacy"
 msgstr "Datenschutz"
 
@@ -3339,13 +3455,21 @@ msgstr "Sprache geändert zu {lang}"
 msgid "Language set to {lang}"
 msgstr "Sprache auf {lang} eingestellt"
 
-#: sophie_bot/modules/locks/__init__.py:17
+#: sophie_bot/modules/locks/__init__.py:18
 msgid "Locks"
 msgstr "Sperren"
 
-#: sophie_bot/modules/locks/__init__.py:19
+#: sophie_bot/modules/locks/__init__.py:20
 msgid "Lock specific message types in chats"
 msgstr "Sperren Sie bestimmte Nachrichtentypen in Chats"
+
+#: sophie_bot/modules/locks/__init__.py:23
+msgid "Allows administrators to lock specific types of messages in chats."
+msgstr "Ermöglicht Administratoren, bestimmte Nachrichtentypen in Chats zu sperren."
+
+#: sophie_bot/modules/locks/__init__.py:25
+msgid "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
+msgstr "Verhindert, dass Benutzer bestimmte Inhaltstypen wie Sticker, GIFs, URLs, Stickerpakete und Sprachen senden."
 
 #: sophie_bot/modules/locks/handlers/lock.py:25
 msgid "Lock a message type in the chat"
@@ -3385,424 +3509,244 @@ msgstr "Sperre hinzugefügt"
 msgid "Lock type {type} is already locked in this chat."
 msgstr "Sperrtyp {type} ist in diesem Chat bereits gesperrt."
 
-#: sophie_bot/modules/locks/handlers/lockable.py:26
+#: sophie_bot/modules/locks/handlers/lockable.py:49
 msgid "All messages"
 msgstr "Alle Nachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:27
+#: sophie_bot/modules/locks/handlers/lockable.py:50
 msgid "Media albums"
 msgstr "Medienalben"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:28
+#: sophie_bot/modules/locks/handlers/lockable.py:51
 msgid "Anonymous channels"
 msgstr "Anonyme Kanäle"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:29
+#: sophie_bot/modules/locks/handlers/lockable.py:52
 msgid "Audio files"
 msgstr "Audiodateien"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:30
+#: sophie_bot/modules/locks/handlers/lockable.py:53
 msgid "Bot messages"
 msgstr "Bot-Nachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:31
+#: sophie_bot/modules/locks/handlers/lockable.py:54
 msgid "Bot links"
 msgstr "Bot-Links"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:32
+#: sophie_bot/modules/locks/handlers/lockable.py:55
 msgid "Inline buttons"
 msgstr "Inline-Schaltflächen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:33
+#: sophie_bot/modules/locks/handlers/lockable.py:56
 msgid "Cashtags ($TAG)"
 msgstr "Cashtags ($TAG)"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:34
+#: sophie_bot/modules/locks/handlers/lockable.py:57
 msgid "Checklists"
 msgstr "Checklisten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:35
+#: sophie_bot/modules/locks/handlers/lockable.py:58
 msgid "CJK characters"
 msgstr "CJK-Zeichen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:37
+#: sophie_bot/modules/locks/handlers/lockable.py:60
 msgid "Comments"
 msgstr "Kommentare"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:38
+#: sophie_bot/modules/locks/handlers/lockable.py:61
 msgid "Contacts"
 msgstr "Kontakte"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:39
+#: sophie_bot/modules/locks/handlers/lockable.py:62
 msgid "Cyrillic text"
 msgstr "Kyrillischer Text"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:40
+#: sophie_bot/modules/locks/handlers/lockable.py:63
 msgid "Documents"
 msgstr "Dokumente"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:41
+#: sophie_bot/modules/locks/handlers/lockable.py:64
 msgid "Email addresses"
 msgstr "E-Mail-Adressen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:42
+#: sophie_bot/modules/locks/handlers/lockable.py:65
 msgid "Emoji"
 msgstr "Emoji"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:43
+#: sophie_bot/modules/locks/handlers/lockable.py:66
 msgid "Custom emoji"
 msgstr "Benutzerdefinierte Emoji"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:44
+#: sophie_bot/modules/locks/handlers/lockable.py:67
 msgid "Game messages"
 msgstr "Spiele-Nachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:45
+#: sophie_bot/modules/locks/handlers/lockable.py:68
 msgid "Emoji-only messages"
 msgstr "Nur-Emoji-Nachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:46
+#: sophie_bot/modules/locks/handlers/lockable.py:69
 msgid "External replies"
 msgstr "Externe Antworten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:47
+#: sophie_bot/modules/locks/handlers/lockable.py:70
 msgid "Forwarded messages"
 msgstr "Weitergeleitete Nachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:48
+#: sophie_bot/modules/locks/handlers/lockable.py:71
 msgid "Bot forwards"
 msgstr "Bot-Weiterleitungen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:49
+#: sophie_bot/modules/locks/handlers/lockable.py:72
 msgid "Channel forwards"
 msgstr "Kanal-Weiterleitungen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:50
+#: sophie_bot/modules/locks/handlers/lockable.py:73
 msgid "Story forwards"
 msgstr "Story-Weiterleitungen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:51
+#: sophie_bot/modules/locks/handlers/lockable.py:74
 msgid "User forwards"
 msgstr "Benutzer-Weiterleitungen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:52
+#: sophie_bot/modules/locks/handlers/lockable.py:75
 msgid "Games"
 msgstr "Spiele"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:53
+#: sophie_bot/modules/locks/handlers/lockable.py:76
 msgid "GIFs"
 msgstr "GIFs"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:54
+#: sophie_bot/modules/locks/handlers/lockable.py:77
 msgid "Inline results"
 msgstr "Inline-Ergebnisse"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:55
+#: sophie_bot/modules/locks/handlers/lockable.py:78
 msgid "Invite links"
 msgstr "Einladungslinks"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:56
+#: sophie_bot/modules/locks/handlers/lockable.py:79
 msgid "Locations"
 msgstr "Standorte"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:57
+#: sophie_bot/modules/locks/handlers/lockable.py:80
 msgid "Phone numbers"
 msgstr "Telefonnummern"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:58
+#: sophie_bot/modules/locks/handlers/lockable.py:81
 msgid "Photos"
 msgstr "Fotos"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:59
+#: sophie_bot/modules/locks/handlers/lockable.py:82
 msgid "Polls"
 msgstr "Umfragen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:60
+#: sophie_bot/modules/locks/handlers/lockable.py:83
 msgid "RTL text"
 msgstr "RTL-Text"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:61
+#: sophie_bot/modules/locks/handlers/lockable.py:84
 msgid "Spoilers"
 msgstr "Spoiler"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:62
+#: sophie_bot/modules/locks/handlers/lockable.py:85
 msgid "Stickers"
 msgstr "Sticker"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:63
-#: sophie_bot/modules/locks/handlers/lockable.py:112
+#: sophie_bot/modules/locks/handlers/lockable.py:86
+#: sophie_bot/shared/lock_constants.py:52
 msgid "Animated stickers"
 msgstr "Animierte Sticker"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:64
+#: sophie_bot/modules/locks/handlers/lockable.py:87
 msgid "Premium stickers"
 msgstr "Premium-Sticker"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:65
+#: sophie_bot/modules/locks/handlers/lockable.py:88
 msgid "Text messages"
 msgstr "Textnachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:66
+#: sophie_bot/modules/locks/handlers/lockable.py:89
 msgid "URLs"
 msgstr "URLs"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:67
+#: sophie_bot/modules/locks/handlers/lockable.py:90
 msgid "Videos"
 msgstr "Videos"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:68
+#: sophie_bot/modules/locks/handlers/lockable.py:91
 msgid "Video notes"
 msgstr "Video-Notizen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:69
+#: sophie_bot/modules/locks/handlers/lockable.py:92
 msgid "Voice messages"
 msgstr "Sprachnachrichten"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:70
+#: sophie_bot/modules/locks/handlers/lockable.py:93
 msgid "Zalgo text"
 msgstr "Zalgo-Text"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:71
+#: sophie_bot/modules/locks/handlers/lockable.py:94
 msgid "Dice"
 msgstr "Würfel"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:75
-msgid "Blocks all message types"
-msgstr "Blockiert alle Nachrichtentypen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:76
-msgid "Messages with media albums (grouped photos/videos)"
-msgstr "Nachrichten mit Medienalben (gruppierte Fotos/Videos)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:77
-msgid "Messages sent on behalf of a channel anonymously"
-msgstr "Nachrichten, die anonym im Namen eines Kanals gesendet wurden"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:78
-msgid "Messages with audio files"
-msgstr "Nachrichten mit Audiodateien"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:79
-msgid "Messages from bot accounts"
-msgstr "Nachrichten von Bot-Konten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:80
-msgid "Links to Telegram bots (t.me/botname)"
-msgstr "Links zu Telegram-Bots (t.me/botname)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:81
-msgid "Messages with inline keyboard buttons"
-msgstr "Nachrichten mit Inline-Tastatur-Schaltflächen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:82
-msgid "Cashtag entities ($TICKER)"
-msgstr "Cashtag-Entitäten ($TICKER)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:83
-msgid "Messages with checklists"
-msgstr "Nachrichten mit Checklisten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:84
-msgid "Messages containing CJK characters (Chinese, Japanese, Korean)"
-msgstr "Nachrichten, die CJK-Zeichen (Chinesisch, Japanisch, Koreanisch) enthalten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:85
-msgid "Bot command entities (/command@bot)"
-msgstr "Bot-Befehlsentitäten (/command@bot)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:86
-msgid "Messages sent as comments in channels"
-msgstr "Nachrichten, die als Kommentare in Kanälen gesendet wurden"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:87
-msgid "Messages with shared contacts"
-msgstr "Nachrichten mit geteilten Kontakten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:88
-msgid "Messages containing Cyrillic characters"
-msgstr "Nachrichten, die kyrillische Zeichen enthalten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:89
-msgid "Messages with files/documents"
-msgstr "Nachrichten mit Dateien/Dokumenten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:90
-msgid "Email address entities"
-msgstr "E-Mail-Adressen-Entitäten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:91
-msgid "Messages containing emoji"
-msgstr "Nachrichten, die Emoji enthalten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:92
-msgid "Custom emoji entities"
-msgstr "Benutzerdefinierte Emoji-Entitäten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:93
-msgid "Game messages with emoji"
-msgstr "Spiele-Nachrichten mit Emoji"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:94
-msgid "Messages containing only emoji"
-msgstr "Nachrichten, die nur Emoji enthalten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:95
-msgid "External reply references"
-msgstr "Externe Antwort-Referenzen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:96
-msgid "All forwarded messages"
-msgstr "Alle weitergeleiteten Nachrichten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:97
-msgid "Messages forwarded from bots"
-msgstr "Nachrichten, die von Bots weitergeleitet wurden"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:98
-msgid "Messages forwarded from channels"
-msgstr "Nachrichten, die von Kanälen weitergeleitet wurden"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:99
-msgid "Messages forwarded from stories"
-msgstr "Nachrichten, die von Stories weitergeleitet wurden"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:100
-msgid "Messages forwarded from users"
-msgstr "Nachrichten, die von Benutzern weitergeleitet wurden"
-
 #: sophie_bot/modules/locks/handlers/lockable.py:101
-msgid "Messages with Telegram games"
-msgstr "Nachrichten mit Telegram-Spielen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:102
-msgid "Messages with GIF animations"
-msgstr "Nachrichten mit GIF-Animationen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:103
-msgid "Messages sent via inline bots"
-msgstr "Nachrichten, die über Inline-Bots gesendet wurden"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:104
-msgid "Telegram invite links (t.me/+)"
-msgstr "Telegram-Einladungslinks (t.me/+)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:105
-msgid "Messages with location or venue"
-msgstr "Nachrichten mit Standort oder Ort"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:106
-msgid "Phone number entities"
-msgstr "Telefonnummern-Entitäten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:107
-msgid "Messages with photos"
-msgstr "Nachrichten mit Fotos"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:108
-msgid "Messages with polls or quizzes"
-msgstr "Nachrichten mit Umfragen oder Quizzen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:109
-msgid "Messages containing RTL (right-to-left) text"
-msgstr "Nachrichten, die RTL-Text (von rechts nach links) enthalten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:110
-msgid "Spoiler text entities"
-msgstr "Spoiler-Textentitäten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:111
-msgid "Messages with stickers"
-msgstr "Nachrichten mit Stickern"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:113
-msgid "Premium animated stickers"
-msgstr "Premium-animierte Sticker"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:114
-msgid "Text-only messages without media"
-msgstr "Nur-Text-Nachrichten ohne Medien"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:115
-msgid "URL entities in messages"
-msgstr "URL-Entitäten in Nachrichten"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:116
-msgid "Messages with videos"
-msgstr "Nachrichten mit Videos"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:117
-msgid "Messages with video notes (round videos)"
-msgstr "Nachrichten mit Video-Notizen (runde Videos)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:118
-msgid "Messages with voice recordings"
-msgstr "Nachrichten mit Sprachaufnahmen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:119
-msgid "Messages with excessive formatting characters (glitch text)"
-msgstr "Nachrichten mit übermäßigen Formatierungszeichen (Glitch-Text)"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:120
-msgid "Messages with dice rolls"
-msgstr "Nachrichten mit Würfelwürfen"
-
-#: sophie_bot/modules/locks/handlers/lockable.py:207
 #, python-brace-format
 msgid "Sticker pack: {pack}"
 msgstr "Sticker-Paket: {pack}"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:211
+#: sophie_bot/modules/locks/handlers/lockable.py:105
 #, python-brace-format
 msgid "Messages in {lang} language"
 msgstr "Nachrichten in der Sprache {lang}"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:234
+#: sophie_bot/modules/locks/handlers/lockable.py:128
 #, python-brace-format
 msgid "To see all supported languages, use {cmd}"
 msgstr "Um alle unterstützten Sprachen anzuzeigen, verwenden Sie {cmd}"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:240
+#: sophie_bot/modules/locks/handlers/lockable.py:134
 msgid "Media types"
 msgstr "Medientypen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:244
+#: sophie_bot/modules/locks/handlers/lockable.py:138
 msgid "Entities and links"
 msgstr "Entitäten und Links"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:248
+#: sophie_bot/modules/locks/handlers/lockable.py:142
 msgid "Forwards"
 msgstr "Weiterleitungen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:252
+#: sophie_bot/modules/locks/handlers/lockable.py:146
 msgid "Text patterns"
 msgstr "Textmuster"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:256
+#: sophie_bot/modules/locks/handlers/lockable.py:150
 msgid "Lock a specific sticker pack by its ID"
 msgstr "Ein bestimmtes Sticker-Paket anhand seiner ID sperren"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:257
+#: sophie_bot/modules/locks/handlers/lockable.py:151
 msgid "Sticker types"
 msgstr "Sticker-Typen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:261
+#: sophie_bot/modules/locks/handlers/lockable.py:155
 msgid "Languages"
 msgstr "Sprachen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:265
+#: sophie_bot/modules/locks/handlers/lockable.py:159
 msgid "Special"
 msgstr "Spezial"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:278
+#: sophie_bot/modules/locks/handlers/lockable.py:172
 msgid "Available lock types"
 msgstr "Verfügbare Sperrtypen"
 
-#: sophie_bot/modules/locks/handlers/lockable.py:281
+#: sophie_bot/modules/locks/handlers/lockable.py:175
 #, python-brace-format
 msgid "Use {cmd} to lock a specific type."
 msgstr "Verwenden Sie {cmd}, um einen bestimmten Typ zu sperren."
 
-#: sophie_bot/modules/locks/handlers/lockable.py:287
+#: sophie_bot/modules/locks/handlers/lockable.py:181
 msgid "Shows all lockable message types"
 msgstr "Zeigt alle sperrbaren Nachrichtentypen an"
 
@@ -3977,7 +3921,7 @@ msgstr "Benutzer nicht eingeschränkt"
 
 #: sophie_bot/modules/logging/events.py:47
 #: sophie_bot/modules/restrictions/handlers/ban.py:123
-#: sophie_bot/modules/restrictions/handlers/silent.py:169
+#: sophie_bot/modules/restrictions/handlers/silent.py:188
 msgid "User banned"
 msgstr "Benutzer gesperrt"
 
@@ -3988,13 +3932,13 @@ msgstr "Benutzer entsperrt"
 
 #: sophie_bot/modules/logging/events.py:49
 #: sophie_bot/modules/restrictions/handlers/kick.py:94
-#: sophie_bot/modules/restrictions/handlers/silent.py:101
+#: sophie_bot/modules/restrictions/handlers/silent.py:120
 msgid "User kicked"
 msgstr "Benutzer gekickt"
 
 #: sophie_bot/modules/logging/events.py:50
 #: sophie_bot/modules/restrictions/handlers/mute.py:97
-#: sophie_bot/modules/restrictions/handlers/silent.py:309
+#: sophie_bot/modules/restrictions/handlers/silent.py:328
 msgid "User muted"
 msgstr "Benutzer stummgeschaltet"
 
@@ -4088,7 +4032,7 @@ msgstr "Ruft die Notiz ab."
 msgid "No note was found with {name} name."
 msgstr "Es wurde keine Notiz mit dem Namen {name} gefunden."
 
-#: sophie_bot/modules/notes/handlers/legacy_button.py:40
+#: sophie_bot/modules/notes/handlers/legacy_button.py:41
 msgid "This note no longer exists."
 msgstr "Diese Notiz existiert nicht mehr."
 
@@ -4170,8 +4114,8 @@ msgstr "Aktiviert"
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
 #: sophie_bot/modules/utils_/status_handler.py:85
 #: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:48
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:55
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:73
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:74
 msgid "Disabled"
 msgstr "Deaktiviert"
 
@@ -4207,27 +4151,27 @@ msgstr "deaktiviert"
 msgid "PrivateNotes have been {status} in {chat}."
 msgstr "PrivateNotes wurden in {chat} {status}."
 
-#: sophie_bot/modules/notes/handlers/save.py:29
+#: sophie_bot/modules/notes/handlers/save.py:30
 msgid "Note names"
 msgstr "Notiznamen"
 
-#: sophie_bot/modules/notes/handlers/save.py:31
+#: sophie_bot/modules/notes/handlers/save.py:32
 msgid "?Description"
 msgstr "?Beschreibung"
 
-#: sophie_bot/modules/notes/handlers/save.py:34
+#: sophie_bot/modules/notes/handlers/save.py:35
 msgid "Save the note."
 msgstr "Speichert die Notiz."
 
-#: sophie_bot/modules/notes/handlers/save.py:67
+#: sophie_bot/modules/notes/handlers/save.py:73
 msgid "Note was successfully created"
 msgstr "Notiz wurde erfolgreich erstellt"
 
-#: sophie_bot/modules/notes/handlers/save.py:67
+#: sophie_bot/modules/notes/handlers/save.py:73
 msgid "Note was successfully updated"
 msgstr "Notiz wurde erfolgreich aktualisiert"
 
-#: sophie_bot/modules/notes/handlers/save.py:70
+#: sophie_bot/modules/notes/handlers/save.py:76
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
 msgstr "Benutze {cmd} um diese Notiz abzurufen."
@@ -4264,7 +4208,7 @@ msgstr "#{name} Notiz wurde nicht gefunden."
 #: sophie_bot/modules/restrictions/actions/mute.py:112
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:114
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:120
 msgid "Filter action"
 msgstr "Filteraktion"
 
@@ -4448,16 +4392,16 @@ msgstr "Bitte überprüfe die Notizdokumentation für die Liste der erlaubten In
 msgid "Reply message content is not parsable as the note."
 msgstr "Die Antwortnachricht kann nicht als Notiz geparst werden."
 
-#: sophie_bot/modules/notes/utils/parse.py:125
+#: sophie_bot/modules/notes/utils/parse.py:129
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr "Die maximale Länge der Notiz beträgt {limit} Zeichen."
 
-#: sophie_bot/modules/notes/utils/parse.py:127
+#: sophie_bot/modules/notes/utils/parse.py:131
 msgid "Please try to reduce the length of note."
 msgstr "Bitte versuche, die Länge der Notiz zu reduzieren."
 
-#: sophie_bot/modules/notes/utils/parse.py:128
+#: sophie_bot/modules/notes/utils/parse.py:132
 msgid "Note is too long."
 msgstr "Notiz ist zu lang."
 
@@ -4465,25 +4409,66 @@ msgstr "Notiz ist zu lang."
 msgid "The text is too long"
 msgstr "Der Text ist zu lang"
 
-#: sophie_bot/modules/op/__init__.py:24
+#: sophie_bot/modules/op/__init__.py:25
 msgid "Operator"
 msgstr "Operator"
 
-#: sophie_bot/modules/op/__init__.py:26
+#: sophie_bot/modules/op/__init__.py:27
 msgid "Operator-only commands and tools"
 msgstr "Nur für Operatoren zugängliche Befehle und Tools"
 
-#: sophie_bot/modules/op/__init__.py:29
+#: sophie_bot/modules/op/__init__.py:30
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr "Bietet Befehle und Tools nur für Operatoren zur Verwaltung des Bots."
 
-#: sophie_bot/modules/op/__init__.py:30
+#: sophie_bot/modules/op/__init__.py:31
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr "Enthält Systemstatistiken, Jobverwaltung und andere administrative Funktionen."
 
 #: sophie_bot/modules/op/handlers/Captcha.py:17
 msgid "Generate a test emoji captcha"
 msgstr "Generiere einen Test-Emoji-Captcha"
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:98
+msgid "No per-chat overrides are set."
+msgstr "Es sind keine chat-spezifischen Überschreibungen festgelegt."
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:104
+msgid "Usage: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
+msgstr "Verwendung: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:105
+#: sophie_bot/modules/op/handlers/KillSwitch.py:113
+#, python-brace-format
+msgid "Allowed features: {features}"
+msgstr "Erlaubte Funktionen: {features}"
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:112
+#, python-brace-format
+msgid "Unknown feature {feature}."
+msgstr "Unbekannte Funktion {feature}."
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:123
+#, python-brace-format
+msgid "{feature} for chat {chat}: {value}"
+msgstr "{feature} für Chat {chat}: {value}"
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:134
+#, python-brace-format
+msgid "{feature}: {value}"
+msgstr "{feature}: {value}"
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:23
+msgid "Force-regenerate today's chat summary for the current chat"
+msgstr "Chat-Zusammenfassung für den aktuellen Chat heute erzwingen"
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:40
+msgid "Chat summary regenerated"
+msgstr "Chat-Zusammenfassung neu generiert"
+
+#: sophie_bot/modules/op/handlers/PreviewChatSummary.py:43
+msgid "Summary day"
+msgstr "Zusammenfassung des Tages"
 
 #: sophie_bot/modules/op/handlers/event.py:13
 msgid "Prints the message event as JSON."
@@ -4509,31 +4494,31 @@ msgstr "Ermöglicht es Administratoren, wichtige Nachrichten im Chat anzheften."
 msgid "Also provides the ability to unpin messages when needed."
 msgstr "Bietet auch die Möglichkeit, Nachrichten bei Bedarf zu lösen."
 
-#: sophie_bot/modules/pins/handlers/pin.py:16
+#: sophie_bot/modules/pins/handlers/pin.py:17
 msgid "Pins replied message"
 msgstr "Donnert die beantwortete Nachricht an"
 
-#: sophie_bot/modules/pins/handlers/pin.py:36
+#: sophie_bot/modules/pins/handlers/pin.py:37
 msgid "You need to reply to a message to pin it."
 msgstr "Sie müssen auf eine Nachricht antworten, um sie anzupinnen."
 
-#: sophie_bot/modules/pins/handlers/unpin.py:16
+#: sophie_bot/modules/pins/handlers/pin.py:52
+msgid "I don't have enough rights to pin messages in this chat."
+msgstr "Ich habe nicht genügend Rechte, um Nachrichten in diesem Chat anzuheften."
+
+#: sophie_bot/modules/pins/handlers/unpin.py:14
 msgid "Unpins message"
 msgstr "Löst Nachricht"
 
-#: sophie_bot/modules/pins/handlers/unpin.py:50
-msgid "The message is not pinned."
-msgstr "Die Nachricht ist nicht angeheftet."
-
-#: sophie_bot/modules/privacy/__init__.py:21
+#: sophie_bot/modules/privacy/__init__.py:22
 msgid "Data protection"
 msgstr "Datenschutz"
 
-#: sophie_bot/modules/privacy/__init__.py:24
+#: sophie_bot/modules/privacy/__init__.py:25
 msgid "Manages user privacy and data protection settings."
 msgstr "Verwaltet Benutzerdatenschutz und Datenschutzeinstellungen."
 
-#: sophie_bot/modules/privacy/__init__.py:25
+#: sophie_bot/modules/privacy/__init__.py:26
 msgid "Allows users to export their data and control privacy preferences."
 msgstr "Ermöglicht es Benutzern, ihre Daten zu exportieren und Datenschutzeinstellungen zu kontrollieren."
 
@@ -4577,59 +4562,59 @@ msgstr "Ermöglicht es Administratoren, Benutzer in Chats zu befördern und hera
 msgid "Manage user permissions and administrative privileges."
 msgstr "Verwaltet Benutzerberechtigungen und administrative Privilegien."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:24
+#: sophie_bot/modules/promotes/handlers/demote.py:27
 msgid "Demotes the user from admins."
 msgstr "Degradiert den Benutzer von Administratoren."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:47
+#: sophie_bot/modules/promotes/handlers/demote.py:50
 msgid "I cannot demote myself."
 msgstr "Ich kann mich nicht herabstufen."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:50
+#: sophie_bot/modules/promotes/handlers/demote.py:53
 msgid "You cannot demote yourself."
 msgstr "Sie können sich nicht herabstufen."
 
-#: sophie_bot/modules/promotes/handlers/demote.py:71
+#: sophie_bot/modules/promotes/handlers/demote.py:78
 msgid "Demoted by"
 msgstr "Herabgestuft von"
 
-#: sophie_bot/modules/promotes/handlers/demote.py:72
+#: sophie_bot/modules/promotes/handlers/demote.py:79
 msgid "User demoted successfully"
 msgstr "Benutzer erfolgreich herabgestuft"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:25
+#: sophie_bot/modules/promotes/handlers/promote.py:40
 msgid "Promotes the user to admins."
 msgstr "Befördert den Benutzer zu Administratoren."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:42
+#: sophie_bot/modules/promotes/handlers/promote.py:57
 msgid "?Admin title"
 msgstr "?Admin-Titel"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:57
+#: sophie_bot/modules/promotes/handlers/promote.py:72
 msgid "I cannot promote myself."
 msgstr "Ich kann mich nicht befördern."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:60
+#: sophie_bot/modules/promotes/handlers/promote.py:75
 msgid "You cannot promote yourself."
 msgstr "Sie können sich nicht befördern."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:63
+#: sophie_bot/modules/promotes/handlers/promote.py:78
 msgid "Admin title is too long."
 msgstr "Admin-Titel ist zu lang."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:91
+#: sophie_bot/modules/promotes/handlers/promote.py:138
 msgid "Promoted by"
 msgstr "Befördert von"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:92
+#: sophie_bot/modules/promotes/handlers/promote.py:139
 msgid "Admin title"
 msgstr "Admin-Titel"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:92
+#: sophie_bot/modules/promotes/handlers/promote.py:139
 msgid "No admin title"
 msgstr "Kein Admin-Titel"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:93
+#: sophie_bot/modules/promotes/handlers/promote.py:140
 msgid "Admin promoted successfully"
 msgstr "Admin erfolgreich befördert"
 
@@ -4846,29 +4831,29 @@ msgstr "Sperrt den Benutzer aus dem Chat."
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:63
 #: sophie_bot/modules/restrictions/handlers/ban.py:163
-#: sophie_bot/modules/restrictions/handlers/silent.py:145
-#: sophie_bot/modules/restrictions/handlers/silent.py:214
+#: sophie_bot/modules/restrictions/handlers/silent.py:164
+#: sophie_bot/modules/restrictions/handlers/silent.py:233
 msgid "I cannot ban myself."
 msgstr "Ich kann mich nicht selbst sperren."
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:66
 #: sophie_bot/modules/restrictions/handlers/ban.py:166
-#: sophie_bot/modules/restrictions/handlers/silent.py:148
-#: sophie_bot/modules/restrictions/handlers/silent.py:217
+#: sophie_bot/modules/restrictions/handlers/silent.py:167
+#: sophie_bot/modules/restrictions/handlers/silent.py:236
 msgid "You cannot ban yourself."
 msgstr "Sie können sich nicht selbst sperren."
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:69
 #: sophie_bot/modules/restrictions/handlers/ban.py:169
-#: sophie_bot/modules/restrictions/handlers/silent.py:151
-#: sophie_bot/modules/restrictions/handlers/silent.py:220
+#: sophie_bot/modules/restrictions/handlers/silent.py:170
+#: sophie_bot/modules/restrictions/handlers/silent.py:239
 msgid "I cannot ban an admin."
 msgstr "Ich kann keinen Admin sperren."
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:76
 #: sophie_bot/modules/restrictions/handlers/ban.py:178
-#: sophie_bot/modules/restrictions/handlers/silent.py:154
-#: sophie_bot/modules/restrictions/handlers/silent.py:225
+#: sophie_bot/modules/restrictions/handlers/silent.py:173
+#: sophie_bot/modules/restrictions/handlers/silent.py:244
 msgid "Failed to ban the user. Make sure I have the right permissions."
 msgstr "Fehler beim Sperren des Benutzers. Stellen Sie sicher, dass ich die richtigen Berechtigungen habe."
 
@@ -4902,13 +4887,13 @@ msgstr "Sperrt den Benutzer temporär aus dem Chat."
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:149
 #: sophie_bot/modules/restrictions/handlers/mute.py:120
-#: sophie_bot/modules/restrictions/handlers/silent.py:200
-#: sophie_bot/modules/restrictions/handlers/silent.py:340
+#: sophie_bot/modules/restrictions/handlers/silent.py:219
+#: sophie_bot/modules/restrictions/handlers/silent.py:359
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr "Zeit (z. B. 2h, 7d, 2w)"
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:226
-#: sophie_bot/modules/restrictions/handlers/silent.py:241
+#: sophie_bot/modules/restrictions/handlers/silent.py:260
 msgid "User temporarily banned"
 msgstr "Benutzer temporär gesperrt"
 
@@ -4917,27 +4902,27 @@ msgid "Kicks the user from the chat. The user would be able to join back."
 msgstr "Kickt den Benutzer aus dem Chat. Der Benutzer kann wieder beitreten."
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:59
-#: sophie_bot/modules/restrictions/handlers/silent.py:77
+#: sophie_bot/modules/restrictions/handlers/silent.py:96
 msgid "I cannot kick myself."
 msgstr "Ich kann mich nicht selbst kicken."
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:62
-#: sophie_bot/modules/restrictions/handlers/silent.py:80
+#: sophie_bot/modules/restrictions/handlers/silent.py:99
 msgid "You cannot kick yourself."
 msgstr "Sie können sich nicht selbst kicken."
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:65
-#: sophie_bot/modules/restrictions/handlers/silent.py:83
+#: sophie_bot/modules/restrictions/handlers/silent.py:102
 msgid "I cannot kick an admin."
 msgstr "Ich kann keinen Admin kicken."
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:68
-#: sophie_bot/modules/restrictions/handlers/silent.py:86
+#: sophie_bot/modules/restrictions/handlers/silent.py:105
 msgid "Failed to kick the user. Make sure I have the right permissions."
 msgstr "Fehler beim Kick des Benutzers. Stellen Sie sicher, dass ich die richtigen Berechtigungen habe."
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:92
-#: sophie_bot/modules/restrictions/handlers/silent.py:99
+#: sophie_bot/modules/restrictions/handlers/silent.py:118
 msgid "Kicked by"
 msgstr "Gekickt von"
 
@@ -4947,36 +4932,36 @@ msgstr "Schaltet den Benutzer im Chat stumm."
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:61
 #: sophie_bot/modules/restrictions/handlers/mute.py:134
-#: sophie_bot/modules/restrictions/handlers/silent.py:285
-#: sophie_bot/modules/restrictions/handlers/silent.py:354
+#: sophie_bot/modules/restrictions/handlers/silent.py:304
+#: sophie_bot/modules/restrictions/handlers/silent.py:373
 msgid "I cannot mute myself."
 msgstr "Ich kann mich nicht selbst stummschalten."
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:64
 #: sophie_bot/modules/restrictions/handlers/mute.py:137
-#: sophie_bot/modules/restrictions/handlers/silent.py:288
-#: sophie_bot/modules/restrictions/handlers/silent.py:357
+#: sophie_bot/modules/restrictions/handlers/silent.py:307
+#: sophie_bot/modules/restrictions/handlers/silent.py:376
 msgid "You cannot mute yourself."
 msgstr "Sie können sich nicht selbst stummschalten."
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:67
 #: sophie_bot/modules/restrictions/handlers/mute.py:140
-#: sophie_bot/modules/restrictions/handlers/silent.py:291
-#: sophie_bot/modules/restrictions/handlers/silent.py:360
+#: sophie_bot/modules/restrictions/handlers/silent.py:310
+#: sophie_bot/modules/restrictions/handlers/silent.py:379
 msgid "I cannot mute an admin."
 msgstr "Ich kann keinen Admin stummschalten."
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:70
 #: sophie_bot/modules/restrictions/handlers/mute.py:145
-#: sophie_bot/modules/restrictions/handlers/silent.py:294
-#: sophie_bot/modules/restrictions/handlers/silent.py:365
+#: sophie_bot/modules/restrictions/handlers/silent.py:313
+#: sophie_bot/modules/restrictions/handlers/silent.py:384
 msgid "Failed to mute the user. Make sure I have the right permissions."
 msgstr "Fehler beim Stummschalten des Benutzers. Stellen Sie sicher, dass ich die richtigen Berechtigungen habe."
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:95
 #: sophie_bot/modules/restrictions/handlers/mute.py:170
-#: sophie_bot/modules/restrictions/handlers/silent.py:307
-#: sophie_bot/modules/restrictions/handlers/silent.py:378
+#: sophie_bot/modules/restrictions/handlers/silent.py:326
+#: sophie_bot/modules/restrictions/handlers/silent.py:397
 msgid "Muted by"
 msgstr "Stummgeschaltet von"
 
@@ -4985,27 +4970,27 @@ msgid "Temporarily mutes the user in the chat."
 msgstr "Schaltet den Benutzer temporär im Chat stumm."
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:173
-#: sophie_bot/modules/restrictions/handlers/silent.py:381
+#: sophie_bot/modules/restrictions/handlers/silent.py:400
 msgid "User temporarily muted"
 msgstr "Benutzer temporär stummgeschaltet"
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:46
+#: sophie_bot/modules/restrictions/handlers/silent.py:65
 msgid "Silently kicks the user from the chat. Deletes messages after 10 seconds."
 msgstr "Nutzer wird still aus dem Chat entfernt. Nachrichten werden nach 10 Sekunden gelöscht."
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:114
+#: sophie_bot/modules/restrictions/handlers/silent.py:133
 msgid "Silently bans the user from the chat. Deletes messages after 10 seconds."
 msgstr "Nutzer wird still aus dem Chat verbannt. Nachrichten werden nach 10 Sekunden gelöscht."
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:182
+#: sophie_bot/modules/restrictions/handlers/silent.py:201
 msgid "Silently temporarily bans the user from the chat. Deletes messages after 10 seconds."
 msgstr "Nutzer wird vorübergehend still aus dem Chat verbannt. Nachrichten werden nach 10 Sekunden gelöscht."
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:254
+#: sophie_bot/modules/restrictions/handlers/silent.py:273
 msgid "Silently mutes the user in the chat. Deletes messages after 10 seconds."
 msgstr "Nutzer wird im Chat stummgeschaltet. Nachrichten werden nach 10 Sekunden gelöscht."
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:322
+#: sophie_bot/modules/restrictions/handlers/silent.py:341
 msgid "Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds."
 msgstr "Nutzer wird vorübergehend im Chat stummgeschaltet. Nachrichten werden nach 10 Sekunden gelöscht."
 
@@ -5059,10 +5044,10 @@ msgstr "Stummschaltung aufgehoben durch"
 
 #: sophie_bot/modules/rules/__init__.py:18
 #: sophie_bot/modules/rules/handlers/get.py:34
-#: sophie_bot/modules/rules/handlers/legacy_button.py:34
+#: sophie_bot/modules/rules/handlers/legacy_button.py:35
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/handlers/warn.py:132
+#: sophie_bot/modules/warns/handlers/warn.py:159
 msgid "Rules"
 msgstr "Regeln"
 
@@ -5087,13 +5072,13 @@ msgid "Private chats can not have rules. Have fun."
 msgstr "Private Chats können keine Regeln haben. Viel Spaß."
 
 #: sophie_bot/modules/rules/handlers/get.py:32
-#: sophie_bot/modules/rules/handlers/legacy_button.py:31
+#: sophie_bot/modules/rules/handlers/legacy_button.py:32
 #: sophie_bot/modules/rules/magic_handlers/filter.py:14
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:32
 msgid "No rules are set for this chat."
 msgstr "Für diesen Chat sind keine Regeln festgelegt."
 
-#: sophie_bot/modules/rules/handlers/legacy_button.py:31
+#: sophie_bot/modules/rules/handlers/legacy_button.py:32
 msgid "Rules button failed"
 msgstr "Regeltaste fehlgeschlagen"
 
@@ -5522,53 +5507,53 @@ msgstr "Warnaktion erfolgreich konfiguriert!"
 msgid "⚠️ Warn Actions - On Max Warns Exceeded"
 msgstr "⚠️ Warnaktionen - Bei Überschreiten der maximalen Verwarnungen"
 
-#: sophie_bot/modules/warns/handlers/callback.py:31
+#: sophie_bot/modules/warns/handlers/callback.py:32
 msgid "Only admins can delete warns!"
 msgstr "Nur Admins können Warnungen löschen!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:42
+#: sophie_bot/modules/warns/handlers/callback.py:44
 msgid "Warning deleted!"
 msgstr "Warnung gelöscht!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:45
+#: sophie_bot/modules/warns/handlers/callback.py:47
 msgid "✅ Warning deleted"
 msgstr "✅ Warnung gelöscht"
 
-#: sophie_bot/modules/warns/handlers/callback.py:48
+#: sophie_bot/modules/warns/handlers/callback.py:50
 #, python-brace-format
 msgid "The warning has been successfully removed by {admin}."
 msgstr "Die Warnung wurde erfolgreich von {admin} entfernt."
 
-#: sophie_bot/modules/warns/handlers/callback.py:55
+#: sophie_bot/modules/warns/handlers/callback.py:57
 msgid "Warning not found or already deleted!"
 msgstr "Warnung nicht gefunden oder bereits gelöscht!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:73
+#: sophie_bot/modules/warns/handlers/callback.py:75
 msgid "Only admins can reset warns!"
 msgstr "Nur Admins können Warnungen zurücksetzen!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:81
+#: sophie_bot/modules/warns/handlers/callback.py:83
 msgid "User not found!"
 msgstr "Benutzer nicht gefunden!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:96
+#: sophie_bot/modules/warns/handlers/callback.py:98
 msgid "Warnings reset!"
 msgstr "Warnungen zurückgesetzt!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:98
+#: sophie_bot/modules/warns/handlers/callback.py:100
 #, python-brace-format
 msgid "Reset warnings of {user}."
 msgstr "Warnungen von {user} zurückgesetzt."
 
-#: sophie_bot/modules/warns/handlers/callback.py:114
+#: sophie_bot/modules/warns/handlers/callback.py:116
 msgid "Only admins can reset all warns!"
 msgstr "Nur Admins können alle Warnungen zurücksetzen!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:121
+#: sophie_bot/modules/warns/handlers/callback.py:123
 msgid "All warnings reset!"
 msgstr "Alle Warnungen zurückgesetzt!"
 
-#: sophie_bot/modules/warns/handlers/callback.py:122
+#: sophie_bot/modules/warns/handlers/callback.py:124
 msgid "Reset all warnings in this chat."
 msgstr "Setze alle Warnungen in diesem Chat zurück."
 
@@ -5578,8 +5563,8 @@ msgstr "Setzt alle Warnungen aller Benutzer im aktuellen Chat zurück."
 
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:32
 #: sophie_bot/modules/warns/handlers/reset_warns.py:48
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:97
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:70
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:109
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:74
 msgid "Confirm"
 msgstr "Bestätigen"
 
@@ -5605,42 +5590,46 @@ msgstr "Bitte geben Sie einen Benutzer an, für den Warnungen zurückgesetzt wer
 msgid "Are you sure you want to reset warnings of {user}?"
 msgstr "Möchten Sie wirklich die Warnungen von {user} zurücksetzen?"
 
-#: sophie_bot/modules/warns/handlers/warn.py:32
-msgid "Warns a user."
-msgstr "Warnt einen Benutzer."
-
-#: sophie_bot/modules/warns/handlers/warn.py:48
-msgid "User to warn"
-msgstr "Zu warnender Benutzer"
-
-#: sophie_bot/modules/warns/handlers/warn.py:73
-msgid "I cannot warn myself."
-msgstr "Ich kann mich nicht selbst warnen."
-
-#: sophie_bot/modules/warns/handlers/warn.py:77
-msgid "I cannot warn an admin."
-msgstr "Ich kann keinen Admin warnen."
-
-#: sophie_bot/modules/warns/handlers/warn.py:112
+#: sophie_bot/modules/warns/handlers/warn.py:44
 msgid "⚠️ User warned"
 msgstr "⚠️ Benutzer gewarnt"
 
-#: sophie_bot/modules/warns/handlers/warn.py:114
+#: sophie_bot/modules/warns/handlers/warn.py:46
 msgid "By admin"
 msgstr "Von Admin"
 
-#: sophie_bot/modules/warns/handlers/warn.py:115
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:119
+#: sophie_bot/modules/warns/handlers/warn.py:47
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:125
 msgid "Warnings count"
 msgstr "Anzahl der Warnungen"
 
-#: sophie_bot/modules/warns/handlers/warn.py:122
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
+#: sophie_bot/modules/warns/handlers/warn.py:54
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:132
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr "Benutzer wurde aufgrund des Erreichens der maximalen Warnungen {punishment}."
 
-#: sophie_bot/modules/warns/handlers/warn.py:141
+#: sophie_bot/modules/warns/handlers/warn.py:59
+msgid "Warns a user."
+msgstr "Warnt einen Benutzer."
+
+#: sophie_bot/modules/warns/handlers/warn.py:75
+msgid "User to warn"
+msgstr "Zu warnender Benutzer"
+
+#: sophie_bot/modules/warns/handlers/warn.py:100
+msgid "I cannot warn myself."
+msgstr "Ich kann mich nicht selbst warnen."
+
+#: sophie_bot/modules/warns/handlers/warn.py:104
+msgid "You cannot warn yourself."
+msgstr "Sie können sich selbst nicht verwarnen."
+
+#: sophie_bot/modules/warns/handlers/warn.py:108
+msgid "I cannot warn an admin."
+msgstr "Ich kann keinen Admin warnen."
+
+#: sophie_bot/modules/warns/handlers/warn.py:168
 msgid "Delete warn"
 msgstr "Warnung löschen"
 
@@ -5727,31 +5716,31 @@ msgstr "⚠️ Ihre Warnungen"
 msgid "Unknown Chat"
 msgstr "Unbekannter Chat"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:37
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:38
 msgid "Please write the warn reason."
 msgstr "Bitte schreibe den Grund für die Verwarnung."
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:45
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:46
 msgid "Warn"
 msgstr "Verwarnen"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:54
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:55
 msgid "Warn user with the reason"
 msgstr "Verwarne den Benutzer mit dem angegebenen Grund"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:56
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:57
 msgid "Warns user with no reason"
 msgstr "Verwarnt Benutzer ohne Grund"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:61
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:62
 msgid "Change warn reason"
 msgstr "Grund der Verwarnung ändern"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:84
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:90
 msgid "No reason"
 msgstr "Kein Grund"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:116
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:122
 #, python-brace-format
 msgid "User {user} was automatically warned based on a filter action"
 msgstr "Benutzer {user} wurde automatisch basierend auf einer Filteraktion verwarnt"
@@ -5780,25 +5769,25 @@ msgstr "Schützen Sie Ihren Chat vor Bots und überprüfen Sie neue Benutzer"
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr "Die Willkommenssicherheit enthält eine Reihe von Werkzeugen, die dabei helfen können, Bots zu filtern, die versuchen, Ihren Gruppen beizutreten, sowie sicherzustellen, dass die neuen Benutzer die Chatregeln anerkennen, bevor sie sprechen können"
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:57
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:55
 msgid "Captcha expired. Please try again."
 msgstr "Captcha abgelaufen. Bitte versuchen Sie es erneut."
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:76
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:47
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:78
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:51
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr "Vervollständigen Sie das Emoji '{emoji_name}', um das Captcha abzuschließen und an {group_name} teilzunehmen."
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:84
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:86
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ Falsche Lösung. Bitte versuchen Sie es erneut."
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:37
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:38
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
 msgstr "Ich kann das Verifizierungs-Captcha nicht senden, weil Sie Sophie in Direktnachrichten blockiert haben. Bitte entsperren Sie mich und öffnen Sie dann die DM unten, um fortzufahren."
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:42
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:43
 msgid "Open DM with Sophie"
 msgstr "DM mit Sophie öffnen"
 
@@ -5831,56 +5820,64 @@ msgstr "Zeigt / ändert den Zustand des Willkommens-Captchas"
 msgid "Welcome Captcha"
 msgstr "Willkommens-Captcha"
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:58
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:87
 msgid "It seems like you do not have to pass the welcome security authentication"
 msgstr "Es scheint, dass Sie sich nicht der Authentifizierung der Willkommenssicherheit unterziehen müssen"
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:63
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:93
 msgid "It seems like you are not belong to the chat anymore. Are you sure you joined the group?"
 msgstr "Es scheint, als würden Sie nicht mehr zum Chat gehören. Sind Sie sicher, dass Sie der Gruppe beigetreten sind?"
 
-#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:69
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:100
 msgid "You already an admin in the chat, therefore you don't need to pass the authentication!"
 msgstr "Sie sind bereits ein Admin im Chat, daher müssen Sie nicht die Authentifizierung durchlaufen!"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:24
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:107
+msgid "You are banned in this chat, so you cannot pass the authentication!"
+msgstr "Sie sind in diesem Chat gesperrt, daher können Sie die Authentifizierung nicht bestehen!"
+
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:117
+msgid "You are banned in the federation, so you cannot pass the authentication!"
+msgstr "Sie sind in der Föderation gesperrt, daher können Sie die Authentifizierung nicht bestehen!"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:25
 msgid "Shows Welcome Security settings"
 msgstr "Zeigt die Willkommenssicherheitseinstellungen"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:42
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:43
 msgid "Captcha"
 msgstr "Captcha"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:45
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
 #, python-brace-format
 msgid "Enabled, expires in {time}"
 msgstr "Aktiviert, läuft ab in {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:60
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:61
 msgid "Media restriction"
 msgstr "Medienbeschränkung"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:63
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:64
 #, python-brace-format
 msgid "Enabled, on {time}"
 msgstr "Aktiviert, am {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:76
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:77
 #, python-brace-format
 msgid "Use {cmd} to control Welcome Captcha"
 msgstr "Benutze {cmd}, um das Willkommens-Captcha zu steuern"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:77
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:78
 #, python-brace-format
 msgid "Use {cmd} to control Media restriction"
 msgstr "Benutze {cmd}, um die Medienbeschränkung zu steuern"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:82
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:83
 msgid "Welcome Security message"
 msgstr "Willkommenssicherheitsnachricht"
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_done.py:31
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:40
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:43
 msgid "You're all set, and can now participate in the conversation"
 msgstr "Sie sind bereit und können jetzt an der Unterhaltung teilnehmen"
 
@@ -5893,13 +5890,193 @@ msgstr "Aufgrund der Sicherheitsrichtlinien der Gruppe sind Sie in den nächsten
 msgid "Back to the group"
 msgstr "Zurück zur Gruppe"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:17
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:19
 msgid "Please read the chat rules"
 msgstr "Bitte lesen Sie die Chat-Regeln"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:21
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:25
 msgid "I agree"
 msgstr "Ich stimme zu"
+
+#: sophie_bot/shared/lock_constants.py:15
+msgid "Blocks all message types"
+msgstr "Blockiert alle Nachrichtentypen"
+
+#: sophie_bot/shared/lock_constants.py:16
+msgid "Messages with media albums (grouped photos/videos)"
+msgstr "Nachrichten mit Medienalben (gruppierte Fotos/Videos)"
+
+#: sophie_bot/shared/lock_constants.py:17
+msgid "Messages sent on behalf of a channel anonymously"
+msgstr "Nachrichten, die anonym im Namen eines Kanals gesendet wurden"
+
+#: sophie_bot/shared/lock_constants.py:18
+msgid "Messages with audio files"
+msgstr "Nachrichten mit Audiodateien"
+
+#: sophie_bot/shared/lock_constants.py:19
+msgid "Messages from bot accounts"
+msgstr "Nachrichten von Bot-Konten"
+
+#: sophie_bot/shared/lock_constants.py:20
+msgid "Links to Telegram bots (t.me/botname)"
+msgstr "Links zu Telegram-Bots (t.me/botname)"
+
+#: sophie_bot/shared/lock_constants.py:21
+msgid "Messages with inline keyboard buttons"
+msgstr "Nachrichten mit Inline-Tastatur-Schaltflächen"
+
+#: sophie_bot/shared/lock_constants.py:22
+msgid "Cashtag entities ($TICKER)"
+msgstr "Cashtag-Entitäten ($TICKER)"
+
+#: sophie_bot/shared/lock_constants.py:23
+msgid "Messages with checklists"
+msgstr "Nachrichten mit Checklisten"
+
+#: sophie_bot/shared/lock_constants.py:24
+msgid "Messages containing CJK characters (Chinese, Japanese, Korean)"
+msgstr "Nachrichten, die CJK-Zeichen (Chinesisch, Japanisch, Koreanisch) enthalten"
+
+#: sophie_bot/shared/lock_constants.py:25
+msgid "Bot command entities (/command@bot)"
+msgstr "Bot-Befehlsentitäten (/command@bot)"
+
+#: sophie_bot/shared/lock_constants.py:26
+msgid "Messages sent as comments in channels"
+msgstr "Nachrichten, die als Kommentare in Kanälen gesendet wurden"
+
+#: sophie_bot/shared/lock_constants.py:27
+msgid "Messages with shared contacts"
+msgstr "Nachrichten mit geteilten Kontakten"
+
+#: sophie_bot/shared/lock_constants.py:28
+msgid "Messages containing Cyrillic characters"
+msgstr "Nachrichten, die kyrillische Zeichen enthalten"
+
+#: sophie_bot/shared/lock_constants.py:29
+msgid "Messages with files/documents"
+msgstr "Nachrichten mit Dateien/Dokumenten"
+
+#: sophie_bot/shared/lock_constants.py:30
+msgid "Email address entities"
+msgstr "E-Mail-Adressen-Entitäten"
+
+#: sophie_bot/shared/lock_constants.py:31
+msgid "Messages containing emoji"
+msgstr "Nachrichten, die Emoji enthalten"
+
+#: sophie_bot/shared/lock_constants.py:32
+msgid "Custom emoji entities"
+msgstr "Benutzerdefinierte Emoji-Entitäten"
+
+#: sophie_bot/shared/lock_constants.py:33
+msgid "Game messages with emoji"
+msgstr "Spiele-Nachrichten mit Emoji"
+
+#: sophie_bot/shared/lock_constants.py:34
+msgid "Messages containing only emoji"
+msgstr "Nachrichten, die nur Emoji enthalten"
+
+#: sophie_bot/shared/lock_constants.py:35
+msgid "External reply references"
+msgstr "Externe Antwort-Referenzen"
+
+#: sophie_bot/shared/lock_constants.py:36
+msgid "All forwarded messages"
+msgstr "Alle weitergeleiteten Nachrichten"
+
+#: sophie_bot/shared/lock_constants.py:37
+msgid "Messages forwarded from bots"
+msgstr "Nachrichten, die von Bots weitergeleitet wurden"
+
+#: sophie_bot/shared/lock_constants.py:38
+msgid "Messages forwarded from channels"
+msgstr "Nachrichten, die von Kanälen weitergeleitet wurden"
+
+#: sophie_bot/shared/lock_constants.py:39
+msgid "Messages forwarded from stories"
+msgstr "Nachrichten, die von Stories weitergeleitet wurden"
+
+#: sophie_bot/shared/lock_constants.py:40
+msgid "Messages forwarded from users"
+msgstr "Nachrichten, die von Benutzern weitergeleitet wurden"
+
+#: sophie_bot/shared/lock_constants.py:41
+msgid "Messages with Telegram games"
+msgstr "Nachrichten mit Telegram-Spielen"
+
+#: sophie_bot/shared/lock_constants.py:42
+msgid "Messages with GIF animations"
+msgstr "Nachrichten mit GIF-Animationen"
+
+#: sophie_bot/shared/lock_constants.py:43
+msgid "Messages sent via inline bots"
+msgstr "Nachrichten, die über Inline-Bots gesendet wurden"
+
+#: sophie_bot/shared/lock_constants.py:44
+msgid "Telegram invite links (t.me/+)"
+msgstr "Telegram-Einladungslinks (t.me/+)"
+
+#: sophie_bot/shared/lock_constants.py:45
+msgid "Messages with location or venue"
+msgstr "Nachrichten mit Standort oder Ort"
+
+#: sophie_bot/shared/lock_constants.py:46
+msgid "Phone number entities"
+msgstr "Telefonnummern-Entitäten"
+
+#: sophie_bot/shared/lock_constants.py:47
+msgid "Messages with photos"
+msgstr "Nachrichten mit Fotos"
+
+#: sophie_bot/shared/lock_constants.py:48
+msgid "Messages with polls or quizzes"
+msgstr "Nachrichten mit Umfragen oder Quizzen"
+
+#: sophie_bot/shared/lock_constants.py:49
+msgid "Messages containing RTL (right-to-left) text"
+msgstr "Nachrichten, die RTL-Text (von rechts nach links) enthalten"
+
+#: sophie_bot/shared/lock_constants.py:50
+msgid "Spoiler text entities"
+msgstr "Spoiler-Textentitäten"
+
+#: sophie_bot/shared/lock_constants.py:51
+msgid "Messages with stickers"
+msgstr "Nachrichten mit Stickern"
+
+#: sophie_bot/shared/lock_constants.py:53
+msgid "Premium animated stickers"
+msgstr "Premium-animierte Sticker"
+
+#: sophie_bot/shared/lock_constants.py:54
+msgid "Text-only messages without media"
+msgstr "Nur-Text-Nachrichten ohne Medien"
+
+#: sophie_bot/shared/lock_constants.py:55
+msgid "URL entities in messages"
+msgstr "URL-Entitäten in Nachrichten"
+
+#: sophie_bot/shared/lock_constants.py:56
+msgid "Messages with videos"
+msgstr "Nachrichten mit Videos"
+
+#: sophie_bot/shared/lock_constants.py:57
+msgid "Messages with video notes (round videos)"
+msgstr "Nachrichten mit Video-Notizen (runde Videos)"
+
+#: sophie_bot/shared/lock_constants.py:58
+msgid "Messages with voice recordings"
+msgstr "Nachrichten mit Sprachaufnahmen"
+
+#: sophie_bot/shared/lock_constants.py:59
+msgid "Messages with excessive formatting characters (glitch text)"
+msgstr "Nachrichten mit übermäßigen Formatierungszeichen (Glitch-Text)"
+
+#: sophie_bot/shared/lock_constants.py:60
+msgid "Messages with dice rolls"
+msgstr "Nachrichten mit Würfelwürfen"
 
 #: sophie_bot/utils/errors.py:107
 #, python-brace-format
