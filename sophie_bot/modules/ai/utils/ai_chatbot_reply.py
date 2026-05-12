@@ -211,7 +211,7 @@ def _truncate_output(header: Element, output_text: str) -> str:
 
 
 def _build_reply_doc(header: Element, output_text: str, model: Model, result: Any, explicit_debug_mode: bool) -> Doc:
-    doc = Doc(header, BlockQuote(PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True))))
+    doc = Doc(header, PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True)))
     if explicit_debug_mode:
         doc += " "
         doc += _build_debug_doc(model, result)
