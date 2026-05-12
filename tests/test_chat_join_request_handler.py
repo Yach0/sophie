@@ -53,6 +53,10 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
         "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.initiate_captcha",
         AsyncMock(side_effect=CaptchaDMBlockedError()),
     )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_enabled",
+        AsyncMock(return_value=True),
+    )
 
     send_saveable = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.welcomesecurity.handlers.chat_join_request.send_saveable", send_saveable)

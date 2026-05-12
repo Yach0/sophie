@@ -4406,6 +4406,35 @@ msgstr ""
 msgid "Generate a test emoji captcha"
 msgstr ""
 
+#: sophie_bot/modules/op/handlers/KillSwitch.py:98
+msgid "No per-chat overrides are set."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:104
+msgid "Usage: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:105
+#: sophie_bot/modules/op/handlers/KillSwitch.py:113
+#, python-brace-format
+msgid "Allowed features: {features}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:112
+#, python-brace-format
+msgid "Unknown feature {feature}."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:123
+#, python-brace-format
+msgid "{feature} for chat {chat}: {value}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:134
+#, python-brace-format
+msgid "{feature}: {value}"
+msgstr ""
+
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:23
 msgid "Force-regenerate today's chat summary for the current chat"
 msgstr ""

@@ -1,4 +1,4 @@
-from sophie_bot.modules.ai.utils.ai_model_factory import AI_MODELS, FILTER_HANDLER_MODEL, MODERATION_REASON_MODEL
+from sophie_bot.modules.ai.utils.ai_model_factory import AI_MODELS, MODERATION_REASON_MODEL, get_filter_handler_model
 from sophie_bot.modules.ai.utils.ai_model_pricing import (
     close_model_pricing_client,
     clear_model_pricing_cache,
@@ -37,8 +37,8 @@ __all__ = [
     "get_default_summary_model_name",
     "PROVIDER_TO_MODELS",
     "AI_MODELS",
-    "FILTER_HANDLER_MODEL",
     "MODERATION_REASON_MODEL",
+    "get_filter_handler_model",
     "get_model_pricing",
     "estimate_model_credit_cost",
     "clear_model_pricing_cache",

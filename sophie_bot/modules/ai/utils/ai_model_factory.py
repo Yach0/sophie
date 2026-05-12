@@ -6,9 +6,9 @@ from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODEL_REGISTRY, AI_MODELS_BY_NAME
 from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS
+from sophie_bot.utils.feature_flags import get_value
 
 _ai_models: dict[str, Model] | None = None
-_filter_handler_model_name = "openai/gpt-5-nano"
 _moderation_reason_model_name = "mistralai/mistral-small-2603"
 
 
@@ -58,6 +58,10 @@ class _LazyFixedModel:
         return _get_ai_models()[self.model_name]
 
 
+async def get_filter_handler_model() -> Model:
+    model_name = str(await get_value("ai_filter_handler_model"))
+    return _get_ai_models()[model_name]
+
+
 AI_MODELS = _LazyAIModels()
-FILTER_HANDLER_MODEL = _LazyFixedModel(_filter_handler_model_name)
 MODERATION_REASON_MODEL = _LazyFixedModel(_moderation_reason_model_name)
