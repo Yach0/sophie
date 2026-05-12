@@ -56,7 +56,7 @@ class FederationInfoHandler(SophieMessageHandler):
         ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id)
 
         # Resolve creator
-        creator = await federation.creator.fetch()
+        creator = await ChatModel.get_by_iid(federation.creator.ref.id)
         creator_text = creator.tid if creator else _("Unknown")
 
         doc = Doc(
