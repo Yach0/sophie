@@ -225,7 +225,7 @@ async def _collect_operator_notes(message: Message) -> tuple[list[Section], list
 
 
 async def _collect_error_backoff() -> tuple[Section, dict[str, Any]]:
-    raw_keys = await aredis.keys(f"{_ERROR_SIGNATURE_PREFIX}*")  # ty: ignore[invalid-await]
+    raw_keys = await aredis.keys(f"{_ERROR_SIGNATURE_PREFIX}*")
     signature_rows: list[tuple[float, str]] = []
     signature_data_list: list[dict[str, Any]] = []
 
@@ -299,8 +299,8 @@ async def _collect_feature_flags() -> tuple[Section, dict[str, Any]]:
 
 async def _collect_redis_health() -> tuple[Section, dict[str, Any]]:
     ping_result = await aredis.ping()  # ty: ignore[invalid-await]
-    db_size = await aredis.dbsize()  # ty: ignore[invalid-await]
-    raw_keys = await aredis.keys(_SOPHIE_KEY_PREFIX)  # ty: ignore[invalid-await]
+    db_size = await aredis.dbsize()
+    raw_keys = await aredis.keys(_SOPHIE_KEY_PREFIX)
     key_groups = Counter(_redis_key_group(raw_key) for raw_key in raw_keys)
     group_lines = [f"{group}: {count}" for group, count in sorted(key_groups.items())]
 
