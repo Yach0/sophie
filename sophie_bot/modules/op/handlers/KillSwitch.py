@@ -55,10 +55,10 @@ def _stringify_value(value: FeatureValue) -> str:
     return str(value)
 
 
-def _build_chat_arg() -> KeyValuesArg:
+def _build_chat_arg() -> OptionalArg:
     chat_arg = OptionalArg(IntArg("chat"))
     chat_arg.default_no_value_value = _CURRENT_CHAT_SENTINEL
-    return KeyValuesArg(KeyValueArg("chat", chat_arg))
+    return OptionalArg(KeyValuesArg(KeyValueArg("chat", chat_arg)))
 
 
 def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int | None:
