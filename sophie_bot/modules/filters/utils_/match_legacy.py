@@ -11,7 +11,7 @@ from stfu_tg import Template
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.chat import UserInGroupModel
-from sophie_bot.modules.ai.utils.ai_models import FILTER_HANDLER_MODEL
+from sophie_bot.modules.ai.utils.ai_models import get_filter_handler_model
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
@@ -171,7 +171,7 @@ async def match_ai_handler(
 
         # Run AI evaluation
         kwargs = {}
-        model = FILTER_HANDLER_MODEL()
+        model = await get_filter_handler_model()
         kwargs["model_settings"] = OpenRouterModelSettings(openrouter_reasoning={"effort": "low"})
 
         result = await new_ai_generate_schema(

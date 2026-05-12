@@ -52,8 +52,51 @@ Choose defaults intentionally:
 
 ## Operational notes
 
-- Flags are deployment-global, not per-chat permissions.
+- Global flags are deployment-global, not per-chat permissions.
+- Per-chat overrides add chat-specific behavior on top of global defaults.
 - They are rollout controls, not a security boundary.
+
+## Non-boolean values
+
+Feature flags support `bool | str | int | float` values, not just booleans.
+- Boolean flags accept `true`/`false` (case-insensitive) or `1`/`0`
+- String flags accept any text (e.g., model names like `openai/gpt-5-nano`)
+- Numeric values are parsed as `int` first, then `float`
+
+Public API for non-boolean flags:
+- `get_value(feature, chat_tid=None)` → returns the resolved value (chat override → global override → default)
+- `set_value(feature, value)` → sets a global override
+
+## Per-chat overrides
+
+Feature flags can be overridden per-chat using separate Redis keys (`sophie:kill_switch_chat:{chat_tid}`).
+
+Public API:
+- `get_chat_override(feature, chat_tid)` → per-chat override or None
+- `set_chat_override(feature, chat_tid, value)` → set per-chat override
+- `delete_chat_override(feature, chat_tid)` → remove per-chat override
+- `list_chat_overrides(chat_tid)` → all per-chat overrides for a chat
+
+Resolution order: chat override → global override → default.
+
+## Model name flags
+
+Two feature flags control AI model names at runtime:
+- `ai_summary_model` (default: `"openai/gpt-5.5"`) — used in `get_chat_summary_model()` in `ai_get_provider.py`
+- `ai_filter_handler_model` (default: `"openai/gpt-5-nano"`) — used via `get_filter_handler_model()` in `ai_model_factory.py`
+
+## `/op_killswitch` command syntax
+
+```
+/op_killswitch                                    — list all global flags
+/op_killswitch ^chat                              — list per-chat overrides for current chat
+/op_killswitch ^chat=-1001234567890               — list per-chat overrides for specific chat
+/op_killswitch <feature> <value>                  — set global flag value
+/op_killswitch ^chat <feature> <value>            — set per-chat override for current chat
+/op_killswitch ^chat=-1001234567890 <feature> <value> — set per-chat override for specific chat
+```
+
+The `^chat` key-value arg uses ASS `KeyValueArg` with `^` prefix. `^chat` without value means current chat.
 
 ## Useful references
 

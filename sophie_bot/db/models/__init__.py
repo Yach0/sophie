@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Type
 
 from beanie import Document
@@ -24,6 +26,7 @@ from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.chat_photo import ChatPhotoModel
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationImportTask, FederationExportTask
+from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.greetings import GreetingsModel
 from sophie_bot.db.models.locks import LocksModel
@@ -77,4 +80,5 @@ models: List[Type[Document]] = [
     FederationImportTask,
     FederationExportTask,
     RefreshTokenModel,
+    FeatureFlagOverride,
 ]

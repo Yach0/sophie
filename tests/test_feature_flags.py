@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+
 import pytest
 
+from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS, is_enabled, list_all, set_enabled
+
+
+@pytest.fixture(autouse=True)
+async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None, None]:
+    await FeatureFlagOverride.get_pymongo_collection().delete_many({})
+    yield
+    await FeatureFlagOverride.get_pymongo_collection().delete_many({})
 
 
 @pytest.mark.asyncio
