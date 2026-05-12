@@ -12,6 +12,9 @@ async def ws_on_new_user(new_user: ChatModel, chat: ChatModel, is_join_request: 
     Returns whenever the user was muted.
     """
 
+    if new_user.is_bot:
+        return False
+
     # Check for admin permissions
     if await is_user_admin(chat=chat.tid, user=new_user.tid):
         return False
