@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Type
-
 from beanie import Document
 
 from sophie_bot.db.models.ai import (
@@ -42,7 +40,7 @@ from sophie_bot.db.models.op_debug_snapshot import OpDebugSnapshotModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.db.models.ws_user import WSUserModel
 
-models: List[Type[Document]] = [
+models: list[type[Document]] = [
     ChatModel,
     ChatPhotoModel,
     UserInGroupModel,
@@ -83,4 +81,49 @@ models: List[Type[Document]] = [
     RefreshTokenModel,
     OpDebugSnapshotModel,
     FeatureFlagOverride,
+]
+
+__all__ = [
+    "AIAutotranslateModel",
+    "AIChatSummaryLine",
+    "AIChatSummaryModel",
+    "AIEnabledModel",
+    "AIMemoryModel",
+    "AIModeratorModel",
+    "AIProviderModel",
+    "AIQuotaModel",
+    "AIUsageModel",
+    "AntifloodModel",
+    "ApiTokenModel",
+    "BetaModeModel",
+    "ChatAdminModel",
+    "ChatConnectionModel",
+    "ChatConnectionSettingsModel",
+    "ChatLeaveLogModel",
+    "ChatModel",
+    "ChatPhotoModel",
+    "ChatTopicModel",
+    "DisablingModel",
+    "FeatureFlagOverride",
+    "Federation",
+    "FederationBan",
+    "FederationExportTask",
+    "FederationImportTask",
+    "FiltersModel",
+    "GlobalSettings",
+    "GreetingsModel",
+    "LanguageModel",
+    "LocksModel",
+    "LogModel",
+    "MigrationState",
+    "NoteModel",
+    "OpDebugSnapshotModel",
+    "PrivateNotesModel",
+    "RefreshTokenModel",
+    "RulesModel",
+    "UserInGroupModel",
+    "WSUserModel",
+    "WarnModel",
+    "WarnSettingsModel",
+    "models",
 ]
