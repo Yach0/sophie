@@ -1,6 +1,6 @@
 [project]
 name = "sophie_bot"
-version = "4.3.5"
+version = "4.3.6"
 description = "Sophie is modern and fast Telegram chat manager bot"
 authors = [{ name = "Yacha", email = "yacha@orangefox.tech" }]
 requires-python = ">=3.12,<4"
@@ -27,7 +27,8 @@ dependencies = [
     "pillow>=12.2.0,<13",
     "mem-top>=0.2.1,<0.3",
     "apscheduler>=3.11.2,<4",
-    "pydantic-ai-slim[mistral,openai,openrouter,tavily]>=1.88.0,<2",
+    "pydantic-ai-slim[openai,openrouter,tavily]>=1.88.0,<2",
+    "mistralai @ https://files.pythonhosted.org/packages/0f/74/0f6188190e79eef4363754c71414c1a791537b1e506cbee615bb581cb05f/mistralai-2.4.4-py3-none-any.whl",
     "fastapi>=0.136.1,<0.137",
     "uvicorn>=0.46.0,<0.47",
     "uvloop>=0.22.1,<0.23",
