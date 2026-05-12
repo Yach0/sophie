@@ -1308,6 +1308,10 @@ msgstr ""
 msgid "🔌 Disconnect"
 msgstr ""
 
+#: sophie_bot/modules/connections/utils/texts.py:4
+msgid "⚠️ The connection module is obsolete in favor of the web app. Click on the 'Dashboard' button in the text field."
+msgstr ""
+
 #: sophie_bot/modules/disabling/__init__.py:22
 msgid "Disabling"
 msgstr ""
