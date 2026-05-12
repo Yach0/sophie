@@ -47,7 +47,8 @@ async def _resolve_translation_input(event: Message, data: dict) -> tuple[str, b
         to_translate = await transform_voice_to_text(event.reply_to_message.voice)
         is_voice = True
     elif event.reply_to_message and not is_autotranslate:
-        to_translate = event.reply_to_message.text or ""
+        sticker_emoji = event.reply_to_message.sticker.emoji if event.reply_to_message.sticker else ""
+        to_translate = event.reply_to_message.text or event.reply_to_message.caption or sticker_emoji or ""
     elif data.get("voice"):
         to_translate = ""
         is_voice = True
@@ -122,7 +123,18 @@ class AiTranslate(SophieMessageHandler):
 
         to_translate, is_voice = await _resolve_translation_input(self.event, self.data)
 
-        if not to_translate.strip() and not (self.event.reply_to_message and self.event.reply_to_message.photo):
+        reply_to_message = self.event.reply_to_message
+        reply_has_translatable_media = bool(
+            reply_to_message
+            and (
+                reply_to_message.photo
+                or reply_to_message.sticker
+                or reply_to_message.animation
+                or reply_to_message.video
+            )
+        )
+
+        if not to_translate.strip() and not reply_has_translatable_media:
             if self.data.get("silent_error"):
                 return
             await self.event.reply(_("Please provide text to translate."))
@@ -130,13 +142,13 @@ class AiTranslate(SophieMessageHandler):
 
         # AI Context
         ai_context = NewAIMessageHistory()
-        if self.event.reply_to_message and self.event.reply_to_message.photo:
+        if reply_to_message and (reply_to_message.photo or reply_to_message.sticker):
             ai_context.add_system(
                 Template(
                     _("If applicable, translate the photo to {language_name}"), language_name=language_name
                 ).to_html()
             )
-            await ai_context.add_from_message(self.event.reply_to_message, disable_name=True)
+            await ai_context.add_from_message(reply_to_message, disable_name=True)
 
         ai_context.add_system(
             "\n".join(
