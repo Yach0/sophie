@@ -49,7 +49,14 @@ class SophieButtonABC(MarkdownLinkArgument, ABC):
 
         link_data = self._link_data.removeprefix(self.used_prefix)
 
-        return any(link_data.startswith(name) for name in self.button_type_names)
+        for name in self.button_type_names:
+            if link_data == name:
+                return True
+            next_char_idx = len(name)
+            if next_char_idx < len(link_data) and link_data[next_char_idx] in (self.separator, "#"):
+                if link_data[:next_char_idx] == name:
+                    return True
+        return False
 
     async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, AssButtonData[str]]:  # ty: ignore[invalid-method-override]
         length, (link_name, link_data) = await super().parse(text, offset, entities)
