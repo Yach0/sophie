@@ -7,16 +7,16 @@ msgstr ""
 msgid "The argument {description} has an invalid type"
 msgstr ""
 
-#: exceptions.py:65 exceptions.py:120
+#: exceptions.py:65 exceptions.py:112
 msgid "Needed type"
 msgstr ""
 
-#: exceptions.py:116
+#: exceptions.py:108
 #, python-brace-format
 msgid "The required argument {description} wasn't provided!"
 msgstr ""
 
-#: exceptions.py:164
+#: exceptions.py:156
 #, python-brace-format
 msgid "The argument {description} has an invalid formatting!"
 msgstr ""
