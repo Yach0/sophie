@@ -212,6 +212,7 @@ class TestMyChatMember:
             can_send_voice_notes=False,
             can_send_polls=False,
             can_send_other_messages=False,
+            can_react_to_messages=False,
             can_add_web_page_previews=False,
             can_edit_tag=False,
             can_change_info=False,
