@@ -32,11 +32,11 @@ class FederationAdminService:
 
     @staticmethod
     async def is_admin(federation: Federation, user_tid: int) -> bool:
-        creator = await federation.creator.fetch()
+        creator = await ChatModel.get_by_iid(federation.creator.ref.id)
         if creator and creator.tid == user_tid:
             return True
         for admin_link in federation.admins:
-            admin = await admin_link.fetch()
+            admin = await ChatModel.get_by_iid(admin_link.ref.id)
             if admin and admin.tid == user_tid:
                 return True
         return False

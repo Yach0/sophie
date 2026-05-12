@@ -34,12 +34,12 @@ class FederationAdminsHandler(FederationCommandHandler):
             await self.event.reply(_("You don't have permission to view this federation's admins."))
             return
 
-        owner = await federation.creator.fetch()
+        owner = await ChatModel.get_by_iid(federation.creator.ref.id)
         owner_value = Bold(UserLink(owner.tid, owner.first_name_or_title)) if owner else _("Unknown")
 
         admin_models: list[ChatModel] = []
         for admin_link in federation.admins:
-            admin_model = await admin_link.fetch()
+            admin_model = await ChatModel.get_by_iid(admin_link.ref.id)
             if not admin_model:
                 continue
             if owner and admin_model.iid == owner.iid:
