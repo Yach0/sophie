@@ -57,7 +57,7 @@ async def ai_agent_run(agent: Agent[None, T], **kwargs) -> AIAgentResult:
         return AIAgentResult(
             output=result.result.output,
             steps=state.run_step,
-            retries=state.retries,
+            retries=state.output_retries_used,
             message_history=state.message_history,
             usage=state.usage,
         )
