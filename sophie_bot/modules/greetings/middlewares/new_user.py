@@ -160,6 +160,8 @@ class NewUserMiddleware(BaseMiddleware):
             if tuple(user.id for user in event.new_chat_members) != tuple(user.tid for user in new_users):
                 raise ValueError("NewUserMiddleware: unexpected / incorrect 'new_users' data from SaveChatsMiddleware!")
 
+            captcha_users = [new_user for new_user in new_users if not new_user.is_bot]
+
             db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
 
             cleanservice_enabled = bool(db_item.clean_service and db_item.clean_service.enabled)
@@ -196,9 +198,9 @@ class NewUserMiddleware(BaseMiddleware):
             ):
                 # If group has join_by_request enabled, captcha is handled by join request handler
                 # Otherwise, use normal captcha
-                if not event.chat.join_by_request:
+                if captcha_users and not event.chat.join_by_request:
                     sent_message = await self.on_captcha(
-                        event, db_item, chat_db, new_users, cleanservice_enabled, chat_rules
+                        event, db_item, chat_db, captcha_users, cleanservice_enabled, chat_rules
                     )
 
             # Cleanup
