@@ -13,6 +13,7 @@ FeatureType = Literal[
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_chatbot",
+    "ai_chatbot_blockquote",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -65,6 +66,7 @@ class FeatureStates(TypedDict):
     ai_summary_model: str
     ai_filter_handler_model: str
     ai_chatbot: bool
+    ai_chatbot_blockquote: bool
     ai_translations: bool
     ai_moderation: bool
     ai_moderation_reasons: bool
@@ -116,6 +118,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_chatbot",
+    "ai_chatbot_blockquote",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -175,6 +178,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_summary_model": "openai/gpt-5.5",
     "ai_filter_handler_model": "openai/gpt-5-nano",
     "ai_chatbot": True,
+    "ai_chatbot_blockquote": True,
     "ai_translations": True,
     "ai_moderation": True,
     "ai_moderation_reasons": True,

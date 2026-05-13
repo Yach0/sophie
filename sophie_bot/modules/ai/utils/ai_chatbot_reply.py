@@ -210,8 +210,19 @@ def _truncate_output(header: Element, output_text: str) -> str:
     return output_text
 
 
-def _build_reply_doc(header: Element, output_text: str, model: Model, result: Any, explicit_debug_mode: bool) -> Doc:
-    doc = Doc(header, PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True)))
+async def _build_reply_doc(
+    header: Element,
+    output_text: str,
+    model: Model,
+    result: Any,
+    explicit_debug_mode: bool,
+    chat_tid: int | None,
+) -> Doc:
+    reply_body = PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True))
+    if await is_enabled("ai_chatbot_blockquote", chat_tid=chat_tid):
+        reply_body = BlockQuote(reply_body)
+
+    doc = Doc(header, reply_body)
     if explicit_debug_mode:
         doc += " "
         doc += _build_debug_doc(model, result)
@@ -254,5 +265,12 @@ async def ai_chatbot_reply(
 
         header = await _build_chatbot_header(connection, model, result.message_history)
         output_text = _truncate_output(header, str(result.output))
-        doc = _build_reply_doc(header, output_text, model, result, explicit_debug_mode)
+        doc = await _build_reply_doc(
+            header,
+            output_text,
+            model,
+            result,
+            explicit_debug_mode,
+            chat_tid=message.chat.id,
+        )
         return await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
