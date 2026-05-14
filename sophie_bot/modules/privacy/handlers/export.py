@@ -1,5 +1,5 @@
 from datetime import datetime
-from types import ModuleType
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import flags
@@ -14,7 +14,9 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 VERSION = 6
 
-EXPORTABLE_MODULES: list[ModuleType] = []
+ExportCallable = Callable[[PydanticObjectId], Awaitable[dict[str, Any] | None]]
+
+EXPORTABLE_MODULES: list[ExportCallable] = []
 
 
 def text_to_buffered_file(text: str, filename: str = "data.txt") -> BufferedInputFile:
@@ -28,7 +30,7 @@ class TriggerExport(BaseHandler[Message]):
         return list(
             filter(
                 None,
-                [await module.__export__(chat_iid) for module in EXPORTABLE_MODULES if hasattr(module, "__export__")],
+                [await export_data(chat_iid) for export_data in EXPORTABLE_MODULES],
             )
         )
 

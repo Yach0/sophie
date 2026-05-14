@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import Any, Awaitable, Callable, Optional
 
 from aiogram import BaseMiddleware
@@ -12,6 +11,14 @@ from stfu_tg import Doc, KeyValue, Title, UserLink
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.antiflood import AntifloodModel
+from sophie_bot.modules.antiflood.domain import (
+    DEFAULT_MUTE_DURATION,
+    FLOOD_COUNT_KEY,
+    FLOOD_STATE_KEY,
+    FLOOD_WINDOW_SECONDS,
+    get_action_duration,
+    get_action_name,
+)
 from sophie_bot.modules.restrictions.utils.restrictions import (
     ban_user,
     kick_user,
@@ -22,17 +29,6 @@ from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
-
-# Redis key patterns
-FLOOD_COUNT_KEY = "antiflood:count:{chat_id}:{user_id}"
-FLOOD_STATE_KEY = "antiflood:state:{chat_id}"
-
-# Default flood window in seconds
-FLOOD_WINDOW_SECONDS = 30
-
-# Default action: mute for 30 minutes when no actions configured
-DEFAULT_ACTION_NAME = "mute_user"
-DEFAULT_MUTE_DURATION = timedelta(minutes=30)
 
 
 class AntifloodEnforcerMiddleware(BaseMiddleware):
@@ -98,7 +94,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             return False
         user_id = message.from_user.id
 
-        action_name = self._get_action_name(settings)
+        action_name = get_action_name(settings)
 
         log.info(f"Antiflood triggered: executing {action_name} on user {user_id} in chat {chat_id}")
 
@@ -107,19 +103,14 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         if action_name == "kick_user":
             return await kick_user(chat_id, user_id)
         if action_name == "mute_user":
-            # Use default 30-minute mute for default action, or check action data
-            mute_duration = DEFAULT_MUTE_DURATION
-            if settings.actions and settings.actions[0].name == "mute_user" and settings.actions[0].data:
-                mute_duration = settings.actions[0].data.get("duration")
-                if mute_duration and isinstance(mute_duration, (int, float)):
-                    mute_duration = timedelta(seconds=mute_duration)
+            mute_duration = get_action_duration(settings) or DEFAULT_MUTE_DURATION
             return await mute_user(chat_id, user_id, until_date=mute_duration)
         log.warning(f"Unknown antiflood action: {action_name}")
         return False
 
     def _get_action_text(self, settings: AntifloodModel) -> str:
         """Get human-readable action text."""
-        action_name = self._get_action_name(settings)
+        action_name = get_action_name(settings)
 
         action_texts = {
             "ban_user": _("Banned"),
@@ -127,30 +118,6 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             "mute_user": _("Muted"),
         }
         return action_texts.get(action_name, _("Restricted"))
-
-    @staticmethod
-    def _get_action_name(settings: AntifloodModel) -> str:
-        """Get action name from settings."""
-        if settings.actions:
-            return settings.actions[0].name
-        if settings.action:
-            action_map = {"ban": "ban_user", "kick": "kick_user", "mute": "mute_user"}
-            return action_map.get(settings.action, DEFAULT_ACTION_NAME)
-        return DEFAULT_ACTION_NAME
-
-    @staticmethod
-    def _get_action_duration(settings: AntifloodModel) -> Optional[timedelta]:
-        """Get action duration from settings, if present and valid."""
-        if settings.actions and settings.actions[0].data:
-            duration = settings.actions[0].data.get("duration")
-            if duration and isinstance(duration, (int, float)):
-                return timedelta(seconds=duration)
-
-        # When no explicit actions configured, the default action is mute with DEFAULT_MUTE_DURATION
-        if not settings.actions and not settings.action:
-            return DEFAULT_MUTE_DURATION
-
-        return None
 
     async def _handle_flood(self, message: Message, settings: AntifloodModel) -> None:
         """Handle flood violation: execute action and notify."""
@@ -175,7 +142,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
 
         # Notify the chat
         action_text = self._get_action_text(settings)
-        action_duration = self._get_action_duration(settings)
+        action_duration = get_action_duration(settings)
         doc = Doc(
             Title(_("⚠️ Antiflood")),
             _("User has been restricted for flooding."),

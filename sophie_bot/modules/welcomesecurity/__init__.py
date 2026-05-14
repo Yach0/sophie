@@ -1,5 +1,6 @@
 from aiogram import Router
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import BUTTONS
 from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.services.scheduler import scheduler
@@ -62,3 +63,18 @@ async def __post_setup__(_):
         from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanUnpassedUsers
 
         scheduler.add_job(BanUnpassedUsers().handle, "interval", minutes=10, jobstore="ram")
+
+
+module_manifest = ModuleManifest(
+    name="welcomesecurity",
+    bot_router=router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    post_setup=__post_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+    },
+)

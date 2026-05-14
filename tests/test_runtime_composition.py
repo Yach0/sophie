@@ -7,7 +7,7 @@ from aiogram import Dispatcher, Router
 from fastapi import APIRouter, FastAPI
 
 from sophie_bot import modules as module_loader
-from sophie_bot.modules import LoadedModuleRegistry, get_loaded_module_registry
+from sophie_bot.modules import LoadedModuleRegistry, ModuleManifest, get_loaded_module_registry
 from sophie_bot.runtime import build_rest_runtime, build_scheduler_runtime
 from sophie_bot.services.rest import init_api_routers
 
@@ -61,9 +61,6 @@ async def test_load_modules_uses_runtime_local_registry(monkeypatch: pytest.Monk
             handler_calls.append(router.name)
 
     alpha_module = ModuleType("sophie_bot.modules.alpha")
-    alpha_module.router = alpha_router
-    alpha_module.api_router = alpha_api_router
-    alpha_module.__handlers__ = (FakeHandler,)
 
     async def alpha_pre_setup() -> None:
         pre_setup_calls.append("alpha")
@@ -71,12 +68,17 @@ async def test_load_modules_uses_runtime_local_registry(monkeypatch: pytest.Monk
     async def alpha_post_setup(modules: dict[str, ModuleType]) -> None:
         post_setup_calls.append(modules)
 
-    alpha_module.__pre_setup__ = alpha_pre_setup
-    alpha_module.__post_setup__ = alpha_post_setup
+    alpha_module.module_manifest = ModuleManifest(
+        name="alpha",
+        bot_router=alpha_router,
+        api_router=alpha_api_router,
+        handlers=(FakeHandler,),
+        pre_setup=alpha_pre_setup,
+        post_setup=alpha_post_setup,
+    )
 
     beta_module = ModuleType("sophie_bot.modules.beta")
-    beta_module.router = beta_router
-    beta_module.__handlers__ = ()
+    beta_module.module_manifest = ModuleManifest(name="beta", bot_router=beta_router)
 
     fake_modules: dict[str, ModuleType] = {
         "sophie_bot.modules.alpha": alpha_module,
@@ -111,8 +113,11 @@ async def test_load_modules_can_skip_handler_registration(monkeypatch: pytest.Mo
 
     sample_router = Router(name="sample")
     sample_module = ModuleType("sophie_bot.modules.sample")
-    sample_module.router = sample_router
-    sample_module.__handlers__ = (FakeHandler,)
+    sample_module.module_manifest = ModuleManifest(
+        name="sample",
+        bot_router=sample_router,
+        handlers=(FakeHandler,),
+    )
 
     monkeypatch.setattr(module_loader, "MODULES", ["sample"])
     monkeypatch.setattr(module_loader, "import_module", lambda path: sample_module)
@@ -122,6 +127,61 @@ async def test_load_modules_can_skip_handler_registration(monkeypatch: pytest.Mo
 
     assert runtime_registry.modules == {"sample": sample_module}
     assert handler_calls == []
+
+
+@pytest.mark.asyncio
+async def test_load_modules_requires_explicit_module_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
+    legacy_module = ModuleType("sophie_bot.modules.legacy")
+
+    monkeypatch.setattr(module_loader, "MODULES", ["legacy"])
+    monkeypatch.setattr(module_loader, "import_module", lambda path: legacy_module)
+
+    with pytest.raises(RuntimeError, match="must export module_manifest"):
+        await module_loader.load_modules(Dispatcher(), ["*"], registry=LoadedModuleRegistry())
+
+
+@pytest.mark.asyncio
+async def test_load_modules_uses_explicit_module_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
+    handler_calls: list[str] = []
+    pre_setup_calls: list[str] = []
+    post_setup_calls: list[dict[str, ModuleType]] = []
+
+    manifest_router = Router(name="manifest")
+    manifest_api_router = APIRouter()
+
+    class FakeHandler:
+        @classmethod
+        def register(cls, router: Router) -> None:
+            handler_calls.append(router.name)
+
+    async def manifest_pre_setup() -> None:
+        pre_setup_calls.append("manifest")
+
+    async def manifest_post_setup(modules: dict[str, ModuleType]) -> None:
+        post_setup_calls.append(modules)
+
+    manifest_module = ModuleType("sophie_bot.modules.manifest_sample")
+    manifest_module.module_manifest = ModuleManifest(
+        name="manifest_sample",
+        bot_router=manifest_router,
+        api_router=manifest_api_router,
+        handlers=(FakeHandler,),
+        pre_setup=manifest_pre_setup,
+        post_setup=manifest_post_setup,
+        metadata={"name": "Manifest Sample"},
+    )
+
+    monkeypatch.setattr(module_loader, "MODULES", ["manifest_sample"])
+    monkeypatch.setattr(module_loader, "import_module", lambda path: manifest_module)
+
+    runtime_registry = LoadedModuleRegistry()
+    await module_loader.load_modules(Dispatcher(), ["*"], register_handlers=True, registry=runtime_registry)
+
+    assert runtime_registry.modules == {"manifest_sample": manifest_module}
+    assert runtime_registry.api_routers == [manifest_api_router]
+    assert handler_calls == ["manifest"]
+    assert pre_setup_calls == ["manifest"]
+    assert post_setup_calls == [runtime_registry.modules]
 
 
 def test_init_api_routers_includes_each_router() -> None:

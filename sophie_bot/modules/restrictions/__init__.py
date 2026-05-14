@@ -1,6 +1,7 @@
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.restrictions.actions.ban import BanModernAction
 from sophie_bot.modules.restrictions.actions.kick import KickModernAction
 from sophie_bot.modules.restrictions.actions.mute import MuteModernAction
@@ -48,4 +49,17 @@ __handlers__ = (
     SilentTempMuteUserHandler,
     UnmuteUserHandler,
     UnbanUserHandler,
+)
+
+module_manifest = ModuleManifest(
+    name="restrictions",
+    bot_router=router,
+    handlers=__handlers__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "modern_actions": __modern_actions__,
+    },
 )

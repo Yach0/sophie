@@ -2,6 +2,7 @@ from aiogram import Router
 from fastapi import APIRouter
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.op.handlers.Banner import OpBannerHandler
 from sophie_bot.modules.op.handlers.ButtonsTest import ButtonsTestHandler
 from sophie_bot.modules.op.handlers.Captcha import OpCaptchaHandler
@@ -49,3 +50,18 @@ __handlers__ = (
     OpDebugAISummaryHandler,
 )
 __stats__ = get_system_stats
+
+module_manifest = ModuleManifest(
+    name="op",
+    bot_router=router,
+    api_router=api_router,
+    handlers=__handlers__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "exclude_public": __exclude_public__,
+        "stats": __stats__,
+    },
+)

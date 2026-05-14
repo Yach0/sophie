@@ -1,6 +1,7 @@
 from aiogram import Router
 
 from sophie_bot.modes import SOPHIE_MODE
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.federations.api import api_router as federations_api_router
 from sophie_bot.modules.federations.handlers.accept_transfer import AcceptTransferHandler
 from sophie_bot.modules.federations.handlers.admins import FederationAdminsHandler
@@ -78,3 +79,19 @@ async def __post_setup__(_):
         scheduler.add_job(ProcessFederationImports().handle, "interval", seconds=30, jobstore="ram")
         scheduler.add_job(ProcessFederationExports().handle, "interval", seconds=30, jobstore="ram")
         scheduler.add_job(CleanupOldExports().handle, "interval", hours=6, jobstore="ram")
+
+
+module_manifest = ModuleManifest(
+    name="federations",
+    bot_router=router,
+    api_router=api_router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    post_setup=__post_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+    },
+)

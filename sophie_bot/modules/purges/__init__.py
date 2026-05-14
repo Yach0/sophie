@@ -1,6 +1,7 @@
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import BUTTONS
 from sophie_bot.modules.purges.handlers.button import LegacyDelMsgButton
 from sophie_bot.modules.purges.handlers.delete import DelMsgCmdHandler
@@ -31,4 +32,18 @@ __handlers__ = (
     DelMsgCmdHandler,
     PurgeMessagesHandler,
     LegacyDelMsgButton,
+)
+
+module_manifest = ModuleManifest(
+    name="purges",
+    bot_router=router,
+    handlers=__handlers__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "filter_actions": __filters__,
+        "modern_actions": __modern_actions__,
+    },
 )

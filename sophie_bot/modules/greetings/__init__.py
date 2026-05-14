@@ -1,5 +1,6 @@
 from aiogram import Router
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.greetings.handlers.enablewelcome import EnableWelcomeHandlerABC
 from sophie_bot.modules.greetings.handlers.status_cleanservice import (
     CleanServiceHandlerABC,
@@ -46,3 +47,17 @@ __handlers__ = (
 async def __pre_setup__():
     router.message.outer_middleware(LeaveUserMiddleware())
     router.message.outer_middleware(NewUserMiddleware())
+
+
+module_manifest = ModuleManifest(
+    name="greetings",
+    bot_router=router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+    },
+)

@@ -2,6 +2,7 @@ from aiogram import Router
 from fastapi import APIRouter
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from .api import notes_router
@@ -80,3 +81,22 @@ async def __pre_setup__():
 async def __post_setup__(_):
     if SOPHIE_MODE == "scheduler":
         scheduler.add_job(GenerateAITitles().handle, "interval", minutes=1, jobstore="ram")
+
+
+module_manifest = ModuleManifest(
+    name="notes",
+    bot_router=router,
+    api_router=api_router,
+    pre_setup=__pre_setup__,
+    post_setup=__post_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "advertise_wiki_page": __advertise_wiki_page__,
+        "filter_actions": __filters__,
+        "modern_actions": __modern_actions__,
+        "export": __export__,
+    },
+)

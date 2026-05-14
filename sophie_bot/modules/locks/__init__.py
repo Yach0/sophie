@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.locks.handlers.lock import LockHandler
 from sophie_bot.modules.locks.handlers.lockable import ListLockableHandler
 from sophie_bot.modules.locks.handlers.locklanguages import ListLockLanguagesHandler
@@ -48,3 +49,19 @@ __all__ = (
 
 async def __pre_setup__() -> None:
     router.message.outer_middleware(LocksEnforcerMiddleware())
+
+
+module_manifest = ModuleManifest(
+    name="locks",
+    bot_router=router,
+    api_router=api_router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "advertise_wiki_page": __advertise_wiki_page__,
+    },
+)

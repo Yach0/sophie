@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
 from aiogram import flags
 from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template
@@ -10,6 +11,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules import LOADED_MODULES
+from sophie_bot.modules import get_module_manifest
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.db import db
@@ -102,12 +104,10 @@ class StatsHandler(SophieMessageHandler):
     async def handle(self):
         sec = Doc()
 
-        all_modules: list[Any] = list(LOADED_MODULES.values())
-        all_modules.extend(LOADED_MODULES)
-
-        for module in all_modules:
-            if hasattr(module, "__stats__"):
-                res = module.__stats__()
+        for module in LOADED_MODULES.values():
+            stats = cast(Callable[[], Any] | None, get_module_manifest(module).metadata.get("stats"))
+            if stats:
+                res = stats()
                 if hasattr(res, "__await__"):
                     res = await res
                 sec += res

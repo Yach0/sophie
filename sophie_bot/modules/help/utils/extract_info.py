@@ -21,6 +21,7 @@ from sophie_bot.filters.chat_status import (
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.modules import get_module_manifest
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
@@ -186,19 +187,21 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
 
 
 async def gather_module_help(module: ModuleType) -> Optional[ModuleHelp]:
-    if not hasattr(module, "router"):
+    manifest = get_module_manifest(module)
+    if manifest.bot_router is None:
         return None
 
-    name: LazyProxy | str = getattr(module, "__module_name__", module.__name__.split(".")[-1])
-    emoji = getattr(module, "__module_emoji__", "?")
-    exclude_public = getattr(module, "__exclude_public__", False)
-    info = getattr(module, "__module_info__", None)
-    description = getattr(module, "__module_description__", None)
-    advertise_wiki_page = getattr(module, "__advertise_wiki_page__", False)
+    metadata = manifest.metadata
+    name = cast(LazyProxy | str, metadata.get("name", manifest.name))
+    emoji = cast(str, metadata.get("emoji", "?"))
+    exclude_public = bool(metadata.get("exclude_public", False))
+    info = cast(str | LazyProxy | Doc | None, metadata.get("info"))
+    description = cast(str | LazyProxy | Doc | None, metadata.get("description"))
+    advertise_wiki_page = bool(metadata.get("advertise_wiki_page", False))
 
     log.debug(f"gather_module_help: {module.__name__}", name=name, emoji=emoji, advertise_wiki_page=advertise_wiki_page)
 
-    if cmds := await gather_cmds_help(module.router):
+    if cmds := await gather_cmds_help(manifest.bot_router):
         return ModuleHelp(
             handlers=cmds,
             name=name,

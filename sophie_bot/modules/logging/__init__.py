@@ -1,5 +1,6 @@
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -18,3 +19,15 @@ __module_info__ = LazyProxy(
 )
 
 __exclude_public__ = True
+
+module_manifest = ModuleManifest(
+    name="logging",
+    api_router=api_router,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "exclude_public": __exclude_public__,
+    },
+)

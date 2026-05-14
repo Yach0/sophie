@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import gather
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from importlib import import_module
 from types import ModuleType
@@ -16,10 +17,26 @@ if TYPE_CHECKING:
     from sophie_bot.utils.handlers import SophieBaseHandler
 
 
+PreSetupHook = Callable[[], Awaitable[None]]
+PostSetupHook = Callable[[dict[str, ModuleType]], Awaitable[None]]
+
+
 @dataclass(slots=True)
 class LoadedModuleRegistry:
     modules: dict[str, ModuleType] = field(default_factory=dict)
     api_routers: list["APIRouter"] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class ModuleManifest:
+    name: str
+    bot_router: Router | None = None
+    api_router: "APIRouter | None" = None
+    handlers: Sequence[Type["SophieBaseHandler"]] = ()
+    pre_setup: PreSetupHook | None = None
+    post_setup: PostSetupHook | None = None
+    scheduler_jobs: Sequence[object] = ()
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 _loaded_module_registry = LoadedModuleRegistry()
@@ -113,6 +130,24 @@ MODULES = [
 ]
 
 
+def get_module_manifest(module: ModuleType) -> ModuleManifest:
+    manifest = getattr(module, "module_manifest", None)
+    if isinstance(manifest, ModuleManifest):
+        return manifest
+
+    msg = f"Module {module.__name__} must export module_manifest"
+    raise RuntimeError(msg)
+
+
+def get_loaded_module_manifest(module_name: str, module: ModuleType) -> ModuleManifest:
+    manifest = get_module_manifest(module)
+    if manifest.name != module_name:
+        msg = f"Module {module.__name__} manifest name {manifest.name!r} must match configured name {module_name!r}"
+        raise RuntimeError(msg)
+
+    return manifest
+
+
 async def load_modules(
     dp: Union[Dispatcher, Router],
     to_load: Sequence[str],
@@ -136,25 +171,27 @@ async def load_modules(
 
         module = import_module(path)
 
-        if router := getattr(module, "router", None):
+        manifest = get_loaded_module_manifest(module_name, module)
+
+        if router := manifest.bot_router:
             dp.include_router(router)
         else:
             log.debug(f"! Module {module_name} has no router!")
 
-        if api_router := getattr(module, "api_router", None):
+        if api_router := manifest.api_router:
             active_registry.api_routers.append(api_router)
 
-        active_registry.modules[module.__name__.split(".", 3)[2]] = module
+        active_registry.modules[manifest.name] = module
 
     if register_handlers:
         for module_name, module in active_registry.modules.items():
             log.debug(f"Loading module {module_name}...")
             # Load handlers
-            if not (router := getattr(module, "router", None)):
+            manifest = get_module_manifest(module)
+            if not (router := manifest.bot_router):
                 continue
 
-            handlers: Sequence[Type["SophieBaseHandler"]] = getattr(module, "__handlers__", [])
-            for handler in handlers:
+            for handler in manifest.handlers:
                 log.debug(f"Registering handler {handler.__name__}...")
                 handler.register(router)
     else:
@@ -164,8 +201,8 @@ async def load_modules(
     await gather(
         *(
             func()
-            for module_name, module in active_registry.modules.items()
-            if (func := getattr(module, "__pre_setup__", None))
+            for module in active_registry.modules.values()
+            if (func := get_module_manifest(module).pre_setup)
         )
     )
 
@@ -173,8 +210,8 @@ async def load_modules(
     await gather(
         *(
             func(active_registry.modules)
-            for module_name, module in active_registry.modules.items()
-            if (func := getattr(module, "__post_setup__", None))
+            for module in active_registry.modules.values()
+            if (func := get_module_manifest(module).post_setup)
         )
     )
 

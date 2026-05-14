@@ -1,9 +1,11 @@
 from types import ModuleType
+from typing import cast
 
 from aiogram import Router
 from fastapi import APIRouter
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest, get_module_manifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -86,16 +88,33 @@ async def __post_setup__(modules: dict[str, ModuleType]) -> None:
     from ..notes.magic_handlers.reply_action import ReplyModernAction
 
     for name, module in modules.items():
-        action_filters: tuple[type[ReplyModernAction], ...] = getattr(module, "__modern_actions__", ())
+        metadata = get_module_manifest(module).metadata
+        action_filters = cast(tuple[type[ReplyModernAction], ...], metadata.get("modern_actions", ()))
 
         for action_filter in action_filters:
             log.debug("Modern filter actions: Adding new action...", name=action_filter.name, module=name)
 
             ALL_MODERN_ACTIONS[action_filter.name] = action_filter()
 
-        legacy_filters: dict[str, LegacyFilterAction] = getattr(module, "__filters__", {})
+        legacy_filters = cast(dict[str, LegacyFilterAction], metadata.get("filter_actions", {}))
         for action_name, action in legacy_filters.items():
             log.debug("Legacy filters: Adding new action...", name=action_name, module=name)
             LEGACY_FILTERS_ACTIONS[action_name] = action
 
     log.debug("Legacy filters: Filters actions", actions=LEGACY_FILTERS_ACTIONS)
+
+
+module_manifest = ModuleManifest(
+    name="filters",
+    bot_router=router,
+    api_router=api_router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    post_setup=__post_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "info": __module_info__,
+        "advertise_wiki_page": __advertise_wiki_page__,
+    },
+)

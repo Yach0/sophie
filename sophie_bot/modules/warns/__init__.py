@@ -1,6 +1,7 @@
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.warns.action_config import (
     WarnEachActionCallback,
     WarnEachActionCancel,
@@ -71,4 +72,17 @@ __handlers__ = (
     WarnMaxActionDone,
     WarnMaxActionCancel,
     WarnMaxActionSettings,
+)
+
+module_manifest = ModuleManifest(
+    name="warns",
+    bot_router=router,
+    api_router=api_router,
+    handlers=__handlers__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "info": __module_info__,
+        "modern_actions": __modern_actions__,
+    },
 )

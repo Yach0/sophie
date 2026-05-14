@@ -1,6 +1,7 @@
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -27,6 +28,19 @@ __handlers__ = (
     UserInfoHandler,
 )
 
+module_manifest = ModuleManifest(
+    name="users",
+    bot_router=router,
+    handlers=__handlers__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "stats": __stats__,
+    },
+)
+
 __all__ = (
     "router",
     "__module_name__",
@@ -35,4 +49,5 @@ __all__ = (
     "__module_info__",
     "__handlers__",
     "__stats__",
+    "module_manifest",
 )

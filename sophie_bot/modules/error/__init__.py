@@ -2,6 +2,7 @@ from aiogram import Router
 from stfu_tg import Doc
 
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from .handlers.crash_handler import crash_handler
@@ -28,3 +29,17 @@ async def __pre_setup__():
 
     router.error.middleware(try_localization_middleware)
     router.error.register(SophieErrorHandler)
+
+
+module_manifest = ModuleManifest(
+    name="error",
+    bot_router=router,
+    pre_setup=__pre_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+        "exclude_public": __exclude_public__,
+    },
+)

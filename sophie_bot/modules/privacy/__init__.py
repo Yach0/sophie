@@ -1,8 +1,10 @@
 from types import ModuleType
+from typing import cast
 
 from aiogram import Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest, get_module_manifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -11,6 +13,7 @@ from ...filters.chat_status import ChatTypeFilter
 from ...filters.cmd import CMDFilter
 from .callbacks import PrivacyMenuCallback
 from .handlers.export import EXPORTABLE_MODULES, TriggerExport
+from .handlers.export import ExportCallable
 from .handlers.privacy import PrivacyMenu
 
 router = Router(name="info")
@@ -37,5 +40,20 @@ async def __pre_setup__():
 async def __post_setup__(modules: dict[str, ModuleType]):
     EXPORTABLE_MODULES.clear()
     for module in modules.values():
-        if hasattr(module, "__export__"):
-            EXPORTABLE_MODULES.append(module)
+        export_data = get_module_manifest(module).metadata.get("export")
+        if export_data:
+            EXPORTABLE_MODULES.append(cast(ExportCallable, export_data))
+
+
+module_manifest = ModuleManifest(
+    name="privacy",
+    bot_router=router,
+    pre_setup=__pre_setup__,
+    post_setup=__post_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+    },
+)

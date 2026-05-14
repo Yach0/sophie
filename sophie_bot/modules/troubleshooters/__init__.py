@@ -1,5 +1,6 @@
 from aiogram import Router
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 from ...filters.admin_rights import UserRestricting
@@ -36,3 +37,17 @@ async def __pre_setup__():
     # Beta
     router.message.register(set_preferred_mode, CMDFilter("enablebeta"), HasArgs(True), UserRestricting(admin=True))
     router.message.register(show_beta_state, CMDFilter("enablebeta"), UserRestricting(admin=True))
+
+
+module_manifest = ModuleManifest(
+    name="troubleshooters",
+    bot_router=router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "stats": __stats__,
+    },
+)

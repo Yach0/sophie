@@ -3,6 +3,7 @@ from types import ModuleType
 from aiogram import F, Router
 from stfu_tg import Doc
 
+from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -53,6 +54,21 @@ async def __post_setup__(modules: dict[str, ModuleType]):
                 module_help.handlers = HELP_MODULES[name].handlers + module_help.handlers
 
             HELP_MODULES[name] = module_help
+
+
+module_manifest = ModuleManifest(
+    name="help",
+    bot_router=router,
+    handlers=__handlers__,
+    pre_setup=__pre_setup__,
+    post_setup=__post_setup__,
+    metadata={
+        "name": __module_name__,
+        "emoji": __module_emoji__,
+        "description": __module_description__,
+        "info": __module_info__,
+    },
+)
 
 
 __all__ = ["__stats__"]
