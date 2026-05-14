@@ -16,8 +16,13 @@ RESPONSE_TYPE = TypeVar("RESPONSE_TYPE", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
 
 
-def _inject_user_tracking(kwargs: dict, user_tracking_id: object | None, session_id: str | None = None) -> None:
-    if user_tracking_id is None and session_id is None:
+def _inject_request_options(
+    kwargs: dict,
+    user_tracking_id: object | None = None,
+    session_id: str | None = None,
+    service_tier: str | None = None,
+) -> None:
+    if user_tracking_id is None and session_id is None and service_tier is None:
         return
     model_settings = dict(kwargs.get("model_settings") or {})
     extra_body = dict(model_settings.get("extra_body") or {})
@@ -25,6 +30,8 @@ def _inject_user_tracking(kwargs: dict, user_tracking_id: object | None, session
         extra_body["user"] = str(user_tracking_id)
     if session_id is not None:
         extra_body["session_id"] = session_id
+    if service_tier is not None:
+        extra_body["service_tier"] = service_tier
     model_settings["extra_body"] = extra_body
     kwargs["model_settings"] = model_settings
 
@@ -44,7 +51,7 @@ async def new_ai_generate(
         agent_kwargs = {}
 
     kwargs = dict(kwargs)
-    _inject_user_tracking(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id)
 
     agent = Agent(model, **kwargs)
     result = await ai_agent_run(
@@ -69,7 +76,7 @@ async def new_ai_generate_stream(
         agent_kwargs = {}
 
     kwargs = dict(kwargs)
-    _inject_user_tracking(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id)
 
     agent = Agent(model, **kwargs)
     async with track_ai_request(model, "agent"):
@@ -113,7 +120,7 @@ async def new_ai_generate_schema(
     Generate AI response with structured schema output
     """
     kwargs = dict(kwargs)
-    _inject_user_tracking(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id)
 
     agent = Agent(model, output_type=schema, **kwargs)
     result: AIAgentResult[RESPONSE_TYPE] = await ai_agent_run(
@@ -128,13 +135,14 @@ async def new_ai_generate_schema_with_result(
     model: Model,
     user_tracking_id: object | None = None,
     session_id: str | None = None,
+    service_tier: str | None = None,
     **kwargs,
 ) -> AIAgentResult[RESPONSE_TYPE]:
     """
     Generate AI response with structured schema output and return full result including usage.
     """
     kwargs = dict(kwargs)
-    _inject_user_tracking(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
 
     agent = Agent(model, output_type=schema, **kwargs)
     return await ai_agent_run(agent, user_prompt=history.prompt, message_history=history.message_history)

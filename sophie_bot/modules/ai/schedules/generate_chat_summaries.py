@@ -192,6 +192,7 @@ class GenerateChatSummaries:
             AIChatSummaryGroups,
             model,
             user_tracking_id=chat_iid,
+            service_tier="flex",
         )
         await charge_ai_usage(chat_iid, AI_FEATURE_CHATBOT, model, result.usage)
         return result.output
