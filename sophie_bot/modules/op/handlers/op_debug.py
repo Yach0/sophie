@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from collections import Counter
 from collections.abc import Mapping
@@ -12,13 +13,22 @@ from aiogram.types import Message
 from stfu_tg import BlockQuote, Bold, Code, Doc, Italic, KeyValue, Section, Title
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.op_debug_feature_request import OpDebugFeatureRequestModel
 from sophie_bot.db.models.op_debug_snapshot import OpDebugSnapshotModel
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modes import SOPHIE_MODE
+from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_summary_model
+from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
+from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
+from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.op.json_schemas.op_debug_ai_summary import OpDebugAISummary
 from sophie_bot.services.redis import aredis
-from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _DEFAULT_STATES, list_all
+from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _DEFAULT_STATES, is_enabled, list_all
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.versions import SOPHIE_BRANCH, SOPHIE_COMMIT, SOPHIE_VERSION
@@ -383,6 +393,135 @@ def _collect_chat_context(message: Message) -> tuple[Section, dict[str, Any], in
     )
 
 
+def _build_ai_summary_prompt(
+    notes_data: list[str],
+    history_data: list[dict[str, Any]],
+    backoff_data: dict[str, Any],
+    system_data: dict[str, Any],
+) -> str:
+    """Build the prompt for AI to classify and summarize the debug report."""
+    context_parts: list[str] = []
+
+    context_parts.append("## Operator Notes\n" + "\n".join(notes_data))
+
+    if backoff_data.get("active_count", 0) > 0:
+        context_parts.append(
+            "## Active Error Signatures\n" + json.dumps(backoff_data.get("recent_signatures", []), indent=2)
+        )
+
+    if history_data:
+        recent_messages = history_data[-10:]
+        formatted_history = "\n".join(
+            f"[{msg.get('role', 'unknown')}] {msg.get('username', '?')}: {msg.get('text', '')}"
+            for msg in recent_messages
+        )
+        context_parts.append(f"## Recent Chat History\n{formatted_history}")
+
+    context_parts.append(
+        f"## System Info\nVersion: {system_data.get('version')}, Branch: {system_data.get('branch')}, "
+        f"Mode: {system_data.get('sophie_mode')}, Environment: {system_data.get('environment')}"
+    )
+
+    full_context = "\n\n".join(context_parts)
+
+    instructions = (
+        "Analyze the following debug report context submitted by a bot operator. "
+        "Determine whether this is a BUG REPORT (reporting an error, unexpected behavior, or malfunction) "
+        "or a FEATURE REQUEST (requesting new functionality, improvements, or changes).\n\n"
+        "Provide a structured summary including:\n"
+        "- A clear, concise title\n"
+        "- A detailed summary of the issue or request\n"
+        "- Severity estimate (low/medium/high/critical)\n"
+        "- Key points as bullet items\n"
+        "- A suggested next action for the operator\n\n"
+        "If error signatures are present and notes reference errors or problems, classify as a bug report.\n"
+        "If notes describe desired new features, improvements, or configuration changes, classify as a feature request.\n\n"
+        f"Debug Report Context:\n{full_context}"
+    )
+
+    return instructions
+
+
+def _build_ai_summary_sections(ai_summary: OpDebugAISummary) -> list[Section]:
+    """Build STFU sections from the AI summary result."""
+    report_type_label = l_("🐛 Bug Report") if ai_summary.report_type.value == "bug" else l_("✨ Feature Request")
+
+    key_points_text = "\n".join(f"• {point}" for point in ai_summary.key_points) if ai_summary.key_points else "-"
+
+    summary_items: list[object] = [
+        KeyValue(l_("Type"), Bold(report_type_label)),
+        KeyValue(l_("Title"), Italic(ai_summary.title)),
+        KeyValue(l_("Severity"), Code(ai_summary.severity)),
+    ]
+
+    summary_items.append(BlockQuote(ai_summary.summary))
+
+    summary_section = Section(*summary_items, title=l_("AI Summary"))
+
+    details_items: list[object] = [
+        BlockQuote(key_points_text),
+    ]
+    if ai_summary.suggested_action:
+        details_items.append(BlockQuote(ai_summary.suggested_action))
+
+    details_section = Section(
+        *details_items,
+        title=l_("AI Analysis"),
+    )
+
+    return [summary_section, details_section]
+
+
+async def _generate_ai_summary(
+    notes_data: list[str],
+    history_data: list[dict[str, Any]],
+    backoff_data: dict[str, Any],
+    system_data: dict[str, Any],
+    chat_iid,
+) -> OpDebugAISummary | None:
+    """Call AI to generate a structured summary of the debug report."""
+    history = NewAIMessageHistory()
+    history.add_system(
+        "You are a debugging assistant for SophieBot, a Telegram moderation bot. Analyze operator debug reports and provide structured summaries."
+    )
+
+    prompt_text = _build_ai_summary_prompt(notes_data, history_data, backoff_data, system_data)
+    history.add_custom(prompt_text, name="OperatorDebug")
+
+    model = await get_chat_summary_model(chat_iid)
+    result = await new_ai_generate_schema_with_result(
+        history,
+        OpDebugAISummary,
+        model,
+        user_tracking_id=chat_iid,
+    )
+    await charge_ai_usage(chat_iid, AI_FEATURE_CHATBOT, model, result.usage)
+    return result.output
+
+
+async def _save_feature_request(
+    ai_summary: OpDebugAISummary,
+    chat_id: int,
+    operator_id: int,
+    operator_name: str,
+    snapshot_id: str | None,
+) -> OpDebugFeatureRequestModel:
+    """Save an AI-classified feature request to the database."""
+    feature_request = OpDebugFeatureRequestModel(
+        chat_id=chat_id,
+        operator_id=operator_id,
+        operator_name=operator_name,
+        title=ai_summary.title,
+        summary=ai_summary.summary,
+        severity=ai_summary.severity,
+        key_points=ai_summary.key_points,
+        suggested_action=ai_summary.suggested_action,
+        snapshot_id=snapshot_id,
+    )
+    await feature_request.insert()
+    return feature_request
+
+
 @flags.help(description=l_("Collect diagnostic context for debugging bot issues."))
 class OpDebugHandler(SophieMessageHandler):
     @staticmethod
@@ -390,7 +529,7 @@ class OpDebugHandler(SophieMessageHandler):
         return (CMDFilter("op_debug"), IsOP(True))
 
     async def handle(self) -> None:
-        system_section, system_data = _collect_system_context()
+        system_section, system_data = _collect_system_context(self.event)
         chat_section, chat_data, operator_id, operator_name = _collect_chat_context(self.event)
         redis_section, redis_data = await _collect_redis_health()
         backoff_section, backoff_data = await _collect_error_backoff()
@@ -423,6 +562,94 @@ class OpDebugHandler(SophieMessageHandler):
         ]
         sections[2:2] = history_sections
         sections.extend(notes_sections)
+
+        # AI summarization (when feature flag is enabled)
+        if await is_enabled("op_debug_ai_summarization"):
+            chat_model = await ChatModel.get_by_tid(self.event.chat.id)
+            if chat_model is not None:
+                ai_summary = await _generate_ai_summary(
+                    notes_data, history_data, backoff_data, system_data, chat_model.iid
+                )
+                if ai_summary is not None:
+                    ai_sections = _build_ai_summary_sections(ai_summary)
+                    sections.extend(ai_sections)
+
+                    # If classified as a feature request, save to DB
+                    if ai_summary.report_type.value == "feature_request":
+                        await _save_feature_request(
+                            ai_summary,
+                            chat_id=self.event.chat.id,
+                            operator_id=operator_id,
+                            operator_name=operator_name,
+                            snapshot_id=str(snapshot.id),
+                        )
+
+        for doc in _split_sections(sections):
+            await self.event.reply(str(doc))
+
+
+@flags.help(description=l_("Collect diagnostic context with AI summarization (requires feature flag)."))
+class OpDebugAISummaryHandler(SophieMessageHandler):
+    @staticmethod
+    def filters() -> tuple[CMDFilter, IsOP, FeatureFlagFilter]:
+        return (
+            CMDFilter("op_debug_ai"),
+            IsOP(True),
+            FeatureFlagFilter("op_debug_ai_summarization"),
+        )
+
+    async def handle(self) -> None:
+        """Explicit /op_debug_ai command — always uses AI summarization when the flag is on."""
+        system_section, system_data = _collect_system_context(self.event)
+        chat_section, chat_data, operator_id, operator_name = _collect_chat_context(self.event)
+        redis_section, redis_data = await _collect_redis_health()
+        backoff_section, backoff_data = await _collect_error_backoff()
+        flags_section, flags_data = await _collect_feature_flags()
+        history_sections, history_data = await _collect_chat_history(self.event.chat.id)
+        notes_sections, notes_data = await _collect_operator_notes(self.event)
+
+        # Persist snapshot to database
+        snapshot = OpDebugSnapshotModel(
+            chat_id=self.event.chat.id,
+            operator_id=operator_id,
+            operator_name=operator_name,
+            system_context=system_data,
+            chat_context=chat_data,
+            redis_health=redis_data,
+            error_backoff=backoff_data,
+            feature_flags=flags_data,
+            chat_history=history_data,
+            operator_notes=notes_data,
+        )
+        await snapshot.insert()
+
+        # Build base sections
+        sections = [
+            system_section,
+            chat_section,
+            redis_section,
+            backoff_section,
+            flags_section,
+        ]
+        sections[2:2] = history_sections
+        sections.extend(notes_sections)
+
+        # AI summarization (guaranteed — handler only fires when flag is enabled)
+        chat_model = await ChatModel.get_by_tid(self.event.chat.id)
+        if chat_model is not None:
+            ai_summary = await _generate_ai_summary(notes_data, history_data, backoff_data, system_data, chat_model.iid)
+            if ai_summary is not None:
+                ai_sections = _build_ai_summary_sections(ai_summary)
+                sections.extend(ai_sections)
+
+                if ai_summary.report_type.value == "feature_request":
+                    await _save_feature_request(
+                        ai_summary,
+                        chat_id=self.event.chat.id,
+                        operator_id=operator_id,
+                        operator_name=operator_name,
+                        snapshot_id=str(snapshot.id),
+                    )
 
         for doc in _split_sections(sections):
             await self.event.reply(str(doc))

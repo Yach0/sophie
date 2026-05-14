@@ -59,6 +59,7 @@ FeatureType = Literal[
     "feds_rest_api",
     "new_feds_fban_lazy",
     "new_feds",
+    "op_debug_ai_summarization",
 ]
 
 
@@ -112,6 +113,7 @@ class FeatureStates(TypedDict):
     feds_rest_api: bool
     new_feds_fban_lazy: bool
     new_feds: bool
+    op_debug_ai_summarization: bool
 
 
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
@@ -164,6 +166,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "feds_rest_api",
     "new_feds_fban_lazy",
     "new_feds",
+    "op_debug_ai_summarization",
 )
 
 
@@ -224,6 +227,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "feds_rest_api": False,
     "new_feds_fban_lazy": True,
     "new_feds": True,
+    "op_debug_ai_summarization": False,
 }
 
 
