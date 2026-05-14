@@ -33,6 +33,7 @@ from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
+from sophie_bot.utils.feature_flags import get_service_tier
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -175,8 +176,13 @@ class AiTranslate(SophieMessageHandler):
         model = await get_chat_translations_model(self.connection.db_model.iid)
 
         try:
+            service_tier = await get_service_tier("ai_translations_service_tier", chat_tid=self.event.chat.id)
             result = await new_ai_generate_schema_with_result(
-                ai_context, AITranslateResponseSchema, model=model, user_tracking_id=self.connection.db_model.iid
+                ai_context,
+                AITranslateResponseSchema,
+                model=model,
+                user_tracking_id=self.connection.db_model.iid,
+                service_tier=service_tier,
             )
             translated = result.output
             if result.usage and result.usage.total_tokens:

@@ -42,6 +42,7 @@ async def new_ai_generate(
     agent_kwargs=None,
     user_tracking_id: object | None = None,
     session_id: str | None = None,
+    service_tier: str | None = None,
     **kwargs,
 ) -> AIAgentResult:
     """
@@ -51,7 +52,7 @@ async def new_ai_generate(
         agent_kwargs = {}
 
     kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
 
     agent = Agent(model, **kwargs)
     result = await ai_agent_run(
@@ -67,6 +68,7 @@ async def new_ai_generate_stream(
     agent_kwargs=None,
     user_tracking_id: object | None = None,
     session_id: str | None = None,
+    service_tier: str | None = None,
     **kwargs,
 ) -> AIAgentResult:
     """
@@ -76,7 +78,7 @@ async def new_ai_generate_stream(
         agent_kwargs = {}
 
     kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
 
     agent = Agent(model, **kwargs)
     async with track_ai_request(model, "agent"):
@@ -114,13 +116,14 @@ async def new_ai_generate_schema(
     model: Model,
     user_tracking_id: object | None = None,
     session_id: str | None = None,
+    service_tier: str | None = None,
     **kwargs,
 ) -> RESPONSE_TYPE:
     """
     Generate AI response with structured schema output
     """
     kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id)
+    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
 
     agent = Agent(model, output_type=schema, **kwargs)
     result: AIAgentResult[RESPONSE_TYPE] = await ai_agent_run(

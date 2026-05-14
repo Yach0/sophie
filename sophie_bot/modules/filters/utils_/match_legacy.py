@@ -19,7 +19,7 @@ from sophie_bot.modules.filters.utils_.extract_content import extract_message_co
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -173,9 +173,10 @@ async def match_ai_handler(
         kwargs = {}
         model = await get_filter_handler_model()
         kwargs["model_settings"] = OpenRouterModelSettings(openrouter_reasoning={"effort": "low"})
+        service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=message.chat.id)
 
         result = await new_ai_generate_schema(
-            history, AIFilterResponseSchema, model, user_tracking_id=chat_iid, **kwargs
+            history, AIFilterResponseSchema, model, user_tracking_id=chat_iid, service_tier=service_tier, **kwargs
         )
 
         log.debug("match_ai_handler: AI evaluation", prompt=prompt, matches=result.matches, reasoning=result.reasoning)
