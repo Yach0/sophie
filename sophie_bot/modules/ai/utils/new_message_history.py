@@ -107,8 +107,8 @@ async def _build_message_parts(
         )
     )
 
-    # Photos
-    if message.photo or message.sticker:
+    # Visual media
+    if message.photo or message.sticker or message.animation:
         # Determine a file_id to download irrespective of underlying Telegram type
         if message.photo:
             image_file_id = message.photo[-1].file_id
@@ -116,10 +116,12 @@ async def _build_message_parts(
             message.sticker and (message.sticker.is_animated or message.sticker.is_video) and message.sticker.thumbnail
         ):
             image_file_id = message.sticker.thumbnail.file_id
+        elif message.animation and message.animation.thumbnail:
+            image_file_id = message.animation.thumbnail.file_id
         elif message.sticker:
             image_file_id = message.sticker.file_id
         else:
-            raise SophieException(_("No photo or sticker found"))
+            raise SophieException(_("No visual media found"))
 
         downloaded_image: Optional[BinaryIO] = await bot.download(image_file_id)
 
