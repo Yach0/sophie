@@ -32,7 +32,7 @@ from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
-from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -145,6 +145,7 @@ async def _generate_chatbot_result(
     history: NewAIMessageHistory,
     model: Model,
     explicit_debug_mode: bool,
+    service_tier: str | None = None,
 ):
     allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode
     draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
@@ -160,6 +161,7 @@ async def _generate_chatbot_result(
             on_text_stream=draft_streamer.stream,
             user_tracking_id=connection.db_model.iid,
             session_id=session_id,
+            service_tier=service_tier,
         )
 
     return await new_ai_generate(
@@ -169,6 +171,7 @@ async def _generate_chatbot_result(
         agent_kwargs=agent_kwargs,
         user_tracking_id=connection.db_model.iid,
         session_id=session_id,
+        service_tier=service_tier,
     )
 
 
@@ -256,7 +259,8 @@ async def ai_chatbot_reply(
             await _reply_debug_history(message, history)
 
         model = await _resolve_model(connection, model)
-        result = await _generate_chatbot_result(message, connection, history, model, explicit_debug_mode)
+        service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=message.chat.id)
+        result = await _generate_chatbot_result(message, connection, history, model, explicit_debug_mode, service_tier)
 
         # Track AI usage metrics
         if result.usage:

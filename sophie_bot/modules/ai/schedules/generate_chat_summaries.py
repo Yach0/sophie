@@ -20,7 +20,7 @@ from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.bot import bot
 from sophie_bot.services.sentry_metrics import count_metric
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import get_i18n
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -187,12 +187,13 @@ class GenerateChatSummaries:
         history.add_custom(_build_summary_prompt(messages), name="Transcript")
 
         model = await get_chat_summary_model(chat_iid)
+        service_tier = await get_service_tier("ai_chat_summaries_service_tier")
         result = await new_ai_generate_schema_with_result(
             history,
             AIChatSummaryGroups,
             model,
             user_tracking_id=chat_iid,
-            service_tier="flex",
+            service_tier=service_tier,
         )
         await charge_ai_usage(chat_iid, AI_FEATURE_CHATBOT, model, result.usage)
         return result.output

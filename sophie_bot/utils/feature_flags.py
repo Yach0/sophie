@@ -60,6 +60,10 @@ FeatureType = Literal[
     "new_feds_fban_lazy",
     "new_feds",
     "op_debug_ai_summarization",
+    "ai_chatbot_service_tier",
+    "ai_translations_service_tier",
+    "ai_filters_service_tier",
+    "ai_chat_summaries_service_tier",
 ]
 
 
@@ -114,6 +118,10 @@ class FeatureStates(TypedDict):
     new_feds_fban_lazy: bool
     new_feds: bool
     op_debug_ai_summarization: bool
+    ai_chatbot_service_tier: str
+    ai_translations_service_tier: str
+    ai_filters_service_tier: str
+    ai_chat_summaries_service_tier: str
 
 
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
@@ -167,6 +175,10 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "new_feds_fban_lazy",
     "new_feds",
     "op_debug_ai_summarization",
+    "ai_chatbot_service_tier",
+    "ai_translations_service_tier",
+    "ai_filters_service_tier",
+    "ai_chat_summaries_service_tier",
 )
 
 
@@ -228,6 +240,10 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "new_feds_fban_lazy": True,
     "new_feds": True,
     "op_debug_ai_summarization": False,
+    "ai_chatbot_service_tier": "none",
+    "ai_translations_service_tier": "none",
+    "ai_filters_service_tier": "none",
+    "ai_chat_summaries_service_tier": "none",
 }
 
 
@@ -377,6 +393,14 @@ async def is_enabled(feature: FeatureType, chat_tid: int | None = None) -> bool:
 async def set_enabled(feature: FeatureType, enabled: bool) -> None:
     await set_value(feature, enabled)
     _track_feature_in_sentry(feature, enabled)
+
+
+async def get_service_tier(feature: FeatureType, chat_tid: int | None = None) -> str | None:
+    """Return the service_tier value from a feature flag, or None if set to \"none\"."""
+    value = str(await get_value(feature, chat_tid=chat_tid))
+    if value == "none":
+        return None
+    return value
 
 
 async def list_all() -> dict[FeatureType, FeatureValue]:
