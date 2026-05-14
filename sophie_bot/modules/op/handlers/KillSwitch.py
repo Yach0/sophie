@@ -4,9 +4,12 @@ from typing import Any, TypeGuard, cast
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from ass_tg.types import IntArg, OptionalArg, WordArg
+from ass_tg.entities import ArgEntities
+from ass_tg.exceptions import ArgTypeError
+from ass_tg.i18n import gettext as ass_gettext
+from ass_tg.types import OptionalArg, WordArg
 from ass_tg.types.base_abc import ArgFabric
-from ass_tg.types.keyvalue import KeyValueArg, KeyValuesArg
+from babel.support import LazyProxy
 from stfu_tg import Code, Doc, Template
 
 from sophie_bot.filters.cmd import CMDFilter
@@ -27,6 +30,35 @@ from sophie_bot.utils.i18n import gettext as _
 
 
 _CURRENT_CHAT_SENTINEL = object()
+_CHAT_ARG_PREFIX = "^chat"
+_CHAT_ARG_SEPARATOR = "="
+
+
+class ChatOverrideArg(ArgFabric[int | object]):
+    know_the_end = True
+
+    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+        return LazyProxy(lambda: ass_gettext("chat override")), LazyProxy(lambda: ass_gettext("chat overrides"))
+
+    def check(self, text: str, entities: ArgEntities) -> bool:
+        return (
+            text == _CHAT_ARG_PREFIX
+            or text.startswith(f"{_CHAT_ARG_PREFIX} ")
+            or text.startswith(f"{_CHAT_ARG_PREFIX}{_CHAT_ARG_SEPARATOR}")
+        )
+
+    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, int | object]:
+        first_word = text.split(maxsplit=1)[0]
+        if first_word == _CHAT_ARG_PREFIX:
+            return len(first_word), _CURRENT_CHAT_SENTINEL
+
+        try:
+            chat_tid = int(first_word.removeprefix(f"{_CHAT_ARG_PREFIX}{_CHAT_ARG_SEPARATOR}"))
+        except ValueError as exc:
+            raise ArgTypeError(
+                needed_type=self.needed_type(), description=self.description, offset=offset, length=len(first_word)
+            ) from exc
+        return len(first_word), chat_tid
 
 
 def _is_feature_type(feature: str) -> TypeGuard[FeatureType]:
@@ -56,9 +88,7 @@ def _stringify_value(value: FeatureValue) -> str:
 
 
 def _build_chat_arg() -> OptionalArg:
-    chat_arg = OptionalArg(IntArg("chat"))
-    chat_arg.default_no_value_value = _CURRENT_CHAT_SENTINEL
-    return OptionalArg(KeyValuesArg(KeyValueArg("chat", chat_arg)))
+    return OptionalArg(ChatOverrideArg())
 
 
 def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int | None:
@@ -88,8 +118,8 @@ class KillSwitchHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         feature: str | None = self.data.get("feature")
         raw_value: str | None = self.data.get("value")
-        chat_args = self.data.get("chat_args") or {}
-        chat_tid = _extract_chat_tid(chat_args.get("chat"), self.event.chat.id)
+        chat_arg = self.data.get("chat_args")
+        chat_tid = _extract_chat_tid(chat_arg, self.event.chat.id)
 
         if not feature and raw_value is None:
             states = await list_chat_overrides(chat_tid) if chat_tid is not None else await list_all()
