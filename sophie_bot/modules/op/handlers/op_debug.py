@@ -529,7 +529,7 @@ class OpDebugHandler(SophieMessageHandler):
         return (CMDFilter("op_debug"), IsOP(True))
 
     async def handle(self) -> None:
-        system_section, system_data = _collect_system_context(self.event)
+        system_section, system_data = _collect_system_context()
         chat_section, chat_data, operator_id, operator_name = _collect_chat_context(self.event)
         redis_section, redis_data = await _collect_redis_health()
         backoff_section, backoff_data = await _collect_error_backoff()
@@ -600,7 +600,7 @@ class OpDebugAISummaryHandler(SophieMessageHandler):
 
     async def handle(self) -> None:
         """Explicit /op_debug_ai command — always uses AI summarization when the flag is on."""
-        system_section, system_data = _collect_system_context(self.event)
+        system_section, system_data = _collect_system_context()
         chat_section, chat_data, operator_id, operator_name = _collect_chat_context(self.event)
         redis_section, redis_data = await _collect_redis_health()
         backoff_section, backoff_data = await _collect_error_backoff()
