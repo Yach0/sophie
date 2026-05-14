@@ -3,10 +3,10 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from aiogram import Dispatcher
-
 from sophie_bot.config import CONFIG
 from sophie_bot.modules import load_modules
+from sophie_bot.runtime import build_rest_runtime
+from sophie_bot.services.rest import init_api_routers
 from sophie_bot.utils.logger import log
 
 
@@ -30,18 +30,24 @@ def generate_openapi(mock_redis, mock_aredis):
     mock_redis.return_value = RedisStub()
 
     log.info("Starting OpenAPI generation task...")
-    dp = Dispatcher()
+    runtime = build_rest_runtime()
 
     CONFIG.mode = "nostart"
 
-    # Initialize modules to populate LOADED_API_ROUTERS
-    asyncio.run(load_modules(dp, ["*"], CONFIG.modules_not_load))
+    # Initialize modules to populate runtime-local API routers
+    asyncio.run(
+        load_modules(
+            runtime.bot_runtime.dispatcher,
+            ["*"],
+            CONFIG.modules_not_load,
+            register_handlers=False,
+            registry=runtime.loaded_modules,
+        )
+    )
 
-    from sophie_bot.services.rest import app, init_api_routers
+    init_api_routers(runtime.app, runtime.loaded_modules.api_routers)
 
-    init_api_routers(app)
-
-    openapi_data = app.openapi()
+    openapi_data = runtime.app.openapi()
 
     output_path = Path("openapi.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)

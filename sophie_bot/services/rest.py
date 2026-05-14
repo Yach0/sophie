@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -169,11 +171,6 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
-
-
-def init_api_routers(app: FastAPI) -> None:
-    from sophie_bot.modules import LOADED_API_ROUTERS
-
-    for router in LOADED_API_ROUTERS:
+def init_api_routers(app: FastAPI, api_routers: Sequence[APIRouter]) -> None:
+    for router in api_routers:
         app.include_router(router)

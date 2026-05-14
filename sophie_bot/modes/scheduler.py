@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import asyncio
 
-from aiogram import Dispatcher
-
 from sophie_bot.config import CONFIG
-from sophie_bot.startup import start_init
+from sophie_bot.runtime import build_scheduler_runtime
+from sophie_bot.startup import initialize_scheduler_mode
 
 
 async def _scheduler_main() -> None:
     """Initialize and run the scheduler on the main event loop."""
-    from sophie_bot.services.scheduler import scheduler
+    runtime = build_scheduler_runtime()
 
-    await start_init(dp=Dispatcher())
-    scheduler.start()
+    await initialize_scheduler_mode(runtime)
+    runtime.scheduler.start()
 
     # Block until interrupted
     stop_event = asyncio.Event()
@@ -22,7 +21,7 @@ async def _scheduler_main() -> None:
     except (KeyboardInterrupt, SystemExit):
         pass
     finally:
-        scheduler.shutdown(wait=False)
+        runtime.scheduler.shutdown(wait=False)
 
 
 def start_scheduler_mode() -> None:

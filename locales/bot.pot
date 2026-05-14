@@ -16,7 +16,7 @@ msgstr ""
 
 #: sophie_bot/args/chats.py:56
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:42
-#: sophie_bot/modules/op/handlers/op_debug.py:374
+#: sophie_bot/modules/op/handlers/op_debug.py:384
 msgid "Chat ID"
 msgstr ""
 
@@ -952,48 +952,48 @@ msgstr ""
 msgid "<No text provided>"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:122
-msgid "No photo or sticker found"
+#: sophie_bot/modules/ai/utils/new_message_history.py:124
+msgid "No visual media found"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:127
+#: sophie_bot/modules/ai/utils/new_message_history.py:129
 msgid "Image is empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:163
+#: sophie_bot/modules/ai/utils/new_message_history.py:165
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:184
+#: sophie_bot/modules/ai/utils/new_message_history.py:186
 msgid "You're a telegram bot named Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:185
+#: sophie_bot/modules/ai/utils/new_message_history.py:187
 msgid "Be funny when the topic is casual."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:187
+#: sophie_bot/modules/ai/utils/new_message_history.py:189
 msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:189
+#: sophie_bot/modules/ai/utils/new_message_history.py:191
 msgid "Send short messages unless longer explanations are needed."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:190
+#: sophie_bot/modules/ai/utils/new_message_history.py:192
 msgid "Focus primarily on answering the LATEST user message."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:191
+#: sophie_bot/modules/ai/utils/new_message_history.py:193
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:192
+#: sophie_bot/modules/ai/utils/new_message_history.py:194
 msgid "Prefer to search information in the internet"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/new_message_history.py:193
+#: sophie_bot/modules/ai/utils/new_message_history.py:195
 msgid "Today is "
 msgstr ""
 
@@ -3359,7 +3359,7 @@ msgid "Add me to your chat"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/start_pm.py:43
-#: sophie_bot/modules/privacy/__init__.py:20
+#: sophie_bot/modules/privacy/__init__.py:19
 msgid "Privacy"
 msgstr ""
 
@@ -4407,31 +4407,31 @@ msgstr ""
 msgid "Generate a test emoji captcha"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:98
+#: sophie_bot/modules/op/handlers/KillSwitch.py:128
 msgid "No per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:104
+#: sophie_bot/modules/op/handlers/KillSwitch.py:134
 msgid "Usage: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:105
-#: sophie_bot/modules/op/handlers/KillSwitch.py:113
+#: sophie_bot/modules/op/handlers/KillSwitch.py:135
+#: sophie_bot/modules/op/handlers/KillSwitch.py:143
 #, python-brace-format
 msgid "Allowed features: {features}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:112
+#: sophie_bot/modules/op/handlers/KillSwitch.py:142
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:123
+#: sophie_bot/modules/op/handlers/KillSwitch.py:153
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:134
+#: sophie_bot/modules/op/handlers/KillSwitch.py:164
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr ""
@@ -4452,177 +4452,209 @@ msgstr ""
 msgid "Prints the message event as JSON."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:42
-#: sophie_bot/modules/op/handlers/op_debug.py:54
-#: sophie_bot/modules/op/handlers/op_debug.py:67
-#: sophie_bot/modules/op/handlers/op_debug.py:72
-#: sophie_bot/modules/op/handlers/op_debug.py:103
-#: sophie_bot/modules/op/handlers/op_debug.py:359
-#: sophie_bot/modules/op/handlers/op_debug.py:376
+#: sophie_bot/modules/op/handlers/op_debug.py:52
+#: sophie_bot/modules/op/handlers/op_debug.py:64
+#: sophie_bot/modules/op/handlers/op_debug.py:77
+#: sophie_bot/modules/op/handlers/op_debug.py:82
+#: sophie_bot/modules/op/handlers/op_debug.py:113
+#: sophie_bot/modules/op/handlers/op_debug.py:369
+#: sophie_bot/modules/op/handlers/op_debug.py:386
 msgid "unknown"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:105
+#: sophie_bot/modules/op/handlers/op_debug.py:115
 msgid "last seen"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:106
+#: sophie_bot/modules/op/handlers/op_debug.py:116
 msgid "last allowed"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:106
+#: sophie_bot/modules/op/handlers/op_debug.py:116
 msgid "step"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:111
+#: sophie_bot/modules/op/handlers/op_debug.py:121
 msgid "🔧 Operator Debug"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:159
+#: sophie_bot/modules/op/handlers/op_debug.py:169
 msgid "reply to"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:169
+#: sophie_bot/modules/op/handlers/op_debug.py:179
 msgid "bot"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:169
+#: sophie_bot/modules/op/handlers/op_debug.py:179
 msgid "user"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:187
+#: sophie_bot/modules/op/handlers/op_debug.py:197
 msgid "No cached messages found. Chat history is populated when AI chatbot is active."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:188
-#: sophie_bot/modules/op/handlers/op_debug.py:196
+#: sophie_bot/modules/op/handlers/op_debug.py:198
+#: sophie_bot/modules/op/handlers/op_debug.py:206
 msgid "Chat History"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:197
+#: sophie_bot/modules/op/handlers/op_debug.py:207
 msgid "No cached messages found."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:209
+#: sophie_bot/modules/op/handlers/op_debug.py:219
 msgid "command args"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:216
-#: sophie_bot/modules/op/handlers/op_debug.py:221
+#: sophie_bot/modules/op/handlers/op_debug.py:226
+#: sophie_bot/modules/op/handlers/op_debug.py:231
 msgid "No additional notes provided."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:220
+#: sophie_bot/modules/op/handlers/op_debug.py:230
 msgid "Operator Notes"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:256
+#: sophie_bot/modules/op/handlers/op_debug.py:266
 msgid "Active error signatures"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:259
+#: sophie_bot/modules/op/handlers/op_debug.py:269
 msgid "Sentry organization"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:262
+#: sophie_bot/modules/op/handlers/op_debug.py:272
 msgid "No active error signatures found."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:272
+#: sophie_bot/modules/op/handlers/op_debug.py:282
 msgid "Error Backoff"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:287
+#: sophie_bot/modules/op/handlers/op_debug.py:297
 msgid "default"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:292
+#: sophie_bot/modules/op/handlers/op_debug.py:302
 #, python-brace-format
 msgid "{count} flag(s) differ from defaults (marked with ✦)"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:294
+#: sophie_bot/modules/op/handlers/op_debug.py:304
 msgid "Feature Flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:316
+#: sophie_bot/modules/op/handlers/op_debug.py:326
 msgid "Ping"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:317
+#: sophie_bot/modules/op/handlers/op_debug.py:327
 msgid "Database keys"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:318
+#: sophie_bot/modules/op/handlers/op_debug.py:328
 msgid "Sophie keys"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:319
+#: sophie_bot/modules/op/handlers/op_debug.py:329
 msgid "No sophie:* keys found."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:320
+#: sophie_bot/modules/op/handlers/op_debug.py:330
 msgid "Redis Health"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:342
+#: sophie_bot/modules/op/handlers/op_debug.py:352
 msgid "Current time (UTC)"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:343
+#: sophie_bot/modules/op/handlers/op_debug.py:353
 msgid "Unix time"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:344
+#: sophie_bot/modules/op/handlers/op_debug.py:354
 msgid "Version"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:345
+#: sophie_bot/modules/op/handlers/op_debug.py:355
 msgid "Commit"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:346
+#: sophie_bot/modules/op/handlers/op_debug.py:356
 msgid "Branch"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:347
+#: sophie_bot/modules/op/handlers/op_debug.py:357
 msgid "Instance"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:348
+#: sophie_bot/modules/op/handlers/op_debug.py:358
 msgid "Environment"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:349
+#: sophie_bot/modules/op/handlers/op_debug.py:359
 msgid "Debug mode"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:350
+#: sophie_bot/modules/op/handlers/op_debug.py:360
 msgid "SOPHIE_MODE"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:351
+#: sophie_bot/modules/op/handlers/op_debug.py:361
 msgid "System Context"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:375
+#: sophie_bot/modules/op/handlers/op_debug.py:385
 msgid "Chat type"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:376
+#: sophie_bot/modules/op/handlers/op_debug.py:386
 msgid "Chat title"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:377
+#: sophie_bot/modules/op/handlers/op_debug.py:387
 msgid "Invoked by"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:378
+#: sophie_bot/modules/op/handlers/op_debug.py:388
 msgid "Current Chat"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:386
+#: sophie_bot/modules/op/handlers/op_debug.py:447
+msgid "🐛 Bug Report"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:447
+msgid "✨ Feature Request"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:452
+msgid "Type"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:453
+msgid "Title"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:454
+msgid "Severity"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:459
+msgid "AI Summary"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:469
+msgid "AI Analysis"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:525
 msgid "Collect diagnostic context for debugging bot issues."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/op_debug.py:591
+msgid "Collect diagnostic context with AI summarization (requires feature flag)."
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/stats.py:96
@@ -4661,15 +4693,15 @@ msgstr ""
 msgid "Unpins message"
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:22
+#: sophie_bot/modules/privacy/__init__.py:21
 msgid "Data protection"
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:25
+#: sophie_bot/modules/privacy/__init__.py:24
 msgid "Manages user privacy and data protection settings."
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:26
+#: sophie_bot/modules/privacy/__init__.py:25
 msgid "Allows users to export their data and control privacy preferences."
 msgstr ""
 

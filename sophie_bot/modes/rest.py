@@ -3,42 +3,43 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 import uvicorn
-from aiogram import Dispatcher
 from fastapi import FastAPI
 
 from sophie_bot.config import CONFIG
-from sophie_bot.services.rest import app, init_api_routers
-from sophie_bot.startup import init_database, init_modules_rest
+from sophie_bot.runtime import build_rest_runtime
+from sophie_bot.services.rest import init_api_routers
+from sophie_bot.startup import initialize_rest_mode
 from sophie_bot.utils.logger import log
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    log.info("Starting up Sophie API...")
+def create_rest_app() -> FastAPI:
+    runtime = build_rest_runtime()
+    app = runtime.app
 
-    dp = Dispatcher()
-    await init_database()
-    await init_modules_rest(dp)
+    @asynccontextmanager
+    async def lifespan(active_app: FastAPI):
+        log.info("Starting up Sophie API...")
 
-    init_api_routers(app)
+        await initialize_rest_mode(runtime)
+        init_api_routers(active_app, runtime.loaded_modules.api_routers)
 
-    yield
-    log.info("Shutting down Sophie API...")
+        yield
+        log.info("Shutting down Sophie API...")
 
-
-app.router.lifespan_context = lifespan
+    app.router.lifespan_context = lifespan
+    return app
 
 
 def start_rest_mode() -> None:
     if CONFIG.dev_reload:
         log.info("Starting REST API with hot-reload enabled...")
-        # For reload to work, we must pass app as import string
         uvicorn.run(
-            "sophie_bot.modes.rest:app",
+            "sophie_bot.modes.rest:create_rest_app",
             host=CONFIG.api_listen,
             port=CONFIG.api_port,
+            factory=True,
             reload=True,
             reload_dirs=["sophie_bot"],
         )
     else:
-        uvicorn.run(app, host=CONFIG.api_listen, port=CONFIG.api_port)
+        uvicorn.run(create_rest_app(), host=CONFIG.api_listen, port=CONFIG.api_port)

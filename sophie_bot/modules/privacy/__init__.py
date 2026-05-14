@@ -3,7 +3,6 @@ from types import ModuleType
 from aiogram import Router
 from stfu_tg import Doc
 
-from sophie_bot.modules import LOADED_MODULES
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -36,7 +35,7 @@ async def __pre_setup__():
 
 
 async def __post_setup__(modules: dict[str, ModuleType]):
-    extra_modules = LOADED_MODULES.values() if isinstance(LOADED_MODULES, dict) else LOADED_MODULES
-    for module in (*modules.values(), *extra_modules):
+    EXPORTABLE_MODULES.clear()
+    for module in modules.values():
         if hasattr(module, "__export__"):
             EXPORTABLE_MODULES.append(module)

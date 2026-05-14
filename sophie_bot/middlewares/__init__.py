@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from aiogram import Dispatcher
 from aiogram.utils.i18n import ConstI18nMiddleware
 from ass_tg.middleware import ArgsMiddleware
 
@@ -10,7 +13,7 @@ from sophie_bot.middlewares.logic import OrMiddleware
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 from sophie_bot.middlewares.admincache import AdmincacheMiddleware
-from sophie_bot.services.bot import dp
+from sophie_bot.services.bot import get_bot_runtime
 from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.logger import log
 
@@ -28,41 +31,43 @@ def set_metrics_middleware(middleware) -> None:
     log.info("Metrics middleware set")
 
 
-def enable_middlewares():
+def enable_middlewares(dispatcher: Dispatcher | None = None) -> None:
+    active_dispatcher = dispatcher or get_bot_runtime().dispatcher
+
     if CONFIG.debug_mode in ("normal", "high"):
         from .debug import EventSeparatorMiddleware
 
-        dp.update.outer_middleware(EventSeparatorMiddleware())
+        active_dispatcher.update.outer_middleware(EventSeparatorMiddleware())
 
     if CONFIG.debug_mode == "high":
         from .debug import UpdateDebugMiddleware
 
-        dp.update.middleware(UpdateDebugMiddleware())
+        active_dispatcher.update.middleware(UpdateDebugMiddleware())
 
-    dp.update.middleware(localization_middleware)
+    active_dispatcher.update.middleware(localization_middleware)
 
     # Register metrics middleware if enabled
     if CONFIG.metrics_enable and _metrics_middleware:
-        dp.update.middleware(_metrics_middleware)
+        active_dispatcher.update.middleware(_metrics_middleware)
         log.info("Metrics middleware registered")
 
     if CONFIG.proxy_enable:
         log.info("Enabled Proxy!")
-        dp.update.middleware(BetaMiddleware())
+        active_dispatcher.update.middleware(BetaMiddleware())
 
-    dp.message.middleware(ArgsMiddleware(i18n=i18n))
+    active_dispatcher.message.middleware(ArgsMiddleware(i18n=i18n))
 
-    dp.update.outer_middleware(SaveChatsMiddleware())
-    dp.update.middleware(AdmincacheMiddleware())
+    active_dispatcher.update.outer_middleware(SaveChatsMiddleware())
+    active_dispatcher.update.middleware(AdmincacheMiddleware())
 
-    dp.update.middleware(ConnectionsMiddleware())
-    dp.message.middleware(DisablingMiddleware())
+    active_dispatcher.update.middleware(ConnectionsMiddleware())
+    active_dispatcher.message.middleware(DisablingMiddleware())
 
     if CONFIG.debug_mode == "high":
         from .debug import DataDebugMiddleware, HandlerDebugMiddleware
 
-        dp.update.middleware(DataDebugMiddleware())
-        dp.update.middleware(HandlerDebugMiddleware())
+        active_dispatcher.update.middleware(DataDebugMiddleware())
+        active_dispatcher.update.middleware(HandlerDebugMiddleware())
 
     if CONFIG.memory_debug:
-        dp.update.middleware(TracemallocMiddleware())
+        active_dispatcher.update.middleware(TracemallocMiddleware())

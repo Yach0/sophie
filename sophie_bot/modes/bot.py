@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ssl
 from typing import Optional
 
@@ -12,25 +14,44 @@ from aiohttp.web_app import Application
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares import enable_middlewares, set_metrics_middleware
-from sophie_bot.services.bot import bot, dp
-from sophie_bot.startup import ensure_bot_in_db, init_database, init_modules_bot
+from sophie_bot.runtime import BotModeRuntime, build_bot_runtime
+from sophie_bot.startup import initialize_bot_mode
 from sophie_bot.utils.logger import log
 
 
-@dp.startup()
-async def bot_start():
-    await init_database()
-    await init_modules_bot(dp)
-    await ensure_bot_in_db()
+ALLOWED_UPDATES = [
+    "message",
+    "edited_message",
+    # 'channel_post',
+    # 'edited_channel_post',
+    "inline_query",
+    # 'chosen_inline_result',
+    "callback_query",
+    # 'shipping_query',
+    # 'pre_chlegacy_moduleseckout_query',
+    # 'poll',
+    # 'poll_answer',
+    "my_chat_member",
+    "chat_member",
+    "chat_join_request",
+]
 
-    # Initialize metrics system if enabled
-    if CONFIG.metrics_enable:
-        await _init_metrics()
 
-    enable_middlewares()
+def _configure_bot_startup(runtime: BotModeRuntime) -> None:
+    dispatcher = runtime.bot_runtime.dispatcher
+
+    @dispatcher.startup()
+    async def bot_start() -> None:
+        await initialize_bot_mode(runtime)
+
+        # Initialize metrics system if enabled
+        if CONFIG.metrics_enable:
+            await _init_metrics()
+
+        enable_middlewares(dispatcher)
 
 
-async def _init_metrics():
+async def _init_metrics() -> None:
     """Initialize the metrics system"""
     try:
         from sophie_bot.metrics import MetricsMiddleware, start_background_tasks
@@ -56,30 +77,20 @@ def start_bot_mode() -> None:
         run_with_reload("bot")
         return
 
+    runtime = build_bot_runtime()
+    _configure_bot_startup(runtime)
+    bot = runtime.bot_runtime.bot
+    dispatcher = runtime.bot_runtime.dispatcher
+
     if not CONFIG.webhooks_enable:
-        dp.run_polling(
+        dispatcher.run_polling(
             bot,
-            allowed_updates=[
-                "message",
-                "edited_message",
-                # 'channel_post',
-                # 'edited_channel_post',
-                "inline_query",
-                # 'chosen_inline_result',
-                "callback_query",
-                # 'shipping_query',
-                # 'pre_chlegacy_moduleseckout_query',
-                # 'poll',
-                # 'poll_answer',
-                "my_chat_member",
-                "chat_member",
-                "chat_join_request",
-            ],
+            allowed_updates=ALLOWED_UPDATES,
         )
     else:
         app = Application()
         SimpleRequestHandler(
-            dispatcher=dp,
+            dispatcher=dispatcher,
             bot=bot,
             handle_in_background=CONFIG.webhooks_handle_in_background,
             secret_token=CONFIG.webhooks_secret_token,
@@ -89,7 +100,7 @@ def start_bot_mode() -> None:
             log.info("Filtering IP addresses", ips=CONFIG.webhooks_allowed_networks)
             app.middlewares.append(ip_filter_middleware(IPFilter(CONFIG.webhooks_allowed_networks)))  # type: ignore
 
-        setup_application(app, dp, bot=bot)
+        setup_application(app, dispatcher, bot=bot)
 
         ssl_context: Optional[ssl.SSLContext]
         if CONFIG.webhooks_https_certificate:
