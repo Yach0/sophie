@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from aiogram import Router
 
 from sophie_bot.modules.antiflood.action_config import (
@@ -16,10 +18,11 @@ from sophie_bot.modules.antiflood.handlers import (
     EnableAntifloodHandler,
 )
 from sophie_bot.modules.antiflood.middlewares.enforcer import AntifloodEnforcerMiddleware
+from sophie_bot.utils.handlers import SophieBaseHandler
 
 router = Router(name="antiflood")
 
-handlers = (
+handlers: tuple[type[SophieBaseHandler[Any]], ...] = (
     AntifloodInfoHandler,
     EnableAntifloodHandler,
     AntifloodSetCountHandler,

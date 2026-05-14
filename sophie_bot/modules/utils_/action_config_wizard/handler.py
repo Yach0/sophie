@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, cast
 
 from aiogram import F
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -20,7 +20,7 @@ from stfu_tg import KeyValue, Section, Template
 
 from sophie_bot.modules.filters.types.modern_action_abc import ActionSetupTryAgainException
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
+from sophie_bot.utils.handlers import SophieBaseHandler, SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
 from .callbacks import ACWCoreCallback, ACWSettingCallback
@@ -813,7 +813,14 @@ class _ACWSetupHandler(SophieMessageHandler):
 
 def create_action_config_system(
     cfg: ActionWizardConfig,
-) -> tuple[type, type, type, type, type, type]:
+) -> tuple[
+    type[SophieBaseHandler[Any]],
+    type[SophieBaseHandler[Any]],
+    type[SophieBaseHandler[Any]],
+    type[SophieBaseHandler[Any]],
+    type[SophieBaseHandler[Any]],
+    type[SophieBaseHandler[Any]],
+]:
     """Create a complete set of handler classes from a single config.
 
     Returns (WizardHandler, CallbackHandler, SetupHandler, DoneHandler, CancelHandler, SettingsHandler).
@@ -870,7 +877,14 @@ def create_action_config_system(
     done_cls = type("ACWDone", (_ACWNoOpHandler,), {})
     cancel_cls = type("ACWCancel", (_ACWNoOpHandler,), {})
 
-    return wizard_cls, callback_cls, setup_cls, done_cls, cancel_cls, settings_cls
+    return (
+        cast(type[SophieBaseHandler[Any]], wizard_cls),
+        cast(type[SophieBaseHandler[Any]], callback_cls),
+        cast(type[SophieBaseHandler[Any]], setup_cls),
+        cast(type[SophieBaseHandler[Any]], done_cls),
+        cast(type[SophieBaseHandler[Any]], cancel_cls),
+        cast(type[SophieBaseHandler[Any]], settings_cls),
+    )
 
 
 class _ACWNoOpHandler(SophieCallbackQueryHandler):

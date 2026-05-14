@@ -199,11 +199,7 @@ async def load_modules(
 
     # Pre setup
     await gather(
-        *(
-            func()
-            for module in active_registry.modules.values()
-            if (func := get_module_manifest(module).pre_setup)
-        )
+        *(func() for module in active_registry.modules.values() if (func := get_module_manifest(module).pre_setup))
     )
 
     # Post setup

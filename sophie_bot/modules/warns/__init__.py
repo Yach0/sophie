@@ -1,5 +1,6 @@
 from aiogram import Router
 from stfu_tg import Doc
+from typing import Any
 
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.warns.action_config import (
@@ -30,6 +31,7 @@ from sophie_bot.modules.warns.handlers import (
 )
 from sophie_bot.modules.warns.handlers.warn import WarnHandler
 from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
+from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -49,7 +51,7 @@ __module_info__ = LazyProxy(
 )
 
 
-__handlers__ = (
+__handlers__: tuple[type[SophieBaseHandler[Any]], ...] = (
     WarnHandler,
     WarnsGroupHandler,
     WarnsPMHandler,
