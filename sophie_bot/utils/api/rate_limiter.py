@@ -37,17 +37,6 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
             await pipe.incr(key)
             await pipe.expire(key, window)
             results = await pipe.execute()
-
-        current_count = results[0]
-        if current_count > limit:
-            ttl = await aredis.ttl(key)
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests",
-                headers={"Retry-After": str(max(ttl, 1))},
-            )
-    except HTTPException:
-        raise
     except Exception:
         # If Redis is unavailable, allow the request through rather than
         # returning 500 errors. Consistent with global rate limiter fail-open
@@ -57,4 +46,23 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
             path=request.url.path,
             client_ip=client_ip,
             exc_info=True,
+        )
+        return
+
+    current_count = results[0]
+    if current_count > limit:
+        try:
+            ttl = await aredis.ttl(key)
+        except Exception:
+            log.error(
+                "Per-endpoint rate limiter Redis error while reading TTL, allowing request through",
+                path=request.url.path,
+                client_ip=client_ip,
+                exc_info=True,
+            )
+            return
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests",
+            headers={"Retry-After": str(max(ttl, 1))},
         )
