@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from aiogram.types import CallbackQuery, Message
+from aiogram.utils.chat_action import ChatActionSender
 from pydantic import BaseModel
 from stfu_tg import Italic, Section, Template, Title
 from stfu_tg.doc import Doc, Element, PreformattedHTML
@@ -20,6 +21,7 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
     ModernActionSetting,
 )
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
+from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.i18n import gettext as _
@@ -90,7 +92,12 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         messages = await NewAIMessageHistory.chatbot(message, additional_system_prompt=filter_data.prompt)
         provider = await get_chat_default_model(connection.db_model.iid)
 
-        result = await new_ai_generate(messages, provider, user_tracking_id=chat_db.iid)
+        async with ChatActionSender.typing(
+            bot=bot,
+            chat_id=message.chat.id,
+            message_thread_id=message.message_thread_id,
+        ):
+            result = await new_ai_generate(messages, provider, user_tracking_id=chat_db.iid)
 
         if result.usage and result.usage.total_tokens:
             await charge_ai_usage(chat_db.iid, AI_FEATURE_FILTER, provider, result.usage)
