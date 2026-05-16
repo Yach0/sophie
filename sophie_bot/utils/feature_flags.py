@@ -311,7 +311,7 @@ async def _set_override(feature: FeatureType, value: FeatureValue) -> None:
 async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
     parsed_overrides: dict[FeatureType, FeatureValue] = {}
 
-    async for override in FeatureFlagOverride.find({"chat_tid": None}):
+    async for override in FeatureFlagOverride.find({"chat_tid": None}):  # deepsource-ignore[PYL-E1133]
         if override.feature not in FEATURE_FLAGS:
             continue
 
@@ -358,7 +358,9 @@ async def delete_chat_override(feature: FeatureType, chat_tid: int) -> None:
 
 async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
     parsed_overrides: dict[FeatureType, FeatureValue] = {}
-    async for override in FeatureFlagOverride.find(FeatureFlagOverride.chat_tid == chat_tid):
+    async for override in FeatureFlagOverride.find(
+        FeatureFlagOverride.chat_tid == chat_tid
+    ):  # deepsource-ignore[PYL-E1133]
         if override.feature not in FEATURE_FLAGS:
             continue
         typed_feature = cast(FeatureType, override.feature)
