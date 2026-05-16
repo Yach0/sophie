@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -12,6 +12,10 @@ class RuntimeProxy(Generic[T]):
 
     def _target(self) -> T:
         return self._getter()
+
+    def __call__(self, *args: object, **kwargs: object) -> object:
+        target = cast(Callable[..., object], self._target())
+        return target(*args, **kwargs)
 
     def __getattr__(self, item: str):
         return getattr(self._target(), item)
