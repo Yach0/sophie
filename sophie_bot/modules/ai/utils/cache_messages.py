@@ -86,4 +86,5 @@ async def get_cached_messages(
     messages = await get_cached_messages_between(chat_id, _build_cutoff(current_time), current_time)
     if limit is None:
         return messages
-    return messages[-limit:]
+    start_index = max(len(messages) - limit, 0)
+    return messages[start_index:]
