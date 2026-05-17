@@ -20,6 +20,7 @@ from sophie_bot.modules.federations.handlers.base import FederationCommandHandle
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.modules.restrictions.utils.logging import extract_offending_message_text
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import is_enabled
@@ -73,6 +74,7 @@ def _build_ban_log_doc(
     banned_count: int,
     total_chats: int,
     reason: str | None,
+    original_message_text: str | None,
 ) -> Doc:
     """Format the federation log entry document."""
     log_doc = Doc(
@@ -95,6 +97,8 @@ def _build_ban_log_doc(
     )
     if reason:
         log_doc += KeyValue(_("Reason"), reason)
+    if original_message_text:
+        log_doc += KeyValue(_("Original message"), original_message_text)
     return log_doc
 
 
@@ -148,9 +152,11 @@ class FederationBanHandler(FederationCommandHandler):
             await self.event.reply(_("You don't have permission to ban users in this federation."))
             return
 
+        original_message_text = extract_offending_message_text(self.event.reply_to_message)
+
         # Generate AI reason if none provided and replying to a message (federations don't include group rules)
         if not reason and self.event.reply_to_message:
-            replied_text = self.event.reply_to_message.text or self.event.reply_to_message.caption or None
+            replied_text = original_message_text
             ai_reason = await generate_restriction_reason(
                 self.connection.db_model,
                 message_text=replied_text,
@@ -162,7 +168,7 @@ class FederationBanHandler(FederationCommandHandler):
         # Ban user
         user_iid = self.data["user_db"].iid
         try:
-            ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason)
+            ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason, original_message_text)
         except FederationBanValidationError as err:
             await self.event.reply(str(err))
             return
@@ -185,7 +191,7 @@ class FederationBanHandler(FederationCommandHandler):
         lazy_ban_count = 0
         if await is_enabled("new_feds_fban_lazy", chat_tid=self.connection.db_model.tid):
             lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-                federation, user_tid, user_iid, reason
+                federation, user_tid, user_iid, reason, original_message_text
             )
             lazy_ban_count = len(lazy_bans)
 
@@ -207,5 +213,13 @@ class FederationBanHandler(FederationCommandHandler):
 
         # Log the ban
         total_chats = len(federation.chats) if federation.chats else 0
-        log_doc = _build_ban_log_doc(federation, user, self.event.from_user, banned_count, total_chats, reason)
+        log_doc = _build_ban_log_doc(
+            federation,
+            user,
+            self.event.from_user,
+            banned_count,
+            total_chats,
+            reason,
+            original_message_text,
+        )
         await FederationManageService.post_federation_log(federation, log_doc.to_html(), self.event.bot)

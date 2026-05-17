@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from beanie import Document, BeanieObjectId
-from pymongo import ASCENDING, IndexModel
-from ._link_type import Link
+from beanie import BeanieObjectId, Document
 from pydantic import Field
+from pymongo import ASCENDING, IndexModel
 
-from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.federations_enums import TaskStatus
+
+from ._link_type import Link
 
 
 class Federation(Document):
@@ -40,6 +41,7 @@ class FederationBan(Document):
     time: datetime
     by: Link[ChatModel]  # User who performed the ban
     reason: Optional[str] = None
+    original_message_text: Optional[str] = None
     origin_fed: Optional[str] = None  # For subscribed federation bans
     fimport_id: Optional[BeanieObjectId] = None
 

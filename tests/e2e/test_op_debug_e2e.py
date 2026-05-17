@@ -12,6 +12,10 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
 
 
+def _join_response_texts(requests: list) -> str:
+    return "\n".join(request.text or "" for request in requests)
+
+
 @pytest.mark.asyncio
 async def test_op_debug_responds_to_operator(test_client: TestClient) -> None:
     group_chat = ChatFactory.create_group(chat_id=-1002950000010, title="Op Debug Group")
@@ -75,7 +79,7 @@ async def test_op_debug_includes_chat_history(test_client: TestClient) -> None:
         )
 
     assert requests, "Bot should respond to /op_debug"
-    response_text = requests[-1].text or ""
+    response_text = _join_response_texts(requests)
     assert "Chat History" in response_text
     assert "hello" in response_text
     assert "hi there" in response_text
@@ -121,5 +125,5 @@ async def test_op_debug_shows_empty_chat_history_when_no_cache(test_client: Test
         )
 
     assert requests, "Bot should respond to /op_debug"
-    response_text = requests[-1].text or ""
+    response_text = _join_response_texts(requests)
     assert "No cached messages found" in response_text

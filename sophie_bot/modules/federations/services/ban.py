@@ -25,14 +25,19 @@ class FederationBanService:
 
     @staticmethod
     async def ban_user(
-        federation: Federation, user_tid: int, by_user_iid: PydanticObjectId, reason: Optional[str] = None
+        federation: Federation,
+        user_tid: int,
+        by_user_iid: PydanticObjectId,
+        reason: Optional[str] = None,
+        original_message_text: str | None = None,
     ) -> FederationBan:
         existing_ban = await FederationBan.find_one(
             FederationBan.fed_id == federation.fed_id, FederationBan.user_id == user_tid
         )
         if existing_ban:
-            if existing_ban.reason != reason:
+            if existing_ban.reason != reason or existing_ban.original_message_text != original_message_text:
                 existing_ban.reason = reason
+                existing_ban.original_message_text = original_message_text
                 await existing_ban.save()
             return existing_ban
 
@@ -47,6 +52,7 @@ class FederationBanService:
             time=datetime.now(timezone.utc),
             by=by_user_iid,
             reason=reason,
+            original_message_text=original_message_text,
         )
         await ban.insert()
         await FederationCacheService.incr_ban_count(federation.fed_id, 1)
@@ -61,6 +67,7 @@ class FederationBanService:
         user_tid: int,
         by_user_iid: PydanticObjectId,
         reason: Optional[str] = None,
+        original_message_text: str | None = None,
     ) -> list[tuple[Federation, FederationBan]]:
         """Ban a user in federations that subscribe to the origin federation.
 
@@ -113,6 +120,7 @@ class FederationBanService:
                     time=datetime.now(timezone.utc),
                     by=by_user_iid,
                     reason=reason,
+                    original_message_text=original_message_text,
                     origin_fed=origin_federation.fed_id,
                 )
                 await ban.insert()

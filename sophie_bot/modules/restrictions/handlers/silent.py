@@ -21,6 +21,7 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user, kick_user, mute_user
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
@@ -109,7 +110,10 @@ class SilentKickUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_KICKED,
-            {"target_user_id": user.chat_id, "reason": reason},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(
@@ -177,7 +181,10 @@ class SilentBanUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_BANNED,
-            {"target_user_id": user.chat_id, "reason": reason},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(
@@ -248,7 +255,10 @@ class SilentTempBanUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_BANNED,
-            {"target_user_id": user.chat_id, "reason": reason, "duration": until_date.total_seconds()},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason, "duration": until_date.total_seconds()},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(
@@ -317,7 +327,10 @@ class SilentMuteUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_MUTED,
-            {"target_user_id": user.chat_id, "reason": reason},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(
@@ -388,7 +401,10 @@ class SilentTempMuteUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_MUTED,
-            {"target_user_id": user.chat_id, "reason": reason, "duration": until_date.total_seconds()},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason, "duration": until_date.total_seconds()},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(

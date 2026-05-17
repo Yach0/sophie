@@ -10,6 +10,7 @@ from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils import is_user_admin, kick_user
+from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -56,11 +57,14 @@ class KickModernAction(ModernActionABC[None]):
             return
 
         if "filter_id" in data:
-            details: dict[str, str | int] = {
-                "target_user_id": message.from_user.id,
-                "filter_id": data["filter_id"],
-                "action": "kick_user",
-            }
+            details = add_offending_message_text(
+                {
+                    "target_user_id": message.from_user.id,
+                    "filter_id": data["filter_id"],
+                    "action": "kick_user",
+                },
+                message,
+            )
 
             if reason:
                 details["reason"] = reason

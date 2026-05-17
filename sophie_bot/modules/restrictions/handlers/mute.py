@@ -18,12 +18,13 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.restrictions.utils.restrictions import mute_user
-from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -86,7 +87,10 @@ class MuteUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_MUTED,
-            {"target_user_id": user.chat_id, "reason": reason},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(
@@ -161,7 +165,10 @@ class TempMuteUserHandler(SophieMessageHandler):
             connection.tid,
             self.event.from_user.id,
             LogEvent.USER_MUTED,
-            {"target_user_id": user.chat_id, "reason": reason, "duration": until_date.total_seconds()},
+            add_offending_message_text(
+                {"target_user_id": user.chat_id, "reason": reason, "duration": until_date.total_seconds()},
+                self.event.reply_to_message,
+            ),
         )
 
         doc = Section(
