@@ -51,6 +51,84 @@ _DEFAULT_WINDOW_SECONDS = 600
 _DEFAULT_MAX_ANSWERS = 2
 _DEFAULT_MAX_REACTIONS = 4
 _DEFAULT_MIN_MESSAGES = 15
+_TELEGRAM_REACTION_EMOJIS: frozenset[str] = frozenset(
+    {
+        "❤",
+        "👍",
+        "👎",
+        "🔥",
+        "🥰",
+        "👏",
+        "😁",
+        "🤔",
+        "🤯",
+        "😱",
+        "🤬",
+        "😢",
+        "🎉",
+        "🤩",
+        "🤮",
+        "💩",
+        "🙏",
+        "👌",
+        "🕊",
+        "🤡",
+        "🥱",
+        "🥴",
+        "😍",
+        "🐳",
+        "❤‍🔥",
+        "🌚",
+        "🌭",
+        "💯",
+        "🤣",
+        "⚡",
+        "🍌",
+        "🏆",
+        "💔",
+        "🤨",
+        "😐",
+        "🍓",
+        "🍾",
+        "💋",
+        "🖕",
+        "😈",
+        "😴",
+        "😭",
+        "🤓",
+        "👻",
+        "👨‍💻",
+        "👀",
+        "🎃",
+        "🙈",
+        "😇",
+        "😨",
+        "🤝",
+        "✍",
+        "🤗",
+        "🫡",
+        "🎅",
+        "🎄",
+        "☃",
+        "💅",
+        "🤪",
+        "🗿",
+        "🆒",
+        "💘",
+        "🙉",
+        "🦄",
+        "😘",
+        "💊",
+        "🙊",
+        "😎",
+        "👾",
+        "🤷‍♂",
+        "🤷",
+        "🤷‍♀",
+        "😡",
+    }
+)
+_FALLBACK_REACTION_EMOJI = "👍"
 
 
 class ProactiveAction(BaseModel):
@@ -169,25 +247,30 @@ def _build_decision_prompt(messages: tuple[MessageType, ...], settings: Proactiv
     rendered_messages = _render_messages_for_prompt(messages)
     return "\n".join(
         (
-            "You are Sophie AI deciding how to naturally participate in a Telegram group chat.",
-            "Be socially present: Sophie is allowed to join the chat when she can be useful, playful, supportive, curious, or warmly funny.",
-            "Do not wait for a direct mention. Look for openings where a short reply or emoji reaction would feel like a normal chat participant joining in.",
-            "Allowed actions are: none, react, answer.",
-            f"You may answer at most {settings.max_answers} messages.",
-            f"You may react to at most {settings.max_reactions} messages.",
-            "Use answer for direct/implicit questions, interesting facts to add, advice, jokes/setups, confusion you can clarify, or moments where Sophie can add personality.",
-            "Use react generously for low-stakes moments: jokes, agreement, surprise, celebration, sadness, chaos, cute/funny media captions, or strong opinions.",
-            "Prefer at least one react action when there is any emotional or humorous signal in the messages.",
-            "Prefer at least one answer when someone asks something, wonders about something, shares a problem, or creates a clear conversational opening.",
-            "Only choose none when the batch is purely transactional, spammy, moderation-related, or Sophie would obviously interrupt.",
-            "For react actions, use exactly one common emoji in the emoji field.",
-            "Never answer commands, messages already handled by AI, messages containing /ai, or replies to Sophie AI.",
-            "Pick message_id values only from the provided messages.",
-            "Keep selected answers likely short and natural; the full chatbot will write the final response later.",
+            "Decide how Sophie should naturally join this Telegram chat: none, react, or answer.",
+            f"Limits: max {settings.max_answers} answers, max {settings.max_reactions} reactions.",
+            "Sophie should have opinions; prefer answer over react for questions, boredom, complaints, debates, taste/opinion statements, or good one-line riffs.",
+            "Use react for lighter emotional/funny moments. Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉.",
+            "Only choose none for spam, pure transactions, moderation chatter, or obvious interruptions.",
+            "Pick only provided message_id values.",
             "Recent messages:",
             rendered_messages,
         )
     )
+
+
+def _normalize_reaction_emoji(emoji: str | None) -> str | None:
+    if not emoji:
+        return None
+    stripped_emoji = emoji.strip()
+    if stripped_emoji in _TELEGRAM_REACTION_EMOJIS:
+        return stripped_emoji
+    _log_proactive_info(
+        "Proactive AI reaction emoji normalized",
+        requested_emoji=stripped_emoji,
+        fallback_emoji=_FALLBACK_REACTION_EMOJI,
+    )
+    return _FALLBACK_REACTION_EMOJI
 
 
 def _build_decision_history(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> NewAIMessageHistory:
@@ -197,8 +280,8 @@ def _build_decision_history(messages: tuple[MessageType, ...], settings: Proacti
             parts=[
                 SystemPromptPart(
                     content=(
-                        "Return structured JSON only. Sophie should be a friendly chat participant, not a silent observer. "
-                        "Choose useful or fun reactions/answers when there is a natural opening, while avoiding spam."
+                        "Return structured JSON only. Sophie should be a friendly chat participant with opinions, not a silent observer. "
+                        "Choose useful, opinionated, or playful answers when there is a natural opening; use reactions for lighter moments."
                     )
                 )
             ]
@@ -331,7 +414,8 @@ async def _generate_decision(
 
 
 async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: str | None) -> None:
-    if not emoji:
+    reaction_emoji = _normalize_reaction_emoji(emoji)
+    if not reaction_emoji:
         _log_proactive_info(
             "Proactive AI reaction skipped without emoji", chat_id=chat_tid, message_id=target_message.message_id
         )
@@ -340,19 +424,19 @@ async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: s
         "Proactive AI reaction send started",
         chat_id=chat_tid,
         message_id=target_message.message_id,
-        emoji=emoji,
+        emoji=reaction_emoji,
     )
     await bot.set_message_reaction(
         chat_id=chat_tid,
         message_id=target_message.message_id,
-        reaction=[ReactionTypeEmoji(emoji=emoji)],
+        reaction=[ReactionTypeEmoji(emoji=reaction_emoji)],
     )
     track_ai_proactive_event("reaction_sent", _metric_attributes())
     _log_proactive_info(
         "Proactive AI reaction sent",
         chat_id=chat_tid,
         message_id=target_message.message_id,
-        emoji=emoji,
+        emoji=reaction_emoji,
     )
 
 
