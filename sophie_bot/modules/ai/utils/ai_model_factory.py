@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from pydantic_ai.models import Model
-from pydantic_ai.models.openrouter import OpenRouterModel
-from pydantic_ai.models.openrouter import OpenRouterModelSettings
+from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 
 from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODEL_REGISTRY, AI_MODELS_BY_NAME
 from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS
@@ -58,8 +57,8 @@ class _LazyFixedModel:
         return _get_ai_models()[self.model_name]
 
 
-async def get_filter_handler_model() -> Model:
-    model_name = str(await get_value("ai_filter_handler_model"))
+async def get_filter_handler_model(chat_tid: int | None = None) -> Model:
+    model_name = str(await get_value("ai_filter_handler_model", chat_tid=chat_tid))
     return _get_ai_models()[model_name]
 
 

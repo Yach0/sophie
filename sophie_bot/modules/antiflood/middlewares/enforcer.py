@@ -194,10 +194,6 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         message: Message = event
         log.debug(f"AntifloodEnforcerMiddleware: checking message from {message.from_user}")
 
-        # Check global kill switch
-        if not await is_enabled("antiflood"):
-            return await handler(event, data)
-
         # Check if message should be tracked
         if not self._is_message_valid(message):
             return await handler(event, data)
@@ -208,6 +204,9 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             chat_db = await ChatModel.get_by_tid(message.chat.id)
             if not chat_db:
                 return await handler(event, data)
+
+        if not await is_enabled("antiflood", chat_tid=chat_db.tid):
+            return await handler(event, data)
 
         # Get antiflood settings for this chat
         settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_db.iid)

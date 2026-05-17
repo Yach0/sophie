@@ -13,8 +13,8 @@ from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.greetings.default_welcome import (
-    get_default_welcome_message,
     get_default_security_message,
+    get_default_welcome_message,
 )
 from sophie_bot.modules.greetings.utils.send_welcome import send_welcome
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -172,7 +172,7 @@ class NewUserMiddleware(BaseMiddleware):
             sent_message: Optional[Message] = None
 
             chat_rules = await RulesModel.get_rules(chat_db.iid)
-            welcomecaptcha_enabled = await is_enabled("welcomecaptcha")
+            welcomecaptcha_enabled = await is_enabled("welcomecaptcha", chat_tid=chat_db.tid)
 
             # The origin user of the message is admin could indite:
             # 1. Chat owner joined the chat back

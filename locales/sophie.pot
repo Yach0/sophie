@@ -822,7 +822,7 @@ msgstr ""
 msgid "Chat history of {today}"
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:186
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:188
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr ""
 
@@ -3064,11 +3064,11 @@ msgstr ""
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:148
+#: sophie_bot/modules/filters/utils_/match_legacy.py:149
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:155
+#: sophie_bot/modules/filters/utils_/match_legacy.py:156
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3076,7 +3076,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_legacy.py:157
+#: sophie_bot/modules/filters/utils_/match_legacy.py:158
 msgid "(no text content)"
 msgstr ""
 
@@ -4674,11 +4674,11 @@ msgstr ""
 msgid "AI Analysis"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:525
+#: sophie_bot/modules/op/handlers/op_debug.py:526
 msgid "Collect diagnostic context for debugging bot issues."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:591
+#: sophie_bot/modules/op/handlers/op_debug.py:592
 msgid "Collect diagnostic context with AI summarization (requires feature flag)."
 msgstr ""
 

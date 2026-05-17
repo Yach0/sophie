@@ -28,7 +28,7 @@ from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.op.json_schemas.op_debug_ai_summary import OpDebugAISummary
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _DEFAULT_STATES, is_enabled, list_all
+from sophie_bot.utils.feature_flags import _DEFAULT_STATES, FEATURE_FLAGS, is_enabled, list_all
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.versions import SOPHIE_BRANCH, SOPHIE_COMMIT, SOPHIE_VERSION
@@ -478,6 +478,7 @@ async def _generate_ai_summary(
     backoff_data: dict[str, Any],
     system_data: dict[str, Any],
     chat_iid,
+    chat_tid: int,
 ) -> OpDebugAISummary | None:
     """Call AI to generate a structured summary of the debug report."""
     history = NewAIMessageHistory()
@@ -488,7 +489,7 @@ async def _generate_ai_summary(
     prompt_text = _build_ai_summary_prompt(notes_data, history_data, backoff_data, system_data)
     history.add_custom(prompt_text, name="OperatorDebug")
 
-    model = await get_chat_summary_model(chat_iid)
+    model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
     result = await new_ai_generate_schema_with_result(
         history,
         OpDebugAISummary,
@@ -564,11 +565,11 @@ class OpDebugHandler(SophieMessageHandler):
         sections.extend(notes_sections)
 
         # AI summarization (when feature flag is enabled)
-        if await is_enabled("op_debug_ai_summarization"):
+        if await is_enabled("op_debug_ai_summarization", chat_tid=self.event.chat.id):
             chat_model = await ChatModel.get_by_tid(self.event.chat.id)
             if chat_model is not None:
                 ai_summary = await _generate_ai_summary(
-                    notes_data, history_data, backoff_data, system_data, chat_model.iid
+                    notes_data, history_data, backoff_data, system_data, chat_model.iid, self.event.chat.id
                 )
                 if ai_summary is not None:
                     ai_sections = _build_ai_summary_sections(ai_summary)
@@ -637,7 +638,9 @@ class OpDebugAISummaryHandler(SophieMessageHandler):
         # AI summarization (guaranteed — handler only fires when flag is enabled)
         chat_model = await ChatModel.get_by_tid(self.event.chat.id)
         if chat_model is not None:
-            ai_summary = await _generate_ai_summary(notes_data, history_data, backoff_data, system_data, chat_model.iid)
+            ai_summary = await _generate_ai_summary(
+                notes_data, history_data, backoff_data, system_data, chat_model.iid, self.event.chat.id
+            )
             if ai_summary is not None:
                 ai_sections = _build_ai_summary_sections(ai_summary)
                 sections.extend(ai_sections)

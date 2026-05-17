@@ -38,8 +38,7 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
     Returns:
         True if AI reason generation should be used
     """
-    # Check feature flag
-    if not await is_enabled("ai_moderation_reasons"):
+    if not await is_enabled("ai_moderation_reasons", chat_tid=chat_db.tid):
         return False
 
     # Check if AI is enabled for this chat

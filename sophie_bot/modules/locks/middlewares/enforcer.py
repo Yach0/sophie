@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 from typing import Any, Awaitable, Callable, Dict
+
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatType
 from aiogram.types import Message, TelegramObject
+
 from sophie_bot.modules.locks.utils.cache import get_cached_locks
 from sophie_bot.modules.locks.utils.detect_lock import check_locks
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -25,12 +28,12 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         if not message.from_user:
             return await handler(event, data)
-        if not await is_enabled("locks"):
-            return await handler(event, data)
-        if await is_user_admin(message.chat.id, message.from_user.id):
-            return await handler(event, data)
         chat_db = data.get("chat_db")
         if not chat_db:
+            return await handler(event, data)
+        if not await is_enabled("locks", chat_tid=message.chat.id):
+            return await handler(event, data)
+        if await is_user_admin(message.chat.id, message.from_user.id):
             return await handler(event, data)
         locked_types = await get_cached_locks(message.chat.id, chat_db.iid)
         if not locked_types:

@@ -85,7 +85,7 @@ def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
     return str(chat_iid)
 
 
-async def _build_system_prompt(chat_iid: PydanticObjectId) -> Doc:
+async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int) -> Doc:
     memory_lines = await AIMemoryModel.get_lines(chat_iid)
     system_prompt = Doc(
         _("You can use Tavily to search for information. Include information sources as links."),
@@ -95,7 +95,7 @@ async def _build_system_prompt(chat_iid: PydanticObjectId) -> Doc:
         ),
         Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
     )
-    if await is_enabled("ai_system_prompt_summaries"):
+    if await is_enabled("ai_system_prompt_summaries", chat_tid=chat_tid):
         summary_lines = await AIChatSummaryModel.get_recent_lines(chat_iid)
         if summary_lines:
             rendered_summaries = [
@@ -119,7 +119,7 @@ async def _build_system_prompt(chat_iid: PydanticObjectId) -> Doc:
 
 async def _prepare_history(message: Message, chat_iid: PydanticObjectId, user_text: str | None) -> NewAIMessageHistory:
     history = NewAIMessageHistory()
-    system_prompt = await _build_system_prompt(chat_iid)
+    system_prompt = await _build_system_prompt(chat_iid, message.chat.id)
     await history.initialize_chat_history(
         message.chat.id,
         additional_system_prompt=system_prompt.to_md(),
@@ -254,8 +254,7 @@ async def ai_chatbot_reply(
     Sends a reply from AI based on user input and message history.
     """
 
-    # Global kill-switch: AI Chatbot
-    if not await is_enabled("ai_chatbot"):
+    if not await is_enabled("ai_chatbot", chat_tid=message.chat.id):
         return
 
     if not connection.db_model:

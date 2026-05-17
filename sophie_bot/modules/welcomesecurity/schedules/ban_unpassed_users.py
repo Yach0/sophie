@@ -45,6 +45,10 @@ class BanUnpassedUsers:
             )
             await ws_user.delete()
             return
+        if not await is_enabled("welcomecaptcha_autokick", chat_tid=group.tid):
+            log.debug("ban_unpassed_users: skipped because auto-kick feature flag is disabled", group=group.tid)
+            return
+
         log.debug("ban_unpassed_users: processing user", user=user.id, group=group.id)
 
         added_at = ws_user.added_at or ws_user.id.generation_time
@@ -86,10 +90,6 @@ class BanUnpassedUsers:
         await ws_user.delete()
 
     async def handle(self):
-        if not await is_enabled("welcomecaptcha_autokick"):
-            log.info("ban_unpassed_users: skipped because auto-kick feature flag is disabled")
-            return
-
         log.debug("ban_unpassed_users: starting")
 
         async for ws_user in WSUserModel.find({"passed": False}):  # deepsource-ignore[PYL-E1133]

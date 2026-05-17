@@ -55,11 +55,9 @@ class AiModeratorMiddleware(BaseMiddleware):
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
         log.debug("AiModeratorMiddleware: checking moderator...")
 
-        # Global kill-switch: AI Moderation
-        if not await is_enabled("ai_moderation"):
-            return await handler(event, data)
-
         if chat_db and chat_db.type != ChatType.private and data.get("ai_enabled") and isinstance(event, Message):
+            if not await is_enabled("ai_moderation", chat_tid=chat_db.tid):
+                return await handler(event, data)
             settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
             if not settings or not settings.enabled:
                 return await handler(event, data)

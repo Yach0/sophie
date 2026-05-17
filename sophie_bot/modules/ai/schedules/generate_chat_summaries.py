@@ -181,13 +181,15 @@ def _track_summary_metrics(
 
 class GenerateChatSummaries:
     @staticmethod
-    async def generate_summary_groups(messages: tuple[MessageType, ...], chat_iid: PydanticObjectId):
+    async def generate_summary_groups(
+        messages: tuple[MessageType, ...], chat_iid: PydanticObjectId, chat_tid: int
+    ) -> AIChatSummaryGroups:
         history = NewAIMessageHistory()
         history.add_system(_("You summarize Telegram group discussions into structured topic lines."))
         history.add_custom(_build_summary_prompt(messages), name="Transcript")
 
-        model = await get_chat_summary_model(chat_iid)
-        service_tier = await get_service_tier("ai_chat_summaries_service_tier")
+        model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
+        service_tier = await get_service_tier("ai_chat_summaries_service_tier", chat_tid=chat_tid)
         result = await new_ai_generate_schema_with_result(
             history,
             AIChatSummaryGroups,
@@ -233,7 +235,7 @@ class GenerateChatSummaries:
             )
             return
 
-        groups = await self.generate_summary_groups(cached_messages, chat.iid)
+        groups = await self.generate_summary_groups(cached_messages, chat.iid, chat.tid)
         messages_by_id = {message.message_id: message for message in cached_messages}
         raw_group_message_ids = {
             message_id
@@ -282,13 +284,12 @@ class GenerateChatSummaries:
         )
 
     async def handle(self) -> None:
-        if not await is_enabled("ai_chat_summaries"):
-            log.debug("generate_chat_summaries: feature flag disabled, skipping run")
-            return
-
         current_time = datetime.now(timezone.utc)
         summary_date = current_time.date()
         async for chat in ForChats():
+            if not await is_enabled("ai_chat_summaries", chat_tid=chat.tid):
+                log.debug("generate_chat_summaries: feature flag disabled, skipping chat", chat=chat.tid)
+                continue
             if not await AIEnabledModel.get_state(chat.iid):
                 log.debug("generate_chat_summaries: AI disabled for chat, skipping", chat=chat.tid)
                 continue

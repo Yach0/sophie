@@ -23,7 +23,6 @@ from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
-
 _REGEX_TIMEOUT_SECONDS = 0.5
 
 
@@ -110,8 +109,10 @@ async def match_ai_handler(
     Returns:
         bool: True if the message matches the filter criteria
     """
+    chat_tid = getattr(getattr(message, "chat", None), "id", None)
+
     # Check if AI filters feature is enabled
-    if not await is_enabled("ai_filters"):
+    if not await is_enabled("ai_filters", chat_tid=chat_tid):
         log.debug("match_ai_handler: ai_filters feature flag is disabled, skipping AI evaluation")
         return False
 
@@ -171,9 +172,9 @@ async def match_ai_handler(
 
         # Run AI evaluation
         kwargs = {}
-        model = await get_filter_handler_model()
+        model = await get_filter_handler_model(chat_tid)
         kwargs["model_settings"] = OpenRouterModelSettings(openrouter_reasoning={"effort": "low"})
-        service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=message.chat.id)
+        service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=chat_tid)
 
         result = await new_ai_generate_schema(
             history, AIFilterResponseSchema, model, user_tracking_id=chat_iid, service_tier=service_tier, **kwargs

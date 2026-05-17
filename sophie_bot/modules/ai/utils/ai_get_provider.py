@@ -33,8 +33,8 @@ async def get_chat_translations_model(chat_id: PydanticObjectId) -> Model:
     return AI_MODELS[default_model_name]
 
 
-async def get_chat_summary_model(chat_id: PydanticObjectId) -> Model:
-    feature_model_name = str(await get_value("ai_summary_model"))
+async def get_chat_summary_model(chat_id: PydanticObjectId, chat_tid: int | None = None) -> Model:
+    feature_model_name = str(await get_value("ai_summary_model", chat_tid=chat_tid))
     default_model_name = _DEFAULT_STATES["ai_summary_model"]
     model_name = feature_model_name
     if feature_model_name == default_model_name:

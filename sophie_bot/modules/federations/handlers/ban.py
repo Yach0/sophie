@@ -183,7 +183,7 @@ class FederationBanHandler(FederationCommandHandler):
 
         # Lazy-ban: Also ban in federations that subscribe to this federation
         lazy_ban_count = 0
-        if await is_enabled("new_feds_fban_lazy"):
+        if await is_enabled("new_feds_fban_lazy", chat_tid=self.connection.db_model.tid):
             lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
                 federation, user_tid, user_iid, reason
             )

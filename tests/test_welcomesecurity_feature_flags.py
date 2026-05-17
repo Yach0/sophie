@@ -109,17 +109,30 @@ async def test_ban_unpassed_users_handle_skips_when_autokick_flag_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     schedule = BanUnpassedUsers()
-    find_users = AsyncMock()
+    user_iid = PydanticObjectId()
+    group_iid = PydanticObjectId()
+    user = SimpleNamespace(tid=123)
+    group = SimpleNamespace(tid=-100123)
+    ws_user = SimpleNamespace(
+        id=PydanticObjectId(),
+        passed=False,
+        user=SimpleNamespace(ref=SimpleNamespace(id=user_iid)),
+        group=SimpleNamespace(ref=SimpleNamespace(id=group_iid)),
+        delete=AsyncMock(),
+    )
+    ban_user = AsyncMock()
 
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.ChatModel.get_by_iid",
+        AsyncMock(side_effect=[user, group]),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.is_enabled",
         AsyncMock(return_value=False),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.WSUserModel.find",
-        find_users,
-    )
+    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.ban_user", ban_user)
 
-    await schedule.handle()
+    await schedule.process_user(ws_user)
 
-    find_users.assert_not_called()
+    ban_user.assert_not_awaited()
+    ws_user.delete.assert_not_awaited()

@@ -8,15 +8,15 @@ from typing import Final
 
 from aiogram.types import BufferedInputFile
 from beanie.odm.operators.find.comparison import In
+from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import FederationBan, FederationExportTask
+from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import FeatureType, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
-from stfu_tg import Doc, KeyValue, Title
-from sophie_bot.db.models.federations_enums import TaskStatus
 
 # Constants
 CSV_EXPORT_FEATURE_FLAG: Final[FeatureType] = "new_feds_fbanlist"
@@ -28,9 +28,6 @@ class ProcessFederationExports:
 
     async def handle(self) -> None:
         """Process all pending export tasks."""
-        if not await is_enabled(CSV_EXPORT_FEATURE_FLAG):
-            return
-
         tasks = await FederationExportTask.find(FederationExportTask.status == TaskStatus.PENDING).to_list()
 
         for task in tasks:
@@ -41,6 +38,10 @@ class ProcessFederationExports:
 
     async def _process_task(self, task: FederationExportTask) -> None:
         """Process a single export task."""
+        chat = await task.chat.fetch()
+        if not await is_enabled(CSV_EXPORT_FEATURE_FLAG, chat_tid=chat.tid):
+            return
+
         await self._update_task_status(task, TaskStatus.PROCESSING)
 
         try:
@@ -50,7 +51,6 @@ class ProcessFederationExports:
 
             filename = f"{task.fed_id}_bans.csv"
             document = BufferedInputFile(csv_bytes, filename=filename)
-            chat = await task.chat.fetch()
             message = await bot.send_document(
                 chat_id=chat.tid,
                 document=document,

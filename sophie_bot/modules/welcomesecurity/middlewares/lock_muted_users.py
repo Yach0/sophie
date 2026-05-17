@@ -26,11 +26,11 @@ class LockMutedUsers(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         if isinstance(event, Message) and event.from_user and event.chat.type == "private":
-            if not await is_enabled("welcomecaptcha"):
-                return await handler(event, data)
-
             chat_db: ChatModel = data["chat_db"]
             user_db: ChatModel = data["user_db"]
+
+            if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid):
+                return await handler(event, data)
 
             log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
 

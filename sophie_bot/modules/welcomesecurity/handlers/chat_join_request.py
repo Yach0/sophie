@@ -1,29 +1,29 @@
-from aiogram.exceptions import TelegramBadRequest
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.modules.greetings.default_welcome import get_default_join_request_message
-from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.telegram_exceptions import (
     CHANNELS_TOO_MUCH,
     CHAT_ADMIN_REQUIRED,
-    USER_CHANNELS_TOO_MUCH,
     HIDE_REQUESTER_MISSING,
+    USER_CHANNELS_TOO_MUCH,
 )
-from sophie_bot.utils.handlers import SophieBaseHandler
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError, initiate_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -102,7 +102,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             # Let admins handle the approval manually
             return
 
-        if not await is_enabled("welcomecaptcha"):
+        if not await is_enabled("welcomecaptcha", chat_tid=chat.tid):
             await _approve_request()
             return
 

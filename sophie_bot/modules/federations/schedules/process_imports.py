@@ -178,9 +178,6 @@ class ProcessFederationImports:
 
     async def handle(self) -> None:
         """Process all pending import tasks."""
-        if not await is_enabled(CSV_IMPORT_FEATURE_FLAG):
-            return
-
         tasks = await FederationImportTask.find(FederationImportTask.status == TaskStatus.PENDING).to_list()
 
         for task in tasks:
@@ -191,6 +188,10 @@ class ProcessFederationImports:
 
     async def _process_task(self, task: FederationImportTask) -> None:
         """Process a single import task."""
+        chat = await task.chat.fetch()
+        if not await is_enabled(CSV_IMPORT_FEATURE_FLAG, chat_tid=chat.tid):
+            return
+
         await self._update_task_status(task, TaskStatus.PROCESSING)
 
         try:
