@@ -2,14 +2,33 @@ from __future__ import annotations
 
 import time
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Literal
 
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
 from sophie_bot.config import CONFIG
-from sophie_bot.services.sentry_metrics import change_gauge_metric, count_metric, distribution_metric
+from sophie_bot.services.sentry_metrics import MetricAttributes, change_gauge_metric, count_metric, distribution_metric
 from sophie_bot.utils.logger import log
+
+ProactiveAIEvent = Literal[
+    "eligible_message",
+    "quota_exhausted",
+    "below_threshold",
+    "lock_busy",
+    "batch_started",
+    "no_candidates",
+    "decision_generated",
+    "decision_skipped",
+    "action_invalid_target",
+    "action_answer_selected",
+    "action_react_selected",
+    "answer_sent",
+    "answer_skipped",
+    "reaction_sent",
+    "reaction_skipped",
+]
+ProactiveAIAction = Literal["none", "answer", "react"]
 
 
 def get_provider_from_model(model: Model) -> str:
@@ -113,6 +132,40 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
             usage.total_tokens,
             attributes={"provider": provider, "model": model_name, "token_type": "total"},
         )
+
+
+def track_ai_proactive_event(event: ProactiveAIEvent, attributes: MetricAttributes | None = None) -> None:
+    """Track proactive AI reply lifecycle events."""
+    if not CONFIG.metrics_enable:
+        return
+
+    count_metric("sophie.ai.proactive.events", attributes={"event": event, **dict(attributes or {})})
+
+
+def track_ai_proactive_batch(message_count: int, action_count: int, attributes: MetricAttributes | None = None) -> None:
+    """Track a proactive AI decision batch size and selected action count."""
+    if not CONFIG.metrics_enable:
+        return
+
+    normalized_attributes = dict(attributes or {})
+    distribution_metric(
+        "sophie.ai.proactive.batch.messages",
+        message_count,
+        attributes=normalized_attributes,
+    )
+    distribution_metric(
+        "sophie.ai.proactive.batch.actions",
+        action_count,
+        attributes=normalized_attributes,
+    )
+
+
+def track_ai_proactive_action(action: ProactiveAIAction, attributes: MetricAttributes | None = None) -> None:
+    """Track proactive AI action decisions."""
+    if not CONFIG.metrics_enable:
+        return
+
+    count_metric("sophie.ai.proactive.actions", attributes={"action": action, **dict(attributes or {})})
 
 
 @asynccontextmanager

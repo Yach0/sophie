@@ -3,6 +3,9 @@ from __future__ import annotations
 from sophie_bot.metrics.ai import (
     instrument_ai_operation,
     track_ai_conversation,
+    track_ai_proactive_action,
+    track_ai_proactive_batch,
+    track_ai_proactive_event,
     track_ai_request,
     track_ai_tool,
     track_ai_usage,
@@ -43,5 +46,8 @@ __all__ = [
     "track_ai_tool",
     "track_ai_usage",
     "track_ai_conversation",
+    "track_ai_proactive_action",
+    "track_ai_proactive_batch",
+    "track_ai_proactive_event",
     "instrument_ai_operation",
 ]

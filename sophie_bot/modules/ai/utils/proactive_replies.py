@@ -4,14 +4,20 @@ from collections.abc import Awaitable
 from datetime import datetime, timedelta, timezone
 from typing import Literal, cast
 
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+import sentry_sdk
 from aiogram.types import Message, ReactionTypeEmoji
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserContent
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
-from sophie_bot.metrics import track_ai_conversation, track_ai_usage
+from sophie_bot.metrics import (
+    track_ai_conversation,
+    track_ai_proactive_action,
+    track_ai_proactive_batch,
+    track_ai_proactive_event,
+    track_ai_usage,
+)
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import (
     CHATBOT_TOOLS,
@@ -31,7 +37,6 @@ from sophie_bot.modules.ai.utils.new_message_history import AIUserMessageFormatt
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value, is_enabled
 from sophie_bot.utils.logger import log
 
@@ -84,12 +89,36 @@ async def _get_settings(chat_tid: int) -> ProactiveReplySettings:
         "ai_proactive_replies_max_reactions", chat_tid, _DEFAULT_MAX_REACTIONS, minimum=0
     )
     min_messages = await _feature_int("ai_proactive_replies_min_messages", chat_tid, _DEFAULT_MIN_MESSAGES)
-    return ProactiveReplySettings(
+    settings = ProactiveReplySettings(
         batch_size=batch_size,
         window_seconds=window_seconds,
         max_answers=max_answers,
         max_reactions=max_reactions,
         min_messages=min(min_messages, batch_size),
+    )
+    _log_proactive_info(
+        "Proactive AI settings resolved",
+        chat_id=chat_tid,
+        batch_size=settings.batch_size,
+        window_seconds=settings.window_seconds,
+        max_answers=settings.max_answers,
+        max_reactions=settings.max_reactions,
+        min_messages=settings.min_messages,
+    )
+    return settings
+
+
+def _metric_attributes() -> dict[str, str]:
+    return {"feature": "ai_proactive_replies"}
+
+
+def _log_proactive_info(message: str, **data: object) -> None:
+    log.info(message, **data)
+    sentry_sdk.add_breadcrumb(
+        category="ai.proactive_replies",
+        message=message,
+        level="info",
+        data=data,
     )
 
 
@@ -140,15 +169,21 @@ def _build_decision_prompt(messages: tuple[MessageType, ...], settings: Proactiv
     rendered_messages = _render_messages_for_prompt(messages)
     return "\n".join(
         (
-            "You are Sophie AI deciding whether to naturally participate in a Telegram group chat.",
-            "Prefer no action. Only act when the context is particularly good for Sophie.",
+            "You are Sophie AI deciding how to naturally participate in a Telegram group chat.",
+            "Be socially present: Sophie is allowed to join the chat when she can be useful, playful, supportive, curious, or warmly funny.",
+            "Do not wait for a direct mention. Look for openings where a short reply or emoji reaction would feel like a normal chat participant joining in.",
             "Allowed actions are: none, react, answer.",
             f"You may answer at most {settings.max_answers} messages.",
             f"You may react to at most {settings.max_reactions} messages.",
+            "Use answer for direct/implicit questions, interesting facts to add, advice, jokes/setups, confusion you can clarify, or moments where Sophie can add personality.",
+            "Use react generously for low-stakes moments: jokes, agreement, surprise, celebration, sadness, chaos, cute/funny media captions, or strong opinions.",
+            "Prefer at least one react action when there is any emotional or humorous signal in the messages.",
+            "Prefer at least one answer when someone asks something, wonders about something, shares a problem, or creates a clear conversational opening.",
+            "Only choose none when the batch is purely transactional, spammy, moderation-related, or Sophie would obviously interrupt.",
             "For react actions, use exactly one common emoji in the emoji field.",
             "Never answer commands, messages already handled by AI, messages containing /ai, or replies to Sophie AI.",
             "Pick message_id values only from the provided messages.",
-            "If nothing is worth Sophie joining, return an empty actions list or only a none action.",
+            "Keep selected answers likely short and natural; the full chatbot will write the final response later.",
             "Recent messages:",
             rendered_messages,
         )
@@ -162,8 +197,8 @@ def _build_decision_history(messages: tuple[MessageType, ...], settings: Proacti
             parts=[
                 SystemPromptPart(
                     content=(
-                        "Return structured JSON only. Be conservative and avoid spam. "
-                        "Sophie should stay silent unless her reaction or answer would feel natural."
+                        "Return structured JSON only. Sophie should be a friendly chat participant, not a silent observer. "
+                        "Choose useful or fun reactions/answers when there is a natural opening, while avoiding spam."
                     )
                 )
             ]
@@ -202,7 +237,16 @@ async def _get_recent_candidates(chat_tid: int, settings: ProactiveReplySettings
         for message in messages
         if message.created_at and message.created_at >= min_created_at and _is_candidate(message)
     )
-    return candidates[-settings.batch_size :]
+    selected_candidates = candidates[-settings.batch_size :]
+    _log_proactive_info(
+        "Proactive AI candidates loaded",
+        chat_id=chat_tid,
+        cached_messages=len(messages),
+        eligible_candidates=len(candidates),
+        selected_candidates=len(selected_candidates),
+        window_seconds=settings.window_seconds,
+    )
+    return selected_candidates
 
 
 async def _track_eligible_message(chat_tid: int, message: Message, settings: ProactiveReplySettings) -> int:
@@ -214,7 +258,15 @@ async def _track_eligible_message(chat_tid: int, message: Message, settings: Pro
         await pipe.expire(key, _PROCESSED_TTL_SECONDS, lt=True)
         await pipe.zcard(key)  # type: ignore[misc]
         results = await pipe.execute()
-    return int(results[-1])
+    tracked_count = int(results[-1])
+    _log_proactive_info(
+        "Proactive AI eligible message tracked",
+        chat_id=chat_tid,
+        message_id=message.message_id,
+        tracked_count=tracked_count,
+        window_seconds=settings.window_seconds,
+    )
+    return tracked_count
 
 
 async def _clear_tracked_messages(chat_tid: int, messages: tuple[MessageType, ...]) -> None:
@@ -222,14 +274,20 @@ async def _clear_tracked_messages(chat_tid: int, messages: tuple[MessageType, ..
         return
     key = _eligible_key(chat_tid)
     await aredis.zrem(key, *(str(message.message_id) for message in messages))
+    _log_proactive_info("Proactive AI tracked messages cleared", chat_id=chat_tid, message_count=len(messages))
 
 
 async def _acquire_lock(chat_tid: int) -> bool:
-    return bool(await cast(Awaitable[bool | None], aredis.set(_lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True)))
+    acquired = bool(
+        await cast(Awaitable[bool | None], aredis.set(_lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True))
+    )
+    _log_proactive_info("Proactive AI lock state resolved", chat_id=chat_tid, acquired=acquired)
+    return acquired
 
 
 async def _release_lock(chat_tid: int) -> None:
     await aredis.delete(_lock_key(chat_tid))
+    _log_proactive_info("Proactive AI lock released", chat_id=chat_tid)
 
 
 async def _generate_decision(
@@ -237,6 +295,13 @@ async def _generate_decision(
 ) -> ProactiveDecision:
     model = await get_proactive_replies_model(chat_tid)
     service_tier = await get_service_tier("ai_proactive_replies_service_tier", chat_tid=chat_tid)
+    _log_proactive_info(
+        "Proactive AI decision request started",
+        chat_id=chat_tid,
+        model=model.model_name,
+        service_tier=service_tier or "none",
+        message_count=len(messages),
+    )
     history = _build_decision_history(messages, settings)
     result = await new_ai_generate_schema_with_result(
         history,
@@ -249,20 +314,46 @@ async def _generate_decision(
     if result.usage:
         track_ai_usage(model, result.usage)
         await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, model, result.usage)
+    limited_actions = _limit_actions(result.output, settings)
+    track_ai_proactive_event("decision_generated", _metric_attributes())
+    track_ai_proactive_batch(len(messages), len(limited_actions), _metric_attributes())
+    if not limited_actions:
+        track_ai_proactive_action("none", _metric_attributes())
+    for action in limited_actions:
+        track_ai_proactive_action(action.action, _metric_attributes())
+    _log_proactive_info(
+        "Proactive AI decision generated",
+        chat_id=chat_tid,
+        action_count=len(limited_actions),
+        raw_action_count=len(result.output.actions),
+    )
     return result.output
 
 
 async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: str | None) -> None:
     if not emoji:
-        return
-    try:
-        await bot.set_message_reaction(
-            chat_id=chat_tid,
-            message_id=target_message.message_id,
-            reaction=[ReactionTypeEmoji(emoji=emoji)],
+        _log_proactive_info(
+            "Proactive AI reaction skipped without emoji", chat_id=chat_tid, message_id=target_message.message_id
         )
-    except (TelegramBadRequest, TelegramForbiddenError) as error:
-        log.debug("Proactive AI reaction skipped", chat_id=chat_tid, message_id=target_message.message_id, error=error)
+        return
+    _log_proactive_info(
+        "Proactive AI reaction send started",
+        chat_id=chat_tid,
+        message_id=target_message.message_id,
+        emoji=emoji,
+    )
+    await bot.set_message_reaction(
+        chat_id=chat_tid,
+        message_id=target_message.message_id,
+        reaction=[ReactionTypeEmoji(emoji=emoji)],
+    )
+    track_ai_proactive_event("reaction_sent", _metric_attributes())
+    _log_proactive_info(
+        "Proactive AI reaction sent",
+        chat_id=chat_tid,
+        message_id=target_message.message_id,
+        emoji=emoji,
+    )
 
 
 async def _build_answer_history(chat_tid: int, chat: ChatModel, target_message: MessageType) -> NewAIMessageHistory:
@@ -286,6 +377,13 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
     )
     model = await get_chat_default_model(chat.iid)
     service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=chat_tid)
+    _log_proactive_info(
+        "Proactive AI answer generation started",
+        chat_id=chat_tid,
+        message_id=target_message.message_id,
+        model=model.model_name,
+        service_tier=service_tier or "none",
+    )
     history = await _build_answer_history(chat_tid, chat, target_message)
     agent_kwargs = {"deps": SophieAIToolContenxt(connection=connection)}
     async with track_ai_conversation():
@@ -304,17 +402,26 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
     header = await _build_chatbot_header(connection, model, result.message_history)
     output_text = _truncate_output(header, str(result.output))
     doc = await _build_reply_doc(header, output_text, model, result, False, chat_tid=chat_tid)
-    try:
-        sent_message = await bot.send_message(
-            chat_id=chat_tid,
-            text=doc.to_html(),
-            disable_web_page_preview=True,
-            reply_to_message_id=target_message.message_id,
-            message_thread_id=target_message.message_thread_id,
-        )
-    except (TelegramBadRequest, TelegramForbiddenError) as error:
-        log.debug("Proactive AI answer skipped", chat_id=chat_tid, message_id=target_message.message_id, error=error)
-        return
+    _log_proactive_info(
+        "Proactive AI answer send started",
+        chat_id=chat_tid,
+        message_id=target_message.message_id,
+        output_length=len(doc.to_html()),
+    )
+    sent_message = await bot.send_message(
+        chat_id=chat_tid,
+        text=doc.to_html(),
+        disable_web_page_preview=True,
+        reply_to_message_id=target_message.message_id,
+        message_thread_id=target_message.message_thread_id,
+    )
+    track_ai_proactive_event("answer_sent", _metric_attributes())
+    _log_proactive_info(
+        "Proactive AI answer sent",
+        chat_id=chat_tid,
+        message_id=target_message.message_id,
+        sent_message_id=sent_message.message_id,
+    )
     await cache_message(
         sent_message.text,
         chat_tid,
@@ -337,13 +444,35 @@ async def _execute_actions(
     settings: ProactiveReplySettings,
 ) -> None:
     messages_by_id = _target_by_message_id(messages)
-    for action in _limit_actions(decision, settings):
+    limited_actions = _limit_actions(decision, settings)
+    _log_proactive_info("Proactive AI executing actions", chat_id=chat_tid, action_count=len(limited_actions))
+    for action in limited_actions:
         if action.message_id is None or action.message_id not in messages_by_id:
+            track_ai_proactive_event("action_invalid_target", _metric_attributes())
+            _log_proactive_info(
+                "Proactive AI action skipped due to invalid target",
+                chat_id=chat_tid,
+                action=action.action,
+                message_id=action.message_id,
+            )
             continue
         target_message = messages_by_id[action.message_id]
         if action.action == "react":
+            track_ai_proactive_event("action_react_selected", _metric_attributes())
+            _log_proactive_info(
+                "Proactive AI reaction action selected",
+                chat_id=chat_tid,
+                message_id=target_message.message_id,
+                emoji=action.emoji,
+            )
             await _react_to_message(chat_tid, target_message, action.emoji)
         if action.action == "answer":
+            track_ai_proactive_event("action_answer_selected", _metric_attributes())
+            _log_proactive_info(
+                "Proactive AI answer action selected",
+                chat_id=chat_tid,
+                message_id=target_message.message_id,
+            )
             await _answer_message(chat_tid, chat, target_message)
 
 
@@ -352,28 +481,52 @@ async def maybe_run_proactive_reply(message: Message, chat: ChatModel) -> None:
     if not await is_enabled("ai_proactive_replies", chat_tid=chat_tid):
         return
     if message.chat.type not in {"group", "supergroup"}:
+        _log_proactive_info("Proactive AI skipped outside group chat", chat_id=chat_tid, chat_type=message.chat.type)
         return
+    _log_proactive_info("Proactive AI evaluation started", chat_id=chat_tid, message_id=message.message_id)
     quota_result = await check_quota(chat.iid)
     if not quota_result.allowed:
+        track_ai_proactive_event("quota_exhausted", _metric_attributes())
+        _log_proactive_info("Proactive AI skipped because quota is exhausted", chat_id=chat_tid)
         return
 
     settings = await _get_settings(chat_tid)
     tracked_count = await _track_eligible_message(chat_tid, message, settings)
+    track_ai_proactive_event("eligible_message", _metric_attributes())
     if tracked_count < settings.min_messages:
+        track_ai_proactive_event("below_threshold", _metric_attributes())
+        _log_proactive_info(
+            "Proactive AI waiting for more messages",
+            chat_id=chat_tid,
+            tracked_count=tracked_count,
+            min_messages=settings.min_messages,
+        )
         return
     if not await _acquire_lock(chat_tid):
+        track_ai_proactive_event("lock_busy", _metric_attributes())
+        _log_proactive_info("Proactive AI skipped because lock is busy", chat_id=chat_tid)
         return
 
     try:
         candidates = await _get_recent_candidates(chat_tid, settings)
         if len(candidates) < settings.min_messages:
+            track_ai_proactive_event("no_candidates", _metric_attributes())
+            _log_proactive_info(
+                "Proactive AI skipped because candidate count is below minimum",
+                chat_id=chat_tid,
+                candidate_count=len(candidates),
+                min_messages=settings.min_messages,
+            )
             return
-        try:
-            decision = await _generate_decision(chat, chat_tid, candidates, settings)
-            await _execute_actions(chat_tid, chat, candidates, decision, settings)
-            await _clear_tracked_messages(chat_tid, candidates)
-        except SophieException as error:
-            log.debug("Proactive AI decision skipped", chat_id=chat_tid, error=error)
-            await _clear_tracked_messages(chat_tid, candidates)
+        track_ai_proactive_event("batch_started", _metric_attributes())
+        _log_proactive_info(
+            "Proactive AI batch started",
+            chat_id=chat_tid,
+            candidate_count=len(candidates),
+        )
+        decision = await _generate_decision(chat, chat_tid, candidates, settings)
+        await _execute_actions(chat_tid, chat, candidates, decision, settings)
+        await _clear_tracked_messages(chat_tid, candidates)
+        _log_proactive_info("Proactive AI batch completed", chat_id=chat_tid, candidate_count=len(candidates))
     finally:
         await _release_lock(chat_tid)
