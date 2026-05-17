@@ -6,7 +6,7 @@ import pytest
 
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.services.redis import aredis
-from sophie_bot.utils.feature_flags import FEATURE_FLAGS, is_enabled, list_all, set_enabled
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, get_service_tier, get_value, is_enabled, list_all, set_enabled
 
 
 @pytest.fixture(autouse=True)
@@ -20,6 +20,16 @@ async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None,
 async def test_is_enabled_returns_default_when_no_override_exists() -> None:
     assert await is_enabled("filters_rest_api") is False
     assert await is_enabled("notes_rest_api") is True
+
+
+@pytest.mark.asyncio
+async def test_proactive_replies_feature_flags_have_safe_defaults() -> None:
+    assert await is_enabled("ai_proactive_replies") is False
+    assert await get_value("ai_proactive_replies_model") == "openai/gpt-5-nano"
+    assert await get_service_tier("ai_proactive_replies_service_tier") == "flex"
+    assert await get_value("ai_proactive_replies_batch_size") == 15
+    assert await get_value("ai_proactive_replies_window_seconds") == 600
+    assert await get_value("ai_proactive_replies_max_answers") == 2
 
 
 @pytest.mark.asyncio

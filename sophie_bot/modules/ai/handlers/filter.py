@@ -62,6 +62,8 @@ async def ai_filter_handle(message: Message, chat: dict, data: dict):
         await history.initialize_chat_history(message.chat.id, additional_system_prompt=prompt)
         await history.add_from_message(message)
 
+        data["ai_message_handled"] = True
+        data["ai_filter_handled"] = True
         await ai_chatbot_reply(message, connection, user_text=None)
 
 

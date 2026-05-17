@@ -325,16 +325,16 @@ msgstr ""
 msgid "For example, {cmd}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:19
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:20
 #: sophie_bot/modules/ai/handlers/mode.py:16
 msgid "Prompt"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:21
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:22
 msgid "Ask Sophie a question"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:36
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:38
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr ""
 
@@ -463,7 +463,7 @@ msgstr ""
 msgid "Should be AI prompt, please try again!"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/filter.py:71
+#: sophie_bot/modules/ai/handlers/filter.py:73
 #: sophie_bot/modules/ai/magic_handlers/filter.py:71
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:99
 #, python-brace-format

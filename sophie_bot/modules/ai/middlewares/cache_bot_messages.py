@@ -57,6 +57,16 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
                 if isinstance(event, Message)
                 else datetime.now(timezone.utc)
             )
-            await cache_message(to_cache, chat_db.tid, CONFIG.bot_id, sent_message_id, created_at, "Sophie")
+            await cache_message(
+                to_cache,
+                chat_db.tid,
+                CONFIG.bot_id,
+                sent_message_id,
+                created_at,
+                "Sophie",
+                message_thread_id=result.message_thread_id if isinstance(result, Message) else None,
+                handled_by_ai=True,
+                eligible_for_proactive_ai=False,
+            )
 
         return result

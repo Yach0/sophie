@@ -1,18 +1,19 @@
-from typing import Optional
+from typing import Any, Optional
 
 from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg, TextArg
 
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
-from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageHandler
-from sophie_bot.utils.i18n import lazy_gettext as l_, gettext as _
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.args(
@@ -27,7 +28,8 @@ class AiCmd(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return CMDFilter("ai"), AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
-    async def handle(self):
+    async def handle(self) -> Any:
+        self.data["ai_message_handled"] = True
         user_text: Optional[str] = self.data["text"]
 
         if self.event.chat.type == "private" and self.connection.is_connected:

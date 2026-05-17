@@ -16,6 +16,17 @@ class MessageType(BaseModel):
     text: str
     created_at: datetime | None = None
     username: str | None = None
+    message_thread_id: int | None = None
+    handled_by_ai: bool = False
+    eligible_for_proactive_ai: bool = True
+    reply_to_message_id: int | None = None
+    reply_to_user_id: int | None = None
+    reply_to_username: str | None = None
+    reply_to_is_sophie_ai: bool = False
+    has_ai_command: bool = False
+    is_ai_filter_reply: bool = False
+    proactively_answered: bool = False
+    proactively_reacted: bool = False
 
 
 def get_message_cache_key(chat_id: int) -> str:
@@ -35,6 +46,18 @@ async def cache_message(
     message_id: int,
     created_at: datetime,
     username: str | None,
+    *,
+    message_thread_id: int | None = None,
+    handled_by_ai: bool = False,
+    eligible_for_proactive_ai: bool = True,
+    reply_to_message_id: int | None = None,
+    reply_to_user_id: int | None = None,
+    reply_to_username: str | None = None,
+    reply_to_is_sophie_ai: bool = False,
+    has_ai_command: bool = False,
+    is_ai_filter_reply: bool = False,
+    proactively_answered: bool = False,
+    proactively_reacted: bool = False,
 ) -> None:
     """Caches a message if text is provided."""
     if not text:
@@ -46,6 +69,17 @@ async def cache_message(
         text=text,
         created_at=created_at,
         username=username,
+        message_thread_id=message_thread_id,
+        handled_by_ai=handled_by_ai,
+        eligible_for_proactive_ai=eligible_for_proactive_ai,
+        reply_to_message_id=reply_to_message_id,
+        reply_to_user_id=reply_to_user_id,
+        reply_to_username=reply_to_username,
+        reply_to_is_sophie_ai=reply_to_is_sophie_ai,
+        has_ai_command=has_ai_command,
+        is_ai_filter_reply=is_ai_filter_reply,
+        proactively_answered=proactively_answered,
+        proactively_reacted=proactively_reacted,
     )
     json_str = msg.model_dump_json()
     key = get_message_cache_key(chat_id)

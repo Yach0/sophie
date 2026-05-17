@@ -9,9 +9,9 @@ from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
-from sophie_bot.utils.handlers import SophieMessageHandler
-from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
+from sophie_bot.utils.handlers import SophieMessageHandler
 
 
 @flags.status("typing")
@@ -32,5 +32,6 @@ class AiReplyHandler(SophieMessageHandler):
         return AiReplyHandler.filter, AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
+        self.data["ai_message_handled"] = True
         await bot.send_chat_action(self.event.chat.id, "typing")
         return await ai_chatbot_reply(self.event, self.connection)

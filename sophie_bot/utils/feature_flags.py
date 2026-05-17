@@ -70,6 +70,14 @@ FeatureType = Literal[
     "ai_translations_service_tier",
     "ai_filters_service_tier",
     "ai_chat_summaries_service_tier",
+    "ai_proactive_replies",
+    "ai_proactive_replies_model",
+    "ai_proactive_replies_service_tier",
+    "ai_proactive_replies_batch_size",
+    "ai_proactive_replies_window_seconds",
+    "ai_proactive_replies_max_answers",
+    "ai_proactive_replies_max_reactions",
+    "ai_proactive_replies_min_messages",
 ]
 
 
@@ -134,6 +142,14 @@ class FeatureStates(TypedDict):
     ai_translations_service_tier: str
     ai_filters_service_tier: str
     ai_chat_summaries_service_tier: str
+    ai_proactive_replies: bool
+    ai_proactive_replies_model: str
+    ai_proactive_replies_service_tier: str
+    ai_proactive_replies_batch_size: int
+    ai_proactive_replies_window_seconds: int
+    ai_proactive_replies_max_answers: int
+    ai_proactive_replies_max_reactions: int
+    ai_proactive_replies_min_messages: int
 
 
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
@@ -197,6 +213,14 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_translations_service_tier",
     "ai_filters_service_tier",
     "ai_chat_summaries_service_tier",
+    "ai_proactive_replies",
+    "ai_proactive_replies_model",
+    "ai_proactive_replies_service_tier",
+    "ai_proactive_replies_batch_size",
+    "ai_proactive_replies_window_seconds",
+    "ai_proactive_replies_max_answers",
+    "ai_proactive_replies_max_reactions",
+    "ai_proactive_replies_min_messages",
 )
 
 
@@ -268,6 +292,14 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_translations_service_tier": "none",
     "ai_filters_service_tier": "none",
     "ai_chat_summaries_service_tier": "none",
+    "ai_proactive_replies": False,
+    "ai_proactive_replies_model": "openai/gpt-5-nano",
+    "ai_proactive_replies_service_tier": "flex",
+    "ai_proactive_replies_batch_size": 15,
+    "ai_proactive_replies_window_seconds": 600,
+    "ai_proactive_replies_max_answers": 2,
+    "ai_proactive_replies_max_reactions": 4,
+    "ai_proactive_replies_min_messages": 15,
 }
 
 
