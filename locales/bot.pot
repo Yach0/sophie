@@ -904,16 +904,25 @@ msgstr ""
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:122
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:124
+#, python-brace-format
+msgid "{notename} | title: {title} | content: {content}"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:131
+msgid "Related chat notes with content."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:135
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:130
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:142
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:135
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:148
 msgid "You have the following information in your memory"
 msgstr ""
 

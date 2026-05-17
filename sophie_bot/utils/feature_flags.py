@@ -22,6 +22,7 @@ FeatureType = Literal[
     "ai_chat_summaries",
     "ai_system_prompt_summaries",
     "ai_notes_related_system_prompt",
+    "ai_notes_related_system_prompt_full_content",
     "ai_provider_zai",
     "notes_rag_embeddings",
     "notes_rag_search_command",
@@ -85,6 +86,7 @@ class FeatureStates(TypedDict):
     ai_chat_summaries: bool
     ai_system_prompt_summaries: bool
     ai_notes_related_system_prompt: bool
+    ai_notes_related_system_prompt_full_content: bool
     ai_provider_zai: bool
     notes_rag_embeddings: bool
     notes_rag_search_command: bool
@@ -147,6 +149,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_chat_summaries",
     "ai_system_prompt_summaries",
     "ai_notes_related_system_prompt",
+    "ai_notes_related_system_prompt_full_content",
     "ai_provider_zai",
     "notes_rag_embeddings",
     "notes_rag_search_command",
@@ -217,6 +220,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_chat_summaries": True,
     "ai_system_prompt_summaries": False,
     "ai_notes_related_system_prompt": False,
+    "ai_notes_related_system_prompt_full_content": False,
     "ai_provider_zai": True,
     "notes_rag_embeddings": False,
     "notes_rag_search_command": False,

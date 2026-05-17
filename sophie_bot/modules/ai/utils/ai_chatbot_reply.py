@@ -117,18 +117,31 @@ async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_t
     if user_text and await is_enabled("ai_notes_related_system_prompt", chat_tid=chat_tid):
         related_notes = await semantic_search_notes(chat_iid, user_text, limit=5)
         if related_notes:
-            rendered_related_notes = [
-                Template(
-                    _("{notename} | title: {title}"),
-                    notename=note.names[0],
-                    title=note.description or "-",
+            include_note_content = await is_enabled("ai_notes_related_system_prompt_full_content", chat_tid=chat_tid)
+            if include_note_content:
+                rendered_related_notes = [
+                    Template(
+                        _("{notename} | title: {title} | content: {content}"),
+                        notename=note.names[0],
+                        title=note.description or "-",
+                        content=note.text or "-",
+                    )
+                    for note in related_notes
+                ]
+                section_title = _("Related chat notes with content.")
+            else:
+                rendered_related_notes = [
+                    Template(
+                        _("{notename} | title: {title}"),
+                        notename=note.names[0],
+                        title=note.description or "-",
+                    )
+                    for note in related_notes
+                ]
+                section_title = _(
+                    "Related chat notes. Use get_note_content with the notename when note details may help."
                 )
-                for note in related_notes
-            ]
-            system_prompt += Section(
-                VList(*rendered_related_notes),
-                title=_("Related chat notes. Use get_note_content with the notename when note details may help."),
-            )
+            system_prompt += Section(VList(*rendered_related_notes), title=section_title)
     if memory_lines:
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         system_prompt += Section(
