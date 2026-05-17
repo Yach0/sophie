@@ -45,7 +45,35 @@ async def test_op_killswitch_no_args_lists_features(test_client: TestClient) -> 
 
     assert "required argument" not in response_text
     assert "Key-values" not in response_text
-    assert "ai_chatbot:" in response_text
+    assert "ai_chatbot: true ✅" in response_text
+    assert "ai_proactive_replies: false ❌" in response_text
+    assert "ai_proactive_replies_prompt: Sophie should h..." in response_text
+
+
+@pytest.mark.asyncio
+async def test_op_ff_alias_lists_features(test_client: TestClient) -> None:
+    response_text = await _send_op_killswitch(
+        test_client,
+        chat_tid=-1002950000086,
+        user_tid=929500086,
+        command="op_ff",
+    )
+
+    assert "ai_chatbot: true ✅" in response_text
+
+
+@pytest.mark.asyncio
+async def test_op_ff_feature_name_shows_full_value(test_client: TestClient) -> None:
+    response_text = await _send_op_killswitch(
+        test_client,
+        chat_tid=-1002950000087,
+        user_tid=929500087,
+        command="op_ff ai_proactive_replies_prompt",
+    )
+
+    assert "ai_proactive_replies_prompt" in response_text
+    assert "Sophie should have opinions" in response_text
+    assert "..." not in response_text
 
 
 @pytest.mark.asyncio
@@ -87,7 +115,7 @@ async def test_op_killswitch_invalid_feature(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_op_killswitch_partial_args(test_client: TestClient) -> None:
+async def test_op_killswitch_partial_args_shows_feature_value(test_client: TestClient) -> None:
     response_text = await _send_op_killswitch(
         test_client,
         chat_tid=-1002950000085,
@@ -95,5 +123,4 @@ async def test_op_killswitch_partial_args(test_client: TestClient) -> None:
         command="op_killswitch ai_chatbot",
     )
 
-    assert "Usage: /op_killswitch" in response_text
-    assert "Allowed features:" in response_text
+    assert "ai_chatbot</code>: <code>" in response_text

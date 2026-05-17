@@ -37,6 +37,7 @@ from sophie_bot.shared.lock_constants import (
 )
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -131,10 +132,9 @@ def _build_locktype_help_text() -> Section:
     )
 
 
-def _build_system_prompt() -> str:
+def _build_system_prompt(base_prompt: str) -> str:
     prompt_doc = Doc(
-        "You generate Sophie Bot filter handler suggestions.",
-        "Return 1 to 3 unique suggestions as structured data.",
+        base_prompt,
         Section(
             VList(
                 Template(
@@ -199,7 +199,8 @@ class AIFilterAddHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         prompt: str = self.data["prompt"].strip()
         history = NewAIMessageHistory()
-        history.add_system(_build_system_prompt())
+        base_prompt = str(await get_value("ai_filter_suggestions_prompt", chat_tid=self.event.chat.id))
+        history.add_system(_build_system_prompt(base_prompt))
         history.prompt = [prompt]
 
         model = await get_chat_default_model(self.connection.db_model.iid)

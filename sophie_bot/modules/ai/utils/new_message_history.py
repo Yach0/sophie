@@ -32,9 +32,9 @@ from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
-
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
 
@@ -179,19 +179,16 @@ class NewAIMessageHistory:
         self.message_history = []
         self.prompt = []
 
-    def add_chatbot_system_msg(self, additional: str = ""):
+    async def add_chatbot_system_msg(self, additional: str = "", chat_tid: int | None = None) -> None:
         today = datetime.datetime.now()
+        system_prompt = str(await get_value("ai_chatbot_system_prompt", chat_tid=chat_tid))
         system_message = "\n".join(
             (
-                _("You're a telegram bot named Sophie."),
-                _("Be funny when the topic is casual."),
+                system_prompt,
                 _(
                     "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
                 ),
-                _("Send short messages unless longer explanations are needed."),
-                _("Focus primarily on answering the LATEST user message."),
                 _("Use the conversation history only for context, but respond specifically to the latest prompt."),
-                _("Prefer to search information in the internet"),
                 _("Today is ") + today.strftime("%d %B %Y, %H:%M"),
                 " ",
             )
@@ -252,7 +249,7 @@ class NewAIMessageHistory:
         self, chat_id: int, additional_system_prompt: str = "", cache_limit: int | None = None
     ):
         # Add system message
-        self.add_chatbot_system_msg(additional=additional_system_prompt)
+        await self.add_chatbot_system_msg(additional=additional_system_prompt, chat_tid=chat_id)
 
         # Add messages from cache
         await self.add_from_cache(chat_id, limit=cache_limit)

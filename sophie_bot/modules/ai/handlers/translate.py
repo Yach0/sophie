@@ -19,21 +19,21 @@ from stfu_tg import (
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_model
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
-from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
-from sophie_bot.utils.feature_flags import get_service_tier
+from sophie_bot.utils.feature_flags import get_service_tier, get_value
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -151,22 +151,16 @@ class AiTranslate(SophieMessageHandler):
             )
             await ai_context.add_from_message(reply_to_message, disable_name=True)
 
+        translator_prompt = str(await get_value("ai_translate_system_prompt", chat_tid=self.event.chat.id))
         ai_context.add_system(
             "\n".join(
                 (
-                    _("You're a professional AI translator / transcriber."),
+                    translator_prompt,
                     Template(
                         _("Translate the following text to {language_name}:\n{to_translate}"),
                         language_name=language_name,
                         to_translate=to_translate,
                     ).to_html(),
-                    _(
-                        "Set translation_explanations to null unless the source is ambiguous,"
-                        " self-contradictory, requires culturally/contextually essential explanation,"
-                        " contains untranslatable idiom/wordplay/polysemy affecting meaning,"
-                        " or needs disambiguation of a proper noun/technical term/abbreviation;"
-                        "if included, keep it concise (≤2 factual sentences)."
-                    ),
                 )
             )
         )

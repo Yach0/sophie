@@ -15,7 +15,7 @@ from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.ai.utils.ai_models import MODERATION_REASON_MODEL
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
-from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -82,7 +82,8 @@ async def generate_restriction_reason(
                     rules_text = f"\n\nGroup Rules:\n{rules_content}"
 
         # Build the prompt
-        prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text)
+        reason_prompt = str(await get_value("ai_moderation_reason_prompt", chat_tid=chat_db.tid))
+        prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text, base_prompt=reason_prompt)
 
         # Generate AI response
         history = NewAIMessageHistory()
@@ -149,7 +150,7 @@ def extract_rules_text(rules_model: RulesModel) -> str:
         return ""
 
 
-def build_reason_prompt(message_text: str, rules_text: str) -> str:
+def build_reason_prompt(message_text: str, rules_text: str, base_prompt: str) -> str:
     """Build the prompt for AI reason generation.
 
     Args:
@@ -160,7 +161,7 @@ def build_reason_prompt(message_text: str, rules_text: str) -> str:
         The formatted prompt string
     """
     prompt_parts = [
-        "Generate a brief, professional moderation reason for restricting a user based on their message.",
+        base_prompt,
         "",
         "Message Content:",
         message_text,

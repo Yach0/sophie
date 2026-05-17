@@ -20,7 +20,7 @@ from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.bot import bot
 from sophie_bot.services.sentry_metrics import count_metric
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
+from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabled
 from sophie_bot.utils.i18n import get_i18n
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -43,19 +43,8 @@ def _render_message_line(message: MessageType) -> str:
     return f"[id={message.message_id}] [{created_at}] [{username}] {text}"
 
 
-def _build_summary_prompt(messages: tuple[MessageType, ...]) -> str:
+def _build_summary_prompt(messages: tuple[MessageType, ...], instructions: str) -> str:
     rendered_messages = "\n".join(_render_message_line(message) for message in messages)
-    instructions = "\n".join(
-        (
-            _("Summarize the chat day into one short general overview and several topic lines."),
-            _("Each topic line must contain a short title, one fitting emoji, and the list of source message IDs."),
-            _("Do not include any IDs that are not present in the provided transcript."),
-            _("Skip one-off chatter that does not form a meaningful discussion."),
-            _(
-                "Prefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
-            ),
-        )
-    )
     return f"{instructions}\n\n{rendered_messages}"
 
 
@@ -185,8 +174,9 @@ class GenerateChatSummaries:
         messages: tuple[MessageType, ...], chat_iid: PydanticObjectId, chat_tid: int
     ) -> AIChatSummaryGroups:
         history = NewAIMessageHistory()
+        instructions = str(await get_value("ai_chat_summaries_prompt", chat_tid=chat_tid))
         history.add_system(_("You summarize Telegram group discussions into structured topic lines."))
-        history.add_custom(_build_summary_prompt(messages), name="Transcript")
+        history.add_custom(_build_summary_prompt(messages, instructions), name="Transcript")
 
         model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
         service_tier = await get_service_tier("ai_chat_summaries_service_tier", chat_tid=chat_tid)

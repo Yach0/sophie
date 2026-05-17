@@ -12,6 +12,11 @@ from sophie_bot.services.redis import aredis
 FeatureType = Literal[
     "ai_summary_model",
     "ai_filter_handler_model",
+    "ai_chatbot_system_prompt",
+    "ai_translate_system_prompt",
+    "ai_chat_summaries_prompt",
+    "ai_moderation_reason_prompt",
+    "ai_filter_suggestions_prompt",
     "ai_chatbot",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
@@ -72,6 +77,7 @@ FeatureType = Literal[
     "ai_chat_summaries_service_tier",
     "ai_proactive_replies",
     "ai_proactive_replies_model",
+    "ai_proactive_replies_prompt",
     "ai_proactive_replies_service_tier",
     "ai_proactive_replies_batch_size",
     "ai_proactive_replies_window_seconds",
@@ -84,6 +90,11 @@ FeatureType = Literal[
 class FeatureStates(TypedDict):
     ai_summary_model: str
     ai_filter_handler_model: str
+    ai_chatbot_system_prompt: str
+    ai_translate_system_prompt: str
+    ai_chat_summaries_prompt: str
+    ai_moderation_reason_prompt: str
+    ai_filter_suggestions_prompt: str
     ai_chatbot: bool
     ai_chatbot_short_title: bool
     ai_chatbot_blockquote: bool
@@ -144,6 +155,7 @@ class FeatureStates(TypedDict):
     ai_chat_summaries_service_tier: str
     ai_proactive_replies: bool
     ai_proactive_replies_model: str
+    ai_proactive_replies_prompt: str
     ai_proactive_replies_service_tier: str
     ai_proactive_replies_batch_size: int
     ai_proactive_replies_window_seconds: int
@@ -155,6 +167,11 @@ class FeatureStates(TypedDict):
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_summary_model",
     "ai_filter_handler_model",
+    "ai_chatbot_system_prompt",
+    "ai_translate_system_prompt",
+    "ai_chat_summaries_prompt",
+    "ai_moderation_reason_prompt",
+    "ai_filter_suggestions_prompt",
     "ai_chatbot",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
@@ -215,6 +232,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_chat_summaries_service_tier",
     "ai_proactive_replies",
     "ai_proactive_replies_model",
+    "ai_proactive_replies_prompt",
     "ai_proactive_replies_service_tier",
     "ai_proactive_replies_batch_size",
     "ai_proactive_replies_window_seconds",
@@ -234,6 +252,11 @@ FeatureValue = bool | str | int | float
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_summary_model": "openai/gpt-5.5",
     "ai_filter_handler_model": "openai/gpt-5-nano",
+    "ai_chatbot_system_prompt": "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nFocus primarily on answering the LATEST user message.\nPrefer to search information in the internet",
+    "ai_translate_system_prompt": "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences).",
+    "ai_chat_summaries_prompt": "Summarize the chat day into one short general overview and several topic lines.\nEach topic line must contain a short title, one fitting emoji, and the list of source message IDs.\nDo not include any IDs that are not present in the provided transcript.\nSkip one-off chatter that does not form a meaningful discussion.\nPrefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments.",
+    "ai_moderation_reason_prompt": "Generate a brief, professional moderation reason for restricting a user based on their message.",
+    "ai_filter_suggestions_prompt": "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data.",
     "ai_chatbot": True,
     "ai_chatbot_short_title": False,
     "ai_chatbot_blockquote": True,
@@ -294,6 +317,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_chat_summaries_service_tier": "none",
     "ai_proactive_replies": False,
     "ai_proactive_replies_model": "openai/gpt-5-nano",
+    "ai_proactive_replies_prompt": "Sophie should have opinions; answer/reply when there is a topic she can happily join, a question, boredom, complaint, debate, taste/opinion statement, or a good joke/riff opportunity.",
     "ai_proactive_replies_service_tier": "flex",
     "ai_proactive_replies_batch_size": 15,
     "ai_proactive_replies_window_seconds": 600,

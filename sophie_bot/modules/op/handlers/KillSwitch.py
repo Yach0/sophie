@@ -7,7 +7,7 @@ from aiogram.types import Message
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgTypeError
 from ass_tg.i18n import gettext as ass_gettext
-from ass_tg.types import OptionalArg, WordArg
+from ass_tg.types import OptionalArg, TextArg, WordArg
 from ass_tg.types.base_abc import ArgFabric
 from babel.support import LazyProxy
 from stfu_tg import Code, Doc, Template
@@ -27,7 +27,6 @@ from sophie_bot.utils.feature_flags import (
 )
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
-
 
 _CURRENT_CHAT_SENTINEL = object()
 _CHAT_ARG_PREFIX = "^chat"
@@ -87,6 +86,21 @@ def _stringify_value(value: FeatureValue) -> str:
     return str(value)
 
 
+def _render_list_value(value: FeatureValue) -> str:
+    if isinstance(value, bool):
+        emoji = "✅" if value else "❌"
+        return f"{_stringify_value(value)} {emoji}"
+
+    rendered_value = _stringify_value(value)
+    if len(rendered_value) > 15:
+        return f"{rendered_value[:15]}..."
+    return rendered_value
+
+
+def _render_full_value(feature: FeatureType, value: FeatureValue) -> str:
+    return Template(_("{feature}: {value}"), feature=Code(feature), value=Code(_stringify_value(value))).to_html()
+
+
 def _build_chat_arg() -> OptionalArg:
     return OptionalArg(ChatOverrideArg())
 
@@ -104,7 +118,7 @@ def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int | None:
 class KillSwitchHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_killswitch"), IsOP(True)
+        return CMDFilter(("op_killswitch", "op_ff")), IsOP(True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -112,7 +126,7 @@ class KillSwitchHandler(SophieMessageHandler):
         return {
             "chat_args": _build_chat_arg(),
             "feature": OptionalArg(WordArg("feature")),
-            "value": OptionalArg(WordArg("value")),
+            "value": OptionalArg(TextArg("value")),
         }
 
     async def handle(self) -> Any:
@@ -123,10 +137,14 @@ class KillSwitchHandler(SophieMessageHandler):
 
         if not feature and raw_value is None:
             states = await list_chat_overrides(chat_tid) if chat_tid is not None else await list_all()
-            lines = [f"{feature_name}: {_stringify_value(value)}" for feature_name, value in states.items()]
+            lines = [f"{feature_name}: {_render_list_value(value)}" for feature_name, value in states.items()]
             if not lines:
                 lines = [_("No per-chat overrides are set.")]
             return await self.event.reply("\n".join(lines))
+
+        if feature and raw_value is None and _is_feature_type(feature):
+            value = await get_value(feature, chat_tid=chat_tid)
+            return await self.event.reply(_render_full_value(feature, value))
 
         if not feature or raw_value is None:
             allowed = ", ".join(FEATURE_FLAGS)

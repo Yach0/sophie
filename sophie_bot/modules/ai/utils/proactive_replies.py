@@ -51,6 +51,10 @@ _DEFAULT_WINDOW_SECONDS = 600
 _DEFAULT_MAX_ANSWERS = 2
 _DEFAULT_MAX_REACTIONS = 4
 _DEFAULT_MIN_MESSAGES = 15
+_DEFAULT_PROMPT = (
+    "Sophie should have opinions; answer/reply when there is a topic she can happily join, a question, "
+    "boredom, complaint, debate, taste/opinion statement, or a good joke/riff opportunity."
+)
 _TELEGRAM_REACTION_EMOJIS: frozenset[str] = frozenset(
     {
         "❤",
@@ -148,6 +152,7 @@ class ProactiveReplySettings(BaseModel):
     max_answers: int = _DEFAULT_MAX_ANSWERS
     max_reactions: int = _DEFAULT_MAX_REACTIONS
     min_messages: int = _DEFAULT_MIN_MESSAGES
+    prompt: str = _DEFAULT_PROMPT
 
 
 async def _feature_int(feature: str, chat_tid: int, default: int, minimum: int = 1) -> int:
@@ -167,12 +172,14 @@ async def _get_settings(chat_tid: int) -> ProactiveReplySettings:
         "ai_proactive_replies_max_reactions", chat_tid, _DEFAULT_MAX_REACTIONS, minimum=0
     )
     min_messages = await _feature_int("ai_proactive_replies_min_messages", chat_tid, _DEFAULT_MIN_MESSAGES)
+    prompt = str(await get_value("ai_proactive_replies_prompt", chat_tid=chat_tid))
     settings = ProactiveReplySettings(
         batch_size=batch_size,
         window_seconds=window_seconds,
         max_answers=max_answers,
         max_reactions=max_reactions,
         min_messages=min(min_messages, batch_size),
+        prompt=prompt,
     )
     _log_proactive_info(
         "Proactive AI settings resolved",
@@ -182,6 +189,7 @@ async def _get_settings(chat_tid: int) -> ProactiveReplySettings:
         max_answers=settings.max_answers,
         max_reactions=settings.max_reactions,
         min_messages=settings.min_messages,
+        prompt_length=len(settings.prompt),
     )
     return settings
 
@@ -250,7 +258,7 @@ def _build_decision_prompt(messages: tuple[MessageType, ...], settings: Proactiv
             "Decide how Sophie should naturally join this Telegram chat: none, react, or answer.",
             f"Limits: max {settings.max_answers} answers, max {settings.max_reactions} reactions.",
             "Use answer when Sophie should reply to a specific message; the answer action will be sent as a Telegram reply to that message.",
-            "Sophie should have opinions; answer/reply when there is a topic she can happily join, a question, boredom, complaint, debate, taste/opinion statement, or a good joke/riff opportunity.",
+            settings.prompt,
             "React only when it clearly fits the moment; do not react just to do something. Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉.",
             "Choose none when Sophie would not add anything, or the batch is spam, pure transactions, moderation chatter, or an obvious interruption.",
             "Pick only provided message_id values.",
@@ -444,7 +452,7 @@ async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: s
 async def _build_answer_history(chat_tid: int, chat: ChatModel, target_message: MessageType) -> NewAIMessageHistory:
     history = NewAIMessageHistory()
     system_prompt = await _build_system_prompt(chat.iid, chat_tid, target_message.text)
-    history.add_chatbot_system_msg(additional=system_prompt.to_md())
+    await history.add_chatbot_system_msg(additional=system_prompt.to_md(), chat_tid=chat_tid)
     await history.add_from_cache(chat_tid)
     username = target_message.username or str(target_message.user_id)
     prompt_text = AIUserMessageFormatter.user_message(target_message.text, username)
