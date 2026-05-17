@@ -850,37 +850,62 @@ msgstr ""
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:82
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:58
+msgid "Memory 💾"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:59
+msgid "Forget 🗑"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:60
+msgid "Commands 📋"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:61
+msgid "Search 🔍"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:62
+msgid "Notes 🗒"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:91
 msgid "You can use Tavily to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:83
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:92
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:85
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:94
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:87
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:96
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:94
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:103
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:102
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:111
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:106
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:115
 msgid "You have the following information in your memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_header.py:21
+#: sophie_bot/modules/ai/utils/ai_header.py:41
+#, python-brace-format
+msgid "{ai_emoji} AI"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_header.py:62
 #, python-brace-format
 msgid "{credit_emoji} Quota {percentage}%"
 msgstr ""

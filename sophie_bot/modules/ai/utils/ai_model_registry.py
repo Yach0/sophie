@@ -48,13 +48,11 @@ AVAILABLE_PROVIDER_NAMES: tuple[str, ...] = (
 AI_MODEL_REGISTRY: list[SophieAIModel] = [
     SophieAIModel(AIProviders.google, "google/gemini-2.5-pro", "Gemini 2.5 Pro"),
     SophieAIModel(AIProviders.google, "google/gemini-2.5-flash", "Gemini 2.5 Flash"),
-    SophieAIModel(
-        AIProviders.google, "google/gemini-3-flash-preview", "Gemini 3 Flash Preview", default_for_chatbot=True
-    ),
+    SophieAIModel(AIProviders.google, "google/gemini-3-flash-preview", "Gemini 3 Flash", default_for_chatbot=True),
     SophieAIModel(
         AIProviders.google,
         "google/gemini-3.1-flash-lite-preview",
-        "Gemini 3.1 Flash Lite Preview",
+        "Gemini 3.1 Flash Lite",
         input_price=0.25,
         output_price=1.50,
         default_for_translation=True,

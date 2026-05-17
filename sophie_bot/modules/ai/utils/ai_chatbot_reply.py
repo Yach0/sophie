@@ -21,17 +21,17 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
 from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_header
+from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header, ai_credit_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
-from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
+from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
-from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
+from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -54,20 +54,29 @@ CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "tavily_search": l_("Internet Search 🔍"),
     "get_notes": l_("Scanned notes 🗒"),
 }
+CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
+    "write_memory": l_("Memory 💾"),
+    "forget_memory": l_("Forget 🗑"),
+    "cmds_help": l_("Commands 📋"),
+    "tavily_search": l_("Search 🔍"),
+    "get_notes": l_("Notes 🗒"),
+}
 
 
-def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -> list[Element]:
+def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse], *, short: bool = False) -> list[Element]:
     # Flatten all parts from all messages
     all_parts = [part for message in message_history for part in message.parts]
 
     # Filter for tool call and return parts
     tool_parts = [part for part in all_parts if isinstance(part, (ToolCallPart, ToolReturnPart))]
 
+    tool_titles = CHATBOT_TOOLS_SHORT_TITLES if short else CHATBOT_TOOLS_TITLES
+
     # Extract unique tool names that exist in our titles dictionary
-    unique_tool_names = {part.tool_name for part in tool_parts if part.tool_name in CHATBOT_TOOLS_TITLES}
+    unique_tool_names = {part.tool_name for part in tool_parts if part.tool_name in tool_titles}
 
     # Map tool names to their corresponding titles
-    return [cast(Element, CHATBOT_TOOLS_TITLES[name]) for name in unique_tool_names]
+    return [cast(Element, tool_titles[name]) for name in unique_tool_names]
 
 
 def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
@@ -178,14 +187,15 @@ async def _generate_chatbot_result(
 async def _build_chatbot_header(
     connection: ChatConnection, model: Model, message_history: list[ModelRequest | ModelResponse]
 ) -> Element:
+    short_title_enabled = await is_enabled("ai_chatbot_short_title", chat_tid=connection.tid)
     quota_info = await get_quota_info(connection.db_model.iid)
-    header_items = [*retrieve_tools_titles(message_history), HList(divider=", ")]
+    header_items = [*retrieve_tools_titles(message_history, short=short_title_enabled), HList(divider=", ")]
     if quota_info:
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
-        header_items.append(ai_credit_header(percentage))
-    return ai_header(model, *header_items)
+        header_items.append(ai_credit_header(percentage, short=short_title_enabled))
+    return await ai_chatbot_header(connection.tid, model, *header_items)
 
 
 def _build_debug_doc(model: Model, result: Any) -> Section:
