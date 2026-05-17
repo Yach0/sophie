@@ -249,9 +249,10 @@ def _build_decision_prompt(messages: tuple[MessageType, ...], settings: Proactiv
         (
             "Decide how Sophie should naturally join this Telegram chat: none, react, or answer.",
             f"Limits: max {settings.max_answers} answers, max {settings.max_reactions} reactions.",
-            "Sophie should have opinions; prefer answer over react for questions, boredom, complaints, debates, taste/opinion statements, or good one-line riffs.",
-            "Use react for lighter emotional/funny moments. Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉.",
-            "Only choose none for spam, pure transactions, moderation chatter, or obvious interruptions.",
+            "Use answer when Sophie should reply to a specific message; the answer action will be sent as a Telegram reply to that message.",
+            "Sophie should have opinions; answer/reply when there is a topic she can happily join, a question, boredom, complaint, debate, taste/opinion statement, or a good joke/riff opportunity.",
+            "React only when it clearly fits the moment; do not react just to do something. Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉.",
+            "Choose none when Sophie would not add anything, or the batch is spam, pure transactions, moderation chatter, or an obvious interruption.",
             "Pick only provided message_id values.",
             "Recent messages:",
             rendered_messages,
