@@ -20,6 +20,7 @@ from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
 from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
+from sophie_bot.modules.ai.agent_tools.notes import note_content_ai_tool, notes_list_ai_tool
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header, ai_credit_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
@@ -30,6 +31,7 @@ from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
 from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
+from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
@@ -40,7 +42,8 @@ CHATBOT_TOOLS: list[Any] = [
     MemoryAgentTool(),
     ForgetMemoryAgentTool(),
     CmdsHelpAgentTool(),
-    # notes_list_ai_tool(),
+    notes_list_ai_tool(),
+    note_content_ai_tool(),
 ]
 
 if CONFIG.tavily_api_key:
@@ -53,6 +56,7 @@ CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "cmds_help": l_("Commands help 📋"),
     "tavily_search": l_("Internet Search 🔍"),
     "get_notes": l_("Scanned notes 🗒"),
+    "get_note_content": l_("Read note 🗒"),
 }
 CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory 💾"),
@@ -60,6 +64,7 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "cmds_help": l_("Commands 📋"),
     "tavily_search": l_("Search 🔍"),
     "get_notes": l_("Notes 🗒"),
+    "get_note_content": l_("Note 🗒"),
 }
 
 
@@ -85,7 +90,7 @@ def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
     return str(chat_iid)
 
 
-async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int) -> Doc:
+async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_text: str | None = None) -> Doc:
     memory_lines = await AIMemoryModel.get_lines(chat_iid)
     system_prompt = Doc(
         _("You can use Tavily to search for information. Include information sources as links."),
@@ -109,6 +114,21 @@ async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int) -> Doc
                 for line in summary_lines
             ]
             system_prompt += Section(VList(*rendered_summaries), title=_("Recent chat summaries"))
+    if user_text and await is_enabled("ai_notes_related_system_prompt", chat_tid=chat_tid):
+        related_notes = await semantic_search_notes(chat_iid, user_text, limit=5)
+        if related_notes:
+            rendered_related_notes = [
+                Template(
+                    _("{notename} | title: {title}"),
+                    notename=note.names[0],
+                    title=note.description or "-",
+                )
+                for note in related_notes
+            ]
+            system_prompt += Section(
+                VList(*rendered_related_notes),
+                title=_("Related chat notes. Use get_note_content with the notename when note details may help."),
+            )
     if memory_lines:
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         system_prompt += Section(
@@ -119,7 +139,7 @@ async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int) -> Doc
 
 async def _prepare_history(message: Message, chat_iid: PydanticObjectId, user_text: str | None) -> NewAIMessageHistory:
     history = NewAIMessageHistory()
-    system_prompt = await _build_system_prompt(chat_iid, message.chat.id)
+    system_prompt = await _build_system_prompt(chat_iid, message.chat.id, user_text)
     await history.initialize_chat_history(
         message.chat.id,
         additional_system_prompt=system_prompt.to_md(),

@@ -5,9 +5,12 @@ from stfu_tg import Doc
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
+from ...modes import SOPHIE_MODE
+from ...services.scheduler import scheduler
 from .api import notes_router
 from .handlers.delete import DelNote
-from .handlers.delete_all import DelAllNotesHandler, DelAllNotesCallbackHandler
+from .handlers.delete_all import DelAllNotesCallbackHandler, DelAllNotesHandler
 from .handlers.get import GetNote, HashtagGetNote
 from .handlers.legacy_button import LegacyStartNoteButton
 from .handlers.list import NotesList
@@ -23,9 +26,8 @@ from .magic_handlers.filter import get_filter
 from .magic_handlers.reply_action import ReplyModernAction
 from .magic_handlers.send_note_action import SendNoteAction
 from .schedules.generate_ai_titles import GenerateAITitles
+from .schedules.generate_embeddings import GenerateNoteEmbeddings
 from .utils.buttons_processor.legacy import BUTTONS
-from ...modes import SOPHIE_MODE
-from ...services.scheduler import scheduler
 
 api_router = APIRouter()
 api_router.include_router(notes_router)
@@ -81,6 +83,7 @@ async def __pre_setup__():
 async def __post_setup__(_):
     if SOPHIE_MODE == "scheduler":
         scheduler.add_job(GenerateAITitles().handle, "interval", minutes=1, jobstore="ram")
+        scheduler.add_job(GenerateNoteEmbeddings().handle, "interval", minutes=1, jobstore="ram")
 
 
 module_manifest = ModuleManifest(

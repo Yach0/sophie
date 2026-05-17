@@ -8,6 +8,8 @@ from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.list import format_notes_list
+from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -27,7 +29,10 @@ class NotesSearchHandler(SophieMessageHandler):
         to_search: str = self.data["to_search"]
         connection = self.connection
 
-        notes = await NoteModel.search_chat_notes(connection.db_model.iid, to_search)
+        if await is_enabled("notes_rag_search_command", chat_tid=connection.tid):
+            notes = await semantic_search_notes(connection.db_model.iid, to_search)
+        else:
+            notes = await NoteModel.search_chat_notes(connection.db_model.iid, to_search)
 
         if not notes:
             return await self.event.reply(

@@ -830,73 +830,90 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:51
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
 msgid "Memory updated 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:52
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
 msgid "Memory forgotten 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:53
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
 msgid "Commands help 📋"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:57
 msgid "Internet Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:58
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:58
-msgid "Memory 💾"
-msgstr ""
-
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:59
-msgid "Forget 🗑"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:60
-msgid "Commands 📋"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:61
-msgid "Search 🔍"
+msgid "Read note 🗒"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:62
+msgid "Memory 💾"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:63
+msgid "Forget 🗑"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:64
+msgid "Commands 📋"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:65
+msgid "Search 🔍"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:66
 msgid "Notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:91
-msgid "You can use Tavily to search for information. Include information sources as links."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:92
-msgid "You can also save important things to the memory."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:94
-msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:67
+msgid "Note 🗒"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:96
+msgid "You can use Tavily to search for information. Include information sources as links."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:97
+msgid "You can also save important things to the memory."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:99
+msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:101
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:103
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:108
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:111
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:116
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:115
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:122
+#, python-brace-format
+msgid "{notename} | title: {title}"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:130
+msgid "Related chat notes. Use get_note_content with the notename when note details may help."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:135
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -3966,19 +3983,19 @@ msgstr ""
 msgid "Message deleted"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:35
+#: sophie_bot/modules/notes/__init__.py:37
 msgid "Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:37
+#: sophie_bot/modules/notes/__init__.py:39
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:41
+#: sophie_bot/modules/notes/__init__.py:43
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:44
+#: sophie_bot/modules/notes/__init__.py:46
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
@@ -4039,43 +4056,43 @@ msgstr ""
 msgid "This note no longer exists."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:19
+#: sophie_bot/modules/notes/handlers/list.py:21
 msgid "?Search notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:20
+#: sophie_bot/modules/notes/handlers/list.py:22
 msgid "Lists available notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:49
+#: sophie_bot/modules/notes/handlers/list.py:54
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:57
+#: sophie_bot/modules/notes/handlers/list.py:62
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:62
-#: sophie_bot/modules/notes/handlers/search.py:39
+#: sophie_bot/modules/notes/handlers/list.py:67
+#: sophie_bot/modules/notes/handlers/search.py:44
 msgid "Search pattern"
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/list.py:64
-#: sophie_bot/modules/notes/handlers/search.py:41
-#, python-brace-format
-msgid "Notes in {chat_name}"
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/list.py:68
-#: sophie_bot/modules/notes/handlers/search.py:45
-#, python-brace-format
-msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:69
 #: sophie_bot/modules/notes/handlers/search.py:46
+#, python-brace-format
+msgid "Notes in {chat_name}"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/list.py:73
+#: sophie_bot/modules/notes/handlers/search.py:50
+#, python-brace-format
+msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/list.py:74
+#: sophie_bot/modules/notes/handlers/search.py:51
 msgid "#(Note name)"
 msgstr ""
 
@@ -4179,15 +4196,15 @@ msgstr ""
 msgid "Use {cmd} to retrieve this note."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/search.py:18
+#: sophie_bot/modules/notes/handlers/search.py:20
 msgid "Text to search"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/search.py:20
+#: sophie_bot/modules/notes/handlers/search.py:22
 msgid "Searches for note contents"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/search.py:34
+#: sophie_bot/modules/notes/handlers/search.py:39
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern}."
 msgstr ""

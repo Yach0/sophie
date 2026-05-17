@@ -21,7 +21,11 @@ FeatureType = Literal[
     "ai_filters",
     "ai_chat_summaries",
     "ai_system_prompt_summaries",
+    "ai_notes_related_system_prompt",
     "ai_provider_zai",
+    "notes_rag_embeddings",
+    "notes_rag_search_command",
+    "notes_rag_list_search",
     "filters",
     "antiflood",
     "locks",
@@ -80,7 +84,11 @@ class FeatureStates(TypedDict):
     ai_filters: bool
     ai_chat_summaries: bool
     ai_system_prompt_summaries: bool
+    ai_notes_related_system_prompt: bool
     ai_provider_zai: bool
+    notes_rag_embeddings: bool
+    notes_rag_search_command: bool
+    notes_rag_list_search: bool
     filters: bool
     antiflood: bool
     locks: bool
@@ -138,7 +146,11 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_filters",
     "ai_chat_summaries",
     "ai_system_prompt_summaries",
+    "ai_notes_related_system_prompt",
     "ai_provider_zai",
+    "notes_rag_embeddings",
+    "notes_rag_search_command",
+    "notes_rag_list_search",
     "filters",
     "antiflood",
     "locks",
@@ -204,7 +216,11 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_filters": True,
     "ai_chat_summaries": True,
     "ai_system_prompt_summaries": False,
+    "ai_notes_related_system_prompt": False,
     "ai_provider_zai": True,
+    "notes_rag_embeddings": False,
+    "notes_rag_search_command": False,
+    "notes_rag_list_search": False,
     "filters": True,
     "antiflood": True,
     "locks": True,

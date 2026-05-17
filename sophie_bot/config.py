@@ -109,7 +109,7 @@ class Config(BaseSettings):
     proxy_stable_instance_url: str = "http://host.container.internal:8071"
     proxy_beta_instance_url: str = "http://host.container.internal:8072"
 
-    # OpenRouter API key for routing non-Mistral models via OpenAI-compatible API
+    # OpenRouter API key for routing non-Mistral models and note embeddings via OpenAI-compatible API
     openrouter_api_key: str | None = None
     tavily_api_key: str = ""
     mistral_api_key: str | None = None

@@ -54,6 +54,9 @@ class NoteModel(Saveable, Document):
 
     description: Optional[str] = None
     ai_description: bool = False
+    embedding: Optional[list[float]] = None
+    embedding_text: Optional[str] = None
+    embedding_model: Optional[str] = None
 
     created_date: Optional[datetime] = None
     created_user: Optional[Link[ChatModel]] = None
