@@ -166,6 +166,10 @@ def _check_inline(message: Message) -> bool:
     return bool(message.via_bot)
 
 
+def _check_mention(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.MENTION)
+
+
 def _check_anon_channel(message: Message) -> bool:
     if not message.sender_chat:
         return False
@@ -220,6 +224,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.GAME: lambda m: bool(m.game),
     LockType.GIF: lambda m: bool(m.animation),
     LockType.INLINE: _check_inline,
+    LockType.MENTION: _check_mention,
     LockType.INVITE_LINK: _check_invite_link,
     LockType.LOCATION: lambda m: bool(m.location or m.venue),
     LockType.PHONE: lambda m: _has_entity_type(m, MessageEntityType.PHONE_NUMBER),
