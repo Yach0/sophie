@@ -77,8 +77,18 @@ LOCK_TYPE_DISPLAY_NAMES: dict[str, LazyProxy] = {
     "video": l_("Videos"),
     "videonote": l_("Video notes"),
     "voice": l_("Voice messages"),
+    "webpreview": l_("Web previews"),
     "zalgo": l_("Zalgo text"),
     "dice": l_("Dice"),
+    "arabic": l_("Arabic text"),
+    "hashtag": l_("Hashtags"),
+    "code": l_("Inline code"),
+    "pre": l_("Code blocks"),
+    "blockquote": l_("Blockquotes"),
+    "underline": l_("Underlined text"),
+    "strikethrough": l_("Strikethrough text"),
+    "media": l_("Media messages"),
+    "edited": l_("Edited messages"),
 }
 
 

@@ -47,6 +47,7 @@ class LockTypeArg(WordArg):
         return {
             "sticker": l_("Block stickers"),
             "url": l_("Block URLs"),
+            "webpreview": l_("Block web page previews"),
             "forward": l_("Block forwarded messages"),
             "stickerpack:MyStickers": l_("Block specific sticker pack"),
             "language:ru": l_("Block Russian language messages"),
