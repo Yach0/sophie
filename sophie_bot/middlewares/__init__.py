@@ -12,6 +12,7 @@ from sophie_bot.middlewares.localization import LocalizationMiddleware
 from sophie_bot.middlewares.logic import OrMiddleware
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
+from sophie_bot.middlewares.silent import SilentMiddleware
 from sophie_bot.middlewares.admincache import AdmincacheMiddleware
 from sophie_bot.services.bot import get_bot_runtime
 from sophie_bot.services.i18n import i18n
@@ -62,6 +63,8 @@ def enable_middlewares(dispatcher: Dispatcher | None = None) -> None:
 
     active_dispatcher.update.middleware(ConnectionsMiddleware())
     active_dispatcher.message.middleware(DisablingMiddleware())
+
+    active_dispatcher.message.outer_middleware(SilentMiddleware())
 
     if CONFIG.debug_mode == "high":
         from .debug import DataDebugMiddleware, HandlerDebugMiddleware

@@ -124,6 +124,7 @@ MODULES = [
     "filters",
     "antiflood",
     "language",
+    "silent",
     "connections",
     "locks",
     "logging",
