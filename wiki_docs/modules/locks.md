@@ -61,6 +61,7 @@ The list below is generated from the same source used by /lockable.
 - **`phone`**: Phone number entities
 - **`cashtag`**: Cashtag entities ($TICKER)
 - **`invitelink`**: Telegram invite links (t.me/+)
+- **`mention`**: Mention entities (@username)
 - **`botlink`**: Links to Telegram bots (t.me/botname)
 - **`command`**: Bot command entities (/command@bot)
 - **`spoiler`**: Spoiler text entities
@@ -69,6 +70,12 @@ The list below is generated from the same source used by /lockable.
 - **`emojigame`**: Game messages with emoji
 - **`emojionly`**: Messages containing only emoji
 - **`button`**: Messages with inline keyboard buttons
+- **`hashtag`**: Hashtag entities (#tag)
+- **`code`**: Inline code entities (`code`)
+- **`pre`**: Preformatted code blocks
+- **`blockquote`**: Blockquote entities
+- **`underline`**: Underlined text entities
+- **`strikethrough`**: Strikethrough text entities
 - **`webpreview`**: Messages with web page link previews
 
 #### Forwards
@@ -87,6 +94,7 @@ The list below is generated from the same source used by /lockable.
 - **`cjk`**: Messages containing CJK characters (Chinese, Japanese, Korean)
 - **`cyrillic`**: Messages containing Cyrillic characters
 - **`rtl`**: Messages containing RTL (right-to-left) text
+- **`arabic`**: Messages containing Arabic script
 - **`zalgo`**: Messages with excessive formatting characters (glitch text)
 
 #### Sticker types
@@ -184,6 +192,8 @@ The list below is generated from the same source used by /lockable.
 - **`anonchannel`**: Messages sent on behalf of a channel anonymously
 - **`comment`**: Messages sent as comments in channels
 - **`inline`**: Messages sent via inline bots
+- **`media`**: Any media message (photo, video, audio, document, sticker, etc.)
+- **`edited`**: Edited messages
 ---
 ## Need help choosing?
 
