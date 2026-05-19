@@ -75,6 +75,7 @@ LOCK_TYPE_DISPLAY_NAMES: dict[str, LazyProxy] = {
     "game": l_("Games"),
     "gif": l_("GIFs"),
     "inline": l_("Inline results"),
+    "mention": l_("Mentions"),
     "invitelink": l_("Invite links"),
     "location": l_("Locations"),
     "phone": l_("Phone numbers"),

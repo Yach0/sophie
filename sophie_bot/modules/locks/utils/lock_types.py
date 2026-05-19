@@ -32,6 +32,7 @@ class LockType(StrEnum):
     GAME = "game"
     GIF = "gif"
     INLINE = "inline"
+    MENTION = "mention"
     INVITE_LINK = "invitelink"
     LOCATION = "location"
     PHONE = "phone"
