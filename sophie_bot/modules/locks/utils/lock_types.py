@@ -48,8 +48,18 @@ class LockType(StrEnum):
     VIDEO = "video"
     VIDEO_NOTE = "videonote"
     VOICE = "voice"
+    WEB_PREVIEW = "webpreview"
     ZALGO = "zalgo"
     DICE = "dice"
+    ARABIC = "arabic"
+    HASHTAG = "hashtag"
+    CODE = "code"
+    PRE = "pre"
+    BLOCKQUOTE = "blockquote"
+    UNDERLINE = "underline"
+    STRIKETHROUGH = "strikethrough"
+    MEDIA = "media"
+    EDITED = "edited"
 
 
 ALL_LOCK_TYPES: tuple[str, ...] = tuple(lt.value for lt in LockType)

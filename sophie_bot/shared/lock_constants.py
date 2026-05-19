@@ -57,6 +57,16 @@ LOCK_TYPE_DESCRIPTIONS: dict[str, LazyProxy] = {
     "video": l_("Messages with videos"),
     "videonote": l_("Messages with video notes (round videos)"),
     "voice": l_("Messages with voice recordings"),
+    "webpreview": l_("Messages with web page link previews"),
+    "arabic": l_("Messages containing Arabic script"),
+    "hashtag": l_("Hashtag entities (#tag)"),
+    "code": l_("Inline code entities (`code`)"),
+    "pre": l_("Preformatted code blocks"),
+    "blockquote": l_("Blockquote entities"),
+    "underline": l_("Underlined text entities"),
+    "strikethrough": l_("Strikethrough text entities"),
+    "media": l_("Any media message (photo, video, audio, document, sticker, etc.)"),
+    "edited": l_("Edited messages"),
     "zalgo": l_("Messages with excessive formatting characters (glitch text)"),
     "dice": l_("Messages with dice rolls"),
 }
@@ -95,12 +105,20 @@ ENTITY_TYPES: tuple[str, ...] = (
     "emojigame",
     "emojionly",
     "button",
+    "hashtag",
+    "code",
+    "pre",
+    "blockquote",
+    "underline",
+    "strikethrough",
+    "webpreview",
 )
 
 TEXT_PATTERN_TYPES: tuple[str, ...] = (
     "cjk",
     "cyrillic",
     "rtl",
+    "arabic",
     "zalgo",
 )
 
@@ -124,6 +142,8 @@ SPECIAL_TYPES: tuple[str, ...] = (
     "anonchannel",
     "comment",
     "inline",
+    "media",
+    "edited",
 )
 
 

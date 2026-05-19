@@ -20,6 +20,7 @@ from sophie_bot.utils.logger import log
 CJK_REGEX = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f]")
 CYRILLIC_REGEX = re.compile(r"[\u0400-\u04ff\u0500-\u052f]")
 RTL_REGEX = re.compile(r"[\u0590-\u05ff\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]")
+ARABIC_REGEX = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]")
 ZALGO_REGEX = re.compile(r"[\u0300-\u036f\u0483-\u0489\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]")
 EMOJI_REGEX = re.compile(
     "["
@@ -69,6 +70,11 @@ def _check_cyrillic(message: Message) -> bool:
 def _check_rtl(message: Message) -> bool:
     text = _get_text_content(message)
     return bool(RTL_REGEX.search(text))
+
+
+def _check_arabic(message: Message) -> bool:
+    text = _get_text_content(message)
+    return bool(ARABIC_REGEX.search(text))
 
 
 def _check_zalgo(message: Message) -> bool:
@@ -130,6 +136,11 @@ def _check_forward_user(message: Message) -> bool:
 
 def _check_url(message: Message) -> bool:
     return _has_entity_type(message, MessageEntityType.URL) or _has_entity_type(message, MessageEntityType.TEXT_LINK)
+
+
+def _check_webpreview(message: Message) -> bool:
+    link_preview_options = message.link_preview_options
+    return bool(link_preview_options and not link_preview_options.is_disabled)
 
 
 def _check_invite_link(message: Message) -> bool:
@@ -194,6 +205,47 @@ def _check_language(message: Message, lang_code: str) -> bool:
         return False
 
 
+def _check_hashtag(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.HASHTAG)
+
+
+def _check_code(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.CODE)
+
+
+def _check_pre(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.PRE)
+
+
+def _check_blockquote(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.BLOCKQUOTE)
+
+
+def _check_underline(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.UNDERLINE)
+
+
+def _check_strikethrough(message: Message) -> bool:
+    return _has_entity_type(message, MessageEntityType.STRIKETHROUGH)
+
+
+def _check_media(message: Message) -> bool:
+    return bool(
+        message.photo
+        or message.video
+        or message.audio
+        or message.document
+        or message.sticker
+        or message.animation
+        or message.voice
+        or message.video_note
+    )
+
+
+def _check_edited(message: Message) -> bool:
+    return bool(message.edit_date)
+
+
 LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.ALL: lambda m: True,
     LockType.ALBUM: lambda m: bool(m.media_group_id),
@@ -242,8 +294,18 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.VIDEO: lambda m: bool(m.video),
     LockType.VIDEO_NOTE: lambda m: bool(m.video_note),
     LockType.VOICE: lambda m: bool(m.voice),
+    LockType.WEB_PREVIEW: _check_webpreview,
     LockType.ZALGO: _check_zalgo,
     LockType.DICE: lambda m: bool(m.dice),
+    LockType.ARABIC: _check_arabic,
+    LockType.HASHTAG: _check_hashtag,
+    LockType.CODE: _check_code,
+    LockType.PRE: _check_pre,
+    LockType.BLOCKQUOTE: _check_blockquote,
+    LockType.UNDERLINE: _check_underline,
+    LockType.STRIKETHROUGH: _check_strikethrough,
+    LockType.MEDIA: _check_media,
+    LockType.EDITED: _check_edited,
 }
 
 

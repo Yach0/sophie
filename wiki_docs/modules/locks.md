@@ -69,6 +69,7 @@ The list below is generated from the same source used by /lockable.
 - **`emojigame`**: Game messages with emoji
 - **`emojionly`**: Messages containing only emoji
 - **`button`**: Messages with inline keyboard buttons
+- **`webpreview`**: Messages with web page link previews
 
 #### Forwards
 
