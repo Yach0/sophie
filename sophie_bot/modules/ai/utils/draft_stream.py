@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 
 from sophie_bot.services.bot import bot
@@ -53,7 +53,7 @@ class MessageDraftStreamer:
                 parse_mode=None,
                 entities=None,
             )
-        except (TelegramBadRequest, TelegramAPIError):
+        except TelegramAPIError:
             # Unsupported BotAPI versions or unsupported contexts can reject draft streaming.
             self.enabled = False
             return

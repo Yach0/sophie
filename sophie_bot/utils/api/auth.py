@@ -110,7 +110,7 @@ async def get_current_user(auth: Annotated[HTTPAuthorizationCredentials, Depends
 
     try:
         user = await ChatModel.get_by_iid(PydanticObjectId(user_id))
-    except (ValueError, Exception):
+    except Exception:
         logger.error("Failed to fetch user by iid from JWT", user_id=user_id)
         raise credentials_exception
 

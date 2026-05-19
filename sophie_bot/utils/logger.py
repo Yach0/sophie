@@ -75,7 +75,7 @@ def _ensure_log_directory():
     """Ensure the log directory exists. Called lazily to avoid issues during import."""
     try:
         os.makedirs(os.path.dirname(CONFIG.security_log_file), exist_ok=True)
-    except (FileExistsError, OSError):
+    except OSError:
         # FileExistsError: path exists but is a file, not a directory
         # OSError: permission issues or other filesystem errors
         pass
