@@ -12,6 +12,7 @@ from stfu_tg import Bold, Code, Doc, Template
 
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -53,7 +54,7 @@ async def _delete_stored_messages(chat_id: int, user_id: int) -> None:
 class SilentHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("silent"), UserRestricting(admin=True))
+        return (CMDFilter("silent"), FeatureFlagFilter("silent_mode"), UserRestricting(admin=True))
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

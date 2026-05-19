@@ -84,6 +84,7 @@ FeatureType = Literal[
     "ai_proactive_replies_max_answers",
     "ai_proactive_replies_max_reactions",
     "ai_proactive_replies_min_messages",
+    "silent_mode",
 ]
 
 
@@ -162,6 +163,7 @@ class FeatureStates(TypedDict):
     ai_proactive_replies_max_answers: int
     ai_proactive_replies_max_reactions: int
     ai_proactive_replies_min_messages: int
+    silent_mode: bool
 
 
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
@@ -239,6 +241,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_proactive_replies_max_answers",
     "ai_proactive_replies_max_reactions",
     "ai_proactive_replies_min_messages",
+    "silent_mode",
 )
 
 
@@ -324,6 +327,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_proactive_replies_max_answers": 2,
     "ai_proactive_replies_max_reactions": 4,
     "ai_proactive_replies_min_messages": 15,
+    "silent_mode": False,
 }
 
 

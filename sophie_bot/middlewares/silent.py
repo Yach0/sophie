@@ -10,6 +10,7 @@ from aiogram.types import Message, TelegramObject
 from sophie_bot.config import CONFIG
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils.feature_flags import FeatureType, is_enabled
 
 TTL_SECONDS = 86400  # 24 hours
 
@@ -37,6 +38,10 @@ class SilentMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         if not _is_command(event.text):
+            return await handler(event, data)
+
+        feature: FeatureType = "silent_mode"
+        if not await is_enabled(feature, chat_tid=event.chat.id):
             return await handler(event, data)
 
         chat_id = event.chat.id
@@ -71,13 +76,13 @@ class SilentMiddleware(BaseMiddleware):
                 captured_reply_id = result.message_id
             return result
 
-        event.reply = wrapped_reply  # type: ignore[assignment]
+        event.reply = wrapped_reply  # ty: ignore[invalid-assignment]
 
         # --- Run the handler ---
         try:
             result = await handler(event, data)
         finally:
-            event.reply = original_reply  # type: ignore[assignment]
+            event.reply = original_reply  # ty: ignore[invalid-assignment]
 
         # --- Post-handler: store new command and reply message IDs ---
         raw = await aredis.get(redis_key)
