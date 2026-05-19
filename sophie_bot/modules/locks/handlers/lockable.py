@@ -18,28 +18,14 @@ from sophie_bot.modules.locks.utils.lock_types import (
     is_stickerpack_lock,
 )
 from sophie_bot.shared.lock_constants import (
-    CONTENT_TYPES as CONTENT_TYPES,
-)
-from sophie_bot.shared.lock_constants import (
-    ENTITY_TYPES as ENTITY_TYPES,
-)
-from sophie_bot.shared.lock_constants import (
-    FORWARD_TYPES as FORWARD_TYPES,
-)
-from sophie_bot.shared.lock_constants import (
-    LOCK_TYPE_DESCRIPTIONS as LOCK_TYPE_DESCRIPTIONS,
-)
-from sophie_bot.shared.lock_constants import (
-    SPECIAL_TYPES as SPECIAL_TYPES,
-)
-from sophie_bot.shared.lock_constants import (
-    STICKER_PACK_TYPES as STICKER_PACK_TYPES,
-)
-from sophie_bot.shared.lock_constants import (
-    SUPPORTED_LANGUAGES as SUPPORTED_LANGUAGES,
-)
-from sophie_bot.shared.lock_constants import (
-    TEXT_PATTERN_TYPES as TEXT_PATTERN_TYPES,
+    CONTENT_TYPES,
+    ENTITY_TYPES,
+    FORWARD_TYPES,
+    LOCK_TYPE_DESCRIPTIONS,
+    SPECIAL_TYPES,
+    STICKER_PACK_TYPES,
+    SUPPORTED_LANGUAGES,
+    TEXT_PATTERN_TYPES,
 )
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
