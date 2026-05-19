@@ -40,9 +40,7 @@ class FederationContextMixin:
         event = getattr(self, "event", None)
 
         if not event:
-            error_msg = "Unable to access event object"
-            await getattr(self, "event").reply(error_msg)
-            return None, error_msg
+            return None, "Unable to access event object"
 
         # Get chat and user ID from event
         connection = getattr(self, "connection", None)
