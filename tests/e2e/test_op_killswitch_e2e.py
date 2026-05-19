@@ -47,7 +47,7 @@ async def test_op_killswitch_no_args_lists_features(test_client: TestClient) -> 
     assert "Key-values" not in response_text
     assert "ai_chatbot: true ✅" in response_text
     assert "ai_proactive_replies: false ❌" in response_text
-    assert "ai_proactive_replies_prompt: Sophie should h..." in response_text
+    assert "ai_proactive_replies_prompt: Be very" in response_text
 
 
 @pytest.mark.asyncio
@@ -72,7 +72,7 @@ async def test_op_ff_feature_name_shows_full_value(test_client: TestClient) -> N
     )
 
     assert "ai_proactive_replies_prompt" in response_text
-    assert "Sophie should have opinions" in response_text
+    assert "Be very conservative" in response_text
     assert "..." not in response_text
 
 

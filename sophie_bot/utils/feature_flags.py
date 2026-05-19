@@ -317,13 +317,13 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_chat_summaries_service_tier": "none",
     "ai_proactive_replies": False,
     "ai_proactive_replies_model": "openai/gpt-5-nano",
-    "ai_proactive_replies_prompt": "Sophie should have opinions; answer/reply when there is a topic she can happily join, a question, boredom, complaint, debate, taste/opinion statement, or a good joke/riff opportunity.",
+    "ai_proactive_replies_prompt": "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited into the conversation, someone asks an open question that Sophie can help with, or there is a very strong natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in every topic.",
     "ai_proactive_replies_service_tier": "flex",
-    "ai_proactive_replies_batch_size": 15,
-    "ai_proactive_replies_window_seconds": 600,
-    "ai_proactive_replies_max_answers": 2,
-    "ai_proactive_replies_max_reactions": 4,
-    "ai_proactive_replies_min_messages": 15,
+    "ai_proactive_replies_batch_size": 30,
+    "ai_proactive_replies_window_seconds": 180,
+    "ai_proactive_replies_max_answers": 1,
+    "ai_proactive_replies_max_reactions": 1,
+    "ai_proactive_replies_min_messages": 30,
 }
 
 

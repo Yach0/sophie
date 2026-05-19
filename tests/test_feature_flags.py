@@ -31,11 +31,13 @@ async def test_proactive_replies_feature_flags_have_safe_defaults() -> None:
     assert "Summarize the chat day" in str(await get_value("ai_chat_summaries_prompt"))
     assert "moderation reason" in str(await get_value("ai_moderation_reason_prompt"))
     assert "filter handler suggestions" in str(await get_value("ai_filter_suggestions_prompt"))
-    assert "Sophie should have opinions" in str(await get_value("ai_proactive_replies_prompt"))
+    assert "Be very conservative" in str(await get_value("ai_proactive_replies_prompt"))
     assert await get_service_tier("ai_proactive_replies_service_tier") == "flex"
-    assert await get_value("ai_proactive_replies_batch_size") == 15
-    assert await get_value("ai_proactive_replies_window_seconds") == 600
-    assert await get_value("ai_proactive_replies_max_answers") == 2
+    assert await get_value("ai_proactive_replies_batch_size") == 30
+    assert await get_value("ai_proactive_replies_window_seconds") == 180
+    assert await get_value("ai_proactive_replies_max_answers") == 1
+    assert await get_value("ai_proactive_replies_max_reactions") == 1
+    assert await get_value("ai_proactive_replies_min_messages") == 30
 
 
 @pytest.mark.asyncio

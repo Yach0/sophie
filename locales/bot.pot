@@ -53,14 +53,18 @@ msgid "Block URLs"
 msgstr ""
 
 #: sophie_bot/args/lock_type.py:50
-msgid "Block forwarded messages"
+msgid "Block web page previews"
 msgstr ""
 
 #: sophie_bot/args/lock_type.py:51
-msgid "Block specific sticker pack"
+msgid "Block forwarded messages"
 msgstr ""
 
 #: sophie_bot/args/lock_type.py:52
+msgid "Block specific sticker pack"
+msgstr ""
+
+#: sophie_bot/args/lock_type.py:53
 msgid "Block Russian language messages"
 msgstr ""
 
@@ -262,7 +266,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:105
 #: sophie_bot/modules/help/utils/format_help.py:71
-#: sophie_bot/modules/locks/handlers/lockable.py:59
+#: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr ""
 
@@ -1000,6 +1004,10 @@ msgstr ""
 msgid "Today is "
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/proactive_replies.py:468
+msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/transform_video.py:67
 msgid "Failed to download video file"
 msgstr ""
@@ -1414,7 +1422,7 @@ msgstr ""
 
 #: sophie_bot/modules/error/__init__.py:15
 #: sophie_bot/modules/federations/schedules/process_imports.py:72
-#: sophie_bot/modules/federations/utils/federation_context.py:79
+#: sophie_bot/modules/federations/utils/federation_context.py:77
 msgid "Error"
 msgstr ""
 
@@ -2794,7 +2802,7 @@ msgstr ""
 msgid "Could not determine federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/utils/federation_context.py:67
+#: sophie_bot/modules/federations/utils/federation_context.py:65
 msgid "You don't have permission to perform this action in this federation."
 msgstr ""
 
@@ -3494,244 +3502,289 @@ msgstr ""
 msgid "Lock type {type} is already locked in this chat."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:49
+#: sophie_bot/modules/locks/handlers/lockable.py:35
 msgid "All messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:50
+#: sophie_bot/modules/locks/handlers/lockable.py:36
 msgid "Media albums"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:51
+#: sophie_bot/modules/locks/handlers/lockable.py:37
 msgid "Anonymous channels"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:52
+#: sophie_bot/modules/locks/handlers/lockable.py:38
 msgid "Audio files"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:53
+#: sophie_bot/modules/locks/handlers/lockable.py:39
 msgid "Bot messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:54
+#: sophie_bot/modules/locks/handlers/lockable.py:40
 msgid "Bot links"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:55
+#: sophie_bot/modules/locks/handlers/lockable.py:41
 msgid "Inline buttons"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:56
+#: sophie_bot/modules/locks/handlers/lockable.py:42
 msgid "Cashtags ($TAG)"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:57
+#: sophie_bot/modules/locks/handlers/lockable.py:43
 msgid "Checklists"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:58
+#: sophie_bot/modules/locks/handlers/lockable.py:44
 msgid "CJK characters"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:60
+#: sophie_bot/modules/locks/handlers/lockable.py:46
 msgid "Comments"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:61
+#: sophie_bot/modules/locks/handlers/lockable.py:47
 msgid "Contacts"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:62
+#: sophie_bot/modules/locks/handlers/lockable.py:48
 msgid "Cyrillic text"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:63
+#: sophie_bot/modules/locks/handlers/lockable.py:49
 msgid "Documents"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:64
+#: sophie_bot/modules/locks/handlers/lockable.py:50
 msgid "Email addresses"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:65
+#: sophie_bot/modules/locks/handlers/lockable.py:51
 msgid "Emoji"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:66
+#: sophie_bot/modules/locks/handlers/lockable.py:52
 msgid "Custom emoji"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:67
+#: sophie_bot/modules/locks/handlers/lockable.py:53
 msgid "Game messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:68
+#: sophie_bot/modules/locks/handlers/lockable.py:54
 msgid "Emoji-only messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:69
+#: sophie_bot/modules/locks/handlers/lockable.py:55
 msgid "External replies"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:70
+#: sophie_bot/modules/locks/handlers/lockable.py:56
 msgid "Forwarded messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:71
+#: sophie_bot/modules/locks/handlers/lockable.py:57
 msgid "Bot forwards"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:72
+#: sophie_bot/modules/locks/handlers/lockable.py:58
 msgid "Channel forwards"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:73
+#: sophie_bot/modules/locks/handlers/lockable.py:59
 msgid "Story forwards"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:74
+#: sophie_bot/modules/locks/handlers/lockable.py:60
 msgid "User forwards"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:75
+#: sophie_bot/modules/locks/handlers/lockable.py:61
 msgid "Games"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:76
+#: sophie_bot/modules/locks/handlers/lockable.py:62
 msgid "GIFs"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:77
+#: sophie_bot/modules/locks/handlers/lockable.py:63
 msgid "Inline results"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:78
+#: sophie_bot/modules/locks/handlers/lockable.py:64
+msgid "Mentions"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:65
 msgid "Invite links"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:79
+#: sophie_bot/modules/locks/handlers/lockable.py:66
 msgid "Locations"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:80
+#: sophie_bot/modules/locks/handlers/lockable.py:67
 msgid "Phone numbers"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:81
+#: sophie_bot/modules/locks/handlers/lockable.py:68
 msgid "Photos"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:82
+#: sophie_bot/modules/locks/handlers/lockable.py:69
 msgid "Polls"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:83
+#: sophie_bot/modules/locks/handlers/lockable.py:70
 msgid "RTL text"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:84
+#: sophie_bot/modules/locks/handlers/lockable.py:71
 msgid "Spoilers"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:85
+#: sophie_bot/modules/locks/handlers/lockable.py:72
 msgid "Stickers"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:86
-#: sophie_bot/shared/lock_constants.py:52
+#: sophie_bot/modules/locks/handlers/lockable.py:73
+#: sophie_bot/shared/lock_constants.py:53
 msgid "Animated stickers"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:87
+#: sophie_bot/modules/locks/handlers/lockable.py:74
 msgid "Premium stickers"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:88
+#: sophie_bot/modules/locks/handlers/lockable.py:75
 msgid "Text messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:89
+#: sophie_bot/modules/locks/handlers/lockable.py:76
 msgid "URLs"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:90
+#: sophie_bot/modules/locks/handlers/lockable.py:77
 msgid "Videos"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:91
+#: sophie_bot/modules/locks/handlers/lockable.py:78
 msgid "Video notes"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:92
+#: sophie_bot/modules/locks/handlers/lockable.py:79
 msgid "Voice messages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:93
+#: sophie_bot/modules/locks/handlers/lockable.py:80
+msgid "Web previews"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:81
 msgid "Zalgo text"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:94
+#: sophie_bot/modules/locks/handlers/lockable.py:82
 msgid "Dice"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:101
+#: sophie_bot/modules/locks/handlers/lockable.py:83
+msgid "Arabic text"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:84
+msgid "Hashtags"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:85
+msgid "Inline code"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:86
+msgid "Code blocks"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:87
+msgid "Blockquotes"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:88
+msgid "Underlined text"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:89
+msgid "Strikethrough text"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:90
+msgid "Media messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:91
+#: sophie_bot/shared/lock_constants.py:69
+msgid "Edited messages"
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/lockable.py:98
 #, python-brace-format
 msgid "Sticker pack: {pack}"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:105
+#: sophie_bot/modules/locks/handlers/lockable.py:102
 #, python-brace-format
 msgid "Messages in {lang} language"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:128
+#: sophie_bot/modules/locks/handlers/lockable.py:125
 #, python-brace-format
 msgid "To see all supported languages, use {cmd}"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:134
+#: sophie_bot/modules/locks/handlers/lockable.py:131
 msgid "Media types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:138
+#: sophie_bot/modules/locks/handlers/lockable.py:135
 msgid "Entities and links"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:142
+#: sophie_bot/modules/locks/handlers/lockable.py:139
 msgid "Forwards"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:146
+#: sophie_bot/modules/locks/handlers/lockable.py:143
 msgid "Text patterns"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:150
+#: sophie_bot/modules/locks/handlers/lockable.py:147
 msgid "Lock a specific sticker pack by its ID"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:151
+#: sophie_bot/modules/locks/handlers/lockable.py:148
 msgid "Sticker types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:155
+#: sophie_bot/modules/locks/handlers/lockable.py:152
 msgid "Languages"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:159
+#: sophie_bot/modules/locks/handlers/lockable.py:156
 msgid "Special"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:172
+#: sophie_bot/modules/locks/handlers/lockable.py:169
 msgid "Available lock types"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:175
+#: sophie_bot/modules/locks/handlers/lockable.py:172
 #, python-brace-format
 msgid "Use {cmd} to lock a specific type."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lockable.py:181
+#: sophie_bot/modules/locks/handlers/lockable.py:178
 msgid "Shows all lockable message types"
 msgstr ""
 
@@ -6206,66 +6259,106 @@ msgid "Messages sent via inline bots"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:44
-msgid "Telegram invite links (t.me/+)"
+msgid "Mention entities (@username)"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:45
-msgid "Messages with location or venue"
+msgid "Telegram invite links (t.me/+)"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:46
-msgid "Phone number entities"
+msgid "Messages with location or venue"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:47
-msgid "Messages with photos"
+msgid "Phone number entities"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:48
-msgid "Messages with polls or quizzes"
+msgid "Messages with photos"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:49
-msgid "Messages containing RTL (right-to-left) text"
+msgid "Messages with polls or quizzes"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:50
-msgid "Spoiler text entities"
+msgid "Messages containing RTL (right-to-left) text"
 msgstr ""
 
 #: sophie_bot/shared/lock_constants.py:51
+msgid "Spoiler text entities"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:52
 msgid "Messages with stickers"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:53
+#: sophie_bot/shared/lock_constants.py:54
 msgid "Premium animated stickers"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:54
+#: sophie_bot/shared/lock_constants.py:55
 msgid "Text-only messages without media"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:55
+#: sophie_bot/shared/lock_constants.py:56
 msgid "URL entities in messages"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:56
+#: sophie_bot/shared/lock_constants.py:57
 msgid "Messages with videos"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:57
+#: sophie_bot/shared/lock_constants.py:58
 msgid "Messages with video notes (round videos)"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:58
+#: sophie_bot/shared/lock_constants.py:59
 msgid "Messages with voice recordings"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:59
+#: sophie_bot/shared/lock_constants.py:60
+msgid "Messages with web page link previews"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:61
+msgid "Messages containing Arabic script"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:62
+msgid "Hashtag entities (#tag)"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:63
+msgid "Inline code entities (`code`)"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:64
+msgid "Preformatted code blocks"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:65
+msgid "Blockquote entities"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:66
+msgid "Underlined text entities"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:67
+msgid "Strikethrough text entities"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:68
+msgid "Any media message (photo, video, audio, document, sticker, etc.)"
+msgstr ""
+
+#: sophie_bot/shared/lock_constants.py:70
 msgid "Messages with excessive formatting characters (glitch text)"
 msgstr ""
 
-#: sophie_bot/shared/lock_constants.py:60
+#: sophie_bot/shared/lock_constants.py:71
 msgid "Messages with dice rolls"
 msgstr ""
 

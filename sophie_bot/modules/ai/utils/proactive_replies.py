@@ -8,6 +8,7 @@ import sentry_sdk
 from aiogram.types import Message, ReactionTypeEmoji
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserContent
+from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -38,6 +39,7 @@ from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value, is_enabled
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 ProactiveActionName = Literal["none", "react", "answer"]
@@ -46,14 +48,21 @@ _ELIGIBLE_KEY_TEMPLATE = "ai:proactive:{chat_tid}:eligible"
 _LOCK_KEY_TEMPLATE = "ai:proactive:{chat_tid}:lock"
 _LOCK_TTL_SECONDS = 120
 _PROCESSED_TTL_SECONDS = 86400
-_DEFAULT_BATCH_SIZE = 15
-_DEFAULT_WINDOW_SECONDS = 600
-_DEFAULT_MAX_ANSWERS = 2
-_DEFAULT_MAX_REACTIONS = 4
-_DEFAULT_MIN_MESSAGES = 15
+_DEFAULT_BATCH_SIZE = 30
+_DEFAULT_WINDOW_SECONDS = 180
+_DEFAULT_MAX_ANSWERS = 1
+_DEFAULT_MAX_REACTIONS = 1
+_DEFAULT_MIN_MESSAGES = 30
+_MAX_DECISION_ANSWERS = 1
+_MAX_DECISION_REACTIONS = 2
 _DEFAULT_PROMPT = (
-    "Sophie should have opinions; answer/reply when there is a topic she can happily join, a question, "
-    "boredom, complaint, debate, taste/opinion statement, or a good joke/riff opportunity."
+    "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited "
+    "into the conversation, someone asks an open question that Sophie can help with, or there is a very strong "
+    "natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, "
+    "moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre "
+    "answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly "
+    "needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in "
+    "every topic."
 )
 _TELEGRAM_REACTION_EMOJIS: frozenset[str] = frozenset(
     {
@@ -176,8 +185,8 @@ async def _get_settings(chat_tid: int) -> ProactiveReplySettings:
     settings = ProactiveReplySettings(
         batch_size=batch_size,
         window_seconds=window_seconds,
-        max_answers=max_answers,
-        max_reactions=max_reactions,
+        max_answers=min(max_answers, _MAX_DECISION_ANSWERS),
+        max_reactions=min(max_reactions, _MAX_DECISION_REACTIONS),
         min_messages=min(min_messages, batch_size),
         prompt=prompt,
     )
@@ -289,8 +298,9 @@ def _build_decision_history(messages: tuple[MessageType, ...], settings: Proacti
             parts=[
                 SystemPromptPart(
                     content=(
-                        "Return structured JSON only. Sophie should be a friendly chat participant with opinions, not a silent observer. "
-                        "Choose useful, opinionated, or playful answers when there is a natural opening; use reactions for lighter moments."
+                        "Return structured JSON only. Sophie is usually silent and only joins when her contribution is clearly "
+                        "timely, useful, or funny. Prefer none unless there is a strong natural opening; use reactions for "
+                        "lightweight moments."
                     )
                 )
             ]
@@ -452,7 +462,16 @@ async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: s
 async def _build_answer_history(chat_tid: int, chat: ChatModel, target_message: MessageType) -> NewAIMessageHistory:
     history = NewAIMessageHistory()
     system_prompt = await _build_system_prompt(chat.iid, chat_tid, target_message.text)
-    await history.add_chatbot_system_msg(additional=system_prompt.to_md(), chat_tid=chat_tid)
+    proactive_answer_prompt = Doc(
+        system_prompt,
+        _(
+            "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: "
+            "1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the "
+            "target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the "
+            "answer minimal instead of trying to cover everything."
+        ),
+    )
+    await history.add_chatbot_system_msg(additional=proactive_answer_prompt.to_md(), chat_tid=chat_tid)
     await history.add_from_cache(chat_tid)
     username = target_message.username or str(target_message.user_id)
     prompt_text = AIUserMessageFormatter.user_message(target_message.text, username)

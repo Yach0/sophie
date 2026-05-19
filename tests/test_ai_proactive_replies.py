@@ -10,6 +10,7 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
     ProactiveDecision,
     ProactiveReplySettings,
     _get_recent_candidates,
+    _get_settings,
     _is_candidate,
     _limit_actions,
     _normalize_reaction_emoji,
@@ -51,6 +52,14 @@ def test_normalize_reaction_emoji_keeps_supported_telegram_reactions() -> None:
 
 def test_normalize_reaction_emoji_falls_back_for_invalid_reactions() -> None:
     assert _normalize_reaction_emoji("😊") == "👍"
+
+
+@pytest.mark.asyncio
+async def test_get_settings_clamps_decision_action_caps(db_init: object) -> None:
+    settings = await _get_settings(-1001234567891)
+
+    assert settings.max_answers == 1
+    assert settings.max_reactions == 1
 
 
 def test_limit_actions_respects_answer_and_reaction_caps() -> None:
