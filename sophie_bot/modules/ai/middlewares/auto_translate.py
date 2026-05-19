@@ -7,7 +7,8 @@ from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.handlers.translate import AiTranslate
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
-from sophie_bot.modules.ai.utils.detect_lang import lang_code_to_language, should_auto_translate_text
+from sophie_bot.modules.ai.utils.detect_lang import should_auto_translate_text
+from sophie_bot.shared.lang_detect import lang_code_to_language
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import I18nNew
 from sophie_bot.utils.logger import log
