@@ -32,7 +32,6 @@ __module_info__ = LazyProxy(
         l_("Includes command lists, usage instructions, and feature explanations."),
     )
 )
-# __exclude_public__ = True
 
 
 __handlers__ = (StartPMHandler, HelpGroupHandler, PMModulesList, StartGroupHandler)

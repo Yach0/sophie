@@ -5,7 +5,7 @@ import re
 from lingua import Language
 
 from sophie_bot.shared.lang_detect import confidence_for_language
-from sophie_bot.shared.lang_detect import detect_languages as detect_languages
+from sophie_bot.shared.lang_detect import detect_languages
 from sophie_bot.utils.logger import log
 
 _AUTO_TRANSLATE_SOURCE_CONFIDENCE_THRESHOLD = 0.40
