@@ -28,7 +28,6 @@ from sophie_bot.utils.logger import log
 
 @flags.args(
     notenames=DividedArg(WordArg(l_("Note names"))),
-    # note_group=OptionalArg(StartsWithArg("$", WordArg(l_("Group")))),
     description=OptionalArg(SurroundedArg(TextArg(l_("?Description")))),
     text_with_buttons=OptionalArg(TextWithButtonsArg(l_("Content"))),
 )
@@ -68,7 +67,6 @@ class SaveNote(SophieMessageHandler):
             str(
                 Section(
                     KeyValue("Note names", format_notes_aliases(notenames)),
-                    # KeyValue("Group", self.data.get("note_group", "-")),
                     KeyValue("Description", self.data.get("description", "-")),
                     title=_("Note was successfully created") if is_created else _("Note was successfully updated"),
                 )
