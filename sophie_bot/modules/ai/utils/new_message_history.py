@@ -121,7 +121,9 @@ async def _build_message_parts(
         elif message.sticker:
             image_file_id = message.sticker.file_id
         else:
-            raise SophieException(_("No visual media found"))
+            # Animation without thumbnail — cannot extract visual media, skip gracefully
+            log.warning("Skipping visual media extraction: %s without thumbnail", message.animation)
+            return prompt
 
         downloaded_image: Optional[BinaryIO] = await bot.download(image_file_id)
 
