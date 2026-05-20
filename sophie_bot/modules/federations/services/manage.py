@@ -91,8 +91,7 @@ class FederationManageService:
                 return user_federations[0]
             if len(user_federations) > 1:
                 raise FederationContextError(_("You have multiple federations"))
-            else:
-                raise FederationContextError(_("You don't have any federations"))
+            raise FederationContextError(_("You don't have any federations"))
 
         raise FederationContextError(_("Could not determine federation"))
 
