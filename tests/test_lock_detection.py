@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-from aiogram.types import Chat, LinkPreviewOptions, Message, User
+from aiogram.enums import MessageEntityType
+from aiogram.types import Chat, LinkPreviewOptions, Message, MessageEntity, User
 
 from sophie_bot.modules.locks.utils.detect_lock import LOCK_TYPE_CHECKS, check_locks
 from sophie_bot.modules.locks.utils.lock_types import ALL_LOCK_TYPES, LockType
@@ -25,6 +26,25 @@ def test_webpreview_lock_type_is_registered() -> None:
     assert LockType.WEB_PREVIEW in ALL_LOCK_TYPES
     assert LockType.WEB_PREVIEW in ENTITY_TYPES
     assert LockType.WEB_PREVIEW in LOCK_TYPE_DESCRIPTIONS
+
+
+@pytest.mark.asyncio
+async def test_command_lock_matches_bot_command_at_start() -> None:
+    message = _message(
+        text="/start hello", entities=[MessageEntity(type=MessageEntityType.BOT_COMMAND, offset=0, length=6)]
+    )
+
+    assert await check_locks(message, {LockType.COMMAND}) == LockType.COMMAND
+
+
+@pytest.mark.asyncio
+async def test_command_lock_ignores_bot_command_in_middle() -> None:
+    message = _message(
+        text="hello /start",
+        entities=[MessageEntity(type=MessageEntityType.BOT_COMMAND, offset=6, length=6)],
+    )
+
+    assert await check_locks(message, {LockType.COMMAND}) is None
 
 
 @pytest.mark.asyncio

@@ -5,7 +5,7 @@ import unicodedata
 from typing import Callable
 
 from aiogram.enums import MessageEntityType
-from aiogram.types import Message
+from aiogram.types import Message, MessageEntity
 
 from sophie_bot.modules.locks.utils.lock_types import (
     LockType,
@@ -42,7 +42,7 @@ EMOJI_ONLY_REGEX = re.compile(
 )
 
 
-def _get_all_entities(message: Message) -> list:
+def _get_all_entities(message: Message) -> list[MessageEntity]:
     entities = list(message.entities or [])
     entities.extend(message.caption_entities or [])
     return entities
@@ -50,7 +50,12 @@ def _get_all_entities(message: Message) -> list:
 
 def _has_entity_type(message: Message, entity_type: str) -> bool:
     entities = _get_all_entities(message)
-    return any(e.type == entity_type for e in entities)
+    return any(entity.type == entity_type for entity in entities)
+
+
+def _check_command(message: Message) -> bool:
+    entities = _get_all_entities(message)
+    return any(entity.type == MessageEntityType.BOT_COMMAND and entity.offset == 0 for entity in entities)
 
 
 def _get_text_content(message: Message) -> str:
@@ -257,7 +262,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.CASHTAG: lambda m: _has_entity_type(m, MessageEntityType.CASHTAG),
     LockType.CHECKLIST: lambda m: bool(getattr(m, "checklist", None)),
     LockType.CJK: _check_cjk,
-    LockType.COMMAND: lambda m: _has_entity_type(m, MessageEntityType.BOT_COMMAND),
+    LockType.COMMAND: _check_command,
     LockType.COMMENT: _check_comment,
     LockType.CONTACT: lambda m: bool(m.contact),
     LockType.CYRILLIC: _check_cyrillic,
