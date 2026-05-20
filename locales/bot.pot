@@ -2096,6 +2096,8 @@ msgid "You own multiple federations. Please specify which one to list chats for:
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:118
+#: sophie_bot/modules/silent/handlers/silent.py:84
+#: sophie_bot/modules/silent/handlers/silent.py:103
 msgid "Usage:"
 msgstr ""
 
@@ -5358,6 +5360,48 @@ msgstr ""
 
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:23
 msgid "Replies to the message with the chat rules"
+msgstr ""
+
+#: sophie_bot/modules/silent/__init__.py:14
+#: sophie_bot/modules/silent/handlers/silent.py:81
+msgid "Silent Mode"
+msgstr ""
+
+#: sophie_bot/modules/silent/__init__.py:16
+msgid "Auto-delete command messages and replies"
+msgstr ""
+
+#: sophie_bot/modules/silent/__init__.py:19
+msgid "Automatically deletes your previous command and the bot's reply when you send a new command."
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:53
+msgid "Toggle silent mode — auto-delete your commands and bot replies"
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:62
+msgid "on | off"
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:79
+msgid "✅ Enabled"
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:79
+msgid "❌ Disabled"
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:95
+msgid "✅ Silent mode enabled. Your commands and bot replies will be auto-deleted."
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:98
+msgid "❌ Silent mode disabled."
+msgstr ""
+
+#: sophie_bot/modules/silent/handlers/silent.py:101
+#, python-brace-format
+msgid "Unknown argument: {arg}"
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/__init__.py:18

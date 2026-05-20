@@ -31,7 +31,7 @@ class UnpinHandler(SophieMessageHandler):
         message = self.event
         chat_id = message.chat.id
 
-        if self.data["args"]["all"]:
+        if self.data.get("all"):
             await bot.unpin_all_chat_messages(chat_id)
             return
 
