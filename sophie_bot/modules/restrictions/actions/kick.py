@@ -22,6 +22,7 @@ class KickModernAction(ModernActionABC[None]):
     title = l_("Kick")
     as_flood = True
     allow_warns = True
+    is_restrictive = True
 
     @staticmethod
     def description(data: None) -> Element | str:

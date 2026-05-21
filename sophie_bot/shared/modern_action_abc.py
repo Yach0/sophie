@@ -84,6 +84,7 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):
     as_button: bool = False  # Can be used as a button
     as_flood: bool = False  # Can be used as an antiflood action
     allow_warns: bool = True  # Can be used as a warns action
+    is_restrictive: bool = False  # Applies restrictions or removes the triggering message
 
     button_allowed_prefixes: Optional[tuple[str, ...]] = None  # Allowed prefixes for buttons
 

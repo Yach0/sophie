@@ -16,6 +16,7 @@ from sophie_bot.modules.filters.utils_.handle_action import (
     handle_legacy_filter_action,
     handle_modern_filter_action,
 )
+from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.filters.utils_.match_legacy import match_legacy_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -83,11 +84,12 @@ class EnforceFiltersMiddleware(BaseMiddleware):
     @staticmethod
     async def _handle_modern_action(
         filter_item: FiltersModel, triggered_actions: list[str], message: Message, data: dict[str, Any]
-    ) -> tuple[list[str], list[Element | str | LazyProxy]]:
+    ) -> tuple[list[str], list[Element | str | LazyProxy], bool]:
         log.debug("EnforceFiltersMiddleware: handling modern actions...")
 
         triggered: list[str] = []
         messages = []
+        restrictive_action_triggered = False
 
         # Inject filter ID into data for logging purposes
         data["filter_id"] = str(filter_item.id)
@@ -103,8 +105,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             if action_message:
                 messages.append(action_message)
             triggered.append(action)
+            restrictive_action_triggered = restrictive_action_triggered or ALL_MODERN_ACTIONS[action].is_restrictive
 
-        return triggered, messages
+        return triggered, messages, restrictive_action_triggered
 
     @staticmethod
     async def _handle_action_messages(message: Message, messages: list[Optional[Element | str | LazyProxy]]):
@@ -123,13 +126,13 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
     async def _process_filter(
         self, message: Message, data: dict[str, Any], matched_filter: FiltersModel, triggered_groups=None
-    ) -> tuple[list[str | None], list[Element | str | LazyProxy]]:
+    ) -> tuple[list[str | None], list[Element | str | LazyProxy], bool]:
         if triggered_groups is None:
             triggered_groups = []
         if matched_filter.actions:
             return await self._handle_modern_action(matched_filter, triggered_groups, message, data)  # type: ignore
         if matched_filter.action:
-            return [await self._handle_legacy_action(matched_filter, triggered_groups, message)], []
+            return [await self._handle_legacy_action(matched_filter, triggered_groups, message)], [], True
         raise SophieException("EnforceFiltersMiddleware: no actions found")
 
     async def _process_filters(self, message: Message, data: dict[str, Any]):
@@ -166,23 +169,27 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
         all_messages = []
         triggered_groups: list[str] = []  # Handled action groups, to stop same actions from repeating
+        restrictive_filter_triggered = False
 
         for idx, matched_filter in enumerate(matched_filters):
             if idx >= FILTERS_MAX_TRIGGERS:
                 log.debug("EnforceFiltersMiddleware: triggered maximum number of filters, dropping...")
                 break
 
-            actions, messages = await self._process_filter(
+            actions, messages, restrictive_action_triggered = await self._process_filter(
                 message, data, matched_filter, triggered_groups=triggered_groups
             )
             all_messages.extend(messages)
             triggered_groups.extend((action for action in actions if action))
+            restrictive_filter_triggered = restrictive_filter_triggered or restrictive_action_triggered
 
         if all_messages:
             await self._handle_action_messages(message, all_messages)
 
-        # If filter triggered - skip other handlers
-        if matched_filters:
+        data["restrictive_filter_triggered"] = restrictive_filter_triggered
+
+        # If a restrictive filter triggered - skip other handlers
+        if restrictive_filter_triggered:
             raise SkipHandler
 
     async def __call__(
@@ -200,6 +207,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: dropping...")
             return await handler(event, data)
 
+        data["restrictive_filter_triggered"] = False
         await self._process_filters(event, data)
 
         return await handler(event, data)
