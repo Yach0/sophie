@@ -202,3 +202,30 @@ class TestCombineSaveables:
         assert "Hello world" in result.text
         assert "Goodbye world" in result.text
         assert result.parse_mode == SaveableParseMode.html
+
+    def test_combine_saveables_does_not_convert_legacy_markdown(self) -> None:
+        from stfu_tg import Bold
+
+        from sophie_bot.db.models.notes import Saveable, SaveableParseMode
+        from sophie_bot.modules.notes.utils.combine import combine_saveables
+
+        saveable = Saveable(text="**legacy** markdown", parse_mode=SaveableParseMode.markdown)
+
+        result = combine_saveables((saveable, Bold("Note:")))
+
+        assert result.text is not None
+        assert "**legacy** markdown" in result.text
+        assert "<b>legacy</b>" not in result.text
+        assert result.parse_mode == SaveableParseMode.html
+
+
+class TestAiMarkdownToHtml:
+    def test_ai_markdown_to_html_converts_basic_markdown(self) -> None:
+        from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
+
+        assert ai_markdown_to_html("**bold**") == "<b>bold</b>"
+
+    def test_ai_markdown_to_html_can_extract_headings(self) -> None:
+        from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
+
+        assert ai_markdown_to_html("# Title", extract_headings=True) == "<b>Title</b>"

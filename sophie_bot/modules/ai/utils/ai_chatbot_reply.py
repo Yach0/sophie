@@ -32,7 +32,7 @@ from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_g
 from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
-from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -264,7 +264,7 @@ async def _build_reply_doc(
     explicit_debug_mode: bool,
     chat_tid: int | None,
 ) -> Doc:
-    reply_body = PreformattedHTML(legacy_markdown_to_html(output_text, extract_headings=True))
+    reply_body = PreformattedHTML(ai_markdown_to_html(output_text, extract_headings=True))
     if await is_enabled("ai_chatbot_blockquote", chat_tid=chat_tid):
         reply_body = BlockQuote(reply_body)
 

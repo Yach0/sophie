@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import pytest
+from aiogram import Router
 
+from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.help.handlers import op
-from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp
+from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp, gather_cmds_help
 
 
 def _handler(command: str, description: str = "description") -> HandlerHelp:
@@ -55,3 +58,35 @@ def test_format_op_commands_messages_splits_large_module_by_handler(monkeypatch:
     monkeypatch.setattr(op, "OP_COMMANDS_MESSAGE_LENGTH_LIMIT", limit)
 
     assert op.format_op_commands_messages([module]) == [first_handler_text, second_handler_text]
+
+
+@pytest.mark.asyncio
+async def test_gather_cmds_help_marks_private_chat_type_as_pm_only() -> None:
+    router = Router()
+
+    async def private_handler() -> None:
+        return None
+
+    router.message.register(private_handler, CMDFilter("private"), ChatTypeFilter("private"))
+
+    helps = await gather_cmds_help(router)
+
+    assert len(helps) == 1
+    assert helps[0].only_pm is True
+    assert helps[0].only_chats is False
+
+
+@pytest.mark.asyncio
+async def test_gather_cmds_help_marks_inverted_private_chat_type_as_chats_only() -> None:
+    router = Router()
+
+    async def group_handler() -> None:
+        return None
+
+    router.message.register(group_handler, CMDFilter("group"), ~ChatTypeFilter("private"))
+
+    helps = await gather_cmds_help(router)
+
+    assert len(helps) == 1
+    assert helps[0].only_pm is False
+    assert helps[0].only_chats is True

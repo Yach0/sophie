@@ -4,7 +4,11 @@ from aiogram import Router
 
 from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules import ModuleManifest
-from sophie_bot.modules.notes.utils.buttons_processor.legacy import BUTTONS
+from sophie_bot.modules.utils_.legacy_buttons import (
+    LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
+    LegacyButtonAction,
+    register_legacy_button_actions,
+)
 from sophie_bot.modules.welcomesecurity.handlers.captcha_confirm import (
     CaptchaConfirmHandler,
 )
@@ -36,7 +40,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 router = Router(name="welcomesecurity")
 
 
-BUTTONS.update({"welcomesecurity": "btnwelcomesecuritystart"})
+register_legacy_button_actions(LegacyButtonAction("welcomesecurity", LEGACY_WELCOME_SECURITY_BUTTON_PREFIX))
 
 
 async def pre_setup() -> None:

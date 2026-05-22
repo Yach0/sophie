@@ -29,7 +29,11 @@ from .magic_handlers.reply_action import ReplyModernAction
 from .magic_handlers.send_note_action import SendNoteAction
 from .schedules.generate_ai_titles import GenerateAITitles
 from .schedules.generate_embeddings import GenerateNoteEmbeddings
-from .utils.buttons_processor.legacy import BUTTONS
+from sophie_bot.modules.utils_.legacy_buttons import (
+    LEGACY_NOTE_BUTTON_PREFIX,
+    LegacyButtonAction,
+    register_legacy_button_actions,
+)
 
 api_router = APIRouter()
 api_router.include_router(notes_router)
@@ -37,7 +41,10 @@ api_router.include_router(notes_router)
 router = Router(name="notes")
 
 
-BUTTONS.update({"note": "btnnotesm", "#": "btnnotesm"})
+register_legacy_button_actions(
+    LegacyButtonAction("note", LEGACY_NOTE_BUTTON_PREFIX),
+    LegacyButtonAction("#", LEGACY_NOTE_BUTTON_PREFIX),
+)
 
 
 async def pre_setup() -> None:

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sophie_bot.modules.filters.api.actions import list_filter_actions
 from sophie_bot.modules.filters.api.filters import create_filter, delete_filter, update_filter
 from sophie_bot.modules.filters.api.schemas import FilterActionPayload, FilterCreate, FilterUpdate
+from sophie_bot.modules.filters.api.utils import build_filter_response
 
 
 class DummyActionData(BaseModel):
@@ -132,6 +133,27 @@ async def test_update_filter_converts_legacy_filter_to_modern() -> None:
     assert filter_item.action is None
     assert filter_item.actions == {"dummy": {"label": "done"}}
     assert response.actions[0].description == "Run done"
+
+
+def test_build_filter_response_exposes_compatibility_action_as_effective_action() -> None:
+    filter_item = MagicMock()
+    filter_item.id = PydanticObjectId()
+    filter_item.handler = "old"
+    filter_item.action = "legacy"
+    filter_item.actions = {}
+    filter_item.time = None
+    filter_item.effective_version = 1
+
+    with patch(
+        "sophie_bot.modules.filters.api.utils.LEGACY_FILTERS_ACTIONS",
+        {"legacy": {"title": "Legacy", "handle": None, "action": None, "del_btn_name": None, "setup": None}},
+    ):
+        response = build_filter_response(filter_item)
+
+    assert response.is_legacy is True
+    assert response.legacy_action == "legacy"
+    assert response.actions[0].name == "legacy"
+    assert response.actions[0].title == "Legacy"
 
 
 @pytest.mark.asyncio

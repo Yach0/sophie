@@ -19,7 +19,7 @@ from sophie_bot.modules.filters.utils_.filter_abc import (
     ALL_FILTER_ACTIONS,
     FilterActionABC,
 )
-from sophie_bot.modules.filters.utils_.legacy_filter_handler import text_legacy_handler_handles_on
+from sophie_bot.modules.filters.utils_.filter_handler_rules import describe_filter_handler
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import (
@@ -56,7 +56,7 @@ class AddFilterHandler(SophieMessageHandler):
         doc = Doc(
             Title(_("New filter")),
             # TODO: Filter handlers?
-            Section(text_legacy_handler_handles_on(filter_handler), title=_("Handles")),
+            Section(describe_filter_handler(filter_handler), title=_("Handles")),
             " ",
             _("Select a filter action:"),
         )

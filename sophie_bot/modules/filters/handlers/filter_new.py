@@ -12,9 +12,9 @@ from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
 from sophie_bot.modules.filters.handlers.actions_list import ActionsListHandler
-from sophie_bot.modules.filters.utils_.legacy_filter_handler import (
-    check_legacy_filter_handler,
-    text_legacy_handler_handles_on,
+from sophie_bot.modules.filters.utils_.filter_handler_rules import (
+    validate_filter_handler,
+    describe_filter_handler,
 )
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -39,7 +39,7 @@ class FilterNewHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         keyword: str = self.data["handler"]
-        if not await check_legacy_filter_handler(self.event, keyword, self.connection):
+        if not await validate_filter_handler(self.event, keyword, self.connection):
             return
 
         # Create a new filter item
@@ -49,7 +49,7 @@ class FilterNewHandler(SophieMessageHandler):
         # Set handler text to state data
         self.data["additional_doc"] = Doc(
             Title(_("New filter")),
-            Section(text_legacy_handler_handles_on(keyword), title=_("Handles")),
+            Section(describe_filter_handler(keyword), title=_("Handles")),
             " ",
         )
         self.data["cancel_button"] = True

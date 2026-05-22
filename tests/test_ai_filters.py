@@ -9,7 +9,8 @@ from aiogram.types import Message
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
-from sophie_bot.modules.filters.utils_.match_legacy import consume_ai_filter_daily_quota, match_ai_handler
+from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
+from sophie_bot.modules.filters.utils_.match_handler import consume_ai_filter_daily_quota, match_ai_handler
 from sophie_bot.services.redis import aredis
 
 
@@ -21,9 +22,9 @@ async def test_match_ai_handler_skips_users_older_than_threshold() -> None:
     )
 
     with (
-        patch("sophie_bot.modules.filters.utils_.match_legacy.is_enabled", AsyncMock(return_value=True)),
-        patch("sophie_bot.modules.filters.utils_.match_legacy.extract_message_content", AsyncMock()) as extract_mock,
-        patch("sophie_bot.modules.filters.utils_.match_legacy.new_ai_generate_schema", AsyncMock()) as ai_mock,
+        patch("sophie_bot.modules.filters.utils_.match_handler.is_enabled", AsyncMock(return_value=True)),
+        patch("sophie_bot.modules.filters.utils_.match_handler.extract_message_content", AsyncMock()) as extract_mock,
+        patch("sophie_bot.modules.filters.utils_.match_handler.new_ai_generate_schema", AsyncMock()) as ai_mock,
     ):
         matched = await match_ai_handler(message, "spam", user_in_group=user_in_group)
 
@@ -61,8 +62,30 @@ async def test_enforce_filters_evaluates_only_one_ai_filter_per_message(monkeypa
         "sophie_bot.modules.filters.enforce_middleware.FiltersModel.get_filters", AsyncMock(return_value=filters)
     )
     match_mock = AsyncMock(return_value=False)
-    monkeypatch.setattr("sophie_bot.modules.filters.enforce_middleware.match_legacy_handler", match_mock)
+    monkeypatch.setattr("sophie_bot.modules.filters.enforce_middleware.match_filter_handler", match_mock)
 
     await middleware._process_filters(message, {"chat_db": chat_db, "user_in_group": None})
 
     assert match_mock.await_count == 1
+
+
+def test_get_effective_filter_actions_uses_modern_actions_first() -> None:
+    filter_item = SimpleNamespace(action="legacy", actions={"modern": {"enabled": True}})
+
+    actions = get_effective_filter_actions(filter_item)
+
+    assert len(actions) == 1
+    assert actions[0].name == "modern"
+    assert actions[0].data == {"enabled": True}
+    assert actions[0].uses_compatibility_handler is False
+
+
+def test_get_effective_filter_actions_wraps_single_compatibility_action() -> None:
+    filter_item = SimpleNamespace(action="legacy", actions={})
+
+    actions = get_effective_filter_actions(filter_item)
+
+    assert len(actions) == 1
+    assert actions[0].name == "legacy"
+    assert actions[0].data is None
+    assert actions[0].uses_compatibility_handler is True

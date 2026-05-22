@@ -22,5 +22,5 @@ icon: ℹ️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/help` | - | Shows help overview for all modules | *Only in groups* |
+| `/help` | - | Shows help overview for all modules |  |
 {.card-view-on-mobile}

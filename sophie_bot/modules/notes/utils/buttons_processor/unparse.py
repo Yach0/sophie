@@ -5,6 +5,14 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes_buttons import Button, ButtonStyle
+from sophie_bot.modules.utils_.legacy_buttons import (
+    LEGACY_CONNECTION_BUTTON_PREFIX,
+    LEGACY_DELETE_MESSAGE_BUTTON_PREFIX,
+    LEGACY_NOTE_BUTTON_PREFIX,
+    LEGACY_RULES_BUTTON_PREFIX,
+    LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
+    build_legacy_start_payload,
+)
 from sophie_bot.utils.logger import log
 
 
@@ -41,28 +49,23 @@ def unparse_button(button: Button, chat_id: int) -> InlineKeyboardButton | None:
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}", style=button.style)
 
     if action == ButtonAction.rules:
-        cb = "btn_rules"
-        string = f"{cb}_{chat_id}"
+        string = build_legacy_start_payload(LEGACY_RULES_BUTTON_PREFIX, chat_id)
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
     if action == ButtonAction.delmsg:
-        cb = "btn_deletemsg_cb"
-        string = f"{cb}_{chat_id}"
+        string = build_legacy_start_payload(LEGACY_DELETE_MESSAGE_BUTTON_PREFIX, chat_id)
         return create_inline_button(text=text, callback_data=string, style=button.style)
 
     if action == ButtonAction.connect:
-        cb = "btn_connect_start"
-        string = f"{cb}_{chat_id}"
+        string = build_legacy_start_payload(LEGACY_CONNECTION_BUTTON_PREFIX, chat_id)
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
     if action == ButtonAction.captcha:
-        cb = "btnwelcomesecuritystart"
-        string = f"{cb}_{chat_id}"
+        string = build_legacy_start_payload(LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, chat_id)
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
     if action == ButtonAction.note:
-        cb = "btnnotesm"
-        string = f"{cb}_{data}_{chat_id}" if data else f"{cb}_{chat_id}"
+        string = build_legacy_start_payload(LEGACY_NOTE_BUTTON_PREFIX, chat_id, data or "")
         return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}?start={string}", style=button.style)
 
     # Fallback for unknown types (should not happen if all covered)

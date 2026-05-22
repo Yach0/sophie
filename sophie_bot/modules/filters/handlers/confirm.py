@@ -10,7 +10,7 @@ from sophie_bot.modules.filters.utils_.filter_abc import (
     ALL_FILTER_ACTIONS,
     FilterActionABC,
 )
-from sophie_bot.modules.filters.utils_.legacy_filter_handler import text_legacy_handler_handles_on
+from sophie_bot.modules.filters.utils_.filter_handler_rules import describe_filter_handler
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
@@ -37,7 +37,7 @@ class ConfirmAddFilter(SophieMessageHandler):
 
         doc = Doc(
             Title(_("New filter")),
-            Section(text_legacy_handler_handles_on(filter_handler), title=_("Handles")),
+            Section(describe_filter_handler(filter_handler), title=_("Handles")),
             Section(
                 VList(
                     *(

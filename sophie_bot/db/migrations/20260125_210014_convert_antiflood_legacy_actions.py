@@ -12,9 +12,12 @@ Impact:
 """
 
 from beanie import free_fall_migration
-from sophie_bot.db.models.antiflood import AntifloodModel, LEGACY_ACTIONS, LEGACY_ACTIONS_TO_MODERN
+from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.utils.logger import log
+
+LEGACY_ACTIONS = {"mute", "kick", "ban"}
+LEGACY_ACTIONS_TO_MODERN = {"mute": "mute_user", "kick": "kick_user", "ban": "ban_user"}
 
 
 class Forward:

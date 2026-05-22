@@ -2,6 +2,7 @@ from random import choice
 from string import printable
 
 from aiogram.types import CallbackQuery, Message
+from babel.support import LazyProxy as BabelLazyProxy
 from bson import ObjectId
 from regex import regex
 from stfu_tg import Code, Doc, Template
@@ -15,6 +16,7 @@ from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
 
 
@@ -84,7 +86,7 @@ async def _check_ai_filter_rules(
 
     prompt = keyword[3:].strip()
     if not prompt:
-        log.info("check_legacy_filter_handler: empty AI prompt")
+        log.info("validate_filter_handler: empty AI prompt")
         await reply_or_edit(
             event,
             _(
@@ -106,7 +108,7 @@ async def _check_ai_filter_rules(
     if not is_editing_ai_filter:
         current_ai_filter_count = await FiltersModel.count_ai_filters(connection.db_model.iid)
         if current_ai_filter_count >= AI_FILTER_LIMIT_PER_CHAT:
-            log.info(f"check_legacy_filter_handler: AI filter limit reached for chat {connection.db_model.iid}")
+            log.info(f"validate_filter_handler: AI filter limit reached for chat {connection.db_model.iid}")
             await reply_or_edit(
                 event,
                 Template(
@@ -131,7 +133,7 @@ async def _check_regex_validity(event: Message | CallbackQuery, keyword: str) ->
     try:
         regex.match(pattern, random_text_str, timeout=0.2)
     except TimeoutError:
-        log.info("check_legacy_filter_handler: regex too slow")
+        log.info("validate_filter_handler: regex too slow")
         await reply_or_edit(
             event,
             _(
@@ -140,7 +142,7 @@ async def _check_regex_validity(event: Message | CallbackQuery, keyword: str) ->
         )
         return False
     except regex.error:
-        log.info("check_legacy_filter_handler: invalid regex pattern")
+        log.info("validate_filter_handler: invalid regex pattern")
         await reply_or_edit(
             event,
             _("Provided regex pattern is invalid. Please check the syntax and try again."),
@@ -149,7 +151,7 @@ async def _check_regex_validity(event: Message | CallbackQuery, keyword: str) ->
     return True
 
 
-async def check_legacy_filter_handler(
+async def validate_filter_handler(
     event: Message | CallbackQuery, keyword: str, connection: ChatConnection, editing_oid: str | None = None
 ) -> bool:
     if not await _check_lock_conflict(event, keyword, connection):
@@ -163,7 +165,7 @@ async def check_legacy_filter_handler(
     return True
 
 
-def text_legacy_handler_handles_on(keyword: str) -> Element:
+def describe_filter_handler(keyword: str) -> Element | str | LazyProxy | BabelLazyProxy:
     if is_supported_lock_type(keyword):
         return get_lock_description(keyword)
 

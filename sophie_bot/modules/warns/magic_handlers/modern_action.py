@@ -89,9 +89,6 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
         if not text:
             text = _("No reason")
 
-        # Legacy workaround
-        # connected_chat = await get_connected_chat(message)
-
         current, limit, punishment, warn = await warn_user(
             chat_db,
             target_db,

@@ -13,11 +13,7 @@ from babel.support import LazyProxy
 from stfu_tg import Doc
 
 from sophie_bot.filters.admin_rights import UserRestricting
-from sophie_bot.filters.chat_status import (
-    ChatTypeFilter,
-    LegacyOnlyGroups,
-    LegacyOnlyPM,
-)
+from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
@@ -129,23 +125,15 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
 
         # Only PMs
         only_pm = any(
-            (
-                (isinstance(f.callback, ChatTypeFilter) and f.callback.chat_types == ("private",))
-                or (isinstance(f.callback, LegacyOnlyPM))
-            )
-            for f in handler.filters
+            isinstance(f.callback, ChatTypeFilter) and f.callback.chat_types == ("private",) for f in handler.filters
         )
 
         # Only chats
         only_chats = any(
             (
-                (isinstance(f.callback, ChatTypeFilter) and f.callback.chat_types == ("private",))
-                or (
-                    isinstance(f.callback, _InvertFilter)
-                    and isinstance(f.callback.target.callback, ChatTypeFilter)
-                    and f.callback.target.callback.chat_types == ("private",)
-                )
-                or (isinstance(f.callback, LegacyOnlyGroups))
+                isinstance(f.callback, _InvertFilter)
+                and isinstance(f.callback.target.callback, ChatTypeFilter)
+                and f.callback.target.callback.chat_types == ("private",)
             )
             for f in handler.filters
         )

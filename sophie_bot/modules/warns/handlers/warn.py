@@ -21,6 +21,7 @@ from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
+from sophie_bot.modules.utils_.legacy_buttons import LEGACY_RULES_BUTTON_PREFIX, build_legacy_start_payload
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -157,7 +158,7 @@ class WarnHandler(SophieMessageHandler):
             builder.row(
                 InlineKeyboardButton(
                     text=f"🪧 {_('Rules')}",
-                    url=f"https://t.me/{bot_username}?start=btn_rules_{connection.tid}",
+                    url=f"https://t.me/{bot_username}?start={build_legacy_start_payload(LEGACY_RULES_BUTTON_PREFIX, connection.tid)}",
                 )
             )
 

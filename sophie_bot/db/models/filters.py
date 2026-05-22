@@ -54,7 +54,7 @@ class FiltersModel(Document):
         return await FiltersModel.find_one(FiltersModel.chat.id == chat_iid, FiltersModel.handler == keyword)
 
     @staticmethod
-    async def get_legacy_by_keyword(chat_iid: ObjectId, keyword: str) -> list["FiltersModel"]:
+    async def get_all_by_keyword(chat_iid: ObjectId, keyword: str) -> list["FiltersModel"]:
         return await FiltersModel.find(FiltersModel.chat.id == chat_iid, FiltersModel.handler == keyword).to_list()
 
     @staticmethod

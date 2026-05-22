@@ -138,7 +138,6 @@ async def update_antiflood_settings(
     settings.enabled = request.enabled
     settings.message_count = request.message_count
     settings.actions = [FilterActionType(name=action.name, data=action.data) for action in request.actions]
-    settings.action = None  # Clear legacy action
 
     await settings.save()
 

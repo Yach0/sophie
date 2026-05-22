@@ -13,10 +13,10 @@ from sophie_bot.constants import FILTERS_MAX_TRIGGERS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.filters.fsm import FilterEditFSM
 from sophie_bot.modules.filters.utils_.handle_action import (
-    handle_legacy_filter_action,
-    handle_modern_filter_action,
+    get_effective_filter_actions,
+    handle_effective_filter_action,
 )
-from sophie_bot.modules.filters.utils_.match_legacy import match_legacy_handler
+from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
@@ -65,26 +65,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return False
 
     @staticmethod
-    async def _handle_legacy_action(
-        filter_item: FiltersModel, triggered_actions: list[str], message: Message
-    ) -> Optional[str]:
-        log.debug("EnforceFiltersMiddleware: handling legacy action...")
-
-        if filter_item.action and filter_item.action in triggered_actions:
-            log.debug("EnforceFiltersMiddleware: already triggered action, dropping...")
-            return None
-
-        if filter_item.action:
-            await handle_legacy_filter_action(filter_item, message)
-            return filter_item.action
-
-        return None
-
-    @staticmethod
-    async def _handle_modern_action(
+    async def _handle_filter_actions(
         filter_item: FiltersModel, triggered_actions: list[str], message: Message, data: dict[str, Any]
     ) -> tuple[list[str], list[Element | str | LazyProxy]]:
-        log.debug("EnforceFiltersMiddleware: handling modern actions...")
+        log.debug("EnforceFiltersMiddleware: handling filter actions...")
 
         triggered: list[str] = []
         messages = []
@@ -92,17 +76,17 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         # Inject filter ID into data for logging purposes
         data["filter_id"] = str(filter_item.id)
 
-        for action, action_data in filter_item.actions.items():
-            if action in triggered_actions:
+        for action in get_effective_filter_actions(filter_item):
+            if action.name in triggered_actions:
                 log.debug("EnforceFiltersMiddleware: already triggered action, dropping...")
                 continue
 
-            log.debug("EnforceFiltersMiddleware: handling action", action=action)
+            log.debug("EnforceFiltersMiddleware: handling action", action=action.name)
 
-            action_message = await handle_modern_filter_action(message, action, data, action_data)
+            action_message = await handle_effective_filter_action(message, action, data, filter_item)
             if action_message:
                 messages.append(action_message)
-            triggered.append(action)
+            triggered.append(action.name)
 
         return triggered, messages
 
@@ -123,13 +107,11 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
     async def _process_filter(
         self, message: Message, data: dict[str, Any], matched_filter: FiltersModel, triggered_groups=None
-    ) -> tuple[list[str | None], list[Element | str | LazyProxy]]:
+    ) -> tuple[list[str], list[Element | str | LazyProxy]]:
         if triggered_groups is None:
             triggered_groups = []
-        if matched_filter.actions:
-            return await self._handle_modern_action(matched_filter, triggered_groups, message, data)  # type: ignore
-        if matched_filter.action:
-            return [await self._handle_legacy_action(matched_filter, triggered_groups, message)], []
+        if get_effective_filter_actions(matched_filter):
+            return await self._handle_filter_actions(matched_filter, triggered_groups, message, data)
         raise SophieException("EnforceFiltersMiddleware: no actions found")
 
     async def _process_filters(self, message: Message, data: dict[str, Any]):
@@ -153,7 +135,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                     continue
                 ai_filter_evaluated = True
 
-            matched = await match_legacy_handler(
+            matched = await match_filter_handler(
                 message,
                 fil.handler,
                 user_in_group=user_in_group,

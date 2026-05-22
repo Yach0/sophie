@@ -1,12 +1,12 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional, Sequence
+from typing import Annotated, Optional, Sequence
 
 from aiogram.enums import ContentType
 from beanie import Document, Indexed, PydanticObjectId
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.find.evaluation import Text
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 from pymongo import TEXT
 from pymongo.results import DeleteResult
 
@@ -62,13 +62,6 @@ class NoteModel(Saveable, Document):
     created_user: Optional[Link[ChatModel]] = None
     edited_date: Optional[datetime] = None
     edited_user: Optional[Link[ChatModel]] = None
-
-    @field_validator("created_user", "edited_user", mode="before")
-    @classmethod
-    def _coerce_legacy_user_link(cls, value: Any) -> Any:
-        if isinstance(value, int):
-            return None
-        return value
 
     class Settings:
         name = "notes"

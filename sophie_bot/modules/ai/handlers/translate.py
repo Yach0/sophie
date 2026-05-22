@@ -30,7 +30,7 @@ from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
-from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import get_service_tier, get_value
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -85,7 +85,7 @@ def _build_translate_reply_doc(
             if not is_voice
             else None
         ),
-        BlockQuote(PreformattedHTML(legacy_markdown_to_html(translated.translated_text)), expandable=True),
+        BlockQuote(PreformattedHTML(ai_markdown_to_html(translated.translated_text)), expandable=True),
         (
             Section(translated.translation_explanations, title=_("Translation Notes"))
             if translated.translation_explanations

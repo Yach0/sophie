@@ -14,6 +14,7 @@ from sophie_bot.modules.connections.utils.connection import (
     get_disconnect_markup,
     set_connected_chat,
 )
+from sophie_bot.modules.utils_.legacy_buttons import LEGACY_CONNECTION_BUTTON_PATTERN
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
@@ -22,13 +23,13 @@ from sophie_bot.utils.i18n import gettext as _
 class StartConnectHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CommandStart(deep_link=True, magic=F.args.regexp(r"(?:connect|btn_connect_start)_(-?\d+)")),)
+        return (CommandStart(deep_link=True, magic=F.args.regexp(LEGACY_CONNECTION_BUTTON_PATTERN)),)
 
     async def handle(self) -> Any:
         if not self.event.from_user or not self.event.text:
             return
 
-        regex = search(r"(?:connect|btn_connect_start)_(-?\d+)", self.event.text)
+        regex = search(LEGACY_CONNECTION_BUTTON_PATTERN, self.event.text)
         if not regex:
             return
 

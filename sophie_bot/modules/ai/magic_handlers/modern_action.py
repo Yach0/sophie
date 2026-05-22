@@ -19,7 +19,7 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
     ModernActionABC,
     ModernActionSetting,
 )
-from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.i18n import gettext as _
@@ -97,5 +97,5 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
 
         return Doc(
             Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),
-            PreformattedHTML(legacy_markdown_to_html(str(result.output))),
+            PreformattedHTML(ai_markdown_to_html(str(result.output))),
         )

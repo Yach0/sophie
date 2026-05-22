@@ -12,6 +12,7 @@ from sophie_bot.modules.greetings.default_welcome import get_default_join_reques
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.legacy_buttons import LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, build_legacy_start_payload
 from sophie_bot.modules.utils_.telegram_exceptions import (
     CHANNELS_TOO_MUCH,
     CHAT_ADMIN_REQUIRED,
@@ -29,7 +30,8 @@ from sophie_bot.utils.logger import log
 
 
 async def send_dm_unblock_message(chat_tid: int) -> Message:
-    start_url = f"https://t.me/{CONFIG.username}?start=btnwelcomesecuritystart_{chat_tid}"
+    payload = build_legacy_start_payload(LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, chat_tid)
+    start_url = f"https://t.me/{CONFIG.username}?start={payload}"
 
     return await bot.send_message(
         chat_id=chat_tid,

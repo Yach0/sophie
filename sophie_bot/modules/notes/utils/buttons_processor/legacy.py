@@ -4,12 +4,11 @@ from re import findall, sub
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.utils_.legacy_buttons import LEGACY_BUTTON_ACTIONS
 from sophie_bot.utils.logger import log
 
-BUTTONS: dict[str, str] = {}
 
-
-def legacy_button_parser(chat_id, texts, pm=False) -> tuple[str, InlineKeyboardMarkup]:
+def legacy_button_parser(chat_tid: int, texts: str, pm: bool = False) -> tuple[str, InlineKeyboardMarkup]:
     buttons: list[list[InlineKeyboardButton]] = []
     pattern = r"\[(.+?)\]\((button|btn|#)(.+?)(:.+?|)(:same|)\)(\n|)"
     raw_buttons = findall(pattern, texts)
@@ -31,9 +30,9 @@ def legacy_button_parser(chat_id, texts, pm=False) -> tuple[str, InlineKeyboardM
         else:
             argument = ""
 
-        if action in BUTTONS:
-            cb = BUTTONS[action]
-            string = f"{cb}_{argument}_{chat_id}" if argument else f"{cb}_{chat_id}"
+        if action in LEGACY_BUTTON_ACTIONS:
+            cb = LEGACY_BUTTON_ACTIONS[action]
+            string = f"{cb}_{argument}_{chat_tid}" if argument else f"{cb}_{chat_tid}"
             start_btn = InlineKeyboardButton(text=name, url=f"https://t.me/{CONFIG.username}?start=" + string)
             cb_btn = InlineKeyboardButton(text=name, callback_data=string)
 

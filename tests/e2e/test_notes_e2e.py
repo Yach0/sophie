@@ -14,7 +14,7 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
 
 
 async def _setup_group_and_user(
@@ -90,6 +90,11 @@ async def test_save_note_success(
         f"Response should confirm note creation, got: {response_text}"
     )
     assert "greeting" in response_text, f"Response should mention the note name, got: {response_text}"
+
+    saved_note = await NoteModel.find_one(NoteModel.chat_tid == chat_model.tid)
+    assert saved_note is not None
+    assert saved_note.parse_mode == SaveableParseMode.html
+    assert saved_note.version == 2
 
 
 # ---------------------------------------------------------------------------

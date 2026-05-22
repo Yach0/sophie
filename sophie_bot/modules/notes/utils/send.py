@@ -27,7 +27,7 @@ from aiogram.types import (
 )
 from stfu_tg.doc import Element
 
-from sophie_bot.db.models.notes import Saveable, SaveableParseMode
+from sophie_bot.db.models.notes import Saveable
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import legacy_button_parser
 from sophie_bot.modules.notes.utils.buttons_processor.unparse import unparse_buttons
@@ -37,7 +37,6 @@ from sophie_bot.modules.notes.utils.parse import (
     SUPPORTS_CAPTION,
 )
 from sophie_bot.modules.notes.utils._random_parser import parse_random_text
-from sophie_bot.modules.notes.utils.unparse_legacy import legacy_markdown_to_html
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
@@ -91,10 +90,6 @@ async def send_saveable(
             inline_markup = unparse_buttons(saveable.buttons, chat_id_for_buttons)
 
         inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
-
-    # Convert legacy markdown to HTML
-    if text and saveable.parse_mode != SaveableParseMode.html:
-        text = legacy_markdown_to_html(text)
 
     # Process fillings
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)

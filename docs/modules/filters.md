@@ -214,10 +214,11 @@ Examples:
 
 Sophie will reply with 1 to 3 suggested handlers.
 
-### Legacy filters compatibility
+### Lock-type filter compatibility
 
 Older filters created before lock-based filters were introduced keep their previous behavior.
-If an old filter handler happens to have the same text as a lock type, Sophie still treats it as a normal text filter.
+If an existing filter handler happens to have the same text as a lock type, Sophie still treats it as a normal text
+filter.
 
 ## Multiple filter actions and multiple filters
 

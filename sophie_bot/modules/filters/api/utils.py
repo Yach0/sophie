@@ -13,6 +13,7 @@ from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTERS_MAX_TRIGGERS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.filters.utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
@@ -160,6 +161,19 @@ def build_filter_action_response(action_name: str, action_data: dict[str, Any]) 
     )
 
 
+def build_compatibility_filter_action_response(action_name: str) -> FilterActionResponse:
+    action = LEGACY_FILTERS_ACTIONS.get(action_name)
+    if not action:
+        return FilterActionResponse(name=action_name, data={})
+
+    return FilterActionResponse(
+        name=action_name,
+        data={},
+        title=str(action["title"]),
+        description=str(action["title"]),
+    )
+
+
 def build_filter_response(filter_item: FiltersModel) -> FilterResponse:
     if filter_item.id is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Filter ID is missing")
@@ -175,7 +189,12 @@ def build_filter_response(filter_item: FiltersModel) -> FilterResponse:
         is_legacy=bool(filter_item.action),
         legacy_action=filter_item.action,
         legacy_action_title=legacy_action_title,
-        actions=[build_filter_action_response(name, data or {}) for name, data in filter_item.actions.items()],
+        actions=[
+            build_compatibility_filter_action_response(action.name)
+            if action.uses_compatibility_handler
+            else build_filter_action_response(action.name, action.data or {})
+            for action in get_effective_filter_actions(filter_item)
+        ],
         time=filter_item.time,
     )
 

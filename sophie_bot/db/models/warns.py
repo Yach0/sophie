@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from beanie import Document, PydanticObjectId
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 
 from sophie_bot.constants import WARN_MAX_ACTIONS
 from sophie_bot.db.models._link_type import Link
@@ -15,9 +15,8 @@ from .filters import FilterActionType
 class WarnSettingsModel(Document):
     chat: Link[ChatModel]
     max_warns: int = Field(default=3, ge=2, le=10000)
-    actions: list[FilterActionType] = []
-    on_each_warn_actions: list[FilterActionType] = []
-    on_max_warn_actions: list[FilterActionType] = []
+    on_each_warn_actions: list[FilterActionType] = Field(default_factory=list)
+    on_max_warn_actions: list[FilterActionType] = Field(default_factory=list)
 
     class Settings:
         name = "warn_settings"
@@ -29,12 +28,6 @@ class WarnSettingsModel(Document):
             return by_link_id
 
         return await WarnSettingsModel.find_one(WarnSettingsModel.chat == chat_iid)
-
-    @model_validator(mode="after")
-    def handle_legacy_actions(self) -> "WarnSettingsModel":
-        if not self.on_max_warn_actions and self.actions:
-            self.on_max_warn_actions = list(self.actions)
-        return self
 
     @staticmethod
     async def get_or_create(chat_iid: PydanticObjectId) -> WarnSettingsModel:

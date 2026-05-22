@@ -8,6 +8,7 @@ from stfu_tg import Bold, Section, Title
 
 from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.legacy_buttons import LEGACY_RULES_BUTTON_PATTERN, LEGACY_RULES_BUTTON_PREFIX
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
@@ -15,10 +16,10 @@ from sophie_bot.utils.i18n import gettext as _
 class LegacyRulesButton(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CommandStart(deep_link=True, magic=F.args.regexp(r"btn_rules_")),)
+        return (CommandStart(deep_link=True, magic=F.args.regexp(f"{LEGACY_RULES_BUTTON_PREFIX}_")),)
 
     async def handle(self) -> Any:
-        regex = search(r"btn_rules_(-?\d+)", self.event.text)
+        regex = search(LEGACY_RULES_BUTTON_PATTERN, self.event.text)
         if not regex:
             return
 

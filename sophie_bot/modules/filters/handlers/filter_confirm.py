@@ -18,7 +18,7 @@ from sophie_bot.modules.filters.callbacks import (
 )
 from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.modules.filters.utils_.legacy_filter_handler import text_legacy_handler_handles_on
+from sophie_bot.modules.filters.utils_.filter_handler_rules import describe_filter_handler
 from sophie_bot.modules.troubleshooters.callbacks import CancelCallback
 from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
@@ -48,7 +48,7 @@ class FilterConfirmHandler(SophieMessageCallbackQueryHandler):
 
         doc = Doc(
             Title(_("New filter")),
-            Section(text_legacy_handler_handles_on(filter_item.handler.keyword), title=_("Handles")),
+            Section(describe_filter_handler(filter_item.handler.keyword), title=_("Handles")),
             Section(
                 VList(
                     *(

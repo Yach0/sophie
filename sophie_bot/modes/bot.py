@@ -28,7 +28,7 @@ ALLOWED_UPDATES = [
     # 'chosen_inline_result',
     "callback_query",
     # 'shipping_query',
-    # 'pre_chlegacy_moduleseckout_query',
+    # 'pre_checkout_query',
     # 'poll',
     # 'poll_answer',
     "my_chat_member",

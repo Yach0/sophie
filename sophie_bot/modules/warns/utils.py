@@ -161,8 +161,6 @@ async def warn_user(
         await WarnModel.find(WarnModel.chat.id == chat.iid, WarnModel.user.id == user.iid).delete()
 
         max_actions = settings.on_max_warn_actions
-        if not max_actions and settings.actions:
-            max_actions = settings.actions
 
         if not max_actions:
             if await ban_user(chat.tid, user.tid):

@@ -14,6 +14,6 @@ icon: 🕵️‍♂️️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/privacy` | - | Shows the privacy policy of the bot | *Only in groups* |
-| `/export` | - | Exports your data to a JSON file | *Only in groups* |
+| `/privacy` | - | Shows the privacy policy of the bot |  |
+| `/export` | - | Exports your data to a JSON file |  |
 {.card-view-on-mobile}

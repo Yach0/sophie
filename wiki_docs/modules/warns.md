@@ -18,7 +18,7 @@ icon: ⚠️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/warns` | - | Shows all your warns across all chats. | *Only in groups* |
+| `/warns` | - | Shows all your warns across all chats. |  |
 {.card-view-on-mobile}
 
 ### Only admins

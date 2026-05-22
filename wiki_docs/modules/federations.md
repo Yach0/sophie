@@ -38,7 +38,7 @@ icon: 🏛
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/fcheck` `/fbanstat` | `<User to check>` `<'full' to show all bans>` | Check federation bans | *Only in groups* |
+| `/fcheck` `/fbanstat` | `<User to check>` `<'full' to show all bans>` | Check federation bans |  |
 {.card-view-on-mobile}
 
 ### Only admins

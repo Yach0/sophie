@@ -1,25 +1,20 @@
 from __future__ import annotations
 
-from typing import Optional, Literal
+from typing import Optional
 
 from beanie import Document, PydanticObjectId
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 
 from ._link_type import Link
 from .chat import ChatModel
 from .filters import FilterActionType
-
-LEGACY_ACTION_TYPE = Literal["mute"] | Literal["kick"] | Literal["ban"]
-LEGACY_ACTIONS = {"mute", "kick", "ban"}
-LEGACY_ACTIONS_TO_MODERN = {"mute": "mute_user", "kick": "kick_user", "ban": "ban_user"}
 
 
 class AntifloodModel(Document):
     chat: Link[ChatModel]
     enabled: Optional[bool] = True
     message_count: int = Field(default=5, ge=1, le=100, alias="count")
-    actions: list[FilterActionType] = []
-    action: Optional[LEGACY_ACTION_TYPE] = None  # Legacy action
+    actions: list[FilterActionType] = Field(default_factory=list)
 
     model_config = {"populate_by_name": True}
 
@@ -33,15 +28,6 @@ class AntifloodModel(Document):
         if isinstance(value, int):
             return value
         return 5
-
-    @model_validator(mode="after")
-    def handle_legacy_actions(self) -> "AntifloodModel":
-        """Convert legacy action names to FilterActionType objects."""
-        if not self.actions and self.action in LEGACY_ACTIONS:
-            legacy_action = self.action
-            modern_name = LEGACY_ACTIONS_TO_MODERN[str(legacy_action)]
-            self.actions = [FilterActionType(name=modern_name, data={})]
-        return self
 
     @staticmethod
     async def get_by_chat_iid(chat_iid: PydanticObjectId) -> AntifloodModel:

@@ -9,6 +9,7 @@ from stfu_tg import Bold, HList, Title
 from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.legacy_buttons import LEGACY_NOTE_BUTTON_PATTERN, LEGACY_NOTE_BUTTON_PREFIX
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -17,12 +18,12 @@ from sophie_bot.utils.i18n import gettext as _
 class LegacyStartNoteButton(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CommandStart(deep_link=True, magic=F.args.regexp(r"btnnotesm")),)
+        return (CommandStart(deep_link=True, magic=F.args.regexp(LEGACY_NOTE_BUTTON_PREFIX)),)
 
     async def handle(self) -> Any:
         message = self.event
 
-        regex = search(r"btnnotesm_(.*)_(.*)", message.text)
+        regex = search(LEGACY_NOTE_BUTTON_PATTERN, message.text)
 
         if not regex:
             return

@@ -14,6 +14,11 @@ from sophie_bot.db.models import (
     WSUserModel,
 )
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
+from sophie_bot.modules.utils_.legacy_buttons import (
+    LEGACY_WELCOME_SECURITY_BUTTON_PATTERN,
+    LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
+    LEGACY_WELCOME_SECURITY_STABLE_PREFIX,
+)
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
 from sophie_bot.services.bot import bot
@@ -29,17 +34,19 @@ from sophie_bot.utils.logger import log
 class LegacyStableWSButtonRedirectHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (F.data.startswith("ws_"),)
+        return (F.data.startswith(LEGACY_WELCOME_SECURITY_STABLE_PREFIX),)
 
     async def handle(self) -> Any:
         chat_id = self.event.message.chat.id
-        return await self.event.answer(url=f"https://t.me/{CONFIG.username}?start=btnwelcomesecuritystart_{chat_id}")
+        return await self.event.answer(
+            url=f"https://t.me/{CONFIG.username}?start={LEGACY_WELCOME_SECURITY_BUTTON_PREFIX}_{chat_id}"
+        )
 
 
 class LegacyWSButtonHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (F.text.regexp(r"/start btnwelcomesecuritystart_(.*)"),)
+        return (F.text.regexp(rf"/start {LEGACY_WELCOME_SECURITY_BUTTON_PREFIX}_(.*)"),)
 
     @staticmethod
     async def _user_is_still_in_group(user_db: ChatModel, group_db: ChatModel) -> bool:
@@ -67,7 +74,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         if not self.event.text:
             return
 
-        match = search(r"btnwelcomesecuritystart_(-?\d+)", self.event.text)
+        match = search(LEGACY_WELCOME_SECURITY_BUTTON_PATTERN, self.event.text)
         if not match:
             return
 

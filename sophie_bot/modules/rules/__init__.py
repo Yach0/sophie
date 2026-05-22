@@ -2,13 +2,17 @@ from aiogram import Router
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
-from sophie_bot.modules.notes.utils.buttons_processor.legacy import BUTTONS
 from sophie_bot.modules.rules.handlers.get import GetRulesHandler
 from sophie_bot.modules.rules.handlers.legacy_button import LegacyRulesButton
 from sophie_bot.modules.rules.handlers.reset import ResetRulesHandler
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
 from sophie_bot.modules.rules.magic_handlers.filter import get_filter
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
+from sophie_bot.modules.utils_.legacy_buttons import (
+    LEGACY_RULES_BUTTON_PREFIX,
+    LegacyButtonAction,
+    register_legacy_button_actions,
+)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -19,7 +23,7 @@ __all__ = ("api_router",)
 
 router = Router(name="rules")
 
-BUTTONS.update({"rules": "btn_rules"})
+register_legacy_button_actions(LegacyButtonAction("rules", LEGACY_RULES_BUTTON_PREFIX))
 
 
 module_manifest = ModuleManifest(

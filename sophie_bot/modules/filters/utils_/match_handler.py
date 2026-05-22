@@ -190,7 +190,7 @@ async def match_ai_handler(
         return False
 
 
-async def match_legacy_handler(
+async def match_filter_handler(
     message: Message,
     handler: str,
     user_in_group: UserInGroupModel | None = None,
@@ -200,7 +200,7 @@ async def match_legacy_handler(
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler
     if handler.startswith("ai:"):
-        log.debug(f"match_legacy_handler: ai: {handler}")
+        log.debug(f"match_filter_handler: ai: {handler}")
         prompt = handler[3:]
         return await match_ai_handler(message, prompt, user_in_group=user_in_group, chat_iid=chat_iid)
 
@@ -212,24 +212,24 @@ async def match_legacy_handler(
     if not (message_text := message.caption or message.text or ""):
         return False
 
-    # Legacy regex support
+    # Regex support
     if handler.startswith("re:"):
-        log.debug(f"match_legacy_handler: regex: {handler}")
+        log.debug(f"match_filter_handler: regex: {handler}")
         pattern = handler[3:]
         return match_regex_handler(message_text, pattern)
 
     # Exact text match
     if handler.startswith("exact:"):
-        log.debug(f"match_legacy_handler: exact: {handler}")
+        log.debug(f"match_filter_handler: exact: {handler}")
         text = handler[6:]
         return match_exact_handler(message_text, text)
 
     # Whole word or phrase match (no regex)
     if handler.startswith("word:"):
-        log.debug(f"match_legacy_handler: word: {handler}")
+        log.debug(f"match_filter_handler: word: {handler}")
         word_or_phrase = handler[5:]
         return match_word_handler(message_text, word_or_phrase)
 
     # Contains text match (default behavior)
-    log.debug(f"match_legacy_handler: contains: {handler}")
+    log.debug(f"match_filter_handler: contains: {handler}")
     return match_contains_handler(message_text, handler)
