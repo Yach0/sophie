@@ -1,13 +1,13 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from stfu_tg import UserLink, VList, Template, Section
+from stfu_tg import Section, Template, UserLink, VList
 
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

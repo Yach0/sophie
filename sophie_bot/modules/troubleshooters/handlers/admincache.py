@@ -1,13 +1,12 @@
 from typing import Any
 
-from aiogram import flags
-
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import get_admins_rights
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.modules.utils_.chat_member import update_chat_members
+from sophie_bot.utils import flags
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

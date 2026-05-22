@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from aiogram import Router, flags
+from aiogram import Router
 from aiogram.types import BufferedInputFile, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
@@ -9,14 +9,15 @@ from stfu_tg import Bold, Italic, Template
 from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityMoveCB,
 )
 from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 

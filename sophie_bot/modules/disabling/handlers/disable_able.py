@@ -1,12 +1,12 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Section
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS, HandlerHelp
 from sophie_bot.modules.help.utils.format_help import format_handlers
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

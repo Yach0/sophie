@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -14,6 +13,7 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

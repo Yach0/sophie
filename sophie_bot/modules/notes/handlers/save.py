@@ -1,6 +1,5 @@
 from typing import Any, Sequence
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import DividedArg, OptionalArg, SurroundedArg, TextArg, WordArg
 from ass_tg.types.base_abc import ParsedArg
@@ -19,6 +18,7 @@ from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsA
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
 from sophie_bot.modules.notes.utils.parse import parse_saveable
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

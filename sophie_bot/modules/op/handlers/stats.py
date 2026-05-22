@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 
-from aiogram import flags
 from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template
 
 from sophie_bot.config import CONFIG
@@ -13,6 +12,7 @@ from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.services.db import db
 from sophie_bot.services.migrations import get_migration_status
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.versions import SOPHIE_BRANCH, SOPHIE_COMMIT, SOPHIE_VERSION

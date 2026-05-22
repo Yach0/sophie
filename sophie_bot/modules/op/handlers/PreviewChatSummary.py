@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Doc, KeyValue, Section, Title
 
@@ -11,6 +10,7 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

@@ -346,60 +346,60 @@ msgstr ""
 msgid "Controls AI Moderator features"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:30
+#: sophie_bot/modules/ai/handlers/aiprovider.py:31
 msgid "🔃 Automatically choose the best provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:31
+#: sophie_bot/modules/ai/handlers/aiprovider.py:32
 msgid "⚡️ The fastest"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:32
+#: sophie_bot/modules/ai/handlers/aiprovider.py:33
 msgid "🔒 The most private"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:33
+#: sophie_bot/modules/ai/handlers/aiprovider.py:34
 msgid "🧠 The smartest"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:34
+#: sophie_bot/modules/ai/handlers/aiprovider.py:35
 msgid "👨‍🏫 The most precise"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:55
-#: sophie_bot/modules/ai/handlers/aiprovider.py:118
+#: sophie_bot/modules/ai/handlers/aiprovider.py:56
+#: sophie_bot/modules/ai/handlers/aiprovider.py:119
 msgid "Select the AI Provider for this chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:72
+#: sophie_bot/modules/ai/handlers/aiprovider.py:73
 msgid "Current provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:73
+#: sophie_bot/modules/ai/handlers/aiprovider.py:74
 msgid "AI Provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:89
+#: sophie_bot/modules/ai/handlers/aiprovider.py:90
 #: sophie_bot/modules/federations/handlers/delete.py:88
 msgid "Invalid message type"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:97
+#: sophie_bot/modules/ai/handlers/aiprovider.py:98
 msgid "You are not allowed to change this setting"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:102
+#: sophie_bot/modules/ai/handlers/aiprovider.py:103
 msgid "Unknown provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:108
-#: sophie_bot/modules/connections/handlers/connect_dm.py:39
+#: sophie_bot/modules/ai/handlers/aiprovider.py:109
+#: sophie_bot/modules/connections/handlers/connect_dm.py:38
 #: sophie_bot/modules/disabling/handlers/disable.py:50
 #: sophie_bot/modules/disabling/handlers/enable.py:52
 #: sophie_bot/modules/locks/handlers/lock.py:86
 #: sophie_bot/modules/locks/handlers/locks_list.py:69
-#: sophie_bot/modules/locks/handlers/locksticker.py:49
-#: sophie_bot/modules/locks/handlers/locksticker.py:63
+#: sophie_bot/modules/locks/handlers/locksticker.py:52
+#: sophie_bot/modules/locks/handlers/locksticker.py:66
 #: sophie_bot/modules/locks/handlers/unlock.py:81
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:36
@@ -424,15 +424,15 @@ msgstr ""
 msgid "Chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:109
+#: sophie_bot/modules/ai/handlers/aiprovider.py:110
 msgid "New provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:110
+#: sophie_bot/modules/ai/handlers/aiprovider.py:111
 msgid "AI Provider was updated"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:114
+#: sophie_bot/modules/ai/handlers/aiprovider.py:115
 msgid "Provider updated"
 msgstr ""
 
@@ -587,41 +587,41 @@ msgstr ""
 msgid "Top features this month"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:22
+#: sophie_bot/modules/ai/handlers/pm.py:23
 msgid "Start the AI ChatBot mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:33
+#: sophie_bot/modules/ai/handlers/pm.py:34
 #, python-brace-format
 msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:38
+#: sophie_bot/modules/ai/handlers/pm.py:39
 #, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:39
+#: sophie_bot/modules/ai/handlers/pm.py:40
 msgid "privacy policy"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:41
+#: sophie_bot/modules/ai/handlers/pm.py:42
 msgid "Click on the button below to exit."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:49
+#: sophie_bot/modules/ai/handlers/pm.py:50
 msgid "Hello! How can I help you?"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:67
+#: sophie_bot/modules/ai/handlers/pm.py:68
 msgid "The AI mode has been exited."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:18
+#: sophie_bot/modules/ai/handlers/reset_context.py:19
 msgid "Reset the chat's AI context and AI memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:39
+#: sophie_bot/modules/ai/handlers/reset_context.py:40
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr ""
 
@@ -756,7 +756,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:58
 #: sophie_bot/modules/federations/handlers/ban.py:99
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
-#: sophie_bot/modules/reports/handlers/report.py:93
+#: sophie_bot/modules/reports/handlers/report.py:94
 #: sophie_bot/modules/restrictions/actions/ban.py:124
 #: sophie_bot/modules/restrictions/actions/kick.py:53
 #: sophie_bot/modules/restrictions/actions/mute.py:124
@@ -1016,73 +1016,73 @@ msgstr ""
 msgid "Antiflood action configured successfully!"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:19
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:22
 msgid "Shows antiflood protection settings"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:23
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:26
 #: sophie_bot/modules/greetings/handlers/status_overall.py:20
 msgid "Yes"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:23
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:26
 #: sophie_bot/modules/greetings/handlers/status_overall.py:20
 msgid "No"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:43
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:46
 msgid "Not configured"
-msgstr ""
-
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:43
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:80
-msgid "Messages limit"
-msgstr ""
-
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:44
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:81
-msgid "Time limit"
-msgstr ""
-
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:44
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:81
-msgid "30 seconds"
-msgstr ""
-
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:45
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:74
-msgid "Mute for 30 minutes (default)"
-msgstr ""
-
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:45
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:75
-msgid "Actions"
 msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:46
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:83
-msgid "📈 Antiflood Settings"
+msgid "Messages limit"
+msgstr ""
+
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:47
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:84
+msgid "Time limit"
+msgstr ""
+
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:47
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:84
+msgid "30 seconds"
+msgstr ""
+
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:48
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:77
+msgid "Mute for 30 minutes (default)"
+msgstr ""
+
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:48
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:78
+msgid "Actions"
 msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:49
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:86
+msgid "📈 Antiflood Settings"
+msgstr ""
+
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:52
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:89
 #, python-brace-format
 msgid "Use {cmd} to enable antiflood protection"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:50
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:87
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:53
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:90
 #, python-brace-format
 msgid "Use {cmd} to set message count threshold"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:51
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:88
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:54
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:91
 #, python-brace-format
 msgid "Use {cmd} to configure actions"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:72
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:75
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:150
 #: sophie_bot/modules/filters/handlers/confirm.py:48
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:64
@@ -1091,29 +1091,29 @@ msgid_plural "Actions"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:18
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:17
 msgid "Set the message count threshold for antiflood protection"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:33
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:32
 msgid "Number of messages allowed in 30 seconds"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:41
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:40
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:34
 msgid "Chat not found"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:46
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:45
 #, python-brace-format
 msgid "Please provide a number. Usage: {cmd}"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:51
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:50
 msgid "Number must be between 1 and 100"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:62
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:61
 #, python-brace-format
 msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
 msgstr ""
@@ -1190,7 +1190,7 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/unban.py:76
 #: sophie_bot/modules/restrictions/handlers/unmute.py:41
 #: sophie_bot/modules/restrictions/handlers/unmute.py:71
-#: sophie_bot/modules/users/handlers/id.py:24
+#: sophie_bot/modules/users/handlers/id.py:22
 #: sophie_bot/modules/users/handlers/info.py:21
 #: sophie_bot/modules/warns/handlers/callback.py:96
 #: sophie_bot/modules/warns/handlers/warn.py:46
@@ -1206,8 +1206,8 @@ msgstr ""
 msgid "Duration"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:42
-#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:79
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:45
+#: sophie_bot/modules/antiflood/handlers/antiflood_info.py:82
 #: sophie_bot/modules/antiflood/module.py:15
 msgid "Antiflood"
 msgstr ""
@@ -1217,7 +1217,7 @@ msgid "Protect your chat from message flooding"
 msgstr ""
 
 #: sophie_bot/modules/connections/__init__.py:38
-#: sophie_bot/modules/connections/handlers/connect_dm.py:63
+#: sophie_bot/modules/connections/handlers/connect_dm.py:62
 msgid "Connections"
 msgstr ""
 
@@ -1233,63 +1233,63 @@ msgstr ""
 msgid "Enables managing chat settings and using commands without being in the chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:35
+#: sophie_bot/modules/connections/handlers/connect_dm.py:34
 msgid "Connects to the chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:54
-#: sophie_bot/modules/connections/handlers/connect_dm.py:107
-#: sophie_bot/modules/connections/handlers/connect_group.py:42
-#: sophie_bot/modules/connections/handlers/start_connect.py:47
+#: sophie_bot/modules/connections/handlers/connect_dm.py:53
+#: sophie_bot/modules/connections/handlers/connect_dm.py:106
+#: sophie_bot/modules/connections/handlers/connect_group.py:43
+#: sophie_bot/modules/connections/handlers/start_connect.py:48
 msgid "You are not allowed to connect to this chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:65
+#: sophie_bot/modules/connections/handlers/connect_dm.py:64
 msgid "Select a chat to connect to:"
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:102
+#: sophie_bot/modules/connections/handlers/connect_dm.py:101
 msgid "Chat not found in database."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:24
+#: sophie_bot/modules/connections/handlers/connect_group.py:25
 msgid "Connects to the current chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:52
+#: sophie_bot/modules/connections/handlers/connect_group.py:53
 msgid "You are connected! Check your DM with Sophie."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:54
+#: sophie_bot/modules/connections/handlers/connect_group.py:55
 msgid "Open DM"
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:60
+#: sophie_bot/modules/connections/handlers/connect_group.py:61
 msgid "You must start the bot in DM first to connect. Once you initialize connection with Sophie, you'll be connected."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:66
+#: sophie_bot/modules/connections/handlers/connect_group.py:67
 msgid "Start Sophie"
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/disconnect.py:14
+#: sophie_bot/modules/connections/handlers/disconnect.py:16
 msgid "Disconnects from the current chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/disconnect.py:34
+#: sophie_bot/modules/connections/handlers/disconnect.py:36
 msgid "You are not currently connected to any chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/disconnect.py:44
+#: sophie_bot/modules/connections/handlers/disconnect.py:46
 #, python-brace-format
 msgid "Successfully disconnected from the {chat_name} chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/settings.py:12
+#: sophie_bot/modules/connections/handlers/settings.py:11
 msgid "Sets whether normal users (non-admins) are allowed to connect."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/settings.py:14
+#: sophie_bot/modules/connections/handlers/settings.py:13
 msgid "Allow users connect"
 msgstr ""
 
@@ -1834,9 +1834,9 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/unban.py:118
 #: sophie_bot/modules/federations/handlers/unban.py:151
 #: sophie_bot/modules/federations/handlers/unban.py:164
-#: sophie_bot/modules/locks/handlers/locksticker.py:50
+#: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
-#: sophie_bot/modules/warns/handlers/warns_group.py:39
+#: sophie_bot/modules/warns/handlers/warns_group.py:40
 msgid "Unknown"
 msgstr ""
 
@@ -2097,7 +2097,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:127
 #: sophie_bot/modules/federations/handlers/info.py:120
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:53
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:54
 msgid "Chat not found in database"
 msgstr ""
 
@@ -2270,7 +2270,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:92
-#: sophie_bot/modules/warns/handlers/warns_group.py:58
+#: sophie_bot/modules/warns/handlers/warns_group.py:59
 #: sophie_bot/modules/warns/handlers/warns_pm.py:37
 msgid "No reason provided"
 msgstr ""
@@ -3268,9 +3268,9 @@ msgstr ""
 
 #: sophie_bot/modules/help/__init__.py:50
 #: sophie_bot/modules/help/handlers/help_group.py:27
-#: sophie_bot/modules/help/handlers/pm_modules.py:72
+#: sophie_bot/modules/help/handlers/pm_modules.py:73
 #: sophie_bot/modules/help/handlers/start_group.py:34
-#: sophie_bot/modules/help/handlers/start_pm.py:53
+#: sophie_bot/modules/help/handlers/start_pm.py:54
 msgid "Help"
 msgstr ""
 
@@ -3294,47 +3294,47 @@ msgstr ""
 msgid "The help information available in the private messages with Sophie"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:27
+#: sophie_bot/modules/help/handlers/pm_modules.py:28
 msgid "Shows help overview for all modules"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:48
+#: sophie_bot/modules/help/handlers/pm_modules.py:49
 #, python-brace-format
 msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:69
-#: sophie_bot/modules/help/handlers/pm_modules.py:129
+#: sophie_bot/modules/help/handlers/pm_modules.py:70
+#: sophie_bot/modules/help/handlers/pm_modules.py:130
 #: sophie_bot/modules/privacy/handlers/privacy.py:30
 msgid "⬅️ Back"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:74
 msgid "There are 2 help sources, you can read the detailed wiki or get a quick commands by modules overview."
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:74
+#: sophie_bot/modules/help/handlers/pm_modules.py:75
 msgid "📖 Wiki (detailed information)"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:76
+#: sophie_bot/modules/help/handlers/pm_modules.py:77
 msgid "Alternatively you can now just chat with Sophie how to use herself!"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:92
+#: sophie_bot/modules/help/handlers/pm_modules.py:93
 msgid "Module not found"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:116
+#: sophie_bot/modules/help/handlers/pm_modules.py:117
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:124
+#: sophie_bot/modules/help/handlers/pm_modules.py:125
 msgid "📖 Look the module's wiki page for more information"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:125
+#: sophie_bot/modules/help/handlers/pm_modules.py:126
 msgid "📖 Wiki page"
 msgstr ""
 
@@ -3356,34 +3356,34 @@ msgid "Join the {chat} and {channel}."
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/start_group.py:40
-#: sophie_bot/modules/help/handlers/start_pm.py:65
+#: sophie_bot/modules/help/handlers/start_pm.py:66
 msgid "💬 Support Chat"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/start_group.py:41
-#: sophie_bot/modules/help/handlers/start_pm.py:66
+#: sophie_bot/modules/help/handlers/start_pm.py:67
 msgid "📢 NEWS Channel"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/start_pm.py:35
+#: sophie_bot/modules/help/handlers/start_pm.py:36
 msgid "Add me to your chat"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/start_pm.py:43
+#: sophie_bot/modules/help/handlers/start_pm.py:44
 #: sophie_bot/modules/privacy/__init__.py:39
 msgid "Privacy"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/start_pm.py:48
+#: sophie_bot/modules/help/handlers/start_pm.py:49
 #: sophie_bot/modules/language/__init__.py:19
 msgid "Language"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/start_pm.py:62
+#: sophie_bot/modules/help/handlers/start_pm.py:63
 msgid "Hey there! My name is Sophie, I help you manage your group in an efficient way!"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/start_pm.py:64
+#: sophie_bot/modules/help/handlers/start_pm.py:65
 #, python-brace-format
 msgid "Join our {chat} and {channel}."
 msgstr ""
@@ -3417,29 +3417,29 @@ msgstr ""
 msgid "Allows users to set their preferred language for bot interactions."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:19
+#: sophie_bot/modules/language/handlers/language.py:21
 msgid "Change the language of the bot in the chat."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:32
+#: sophie_bot/modules/language/handlers/language.py:34
 msgid "Select the language you want to use in this chat."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:56
-#: sophie_bot/modules/language/handlers/language.py:106
+#: sophie_bot/modules/language/handlers/language.py:58
+#: sophie_bot/modules/language/handlers/language.py:108
 msgid "Help us translate!"
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:74
+#: sophie_bot/modules/language/handlers/language.py:76
 msgid "Language not found."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:86
+#: sophie_bot/modules/language/handlers/language.py:88
 #, python-brace-format
 msgid "Language changed to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:111
+#: sophie_bot/modules/language/handlers/language.py:113
 #, python-brace-format
 msgid "Language set to {lang}"
 msgstr ""
@@ -3837,30 +3837,30 @@ msgstr ""
 msgid "Use {cmd} to remove a lock."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locksticker.py:17
+#: sophie_bot/modules/locks/handlers/locksticker.py:20
 msgid "Lock a sticker pack in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locksticker.py:33
+#: sophie_bot/modules/locks/handlers/locksticker.py:36
 msgid "Reply to a sticker to lock its sticker pack."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locksticker.py:40
+#: sophie_bot/modules/locks/handlers/locksticker.py:43
 #, python-brace-format
 msgid "Reply to a message with a sticker to use {cmd} to lock a sticker pack."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locksticker.py:50
-#: sophie_bot/modules/locks/handlers/locksticker.py:64
+#: sophie_bot/modules/locks/handlers/locksticker.py:53
+#: sophie_bot/modules/locks/handlers/locksticker.py:67
 msgid "Sticker pack"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locksticker.py:51
-#: sophie_bot/modules/locks/handlers/locksticker.py:65
+#: sophie_bot/modules/locks/handlers/locksticker.py:54
+#: sophie_bot/modules/locks/handlers/locksticker.py:68
 msgid "Sticker pack locked"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/locksticker.py:69
+#: sophie_bot/modules/locks/handlers/locksticker.py:72
 #, python-brace-format
 msgid "Sticker pack {pack} is already locked in this chat."
 msgstr ""
@@ -4014,7 +4014,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/delete.py:20
-#: sophie_bot/modules/notes/handlers/get.py:20
+#: sophie_bot/modules/notes/handlers/get.py:21
 msgid "Note name"
 msgstr ""
 
@@ -4057,11 +4057,11 @@ msgstr ""
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/get.py:21
+#: sophie_bot/modules/notes/handlers/get.py:22
 msgid "Retrieve the note."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/get.py:35
+#: sophie_bot/modules/notes/handlers/get.py:36
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr ""
@@ -4930,28 +4930,28 @@ msgstr ""
 msgid "Admins will be notified about reported messages and can take appropriate action."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:16
+#: sophie_bot/modules/reports/handlers/report.py:17
 msgid "Reports the replied message."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:38
+#: sophie_bot/modules/reports/handlers/report.py:39
 msgid "You are an admin, you don't need to report."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:42
+#: sophie_bot/modules/reports/handlers/report.py:43
 msgid "You need to reply to a message to report it."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:47
+#: sophie_bot/modules/reports/handlers/report.py:48
 msgid "You cannot report an admin."
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:81
+#: sophie_bot/modules/reports/handlers/report.py:82
 #, python-brace-format
 msgid "User {user} ({user_id}) has been reported!"
 msgstr ""
 
-#: sophie_bot/modules/reports/handlers/report.py:86
+#: sophie_bot/modules/reports/handlers/report.py:87
 msgid "Reported by"
 msgstr ""
 
@@ -5364,15 +5364,15 @@ msgstr ""
 msgid "Tools for fixing problems and issues"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/admincache.py:15
+#: sophie_bot/modules/troubleshooters/handlers/admincache.py:14
 msgid "Reset admin rights cache, use if Sophie didn't get the recently added admin"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/admincache.py:24
+#: sophie_bot/modules/troubleshooters/handlers/admincache.py:23
 msgid "You can't use this command in private chats."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/admincache.py:28
+#: sophie_bot/modules/troubleshooters/handlers/admincache.py:27
 msgid "Admin rights cache has been reset."
 msgstr ""
 
@@ -5477,27 +5477,27 @@ msgstr ""
 msgid "Admins in {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/id.py:41
+#: sophie_bot/modules/users/handlers/id.py:42
 #, python-brace-format
 msgid "Your ID: {id}"
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/id.py:44
+#: sophie_bot/modules/users/handlers/id.py:45
 #, python-brace-format
 msgid "Chat ID: {id}"
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/id.py:47
+#: sophie_bot/modules/users/handlers/id.py:48
 #, python-brace-format
 msgid "Connected chat ID: {id}"
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/id.py:53
+#: sophie_bot/modules/users/handlers/id.py:54
 #, python-brace-format
 msgid "Replied user ID: {id}"
 msgstr ""
 
-#: sophie_bot/modules/users/handlers/id.py:57
+#: sophie_bot/modules/users/handlers/id.py:58
 #, python-brace-format
 msgid "{user}'s ID: {id}"
 msgstr ""
@@ -5797,35 +5797,35 @@ msgstr ""
 msgid "Reset all warnings in this chat."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/reset_all_warns.py:17
+#: sophie_bot/modules/warns/handlers/reset_all_warns.py:18
 msgid "Resets all warnings of all users in the current chat."
-msgstr ""
-
-#: sophie_bot/modules/warns/handlers/reset_all_warns.py:32
-#: sophie_bot/modules/warns/handlers/reset_warns.py:48
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:109
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:74
-msgid "Confirm"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:110
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:74
+msgid "Confirm"
+msgstr ""
+
+#: sophie_bot/modules/warns/handlers/reset_all_warns.py:34
+#: sophie_bot/modules/warns/handlers/reset_warns.py:50
 msgid "Cancel"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/reset_all_warns.py:37
+#: sophie_bot/modules/warns/handlers/reset_all_warns.py:38
 msgid "Are you sure you want to reset ALL warnings in this chat?"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/reset_warns.py:20
+#: sophie_bot/modules/warns/handlers/reset_warns.py:21
 msgid "Resets all warnings of a user in the current chat."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/reset_warns.py:44
+#: sophie_bot/modules/warns/handlers/reset_warns.py:45
 msgid "Please provide a user to reset warns for."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/reset_warns.py:55
+#: sophie_bot/modules/warns/handlers/reset_warns.py:56
 #, python-brace-format
 msgid "Are you sure you want to reset warnings of {user}?"
 msgstr ""
@@ -5919,24 +5919,24 @@ msgstr ""
 msgid "<number> (2-20)"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warns_group.py:16
+#: sophie_bot/modules/warns/handlers/warns_group.py:17
 msgid "Shows user's warns in the current chat."
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warns_group.py:54
+#: sophie_bot/modules/warns/handlers/warns_group.py:55
 #, python-brace-format
 msgid "⚠️ Warnings for {user}"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warns_group.py:57
+#: sophie_bot/modules/warns/handlers/warns_group.py:58
 msgid "Count"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warns_group.py:59
+#: sophie_bot/modules/warns/handlers/warns_group.py:60
 msgid "Reasons"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warns_group.py:62
+#: sophie_bot/modules/warns/handlers/warns_group.py:63
 msgid "The user has no warnings currently."
 msgstr ""
 
@@ -6013,13 +6013,13 @@ msgstr ""
 msgid "Captcha expired. Please try again."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:78
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:79
 #: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:51
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:86
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:87
 msgid "❌ Incorrect solution. Please, try again."
 msgstr ""
 

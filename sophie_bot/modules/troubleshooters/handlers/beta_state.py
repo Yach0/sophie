@@ -1,11 +1,11 @@
-from aiogram import flags
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from ass_tg.types import OneOf
 from stfu_tg import Italic, KeyValue, Section, Template
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import GlobalSettings, ChatModel
+from sophie_bot.db.models import ChatModel, GlobalSettings
 from sophie_bot.db.models.beta import BetaModeModel, PreferredMode
+from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

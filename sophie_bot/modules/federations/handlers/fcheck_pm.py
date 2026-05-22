@@ -4,11 +4,10 @@ import csv
 from io import StringIO
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import BufferedInputFile, Message
 from ass_tg.types import EqualsArg, OptionalArg
-from stfu_tg import Code, Doc, KeyValue, Title, UserLink, VList, Template
+from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink, VList
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.constants import MAX_FCHECK_INLINE_ITEMS
@@ -20,6 +19,7 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import IsConnectedFilter
 from sophie_bot.modules.federations.services import FederationBanService
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

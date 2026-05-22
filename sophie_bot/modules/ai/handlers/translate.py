@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
@@ -25,12 +24,13 @@ from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_mo
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
+from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import get_service_tier, get_value
 from sophie_bot.utils.handlers import SophieMessageHandler

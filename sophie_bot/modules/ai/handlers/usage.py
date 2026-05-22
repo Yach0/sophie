@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template, Title, VList
 
 from sophie_bot.constants import AI_CREDIT_EMOJI, AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
 from sophie_bot.modules.ai.utils.ai_usage_service import get_chat_usage_view
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

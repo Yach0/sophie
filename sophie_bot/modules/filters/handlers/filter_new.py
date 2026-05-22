@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
@@ -13,9 +12,10 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
 from sophie_bot.modules.filters.handlers.actions_list import ActionsListHandler
 from sophie_bot.modules.filters.utils_.filter_handler_rules import (
-    validate_filter_handler,
     describe_filter_handler,
+    validate_filter_handler,
 )
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

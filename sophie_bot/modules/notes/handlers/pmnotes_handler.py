@@ -1,8 +1,7 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Bold, Doc, Template
 
@@ -15,6 +14,7 @@ from sophie_bot.modules.notes.callbacks import PrivateNotesStartUrlCallback
 from sophie_bot.modules.notes.filters.pm_notes import PMNotesFilter
 from sophie_bot.modules.notes.handlers.list import LIST_CMDS, NotesList
 from sophie_bot.modules.notes.handlers.search import SEARCH_CMD
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 

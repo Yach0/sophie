@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from babel.dates import format_timedelta
 from stfu_tg import Bold, Doc, Italic, KeyValue, Template, Title
@@ -17,6 +16,7 @@ from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
     convert_timedelta_or_str,
 )
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

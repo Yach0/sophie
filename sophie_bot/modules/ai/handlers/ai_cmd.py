@@ -1,6 +1,5 @@
 from typing import Any, Optional
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg, TextArg
 
@@ -10,6 +9,7 @@ from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
+from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

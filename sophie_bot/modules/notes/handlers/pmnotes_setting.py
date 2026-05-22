@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.handlers import MessageHandler
 from ass_tg.types import BooleanArg
@@ -12,6 +11,7 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.message_status import HasArgs
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

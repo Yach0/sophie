@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -22,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_models import (
     AVAILABLE_PROVIDER_NAMES,
     get_provider_models,
 )
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,

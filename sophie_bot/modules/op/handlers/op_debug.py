@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from typing import Any, cast
 from urllib.parse import urlsplit, urlunsplit
 
-from aiogram import flags
 from aiogram.types import Message
 from stfu_tg import BlockQuote, Bold, Code, Doc, Italic, KeyValue, Section, Title
 
@@ -27,6 +26,7 @@ from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_wi
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.modules.op.json_schemas.op_debug_ai_summary import OpDebugAISummary
 from sophie_bot.services.redis import aredis
+from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import _DEFAULT_STATES, FEATURE_FLAGS, is_enabled, list_all
 from sophie_bot.utils.handlers import SophieMessageHandler

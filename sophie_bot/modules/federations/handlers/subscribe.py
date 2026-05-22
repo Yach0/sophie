@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types.base_abc import ArgFabric
@@ -14,6 +13,7 @@ from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

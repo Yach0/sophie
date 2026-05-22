@@ -1,6 +1,5 @@
 from typing import Any, Optional
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg, TextArg
 from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
@@ -10,6 +9,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.list import format_notes_list
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

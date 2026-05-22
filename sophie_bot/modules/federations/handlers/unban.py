@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg
 from babel.dates import format_date
-from stfu_tg import Doc, KeyValue, Title, UserLink, Template, Code
+from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel, Federation
@@ -15,9 +14,10 @@ from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
+from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

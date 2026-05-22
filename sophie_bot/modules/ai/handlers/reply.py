@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 
@@ -10,6 +9,7 @@ from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageHandler
 

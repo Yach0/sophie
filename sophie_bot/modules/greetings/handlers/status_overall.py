@@ -1,6 +1,5 @@
 from typing import Any, ClassVar, Dict
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Bold, Doc, Italic, KeyValue, Section, Template, Title
 
@@ -8,6 +7,7 @@ from sophie_bot.db.models import GreetingsModel, RulesModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.greetings.default_welcome import get_default_welcome_message
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _

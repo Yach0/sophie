@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
@@ -35,6 +34,7 @@ from sophie_bot.shared.lock_constants import (
     SUPPORTED_LANGUAGES,
     TEXT_PATTERN_TYPES,
 )
+from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import get_value

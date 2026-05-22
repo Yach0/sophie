@@ -1,11 +1,11 @@
 from typing import Any
 
-from aiogram import flags
 from ass_tg.types import IntArg
 
 from sophie_bot.db.models import BetaModeModel, GlobalSettings
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 
 

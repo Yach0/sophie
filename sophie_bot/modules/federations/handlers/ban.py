@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg, TextArg
@@ -23,6 +22,7 @@ from sophie_bot.modules.federations.services.permissions import FederationPermis
 from sophie_bot.modules.restrictions.utils.logging import extract_offending_message_text
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

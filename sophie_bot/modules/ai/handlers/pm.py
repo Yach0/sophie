@@ -1,6 +1,6 @@
 from typing import Any
 
-from aiogram import F, Router, flags
+from aiogram import F, Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from stfu_tg import Bold, Doc, Template, Url
@@ -13,8 +13,9 @@ from sophie_bot.modules.ai.callbacks import AIChatCallback
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_PROVIDER, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler, SophieMessageHandler
+from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

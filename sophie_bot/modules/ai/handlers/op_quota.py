@@ -2,19 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import IntArg
+from stfu_tg import Code, Doc, KeyValue, Section, Template, Title
 
 from sophie_bot.constants import AI_CREDIT_EMOJI, AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info, reset_period_usage, set_monthly_quota
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from stfu_tg import Code, Doc, KeyValue, Section, Template, Title
 
 
 @flags.args(

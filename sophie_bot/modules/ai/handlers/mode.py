@@ -1,14 +1,14 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import TextArg
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 

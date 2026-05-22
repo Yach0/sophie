@@ -3,7 +3,7 @@ from __future__ import annotations
 from re import search
 from typing import Any
 
-from aiogram import F, flags
+from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 
@@ -15,6 +15,7 @@ from sophie_bot.modules.connections.utils.connection import (
     set_connected_chat,
 )
 from sophie_bot.modules.utils_.legacy_buttons import LEGACY_CONNECTION_BUTTON_PATTERN
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 

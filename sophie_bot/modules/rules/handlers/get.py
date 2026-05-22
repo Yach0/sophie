@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Bold, Title
 
@@ -8,6 +7,7 @@ from sophie_bot.db.models import RulesModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

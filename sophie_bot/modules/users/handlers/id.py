@@ -14,8 +14,6 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-router = Router(name="users")
-
 
 async def optional_user(message: Message | None, _data: dict):
     if message and message.reply_to_message:
@@ -24,11 +22,14 @@ async def optional_user(message: Message | None, _data: dict):
     return {"user": OptionalArg(SophieUserArg(l_("User")))}
 
 
-@router.message(CMDFilter("id"), flags={"args": optional_user})
 class ShowIDHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (CMDFilter(("id")),)
+
+    @classmethod
+    def register(cls, router: Router):
+        router.message.register(cls, *cls.filters(), flags={"args": optional_user})
 
     async def handle(self) -> Any:
         chat: ChatConnection = self.data["connection"]

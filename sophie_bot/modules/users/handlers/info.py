@@ -1,6 +1,5 @@
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg
 from stfu_tg import Doc, KeyValue, Section, Template, Title, UserLink
@@ -10,6 +9,7 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.utils import flags
 from sophie_bot.utils.federation_ban_check import get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

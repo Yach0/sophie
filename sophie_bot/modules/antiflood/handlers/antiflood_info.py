@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
-from stfu_tg import Bold, Doc, Italic, KeyValue, Section, Template, Spacer
+from stfu_tg import Bold, Doc, Italic, KeyValue, Section, Spacer, Template
 
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.filters.admin_rights import UserRestricting
@@ -12,8 +11,12 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
-from sophie_bot.utils.i18n import LazyProxy, gettext as _, ngettext as pl_, lazy_gettext as l_
+from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.i18n import ngettext as pl_
 
 
 @flags.help(description=l_("Shows antiflood protection settings"))

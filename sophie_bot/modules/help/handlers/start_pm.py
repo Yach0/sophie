@@ -1,6 +1,6 @@
 from typing import Any
 
-from aiogram import F, Router, flags
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions
 from stfu_tg import Doc, Template, Url
@@ -11,6 +11,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.message_status import NoArgs
 from sophie_bot.modules.help.callbacks import PMHelpModules
 from sophie_bot.modules.privacy import PrivacyMenuCallback
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 

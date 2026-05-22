@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -16,6 +15,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.utils_.action_config_wizard.callbacks import ACWCoreCallback
 from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

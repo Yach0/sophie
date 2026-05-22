@@ -91,7 +91,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return triggered, messages
 
     @staticmethod
-    async def _handle_action_messages(message: Message, messages: list[Optional[Element | str | LazyProxy]]):
+    async def _handle_action_messages(message: Message, messages: list[Element | str | LazyProxy]):
         doc = Doc(
             # Title(_("Filters 🪄")),
         )

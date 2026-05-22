@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import ActionTimeArg, OptionalArg, TextArg
@@ -23,6 +22,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import mute_user
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

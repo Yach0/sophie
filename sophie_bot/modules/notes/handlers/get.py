@@ -1,7 +1,7 @@
 import re
 from typing import Any, Optional
 
-from aiogram import F, flags
+from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OneOf, OptionalArg, WordArg
 from stfu_tg import Bold, HList, Italic, Template, Title
@@ -12,6 +12,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.combine import combine_saveables
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

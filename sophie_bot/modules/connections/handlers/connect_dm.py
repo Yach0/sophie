@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from ass_tg.types import OptionalArg
-
-from aiogram import flags
+from aiogram.filters.callback_data import CallbackData
 from aiogram.types import (
     InlineKeyboardButton,
     Message,
 )
-from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+from ass_tg.types import OptionalArg
 from stfu_tg import Doc, Title
 
 from sophie_bot.args.chats import SophieChatArg
+from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat_connections import ChatConnectionModel
+from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.connections.utils.connection import (
     check_connection_permissions,
     get_connection_text,
@@ -20,12 +21,10 @@ from sophie_bot.modules.connections.utils.connection import (
     set_connected_chat,
 )
 from sophie_bot.modules.connections.utils.texts import CONNECTION_OBSOLETE_NOTICE
-from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_connections import ChatConnectionModel
-from sophie_bot.utils.handlers import SophieMessageHandler, SophieCallbackQueryHandler
-from sophie_bot.utils.i18n import lazy_gettext as l_, gettext as _
-from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.utils import flags
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class ConnectToChatCb(CallbackData, prefix="connect_to_chat_cb"):

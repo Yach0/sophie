@@ -1,6 +1,5 @@
 from typing import Any, Optional
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramBadRequest
@@ -21,6 +20,7 @@ from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

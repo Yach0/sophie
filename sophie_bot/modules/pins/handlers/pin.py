@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from aiogram import flags
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 from ass_tg.types import EqualsArg, OptionalArg
@@ -9,6 +8,7 @@ from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from aiogram import Router, flags
+from aiogram import Router
 from aiogram.handlers import CallbackQueryHandler
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -18,8 +18,9 @@ from sophie_bot.modules.help.callbacks import (
 )
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, get_aliased_cmds
 from sophie_bot.modules.help.utils.format_help import format_handlers, group_handlers
-from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

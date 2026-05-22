@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, Message, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -24,6 +23,7 @@ from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.legacy_buttons import LEGACY_RULES_BUTTON_PREFIX, build_legacy_start_payload
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.warns.utils import warn_user
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

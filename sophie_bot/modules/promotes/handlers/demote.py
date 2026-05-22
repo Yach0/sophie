@@ -1,9 +1,8 @@
 from typing import Any
 
-from aiogram import flags
+from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
-from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import KeyValue, Section, UserLink
 
@@ -17,6 +16,7 @@ from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.telegram_exceptions import BOTS_CANT_ADD_NEW_CHAT_MEMBERS
 from sophie_bot.services.bot import bot
+from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

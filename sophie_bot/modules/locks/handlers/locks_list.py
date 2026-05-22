@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import flags
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from stfu_tg import BlockQuote, Code, Doc, KeyValue, Section, Spacer, Template, Title, VList
@@ -15,6 +14,7 @@ from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_t
 from sophie_bot.modules.locks.handlers.lockable import get_lock_description, get_lock_display_name
 from sophie_bot.modules.locks.utils.conflicts import get_filter_lock_types
 from sophie_bot.modules.locks.utils.lock_types import is_stickerpack_lock
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_

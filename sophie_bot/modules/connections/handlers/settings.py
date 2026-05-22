@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from abc import ABC
 
-from aiogram import flags
-
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.modules.utils_.status_handler import StatusBoolHandlerABC
+from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -16,9 +15,9 @@ class AllowUsersConnectCmd(StatusBoolHandlerABC, ABC):
 
     @staticmethod
     def filters():
-        from sophie_bot.filters.cmd import CMDFilter
-        from sophie_bot.filters.chat_status import ChatTypeFilter
         from sophie_bot.filters.admin_rights import UserRestricting
+        from sophie_bot.filters.chat_status import ChatTypeFilter
+        from sophie_bot.filters.cmd import CMDFilter
 
         return (
             CMDFilter("allowusersconnect"),

@@ -1,24 +1,25 @@
 from __future__ import annotations
 
-from aiogram import flags
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import (
-    InlineKeyboardMarkup,
     InlineKeyboardButton,
+    InlineKeyboardMarkup,
 )
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.connections.utils.connection import (
     check_connection_permissions,
     get_connection_text,
     get_disconnect_markup,
     set_connected_chat,
 )
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
-from sophie_bot.utils.i18n import lazy_gettext as l_, gettext as _
-from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Connects to the current chat."))

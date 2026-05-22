@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram import F, flags
+from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from stfu_tg import Doc, KeyValue, Section
@@ -19,6 +19,7 @@ from sophie_bot.modules.ai.utils.ai_models import (
     AIProviders,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
