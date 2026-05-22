@@ -144,27 +144,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:68
+#: sophie_bot/modules/ai/__init__.py:141
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:70
+#: sophie_bot/modules/ai/__init__.py:143
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:73
+#: sophie_bot/modules/ai/__init__.py:146
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:74
+#: sophie_bot/modules/ai/__init__.py:147
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:77
+#: sophie_bot/modules/ai/__init__.py:150
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:78
+#: sophie_bot/modules/ai/__init__.py:151
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -1208,28 +1208,28 @@ msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:42
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:79
-#: sophie_bot/modules/antiflood/module.py:8
+#: sophie_bot/modules/antiflood/module.py:15
 msgid "Antiflood"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/module.py:10
+#: sophie_bot/modules/antiflood/module.py:17
 msgid "Protect your chat from message flooding"
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:22
+#: sophie_bot/modules/connections/__init__.py:34
 #: sophie_bot/modules/connections/handlers/connect_dm.py:63
 msgid "Connections"
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:24
+#: sophie_bot/modules/connections/__init__.py:36
 msgid "Connect to chats from private messages"
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:27
+#: sophie_bot/modules/connections/__init__.py:39
 msgid "Allows users to connect to chats from private messages."
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:28
+#: sophie_bot/modules/connections/__init__.py:40
 msgid "Enables managing chat settings and using commands without being in the chat."
 msgstr ""
 
@@ -1319,19 +1319,19 @@ msgstr ""
 msgid "⚠️ The connection module is obsolete in favor of the web app. Click on the 'Dashboard' button in the text field."
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:23
+#: sophie_bot/modules/disabling/__init__.py:38
 msgid "Disabling"
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:25
+#: sophie_bot/modules/disabling/__init__.py:40
 msgid "Disable commands in chats"
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:28
+#: sophie_bot/modules/disabling/__init__.py:43
 msgid "Allows administrators to disable specific commands in their chats."
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:29
+#: sophie_bot/modules/disabling/__init__.py:44
 msgid "Useful for restricting bot functionality to only necessary commands."
 msgstr ""
 
@@ -1416,21 +1416,21 @@ msgstr ""
 msgid "✅ All the commands ({removed_count}) have been enabled in the {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/error/__init__.py:15
+#: sophie_bot/modules/error/__init__.py:27
 #: sophie_bot/modules/federations/schedules/process_imports.py:72
 #: sophie_bot/modules/federations/utils/federation_context.py:77
 msgid "Error"
 msgstr ""
 
-#: sophie_bot/modules/error/__init__.py:17
+#: sophie_bot/modules/error/__init__.py:29
 msgid "Error handling and reporting"
 msgstr ""
 
-#: sophie_bot/modules/error/__init__.py:20
+#: sophie_bot/modules/error/__init__.py:32
 msgid "Handles errors and exceptions that occur during bot operation."
 msgstr ""
 
-#: sophie_bot/modules/error/__init__.py:21
+#: sophie_bot/modules/error/__init__.py:33
 msgid "Provides error reporting and recovery mechanisms."
 msgstr ""
 
@@ -1686,15 +1686,15 @@ msgstr ""
 msgid "Softly whispering."
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:29
+#: sophie_bot/modules/federations/__init__.py:82
 msgid "Federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:31
+#: sophie_bot/modules/federations/__init__.py:84
 msgid "Manage federations across multiple chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/__init__.py:33
+#: sophie_bot/modules/federations/__init__.py:86
 msgid "Federations allow you to manage multiple chats as a group. You can ban users across all chats in a federation, subscribe to other federations, and manage permissions."
 msgstr ""
 
@@ -2790,11 +2790,11 @@ msgstr ""
 msgid "You have multiple federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/manage.py:95
+#: sophie_bot/modules/federations/services/manage.py:94
 msgid "You don't have any federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/manage.py:97
+#: sophie_bot/modules/federations/services/manage.py:96
 msgid "Could not determine federation"
 msgstr ""
 
@@ -2802,20 +2802,20 @@ msgstr ""
 msgid "You don't have permission to perform this action in this federation."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:51
+#: sophie_bot/modules/filters/__init__.py:90
 #: sophie_bot/modules/filters/handlers/filter_del.py:52
 msgid "Filters"
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:55
+#: sophie_bot/modules/filters/__init__.py:94
 msgid "Filters allows to invoke different actions for different messages."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:56
+#: sophie_bot/modules/filters/__init__.py:95
 msgid "For example muting the users when they mention crypto."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:58
+#: sophie_bot/modules/filters/__init__.py:97
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
 msgstr ""
 
@@ -3066,15 +3066,15 @@ msgstr ""
 msgid "(no text content)"
 msgstr ""
 
-#: sophie_bot/modules/greetings/__init__.py:25
+#: sophie_bot/modules/greetings/__init__.py:47
 msgid "Greetings"
 msgstr ""
 
-#: sophie_bot/modules/greetings/__init__.py:27
+#: sophie_bot/modules/greetings/__init__.py:49
 msgid "Welcome new users to your chat"
 msgstr ""
 
-#: sophie_bot/modules/greetings/__init__.py:29
+#: sophie_bot/modules/greetings/__init__.py:51
 msgid ""
 "This module helps you to welcome new users automatically, while keeping the chat clean.\n"
 "If you want to enforce captcha / rules verification, please see 'Welcome Security' module instead."
@@ -3266,7 +3266,7 @@ msgstr ""
 msgid "I am not a robot"
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:26
+#: sophie_bot/modules/help/__init__.py:50
 #: sophie_bot/modules/help/handlers/help_group.py:27
 #: sophie_bot/modules/help/handlers/pm_modules.py:72
 #: sophie_bot/modules/help/handlers/start_group.py:34
@@ -3274,15 +3274,15 @@ msgstr ""
 msgid "Help"
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:28
+#: sophie_bot/modules/help/__init__.py:52
 msgid "Provides helpful information"
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:31
+#: sophie_bot/modules/help/__init__.py:55
 msgid "Provides help and documentation for all bot commands and features."
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:32
+#: sophie_bot/modules/help/__init__.py:56
 msgid "Includes command lists, usage instructions, and feature explanations."
 msgstr ""
 
@@ -3370,12 +3370,12 @@ msgid "Add me to your chat"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/start_pm.py:43
-#: sophie_bot/modules/privacy/__init__.py:22
+#: sophie_bot/modules/privacy/__init__.py:39
 msgid "Privacy"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/start_pm.py:48
-#: sophie_bot/modules/language/__init__.py:14
+#: sophie_bot/modules/language/__init__.py:19
 msgid "Language"
 msgstr ""
 
@@ -3409,11 +3409,11 @@ msgstr ""
 msgid "Only admins"
 msgstr ""
 
-#: sophie_bot/modules/language/__init__.py:16
+#: sophie_bot/modules/language/__init__.py:21
 msgid "Language and localization settings"
 msgstr ""
 
-#: sophie_bot/modules/language/__init__.py:19
+#: sophie_bot/modules/language/__init__.py:24
 msgid "Allows users to set their preferred language for bot interactions."
 msgstr ""
 
@@ -3444,19 +3444,19 @@ msgstr ""
 msgid "Language set to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:19
+#: sophie_bot/modules/locks/__init__.py:46
 msgid "Locks"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:21
+#: sophie_bot/modules/locks/__init__.py:48
 msgid "Lock specific message types in chats"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:24
+#: sophie_bot/modules/locks/__init__.py:51
 msgid "Allows administrators to lock specific types of messages in chats."
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:26
+#: sophie_bot/modules/locks/__init__.py:53
 msgid "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
 msgstr ""
 
@@ -3897,19 +3897,19 @@ msgstr ""
 msgid "Lock type {type} is not locked in this chat."
 msgstr ""
 
-#: sophie_bot/modules/logging/__init__.py:11
+#: sophie_bot/modules/logging/__init__.py:15
 msgid "Logging"
 msgstr ""
 
-#: sophie_bot/modules/logging/__init__.py:13
+#: sophie_bot/modules/logging/__init__.py:17
 msgid "Log chat events and actions"
 msgstr ""
 
-#: sophie_bot/modules/logging/__init__.py:16
+#: sophie_bot/modules/logging/__init__.py:20
 msgid "Logs various chat events and actions for moderation purposes."
 msgstr ""
 
-#: sophie_bot/modules/logging/__init__.py:17
+#: sophie_bot/modules/logging/__init__.py:21
 msgid "Helps administrators keep track of what happens in their chats."
 msgstr ""
 
@@ -3997,19 +3997,19 @@ msgstr ""
 msgid "Message deleted"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:37
+#: sophie_bot/modules/notes/__init__.py:78
 msgid "Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:39
+#: sophie_bot/modules/notes/__init__.py:80
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:43
+#: sophie_bot/modules/notes/__init__.py:84
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:46
+#: sophie_bot/modules/notes/__init__.py:87
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
@@ -4443,19 +4443,19 @@ msgstr ""
 msgid "The text is too long"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:27
+#: sophie_bot/modules/op/__init__.py:45
 msgid "Operator"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:29
+#: sophie_bot/modules/op/__init__.py:47
 msgid "Operator-only commands and tools"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:32
+#: sophie_bot/modules/op/__init__.py:50
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:33
+#: sophie_bot/modules/op/__init__.py:51
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr ""
 
@@ -4714,23 +4714,23 @@ msgstr ""
 msgid "Collect diagnostic context with AI summarization (requires feature flag)."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/stats.py:98
+#: sophie_bot/modules/op/handlers/stats.py:95
 msgid "Show bot statistics."
 msgstr ""
 
-#: sophie_bot/modules/pins/__init__.py:13
+#: sophie_bot/modules/pins/__init__.py:18
 msgid "Pins"
 msgstr ""
 
-#: sophie_bot/modules/pins/__init__.py:15
+#: sophie_bot/modules/pins/__init__.py:20
 msgid "Pin and unpin messages in chats"
 msgstr ""
 
-#: sophie_bot/modules/pins/__init__.py:18
+#: sophie_bot/modules/pins/__init__.py:23
 msgid "Allows administrators to pin important messages in the chat."
 msgstr ""
 
-#: sophie_bot/modules/pins/__init__.py:19
+#: sophie_bot/modules/pins/__init__.py:24
 msgid "Also provides the ability to unpin messages when needed."
 msgstr ""
 
@@ -4750,15 +4750,15 @@ msgstr ""
 msgid "Unpins message"
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:24
+#: sophie_bot/modules/privacy/__init__.py:41
 msgid "Data protection"
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:27
+#: sophie_bot/modules/privacy/__init__.py:44
 msgid "Manages user privacy and data protection settings."
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:28
+#: sophie_bot/modules/privacy/__init__.py:45
 msgid "Allows users to export their data and control privacy preferences."
 msgstr ""
 
@@ -4786,19 +4786,19 @@ msgstr ""
 msgid "Privacy Policy"
 msgstr ""
 
-#: sophie_bot/modules/promotes/__init__.py:10
+#: sophie_bot/modules/promotes/__init__.py:21
 msgid "Promotes"
 msgstr ""
 
-#: sophie_bot/modules/promotes/__init__.py:12
+#: sophie_bot/modules/promotes/__init__.py:23
 msgid "Manage user promotions in chats"
 msgstr ""
 
-#: sophie_bot/modules/promotes/__init__.py:15
+#: sophie_bot/modules/promotes/__init__.py:26
 msgid "Allows administrators to promote and demote users in chats."
 msgstr ""
 
-#: sophie_bot/modules/promotes/__init__.py:16
+#: sophie_bot/modules/promotes/__init__.py:27
 msgid "Manage user permissions and administrative privileges."
 msgstr ""
 
@@ -4858,19 +4858,19 @@ msgstr ""
 msgid "Admin promoted successfully"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:14
+#: sophie_bot/modules/purges/__init__.py:28
 msgid "Purges"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:16
+#: sophie_bot/modules/purges/__init__.py:30
 msgid "Delete messages in bulk"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:19
+#: sophie_bot/modules/purges/__init__.py:33
 msgid "Allows administrators to delete multiple messages at once."
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:20
+#: sophie_bot/modules/purges/__init__.py:34
 msgid "Useful for cleaning up chat history and removing unwanted content."
 msgstr ""
 
@@ -4914,19 +4914,19 @@ msgstr ""
 msgid "Deletes the message"
 msgstr ""
 
-#: sophie_bot/modules/reports/__init__.py:12
+#: sophie_bot/modules/reports/__init__.py:17
 msgid "Reports"
 msgstr ""
 
-#: sophie_bot/modules/reports/__init__.py:14
+#: sophie_bot/modules/reports/__init__.py:19
 msgid "Report messages to chat admins"
 msgstr ""
 
-#: sophie_bot/modules/reports/__init__.py:17
+#: sophie_bot/modules/reports/__init__.py:22
 msgid "Allows users to report messages to chat administrators."
 msgstr ""
 
-#: sophie_bot/modules/reports/__init__.py:18
+#: sophie_bot/modules/reports/__init__.py:23
 msgid "Admins will be notified about reported messages and can take appropriate action."
 msgstr ""
 
@@ -4955,35 +4955,35 @@ msgstr ""
 msgid "Reported by"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:17
+#: sophie_bot/modules/rest/__init__.py:21
 msgid "REST API"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:19
+#: sophie_bot/modules/rest/__init__.py:23
 msgid "REST API for external integrations"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:22
+#: sophie_bot/modules/rest/__init__.py:26
 msgid "Provides a REST API for external integrations and third-party applications."
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:23
+#: sophie_bot/modules/rest/__init__.py:27
 msgid "Allows programmatic access to bot functionality and data."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:25
+#: sophie_bot/modules/restrictions/__init__.py:46
 msgid "Restrictions"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:27
+#: sophie_bot/modules/restrictions/__init__.py:48
 msgid "Manage user restrictions in chats"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:30
+#: sophie_bot/modules/restrictions/__init__.py:51
 msgid "Provides commands to restrict users in chats."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/__init__.py:31
+#: sophie_bot/modules/restrictions/__init__.py:52
 msgid "Includes ban, kick, mute, and temporary restrictions."
 msgstr ""
 
@@ -5282,7 +5282,7 @@ msgstr ""
 msgid "Unmuted by"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:19
+#: sophie_bot/modules/rules/__init__.py:35
 #: sophie_bot/modules/rules/handlers/get.py:34
 #: sophie_bot/modules/rules/handlers/legacy_button.py:35
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
@@ -5291,15 +5291,15 @@ msgstr ""
 msgid "Rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:21
+#: sophie_bot/modules/rules/__init__.py:37
 msgid "Set and display chat rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:24
+#: sophie_bot/modules/rules/__init__.py:40
 msgid "Allows administrators to set rules for their chats."
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:25
+#: sophie_bot/modules/rules/__init__.py:41
 msgid "Users can view the rules at any time using the rules command."
 msgstr ""
 
@@ -5356,11 +5356,11 @@ msgstr ""
 msgid "Replies to the message with the chat rules"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/__init__.py:18
+#: sophie_bot/modules/troubleshooters/__init__.py:38
 msgid "Troubleshooters"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/__init__.py:20
+#: sophie_bot/modules/troubleshooters/__init__.py:40
 msgid "Tools for fixing problems and issues"
 msgstr ""
 
@@ -5439,19 +5439,19 @@ msgstr ""
 msgid "The action was cancelled by {user}."
 msgstr ""
 
-#: sophie_bot/modules/users/__init__.py:14
+#: sophie_bot/modules/users/__init__.py:24
 msgid "Users"
 msgstr ""
 
-#: sophie_bot/modules/users/__init__.py:16
+#: sophie_bot/modules/users/__init__.py:26
 msgid "User information and management"
 msgstr ""
 
-#: sophie_bot/modules/users/__init__.py:19
+#: sophie_bot/modules/users/__init__.py:29
 msgid "Provides commands to get information about users and chat members."
 msgstr ""
 
-#: sophie_bot/modules/users/__init__.py:20
+#: sophie_bot/modules/users/__init__.py:30
 msgid "Includes admin list, user IDs, and detailed user information."
 msgstr ""
 
@@ -5722,15 +5722,15 @@ msgstr ""
 msgid "New value"
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:44
+#: sophie_bot/modules/warns/__init__.py:70
 msgid "Warnings"
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:48
+#: sophie_bot/modules/warns/__init__.py:74
 msgid "Warns users in the chat to keep it safe."
 msgstr ""
 
-#: sophie_bot/modules/warns/__init__.py:49
+#: sophie_bot/modules/warns/__init__.py:75
 msgid "You can set a max warning limit and an action to take when the limit is reached."
 msgstr ""
 
@@ -5997,15 +5997,15 @@ msgstr ""
 msgid "muted"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:32
+#: sophie_bot/modules/welcomesecurity/__init__.py:66
 msgid "Welcome Security"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:34
+#: sophie_bot/modules/welcomesecurity/__init__.py:68
 msgid "Protect your chat from bots and verify new users"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:36
+#: sophie_bot/modules/welcomesecurity/__init__.py:70
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr ""
 

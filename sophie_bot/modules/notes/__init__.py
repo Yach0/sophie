@@ -1,3 +1,5 @@
+from types import ModuleType
+
 from aiogram import Router
 from fastapi import APIRouter
 from stfu_tg import Doc
@@ -34,30 +36,11 @@ api_router.include_router(notes_router)
 
 router = Router(name="notes")
 
-__module_name__ = l_("Notes")
-__module_emoji__ = "📗"
-__module_description__ = l_("Save and retrieve notes in chats")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_(
-            "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
-        ),
-        l_(
-            "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
-        ),
-    )
-)
-__advertise_wiki_page__ = True
-
-__filters__ = get_filter()
-__modern_actions__ = (ReplyModernAction, SendNoteAction)
-
-__export__ = export
 
 BUTTONS.update({"note": "btnnotesm", "#": "btnnotesm"})
 
 
-async def __pre_setup__():
+async def pre_setup() -> None:
     # PM notes
     router.message.register(PMNotesControl, *PMNotesControl.filters())
     router.message.register(PMNotesStatus, *PMNotesStatus.filters())
@@ -80,7 +63,7 @@ async def __pre_setup__():
     router.message.register(LegacyStartNoteButton, *LegacyStartNoteButton.filters())
 
 
-async def __post_setup__(_):
+async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
         scheduler.add_job(GenerateAITitles().handle, "interval", minutes=1, jobstore="ram")
         scheduler.add_job(GenerateNoteEmbeddings().handle, "interval", minutes=1, jobstore="ram")
@@ -90,16 +73,23 @@ module_manifest = ModuleManifest(
     name="notes",
     bot_router=router,
     api_router=api_router,
-    pre_setup=__pre_setup__,
-    post_setup=__post_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-        "advertise_wiki_page": __advertise_wiki_page__,
-        "filter_actions": __filters__,
-        "modern_actions": __modern_actions__,
-        "export": __export__,
-    },
+    pre_setup=pre_setup,
+    post_setup=post_setup,
+    title=l_("Notes"),
+    emoji="📗",
+    description=l_("Save and retrieve notes in chats"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_(
+                "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
+            ),
+            l_(
+                "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
+            ),
+        )
+    ),
+    advertise_wiki_page=True,
+    filter_actions=get_filter(),
+    modern_actions=(ReplyModernAction, SendNoteAction),
+    export=export,
 )

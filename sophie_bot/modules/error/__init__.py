@@ -12,19 +12,8 @@ from ...middlewares import try_localization_middleware
 
 router = Router(name="error")
 
-__module_name__ = l_("Error")
-__module_emoji__ = "🚫"
-__module_description__ = l_("Error handling and reporting")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Handles errors and exceptions that occur during bot operation."),
-        l_("Provides error reporting and recovery mechanisms."),
-    )
-)
-__exclude_public__ = True
 
-
-async def __pre_setup__():
+async def pre_setup() -> None:
     router.message.register(crash_handler, CMDFilter("op_crash"), IsOP(True))
 
     router.error.middleware(try_localization_middleware)
@@ -34,12 +23,15 @@ async def __pre_setup__():
 module_manifest = ModuleManifest(
     name="error",
     bot_router=router,
-    pre_setup=__pre_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-        "exclude_public": __exclude_public__,
-    },
+    pre_setup=pre_setup,
+    title=l_("Error"),
+    emoji="🚫",
+    description=l_("Error handling and reporting"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Handles errors and exceptions that occur during bot operation."),
+            l_("Provides error reporting and recovery mechanisms."),
+        )
+    ),
+    exclude_public=True,
 )

@@ -1,5 +1,4 @@
 from types import ModuleType
-from typing import cast
 
 from aiogram import Router
 from stfu_tg import Doc
@@ -13,47 +12,37 @@ from ...filters.chat_status import ChatTypeFilter
 from ...filters.cmd import CMDFilter
 from .callbacks import PrivacyMenuCallback
 from .handlers.export import EXPORTABLE_MODULES, TriggerExport
-from .handlers.export import ExportCallable
 from .handlers.privacy import PrivacyMenu
 
 router = Router(name="info")
 
 
-__module_name__ = l_("Privacy")
-__module_emoji__ = "🕵️‍♂️️"
-__module_description__ = l_("Data protection")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Manages user privacy and data protection settings."),
-        l_("Allows users to export their data and control privacy preferences."),
-    )
-)
-
-
-async def __pre_setup__():
+async def pre_setup() -> None:
     router.message.register(PrivacyMenu, CMDFilter("privacy"), ChatTypeFilter("private"))
     router.callback_query.register(PrivacyMenu, PrivacyMenuCallback.filter())
 
     router.message.register(TriggerExport, CMDFilter("export"), ChatTypeFilter("private"), UserRestricting(admin=True))
 
 
-async def __post_setup__(modules: dict[str, ModuleType]):
+async def post_setup(modules: dict[str, ModuleType]) -> None:
     EXPORTABLE_MODULES.clear()
     for module in modules.values():
-        export_data = get_module_manifest(module).metadata.get("export")
-        if export_data:
-            EXPORTABLE_MODULES.append(cast(ExportCallable, export_data))
+        if export_data := get_module_manifest(module).export:
+            EXPORTABLE_MODULES.append(export_data)
 
 
 module_manifest = ModuleManifest(
     name="privacy",
     bot_router=router,
-    pre_setup=__pre_setup__,
-    post_setup=__post_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-    },
+    pre_setup=pre_setup,
+    post_setup=post_setup,
+    title=l_("Privacy"),
+    emoji="🕵️‍♂️️",
+    description=l_("Data protection"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Manages user privacy and data protection settings."),
+            l_("Allows users to export their data and control privacy preferences."),
+        )
+    ),
 )

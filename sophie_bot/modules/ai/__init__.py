@@ -1,3 +1,5 @@
+from types import ModuleType
+
 from aiogram import Router
 from stfu_tg import Doc
 
@@ -53,46 +55,10 @@ from .api import api_router
 __all__ = [
     "router",
     "api_router",
-    "__module_name__",
-    "__module_emoji__",
-    "__module_description__",
-    "__module_info__",
-    "__filters__",
-    "__modern_actions__",
-    "__handlers__",
-    "__pre_setup__",
+    "pre_setup",
 ]
 
 router = Router(name="ai")
-
-__module_name__ = l_("Sophie AI")
-__module_emoji__ = AI_EMOJI
-__module_description__ = l_("Rainbow sparkles and shininess")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Sophie supports quite a few ways to use AI features."),
-        l_("From a simple chat-bot, to the automatic translator. Have fun."),
-        " ",
-        AI_POLICY,
-        l_("Please note that each chat has a limited monthly AI quota."),
-        l_("Use /aiusage to check your remaining quota."),
-    )
-)
-
-__filters__ = get_filter()
-__modern_actions__ = (AIReplyAction,)
-__handlers__ = (
-    EnableAI,
-    AIModerator,
-    AIAutotrans,
-    AIFilterAddHandler,
-    AIProviderSetting,
-    AIProviderSettingAlt,
-    AIProviderSelectCallback,
-    AIPlaygroundCmd,
-    AIPlaygroundModelSelectCallback,
-    AiPmInitialize,
-)
 
 
 def _register_context_handlers() -> None:
@@ -123,7 +89,7 @@ def _register_chat_handlers() -> None:
     router.message.register(AiCmd, *AiCmd.filters())
 
 
-async def __pre_setup__():
+async def pre_setup() -> None:
     router.message.outer_middleware(CacheUserMessagesMiddleware())
     router.message.middleware(CacheBotMessagesMiddleware())
 
@@ -142,7 +108,7 @@ async def __pre_setup__():
     _register_chat_handlers()
 
 
-async def __post_setup__(_):
+async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
         scheduler.add_job(
             GenerateChatSummaries().handle,
@@ -158,15 +124,33 @@ module_manifest = ModuleManifest(
     name="ai",
     bot_router=router,
     api_router=api_router,
-    handlers=__handlers__,
-    pre_setup=__pre_setup__,
-    post_setup=__post_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-        "filter_actions": __filters__,
-        "modern_actions": __modern_actions__,
-    },
+    handlers=(
+        EnableAI,
+        AIModerator,
+        AIAutotrans,
+        AIFilterAddHandler,
+        AIProviderSetting,
+        AIProviderSettingAlt,
+        AIProviderSelectCallback,
+        AIPlaygroundCmd,
+        AIPlaygroundModelSelectCallback,
+        AiPmInitialize,
+    ),
+    pre_setup=pre_setup,
+    post_setup=post_setup,
+    title=l_("Sophie AI"),
+    emoji=AI_EMOJI,
+    description=l_("Rainbow sparkles and shininess"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Sophie supports quite a few ways to use AI features."),
+            l_("From a simple chat-bot, to the automatic translator. Have fun."),
+            " ",
+            AI_POLICY,
+            l_("Please note that each chat has a limited monthly AI quota."),
+            l_("Use /aiusage to check your remaining quota."),
+        )
+    ),
+    filter_actions=get_filter(),
+    modern_actions=(AIReplyAction,),
 )

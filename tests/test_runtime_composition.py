@@ -168,7 +168,7 @@ async def test_load_modules_uses_explicit_module_manifest(monkeypatch: pytest.Mo
         handlers=(FakeHandler,),
         pre_setup=manifest_pre_setup,
         post_setup=manifest_post_setup,
-        metadata={"name": "Manifest Sample"},
+        title="Manifest Sample",
     )
 
     monkeypatch.setattr(module_loader, "MODULES", ["manifest_sample"])

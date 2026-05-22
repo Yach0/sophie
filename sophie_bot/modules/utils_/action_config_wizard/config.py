@@ -15,7 +15,7 @@ class ActionWizardConfig:
     """Declarative configuration for an Action Config Wizard instance.
 
     Consumers create one config per wizard and pass it to ``create_action_config_system``
-    to get back the handler classes needed for ``__handlers__``.
+    to get back the handler classes needed for ``ModuleManifest.handlers``.
     """
 
     # Identity

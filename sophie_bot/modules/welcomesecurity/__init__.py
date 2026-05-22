@@ -1,9 +1,10 @@
+from types import ModuleType
+
 from aiogram import Router
 
+from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import BUTTONS
-from sophie_bot.modes import SOPHIE_MODE
-from sophie_bot.services.scheduler import scheduler
 from sophie_bot.modules.welcomesecurity.handlers.captcha_confirm import (
     CaptchaConfirmHandler,
 )
@@ -27,14 +28,10 @@ from sophie_bot.modules.welcomesecurity.handlers.status_overall import (
 from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import (
     LockMutedUsers,
 )
+from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanUnpassedUsers
+from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-__module_name__ = l_("Welcome Security")
-__module_emoji__ = "🛡️"
-__module_description__ = l_("Protect your chat from bots and verify new users")
-__module_info__ = l_(
-    "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
-)
 
 router = Router(name="welcomesecurity")
 
@@ -42,39 +39,34 @@ router = Router(name="welcomesecurity")
 BUTTONS.update({"welcomesecurity": "btnwelcomesecuritystart"})
 
 
-__handlers__ = (
-    CaptchaGetHandler,
-    LegacyWSButtonHandler,
-    CaptchaConfirmHandler,
-    ChatJoinRequestHandler,
-    EnableWelcomeCaptchaHandlerABC,
-    EnableWelcomeMute,
-    WelcomeSecuritySettingsShowHandler,
-    LegacyStableWSButtonRedirectHandler,
-)
-
-
-async def __pre_setup__():
+async def pre_setup() -> None:
     router.message.outer_middleware(LockMutedUsers())
 
 
-async def __post_setup__(_):
+async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
-        from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanUnpassedUsers
-
         scheduler.add_job(BanUnpassedUsers().handle, "interval", minutes=10, jobstore="ram")
 
 
 module_manifest = ModuleManifest(
     name="welcomesecurity",
     bot_router=router,
-    handlers=__handlers__,
-    pre_setup=__pre_setup__,
-    post_setup=__post_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-    },
+    handlers=(
+        CaptchaGetHandler,
+        LegacyWSButtonHandler,
+        CaptchaConfirmHandler,
+        ChatJoinRequestHandler,
+        EnableWelcomeCaptchaHandlerABC,
+        EnableWelcomeMute,
+        WelcomeSecuritySettingsShowHandler,
+        LegacyStableWSButtonRedirectHandler,
+    ),
+    pre_setup=pre_setup,
+    post_setup=post_setup,
+    title=l_("Welcome Security"),
+    emoji="🛡️",
+    description=l_("Protect your chat from bots and verify new users"),
+    info=l_(
+        "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
+    ),
 )

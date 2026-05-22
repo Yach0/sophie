@@ -826,7 +826,7 @@ def create_action_config_system(
     Returns (WizardHandler, CallbackHandler, SetupHandler, DoneHandler, CancelHandler, SettingsHandler).
 
     DoneHandler and CancelHandler are the same class as CallbackHandler (unified dispatch),
-    but provided as separate references for backward compatibility with ``__handlers__`` registration.
+    but provided as separate references for backward compatibility with ``ModuleManifest.handlers`` registration.
     """
 
     _ACTION_WIZARD_CONFIGS[cfg.module_name] = cfg
@@ -871,7 +871,7 @@ def create_action_config_system(
     )
 
     # Done and Cancel are now handled inside the unified callback handler.
-    # We return the callback_cls for those slots so __handlers__ registration
+    # We return the callback_cls for those slots so ModuleManifest.handlers registration
     # doesn't break. The register() method is idempotent for duplicate classes,
     # but to avoid double-registration we create thin no-op subclasses.
     done_cls = type("ACWDone", (_ACWNoOpHandler,), {})
@@ -891,7 +891,7 @@ class _ACWNoOpHandler(SophieCallbackQueryHandler):
     """Placeholder handler that skips registration.
 
     Done/Cancel operations are handled by the unified callback handler.
-    This class exists so that ``__handlers__`` tuples can still list 6 entries
+    This class exists so that ``ModuleManifest.handlers`` tuples can still list 6 entries
     without causing errors during ``handler.register(router)``.
     """
 

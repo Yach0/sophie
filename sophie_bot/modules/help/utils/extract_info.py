@@ -191,13 +191,12 @@ async def gather_module_help(module: ModuleType) -> Optional[ModuleHelp]:
     if manifest.bot_router is None:
         return None
 
-    metadata = manifest.metadata
-    name = cast(LazyProxy | str, metadata.get("name", manifest.name))
-    emoji = cast(str, metadata.get("emoji", "?"))
-    exclude_public = bool(metadata.get("exclude_public", False))
-    info = cast(str | LazyProxy | Doc | None, metadata.get("info"))
-    description = cast(str | LazyProxy | Doc | None, metadata.get("description"))
-    advertise_wiki_page = bool(metadata.get("advertise_wiki_page", False))
+    name = cast(LazyProxy | str, manifest.title or manifest.name)
+    emoji = manifest.emoji or "?"
+    exclude_public = manifest.exclude_public
+    info = manifest.info
+    description = manifest.description
+    advertise_wiki_page = manifest.advertise_wiki_page
 
     log.debug(f"gather_module_help: {module.__name__}", name=name, emoji=emoji, advertise_wiki_page=advertise_wiki_page)
 

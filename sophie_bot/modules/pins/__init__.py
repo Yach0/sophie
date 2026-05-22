@@ -10,26 +10,18 @@ from .handlers.unpin import UnpinHandler
 
 router = Router(name="pins")
 
-__module_name__ = l_("Pins")
-__module_emoji__ = "📌"
-__module_description__ = l_("Pin and unpin messages in chats")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Allows administrators to pin important messages in the chat."),
-        l_("Also provides the ability to unpin messages when needed."),
-    )
-)
-
-__handlers__ = [PinHandler, UnpinHandler]
 
 module_manifest = ModuleManifest(
     name="pins",
     bot_router=router,
-    handlers=__handlers__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-    },
+    handlers=[PinHandler, UnpinHandler],
+    title=l_("Pins"),
+    emoji="📌",
+    description=l_("Pin and unpin messages in chats"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Allows administrators to pin important messages in the chat."),
+            l_("Also provides the ability to unpin messages when needed."),
+        )
+    ),
 )

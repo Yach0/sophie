@@ -16,42 +16,31 @@ from .api import api_router
 
 __all__ = ("api_router",)
 
-__module_name__ = l_("Rules")
-__module_emoji__ = "🪧"
-__module_description__ = l_("Set and display chat rules")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Allows administrators to set rules for their chats."),
-        l_("Users can view the rules at any time using the rules command."),
-    )
-)
-
-__filters__ = get_filter()
-__modern_actions__ = (SendRulesAction,)
 
 router = Router(name="rules")
 
 BUTTONS.update({"rules": "btn_rules"})
 
 
-__handlers__ = (
-    SetRulesHandler,
-    GetRulesHandler,
-    ResetRulesHandler,
-    LegacyRulesButton,
-)
-
 module_manifest = ModuleManifest(
     name="rules",
     bot_router=router,
     api_router=api_router,
-    handlers=__handlers__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-        "filter_actions": __filters__,
-        "modern_actions": __modern_actions__,
-    },
+    handlers=(
+        SetRulesHandler,
+        GetRulesHandler,
+        ResetRulesHandler,
+        LegacyRulesButton,
+    ),
+    title=l_("Rules"),
+    emoji="🪧",
+    description=l_("Set and display chat rules"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Allows administrators to set rules for their chats."),
+            l_("Users can view the rules at any time using the rules command."),
+        )
+    ),
+    filter_actions=get_filter(),
+    modern_actions=(SendRulesAction,),
 )

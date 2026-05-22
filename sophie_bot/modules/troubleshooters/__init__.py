@@ -15,25 +15,8 @@ from .stats import beta_stats
 
 router = Router(name="troubleshooters")
 
-__module_name__ = l_("Troubleshooters")
-__module_emoji__ = "🧰"
-__module_description__ = l_("Tools for fixing problems and issues")
 
-
-__stats__ = beta_stats
-
-__handlers__ = (
-    CancelCallbackHandler,
-    TypedCancelCallbackHandler,
-    CallbackActionCancelHandler,
-    ResetAdminCache,
-    SetBetaPercentage,
-    ResetBetaChats,
-    CancelState,
-)
-
-
-async def __pre_setup__():
+async def pre_setup() -> None:
     # Beta
     router.message.register(set_preferred_mode, CMDFilter("enablebeta"), HasArgs(True), UserRestricting(admin=True))
     router.message.register(show_beta_state, CMDFilter("enablebeta"), UserRestricting(admin=True))
@@ -42,12 +25,18 @@ async def __pre_setup__():
 module_manifest = ModuleManifest(
     name="troubleshooters",
     bot_router=router,
-    handlers=__handlers__,
-    pre_setup=__pre_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "stats": __stats__,
-    },
+    handlers=(
+        CancelCallbackHandler,
+        TypedCancelCallbackHandler,
+        CallbackActionCancelHandler,
+        ResetAdminCache,
+        SetBetaPercentage,
+        ResetBetaChats,
+        CancelState,
+    ),
+    pre_setup=pre_setup,
+    title=l_("Troubleshooters"),
+    emoji="🧰",
+    description=l_("Tools for fixing problems and issues"),
+    stats=beta_stats,
 )

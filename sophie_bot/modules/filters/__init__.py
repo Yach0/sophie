@@ -1,5 +1,4 @@
 from types import ModuleType
-from typing import cast
 
 from aiogram import Router
 from fastapi import APIRouter
@@ -27,18 +26,13 @@ from .handlers.filter_new import FilterNewHandler
 from .handlers.filter_save import FilterSaveHandler
 from .handlers.filters_list import FiltersListHandler
 from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS, LegacyFilterAction
+from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS
 
 __all__ = (
     "api_router",
     "router",
-    "__module_name__",
-    "__module_emoji__",
-    "__module_info__",
-    "__advertise_wiki_page__",
-    "__handlers__",
-    "__pre_setup__",
-    "__post_setup__",
+    "pre_setup",
+    "post_setup",
     "LOADED_MODULES",
 )
 
@@ -48,56 +42,24 @@ api_router.include_router(filters_api_router)
 
 
 router = Router(name="filters")
-__module_name__ = l_("Filters")
-__module_emoji__ = "🪄"
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Filters allows to invoke different actions for different messages."),
-        l_("For example muting the users when they mention crypto."),
-        l_(
-            "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
-        ),
-    )
-)
-__advertise_wiki_page__ = True
-
-__handlers__ = (
-    FilterNewHandler,
-    ActionsListHandler,
-    ActionSetupConfirmHandler,
-    ActionSelectHandler,
-    FilterConfirmHandler,
-    FilterSaveHandler,
-    ActionSettingSelectHandler,
-    FiltersListHandler,
-    FilterDeleteHandler,
-    ActionsListToRemoveHandler,
-    ActionRemoveHandler,
-    FilterEditHandler,
-    ActionChangeSettingConfirm,
-)
 
 
-async def __pre_setup__() -> None:
+async def pre_setup() -> None:
     # Enforce filters middleware
     router.message.outer_middleware(EnforceFiltersMiddleware())
     router.edited_message.outer_middleware(EnforceFiltersMiddleware())
 
 
-async def __post_setup__(modules: dict[str, ModuleType]) -> None:
-    from ..notes.magic_handlers.reply_action import ReplyModernAction
-
+async def post_setup(modules: dict[str, ModuleType]) -> None:
     for name, module in modules.items():
-        metadata = get_module_manifest(module).metadata
-        action_filters = cast(tuple[type[ReplyModernAction], ...], metadata.get("modern_actions", ()))
+        manifest = get_module_manifest(module)
 
-        for action_filter in action_filters:
+        for action_filter in manifest.modern_actions:
             log.debug("Modern filter actions: Adding new action...", name=action_filter.name, module=name)
 
             ALL_MODERN_ACTIONS[action_filter.name] = action_filter()
 
-        legacy_filters = cast(dict[str, LegacyFilterAction], metadata.get("filter_actions", {}))
-        for action_name, action in legacy_filters.items():
+        for action_name, action in manifest.filter_actions.items():
             log.debug("Legacy filters: Adding new action...", name=action_name, module=name)
             LEGACY_FILTERS_ACTIONS[action_name] = action
 
@@ -108,13 +70,33 @@ module_manifest = ModuleManifest(
     name="filters",
     bot_router=router,
     api_router=api_router,
-    handlers=__handlers__,
-    pre_setup=__pre_setup__,
-    post_setup=__post_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "info": __module_info__,
-        "advertise_wiki_page": __advertise_wiki_page__,
-    },
+    handlers=(
+        FilterNewHandler,
+        ActionsListHandler,
+        ActionSetupConfirmHandler,
+        ActionSelectHandler,
+        FilterConfirmHandler,
+        FilterSaveHandler,
+        ActionSettingSelectHandler,
+        FiltersListHandler,
+        FilterDeleteHandler,
+        ActionsListToRemoveHandler,
+        ActionRemoveHandler,
+        FilterEditHandler,
+        ActionChangeSettingConfirm,
+    ),
+    pre_setup=pre_setup,
+    post_setup=post_setup,
+    title=l_("Filters"),
+    emoji="🪄",
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Filters allows to invoke different actions for different messages."),
+            l_("For example muting the users when they mention crypto."),
+            l_(
+                "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
+            ),
+        )
+    ),
+    advertise_wiki_page=True,
 )

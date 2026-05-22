@@ -24,44 +24,33 @@ __all__ = ["api_router"]
 
 router = Router(name="op")
 
-__module_name__ = l_("Operator")
-__module_emoji__ = "👑"
-__module_description__ = l_("Operator-only commands and tools")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Provides operator-only commands and tools for bot administration."),
-        l_("Includes system stats, job management, and other administrative functions."),
-    )
-)
-
-__exclude_public__ = True
-
-__handlers__ = (
-    ListJobsHandler,
-    StopJobsHandler,
-    KillSwitchHandler,
-    OpBannerHandler,
-    OpCaptchaHandler,
-    OpRegenerateChatSummaryHandler,
-    ButtonsTestHandler,
-    EventHandler,
-    StatsHandler,
-    OpDebugHandler,
-    OpDebugAISummaryHandler,
-)
-__stats__ = get_system_stats
 
 module_manifest = ModuleManifest(
     name="op",
     bot_router=router,
     api_router=api_router,
-    handlers=__handlers__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-        "exclude_public": __exclude_public__,
-        "stats": __stats__,
-    },
+    handlers=(
+        ListJobsHandler,
+        StopJobsHandler,
+        KillSwitchHandler,
+        OpBannerHandler,
+        OpCaptchaHandler,
+        OpRegenerateChatSummaryHandler,
+        ButtonsTestHandler,
+        EventHandler,
+        StatsHandler,
+        OpDebugHandler,
+        OpDebugAISummaryHandler,
+    ),
+    title=l_("Operator"),
+    emoji="👑",
+    description=l_("Operator-only commands and tools"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Provides operator-only commands and tools for bot administration."),
+            l_("Includes system stats, job management, and other administrative functions."),
+        )
+    ),
+    exclude_public=True,
+    stats=get_system_stats,
 )

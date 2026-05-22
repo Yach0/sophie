@@ -9,26 +9,18 @@ from .handlers.report import ReportHandler
 
 router = Router(name="reports")
 
-__module_name__ = l_("Reports")
-__module_emoji__ = "📢"
-__module_description__ = l_("Report messages to chat admins")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Allows users to report messages to chat administrators."),
-        l_("Admins will be notified about reported messages and can take appropriate action."),
-    )
-)
-
-__handlers__ = (ReportHandler,)
 
 module_manifest = ModuleManifest(
     name="reports",
     bot_router=router,
-    handlers=__handlers__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-    },
+    handlers=(ReportHandler,),
+    title=l_("Reports"),
+    emoji="📢",
+    description=l_("Report messages to chat admins"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Allows users to report messages to chat administrators."),
+            l_("Admins will be notified about reported messages and can take appropriate action."),
+        )
+    ),
 )

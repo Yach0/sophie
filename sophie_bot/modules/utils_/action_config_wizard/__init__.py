@@ -3,7 +3,7 @@ Action Configuration Wizard System
 
 A declarative system for creating interactive action configuration interfaces.
 Consumers create an ``ActionWizardConfig`` and call ``create_action_config_system``
-to get handler classes for ``__handlers__`` registration.
+to get handler classes for ``ModuleManifest.handlers`` registration.
 
 Example usage:
 

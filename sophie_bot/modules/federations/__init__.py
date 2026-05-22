@@ -1,3 +1,5 @@
+from types import ModuleType
+
 from aiogram import Router
 
 from sophie_bot.modes import SOPHIE_MODE
@@ -24,58 +26,23 @@ from sophie_bot.modules.federations.handlers.subscribe import SubscribeFederatio
 from sophie_bot.modules.federations.handlers.transfer import TransferOwnershipHandler
 from sophie_bot.modules.federations.handlers.unban import FederationUnbanHandler
 from sophie_bot.modules.federations.middlewares.check_fban import FedBanMiddleware
+from sophie_bot.modules.federations.schedules.cleanup_exports import CleanupOldExports
+from sophie_bot.modules.federations.schedules.process_exports import ProcessFederationExports
+from sophie_bot.modules.federations.schedules.process_imports import ProcessFederationImports
+from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-__module_name__ = l_("Federations")
-__module_emoji__ = "🏛"
-__module_description__ = l_("Manage federations across multiple chats")
-__module_info__ = l_(
-    "Federations allow you to manage multiple chats as a group. "
-    "You can ban users across all chats in a federation, "
-    "subscribe to other federations, and manage permissions."
-)
 
 api_router = federations_api_router
 router = Router(name="federations")
 
-__handlers__ = (
-    CreateFederationHandler,
-    JoinFederationHandler,
-    LeaveFederationHandler,
-    FederationInfoHandler,
-    FederationBanHandler,
-    FederationUnbanHandler,
-    FederationBanListHandler,
-    FederationCheckGroupHandler,
-    FederationCheckPMHandler,
-    TransferOwnershipHandler,
-    AcceptTransferHandler,
-    SetFederationLogHandler,
-    UnsetFederationLogHandler,
-    SubscribeFederationHandler,
-    UnsubscribeFederationHandler,
-    FederationImportHandler,
-    FederationRenameHandler,
-    FederationDeleteHandler,
-    FederationDeleteCallbackHandler,
-    FederationChatsHandler,
-    FederationAdminsHandler,
-    FederationPromoteHandler,
-    FederationDemoteHandler,
-)
 
-
-async def __pre_setup__():
+async def pre_setup() -> None:
     router.message.outer_middleware(FedBanMiddleware())
 
 
-async def __post_setup__(_):
+async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
-        from sophie_bot.modules.federations.schedules.cleanup_exports import CleanupOldExports
-        from sophie_bot.modules.federations.schedules.process_exports import ProcessFederationExports
-        from sophie_bot.modules.federations.schedules.process_imports import ProcessFederationImports
-        from sophie_bot.services.scheduler import scheduler
-
         scheduler.add_job(ProcessFederationImports().handle, "interval", seconds=30, jobstore="ram")
         scheduler.add_job(ProcessFederationExports().handle, "interval", seconds=30, jobstore="ram")
         scheduler.add_job(CleanupOldExports().handle, "interval", hours=6, jobstore="ram")
@@ -85,13 +52,39 @@ module_manifest = ModuleManifest(
     name="federations",
     bot_router=router,
     api_router=api_router,
-    handlers=__handlers__,
-    pre_setup=__pre_setup__,
-    post_setup=__post_setup__,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-    },
+    handlers=(
+        CreateFederationHandler,
+        JoinFederationHandler,
+        LeaveFederationHandler,
+        FederationInfoHandler,
+        FederationBanHandler,
+        FederationUnbanHandler,
+        FederationBanListHandler,
+        FederationCheckGroupHandler,
+        FederationCheckPMHandler,
+        TransferOwnershipHandler,
+        AcceptTransferHandler,
+        SetFederationLogHandler,
+        UnsetFederationLogHandler,
+        SubscribeFederationHandler,
+        UnsubscribeFederationHandler,
+        FederationImportHandler,
+        FederationRenameHandler,
+        FederationDeleteHandler,
+        FederationDeleteCallbackHandler,
+        FederationChatsHandler,
+        FederationAdminsHandler,
+        FederationPromoteHandler,
+        FederationDemoteHandler,
+    ),
+    pre_setup=pre_setup,
+    post_setup=post_setup,
+    title=l_("Federations"),
+    emoji="🏛",
+    description=l_("Manage federations across multiple chats"),
+    info=l_(
+        "Federations allow you to manage multiple chats as a group. "
+        "You can ban users across all chats in a federation, "
+        "subscribe to other federations, and manage permissions."
+    ),
 )

@@ -14,26 +14,18 @@ api_router.include_router(telegram_media_router)
 
 __all__ = ["api_router"]
 
-__module_name__ = l_("REST API")
-__module_emoji__ = "🔌"
-__module_description__ = l_("REST API for external integrations")
-__module_info__ = LazyProxy(
-    lambda: Doc(
-        l_("Provides a REST API for external integrations and third-party applications."),
-        l_("Allows programmatic access to bot functionality and data."),
-    )
-)
-
-__exclude_public__ = True
 
 module_manifest = ModuleManifest(
     name="rest",
     api_router=api_router,
-    metadata={
-        "name": __module_name__,
-        "emoji": __module_emoji__,
-        "description": __module_description__,
-        "info": __module_info__,
-        "exclude_public": __exclude_public__,
-    },
+    title=l_("REST API"),
+    emoji="🔌",
+    description=l_("REST API for external integrations"),
+    info=LazyProxy(
+        lambda: Doc(
+            l_("Provides a REST API for external integrations and third-party applications."),
+            l_("Allows programmatic access to bot functionality and data."),
+        )
+    ),
+    exclude_public=True,
 )

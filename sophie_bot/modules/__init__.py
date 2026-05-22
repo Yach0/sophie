@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from asyncio import gather
 from collections.abc import Awaitable, Callable
+from collections.abc import Sequence as SequenceABC
 from dataclasses import dataclass, field
 from importlib import import_module
 from types import ModuleType
-from typing import TYPE_CHECKING, Iterator, Sequence, Type, Union
+from typing import TYPE_CHECKING, Any, Iterator, Protocol, Sequence, Type, Union
 
 from aiogram import Dispatcher, Router
 
@@ -13,8 +14,19 @@ from sophie_bot.utils.logger import log
 
 if TYPE_CHECKING:
     from fastapi import APIRouter
+    from stfu_tg import Doc
 
+    from sophie_bot.modules.filters.utils_.legacy_filter_actions import LegacyFilterAction
     from sophie_bot.utils.handlers import SophieBaseHandler
+    from sophie_bot.utils.i18n import LazyProxy
+
+
+class ModuleStatsHook(Protocol):
+    async def __call__(self) -> object: ...
+
+
+class ExportHook(Protocol):
+    async def __call__(self, chat_iid: Any) -> dict[str, Any] | None: ...
 
 
 PreSetupHook = Callable[[], Awaitable[None]]
@@ -30,13 +42,22 @@ class LoadedModuleRegistry:
 @dataclass(frozen=True, slots=True)
 class ModuleManifest:
     name: str
+    title: "LazyProxy | str | None" = None
+    emoji: str | None = None
+    description: "LazyProxy | str | Doc | None" = None
+    info: "LazyProxy | str | Doc | None" = None
     bot_router: Router | None = None
     api_router: "APIRouter | None" = None
     handlers: Sequence[Type["SophieBaseHandler"]] = ()
     pre_setup: PreSetupHook | None = None
     post_setup: PostSetupHook | None = None
     scheduler_jobs: Sequence[object] = ()
-    metadata: dict[str, object] = field(default_factory=dict)
+    advertise_wiki_page: bool = False
+    exclude_public: bool = False
+    stats: ModuleStatsHook | None = None
+    export: ExportHook | None = None
+    filter_actions: dict[str, "LegacyFilterAction"] = field(default_factory=dict)
+    modern_actions: SequenceABC[type[Any]] = ()
 
 
 _loaded_module_registry = LoadedModuleRegistry()

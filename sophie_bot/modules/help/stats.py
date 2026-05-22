@@ -3,7 +3,7 @@ from stfu_tg import Code, KeyValue, Section, Template
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 
 
-async def __stats__():
+async def module_stats():
     modules = HELP_MODULES.values()
 
     return Section(
