@@ -24,6 +24,52 @@ def test_convert_legacy_notes_to_html_update_converts_markdown_note() -> None:
             "parse_mode": "html",
             "version": 2,
             "legacy_markdown_text": "**legacy** note",
+            "buttons": [],
+            "legacy_buttons": [],
+        }
+    }
+
+
+def test_convert_legacy_notes_to_html_update_extracts_legacy_buttons() -> None:
+    migration = _legacy_notes_migration()
+
+    update = migration.convert_legacy_note_to_html_update(
+        {
+            "_id": "note-id",
+            "text": "Menu\n[Open](btnurl:https://example.com)\n[Rules](btnrules)",
+            "parse_mode": "md",
+            "version": 1,
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "text": "Menu",
+            "parse_mode": "html",
+            "version": 2,
+            "legacy_markdown_text": "Menu\n[Open](btnurl:https://example.com)\n[Rules](btnrules)",
+            "buttons": [
+                [{"text": "Open", "action": "url", "data": "https://example.com", "style": None}],
+                [{"text": "Rules", "action": "rules", "data": None, "style": None}],
+            ],
+            "legacy_buttons": [],
+        }
+    }
+
+
+def test_convert_legacy_notes_to_html_update_extracts_buttons_from_html_v1_note() -> None:
+    migration = _legacy_notes_migration()
+
+    update = migration.convert_legacy_note_to_html_update(
+        {"_id": "note-id", "text": "Menu\n[Delete](btndelmsg)", "parse_mode": "html", "version": 1}
+    )
+
+    assert update == {
+        "$set": {
+            "text": "Menu\n",
+            "version": 2,
+            "buttons": [[{"text": "Delete", "action": "delmsg", "data": None, "style": None}]],
+            "legacy_buttons": [],
         }
     }
 
@@ -49,6 +95,32 @@ def test_restore_legacy_note_markdown_update_restores_original_text() -> None:
         },
         "$unset": {
             "legacy_markdown_text": "",
+            "legacy_buttons": "",
+        },
+    }
+
+
+def test_restore_legacy_note_markdown_update_restores_original_buttons() -> None:
+    migration = _legacy_notes_migration()
+
+    update = migration.restore_legacy_note_markdown_update(
+        {
+            "text": "Menu\n",
+            "parse_mode": "html",
+            "buttons": [[{"text": "Delete", "action": "delmsg"}]],
+            "legacy_buttons": [[{"text": "Old", "action": "url", "data": "https://example.com"}]],
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "text": "Menu\n",
+            "version": 1,
+            "buttons": [[{"text": "Old", "action": "url", "data": "https://example.com"}]],
+        },
+        "$unset": {
+            "legacy_markdown_text": "",
+            "legacy_buttons": "",
         },
     }
 

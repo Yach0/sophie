@@ -1,0 +1,91 @@
+from urllib.parse import urlparse
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+from sophie_bot.config import CONFIG
+from sophie_bot.db.models.button_action import ButtonAction
+from sophie_bot.db.models.notes_buttons import Button, ButtonStyle
+from sophie_bot.modules.notes.utils.buttons.payloads import (
+    LEGACY_CONNECTION_BUTTON_PREFIX,
+    LEGACY_DELETE_MESSAGE_BUTTON_PREFIX,
+    LEGACY_NOTE_BUTTON_PREFIX,
+    LEGACY_RULES_BUTTON_PREFIX,
+    LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
+    build_legacy_start_payload,
+)
+from sophie_bot.utils.logger import log
+
+
+def create_inline_button(
+    *, text: str, style: ButtonStyle | None = None, url: str | None = None, callback_data: str | None = None
+) -> InlineKeyboardButton:
+    if style:
+        return InlineKeyboardButton(text=text, url=url, callback_data=callback_data, style=style)
+
+    return InlineKeyboardButton(text=text, url=url, callback_data=callback_data)
+
+
+def _is_valid_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        return bool(parsed.scheme) and bool(parsed.netloc)
+    except (ValueError, TypeError):
+        return False
+
+
+def render_button(button: Button, chat_tid: int) -> InlineKeyboardButton | None:
+    action = button.action
+    text = button.text
+    data = button.data
+
+    if action == ButtonAction.url:
+        if not data or not _is_valid_url(data):
+            log.warning("render_button: skipping invalid URL button", button_text=text, url=data)
+            return None
+        return create_inline_button(text=text, url=data, style=button.style)
+
+    if action == ButtonAction.sophiedm:
+        return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}", style=button.style)
+
+    if action == ButtonAction.rules:
+        payload = build_legacy_start_payload(LEGACY_RULES_BUTTON_PREFIX, chat_tid)
+        return create_inline_button(
+            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
+        )
+
+    if action == ButtonAction.delmsg:
+        payload = build_legacy_start_payload(LEGACY_DELETE_MESSAGE_BUTTON_PREFIX, chat_tid)
+        return create_inline_button(text=text, callback_data=payload, style=button.style)
+
+    if action == ButtonAction.connect:
+        payload = build_legacy_start_payload(LEGACY_CONNECTION_BUTTON_PREFIX, chat_tid)
+        return create_inline_button(
+            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
+        )
+
+    if action == ButtonAction.captcha:
+        payload = build_legacy_start_payload(LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, chat_tid)
+        return create_inline_button(
+            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
+        )
+
+    if action == ButtonAction.note:
+        payload = build_legacy_start_payload(LEGACY_NOTE_BUTTON_PREFIX, chat_tid, data or "")
+        return create_inline_button(
+            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
+        )
+
+    return None
+
+
+def render_buttons(buttons: list[list[Button]], chat_tid: int) -> InlineKeyboardMarkup:
+    keyboard: list[list[InlineKeyboardButton]] = []
+    for row in buttons:
+        parsed_row = []
+        for button in row:
+            parsed_button = render_button(button, chat_tid)
+            if parsed_button:
+                parsed_row.append(parsed_button)
+        if parsed_row:
+            keyboard.append(parsed_row)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

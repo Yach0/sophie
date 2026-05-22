@@ -29,8 +29,7 @@ from stfu_tg.doc import Element
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.notes.utils.buttons_processor.legacy import legacy_button_parser
-from sophie_bot.modules.notes.utils.buttons_processor.unparse import unparse_buttons
+from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.parse import (
     PARSABLE_CONTENT_TYPES,
@@ -84,10 +83,7 @@ async def send_saveable(
     if not raw:
         chat_id_for_buttons = connection.db_model.tid if connection else (message.chat.id if message else send_to)
 
-        if saveable.version == 1:
-            text, inline_markup = legacy_button_parser(chat_id_for_buttons, text)
-        else:
-            inline_markup = unparse_buttons(saveable.buttons, chat_id_for_buttons)
+        inline_markup = render_buttons(saveable.buttons, chat_id_for_buttons)
 
         inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 

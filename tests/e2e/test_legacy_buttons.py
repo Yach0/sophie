@@ -11,9 +11,11 @@ from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFa
 from bson.dbref import DBRef
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.db.models.rules import RulesModel
 from sophie_bot.modules.connections.utils.connection import check_connection_permissions
 
@@ -57,7 +59,7 @@ async def _create_group_and_user(
 
 
 @pytest.mark.asyncio
-async def test_legacy_note_button_renders_all_legacy_button_types(
+async def test_legacy_note_button_renders_migrated_button_rows(
     test_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -74,18 +76,18 @@ async def test_legacy_note_button_renders_all_legacy_button_types(
         chat_id=group.id,
         chat=group_db,
         names=("menu",),
-        text=(
-            "Legacy menu\n"
-            "[URL](btnurl:https://example.com/path)\n"
-            "[Sophie DM](btnsophieurl)\n"
-            "[Nested Note](btnnote:child)\n"
-            "[Hash Note](#child)\n"
-            "[Rules](btnrules)\n"
-            "[Connect](btnconnect)\n"
-            "[Delete](btndelmsg)\n"
-            "[Captcha](btnwelcomesecurity)"
-        ),
-        version=1,
+        text="Legacy menu",
+        buttons=[
+            [Button(text="URL", action=ButtonAction.url, data="https://example.com/path")],
+            [Button(text="Sophie DM", action=ButtonAction.sophiedm)],
+            [Button(text="Nested Note", action=ButtonAction.note, data="child")],
+            [Button(text="Hash Note", action=ButtonAction.note, data="child")],
+            [Button(text="Rules", action=ButtonAction.rules)],
+            [Button(text="Connect", action=ButtonAction.connect)],
+            [Button(text="Delete", action=ButtonAction.delmsg)],
+            [Button(text="Captcha", action=ButtonAction.captcha)],
+        ],
+        version=2,
     )
 
     get_note = AsyncMock(return_value=note)
@@ -140,6 +142,42 @@ async def test_legacy_note_button_renders_all_legacy_button_types(
         and button_callback is None
         for button_text, button_url, button_callback in buttons
     )
+
+
+@pytest.mark.asyncio
+async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
+
+    _user_db, group_db, user_wrapper, group = await _create_group_and_user(
+        test_client,
+        group_tid=-1009400010007,
+        user_tid=940007,
+        group_title="Unmigrated Legacy Buttons Group",
+    )
+
+    note = NoteModel(
+        chat_id=group.id,
+        chat=group_db,
+        names=("menu",),
+        text="Legacy menu\n[URL](btnurl:https://example.com/path)",
+        version=1,
+    )
+
+    with patch.object(NoteModel, "get_by_notenames", AsyncMock(return_value=note)):
+        requests = await test_client.send_command(
+            command="start",
+            args=f"btnnotesm_menu_{group.id}",
+            from_user=user_wrapper.user,
+        )
+
+    assert requests, "Legacy note deep link should still send the note"
+    response = requests[-1]
+    assert response.request_type.value == "sendMessage"
+    assert "[URL](btnurl:https://example.com/path)" in (response.text or "")
+    assert response.reply_markup in (None, {"inline_keyboard": []})
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ from stfu_tg import Section
 
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
+from sophie_bot.modules.notes.utils.buttons.storage import buttons_from_ass
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -17,7 +18,7 @@ async def parse_buttons_list_from_message(message: Message, text: str, offset: i
         entities = ArgEntities((getattr(message, "entities", None) or [])).cut_before(offset)
         _length, result = await arg.parse(text, 0, entities)
         note_text = result["text"].value
-        buttons = ButtonsList.from_ass(result["buttons"].value)
+        buttons = ButtonsList(buttons_from_ass(result["buttons"].value))
 
         return note_text, buttons
     except ArgError as err:
