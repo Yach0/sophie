@@ -6,11 +6,20 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc, HList, Section, Title, VList
 from typing_extensions import Optional
 
+from sophie_bot.constants import FILTERS_MAX_TRIGGERS
+from sophie_bot.modules.filters.callbacks import (
+    FilterSettingCallback,
+    ListActionsToRemoveCallback,
+    NewFilterActionCallback,
+    SaveFilterCallback,
+)
 from sophie_bot.modules.filters.utils_.filter_abc import (
     ALL_FILTER_ACTIONS,
     FilterActionABC,
 )
 from sophie_bot.modules.filters.utils_.filter_handler_rules import describe_filter_handler
+from sophie_bot.modules.troubleshooters.callbacks import CancelCallback
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
@@ -51,17 +60,39 @@ class ConfirmAddFilter(SophieMessageHandler):
 
         buttons = InlineKeyboardBuilder()
 
-        for filter_action, _f in filters:
+        for filter_action, _filter_data in filters:
             for setting in filter_action.settings:
-                buttons.row(InlineKeyboardButton(text=f"{setting.icon} {setting.title}", callback_data="todo"))
+                buttons.row(
+                    InlineKeyboardButton(
+                        text=f"{setting.icon} {setting.title}",
+                        callback_data=FilterSettingCallback(
+                            name=filter_action.name, setting_name=setting.name_id
+                        ).pack(),
+                    )
+                )
+
+        manage_action_btn_row = []
+        if len(filters) <= FILTERS_MAX_TRIGGERS:
+            manage_action_btn_row.append(
+                InlineKeyboardButton(
+                    text=_("➕ Add another action"), callback_data=NewFilterActionCallback(back_to_confirm=True).pack()
+                )
+            )
+        if len(filters) > 1:
+            manage_action_btn_row.append(
+                InlineKeyboardButton(text=_("➖ Remove actions"), callback_data=ListActionsToRemoveCallback().pack())
+            )
+        if manage_action_btn_row:
+            buttons.row(*manage_action_btn_row)
+
+        if not self.event.from_user:
+            raise SophieException("No user in event")
 
         buttons.row(
-            InlineKeyboardButton(text=_("➕ Add another action"), callback_data="todo"),
-        )
-
-        buttons.row(
-            InlineKeyboardButton(text=_("🚫 Cancel"), callback_data="todo"),
-            InlineKeyboardButton(text=_("✅ Confirm"), callback_data="todo"),
+            InlineKeyboardButton(
+                text=_("🚫 Cancel"), callback_data=CancelCallback(user_id=self.event.from_user.id).pack()
+            ),
+            InlineKeyboardButton(text=_("✅ Confirm"), callback_data=SaveFilterCallback().pack()),
         )
 
         await self.event.reply(str(doc), disable_web_page_preview=True, reply_markup=buttons.as_markup())

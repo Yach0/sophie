@@ -11,12 +11,15 @@ from stfu_tg import Doc
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
+from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import Saveable
+from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.greetings.default_welcome import (
     get_default_security_message,
     get_default_welcome_message,
 )
 from sophie_bot.modules.greetings.utils.send_welcome import send_welcome
+from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.telegram_exceptions import REPLY_MESSAGE_INVALID
@@ -30,6 +33,16 @@ from sophie_bot.utils.logger import log
 
 
 class NewUserMiddleware(BaseMiddleware):
+    @staticmethod
+    def build_welcomesecurity_keyboard(chat_tid: int) -> InlineKeyboardBuilder:
+        buttons = InlineKeyboardBuilder()
+        rendered_button = render_buttons(
+            [[Button(text=_("I am not a robot"), action=ButtonAction.captcha)]], chat_tid
+        ).inline_keyboard
+        for row in rendered_button:
+            buttons.row(*row)
+        return buttons
+
     @staticmethod
     def is_join_too_old(message: Message) -> bool:
         """Check if the join message is older than the timeout threshold."""
@@ -102,21 +115,20 @@ class NewUserMiddleware(BaseMiddleware):
     ) -> Optional[Message]:
         muted_users = await ws_on_new_users_mute(new_users, chat_db)
 
-        # If no users were welcomesecurity muted - just send a greetings message
+        # If no users were welcomesecurity muted, fall back to the normal welcome flow.
         if not any(muted_users):
             return None
 
-        # If no users were welcomesecurity muted - just send a greetings message
         ws_saveable: Saveable = db_item.security_note or get_default_security_message()
+        security_keyboard = NewUserMiddleware.build_welcomesecurity_keyboard(chat_db.tid)
 
-        # FIXME: A workaround to add a missing (btnwelcomesecurity)️ button if not exists
-        if "(btnwelcomesecurity)️" not in (ws_saveable.text or ""):
-            ws_saveable.text = (ws_saveable.text or "") + f"\n [{_('I am not a robot')}](btnwelcomesecurity)️"
-
-        if not any(muted_users):
-            return None
-
-        sent_message = await send_welcome(message, ws_saveable, cleanservice_enabled, chat_rules)
+        sent_message = await send_welcome(
+            message,
+            ws_saveable,
+            cleanservice_enabled,
+            chat_rules,
+            additional_keyboard=security_keyboard.as_markup(),
+        )
         # Save sent message to cleanup it later
         if len(muted_users) == 1:
             await aredis.set(f"chat_ws_message:{chat_db.iid}:{new_users[0].iid}", sent_message.message_id)
@@ -168,7 +180,6 @@ class NewUserMiddleware(BaseMiddleware):
 
             is_admin = await is_user_admin(chat_db.iid, user_id)
 
-            # Save sent message to clean it later
             sent_message: Optional[Message] = None
 
             chat_rules = await RulesModel.get_rules(chat_db.iid)

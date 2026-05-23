@@ -112,14 +112,6 @@ class ServiceRegistry:
             self._instances["scheduler"] = self._create_scheduler()
         return self._instances["scheduler"]
 
-    def get_scheduler_loop(self) -> None:
-        """Deprecated: scheduler no longer uses a separate event loop.
-
-        The scheduler now runs on the main event loop. This method is kept
-        for backward compatibility and always returns None.
-        """
-        return None
-
     # ------------------------------------------------------------------
     # Factory methods (private)
     # ------------------------------------------------------------------

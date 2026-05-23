@@ -45,14 +45,14 @@ class UserInGroupModel(Document):
                     ("user.$id", ASCENDING),
                     ("group.$id", ASCENDING),
                 ],
-                unique=False,
-            ),  # TODO: Should be unique but has duplicates
+                unique=True,
+            ),
             IndexModel(
                 [
                     ("user.id", ASCENDING),
                     ("group.id", ASCENDING),
                 ],
-                unique=False,
+                unique=True,
             ),
         ]
 

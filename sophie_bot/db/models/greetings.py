@@ -24,12 +24,12 @@ WELCOMESECURITY_EXPIRE_DEFALT_VALUE = "48h"
 
 class WelcomeMute(BaseModel):
     enabled: bool = False
-    time: Optional[str | timedelta] = WELCOMEMUTE_DEFALT_VALUE  # TODO: convert to datetime
+    time: Optional[timedelta] = timedelta(hours=48)
 
 
 class WelcomeSecurity(BaseModel):
     enabled: bool = False
-    expire: Optional[str] = WELCOMESECURITY_EXPIRE_DEFALT_VALUE  # TODO: convert to datetime
+    expire: Optional[timedelta] = timedelta(hours=48)
 
 
 class GreetingsModel(Document):
@@ -100,7 +100,7 @@ class GreetingsModel(Document):
             self.welcome_security.enabled = new_state
         return await self.save()
 
-    async def set_status_welcomemute(self, new_state: bool, time: Optional[str]) -> "GreetingsModel":
+    async def set_status_welcomemute(self, new_state: bool, time: Optional[timedelta]) -> "GreetingsModel":
         if not self.welcome_mute:
             self.welcome_mute = WelcomeMute(enabled=new_state, time=time)
         else:

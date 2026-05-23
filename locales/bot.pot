@@ -1084,7 +1084,7 @@ msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:75
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:150
-#: sophie_bot/modules/filters/handlers/confirm.py:48
+#: sophie_bot/modules/filters/handlers/confirm.py:57
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:64
 msgid "Action"
 msgid_plural "Actions"
@@ -1396,7 +1396,7 @@ msgid "✅ Enable all"
 msgstr ""
 
 #: sophie_bot/modules/disabling/handlers/enable_all.py:36
-#: sophie_bot/modules/filters/handlers/confirm.py:63
+#: sophie_bot/modules/filters/handlers/confirm.py:93
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:99
 #: sophie_bot/modules/notes/handlers/delete_all.py:43
 msgid "🚫 Cancel"
@@ -2150,7 +2150,7 @@ msgid "🏛 Federation '{name}' has been created by {user}."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/delete.py:32
-#: sophie_bot/modules/filters/handlers/confirm.py:64
+#: sophie_bot/modules/filters/handlers/confirm.py:95
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:101
 msgid "✅ Confirm"
 msgstr ""
@@ -2868,25 +2868,26 @@ msgid "Text to match"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/add.py:57
-#: sophie_bot/modules/filters/handlers/confirm.py:39
+#: sophie_bot/modules/filters/handlers/confirm.py:48
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:50
 #: sophie_bot/modules/filters/handlers/filter_new.py:51
 msgid "New filter"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/add.py:59
-#: sophie_bot/modules/filters/handlers/confirm.py:40
+#: sophie_bot/modules/filters/handlers/confirm.py:49
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:51
 #: sophie_bot/modules/filters/handlers/filter_new.py:52
 msgid "Handles"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/confirm.py:59
+#: sophie_bot/modules/filters/handlers/confirm.py:78
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:84
 #: sophie_bot/modules/utils_/action_config_wizard/handler.py:95
 msgid "➕ Add another action"
 msgstr ""
 
+#: sophie_bot/modules/filters/handlers/confirm.py:83
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:89
 msgid "➖ Remove actions"
 msgstr ""
@@ -3102,16 +3103,16 @@ msgstr ""
 msgid "⬇️ Please click the button below to participate in the group."
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:26
+#: sophie_bot/modules/greetings/default_welcome.py:25
 #, python-brace-format
 msgid "Hi {mention}!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:27
+#: sophie_bot/modules/greetings/default_welcome.py:26
 msgid "Please check your direct messages with me to complete verification and join the group."
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:28
+#: sophie_bot/modules/greetings/default_welcome.py:27
 msgid "[Open DM with Sophie](btnsophieurl)"
 msgstr ""
 
@@ -3240,30 +3241,30 @@ msgid "Welcome Message"
 msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
-#: sophie_bot/modules/greetings/utils/send_welcome.py:22
+#: sophie_bot/modules/greetings/utils/send_welcome.py:23
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:124
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:86
 msgid "No chat rules, have fun!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:68
+#: sophie_bot/modules/greetings/middlewares/new_user.py:40
+msgid "I am not a robot"
+msgstr ""
+
+#: sophie_bot/modules/greetings/middlewares/new_user.py:81
 msgid "Hi, Thank you for choosing Sophie for your group!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:69
+#: sophie_bot/modules/greetings/middlewares/new_user.py:82
 msgid "Please read the documentation to learn more about Sophie and do not hesitate to join the Support Chat"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:74
+#: sophie_bot/modules/greetings/middlewares/new_user.py:87
 msgid "Documentation"
 msgstr ""
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:75
+#: sophie_bot/modules/greetings/middlewares/new_user.py:88
 msgid "Support Chat"
-msgstr ""
-
-#: sophie_bot/modules/greetings/middlewares/new_user.py:114
-msgid "I am not a robot"
 msgstr ""
 
 #: sophie_bot/modules/help/__init__.py:50

@@ -41,6 +41,3 @@ def set_scheduler(active_scheduler: AsyncIOScheduler) -> AsyncIOScheduler:
 
 
 scheduler = cast(AsyncIOScheduler, RuntimeProxy(get_scheduler))
-
-# Deprecated: scheduler_loop is no longer used. The scheduler now runs on the main event loop.
-scheduler_loop = None

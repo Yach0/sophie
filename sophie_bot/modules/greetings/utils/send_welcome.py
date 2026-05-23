@@ -1,6 +1,6 @@
 from typing import Optional
 
-from aiogram.types import Message, User
+from aiogram.types import InlineKeyboardMarkup, Message, User
 
 from sophie_bot.db.models import RulesModel
 from sophie_bot.db.models.notes import Saveable
@@ -16,6 +16,7 @@ async def send_welcome(
     chat_rules: Optional[RulesModel],
     user: Optional[User] = None,
     send_to_chat_id: Optional[int] = None,
+    additional_keyboard: InlineKeyboardMarkup = InlineKeyboardMarkup(inline_keyboard=[]),
 ) -> Message:
     chat_id = send_to_chat_id or message.chat.id
 
@@ -30,5 +31,6 @@ async def send_welcome(
         saveable,
         reply_to=message.message_id if not cleanservice_enabled and send_to_chat_id is None else None,
         additional_fillings=additional_fillings,
+        additional_keyboard=additional_keyboard,
         user=user,
     )

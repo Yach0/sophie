@@ -16,7 +16,6 @@ def get_default_security_message() -> Saveable:
     doc = Doc(
         _("Hi {mention}! Welcome to the {chatname}!"),
         _("⬇️ Please click the button below to participate in the group."),
-        "[I am not a bot!](btnwelcomesecurity)️",
     )
     return Saveable(text=str(doc))
 

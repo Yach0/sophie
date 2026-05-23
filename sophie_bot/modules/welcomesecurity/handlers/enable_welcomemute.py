@@ -79,5 +79,4 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
 
         db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
 
-        time_str = str(time) if time else None
-        await db_model.set_status_welcomemute(is_enabled, time_str)
+        await db_model.set_status_welcomemute(is_enabled, time)
