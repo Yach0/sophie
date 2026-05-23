@@ -757,9 +757,9 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:99
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
 #: sophie_bot/modules/reports/handlers/report.py:93
-#: sophie_bot/modules/restrictions/actions/ban.py:124
-#: sophie_bot/modules/restrictions/actions/kick.py:53
-#: sophie_bot/modules/restrictions/actions/mute.py:124
+#: sophie_bot/modules/restrictions/actions/ban.py:125
+#: sophie_bot/modules/restrictions/actions/kick.py:54
+#: sophie_bot/modules/restrictions/actions/mute.py:125
 #: sophie_bot/modules/restrictions/handlers/ban.py:51
 #: sophie_bot/modules/restrictions/handlers/ban.py:106
 #: sophie_bot/modules/restrictions/handlers/ban.py:154
@@ -2790,11 +2790,11 @@ msgstr ""
 msgid "You have multiple federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/manage.py:95
+#: sophie_bot/modules/federations/services/manage.py:94
 msgid "You don't have any federations"
 msgstr ""
 
-#: sophie_bot/modules/federations/services/manage.py:97
+#: sophie_bot/modules/federations/services/manage.py:96
 msgid "Could not determine federation"
 msgstr ""
 
@@ -4237,9 +4237,9 @@ msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/filter.py:25
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
-#: sophie_bot/modules/restrictions/actions/ban.py:113
-#: sophie_bot/modules/restrictions/actions/kick.py:48
-#: sophie_bot/modules/restrictions/actions/mute.py:113
+#: sophie_bot/modules/restrictions/actions/ban.py:114
+#: sophie_bot/modules/restrictions/actions/kick.py:49
+#: sophie_bot/modules/restrictions/actions/mute.py:114
 #: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:120
@@ -4910,7 +4910,7 @@ msgstr ""
 msgid "Delete the message"
 msgstr ""
 
-#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:29
+#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:30
 msgid "Deletes the message"
 msgstr ""
 
@@ -4999,26 +4999,26 @@ msgstr ""
 msgid "Ban"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:80
+#: sophie_bot/modules/restrictions/actions/ban.py:81
 #, python-brace-format
 msgid "Bans user for {time}"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:82
+#: sophie_bot/modules/restrictions/actions/ban.py:83
 msgid "Bans user indefinitely"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:87
+#: sophie_bot/modules/restrictions/actions/ban.py:88
 msgid "Change ban duration"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:115
+#: sophie_bot/modules/restrictions/actions/ban.py:116
 #, python-brace-format
 msgid "User {user} was automatically banned based on a filter action"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:121
-#: sophie_bot/modules/restrictions/actions/mute.py:121
+#: sophie_bot/modules/restrictions/actions/ban.py:122
+#: sophie_bot/modules/restrictions/actions/mute.py:122
 msgid "For"
 msgstr ""
 
@@ -5026,11 +5026,11 @@ msgstr ""
 msgid "Kick"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/kick.py:28
+#: sophie_bot/modules/restrictions/actions/kick.py:29
 msgid "Kicks a user"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/kick.py:50
+#: sophie_bot/modules/restrictions/actions/kick.py:51
 #, python-brace-format
 msgid "User {user} was automatically kicked based on a filter action"
 msgstr ""
@@ -5047,20 +5047,20 @@ msgstr ""
 msgid "Mute"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:80
+#: sophie_bot/modules/restrictions/actions/mute.py:81
 #, python-brace-format
 msgid "Mutes user for {time}"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:82
+#: sophie_bot/modules/restrictions/actions/mute.py:83
 msgid "Mutes user indefinitely"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:87
+#: sophie_bot/modules/restrictions/actions/mute.py:88
 msgid "Change mute duration"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:115
+#: sophie_bot/modules/restrictions/actions/mute.py:116
 #, python-brace-format
 msgid "User {user} was automatically muted based on a filter action"
 msgstr ""

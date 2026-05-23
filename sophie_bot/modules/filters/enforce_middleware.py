@@ -22,6 +22,7 @@ from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
+from sophie_bot.shared.restrictive_filter_state import mark_restrictive
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
@@ -188,8 +189,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
         data["restrictive_filter_triggered"] = restrictive_filter_triggered
 
-        # If a restrictive filter triggered - skip other handlers
+        # If a restrictive filter triggered - mark the message so other routers
+        # (e.g. AI autotranslate) can also skip processing, then skip other handlers
         if restrictive_filter_triggered:
+            mark_restrictive(message.message_id)
             raise SkipHandler
 
     async def __call__(
