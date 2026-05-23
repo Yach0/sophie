@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from fastapi import APIRouter
     from stfu_tg import Doc
 
-    from sophie_bot.modules.filters.utils_.legacy_filter_actions import LegacyFilterAction
     from sophie_bot.utils.handlers import SophieBaseHandler
     from sophie_bot.utils.i18n import LazyProxy
 
@@ -56,7 +55,6 @@ class ModuleManifest:
     exclude_public: bool = False
     stats: ModuleStatsHook | None = None
     export: ExportHook | None = None
-    filter_actions: dict[str, "LegacyFilterAction"] = field(default_factory=dict)
     modern_actions: SequenceABC[type[Any]] = ()
 
 

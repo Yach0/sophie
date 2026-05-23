@@ -6,7 +6,6 @@ from sophie_bot.modules.rules.handlers.get import GetRulesHandler
 from sophie_bot.modules.rules.handlers.legacy_button import LegacyRulesButton
 from sophie_bot.modules.rules.handlers.reset import ResetRulesHandler
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
-from sophie_bot.modules.rules.magic_handlers.filter import get_filter
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_RULES_BUTTON_PREFIX,
@@ -45,6 +44,5 @@ module_manifest = ModuleManifest(
             l_("Users can view the rules at any time using the rules command."),
         )
     ),
-    filter_actions=get_filter(),
     modern_actions=(SendRulesAction,),
 )

@@ -6,10 +6,10 @@ import pytest
 from beanie import PydanticObjectId
 
 from sophie_bot.modules.utils_.action_config_wizard.config import ActionWizardConfig
-from sophie_bot.modules.utils_.action_config_wizard.handler import (
+from sophie_bot.modules.utils_.action_config_wizard.context import (
     _ACTION_WIZARD_CONFIGS,
-    _get_active_setup_config,
-    _get_interactive_setup_chat_iid_raw,
+    get_active_setup_config,
+    get_interactive_setup_chat_iid_raw,
 )
 from sophie_bot.modules.utils_.action_config_wizard.state import WizardState
 
@@ -66,7 +66,7 @@ def test_get_interactive_setup_chat_iid_prefers_active_setting_context() -> None
         "setting_setup_chat_tid": "active-setting-chat",
     }
 
-    assert _get_interactive_setup_chat_iid_raw(state_data) == "active-setting-chat"
+    assert get_interactive_setup_chat_iid_raw(state_data) == "active-setting-chat"
 
 
 def test_get_active_setup_config_uses_state_module() -> None:
@@ -99,4 +99,4 @@ def test_get_active_setup_config_uses_state_module() -> None:
 
     state_data = {"acw_module": "warns_max"}
 
-    assert _get_active_setup_config(state_data, warns_each_cfg) is warns_max_cfg
+    assert get_active_setup_config(state_data, warns_each_cfg) is warns_max_cfg

@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 from aiogram import Router
-from aiogram.handlers import CallbackQueryHandler
+from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc, HList, Section, Template, Title, Url
@@ -20,7 +20,7 @@ from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, get_aliased
 from sophie_bot.modules.help.utils.format_help import format_handlers, group_handlers
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -83,7 +83,11 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
             await self.event.reply(str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)
 
 
-class PMModuleHelp(CallbackQueryHandler):
+class PMModuleHelp(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (PMHelpModule.filter(),)
+
     async def handle(self) -> Any:
         callback_data: PMHelpModule = self.data["callback_data"]
         module_name = callback_data.module_name

@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
 
-class DelMsgModernModern(ModernActionABC[None]):
+class DelMsgModern(ModernActionABC[None]):
     name = "delmsg"
 
     icon = "🗑"
@@ -36,7 +36,7 @@ class DelMsgModernModern(ModernActionABC[None]):
             return
 
         if await is_user_admin(message.chat.id, message.from_user.id):
-            log.debug("DelMsgModernModern: user is admin, skipping!")
+            log.debug("DelMsgModern: user is admin, skipping!")
             return
 
         await common_try(message.delete())

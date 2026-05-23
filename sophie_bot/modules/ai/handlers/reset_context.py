@@ -1,6 +1,6 @@
 from typing import Any
 
-from aiogram import F
+from aiogram import F, Router
 from aiogram.dispatcher.event.handler import CallbackType
 
 from sophie_bot.db.models import AIMemoryModel
@@ -29,6 +29,11 @@ class AIContextReset(SophieMessageHandler):
     @staticmethod
     def filters_callback() -> tuple[CallbackType, ...]:
         return AIResetContext.filter(), UserRestricting(admin=True), AIEnabledFilter()
+
+    @classmethod
+    def register(cls, router: Router) -> None:
+        router.message.register(cls, *cls.filters(), flags={"args": cls.handler_args})
+        router.message.register(cls, *cls.filters_alt(), flags={"args": cls.handler_args})
 
     async def handle(self) -> Any:
         await reset_messages(self.connection.tid)

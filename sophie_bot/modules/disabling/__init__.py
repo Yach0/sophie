@@ -20,21 +20,18 @@ __all__ = ("api_router",)
 router = Router(name="Disable")
 
 
-async def pre_setup() -> None:
-    router.message.register(ListDisableable, *ListDisableable.filters())
-    router.message.register(ListDisabled, *ListDisabled.filters())
-    router.message.register(DisableHandler, *DisableHandler.filters())
-    router.message.register(EnableHandler, *EnableHandler.filters())
-    router.message.register(EnableAllHandler, *EnableAllHandler.filters())
-
-    router.callback_query.register(DisableAllCbHandler, *DisableAllCbHandler.filters())
-
-
 module_manifest = ModuleManifest(
     name="disabling",
     bot_router=router,
     api_router=api_router,
-    pre_setup=pre_setup,
+    handlers=(
+        ListDisableable,
+        ListDisabled,
+        DisableHandler,
+        EnableHandler,
+        EnableAllHandler,
+        DisableAllCbHandler,
+    ),
     title=l_("Disabling"),
     emoji="🚫",
     description=l_("Disable commands in chats"),

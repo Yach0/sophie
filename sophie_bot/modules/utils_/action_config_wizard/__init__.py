@@ -36,6 +36,6 @@ Example usage:
 """
 
 from .config import ActionWizardConfig
-from .handler import create_action_config_system
+from .factory import create_action_config_system
 
 __all__ = ["ActionWizardConfig", "create_action_config_system"]

@@ -26,7 +26,6 @@ from .handlers.filter_new import FilterNewHandler
 from .handlers.filter_save import FilterSaveHandler
 from .handlers.filters_list import FiltersListHandler
 from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from .utils_.legacy_filter_actions import LEGACY_FILTERS_ACTIONS
 
 __all__ = (
     "api_router",
@@ -58,12 +57,6 @@ async def post_setup(modules: dict[str, ModuleType]) -> None:
             log.debug("Modern filter actions: Adding new action...", name=action_filter.name, module=name)
 
             ALL_MODERN_ACTIONS[action_filter.name] = action_filter()
-
-        for action_name, action in manifest.filter_actions.items():
-            log.debug("Legacy filters: Adding new action...", name=action_name, module=name)
-            LEGACY_FILTERS_ACTIONS[action_name] = action
-
-    log.debug("Legacy filters: Filters actions", actions=LEGACY_FILTERS_ACTIONS)
 
 
 module_manifest = ModuleManifest(

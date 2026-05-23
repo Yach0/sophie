@@ -69,7 +69,7 @@ async def test_enforce_filters_evaluates_only_one_ai_filter_per_message(monkeypa
     assert match_mock.await_count == 1
 
 
-def test_get_effective_filter_actions_uses_modern_actions_first() -> None:
+def test_get_effective_filter_actions_returns_modern_actions() -> None:
     filter_item = SimpleNamespace(action="legacy", actions={"modern": {"enabled": True}})
 
     actions = get_effective_filter_actions(filter_item)
@@ -77,15 +77,11 @@ def test_get_effective_filter_actions_uses_modern_actions_first() -> None:
     assert len(actions) == 1
     assert actions[0].name == "modern"
     assert actions[0].data == {"enabled": True}
-    assert actions[0].uses_compatibility_handler is False
 
 
-def test_get_effective_filter_actions_wraps_single_compatibility_action() -> None:
+def test_get_effective_filter_actions_returns_empty_without_actions() -> None:
     filter_item = SimpleNamespace(action="legacy", actions={})
 
     actions = get_effective_filter_actions(filter_item)
 
-    assert len(actions) == 1
-    assert actions[0].name == "legacy"
-    assert actions[0].data is None
-    assert actions[0].uses_compatibility_handler is True
+    assert actions == []

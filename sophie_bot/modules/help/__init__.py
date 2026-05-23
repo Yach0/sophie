@@ -1,34 +1,23 @@
 from types import ModuleType
 
-from aiogram import F, Router
+from aiogram import Router
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from ...filters.cmd import CMDFilter
-from ...filters.user_status import IsOP
 from ...utils.logger import log
-from .callbacks import PMHelpModule
 from .handlers.help_group import HelpGroupHandler
 from .handlers.op import OpCMDSList
 from .handlers.pm_modules import PMModuleHelp, PMModulesList
-from .handlers.set_lang_legacy import set_lang_cb
+from .handlers.set_lang_legacy import SetLangLegacyHandler
 from .handlers.start_group import StartGroupHandler
 from .handlers.start_pm import StartPMHandler
 from .stats import module_stats
 from .utils.extract_info import HELP_MODULES, gather_module_help
 
-router = Router(name="info")
-
-
-async def pre_setup() -> None:
-    router.callback_query.register(PMModuleHelp, PMHelpModule.filter())
-
-    router.message.register(OpCMDSList, CMDFilter("op_cmds"), IsOP(True))
-
-    router.callback_query.register(set_lang_cb, F.data == "lang_btn")
+router = Router(name="help")
 
 
 async def post_setup(modules: dict[str, ModuleType]) -> None:
@@ -44,8 +33,15 @@ async def post_setup(modules: dict[str, ModuleType]) -> None:
 module_manifest = ModuleManifest(
     name="help",
     bot_router=router,
-    handlers=(StartPMHandler, HelpGroupHandler, PMModulesList, StartGroupHandler),
-    pre_setup=pre_setup,
+    handlers=(
+        StartPMHandler,
+        HelpGroupHandler,
+        PMModulesList,
+        PMModuleHelp,
+        OpCMDSList,
+        SetLangLegacyHandler,
+        StartGroupHandler,
+    ),
     post_setup=post_setup,
     title=l_("Help"),
     emoji="ℹ️",

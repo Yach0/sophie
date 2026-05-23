@@ -7,21 +7,13 @@ from sophie_bot.modules import ModuleManifest, get_module_manifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from ...filters.admin_rights import UserRestricting
-from ...filters.chat_status import ChatTypeFilter
-from ...filters.cmd import CMDFilter
-from .callbacks import PrivacyMenuCallback
+from .callbacks import PrivacyMenuCallback as PrivacyMenuCallback
 from .handlers.export import EXPORTABLE_MODULES, TriggerExport
 from .handlers.privacy import PrivacyMenu
 
-router = Router(name="info")
+__all__ = ["PrivacyMenuCallback", "module_manifest"]
 
-
-async def pre_setup() -> None:
-    router.message.register(PrivacyMenu, CMDFilter("privacy"), ChatTypeFilter("private"))
-    router.callback_query.register(PrivacyMenu, PrivacyMenuCallback.filter())
-
-    router.message.register(TriggerExport, CMDFilter("export"), ChatTypeFilter("private"), UserRestricting(admin=True))
+router = Router(name="privacy")
 
 
 async def post_setup(modules: dict[str, ModuleType]) -> None:
@@ -34,7 +26,7 @@ async def post_setup(modules: dict[str, ModuleType]) -> None:
 module_manifest = ModuleManifest(
     name="privacy",
     bot_router=router,
-    pre_setup=pre_setup,
+    handlers=(PrivacyMenu, TriggerExport),
     post_setup=post_setup,
     title=l_("Privacy"),
     emoji="🕵️‍♂️️",

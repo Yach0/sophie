@@ -5,8 +5,7 @@ from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.purges.handlers.button import LegacyDelMsgButton
 from sophie_bot.modules.purges.handlers.delete import DelMsgCmdHandler
 from sophie_bot.modules.purges.handlers.purge import PurgeMessagesHandler
-from sophie_bot.modules.purges.magic_handlers.filter import get_filter
-from sophie_bot.modules.purges.magic_handlers.modern_filter import DelMsgModernModern
+from sophie_bot.modules.purges.magic_handlers.modern_filter import DelMsgModern
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_DELETE_MESSAGE_BUTTON_PREFIX,
     LegacyButtonAction,
@@ -38,6 +37,5 @@ module_manifest = ModuleManifest(
             l_("Useful for cleaning up chat history and removing unwanted content."),
         )
     ),
-    filter_actions=get_filter(),
-    modern_actions=(DelMsgModernModern,),
+    modern_actions=(DelMsgModern,),
 )

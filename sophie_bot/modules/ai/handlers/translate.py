@@ -1,5 +1,6 @@
 from typing import Any
 
+from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
@@ -116,6 +117,10 @@ class AiTranslate(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return CMDFilter(("aitranslate", "translate", "tr")), AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_TRANSLATE)
+
+    @classmethod
+    def register(cls, router: Router) -> None:
+        router.message.register(cls, *cls.filters(), flags={"args": text_or_reply})
 
     async def handle(self) -> Any:
         is_autotranslate: bool = self.data.get("autotranslate", False)

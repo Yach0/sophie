@@ -4,7 +4,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import Code, Doc, Template
+from stfu_tg import Code, Template
 
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.db.models.filters import FilterInSetupType
@@ -47,16 +47,6 @@ class FilterEditHandler(SophieMessageHandler):
                         cmd=Code("/filters"),
                     )
                 )
-            )
-
-        if filter_item.action:
-            return await self.event.reply(
-                Doc(
-                    Template(_("Filter with handler {handler} can not be edited right now!"), handler=Code(keyword)),
-                    _("The given filter was created before the filters update, and considered 'legacy'"),
-                    _("Stay tuned for an update of Sophie."),
-                    _("Alternatively you can delete this filter and create again."),
-                ).to_html()
             )
 
         filter_in_setup = FilterInSetupType.from_model(filter_item)

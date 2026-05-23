@@ -144,27 +144,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:141
+#: sophie_bot/modules/ai/__init__.py:111
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:143
+#: sophie_bot/modules/ai/__init__.py:113
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:146
+#: sophie_bot/modules/ai/__init__.py:116
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:147
+#: sophie_bot/modules/ai/__init__.py:117
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:150
+#: sophie_bot/modules/ai/__init__.py:120
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:151
+#: sophie_bot/modules/ai/__init__.py:121
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -212,7 +212,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:67
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:78
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:179
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:159
 msgid "Description"
 msgstr ""
 
@@ -402,7 +402,7 @@ msgstr ""
 #: sophie_bot/modules/locks/handlers/locksticker.py:66
 #: sophie_bot/modules/locks/handlers/unlock.py:81
 #: sophie_bot/modules/notes/handlers/delete.py:47
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:36
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
 #: sophie_bot/modules/promotes/handlers/demote.py:76
 #: sophie_bot/modules/promotes/handlers/promote.py:136
 #: sophie_bot/modules/restrictions/handlers/ban.py:103
@@ -410,14 +410,10 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/kick.py:94
 #: sophie_bot/modules/restrictions/handlers/mute.py:97
 #: sophie_bot/modules/restrictions/handlers/mute.py:175
-#: sophie_bot/modules/restrictions/handlers/silent.py:120
-#: sophie_bot/modules/restrictions/handlers/silent.py:191
-#: sophie_bot/modules/restrictions/handlers/silent.py:265
-#: sophie_bot/modules/restrictions/handlers/silent.py:337
-#: sophie_bot/modules/restrictions/handlers/silent.py:411
 #: sophie_bot/modules/restrictions/handlers/unban.py:75
 #: sophie_bot/modules/restrictions/handlers/unmute.py:70
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:53
+#: sophie_bot/modules/restrictions/services/silent.py:76
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
 #: sophie_bot/modules/utils_/status_handler.py:47
 #: sophie_bot/modules/utils_/status_handler.py:70
 #: sophie_bot/modules/utils_/status_handler.py:124
@@ -444,53 +440,23 @@ msgstr ""
 msgid "Controls AI features"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/filter.py:23
-#: sophie_bot/modules/ai/magic_handlers/filter.py:23
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:47
-msgid "Please send me the AI instruction to proceed!"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/filter.py:24
-#: sophie_bot/modules/ai/magic_handlers/filter.py:24
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:48
-msgid "The AI will try to remember the chat context and will respond accordingly!"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/filter.py:26
-#: sophie_bot/modules/ai/magic_handlers/filter.py:26
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:49
-msgid "For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/filter.py:36
-#: sophie_bot/modules/ai/magic_handlers/filter.py:36
-msgid "Should be AI prompt, please try again!"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/filter.py:73
-#: sophie_bot/modules/ai/magic_handlers/filter.py:71
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:99
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
-msgstr ""
-
 #: sophie_bot/modules/ai/handlers/mode.py:17
 msgid "Generates a new AI mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:48
+#: sophie_bot/modules/ai/handlers/op_prices.py:53
 msgid "default chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:50
+#: sophie_bot/modules/ai/handlers/op_prices.py:55
 msgid "default translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:71
+#: sophie_bot/modules/ai/handlers/op_prices.py:76
 msgid "AI Prices"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:72
+#: sophie_bot/modules/ai/handlers/op_prices.py:77
 msgid "Prices are shown as approximate USD per 1M input/output tokens."
 msgstr ""
 
@@ -542,48 +508,48 @@ msgstr ""
 msgid "New remaining: {remaining}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:33
-#: sophie_bot/modules/ai/handlers/op_stats.py:52
+#: sophie_bot/modules/ai/handlers/op_stats.py:38
+#: sophie_bot/modules/ai/handlers/op_stats.py:57
 msgid "No data"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:59
+#: sophie_bot/modules/ai/handlers/op_stats.py:64
 msgid "Requests today"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:60
+#: sophie_bot/modules/ai/handlers/op_stats.py:65
 msgid "Requests this week"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:61
+#: sophie_bot/modules/ai/handlers/op_stats.py:66
 msgid "Requests this month"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:62
+#: sophie_bot/modules/ai/handlers/op_stats.py:67
 msgid "Credits this month"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:63
+#: sophie_bot/modules/ai/handlers/op_stats.py:68
 msgid "AI usage"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:65
+#: sophie_bot/modules/ai/handlers/op_stats.py:70
 msgid "Top chats by requests"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:66
+#: sophie_bot/modules/ai/handlers/op_stats.py:71
 msgid "Top chats by credits"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:67
+#: sophie_bot/modules/ai/handlers/op_stats.py:72
 msgid "Top users by requests"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:68
+#: sophie_bot/modules/ai/handlers/op_stats.py:73
 msgid "Top users by credits"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:69
+#: sophie_bot/modules/ai/handlers/op_stats.py:74
 msgid "Top features this month"
 msgstr ""
 
@@ -621,56 +587,56 @@ msgstr ""
 msgid "Reset the chat's AI context and AI memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:40
+#: sophie_bot/modules/ai/handlers/reset_context.py:45
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:73
+#: sophie_bot/modules/ai/handlers/translate.py:74
 msgid "Auto Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:73
+#: sophie_bot/modules/ai/handlers/translate.py:74
 msgid "Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:74
+#: sophie_bot/modules/ai/handlers/translate.py:75
 msgid "Voice"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:80
+#: sophie_bot/modules/ai/handlers/translate.py:81
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:90
+#: sophie_bot/modules/ai/handlers/translate.py:91
 msgid "Translation Notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:101
+#: sophie_bot/modules/ai/handlers/translate.py:102
 msgid "Text to translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:108
+#: sophie_bot/modules/ai/handlers/translate.py:109
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:141
+#: sophie_bot/modules/ai/handlers/translate.py:146
 msgid "Please provide text to translate."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:149
+#: sophie_bot/modules/ai/handlers/translate.py:154
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:160
+#: sophie_bot/modules/ai/handlers/translate.py:165
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:194
+#: sophie_bot/modules/ai/handlers/translate.py:199
 msgid "Error generating translation"
 msgstr ""
 
@@ -721,12 +687,23 @@ msgstr ""
 msgid "Please enter AI prompt"
 msgstr ""
 
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:47
+msgid "Please send me the AI instruction to proceed!"
+msgstr ""
+
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:48
+msgid "The AI will try to remember the chat context and will respond accordingly!"
+msgstr ""
+
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:49
+msgid "For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"
+msgstr ""
+
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:59
 msgid "AI Response"
 msgstr ""
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:63
-#: sophie_bot/modules/notes/magic_handlers/modern_filter.py:31
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:45
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
 msgid "Reply to message"
@@ -738,6 +715,11 @@ msgstr ""
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:74
 msgid "Change AI prompt"
+msgstr ""
+
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:99
+#, python-brace-format
+msgid "{ai_emoji} AI Response"
 msgstr ""
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:33
@@ -770,16 +752,8 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/mute.py:100
 #: sophie_bot/modules/restrictions/handlers/mute.py:125
 #: sophie_bot/modules/restrictions/handlers/mute.py:179
-#: sophie_bot/modules/restrictions/handlers/silent.py:84
-#: sophie_bot/modules/restrictions/handlers/silent.py:123
-#: sophie_bot/modules/restrictions/handlers/silent.py:155
-#: sophie_bot/modules/restrictions/handlers/silent.py:194
-#: sophie_bot/modules/restrictions/handlers/silent.py:227
-#: sophie_bot/modules/restrictions/handlers/silent.py:269
-#: sophie_bot/modules/restrictions/handlers/silent.py:301
-#: sophie_bot/modules/restrictions/handlers/silent.py:340
-#: sophie_bot/modules/restrictions/handlers/silent.py:373
-#: sophie_bot/modules/restrictions/handlers/silent.py:415
+#: sophie_bot/modules/restrictions/handlers/silent.py:78
+#: sophie_bot/modules/restrictions/services/silent.py:80
 #: sophie_bot/modules/warns/handlers/warn.py:52
 #: sophie_bot/modules/warns/handlers/warn.py:78
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
@@ -1084,7 +1058,6 @@ msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:75
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:150
-#: sophie_bot/modules/filters/handlers/confirm.py:57
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:64
 msgid "Action"
 msgid_plural "Actions"
@@ -1176,20 +1149,12 @@ msgstr ""
 #: sophie_bot/modules/restrictions/handlers/mute.py:98
 #: sophie_bot/modules/restrictions/handlers/mute.py:122
 #: sophie_bot/modules/restrictions/handlers/mute.py:176
-#: sophie_bot/modules/restrictions/handlers/silent.py:82
-#: sophie_bot/modules/restrictions/handlers/silent.py:121
-#: sophie_bot/modules/restrictions/handlers/silent.py:153
-#: sophie_bot/modules/restrictions/handlers/silent.py:192
-#: sophie_bot/modules/restrictions/handlers/silent.py:224
-#: sophie_bot/modules/restrictions/handlers/silent.py:266
-#: sophie_bot/modules/restrictions/handlers/silent.py:299
-#: sophie_bot/modules/restrictions/handlers/silent.py:338
-#: sophie_bot/modules/restrictions/handlers/silent.py:370
-#: sophie_bot/modules/restrictions/handlers/silent.py:412
+#: sophie_bot/modules/restrictions/handlers/silent.py:73
 #: sophie_bot/modules/restrictions/handlers/unban.py:42
 #: sophie_bot/modules/restrictions/handlers/unban.py:76
 #: sophie_bot/modules/restrictions/handlers/unmute.py:41
 #: sophie_bot/modules/restrictions/handlers/unmute.py:71
+#: sophie_bot/modules/restrictions/services/silent.py:77
 #: sophie_bot/modules/users/handlers/id.py:22
 #: sophie_bot/modules/users/handlers/info.py:21
 #: sophie_bot/modules/warns/handlers/callback.py:96
@@ -1201,8 +1166,7 @@ msgstr ""
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:153
 #: sophie_bot/modules/restrictions/handlers/ban.py:211
 #: sophie_bot/modules/restrictions/handlers/mute.py:178
-#: sophie_bot/modules/restrictions/handlers/silent.py:268
-#: sophie_bot/modules/restrictions/handlers/silent.py:414
+#: sophie_bot/modules/restrictions/services/silent.py:79
 msgid "Duration"
 msgstr ""
 
@@ -1319,19 +1283,19 @@ msgstr ""
 msgid "⚠️ The connection module is obsolete in favor of the web app. Click on the 'Dashboard' button in the text field."
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:38
+#: sophie_bot/modules/disabling/__init__.py:35
 msgid "Disabling"
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:40
+#: sophie_bot/modules/disabling/__init__.py:37
 msgid "Disable commands in chats"
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:43
+#: sophie_bot/modules/disabling/__init__.py:40
 msgid "Allows administrators to disable specific commands in their chats."
 msgstr ""
 
-#: sophie_bot/modules/disabling/__init__.py:44
+#: sophie_bot/modules/disabling/__init__.py:41
 msgid "Useful for restricting bot functionality to only necessary commands."
 msgstr ""
 
@@ -1396,7 +1360,6 @@ msgid "✅ Enable all"
 msgstr ""
 
 #: sophie_bot/modules/disabling/handlers/enable_all.py:36
-#: sophie_bot/modules/filters/handlers/confirm.py:93
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:99
 #: sophie_bot/modules/notes/handlers/delete_all.py:43
 msgid "🚫 Cancel"
@@ -1891,8 +1854,8 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:55
 #: sophie_bot/modules/restrictions/handlers/ban.py:105
 #: sophie_bot/modules/restrictions/handlers/ban.py:210
-#: sophie_bot/modules/restrictions/handlers/silent.py:193
-#: sophie_bot/modules/restrictions/handlers/silent.py:267
+#: sophie_bot/modules/restrictions/handlers/silent.py:164
+#: sophie_bot/modules/restrictions/handlers/silent.py:188
 msgid "Banned by"
 msgstr ""
 
@@ -2150,7 +2113,6 @@ msgid "🏛 Federation '{name}' has been created by {user}."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/delete.py:32
-#: sophie_bot/modules/filters/handlers/confirm.py:95
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:101
 msgid "✅ Confirm"
 msgstr ""
@@ -2158,10 +2120,8 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/delete.py:36
 #: sophie_bot/modules/filters/handlers/action_select.py:50
 #: sophie_bot/modules/filters/handlers/actions_list.py:69
-#: sophie_bot/modules/filters/handlers/add.py:74
-#: sophie_bot/modules/filters/handlers/add.py:91
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:215
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:616
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:336
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:195
 msgid "❌ Cancel"
 msgstr ""
 
@@ -2802,20 +2762,20 @@ msgstr ""
 msgid "You don't have permission to perform this action in this federation."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:90
+#: sophie_bot/modules/filters/__init__.py:83
 #: sophie_bot/modules/filters/handlers/filter_del.py:52
 msgid "Filters"
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:94
+#: sophie_bot/modules/filters/__init__.py:87
 msgid "Filters allows to invoke different actions for different messages."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:95
+#: sophie_bot/modules/filters/__init__.py:88
 msgid "For example muting the users when they mention crypto."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:97
+#: sophie_bot/modules/filters/__init__.py:90
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
 msgstr ""
 
@@ -2831,7 +2791,6 @@ msgid "Continuing setup is only possible by the same user who started it."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/action_select.py:39
-#: sophie_bot/modules/filters/handlers/add.py:88
 msgid "setup"
 msgstr ""
 
@@ -2840,7 +2799,6 @@ msgid "⬅ Back"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/actions_list.py:51
-#: sophie_bot/modules/filters/handlers/add.py:61
 msgid "Select a filter action:"
 msgstr ""
 
@@ -2860,40 +2818,33 @@ msgstr ""
 msgid "⬅️ Do not remove actions (Back)"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/add.py:47
-#: sophie_bot/modules/filters/handlers/filter_del.py:25
-#: sophie_bot/modules/filters/handlers/filter_del.py:40
-#: sophie_bot/modules/filters/handlers/filter_new.py:38
-msgid "Text to match"
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/add.py:57
-#: sophie_bot/modules/filters/handlers/confirm.py:48
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:50
 #: sophie_bot/modules/filters/handlers/filter_new.py:51
 msgid "New filter"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/add.py:59
-#: sophie_bot/modules/filters/handlers/confirm.py:49
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:51
 #: sophie_bot/modules/filters/handlers/filter_new.py:52
 msgid "Handles"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/confirm.py:78
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:84
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:95
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:78
 msgid "➕ Add another action"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/confirm.py:83
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:89
 msgid "➖ Remove actions"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:24
 msgid "Deletes a filter"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filter_del.py:25
+#: sophie_bot/modules/filters/handlers/filter_del.py:40
+#: sophie_bot/modules/filters/handlers/filter_new.py:38
+msgid "Text to match"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:39
@@ -2941,23 +2892,6 @@ msgstr ""
 #: sophie_bot/modules/filters/handlers/filter_edit.py:45
 #, python-brace-format
 msgid "Filter with handler {handler} can not be found! Check all filters using {cmd} command"
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/filter_edit.py:55
-#, python-brace-format
-msgid "Filter with handler {handler} can not be edited right now!"
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/filter_edit.py:56
-msgid "The given filter was created before the filters update, and considered 'legacy'"
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/filter_edit.py:57
-msgid "Stay tuned for an update of Sophie."
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/filter_edit.py:58
-msgid "Alternatively you can delete this filter and create again."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_new.py:24
@@ -3267,7 +3201,7 @@ msgstr ""
 msgid "Support Chat"
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:50
+#: sophie_bot/modules/help/__init__.py:46
 #: sophie_bot/modules/help/handlers/help_group.py:27
 #: sophie_bot/modules/help/handlers/pm_modules.py:73
 #: sophie_bot/modules/help/handlers/start_group.py:34
@@ -3275,15 +3209,15 @@ msgstr ""
 msgid "Help"
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:52
+#: sophie_bot/modules/help/__init__.py:48
 msgid "Provides helpful information"
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:55
+#: sophie_bot/modules/help/__init__.py:51
 msgid "Provides help and documentation for all bot commands and features."
 msgstr ""
 
-#: sophie_bot/modules/help/__init__.py:56
+#: sophie_bot/modules/help/__init__.py:52
 msgid "Includes command lists, usage instructions, and feature explanations."
 msgstr ""
 
@@ -3305,8 +3239,8 @@ msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:70
-#: sophie_bot/modules/help/handlers/pm_modules.py:130
-#: sophie_bot/modules/privacy/handlers/privacy.py:30
+#: sophie_bot/modules/help/handlers/pm_modules.py:134
+#: sophie_bot/modules/privacy/handlers/privacy.py:38
 msgid "⬅️ Back"
 msgstr ""
 
@@ -3322,24 +3256,24 @@ msgstr ""
 msgid "Alternatively you can now just chat with Sophie how to use herself!"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:93
+#: sophie_bot/modules/help/handlers/pm_modules.py:97
 msgid "Module not found"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:117
+#: sophie_bot/modules/help/handlers/pm_modules.py:121
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:125
+#: sophie_bot/modules/help/handlers/pm_modules.py:129
 msgid "📖 Look the module's wiki page for more information"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:126
+#: sophie_bot/modules/help/handlers/pm_modules.py:130
 msgid "📖 Wiki page"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/set_lang_legacy.py:21
+#: sophie_bot/modules/help/handlers/set_lang_legacy.py:28
 msgid "Select your language:"
 msgstr ""
 
@@ -3371,7 +3305,7 @@ msgid "Add me to your chat"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/start_pm.py:44
-#: sophie_bot/modules/privacy/__init__.py:39
+#: sophie_bot/modules/privacy/__init__.py:31
 msgid "Privacy"
 msgstr ""
 
@@ -3956,7 +3890,7 @@ msgstr ""
 
 #: sophie_bot/modules/logging/events.py:47
 #: sophie_bot/modules/restrictions/handlers/ban.py:127
-#: sophie_bot/modules/restrictions/handlers/silent.py:195
+#: sophie_bot/modules/restrictions/handlers/silent.py:165
 msgid "User banned"
 msgstr ""
 
@@ -3967,13 +3901,13 @@ msgstr ""
 
 #: sophie_bot/modules/logging/events.py:49
 #: sophie_bot/modules/restrictions/handlers/kick.py:98
-#: sophie_bot/modules/restrictions/handlers/silent.py:124
+#: sophie_bot/modules/restrictions/handlers/silent.py:141
 msgid "User kicked"
 msgstr ""
 
 #: sophie_bot/modules/logging/events.py:50
 #: sophie_bot/modules/restrictions/handlers/mute.py:101
-#: sophie_bot/modules/restrictions/handlers/silent.py:341
+#: sophie_bot/modules/restrictions/handlers/silent.py:214
 msgid "User muted"
 msgstr ""
 
@@ -3998,19 +3932,19 @@ msgstr ""
 msgid "Message deleted"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:85
+#: sophie_bot/modules/notes/__init__.py:75
 msgid "Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:87
+#: sophie_bot/modules/notes/__init__.py:77
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:91
+#: sophie_bot/modules/notes/__init__.py:81
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:94
+#: sophie_bot/modules/notes/__init__.py:84
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
@@ -4133,20 +4067,20 @@ msgstr ""
 msgid "Use {command} to disconnect"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:20
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:21
 msgid "Show current state of Private Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 msgid "Current state"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:85
 msgid "Enabled"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:85
 #: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:48
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
@@ -4154,34 +4088,35 @@ msgstr ""
 msgid "Disabled"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:39
 msgid "Private Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:40
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:41
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:88
 #: sophie_bot/modules/utils_/status_handler.py:51
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:46
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:47
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:61
 msgid "New state"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:47
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:48
 msgid "Control Private Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:67
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:72
 msgid "enabled"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:67
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:72
 msgid "disabled"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:72
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:77
 #, python-brace-format
 msgid "PrivateNotes have been {status} in {chat}."
 msgstr ""
@@ -4229,71 +4164,24 @@ msgstr ""
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/filter.py:22
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:83
-#: sophie_bot/utils/errors.py:93
-#, python-brace-format
-msgid "#{name} note was not found."
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:25
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
-#: sophie_bot/modules/restrictions/actions/ban.py:113
-#: sophie_bot/modules/restrictions/actions/kick.py:48
-#: sophie_bot/modules/restrictions/actions/mute.py:113
-#: sophie_bot/modules/rules/magic_handlers/filter.py:16
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:117
-msgid "Filter action"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:37
-msgid "Now, please type the note name you want to automatically send."
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:48
-msgid "Cannot find the note with this name. Please make sure it exists and try again."
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:57
-msgid "Reply filter"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:72
-msgid "Now, please type the text you want to automatically send. It supports buttons and custom formatting."
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:86
-msgid "💭 Reply to message"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/filter.py:92
-msgid "🗒 Send a note"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/modern_filter.py:37
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:63
-msgid "Change reply text"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/modern_filter.py:45
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
-msgid "Replies to the message with"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/modern_filter.py:47
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:58
-msgid "Replies to the message"
-msgstr ""
-
-#: sophie_bot/modules/notes/magic_handlers/modern_filter.py:51
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:34
 msgid "Now, please type the text you want to automatically send."
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/modern_filter.py:52
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:36
 msgid "Markup help"
+msgstr ""
+
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
+msgid "Replies to the message with"
+msgstr ""
+
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:58
+msgid "Replies to the message"
+msgstr ""
+
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:63
+msgid "Change reply text"
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:71
@@ -4320,6 +4208,21 @@ msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:69
 msgid "Change note name"
+msgstr ""
+
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:83
+#: sophie_bot/utils/errors.py:93
+#, python-brace-format
+msgid "#{name} note was not found."
+msgstr ""
+
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
+#: sophie_bot/modules/restrictions/actions/ban.py:113
+#: sophie_bot/modules/restrictions/actions/kick.py:48
+#: sophie_bot/modules/restrictions/actions/mute.py:113
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:117
+msgid "Filter action"
 msgstr ""
 
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/CaptchaButton.py:13
@@ -4751,39 +4654,39 @@ msgstr ""
 msgid "Unpins message"
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:41
+#: sophie_bot/modules/privacy/__init__.py:33
 msgid "Data protection"
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:44
+#: sophie_bot/modules/privacy/__init__.py:36
 msgid "Manages user privacy and data protection settings."
 msgstr ""
 
-#: sophie_bot/modules/privacy/__init__.py:45
+#: sophie_bot/modules/privacy/__init__.py:37
 msgid "Allows users to export their data and control privacy preferences."
 msgstr ""
 
-#: sophie_bot/modules/privacy/handlers/export.py:26
+#: sophie_bot/modules/privacy/handlers/export.py:30
 msgid "Exports your data to a JSON file"
 msgstr ""
 
-#: sophie_bot/modules/privacy/handlers/export.py:40
+#: sophie_bot/modules/privacy/handlers/export.py:48
 msgid "Export is started, this may take a while."
 msgstr ""
 
-#: sophie_bot/modules/privacy/handlers/export.py:49
+#: sophie_bot/modules/privacy/handlers/export.py:57
 msgid "Export is done."
 msgstr ""
 
-#: sophie_bot/modules/privacy/handlers/privacy.py:16
+#: sophie_bot/modules/privacy/handlers/privacy.py:19
 msgid "Shows the privacy policy of the bot"
 msgstr ""
 
-#: sophie_bot/modules/privacy/handlers/privacy.py:21
+#: sophie_bot/modules/privacy/handlers/privacy.py:29
 msgid "The privacy policy of the bot is available on our wiki page."
 msgstr ""
 
-#: sophie_bot/modules/privacy/handlers/privacy.py:24
+#: sophie_bot/modules/privacy/handlers/privacy.py:32
 msgid "Privacy Policy"
 msgstr ""
 
@@ -4859,19 +4762,19 @@ msgstr ""
 msgid "Admin promoted successfully"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:32
+#: sophie_bot/modules/purges/__init__.py:31
 msgid "Purges"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:34
+#: sophie_bot/modules/purges/__init__.py:33
 msgid "Delete messages in bulk"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:37
+#: sophie_bot/modules/purges/__init__.py:36
 msgid "Allows administrators to delete multiple messages at once."
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:38
+#: sophie_bot/modules/purges/__init__.py:37
 msgid "Useful for cleaning up chat history and removing unwanted content."
 msgstr ""
 
@@ -4901,10 +4804,6 @@ msgstr ""
 
 #: sophie_bot/modules/purges/handlers/purge.py:68
 msgid "Purge completed. This message will be removed in 5 seconds."
-msgstr ""
-
-#: sophie_bot/modules/purges/magic_handlers/filter.py:21
-msgid "🗑 Delete message"
 msgstr ""
 
 #: sophie_bot/modules/purges/magic_handlers/modern_filter.py:22
@@ -5072,29 +4971,29 @@ msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:64
 #: sophie_bot/modules/restrictions/handlers/ban.py:167
-#: sophie_bot/modules/restrictions/handlers/silent.py:168
-#: sophie_bot/modules/restrictions/handlers/silent.py:240
+#: sophie_bot/modules/restrictions/handlers/silent.py:160
+#: sophie_bot/modules/restrictions/handlers/silent.py:184
 msgid "I cannot ban myself."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:67
 #: sophie_bot/modules/restrictions/handlers/ban.py:170
-#: sophie_bot/modules/restrictions/handlers/silent.py:171
-#: sophie_bot/modules/restrictions/handlers/silent.py:243
+#: sophie_bot/modules/restrictions/handlers/silent.py:161
+#: sophie_bot/modules/restrictions/handlers/silent.py:185
 msgid "You cannot ban yourself."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:70
 #: sophie_bot/modules/restrictions/handlers/ban.py:173
-#: sophie_bot/modules/restrictions/handlers/silent.py:174
-#: sophie_bot/modules/restrictions/handlers/silent.py:246
+#: sophie_bot/modules/restrictions/handlers/silent.py:162
+#: sophie_bot/modules/restrictions/handlers/silent.py:186
 msgid "I cannot ban an admin."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:77
 #: sophie_bot/modules/restrictions/handlers/ban.py:182
-#: sophie_bot/modules/restrictions/handlers/silent.py:177
-#: sophie_bot/modules/restrictions/handlers/silent.py:251
+#: sophie_bot/modules/restrictions/handlers/silent.py:163
+#: sophie_bot/modules/restrictions/handlers/silent.py:187
 msgid "Failed to ban the user. Make sure I have the right permissions."
 msgstr ""
 
@@ -5128,13 +5027,12 @@ msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:153
 #: sophie_bot/modules/restrictions/handlers/mute.py:124
-#: sophie_bot/modules/restrictions/handlers/silent.py:226
-#: sophie_bot/modules/restrictions/handlers/silent.py:372
+#: sophie_bot/modules/restrictions/handlers/silent.py:76
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:233
-#: sophie_bot/modules/restrictions/handlers/silent.py:270
+#: sophie_bot/modules/restrictions/handlers/silent.py:189
 msgid "User temporarily banned"
 msgstr ""
 
@@ -5143,27 +5041,27 @@ msgid "Kicks the user from the chat. The user would be able to join back."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:60
-#: sophie_bot/modules/restrictions/handlers/silent.py:97
+#: sophie_bot/modules/restrictions/handlers/silent.py:136
 msgid "I cannot kick myself."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:63
-#: sophie_bot/modules/restrictions/handlers/silent.py:100
+#: sophie_bot/modules/restrictions/handlers/silent.py:137
 msgid "You cannot kick yourself."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:66
-#: sophie_bot/modules/restrictions/handlers/silent.py:103
+#: sophie_bot/modules/restrictions/handlers/silent.py:138
 msgid "I cannot kick an admin."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:69
-#: sophie_bot/modules/restrictions/handlers/silent.py:106
+#: sophie_bot/modules/restrictions/handlers/silent.py:139
 msgid "Failed to kick the user. Make sure I have the right permissions."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/kick.py:96
-#: sophie_bot/modules/restrictions/handlers/silent.py:122
+#: sophie_bot/modules/restrictions/handlers/silent.py:140
 msgid "Kicked by"
 msgstr ""
 
@@ -5173,36 +5071,36 @@ msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:62
 #: sophie_bot/modules/restrictions/handlers/mute.py:138
-#: sophie_bot/modules/restrictions/handlers/silent.py:314
-#: sophie_bot/modules/restrictions/handlers/silent.py:386
+#: sophie_bot/modules/restrictions/handlers/silent.py:209
+#: sophie_bot/modules/restrictions/handlers/silent.py:233
 msgid "I cannot mute myself."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:65
 #: sophie_bot/modules/restrictions/handlers/mute.py:141
-#: sophie_bot/modules/restrictions/handlers/silent.py:317
-#: sophie_bot/modules/restrictions/handlers/silent.py:389
+#: sophie_bot/modules/restrictions/handlers/silent.py:210
+#: sophie_bot/modules/restrictions/handlers/silent.py:234
 msgid "You cannot mute yourself."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:68
 #: sophie_bot/modules/restrictions/handlers/mute.py:144
-#: sophie_bot/modules/restrictions/handlers/silent.py:320
-#: sophie_bot/modules/restrictions/handlers/silent.py:392
+#: sophie_bot/modules/restrictions/handlers/silent.py:211
+#: sophie_bot/modules/restrictions/handlers/silent.py:235
 msgid "I cannot mute an admin."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:71
 #: sophie_bot/modules/restrictions/handlers/mute.py:149
-#: sophie_bot/modules/restrictions/handlers/silent.py:323
-#: sophie_bot/modules/restrictions/handlers/silent.py:397
+#: sophie_bot/modules/restrictions/handlers/silent.py:212
+#: sophie_bot/modules/restrictions/handlers/silent.py:236
 msgid "Failed to mute the user. Make sure I have the right permissions."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:99
 #: sophie_bot/modules/restrictions/handlers/mute.py:177
-#: sophie_bot/modules/restrictions/handlers/silent.py:339
-#: sophie_bot/modules/restrictions/handlers/silent.py:413
+#: sophie_bot/modules/restrictions/handlers/silent.py:213
+#: sophie_bot/modules/restrictions/handlers/silent.py:237
 msgid "Muted by"
 msgstr ""
 
@@ -5211,27 +5109,27 @@ msgid "Temporarily mutes the user in the chat."
 msgstr ""
 
 #: sophie_bot/modules/restrictions/handlers/mute.py:180
-#: sophie_bot/modules/restrictions/handlers/silent.py:416
+#: sophie_bot/modules/restrictions/handlers/silent.py:238
 msgid "User temporarily muted"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:66
+#: sophie_bot/modules/restrictions/handlers/silent.py:134
 msgid "Silently kicks the user from the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:137
+#: sophie_bot/modules/restrictions/handlers/silent.py:158
 msgid "Silently bans the user from the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:208
+#: sophie_bot/modules/restrictions/handlers/silent.py:182
 msgid "Silently temporarily bans the user from the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:283
+#: sophie_bot/modules/restrictions/handlers/silent.py:207
 msgid "Silently mutes the user in the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:354
+#: sophie_bot/modules/restrictions/handlers/silent.py:231
 msgid "Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds."
 msgstr ""
 
@@ -5283,24 +5181,23 @@ msgstr ""
 msgid "Unmuted by"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:39
+#: sophie_bot/modules/rules/__init__.py:38
 #: sophie_bot/modules/rules/handlers/get.py:34
 #: sophie_bot/modules/rules/handlers/legacy_button.py:36
-#: sophie_bot/modules/rules/magic_handlers/filter.py:16
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
 #: sophie_bot/modules/warns/handlers/warn.py:160
 msgid "Rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:41
+#: sophie_bot/modules/rules/__init__.py:40
 msgid "Set and display chat rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:44
+#: sophie_bot/modules/rules/__init__.py:43
 msgid "Allows administrators to set rules for their chats."
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:45
+#: sophie_bot/modules/rules/__init__.py:44
 msgid "Users can view the rules at any time using the rules command."
 msgstr ""
 
@@ -5314,7 +5211,6 @@ msgstr ""
 
 #: sophie_bot/modules/rules/handlers/get.py:32
 #: sophie_bot/modules/rules/handlers/legacy_button.py:33
-#: sophie_bot/modules/rules/magic_handlers/filter.py:14
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:32
 msgid "No rules are set for this chat."
 msgstr ""
@@ -5340,21 +5236,16 @@ msgstr ""
 msgid "🪧 Rules have been set in {chat_name} successfully."
 msgstr ""
 
-#: sophie_bot/modules/rules/magic_handlers/filter.py:14
-#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:32
-msgid "Rules filter failed"
-msgstr ""
-
-#: sophie_bot/modules/rules/magic_handlers/filter.py:29
-msgid "🪧 Send chat rules"
-msgstr ""
-
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:18
 msgid "Send chat rules"
 msgstr ""
 
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:23
 msgid "Replies to the message with the chat rules"
+msgstr ""
+
+#: sophie_bot/modules/rules/magic_handlers/modern_filter.py:32
+msgid "Rules filter failed"
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/__init__.py:38
@@ -5415,11 +5306,11 @@ msgid "Current state {state} is cleared."
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:327
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:339
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:351
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:377
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:393
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:55
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:67
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:79
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:105
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:121
 #: sophie_bot/modules/warns/action_config.py:34
 msgid "Message not found."
 msgstr ""
@@ -5535,143 +5426,143 @@ msgstr ""
 msgid "Shared Chats"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:78
-msgid "Current Action"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:86
-msgid "✅ Save"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:97
-msgid "➕ Add action"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:99
-msgid "🔄 Change action"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:112
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:143
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:202
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:505
-msgid "🔙 Back"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:148
-msgid "Select an action to add:"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:154
-#, python-brace-format
-msgid "Default action: {icon} {title}"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:178
-msgid "Action configured"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:180
-msgid "Action Configuration Complete"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:195
-msgid "🗑️ Delete this action"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:209
-msgid "✅ Done"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:223
-msgid "Action configured successfully!"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:319
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:336
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:348
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:49
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:64
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:76
 msgid "Invalid callback data"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:343
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:71
 msgid "Action removed."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:354
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:390
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:537
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:82
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:118
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:257
 msgid "Invalid action"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:440
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:167
 msgid "Saved"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:449
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:176
 msgid "Action configuration cancelled."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:450
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:177
 msgid "Cancelled"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:482
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:544
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:593
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:207
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:264
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:313
 msgid "State management not available"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:494
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:219
 msgid "Action setup not properly configured"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:564
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:230
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:94
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:126
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:182
+msgid "🔙 Back"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:284
 msgid "Invalid setting"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:571
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:291
 msgid "Setting configuration not available"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:605
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:325
 msgid "Setting setup not properly configured"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:682
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:71
 #: sophie_bot/utils/errors.py:51
 msgid "Setup session expired. Please start again."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:698
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:747
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:87
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:136
 #: sophie_bot/utils/errors.py:46
 msgid "Setup data not found. Please try again."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:705
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:754
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:94
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:143
 #: sophie_bot/utils/errors.py:56
 msgid "Invalid chat context. Please restart the setup."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:711
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:100
 #: sophie_bot/utils/errors.py:66
 msgid "Invalid action configuration."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:760
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:149
 #: sophie_bot/utils/errors.py:61
 msgid "Invalid action."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:774
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:163
 #: sophie_bot/utils/errors.py:71
 msgid "Invalid setting."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/handler.py:780
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:169
 #: sophie_bot/utils/errors.py:76
 msgid "Setting configuration not available."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:63
+msgid "Current Action"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:70
+msgid "✅ Save"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:80
+msgid "➕ Add action"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:82
+msgid "🔄 Change action"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:131
+msgid "Select an action to add:"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:137
+#, python-brace-format
+msgid "Default action: {icon} {title}"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:158
+msgid "Action configured"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:160
+msgid "Action Configuration Complete"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:175
+msgid "🗑️ Delete this action"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:189
+msgid "✅ Done"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:203
+msgid "Action configured successfully!"
 msgstr ""
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:14

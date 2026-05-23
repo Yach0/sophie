@@ -2,13 +2,17 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
-from aiogram.handlers import BaseHandler
+from aiogram import Router
 from aiogram.types import BufferedInputFile, Message
 from beanie import PydanticObjectId
 from ujson import dumps
 
+from sophie_bot.filters.admin_rights import UserRestricting
+from sophie_bot.filters.chat_status import ChatTypeFilter
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.utils import flags
+from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -24,7 +28,11 @@ def text_to_buffered_file(text: str, filename: str = "data.txt") -> BufferedInpu
 
 
 @flags.help(description=l_("Exports your data to a JSON file"))
-class TriggerExport(BaseHandler[Message]):
+class TriggerExport(SophieBaseHandler[Message]):
+    @classmethod
+    def register(cls, router: Router) -> None:
+        router.message.register(cls, CMDFilter("export"), ChatTypeFilter("private"), UserRestricting(admin=True))
+
     @staticmethod
     async def get_data(chat_iid: PydanticObjectId) -> list[dict[str, Any]]:
         return list(

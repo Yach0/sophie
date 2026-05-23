@@ -24,7 +24,6 @@ from .handlers.pmnotes_setting import PMNotesControl, PMNotesStatus
 from .handlers.save import SaveNote
 from .handlers.search import NotesSearchHandler
 from .magic_handlers.export import export
-from .magic_handlers.filter import get_filter
 from .magic_handlers.reply_action import ReplyModernAction
 from .magic_handlers.send_note_action import SendNoteAction
 from .schedules.generate_ai_titles import GenerateAITitles
@@ -47,29 +46,6 @@ register_legacy_button_actions(
 )
 
 
-async def pre_setup() -> None:
-    # PM notes
-    router.message.register(PMNotesControl, *PMNotesControl.filters())
-    router.message.register(PMNotesStatus, *PMNotesStatus.filters())
-
-    router.message.register(PrivateNotesConnectHandler, *PrivateNotesConnectHandler.filters())
-    router.message.register(PrivateNotesRedirectHandler, *PrivateNotesRedirectHandler.filters())
-
-    router.message.register(NotesList, *NotesList.filters())
-    router.message.register(GetNote, *GetNote.filters())
-    router.message.register(HashtagGetNote, *HashtagGetNote.filters())
-    router.message.register(NotesSearchHandler, *NotesSearchHandler.filters())
-
-    router.message.register(DelNote, *DelNote.filters())
-    router.message.register(SaveNote, *SaveNote.filters())
-
-    router.message.register(DelAllNotesHandler, *DelAllNotesHandler.filters())
-    router.callback_query.register(DelAllNotesCallbackHandler, *DelAllNotesCallbackHandler.filters())
-
-    # Legacy note buttons
-    router.message.register(LegacyStartNoteButton, *LegacyStartNoteButton.filters())
-
-
 async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
         scheduler.add_job(GenerateAITitles().handle, "interval", minutes=1, jobstore="ram")
@@ -80,7 +56,21 @@ module_manifest = ModuleManifest(
     name="notes",
     bot_router=router,
     api_router=api_router,
-    pre_setup=pre_setup,
+    handlers=(
+        PMNotesControl,
+        PMNotesStatus,
+        PrivateNotesConnectHandler,
+        PrivateNotesRedirectHandler,
+        NotesList,
+        GetNote,
+        HashtagGetNote,
+        NotesSearchHandler,
+        DelNote,
+        SaveNote,
+        DelAllNotesHandler,
+        DelAllNotesCallbackHandler,
+        LegacyStartNoteButton,
+    ),
     post_setup=post_setup,
     title=l_("Notes"),
     emoji="📗",
@@ -96,7 +86,6 @@ module_manifest = ModuleManifest(
         )
     ),
     advertise_wiki_page=True,
-    filter_actions=get_filter(),
     modern_actions=(ReplyModernAction, SendNoteAction),
     export=export,
 )

@@ -1,9 +1,12 @@
-from aiogram.handlers import MessageHandler
+from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Section
 
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
+from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, HandlerHelp, ModuleHelp
 from sophie_bot.modules.help.utils.format_help import format_handlers
+from sophie_bot.utils.handlers import SophieMessageHandler
 
 OP_COMMANDS_MESSAGE_LENGTH_LIMIT = TELEGRAM_MESSAGE_LENGTH_LIMIT - 100
 
@@ -45,7 +48,11 @@ def format_op_commands_messages(modules: list[ModuleHelp]) -> list[str]:
     return messages
 
 
-class OpCMDSList(MessageHandler):
+class OpCMDSList(SophieMessageHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return CMDFilter("op_cmds"), IsOP(True)
+
     async def handle(self) -> None:
         for text in format_op_commands_messages(list(HELP_MODULES.values())):
             await self.event.reply(text)

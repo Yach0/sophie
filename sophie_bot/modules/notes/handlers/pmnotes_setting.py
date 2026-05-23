@@ -1,8 +1,8 @@
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.handlers import MessageHandler
 from ass_tg.types import BooleanArg
+from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Bold, Doc, Italic, KeyValue, Section, Template
 
 from sophie_bot.db.models import PrivateNotesModel
@@ -13,12 +13,13 @@ from sophie_bot.filters.message_status import HasArgs
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Show current state of Private Notes"))
-class PMNotesStatus(MessageHandler):
+class PMNotesStatus(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return CMDFilter(("pmnotes", "privatenotes")), ~ChatTypeFilter("private")
@@ -45,7 +46,7 @@ class PMNotesStatus(MessageHandler):
 
 @flags.args(new_state=BooleanArg(l_("New state")))
 @flags.help(description=l_("Control Private Notes"))
-class PMNotesControl(MessageHandler):
+class PMNotesControl(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
@@ -54,6 +55,10 @@ class PMNotesControl(MessageHandler):
             HasArgs(True),
             UserRestricting(admin=True),
         )
+
+    @classmethod
+    async def handler_args(cls, message: Any | None, data: dict[str, Any]) -> dict[str, ArgFabric]:
+        return {"new_state": BooleanArg(l_("New state"))}
 
     async def handle(self) -> Any:
         new_state: bool = self.data["new_state"]

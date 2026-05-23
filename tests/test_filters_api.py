@@ -70,7 +70,6 @@ async def test_create_filter_creates_modern_filter() -> None:
 
     assert response.handler == "spam"
     assert response.version == 2
-    assert response.is_legacy is False
     assert response.actions[0].name == "dummy"
     assert response.actions[0].data == {"label": "default"}
 
@@ -96,7 +95,7 @@ async def test_create_filter_rejects_non_filter_action() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_filter_converts_legacy_filter_to_modern() -> None:
+async def test_update_filter_updates_modern_filter() -> None:
     chat_iid = PydanticObjectId()
     filter_id = PydanticObjectId()
     user = MagicMock()
@@ -109,11 +108,11 @@ async def test_update_filter_converts_legacy_filter_to_modern() -> None:
     filter_item.id = filter_id
     filter_item.chat.id = chat_iid
     filter_item.handler = "old"
-    filter_item.version = 1
-    filter_item.action = "reply_message"
-    filter_item.actions = {}
+    filter_item.version = 2
+    filter_item.action = None
+    filter_item.actions = {"dummy": {"label": "old"}}
     filter_item.time = None
-    filter_item.effective_version = 1
+    filter_item.effective_version = 2
     filter_item.save = AsyncMock()
 
     payload = FilterUpdate(handler="updated", actions=[FilterActionPayload(name="dummy", data={"label": "done"})])
@@ -135,25 +134,21 @@ async def test_update_filter_converts_legacy_filter_to_modern() -> None:
     assert response.actions[0].description == "Run done"
 
 
-def test_build_filter_response_exposes_compatibility_action_as_effective_action() -> None:
+def test_build_filter_response_returns_modern_actions() -> None:
     filter_item = MagicMock()
     filter_item.id = PydanticObjectId()
-    filter_item.handler = "old"
-    filter_item.action = "legacy"
-    filter_item.actions = {}
+    filter_item.handler = "spam"
+    filter_item.action = None
+    filter_item.actions = {"dummy": {"label": "default"}}
     filter_item.time = None
-    filter_item.effective_version = 1
+    filter_item.effective_version = 2
 
-    with patch(
-        "sophie_bot.modules.filters.api.utils.LEGACY_FILTERS_ACTIONS",
-        {"legacy": {"title": "Legacy", "handle": None, "action": None, "del_btn_name": None, "setup": None}},
-    ):
+    with patch("sophie_bot.modules.filters.api.utils.ALL_MODERN_ACTIONS", {"dummy": DummyAction()}):
         response = build_filter_response(filter_item)
 
-    assert response.is_legacy is True
-    assert response.legacy_action == "legacy"
-    assert response.actions[0].name == "legacy"
-    assert response.actions[0].title == "Legacy"
+    assert response.handler == "spam"
+    assert response.actions[0].name == "dummy"
+    assert response.actions[0].title == "Dummy"
 
 
 @pytest.mark.asyncio
@@ -186,16 +181,9 @@ async def test_delete_filter_removes_existing_filter() -> None:
 async def test_list_filter_actions_returns_catalog() -> None:
     user = SimpleNamespace(tid=1)
 
-    with (
-        patch("sophie_bot.modules.filters.api.utils.ALL_MODERN_ACTIONS", {"dummy": DummyAction()}),
-        patch(
-            "sophie_bot.modules.filters.api.actions.LEGACY_FILTERS_ACTIONS",
-            {"legacy": {"title": "Legacy", "handle": None, "action": None, "del_btn_name": None, "setup": None}},
-        ),
-    ):
+    with patch("sophie_bot.modules.filters.api.utils.ALL_MODERN_ACTIONS", {"dummy": DummyAction()}):
         response = await list_filter_actions(user)
 
     assert response.limits.max_ai_filters_per_chat >= 1
     assert response.actions[0].name == "dummy"
     assert response.actions[0].default_data == {"label": "default"}
-    assert response.legacy_actions[0].name == "legacy"

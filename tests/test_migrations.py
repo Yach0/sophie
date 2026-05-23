@@ -149,5 +149,87 @@ async def test_migration_state_model_structure() -> None:
     assert hasattr(MigrationState, "__name__")
 
 
+def _filters_legacy_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260523_020000_convert_filters_legacy_actions")
+
+
+def test_convert_filters_legacy_reply_message_action() -> None:
+    migration = _filters_legacy_migration()
+
+    update = migration.build_legacy_filter_migration_update(
+        {
+            "_id": "filter-id",
+            "action": "reply_message",
+            "actions": {},
+            "reply_text": {"text": "hello", "parse_mode": "html"},
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "actions": {"reply": {"text": "hello", "parse_mode": "html"}},
+            "action": None,
+            "version": 2,
+        },
+        "$unset": {"reply_text": ""},
+    }
+
+
+def test_convert_filters_legacy_get_note_action() -> None:
+    migration = _filters_legacy_migration()
+
+    update = migration.build_legacy_filter_migration_update(
+        {
+            "_id": "filter-id",
+            "action": "get_note",
+            "actions": {},
+            "note_name": "rules",
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "actions": {"send_note": {"notename": "rules"}},
+            "action": None,
+            "version": 2,
+        },
+        "$unset": {"note_name": ""},
+    }
+
+
+def test_convert_filters_legacy_delete_message_action() -> None:
+    migration = _filters_legacy_migration()
+
+    update = migration.build_legacy_filter_migration_update(
+        {
+            "_id": "filter-id",
+            "action": "delete_message",
+            "actions": {},
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "actions": {"delmsg": {}},
+            "action": None,
+            "version": 2,
+        },
+    }
+
+
+def test_convert_filters_legacy_skips_modern_filters() -> None:
+    migration = _filters_legacy_migration()
+
+    assert (
+        migration.build_legacy_filter_migration_update(
+            {
+                "action": "reply_message",
+                "actions": {"reply": {"text": "already migrated"}},
+            }
+        )
+        is None
+    )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -21,9 +21,6 @@ class FilterResponse(BaseModel):
     id: PydanticObjectId
     handler: str
     version: int
-    is_legacy: bool
-    legacy_action: str | None = None
-    legacy_action_title: str | None = None
     actions: list[FilterActionResponse]
     time: Any | None = None
 
@@ -55,11 +52,6 @@ class FilterActionCatalogItem(BaseModel):
     default_data: dict[str, Any] | None = None
 
 
-class LegacyFilterActionCatalogItem(BaseModel):
-    name: str
-    title: str
-
-
 class FilterCatalogLimits(BaseModel):
     max_actions_per_filter: int
     max_ai_filters_per_chat: int
@@ -68,4 +60,3 @@ class FilterCatalogLimits(BaseModel):
 class FilterActionsCatalogResponse(BaseModel):
     limits: FilterCatalogLimits
     actions: list[FilterActionCatalogItem]
-    legacy_actions: list[LegacyFilterActionCatalogItem]

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from aiogram import Router
+from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from stfu_tg import Bold, Code, Doc, Section, Template, Title, VList
 
 from sophie_bot.constants import AI_EMOJI
+from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_model_pricing import get_model_pricing
 from sophie_bot.modules.ai.utils.ai_model_registry import (
     AI_PROVIDER_TO_NAME,
     AVAILABLE_PROVIDER_NAMES,
     get_provider_models,
 )
+from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -73,3 +78,16 @@ async def op_ai_prices_handler(message: Message) -> None:
         *provider_sections,
     )
     await message.reply(str(doc))
+
+
+class OpAIPricesHandler(SophieMessageHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return CMDFilter("op_aiprices"), IsOP(True)
+
+    @classmethod
+    def register(cls, router: Router) -> None:
+        router.message.register(cls, *cls.filters())
+
+    async def handle(self) -> None:
+        await op_ai_prices_handler(self.event)

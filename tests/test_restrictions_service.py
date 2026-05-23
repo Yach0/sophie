@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -15,6 +16,12 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
     unban_user,
     unmute_user,
 )
+from sophie_bot.modules.restrictions.services.silent import (
+    build_silent_action_doc,
+    collect_message_ids_for_cleanup,
+    delete_messages_after_delay,
+    log_silent_action,
+)
 
 
 @pytest.fixture
@@ -28,6 +35,75 @@ def mock_bot() -> AsyncMock:
 
 CHAT_TID = -1001234567890
 USER_TID = 123456789
+
+
+def test_build_silent_action_doc_renders_duration_and_reason() -> None:
+    doc = build_silent_action_doc(
+        chat_title="Moderation chat",
+        target_user_id=USER_TID,
+        target_user_name="Target",
+        actor_user_id=987,
+        actor_user_name="Moderator",
+        actor_label="Banned by",
+        title="User temporarily banned",
+        reason="spam",
+        duration_text="2 hours",
+    )
+
+    rendered = str(doc)
+
+    assert "Moderation chat" in rendered
+    assert "Target" in rendered
+    assert "Moderator" in rendered
+    assert "2 hours" in rendered
+    assert "spam" in rendered
+
+
+def test_collect_message_ids_for_cleanup_includes_reply_message() -> None:
+    reply_to_message = SimpleNamespace(message_id=101)
+    message = SimpleNamespace(message_id=100, reply_to_message=reply_to_message)
+
+    assert collect_message_ids_for_cleanup(message, 102) == [100, 102, 101]
+
+
+@pytest.mark.asyncio
+async def test_delete_messages_after_delay_uses_bot_delete_messages(monkeypatch: pytest.MonkeyPatch) -> None:
+    delete_mock = AsyncMock()
+    sleep_mock = AsyncMock()
+
+    monkeypatch.setattr("sophie_bot.modules.restrictions.services.silent.bot.delete_messages", delete_mock)
+    monkeypatch.setattr("sophie_bot.modules.restrictions.services.silent.asyncio.sleep", sleep_mock)
+
+    await delete_messages_after_delay(CHAT_TID, [1, 2, 3], delay_seconds=7)
+
+    sleep_mock.assert_awaited_once_with(7)
+    delete_mock.assert_awaited_once_with(CHAT_TID, [1, 2, 3])
+
+
+@pytest.mark.asyncio
+async def test_log_silent_action_includes_duration(monkeypatch: pytest.MonkeyPatch) -> None:
+    log_event_mock = AsyncMock()
+
+    monkeypatch.setattr("sophie_bot.modules.restrictions.services.silent.log_event", log_event_mock)
+
+    reply_to_message = SimpleNamespace(text="bad message")
+    duration = timedelta(hours=2)
+
+    await log_silent_action(
+        chat_tid=CHAT_TID,
+        actor_user_id=987,
+        event_type=None,
+        target_user_id=USER_TID,
+        reply_to_message=reply_to_message,
+        reason="spam",
+        until_date=duration,
+    )
+
+    assert log_event_mock.await_count == 1
+    payload = log_event_mock.await_args.args[3]
+    assert payload["target_user_id"] == USER_TID
+    assert payload["reason"] == "spam"
+    assert payload["duration"] == duration.total_seconds()
 
 
 # --- ban_user tests ---
