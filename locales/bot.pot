@@ -780,99 +780,107 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
 msgid "Memory updated 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:57
 msgid "Memory forgotten 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:58
 msgid "Commands help 📋"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:57
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:59
 msgid "Internet Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:58
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:60
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:59
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:61
 msgid "Read note 🗒"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:62
-msgid "Memory 💾"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:63
-msgid "Forget 🗑"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:64
-msgid "Commands 📋"
+msgid "Saved note 🗒"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:65
-msgid "Search 🔍"
+msgid "Memory 💾"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:66
-msgid "Notes 🗒"
+msgid "Forget 🗑"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:67
+msgid "Commands 📋"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:68
+msgid "Search 🔍"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:69
+msgid "Notes 🗒"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:70
 msgid "Note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:96
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:71
+msgid "Save note 🗒"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:107
 msgid "You can use Tavily to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:97
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:108
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:99
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:110
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:101
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:112
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:108
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:119
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:116
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:127
 msgid "Recent chat summaries"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:124
-#, python-brace-format
-msgid "{notename} | title: {title} | content: {content}"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:131
-msgid "Related chat notes with content."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:135
 #, python-brace-format
-msgid "{notename} | title: {title}"
+msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:142
+msgid "Related chat notes with content."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:146
+#, python-brace-format
+msgid "{notename} | title: {title}"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:153
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:148
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:159
 msgid "You have the following information in your memory"
 msgstr ""
 

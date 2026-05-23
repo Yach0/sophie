@@ -20,7 +20,7 @@ from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
 from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
-from sophie_bot.modules.ai.agent_tools.notes import note_content_ai_tool, notes_list_ai_tool
+from sophie_bot.modules.ai.agent_tools.notes import note_content_ai_tool, notes_list_ai_tool, save_note_ai_tool
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header, ai_credit_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
@@ -28,17 +28,17 @@ from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
 from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-CHATBOT_TOOLS: list[Any] = [
+BASE_CHATBOT_TOOLS: list[Any] = [
     MemoryAgentTool(),
     ForgetMemoryAgentTool(),
     CmdsHelpAgentTool(),
@@ -46,10 +46,12 @@ CHATBOT_TOOLS: list[Any] = [
     note_content_ai_tool(),
 ]
 
+OPTIONAL_CHATBOT_TOOLS: list[Any] = []
 if CONFIG.tavily_api_key:
-    CHATBOT_TOOLS.append(tavily_search_tool(api_key=CONFIG.tavily_api_key))
+    OPTIONAL_CHATBOT_TOOLS.append(tavily_search_tool(api_key=CONFIG.tavily_api_key))
 
-CHATBOT_TOOLS_DICT: dict[str, Any] = {tool.name: tool for tool in CHATBOT_TOOLS}
+CHATBOT_TOOLS: list[Any] = [*BASE_CHATBOT_TOOLS, *OPTIONAL_CHATBOT_TOOLS]
+CHATBOT_TOOLS_DICT: dict[str, Any] = {tool.name: tool for tool in [*CHATBOT_TOOLS, save_note_ai_tool()]}
 CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory updated 💾"),
     "forget_memory": l_("Memory forgotten 🗑"),
@@ -57,6 +59,7 @@ CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "tavily_search": l_("Internet Search 🔍"),
     "get_notes": l_("Scanned notes 🗒"),
     "get_note_content": l_("Read note 🗒"),
+    "save_note": l_("Saved note 🗒"),
 }
 CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory 💾"),
@@ -65,6 +68,7 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "tavily_search": l_("Search 🔍"),
     "get_notes": l_("Notes 🗒"),
     "get_note_content": l_("Note 🗒"),
+    "save_note": l_("Save note 🗒"),
 }
 
 
@@ -88,6 +92,13 @@ def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
     if thread_id:
         return f"{chat_iid}:{thread_id}"
     return str(chat_iid)
+
+
+async def _get_chatbot_tools(chat_tid: int) -> list[Any]:
+    tools = [*CHATBOT_TOOLS]
+    if await is_enabled("ai_agent_save_notes", chat_tid=chat_tid):
+        tools.append(save_note_ai_tool())
+    return tools
 
 
 async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_text: str | None = None) -> Doc:
@@ -194,10 +205,12 @@ async def _generate_chatbot_result(
     agent_kwargs = {"deps": SophieAIToolContenxt(connection=connection)}
     session_id = _build_session_id(connection.db_model.iid, message.message_thread_id)
 
+    tools = await _get_chatbot_tools(connection.tid)
+
     if allow_draft_streaming:
         return await new_ai_generate_stream(
             history,
-            tools=CHATBOT_TOOLS,
+            tools=tools,
             model=model,
             agent_kwargs=agent_kwargs,
             on_text_stream=draft_streamer.stream,
@@ -208,7 +221,7 @@ async def _generate_chatbot_result(
 
     return await new_ai_generate(
         history,
-        tools=CHATBOT_TOOLS,
+        tools=tools,
         model=model,
         agent_kwargs=agent_kwargs,
         user_tracking_id=connection.db_model.iid,
