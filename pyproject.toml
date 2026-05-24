@@ -35,6 +35,7 @@ dependencies = [
     "init-data-py>=0.2.7,<0.3",
     "normality>=3.1.0",
     "av>=17.0.1,<18",
+    "openapi-client",
 ]
 
 [dependency-groups]
@@ -62,6 +63,7 @@ dev = [
 [tool.uv.sources]
 stfu-tg = { path = "./libs/stf" }
 ass-tg = { path = "./libs/ass" }
+openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 
 [tool.ty.src]
 include = ["sophie_bot/**"]

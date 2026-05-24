@@ -19,6 +19,7 @@ from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
+from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_ai_tool
 from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
 from sophie_bot.modules.ai.agent_tools.notes import note_content_ai_tool, notes_list_ai_tool, save_note_ai_tool
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
@@ -34,7 +35,7 @@ from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAG
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
+from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -47,16 +48,14 @@ BASE_CHATBOT_TOOLS: list[Any] = [
 ]
 
 OPTIONAL_CHATBOT_TOOLS: list[Any] = []
-if CONFIG.tavily_api_key:
-    OPTIONAL_CHATBOT_TOOLS.append(tavily_search_tool(api_key=CONFIG.tavily_api_key))
 
 CHATBOT_TOOLS: list[Any] = [*BASE_CHATBOT_TOOLS, *OPTIONAL_CHATBOT_TOOLS]
-CHATBOT_TOOLS_DICT: dict[str, Any] = {tool.name: tool for tool in [*CHATBOT_TOOLS, save_note_ai_tool()]}
 CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory updated 💾"),
     "forget_memory": l_("Memory forgotten 🗑"),
     "cmds_help": l_("Commands help 📋"),
     "tavily_search": l_("Internet Search 🔍"),
+    "kagi_search": l_("Internet Search 🔍"),
     "get_notes": l_("Scanned notes 🗒"),
     "get_note_content": l_("Read note 🗒"),
     "save_note": l_("Saved note 🗒"),
@@ -66,6 +65,7 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "forget_memory": l_("Forget 🗑"),
     "cmds_help": l_("Commands 📋"),
     "tavily_search": l_("Search 🔍"),
+    "kagi_search": l_("Search 🔍"),
     "get_notes": l_("Notes 🗒"),
     "get_note_content": l_("Note 🗒"),
     "save_note": l_("Save note 🗒"),
@@ -94,8 +94,17 @@ def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
     return str(chat_iid)
 
 
+async def _get_search_tool(chat_tid: int) -> Any | None:
+    search_provider = str(await get_value("ai_search_provider", chat_tid=chat_tid)).lower()
+    if search_provider == "tavily":
+        return tavily_search_tool(api_key=CONFIG.tavily_api_key) if CONFIG.tavily_api_key else None
+    return kagi_search_ai_tool() if CONFIG.kagi_api_key else None
+
+
 async def _get_chatbot_tools(chat_tid: int) -> list[Any]:
     tools = [*CHATBOT_TOOLS]
+    if search_tool := await _get_search_tool(chat_tid):
+        tools.append(search_tool)
     if await is_enabled("ai_agent_save_notes", chat_tid=chat_tid):
         tools.append(save_note_ai_tool())
     return tools
@@ -104,7 +113,7 @@ async def _get_chatbot_tools(chat_tid: int) -> list[Any]:
 async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_text: str | None = None) -> Doc:
     memory_lines = await AIMemoryModel.get_lines(chat_iid)
     system_prompt = Doc(
-        _("You can use Tavily to search for information. Include information sources as links."),
+        _("You can use the web search tool to search for information. Include information sources as links."),
         _("You can also save important things to the memory."),
         _(
             "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."

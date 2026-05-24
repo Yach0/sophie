@@ -112,6 +112,7 @@ class Config(BaseSettings):
     # OpenRouter API key for routing non-Mistral models and note embeddings via OpenAI-compatible API
     openrouter_api_key: str | None = None
     tavily_api_key: str = ""
+    kagi_api_key: str = ""
     mistral_api_key: str | None = None
 
     ai_autotrans_lowmem: bool = False
