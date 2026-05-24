@@ -40,6 +40,9 @@ TELEGRAM_ANONYMOUS_ADMIN_BOT_ID: Final[int] = 1087968824
 # AI Module Limits
 # =============================================================================
 
+# Default AI model for summary generation
+DEFAULT_AI_SUMMARY_MODEL: Final[str] = "openai/gpt-5.5"
+
 # Default monthly credits for AI features per chat.
 AI_DEFAULT_MONTHLY_CREDITS: Final[int] = 20000
 

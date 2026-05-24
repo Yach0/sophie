@@ -6,8 +6,8 @@ from stfu_tg import Bold, Doc, Italic, KeyValue, Template, Title
 
 from sophie_bot.db.models import GreetingsModel, RulesModel
 from sophie_bot.db.models.greetings import (
-    WELCOMEMUTE_DEFALT_VALUE,
-    WELCOMESECURITY_EXPIRE_DEFALT_VALUE,
+    WELCOMEMUTE_DEFAULT_VALUE,
+    WELCOMESECURITY_EXPIRE_DEFAULT_VALUE,
 )
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
@@ -47,7 +47,7 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
                         time=format_timedelta(
                             convert_timedelta_or_str(
                                 (db_item.welcome_security.expire if db_item.welcome_security else None)
-                                or WELCOMESECURITY_EXPIRE_DEFALT_VALUE
+                                or WELCOMESECURITY_EXPIRE_DEFAULT_VALUE
                             ),
                             locale=self.current_locale,
                         ),
@@ -65,7 +65,7 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
                         time=format_timedelta(
                             convert_timedelta_or_str(
                                 (db_item.welcome_mute.time if db_item.welcome_mute else None)
-                                or WELCOMEMUTE_DEFALT_VALUE
+                                or WELCOMEMUTE_DEFAULT_VALUE
                             ),
                             locale=self.current_locale,
                         ),

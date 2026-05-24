@@ -14,36 +14,37 @@ from sophie_bot.utils.federation_ban_check import FederationBanInfo
 # Shared patch targets
 # Patches target where the function is *used* (the handler module), not where
 # it is defined, since handlers use ``from ... import func`` style imports.
+# After refactoring, most imports are in the base class.
 # ---------------------------------------------------------------------------
 _ADMIN_PERMS_PATCH = "sophie_bot.filters.admin_rights.check_user_admin_permissions"
 
-# kick handler patches
-_KICK_IS_ADMIN_PATCH = "sophie_bot.modules.restrictions.handlers.kick.is_user_admin"
-_KICK_USER_PATCH = "sophie_bot.modules.restrictions.handlers.kick.kick_user"
-_KICK_AI_REASON_PATCH = "sophie_bot.modules.restrictions.handlers.kick.generate_restriction_reason"
-_KICK_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.kick.log_event"
+# kick handler patches (now uses base class)
+_KICK_IS_ADMIN_PATCH = "sophie_bot.modules.restrictions.handlers.base.is_user_admin"
+_KICK_USER_PATCH = "sophie_bot.modules.restrictions.handlers.kick._kick_action"
+_KICK_AI_REASON_PATCH = "sophie_bot.modules.restrictions.handlers.base.generate_restriction_reason"
+_KICK_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.base.log_event"
 
-# ban handler patches
-_BAN_IS_ADMIN_PATCH = "sophie_bot.modules.restrictions.handlers.ban.is_user_admin"
+# ban handler patches (now uses base class)
+_BAN_IS_ADMIN_PATCH = "sophie_bot.modules.restrictions.handlers.base.is_user_admin"
 _BAN_USER_PATCH = "sophie_bot.modules.restrictions.handlers.ban.ban_user"
-_BAN_AI_REASON_PATCH = "sophie_bot.modules.restrictions.handlers.ban.generate_restriction_reason"
-_BAN_FED_PATCH = "sophie_bot.modules.restrictions.handlers.ban.get_user_federation_ban_info"
-_BAN_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.ban.log_event"
+_BAN_AI_REASON_PATCH = "sophie_bot.modules.restrictions.handlers.base.generate_restriction_reason"
+_BAN_FED_PATCH = "sophie_bot.modules.restrictions.handlers.base.get_user_federation_ban_info"
+_BAN_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.base.log_event"
 
-# mute handler patches
-_MUTE_IS_ADMIN_PATCH = "sophie_bot.modules.restrictions.handlers.mute.is_user_admin"
+# mute handler patches (now uses base class)
+_MUTE_IS_ADMIN_PATCH = "sophie_bot.modules.restrictions.handlers.base.is_user_admin"
 _MUTE_USER_PATCH = "sophie_bot.modules.restrictions.handlers.mute.mute_user"
-_MUTE_AI_REASON_PATCH = "sophie_bot.modules.restrictions.handlers.mute.generate_restriction_reason"
-_MUTE_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.mute.log_event"
+_MUTE_AI_REASON_PATCH = "sophie_bot.modules.restrictions.handlers.base.generate_restriction_reason"
+_MUTE_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.base.log_event"
 
-# unban handler patches
-_UNBAN_USER_PATCH = "sophie_bot.modules.restrictions.handlers.unban.unban_user"
-_UNBAN_FED_PATCH = "sophie_bot.modules.restrictions.handlers.unban.get_user_federation_ban_info"
-_UNBAN_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.unban.log_event"
+# unban handler patches (now uses base class)
+_UNBAN_USER_PATCH = "sophie_bot.modules.restrictions.handlers.unban._unban_action"
+_UNBAN_FED_PATCH = "sophie_bot.modules.restrictions.handlers.base.get_user_federation_ban_info"
+_UNBAN_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.base.log_event"
 
-# unmute handler patches
-_UNMUTE_USER_PATCH = "sophie_bot.modules.restrictions.handlers.unmute.unmute_user"
-_UNMUTE_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.unmute.log_event"
+# unmute handler patches (now uses base class)
+_UNMUTE_USER_PATCH = "sophie_bot.modules.restrictions.handlers.unmute._unmute_action"
+_UNMUTE_LOG_PATCH = "sophie_bot.modules.restrictions.handlers.base.log_event"
 
 
 # ---------------------------------------------------------------------------

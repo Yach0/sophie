@@ -11,6 +11,7 @@ from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.utils.api.auth import rest_require_admin
+from sophie_bot.utils.api.dependencies import get_chat_or_404
 
 from .schemas import NoteResponse, NoteUpdate
 
@@ -19,15 +20,11 @@ router = APIRouter()
 
 @router.patch("/{chat_iid}/{note_id}", response_model=NoteResponse)
 async def update_note(
-    chat_iid: PydanticObjectId,
+    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
     note_id: PydanticObjectId,
     note_data: NoteUpdate,
     user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
 ) -> NoteResponse:
-    chat = await ChatModel.get_by_iid(chat_iid)
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
-
     note = await NoteModel.get(note_id)
     if not note or note.chat_tid != chat.tid:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -38,7 +35,6 @@ async def update_note(
         if not update_dict["names"]:
             raise HTTPException(status_code=400, detail="Note names cannot be empty")
 
-        # Check if new names are taken by other notes
         existing = await NoteModel.get_by_notenames(chat.iid, update_dict["names"])
         if existing and existing.id != note.id:
             raise HTTPException(status_code=400, detail=f"One of the names is already taken: {existing.names}")
@@ -54,17 +50,4 @@ async def update_note(
     if note.id is None:
         raise HTTPException(status_code=500, detail="Note ID is missing after save")
 
-    return NoteResponse(
-        id=note.id,
-        names=note.names,
-        text=note.text,
-        file=note.file,
-        buttons=note.buttons,
-        parse_mode=note.parse_mode,
-        preview=note.preview,
-        description=note.description,
-        ai_description=note.ai_description,
-        note_group=note.note_group,
-        created_date=note.created_date,
-        edited_date=note.edited_date,
-    )
+    return NoteResponse.from_model(note)

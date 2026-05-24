@@ -10,20 +10,17 @@ from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.utils.api.auth import rest_require_admin
+from sophie_bot.utils.api.dependencies import get_chat_or_404
 
 router = APIRouter()
 
 
 @router.delete("/{chat_iid}/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_note(
-    chat_iid: PydanticObjectId,
+    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
     note_id: PydanticObjectId,
     user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
 ) -> Response:
-    chat = await ChatModel.get_by_iid(chat_iid)
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
-
     note = await NoteModel.get(note_id)
     if not note or note.chat_tid != chat.tid:
         raise HTTPException(status_code=404, detail="Note not found")

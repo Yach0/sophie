@@ -1,34 +1,33 @@
 from __future__ import annotations
 
-from typing import Any
+from datetime import timedelta
+from typing import ClassVar
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import Message
-from ass_tg.types import OptionalArg, TextArg
-from ass_tg.types.base_abc import ArgFabric
-from stfu_tg import KeyValue, Section, UserLink
 
-from sophie_bot.args.users import SophieUserArg
-from sophie_bot.config import CONFIG
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
-from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
+from sophie_bot.modules.restrictions.handlers.base import BaseRestrictionHandler, RestrictionActionFunc
 from sophie_bot.modules.restrictions.utils.restrictions import kick_user
-from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
-from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.utils import flags
-from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.handlers import SophieMessageHandler
-from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
+async def _kick_action(chat_tid: int, user_tid: int, until_date: timedelta | None) -> bool:
+    return await kick_user(chat_tid, user_tid)
+
+
 @flags.help(description=l_("Kicks the user from the chat. The user would be able to join back."))
-class KickUserHandler(SophieMessageHandler):
+class KickUserHandler(BaseRestrictionHandler):
+    bot_action_text: ClassVar[str] = l_("I cannot kick myself.")
+    self_action_text: ClassVar[str] = l_("You cannot kick yourself.")
+    admin_action_text: ClassVar[str] = l_("I cannot kick an admin.")
+    failed_action_text: ClassVar[str] = l_("Failed to kick the user. Make sure I have the right permissions.")
+    actor_label: ClassVar[str] = l_("Kicked by")
+    result_title: ClassVar[str] = l_("User kicked")
+    event_type: ClassVar[LogEvent] = LogEvent.USER_KICKED
+
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
@@ -37,65 +36,6 @@ class KickUserHandler(SophieMessageHandler):
             BotHasPermissions(can_restrict_members=True),
         )
 
-    @classmethod
-    async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
-        args: dict[str, ArgFabric] = {}
-
-        if not message or not is_real_reply(message):
-            args["user"] = SophieUserArg(l_("User"))
-
-        args["reason"] = OptionalArg(TextArg(l_("Reason")))
-
-        return args
-
-    async def handle(self) -> Any:
-        connection = self.connection
-
-        if not self.event.from_user:
-            raise SophieException("No from_user")
-
-        user = get_union_user(get_arg_or_reply_user(self.event, self.data))
-
-        if user.chat_id == CONFIG.bot_id:
-            return await self.event.reply(_("I cannot kick myself."))
-
-        if self.event.from_user and user.chat_id == self.event.from_user.id:
-            return await self.event.reply(_("You cannot kick yourself."))
-
-        if await is_user_admin(connection.tid, user.chat_id):
-            return await self.event.reply(_("I cannot kick an admin."))
-
-        if not await kick_user(connection.tid, user.chat_id):
-            return await self.event.reply(_("Failed to kick the user. Make sure I have the right permissions."))
-
-        reason = self.data.get("reason")
-
-        # Generate AI reason if none provided and replying to a message
-        if not reason and self.event.reply_to_message:
-            replied_text = self.event.reply_to_message.text or self.event.reply_to_message.caption or None
-            ai_reason = await generate_restriction_reason(
-                connection.db_model,
-                message_text=replied_text,
-                include_rules=True,
-            )
-            if ai_reason:
-                reason = ai_reason
-        await log_event(
-            connection.tid,
-            self.event.from_user.id,
-            LogEvent.USER_KICKED,
-            add_offending_message_text(
-                {"target_user_id": user.chat_id, "reason": reason},
-                self.event.reply_to_message,
-            ),
-        )
-
-        doc = Section(
-            KeyValue(_("Chat"), connection.title),
-            KeyValue(_("User"), UserLink(user.chat_id, user.first_name)),
-            KeyValue(_("Kicked by"), UserLink(self.event.from_user.id, self.event.from_user.first_name)),
-            KeyValue(_("Reason"), reason) if reason else None,
-            title=_("User kicked"),
-        )
-
-        await self.event.reply(str(doc))
+    @staticmethod
+    def get_restriction_action() -> RestrictionActionFunc:
+        return _kick_action

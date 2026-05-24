@@ -1,70 +1,21 @@
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
-from aiogram.types import CallbackQuery, Message
-from ass_tg.entities import ArgEntities
-from ass_tg.exceptions import ARGS_EXCEPTIONS
-from ass_tg.i18n import gettext_ctx
-from ass_tg.types import ActionTimeArg
-from babel.dates import format_timedelta
 from pydantic import BaseModel
-from stfu_tg import KeyValue, Template, Title, UserLink
-from stfu_tg.doc import Doc, Element
 
-from sophie_bot.config import CONFIG
-from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
-from sophie_bot.modules.filters.types.modern_action_abc import (
-    ActionSetupMessage,
-    ActionSetupTryAgainException,
-    ModernActionABC,
-    ModernActionSetting,
-)
 from sophie_bot.modules.logging.events import LogEvent
-from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.restrictions.utils import is_user_admin, mute_user
-from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
-from sophie_bot.services.i18n import i18n
-from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.modules.restrictions.actions.base import BaseRestrictionModernAction
+from sophie_bot.modules.restrictions.utils import mute_user
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.utils.logger import log
 
 
 class MuteActionDataModel(BaseModel):
     mute_duration: Optional[timedelta]
 
 
-async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> MuteActionDataModel:
-    if isinstance(event, CallbackQuery):
-        raise ValueError("This handlers setup_confirm can only be used with messages")
-
-    raw_text = event.text or ""
-
-    # Permanent ban
-    if raw_text == "0":
-        return MuteActionDataModel(mute_duration=None)
-
-    try:
-        gettext_ctx.set(i18n)
-
-        with i18n.context():
-            arg: timedelta = (await ActionTimeArg().parse(raw_text, 0, ArgEntities([])))[1]
-    except ARGS_EXCEPTIONS:
-        # TODO: Properly validate
-        await event.reply(_("Invalid mute duration, please try again."))
-        raise ActionSetupTryAgainException()
-
-    return MuteActionDataModel(mute_duration=arg)
-
-
-async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    return ActionSetupMessage(
-        text=_(
-            "Please write the mute duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for a permanent mute."
-        ),
-    )
-
-
-class MuteModernAction(ModernActionABC[MuteActionDataModel]):
+class MuteModernAction(BaseRestrictionModernAction[MuteActionDataModel]):
     name = "mute_user"
     icon = "🔕"
     title = l_("Mute")
@@ -73,80 +24,16 @@ class MuteModernAction(ModernActionABC[MuteActionDataModel]):
     as_flood = True
     allow_warns = True
 
+    action_name: ClassVar[str] = "mute_user"
+    action_log_event: ClassVar[LogEvent] = LogEvent.USER_MUTED
+    auto_banned_text: ClassVar[str] = l_("User {user} was automatically muted based on a filter action")
+    settings_key: ClassVar[str] = "change_mute_duration"
+    settings_title = l_("Change mute duration")
+
     @staticmethod
-    def description(data: MuteActionDataModel) -> Element | str:
-        if data.mute_duration:
-            # TODO: not en_US
-            return Template(_("Mutes user for {time}"), time=format_timedelta(data.mute_duration, locale="en_US"))
+    def get_duration(data: MuteActionDataModel) -> Optional[timedelta]:
+        return data.mute_duration
 
-        return _("Mutes user indefinitely")
-
-    def settings(self, data: MuteActionDataModel) -> dict[str, ModernActionSetting]:
-        return {
-            "change_mute_duration": ModernActionSetting(
-                title=l_("Change mute duration"),
-                icon="⏰",
-                setup_message=setup_message,
-                setup_confirm=setup_confirm,
-            ),
-        }
-
-    async def handle(self, message: Message, data: dict, filter_data: MuteActionDataModel) -> Optional[Element]:
-        if not message.from_user:
-            return
-
-        chat_id = message.chat.id
-        user_id = message.from_user.id
-        locale: str = data["i18n"].current_locale
-        reason: Optional[str] = None
-
-        chat_db = data.get("chat_db")
-        if chat_db:
-            message_text = message.text or message.caption or None
-            reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
-
-        if await is_user_admin(chat_id, user_id):
-            log.debug("BanModernAction: user is admin, skipping...")
-            return
-
-        doc = Doc(
-            Title(_("Filter action")),
-            Template(
-                _("User {user} was automatically muted based on a filter action"),
-                user=UserLink(message.from_user.id, message.from_user.first_name),
-            ),
-        )
-
-        if filter_data.mute_duration:
-            doc += KeyValue(_("For"), format_timedelta(filter_data.mute_duration, locale=locale))
-
-        if reason:
-            doc += KeyValue(_("Reason"), reason)
-
-        if not await mute_user(chat_id, message.from_user.id, until_date=filter_data.mute_duration):
-            return
-
-        if "filter_id" in data:
-            details = add_offending_message_text(
-                {
-                    "target_user_id": message.from_user.id,
-                    "filter_id": data["filter_id"],
-                    "action": "mute_user",
-                },
-                message,
-            )
-
-            if reason:
-                details["reason"] = reason
-
-            if filter_data.mute_duration:
-                details["duration"] = filter_data.mute_duration.total_seconds()
-
-            await log_event(
-                chat_id,
-                CONFIG.bot_id,
-                LogEvent.USER_MUTED,
-                details,
-            )
-
-        return doc
+    @staticmethod
+    def restriction_func(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> Any:
+        return mute_user(chat_tid, user_tid, until_date=until_date)

@@ -18,8 +18,8 @@ class CleanService(BaseModel):
     enabled: bool = False
 
 
-WELCOMEMUTE_DEFALT_VALUE = "48h"
-WELCOMESECURITY_EXPIRE_DEFALT_VALUE = "48h"
+WELCOMEMUTE_DEFAULT_VALUE = "48h"
+WELCOMESECURITY_EXPIRE_DEFAULT_VALUE = "48h"
 
 
 class WelcomeMute(BaseModel):
@@ -80,7 +80,7 @@ class GreetingsModel(Document):
         return await self.save()
 
     async def set_service_clean_status(self, new_state: bool) -> "GreetingsModel":
-        if not self.clean_welcome:
+        if not self.clean_service:
             self.clean_service = CleanService(enabled=new_state)
         else:
             self.clean_service.enabled = new_state  # type: ignore

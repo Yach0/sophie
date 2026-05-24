@@ -80,7 +80,6 @@ test_code_style:
 	uv run ruff check .
 
 test_codeanalysis:
-	# uv run python -m bandit sophie_bot/ -r
 	uv run ty check
 
 run_tests:

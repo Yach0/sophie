@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from sophie_bot.constants import DEFAULT_AI_SUMMARY_MODEL
 from sophie_bot.modules.ai.utils.ai_providers import AIProviders
 
 
@@ -26,7 +27,7 @@ class SophieAIModel:
     extra_params: dict[str, Any] | None = None
 
 
-DEFAULT_SUMMARY_MODEL_NAME = "openai/gpt-5.5"
+DEFAULT_SUMMARY_MODEL_NAME = DEFAULT_AI_SUMMARY_MODEL
 
 
 AI_PROVIDER_TO_NAME = {

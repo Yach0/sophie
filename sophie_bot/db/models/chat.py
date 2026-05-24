@@ -14,7 +14,6 @@ from beanie import (
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.update.general import Set
 from pydantic import Field
-from pydantic_core.core_schema import SerializerFunctionWrapHandler
 from pymongo import ASCENDING, IndexModel
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
@@ -118,10 +117,6 @@ class ChatTopicModel(Document):
         return model
 
 
-def ser_wrap(v: Any, nxt: SerializerFunctionWrapHandler) -> str:
-    return nxt(v)
-
-
 class ChatModel(Document):
     iid: PydanticObjectId = Field(default_factory=PydanticObjectId, alias="_id")
     tid: Annotated[int, Indexed(unique=True)] = Field(..., alias="chat_id")
@@ -134,19 +129,6 @@ class ChatModel(Document):
 
     first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_saw: datetime
-
-    # photo: BackLink[ChatPhotoModel] = Field(json_schema_extra={"original_field": "chat"})
-
-    # User in groups
-    # user_in_groups: list[BackLink[UserInGroupModel]] = Field(original_field="user")
-    # groups_of_user: list[BackLink[UserInGroupModel]] = Field(original_field="group")
-
-    # Topics
-    # chat_topics: list[BackLink[ChatTopicModel]] = Field(original_field="group")
-
-    # AI
-    # ai_enabled: list[BackLink[AIEnabledModel]] = Field(original_field="chat")
-    # ai_usage: list[BackLink[AIUsageModel]] = Field(original_field="chat")
 
     class Settings:
         name = "chats"

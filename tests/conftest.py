@@ -10,9 +10,17 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+# Mock PyICU if not available (required by normality but needs system-level ICU libs)
+if "icu" not in sys.modules:
+    try:
+        import icu  # noqa: F401
+    except ImportError:
+        sys.modules["icu"] = MagicMock()
 
 import mistralai.client.httpclient
 import mistralai.client.sdk

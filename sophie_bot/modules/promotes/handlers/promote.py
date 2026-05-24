@@ -15,9 +15,9 @@ from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import get_admins_rights
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
+from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN
 from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
@@ -140,7 +140,4 @@ class PromoteUserHandler(SophieMessageHandler):
             title=_("Admin promoted successfully"),
         )
 
-        await common_try(
-            self.event.reply(str(doc)),
-            reply_not_found=lambda: self.event.answer(str(doc)),
-        )
+        await reply_or_answer(self.event, doc)

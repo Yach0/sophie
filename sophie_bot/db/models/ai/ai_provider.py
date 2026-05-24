@@ -6,7 +6,9 @@ from pydantic import Field
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
 
-_DEFAULT_SUMMARY_MODEL = "openai/gpt-5.5"
+from sophie_bot.constants import DEFAULT_AI_SUMMARY_MODEL
+
+_DEFAULT_SUMMARY_MODEL = DEFAULT_AI_SUMMARY_MODEL
 
 
 class AIProviderModel(Document):

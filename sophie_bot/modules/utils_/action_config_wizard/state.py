@@ -12,6 +12,8 @@ from aiogram.fsm.state import State, StatesGroup
 from beanie import PydanticObjectId
 from bson.errors import InvalidId
 
+from sophie_bot.constants import ACW_SESSION_TTL_SECONDS
+
 
 class ActionConfigFSM(StatesGroup):
     """FSM states for action configuration with interactive setup."""
@@ -19,8 +21,7 @@ class ActionConfigFSM(StatesGroup):
     interactive_setup = State()
 
 
-# Session TTL
-ACW_SESSION_TTL_SECONDS = 20 * 60  # 20 minutes
+# Re-export for backward compatibility
 
 # FSM data keys
 _K_MODULE = "acw_module"
