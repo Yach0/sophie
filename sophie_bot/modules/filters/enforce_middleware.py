@@ -22,6 +22,7 @@ from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
+from sophie_bot.shared.filter_state import clear_restrictive_state, set_restrictive_triggered
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
@@ -187,6 +188,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             await self._handle_action_messages(message, all_messages)
 
         data["restrictive_filter_triggered"] = restrictive_filter_triggered
+        set_restrictive_triggered(message.message_id, restrictive_filter_triggered)
 
         # If a restrictive filter triggered - skip other handlers
         if restrictive_filter_triggered:
@@ -208,6 +210,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         data["restrictive_filter_triggered"] = False
+        set_restrictive_triggered(event.message_id, False)
         await self._process_filters(event, data)
 
         return await handler(event, data)
