@@ -9,6 +9,7 @@ from sophie_bot.modules.ai.handlers.translate import AiTranslate
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.detect_lang import should_auto_translate_text
 from sophie_bot.shared.lang_detect import lang_code_to_language
+from sophie_bot.shared.restrictive_filter_state import is_restrictive_triggered
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import I18nNew
 from sophie_bot.utils.logger import log
@@ -23,6 +24,10 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
     ) -> Any:
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
         i18n: I18nNew = data["i18n"]
+
+        if isinstance(event, Message) and is_restrictive_triggered(event.message_id):
+            log.debug("AiAutoTranslateMiddleware: skipping restrictive filter-triggered message")
+            return None
 
         result = await handler(event, data)
 

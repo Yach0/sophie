@@ -23,6 +23,7 @@ class DelMsgModern(ModernActionABC[None]):
 
     default_data = None
     allow_warns = True
+    is_restrictive = True
 
     @staticmethod
     def description(data: None) -> Element | str:

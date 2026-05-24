@@ -75,6 +75,8 @@ def make_duration_setup_message(prompt_text: str) -> Any:
 
 
 class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_DATA]):
+    is_restrictive = True
+
     action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
     auto_banned_text: ClassVar[str | LazyProxy]

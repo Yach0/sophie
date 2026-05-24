@@ -12,6 +12,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.filters.fsm import FilterEditFSM
+from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.filters.utils_.handle_action import (
     get_effective_filter_actions,
     handle_effective_filter_action,
@@ -21,6 +22,7 @@ from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
+from sophie_bot.shared.restrictive_filter_state import mark_restrictive_triggered
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
@@ -82,6 +84,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 continue
 
             log.debug("EnforceFiltersMiddleware: handling action", action=action.name)
+
+            if ALL_MODERN_ACTIONS[action.name].is_restrictive:
+                data["restrictive_filter_triggered"] = True
+                mark_restrictive_triggered(message.message_id)
 
             action_message = await handle_effective_filter_action(message, action, data, filter_item)
             if action_message:
