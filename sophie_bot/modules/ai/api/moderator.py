@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated
-
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.utils.api.auth import rest_require_admin
+from sophie_bot.utils.api.dependencies import RestrictAdminDep
 
 from .schemas import ModeratorSettingsResponse, ModeratorSettingsUpdate
 
@@ -17,7 +15,7 @@ router = APIRouter(prefix="/moderator", tags=["ai_moderator"])
 @router.get("/{chat_iid}", response_model=ModeratorSettingsResponse)
 async def get_moderator_settings(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+    user: RestrictAdminDep,
 ) -> ModeratorSettingsResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
@@ -46,7 +44,7 @@ async def get_moderator_settings(
 async def update_moderator_settings(
     chat_iid: PydanticObjectId,
     data: ModeratorSettingsUpdate,
-    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+    user: RestrictAdminDep,
 ) -> ModeratorSettingsResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:

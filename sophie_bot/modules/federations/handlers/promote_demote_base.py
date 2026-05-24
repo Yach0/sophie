@@ -17,16 +17,17 @@ from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
 
 class FederationPromoteDemoteHandler(FederationCommandHandler):
-    action_name: ClassVar[str]
-    owner_only_text: ClassVar[str]
-    user_not_specified_text: ClassVar[str]
-    not_private_user_text: ClassVar[str]
-    success_template: ClassVar[str]
-    log_template: ClassVar[str]
+    action_name: ClassVar[str | LazyProxy]
+    owner_only_text: ClassVar[str | LazyProxy]
+    user_not_specified_text: ClassVar[str | LazyProxy]
+    not_private_user_text: ClassVar[str | LazyProxy]
+    success_template: ClassVar[str | LazyProxy]
+    log_template: ClassVar[str | LazyProxy]
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -86,6 +87,8 @@ class FederationPromoteDemoteHandler(FederationCommandHandler):
         )
 
     async def _log_action(self, federation: Federation, user_db: ChatModel) -> None:
+        if not self.event.from_user:
+            return
         log_text = Template(
             str(self.log_template),
             admin=self.event.from_user.mention_html(),

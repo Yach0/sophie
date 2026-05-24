@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS
-from sophie_bot.utils.api.auth import get_current_user, rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.dependencies import ChatDep, ReadAdminDep
 
 from .schemas import DisableableResponse, DisabledResponse
 
@@ -17,8 +17,8 @@ router = APIRouter()
 
 @router.get("/disabled/{chat_iid}", response_model=DisabledResponse)
 async def get_disabled_commands(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
-    user: Annotated[ChatModel, Depends(rest_require_admin())],
+    chat: ChatDep,
+    user: ReadAdminDep,
 ):
     disabled = await DisablingModel.get_disabled(chat.iid)
     return DisabledResponse(disabled=disabled)

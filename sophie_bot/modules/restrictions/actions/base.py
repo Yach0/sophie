@@ -27,8 +27,8 @@ from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils import is_user_admin
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.services.i18n import i18n
-from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 ACTION_DATA = TypeVar("ACTION_DATA", bound=BaseModel)
@@ -75,9 +75,9 @@ def make_duration_setup_message(prompt_text: str) -> Any:
 
 
 class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_DATA]):
-    action_name: ClassVar[str]
+    action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
-    auto_banned_text: ClassVar[str]
+    auto_banned_text: ClassVar[str | LazyProxy]
     settings_key: ClassVar[str]
     settings_title: ClassVar[LazyProxy]
 
@@ -91,9 +91,9 @@ class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_D
     def restriction_func(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> Any:
         raise NotImplementedError
 
-    @staticmethod
-    def description(data: ACTION_DATA) -> Element | str:
-        duration = BaseRestrictionModernAction.get_duration(data)
+    @classmethod
+    def description(cls, data: ACTION_DATA) -> Element | str:
+        duration = cls.get_duration(data)
         if duration:
             return Template(
                 _("Restricts user for {time}"),

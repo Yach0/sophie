@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.auth import rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
 
 from .schemas import NoteCreate, NoteResponse
 
@@ -19,9 +16,9 @@ router = APIRouter()
 
 @router.post("/{chat_iid}", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 async def create_note(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
+    chat: ChatDep,
     note_data: NoteCreate,
-    user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
+    user: ChangeInfoAdminDep,
 ) -> NoteResponse:
     if not note_data.names:
         raise HTTPException(status_code=400, detail="Note names cannot be empty")

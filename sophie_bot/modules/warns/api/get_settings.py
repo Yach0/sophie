@@ -1,11 +1,7 @@
-from typing import Annotated
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends
-
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnSettingsModel
-from sophie_bot.utils.api.auth import rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.dependencies import ChatDep, ReadAdminDep
 
 from .schemas import WarnSettingsResponse
 
@@ -14,8 +10,8 @@ router = APIRouter(prefix="/warns", tags=["warns"])
 
 @router.get("/settings/{chat_iid}", response_model=WarnSettingsResponse)
 async def get_warn_settings(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
-    current_user: Annotated[ChatModel, Depends(rest_require_admin())],
+    chat: ChatDep,
+    current_user: ReadAdminDep,
 ) -> WarnSettingsResponse:
     settings = await WarnSettingsModel.get_or_create(chat.iid)
     return WarnSettingsResponse(

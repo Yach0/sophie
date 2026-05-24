@@ -83,7 +83,7 @@ class GreetingsModel(Document):
         if not self.clean_service:
             self.clean_service = CleanService(enabled=new_state)
         else:
-            self.clean_service.enabled = new_state  # type: ignore
+            self.clean_service.enabled = new_state
         return await self.save()
 
     async def clean_welcome_new_message(self, msg_id: int) -> "GreetingsModel":

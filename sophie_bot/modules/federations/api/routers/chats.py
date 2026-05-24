@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
-from sophie_bot.utils.api.auth import get_current_user, rest_require_admin
+from sophie_bot.utils.api.auth import get_current_user
+from sophie_bot.utils.api.dependencies import OwnerAdminDep
 
 from ..schemas import FederationChatAdd, FederationChatResponse
 from .common import _require_federation_access
@@ -45,7 +46,7 @@ async def list_federation_chats(
 async def add_chat_to_federation(
     fed_id: str,
     payload: FederationChatAdd,
-    user: Annotated[ChatModel, Depends(rest_require_admin(require_owner=True))],
+    user: OwnerAdminDep,
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
@@ -70,7 +71,7 @@ async def add_chat_to_federation(
 async def remove_chat_from_federation(
     fed_id: str,
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(rest_require_admin(require_owner=True))],
+    user: OwnerAdminDep,
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:

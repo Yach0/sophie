@@ -10,16 +10,17 @@ from sophie_bot.db.models import LocksModel
 from sophie_bot.modules.locks.utils.cache import invalidate_locks_cache
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
 
 class BaseLockToggleHandler(SophieMessageHandler):
-    usage_template: ClassVar[str]
-    usage_hint: ClassVar[str]
-    filters_module_text: ClassVar[str]
-    filters_module_delete_hint: ClassVar[str]
-    success_title: ClassVar[str]
-    already_state_text: ClassVar[str]
+    usage_template: ClassVar[str | LazyProxy]
+    usage_hint: ClassVar[str | LazyProxy]
+    filters_module_text: ClassVar[str | LazyProxy]
+    filters_module_delete_hint: ClassVar[str | LazyProxy]
+    success_title: ClassVar[str | LazyProxy]
+    already_state_text: ClassVar[str | LazyProxy]
 
     async def handle(self) -> Any:
         message: Message = self.event

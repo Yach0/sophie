@@ -1,21 +1,17 @@
-from typing import Annotated
-
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnModel
-from sophie_bot.utils.api.auth import rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.dependencies import ChatDep, RestrictAdminDep
 
 router = APIRouter(prefix="/warns", tags=["warns"])
 
 
 @router.delete("/{chat_iid}/{warn_iid}")
 async def delete_warn(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
+    chat: ChatDep,
     warn_iid: str,
-    current_user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+    current_user: RestrictAdminDep,
 ) -> dict:
     try:
         warn_obj_id = PydanticObjectId(warn_iid)

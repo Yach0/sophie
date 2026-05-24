@@ -12,6 +12,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.locks.handlers.base import BaseLockToggleHandler
 from sophie_bot.utils import flags
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -19,12 +20,14 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.help(description=l_("Lock a message type in the chat"))
 @flags.disableable(name="lock")
 class LockHandler(BaseLockToggleHandler):
-    usage_template: ClassVar[str] = l_("Usage: {cmd}")
-    usage_hint: ClassVar[str] = l_("Use /lockable to see all available lock types.")
-    filters_module_text: ClassVar[str] = l_("Lock type {type} is already enforced by the Filters module.")
-    filters_module_delete_hint: ClassVar[str] = l_("Delete it there first with {cmd} before adding it to Locks.")
-    success_title: ClassVar[str] = l_("Lock added")
-    already_state_text: ClassVar[str] = l_("Lock type {type} is already locked in this chat.")
+    usage_template: ClassVar[str | LazyProxy] = l_("Usage: {cmd}")
+    usage_hint: ClassVar[str | LazyProxy] = l_("Use /lockable to see all available lock types.")
+    filters_module_text: ClassVar[str | LazyProxy] = l_("Lock type {type} is already enforced by the Filters module.")
+    filters_module_delete_hint: ClassVar[str | LazyProxy] = l_(
+        "Delete it there first with {cmd} before adding it to Locks."
+    )
+    success_title: ClassVar[str | LazyProxy] = l_("Lock added")
+    already_state_text: ClassVar[str | LazyProxy] = l_("Lock type {type} is already locked in this chat.")
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

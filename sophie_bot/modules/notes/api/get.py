@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated
-
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.services.telegram_media import TelegramMediaService
-from sophie_bot.utils.api.auth import rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.dependencies import ChatDep, ReadAdminDep
 
 from .schemas import NoteResponse, NotesListResponse
 
@@ -18,8 +14,8 @@ router = APIRouter()
 
 @router.get("/{chat_iid}", response_model=NotesListResponse)
 async def list_notes(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
-    user: Annotated[ChatModel, Depends(rest_require_admin())],
+    chat: ChatDep,
+    user: ReadAdminDep,
 ) -> NotesListResponse:
     notes = await NoteModel.get_chat_notes(chat.iid)
 
@@ -33,9 +29,9 @@ async def list_notes(
 
 @router.get("/{chat_iid}/{note_id}", response_model=NoteResponse)
 async def get_note(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
+    chat: ChatDep,
     note_id: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(rest_require_admin())],
+    user: ReadAdminDep,
 ) -> NoteResponse:
     note = await NoteModel.get(note_id)
     if not note or (note.chat and note.chat.ref.id != chat.iid) or (not note.chat and note.chat_tid != chat.tid):

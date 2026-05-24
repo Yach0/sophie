@@ -10,17 +10,20 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.restrictions.handlers.base import BaseRestrictionHandler, RestrictionActionFunc
 from sophie_bot.modules.restrictions.utils.restrictions import mute_user
 from sophie_bot.utils import flags
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.help(description=l_("Mutes the user in the chat."))
 class MuteUserHandler(BaseRestrictionHandler):
-    bot_action_text: ClassVar[str] = l_("I cannot mute myself.")
-    self_action_text: ClassVar[str] = l_("You cannot mute yourself.")
-    admin_action_text: ClassVar[str] = l_("I cannot mute an admin.")
-    failed_action_text: ClassVar[str] = l_("Failed to mute the user. Make sure I have the right permissions.")
-    actor_label: ClassVar[str] = l_("Muted by")
-    result_title: ClassVar[str] = l_("User muted")
+    bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute myself.")
+    self_action_text: ClassVar[str | LazyProxy] = l_("You cannot mute yourself.")
+    admin_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute an admin.")
+    failed_action_text: ClassVar[str | LazyProxy] = l_(
+        "Failed to mute the user. Make sure I have the right permissions."
+    )
+    actor_label: ClassVar[str | LazyProxy] = l_("Muted by")
+    result_title: ClassVar[str | LazyProxy] = l_("User muted")
     event_type: ClassVar[LogEvent] = LogEvent.USER_MUTED
 
     @staticmethod
@@ -38,12 +41,14 @@ class MuteUserHandler(BaseRestrictionHandler):
 
 @flags.help(description=l_("Temporarily mutes the user in the chat."))
 class TempMuteUserHandler(BaseRestrictionHandler):
-    bot_action_text: ClassVar[str] = l_("I cannot mute myself.")
-    self_action_text: ClassVar[str] = l_("You cannot mute yourself.")
-    admin_action_text: ClassVar[str] = l_("I cannot mute an admin.")
-    failed_action_text: ClassVar[str] = l_("Failed to mute the user. Make sure I have the right permissions.")
-    actor_label: ClassVar[str] = l_("Muted by")
-    result_title: ClassVar[str] = l_("User temporarily muted")
+    bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute myself.")
+    self_action_text: ClassVar[str | LazyProxy] = l_("You cannot mute yourself.")
+    admin_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute an admin.")
+    failed_action_text: ClassVar[str | LazyProxy] = l_(
+        "Failed to mute the user. Make sure I have the right permissions."
+    )
+    actor_label: ClassVar[str | LazyProxy] = l_("Muted by")
+    result_title: ClassVar[str | LazyProxy] = l_("User temporarily muted")
     event_type: ClassVar[LogEvent] = LogEvent.USER_MUTED
     with_duration: ClassVar[bool] = True
 

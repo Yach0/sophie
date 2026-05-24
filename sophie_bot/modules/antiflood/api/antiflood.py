@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import Annotated
-
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from sophie_bot.constants import ANTIFOOD_MAX_ACTIONS
@@ -11,7 +9,7 @@ from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.utils.api.auth import rest_require_admin
+from sophie_bot.utils.api.dependencies import RestrictAdminDep
 
 router = APIRouter(prefix="/antiflood", tags=["antiflood"])
 
@@ -86,7 +84,7 @@ class AntifloodSettingsResponse(BaseModel):
 @router.get("/{chat_iid}", response_model=AntifloodSettingsResponse)
 async def get_antiflood_settings(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+    user: RestrictAdminDep,
 ) -> AntifloodSettingsResponse:
     """Get antiflood settings for a chat."""
     chat = await ChatModel.get_by_iid(chat_iid)
@@ -120,7 +118,7 @@ async def get_antiflood_settings(
 async def update_antiflood_settings(
     chat_iid: PydanticObjectId,
     request: AntifloodSettingsRequest,
-    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+    user: RestrictAdminDep,
 ) -> AntifloodSettingsResponse:
     """Update antiflood settings for a chat."""
     chat = await ChatModel.get_by_iid(chat_iid)
@@ -153,7 +151,7 @@ async def update_antiflood_settings(
 @router.delete("/{chat_iid}", status_code=status.HTTP_204_NO_CONTENT)
 async def disable_antiflood(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(rest_require_admin("can_restrict_members"))],
+    user: RestrictAdminDep,
 ) -> None:
     """Disable antiflood for a chat (deletes settings)."""
     settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)

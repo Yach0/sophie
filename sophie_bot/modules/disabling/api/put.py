@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated
-
 from beanie.odm.operators.update.general import Set
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS
-from sophie_bot.utils.api.auth import rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
 
 from .schemas import DisabledPayload, DisabledResponse
 
@@ -18,9 +14,9 @@ router = APIRouter()
 
 @router.put("/disabled/{chat_iid}", response_model=DisabledResponse)
 async def set_disabled_commands(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
+    chat: ChatDep,
     payload: DisabledPayload,
-    user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
+    user: ChangeInfoAdminDep,
 ):
     # Filter to only allow disableable commands
     disableable = {cmd.cmds[0] for cmd in DISABLEABLE_CMDS if cmd.cmds}

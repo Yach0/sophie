@@ -15,6 +15,10 @@ from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.restrictions.services.silent import (
+    collect_message_ids_for_cleanup,
+    schedule_message_deletion,
+)
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
@@ -23,6 +27,7 @@ from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.federation_ban_check import FederationBanInfo, get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -30,22 +35,23 @@ RestrictionActionFunc = Callable[[int, int, timedelta | None], Awaitable[bool]]
 
 
 class BaseRestrictionHandler(SophieMessageHandler):
-    bot_action_text: ClassVar[str]
-    self_action_text: ClassVar[str]
-    admin_action_text: ClassVar[str]
-    failed_action_text: ClassVar[str]
-    actor_label: ClassVar[str]
-    result_title: ClassVar[str]
+    bot_action_text: ClassVar[str | LazyProxy]
+    self_action_text: ClassVar[str | LazyProxy]
+    admin_action_text: ClassVar[str | LazyProxy]
+    failed_action_text: ClassVar[str | LazyProxy]
+    actor_label: ClassVar[str | LazyProxy]
+    result_title: ClassVar[str | LazyProxy]
     event_type: ClassVar[LogEvent]
     with_duration: ClassVar[bool] = False
     check_admin: ClassVar[bool] = True
     check_federation_ban: ClassVar[bool] = False
     gen_ai_reason: ClassVar[bool] = True
     use_common_try: ClassVar[bool] = False
-    fed_ban_notice_current: ClassVar[str] = l_(
+    silent: ClassVar[bool] = False
+    fed_ban_notice_current: ClassVar[str | LazyProxy] = l_(
         "The user is already banned in the current federation: {fed_name} ({fed_id})."
     )
-    fed_ban_notice_subscribed: ClassVar[str] = l_(
+    fed_ban_notice_subscribed: ClassVar[str | LazyProxy] = l_(
         "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
     )
 
@@ -126,9 +132,15 @@ class BaseRestrictionHandler(SophieMessageHandler):
         )
 
         if self.use_common_try:
-            await reply_or_answer(self.event, doc)
+            reply_message = await reply_or_answer(self.event, doc)
         else:
-            await self.event.reply(str(doc))
+            reply_message = await self.event.reply(str(doc))
+
+        if self.silent and reply_message:
+            schedule_message_deletion(
+                connection.tid,
+                collect_message_ids_for_cleanup(self.event, reply_message.message_id),
+            )
 
     def _build_fed_ban_notice(self, info: FederationBanInfo | None) -> KeyValue | None:
         if not info:

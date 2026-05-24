@@ -24,8 +24,8 @@ icon: 🛑
 | `/smute` | `<User>` `<Reason>` | Silently mutes the user in the chat. Deletes messages after 10 seconds. | *Only in groups* |
 | `/tmute` | `<User>` `<Time (e.g., 2h, 7d, 2w)>` `<Reason>` | Temporarily mutes the user in the chat. |  |
 | `/stmute` `/tsmute` | `<User>` `<Time (e.g., 2h, 7d, 2w)>` `<Reason>` | Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds. | *Only in groups* |
-| `/unmute` | `<User>` | Unmutes the user in the chat. |  |
-| `/unban` | `<User>` | Unbans the user from the chat. |  |
+| `/unmute` | `<User>` `<Reason>` | Unmutes the user in the chat. |  |
+| `/unban` | `<User>` `<Reason>` | Unbans the user from the chat. |  |
 {.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)

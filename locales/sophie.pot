@@ -25,10 +25,9 @@ msgstr ""
 msgid "Username"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:18 sophie_bot/modules/locks/handlers/lock.py:24
-#: sophie_bot/modules/locks/handlers/lock.py:87
-#: sophie_bot/modules/locks/handlers/unlock.py:24
-#: sophie_bot/modules/locks/handlers/unlock.py:82
+#: sophie_bot/args/lock_type.py:18 sophie_bot/modules/locks/handlers/base.py:59
+#: sophie_bot/modules/locks/handlers/lock.py:19
+#: sophie_bot/modules/locks/handlers/unlock.py:19
 msgid "Lock type"
 msgstr ""
 
@@ -396,22 +395,15 @@ msgstr ""
 #: sophie_bot/modules/connections/handlers/connect_dm.py:38
 #: sophie_bot/modules/disabling/handlers/disable.py:50
 #: sophie_bot/modules/disabling/handlers/enable.py:52
-#: sophie_bot/modules/locks/handlers/lock.py:86
+#: sophie_bot/modules/locks/handlers/base.py:58
 #: sophie_bot/modules/locks/handlers/locks_list.py:69
 #: sophie_bot/modules/locks/handlers/locksticker.py:52
 #: sophie_bot/modules/locks/handlers/locksticker.py:66
-#: sophie_bot/modules/locks/handlers/unlock.py:81
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
 #: sophie_bot/modules/promotes/handlers/demote.py:76
 #: sophie_bot/modules/promotes/handlers/promote.py:136
-#: sophie_bot/modules/restrictions/handlers/ban.py:103
-#: sophie_bot/modules/restrictions/handlers/ban.py:208
-#: sophie_bot/modules/restrictions/handlers/kick.py:94
-#: sophie_bot/modules/restrictions/handlers/mute.py:97
-#: sophie_bot/modules/restrictions/handlers/mute.py:175
-#: sophie_bot/modules/restrictions/handlers/unban.py:75
-#: sophie_bot/modules/restrictions/handlers/unmute.py:70
+#: sophie_bot/modules/restrictions/handlers/base.py:125
 #: sophie_bot/modules/restrictions/services/silent.py:76
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
 #: sophie_bot/modules/utils_/status_handler.py:47
@@ -739,20 +731,10 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:99
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:85
 #: sophie_bot/modules/reports/handlers/report.py:94
-#: sophie_bot/modules/restrictions/actions/ban.py:124
+#: sophie_bot/modules/restrictions/actions/base.py:153
 #: sophie_bot/modules/restrictions/actions/kick.py:53
-#: sophie_bot/modules/restrictions/actions/mute.py:124
-#: sophie_bot/modules/restrictions/handlers/ban.py:51
-#: sophie_bot/modules/restrictions/handlers/ban.py:106
-#: sophie_bot/modules/restrictions/handlers/ban.py:154
-#: sophie_bot/modules/restrictions/handlers/ban.py:212
-#: sophie_bot/modules/restrictions/handlers/kick.py:47
-#: sophie_bot/modules/restrictions/handlers/kick.py:97
-#: sophie_bot/modules/restrictions/handlers/mute.py:49
-#: sophie_bot/modules/restrictions/handlers/mute.py:100
-#: sophie_bot/modules/restrictions/handlers/mute.py:125
-#: sophie_bot/modules/restrictions/handlers/mute.py:179
-#: sophie_bot/modules/restrictions/handlers/silent.py:78
+#: sophie_bot/modules/restrictions/handlers/base.py:72
+#: sophie_bot/modules/restrictions/handlers/base.py:129
 #: sophie_bot/modules/restrictions/services/silent.py:80
 #: sophie_bot/modules/warns/handlers/warn.py:52
 #: sophie_bot/modules/warns/handlers/warn.py:78
@@ -1137,33 +1119,20 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/ban.py:54
 #: sophie_bot/modules/federations/handlers/ban.py:84
 #: sophie_bot/modules/federations/handlers/ban.py:122
-#: sophie_bot/modules/federations/handlers/demote.py:42
+#: sophie_bot/modules/federations/handlers/demote.py:20
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:73
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:129
-#: sophie_bot/modules/federations/handlers/promote.py:42
+#: sophie_bot/modules/federations/handlers/promote.py:20
 #: sophie_bot/modules/federations/handlers/unban.py:39
-#: sophie_bot/modules/federations/handlers/unban.py:151
+#: sophie_bot/modules/federations/handlers/unban.py:148
 #: sophie_bot/modules/promotes/handlers/demote.py:39
 #: sophie_bot/modules/promotes/handlers/demote.py:77
 #: sophie_bot/modules/promotes/handlers/promote.py:55
 #: sophie_bot/modules/promotes/handlers/promote.py:137
-#: sophie_bot/modules/restrictions/handlers/ban.py:49
-#: sophie_bot/modules/restrictions/handlers/ban.py:104
-#: sophie_bot/modules/restrictions/handlers/ban.py:151
-#: sophie_bot/modules/restrictions/handlers/ban.py:209
-#: sophie_bot/modules/restrictions/handlers/kick.py:45
-#: sophie_bot/modules/restrictions/handlers/kick.py:95
-#: sophie_bot/modules/restrictions/handlers/mute.py:47
-#: sophie_bot/modules/restrictions/handlers/mute.py:98
-#: sophie_bot/modules/restrictions/handlers/mute.py:122
-#: sophie_bot/modules/restrictions/handlers/mute.py:176
-#: sophie_bot/modules/restrictions/handlers/silent.py:73
-#: sophie_bot/modules/restrictions/handlers/unban.py:42
-#: sophie_bot/modules/restrictions/handlers/unban.py:76
-#: sophie_bot/modules/restrictions/handlers/unmute.py:41
-#: sophie_bot/modules/restrictions/handlers/unmute.py:71
+#: sophie_bot/modules/restrictions/handlers/base.py:67
+#: sophie_bot/modules/restrictions/handlers/base.py:126
 #: sophie_bot/modules/restrictions/services/silent.py:77
 #: sophie_bot/modules/users/handlers/id.py:22
 #: sophie_bot/modules/users/handlers/info.py:21
@@ -1174,8 +1143,7 @@ msgid "User"
 msgstr ""
 
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:153
-#: sophie_bot/modules/restrictions/handlers/ban.py:211
-#: sophie_bot/modules/restrictions/handlers/mute.py:178
+#: sophie_bot/modules/restrictions/handlers/base.py:128
 #: sophie_bot/modules/restrictions/services/silent.py:79
 msgid "Duration"
 msgstr ""
@@ -1726,7 +1694,6 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/create.py:40
 #: sophie_bot/modules/federations/handlers/create.py:49
 #: sophie_bot/modules/federations/handlers/delete.py:55
-#: sophie_bot/modules/federations/handlers/demote.py:49
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:44
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:53
 #: sophie_bot/modules/federations/handlers/import_banlist.py:32
@@ -1735,7 +1702,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/leave.py:33
 #: sophie_bot/modules/federations/handlers/logs.py:33
 #: sophie_bot/modules/federations/handlers/logs.py:109
-#: sophie_bot/modules/federations/handlers/promote.py:49
+#: sophie_bot/modules/federations/handlers/promote_demote_base.py:41
 #: sophie_bot/modules/federations/handlers/rename.py:40
 #: sophie_bot/modules/federations/handlers/subscribe.py:36
 #: sophie_bot/modules/federations/handlers/subscribe.py:106
@@ -1805,8 +1772,8 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/info.py:60
 #: sophie_bot/modules/federations/handlers/info.py:76
 #: sophie_bot/modules/federations/handlers/unban.py:118
-#: sophie_bot/modules/federations/handlers/unban.py:151
-#: sophie_bot/modules/federations/handlers/unban.py:164
+#: sophie_bot/modules/federations/handlers/unban.py:148
+#: sophie_bot/modules/federations/handlers/unban.py:158
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
 #: sophie_bot/modules/warns/handlers/warns_group.py:40
@@ -1834,7 +1801,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/import_banlist.py:72
 #: sophie_bot/modules/federations/handlers/subscribe.py:74
 #: sophie_bot/modules/federations/handlers/subscribe.py:144
-#: sophie_bot/modules/federations/handlers/unban.py:150
+#: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/schedules/process_exports.py:145
 #: sophie_bot/modules/federations/schedules/process_imports.py:66
 msgid "Federation"
@@ -1862,10 +1829,10 @@ msgid "🏛 User Banned from Federation"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/ban.py:55
-#: sophie_bot/modules/restrictions/handlers/ban.py:105
-#: sophie_bot/modules/restrictions/handlers/ban.py:210
-#: sophie_bot/modules/restrictions/handlers/silent.py:164
-#: sophie_bot/modules/restrictions/handlers/silent.py:188
+#: sophie_bot/modules/restrictions/handlers/ban.py:25
+#: sophie_bot/modules/restrictions/handlers/ban.py:52
+#: sophie_bot/modules/restrictions/handlers/silent.py:67
+#: sophie_bot/modules/restrictions/handlers/silent.py:95
 msgid "Banned by"
 msgstr ""
 
@@ -1875,7 +1842,7 @@ msgid "Banned in {count} chats"
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/ban.py:59
-#: sophie_bot/modules/federations/handlers/unban.py:153
+#: sophie_bot/modules/federations/handlers/unban.py:150
 msgid "Result"
 msgstr ""
 
@@ -2178,45 +2145,39 @@ msgstr ""
 msgid "Federation deleted"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/demote.py:27
+#: sophie_bot/modules/federations/handlers/demote.py:18
 msgid "Demote a user from federation admin"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/demote.py:56
-msgid "Please specify a user to demote or reply to their message."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/demote.py:64
-#: sophie_bot/modules/federations/handlers/promote.py:64
-#: sophie_bot/modules/warns/handlers/warn.py:95
-msgid "User not found in database."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/demote.py:71
-msgid "Can only demote individual users from admin."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/demote.py:76
+#: sophie_bot/modules/federations/handlers/demote.py:21
 msgid "Only the federation owner can demote users."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/demote.py:82
-msgid "Cannot demote the federation owner."
+#: sophie_bot/modules/federations/handlers/demote.py:23
+msgid "Please specify a user to demote or reply to their message."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/demote.py:92
-#, python-brace-format
-msgid "{user} is not an admin of this federation."
+#: sophie_bot/modules/federations/handlers/demote.py:25
+msgid "Can only demote individual users from admin."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/demote.py:104
+#: sophie_bot/modules/federations/handlers/demote.py:26
 #, python-brace-format
 msgid "{user} has been demoted from admin of federation {fed_name}."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/demote.py:113
+#: sophie_bot/modules/federations/handlers/demote.py:27
 #, python-brace-format
 msgid "👤 {admin} demoted {user} from admin in federation {fed_name}."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/demote.py:36
+msgid "Cannot demote the federation owner."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/demote.py:47
+#, python-brace-format
+msgid "{user} is not an admin of this federation."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:23
@@ -2467,35 +2428,40 @@ msgstr ""
 msgid "Log channel has been removed for federation '{name}'."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/promote.py:27
+#: sophie_bot/modules/federations/handlers/promote.py:18
 msgid "Promote a user to federation admin"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/promote.py:56
-msgid "Please specify a user to promote or reply to their message."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/promote.py:71
-msgid "Can only promote individual users to admin."
-msgstr ""
-
-#: sophie_bot/modules/federations/handlers/promote.py:76
+#: sophie_bot/modules/federations/handlers/promote.py:21
 msgid "Only the federation owner can promote users."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/promote.py:86
-#, python-brace-format
-msgid "{user} is already an admin of this federation."
+#: sophie_bot/modules/federations/handlers/promote.py:23
+msgid "Please specify a user to promote or reply to their message."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/promote.py:98
+#: sophie_bot/modules/federations/handlers/promote.py:25
+msgid "Can only promote individual users to admin."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/promote.py:26
 #, python-brace-format
 msgid "{user} has been promoted to admin of federation {fed_name}."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/promote.py:107
+#: sophie_bot/modules/federations/handlers/promote.py:27
 #, python-brace-format
 msgid "👤 {admin} promoted {user} to admin in federation {fed_name}."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/promote.py:42
+#, python-brace-format
+msgid "{user} is already an admin of this federation."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/promote_demote_base.py:69
+#: sophie_bot/modules/warns/handlers/warn.py:95
+msgid "User not found in database."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/rename.py:22
@@ -2690,21 +2656,21 @@ msgstr ""
 msgid "`/funsub {fed_id}`"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:149
+#: sophie_bot/modules/federations/handlers/unban.py:146
 msgid "🏛 User Unbanned from Federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:152
-#: sophie_bot/modules/restrictions/handlers/unban.py:77
+#: sophie_bot/modules/federations/handlers/unban.py:149
+#: sophie_bot/modules/restrictions/handlers/unban.py:29
 msgid "Unbanned by"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:153
+#: sophie_bot/modules/federations/handlers/unban.py:150
 #, python-brace-format
 msgid "Unbanned in {count} chats"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/unban.py:163
+#: sophie_bot/modules/federations/handlers/unban.py:157
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr ""
@@ -3405,40 +3371,35 @@ msgstr ""
 msgid "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:25
+#: sophie_bot/modules/locks/handlers/lock.py:20
 msgid "Lock a message type in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:43
-#: sophie_bot/modules/locks/handlers/unlock.py:43
+#: sophie_bot/modules/locks/handlers/lock.py:23
+#: sophie_bot/modules/locks/handlers/unlock.py:23
 #, python-brace-format
 msgid "Usage: {cmd}"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:44
+#: sophie_bot/modules/locks/handlers/lock.py:24
 msgid "Use /lockable to see all available lock types."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:57
-#, python-brace-format
-msgid "Unknown lock type: {type}. Use /lockable to see all available types."
-msgstr ""
-
-#: sophie_bot/modules/locks/handlers/lock.py:67
+#: sophie_bot/modules/locks/handlers/lock.py:25
 #, python-brace-format
 msgid "Lock type {type} is already enforced by the Filters module."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:71
+#: sophie_bot/modules/locks/handlers/lock.py:27
 #, python-brace-format
 msgid "Delete it there first with {cmd} before adding it to Locks."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:88
+#: sophie_bot/modules/locks/handlers/lock.py:29
 msgid "Lock added"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/lock.py:92
+#: sophie_bot/modules/locks/handlers/lock.py:30
 #, python-brace-format
 msgid "Lock type {type} is already locked in this chat."
 msgstr ""
@@ -3810,34 +3771,29 @@ msgstr ""
 msgid "Sticker pack {pack} is already locked in this chat."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:25
+#: sophie_bot/modules/locks/handlers/unlock.py:20
 msgid "Unlock a message type in the chat"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:44
+#: sophie_bot/modules/locks/handlers/unlock.py:24
 msgid "Use /locks to see currently locked types."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:54
-#, python-brace-format
-msgid "Unknown lock type: {type}"
-msgstr ""
-
-#: sophie_bot/modules/locks/handlers/unlock.py:62
+#: sophie_bot/modules/locks/handlers/unlock.py:26
 #, python-brace-format
 msgid "Lock type {type} is enforced by the Filters module, not Locks."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:66
+#: sophie_bot/modules/locks/handlers/unlock.py:29
 #, python-brace-format
 msgid "Delete it there with {cmd} if you want to stop enforcing it."
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:83
+#: sophie_bot/modules/locks/handlers/unlock.py:31
 msgid "Lock removed"
 msgstr ""
 
-#: sophie_bot/modules/locks/handlers/unlock.py:87
+#: sophie_bot/modules/locks/handlers/unlock.py:32
 #, python-brace-format
 msgid "Lock type {type} is not locked in this chat."
 msgstr ""
@@ -3899,30 +3855,30 @@ msgid "User unrestricted"
 msgstr ""
 
 #: sophie_bot/modules/logging/events.py:47
-#: sophie_bot/modules/restrictions/handlers/ban.py:127
-#: sophie_bot/modules/restrictions/handlers/silent.py:165
+#: sophie_bot/modules/restrictions/handlers/ban.py:26
+#: sophie_bot/modules/restrictions/handlers/silent.py:68
 msgid "User banned"
 msgstr ""
 
 #: sophie_bot/modules/logging/events.py:48
-#: sophie_bot/modules/restrictions/handlers/unban.py:98
+#: sophie_bot/modules/restrictions/handlers/unban.py:30
 msgid "User unbanned"
 msgstr ""
 
 #: sophie_bot/modules/logging/events.py:49
-#: sophie_bot/modules/restrictions/handlers/kick.py:98
-#: sophie_bot/modules/restrictions/handlers/silent.py:141
+#: sophie_bot/modules/restrictions/handlers/kick.py:31
+#: sophie_bot/modules/restrictions/handlers/silent.py:40
 msgid "User kicked"
 msgstr ""
 
 #: sophie_bot/modules/logging/events.py:50
-#: sophie_bot/modules/restrictions/handlers/mute.py:101
-#: sophie_bot/modules/restrictions/handlers/silent.py:214
+#: sophie_bot/modules/restrictions/handlers/mute.py:26
+#: sophie_bot/modules/restrictions/handlers/silent.py:125
 msgid "User muted"
 msgstr ""
 
 #: sophie_bot/modules/logging/events.py:51
-#: sophie_bot/modules/restrictions/handlers/unmute.py:73
+#: sophie_bot/modules/restrictions/handlers/unmute.py:30
 msgid "User unmuted"
 msgstr ""
 
@@ -4227,9 +4183,8 @@ msgid "#{name} note was not found."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
-#: sophie_bot/modules/restrictions/actions/ban.py:113
+#: sophie_bot/modules/restrictions/actions/base.py:142
 #: sophie_bot/modules/restrictions/actions/kick.py:48
-#: sophie_bot/modules/restrictions/actions/mute.py:113
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:117
 msgid "Filter action"
@@ -4620,11 +4575,11 @@ msgstr ""
 msgid "AI Analysis"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:526
+#: sophie_bot/modules/op/handlers/op_debug.py:581
 msgid "Collect diagnostic context for debugging bot issues."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:592
+#: sophie_bot/modules/op/handlers/op_debug.py:591
 msgid "Collect diagnostic context with AI summarization (requires feature flag)."
 msgstr ""
 
@@ -4897,38 +4852,37 @@ msgstr ""
 msgid "Includes ban, kick, mute, and temporary restrictions."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:53
-msgid "Invalid ban duration, please try again."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/ban.py:62
-msgid "Please write the ban duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for a permanent ban."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/ban.py:70
+#: sophie_bot/modules/restrictions/actions/ban.py:22
 msgid "Ban"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:80
-#, python-brace-format
-msgid "Bans user for {time}"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/ban.py:82
-msgid "Bans user indefinitely"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/ban.py:87
-msgid "Change ban duration"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/ban.py:115
+#: sophie_bot/modules/restrictions/actions/ban.py:30
 #, python-brace-format
 msgid "User {user} was automatically banned based on a filter action"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/ban.py:121
-#: sophie_bot/modules/restrictions/actions/mute.py:121
+#: sophie_bot/modules/restrictions/actions/ban.py:32
+msgid "Change ban duration"
+msgstr ""
+
+#: sophie_bot/modules/restrictions/actions/base.py:99
+#, python-brace-format
+msgid "Restricts user for {time}"
+msgstr ""
+
+#: sophie_bot/modules/restrictions/actions/base.py:102
+msgid "Restricts user indefinitely"
+msgstr ""
+
+#: sophie_bot/modules/restrictions/actions/base.py:111
+msgid "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
+msgstr ""
+
+#: sophie_bot/modules/restrictions/actions/base.py:116
+msgid "Invalid duration, please try again."
+msgstr ""
+
+#: sophie_bot/modules/restrictions/actions/base.py:150
 msgid "For"
 msgstr ""
 
@@ -4945,249 +4899,224 @@ msgstr ""
 msgid "User {user} was automatically kicked based on a filter action"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:53
-msgid "Invalid mute duration, please try again."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/mute.py:62
-msgid "Please write the mute duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for a permanent mute."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/mute.py:70
+#: sophie_bot/modules/restrictions/actions/mute.py:22
 msgid "Mute"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/mute.py:80
-#, python-brace-format
-msgid "Mutes user for {time}"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/mute.py:82
-msgid "Mutes user indefinitely"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/mute.py:87
-msgid "Change mute duration"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/actions/mute.py:115
+#: sophie_bot/modules/restrictions/actions/mute.py:30
 #, python-brace-format
 msgid "User {user} was automatically muted based on a filter action"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:34
+#: sophie_bot/modules/restrictions/actions/mute.py:32
+msgid "Change mute duration"
+msgstr ""
+
+#: sophie_bot/modules/restrictions/handlers/ban.py:17
 msgid "Bans the user from the chat."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:64
-#: sophie_bot/modules/restrictions/handlers/ban.py:167
-#: sophie_bot/modules/restrictions/handlers/silent.py:160
-#: sophie_bot/modules/restrictions/handlers/silent.py:184
+#: sophie_bot/modules/restrictions/handlers/ban.py:19
+#: sophie_bot/modules/restrictions/handlers/ban.py:46
+#: sophie_bot/modules/restrictions/handlers/silent.py:61
+#: sophie_bot/modules/restrictions/handlers/silent.py:89
 msgid "I cannot ban myself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:67
-#: sophie_bot/modules/restrictions/handlers/ban.py:170
-#: sophie_bot/modules/restrictions/handlers/silent.py:161
-#: sophie_bot/modules/restrictions/handlers/silent.py:185
+#: sophie_bot/modules/restrictions/handlers/ban.py:20
+#: sophie_bot/modules/restrictions/handlers/ban.py:47
+#: sophie_bot/modules/restrictions/handlers/silent.py:62
+#: sophie_bot/modules/restrictions/handlers/silent.py:90
 msgid "You cannot ban yourself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:70
-#: sophie_bot/modules/restrictions/handlers/ban.py:173
-#: sophie_bot/modules/restrictions/handlers/silent.py:162
-#: sophie_bot/modules/restrictions/handlers/silent.py:186
+#: sophie_bot/modules/restrictions/handlers/ban.py:21
+#: sophie_bot/modules/restrictions/handlers/ban.py:48
+#: sophie_bot/modules/restrictions/handlers/silent.py:63
+#: sophie_bot/modules/restrictions/handlers/silent.py:91
 msgid "I cannot ban an admin."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:77
-#: sophie_bot/modules/restrictions/handlers/ban.py:182
-#: sophie_bot/modules/restrictions/handlers/silent.py:163
-#: sophie_bot/modules/restrictions/handlers/silent.py:187
+#: sophie_bot/modules/restrictions/handlers/ban.py:23
+#: sophie_bot/modules/restrictions/handlers/ban.py:50
+#: sophie_bot/modules/restrictions/handlers/silent.py:65
+#: sophie_bot/modules/restrictions/handlers/silent.py:93
 msgid "Failed to ban the user. Make sure I have the right permissions."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:108
-#: sophie_bot/modules/restrictions/handlers/ban.py:118
-#: sophie_bot/modules/restrictions/handlers/ban.py:214
-#: sophie_bot/modules/restrictions/handlers/ban.py:224
-#: sophie_bot/modules/restrictions/handlers/unban.py:79
-#: sophie_bot/modules/restrictions/handlers/unban.py:89
+#: sophie_bot/modules/restrictions/handlers/ban.py:44
+msgid "Temporarily bans the user from the chat."
+msgstr ""
+
+#: sophie_bot/modules/restrictions/handlers/ban.py:53
+#: sophie_bot/modules/restrictions/handlers/silent.py:96
+msgid "User temporarily banned"
+msgstr ""
+
+#: sophie_bot/modules/restrictions/handlers/base.py:52
+#, python-brace-format
+msgid "The user is already banned in the current federation: {fed_name} ({fed_id})."
+msgstr ""
+
+#: sophie_bot/modules/restrictions/handlers/base.py:55
+#, python-brace-format
+msgid "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
+msgstr ""
+
+#: sophie_bot/modules/restrictions/handlers/base.py:70
+msgid "Time (e.g., 2h, 7d, 2w)"
+msgstr ""
+
+#: sophie_bot/modules/restrictions/handlers/base.py:151
+#: sophie_bot/modules/restrictions/handlers/base.py:157
 #: sophie_bot/modules/users/handlers/info.py:62
 #: sophie_bot/modules/users/handlers/info.py:67
 #: sophie_bot/modules/users/handlers/info.py:76
 msgid "Notice"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:110
-#: sophie_bot/modules/restrictions/handlers/ban.py:216
-#, python-brace-format
-msgid "The user is already banned in the current federation: {fed_name} ({fed_id})."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/handlers/ban.py:120
-#: sophie_bot/modules/restrictions/handlers/ban.py:226
-#, python-brace-format
-msgid "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/handlers/ban.py:136
-msgid "Temporarily bans the user from the chat."
-msgstr ""
-
-#: sophie_bot/modules/restrictions/handlers/ban.py:153
-#: sophie_bot/modules/restrictions/handlers/mute.py:124
-#: sophie_bot/modules/restrictions/handlers/silent.py:76
-msgid "Time (e.g., 2h, 7d, 2w)"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/handlers/ban.py:233
-#: sophie_bot/modules/restrictions/handlers/silent.py:189
-msgid "User temporarily banned"
-msgstr ""
-
-#: sophie_bot/modules/restrictions/handlers/kick.py:30
+#: sophie_bot/modules/restrictions/handlers/kick.py:22
 msgid "Kicks the user from the chat. The user would be able to join back."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/kick.py:60
-#: sophie_bot/modules/restrictions/handlers/silent.py:136
+#: sophie_bot/modules/restrictions/handlers/kick.py:24
+#: sophie_bot/modules/restrictions/handlers/silent.py:33
 msgid "I cannot kick myself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/kick.py:63
-#: sophie_bot/modules/restrictions/handlers/silent.py:137
+#: sophie_bot/modules/restrictions/handlers/kick.py:25
+#: sophie_bot/modules/restrictions/handlers/silent.py:34
 msgid "You cannot kick yourself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/kick.py:66
-#: sophie_bot/modules/restrictions/handlers/silent.py:138
+#: sophie_bot/modules/restrictions/handlers/kick.py:26
+#: sophie_bot/modules/restrictions/handlers/silent.py:35
 msgid "I cannot kick an admin."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/kick.py:69
-#: sophie_bot/modules/restrictions/handlers/silent.py:139
+#: sophie_bot/modules/restrictions/handlers/kick.py:28
+#: sophie_bot/modules/restrictions/handlers/silent.py:37
 msgid "Failed to kick the user. Make sure I have the right permissions."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/kick.py:96
-#: sophie_bot/modules/restrictions/handlers/silent.py:140
+#: sophie_bot/modules/restrictions/handlers/kick.py:30
+#: sophie_bot/modules/restrictions/handlers/silent.py:39
 msgid "Kicked by"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:32
+#: sophie_bot/modules/restrictions/handlers/mute.py:17
 msgid "Mutes the user in the chat."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:62
-#: sophie_bot/modules/restrictions/handlers/mute.py:138
-#: sophie_bot/modules/restrictions/handlers/silent.py:209
-#: sophie_bot/modules/restrictions/handlers/silent.py:233
+#: sophie_bot/modules/restrictions/handlers/mute.py:19
+#: sophie_bot/modules/restrictions/handlers/mute.py:44
+#: sophie_bot/modules/restrictions/handlers/silent.py:118
+#: sophie_bot/modules/restrictions/handlers/silent.py:146
 msgid "I cannot mute myself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:65
-#: sophie_bot/modules/restrictions/handlers/mute.py:141
-#: sophie_bot/modules/restrictions/handlers/silent.py:210
-#: sophie_bot/modules/restrictions/handlers/silent.py:234
+#: sophie_bot/modules/restrictions/handlers/mute.py:20
+#: sophie_bot/modules/restrictions/handlers/mute.py:45
+#: sophie_bot/modules/restrictions/handlers/silent.py:119
+#: sophie_bot/modules/restrictions/handlers/silent.py:147
 msgid "You cannot mute yourself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:68
-#: sophie_bot/modules/restrictions/handlers/mute.py:144
-#: sophie_bot/modules/restrictions/handlers/silent.py:211
-#: sophie_bot/modules/restrictions/handlers/silent.py:235
+#: sophie_bot/modules/restrictions/handlers/mute.py:21
+#: sophie_bot/modules/restrictions/handlers/mute.py:46
+#: sophie_bot/modules/restrictions/handlers/silent.py:120
+#: sophie_bot/modules/restrictions/handlers/silent.py:148
 msgid "I cannot mute an admin."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:71
-#: sophie_bot/modules/restrictions/handlers/mute.py:149
-#: sophie_bot/modules/restrictions/handlers/silent.py:212
-#: sophie_bot/modules/restrictions/handlers/silent.py:236
+#: sophie_bot/modules/restrictions/handlers/mute.py:23
+#: sophie_bot/modules/restrictions/handlers/mute.py:48
+#: sophie_bot/modules/restrictions/handlers/silent.py:122
+#: sophie_bot/modules/restrictions/handlers/silent.py:150
 msgid "Failed to mute the user. Make sure I have the right permissions."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:99
-#: sophie_bot/modules/restrictions/handlers/mute.py:177
-#: sophie_bot/modules/restrictions/handlers/silent.py:213
-#: sophie_bot/modules/restrictions/handlers/silent.py:237
+#: sophie_bot/modules/restrictions/handlers/mute.py:25
+#: sophie_bot/modules/restrictions/handlers/mute.py:50
+#: sophie_bot/modules/restrictions/handlers/silent.py:124
+#: sophie_bot/modules/restrictions/handlers/silent.py:152
 msgid "Muted by"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:107
+#: sophie_bot/modules/restrictions/handlers/mute.py:42
 msgid "Temporarily mutes the user in the chat."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/mute.py:180
-#: sophie_bot/modules/restrictions/handlers/silent.py:238
+#: sophie_bot/modules/restrictions/handlers/mute.py:51
+#: sophie_bot/modules/restrictions/handlers/silent.py:153
 msgid "User temporarily muted"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:134
+#: sophie_bot/modules/restrictions/handlers/silent.py:31
 msgid "Silently kicks the user from the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:158
+#: sophie_bot/modules/restrictions/handlers/silent.py:59
 msgid "Silently bans the user from the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:182
+#: sophie_bot/modules/restrictions/handlers/silent.py:87
 msgid "Silently temporarily bans the user from the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:207
+#: sophie_bot/modules/restrictions/handlers/silent.py:116
 msgid "Silently mutes the user in the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/silent.py:231
+#: sophie_bot/modules/restrictions/handlers/silent.py:144
 msgid "Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unban.py:27
+#: sophie_bot/modules/restrictions/handlers/unban.py:22
 msgid "Unbans the user from the chat."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unban.py:55
+#: sophie_bot/modules/restrictions/handlers/unban.py:24
 msgid "I cannot unban myself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unban.py:58
+#: sophie_bot/modules/restrictions/handlers/unban.py:25
 msgid "You cannot unban yourself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unban.py:65
+#: sophie_bot/modules/restrictions/handlers/unban.py:27
 msgid "Failed to unban the user. Make sure I have the right permissions."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unban.py:81
+#: sophie_bot/modules/restrictions/handlers/unban.py:36
 #: sophie_bot/modules/users/handlers/info.py:69
 #, python-brace-format
 msgid "The user is banned in the current federation: {fed_name} ({fed_id})."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unban.py:91
+#: sophie_bot/modules/restrictions/handlers/unban.py:39
 #: sophie_bot/modules/users/handlers/info.py:78
 #, python-brace-format
 msgid "The user is banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:26
+#: sophie_bot/modules/restrictions/handlers/unmute.py:22
 msgid "Unmutes the user in the chat."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:54
+#: sophie_bot/modules/restrictions/handlers/unmute.py:24
 msgid "I cannot unmute myself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:57
+#: sophie_bot/modules/restrictions/handlers/unmute.py:25
 msgid "You cannot unmute yourself."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:60
+#: sophie_bot/modules/restrictions/handlers/unmute.py:27
 msgid "Failed to unmute the user. Make sure I have the right permissions."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:72
+#: sophie_bot/modules/restrictions/handlers/unmute.py:29
 msgid "Unmuted by"
 msgstr ""
 

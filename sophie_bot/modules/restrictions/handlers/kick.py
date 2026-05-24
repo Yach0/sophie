@@ -11,6 +11,7 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.restrictions.handlers.base import BaseRestrictionHandler, RestrictionActionFunc
 from sophie_bot.modules.restrictions.utils.restrictions import kick_user
 from sophie_bot.utils import flags
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -20,12 +21,14 @@ async def _kick_action(chat_tid: int, user_tid: int, until_date: timedelta | Non
 
 @flags.help(description=l_("Kicks the user from the chat. The user would be able to join back."))
 class KickUserHandler(BaseRestrictionHandler):
-    bot_action_text: ClassVar[str] = l_("I cannot kick myself.")
-    self_action_text: ClassVar[str] = l_("You cannot kick yourself.")
-    admin_action_text: ClassVar[str] = l_("I cannot kick an admin.")
-    failed_action_text: ClassVar[str] = l_("Failed to kick the user. Make sure I have the right permissions.")
-    actor_label: ClassVar[str] = l_("Kicked by")
-    result_title: ClassVar[str] = l_("User kicked")
+    bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot kick myself.")
+    self_action_text: ClassVar[str | LazyProxy] = l_("You cannot kick yourself.")
+    admin_action_text: ClassVar[str | LazyProxy] = l_("I cannot kick an admin.")
+    failed_action_text: ClassVar[str | LazyProxy] = l_(
+        "Failed to kick the user. Make sure I have the right permissions."
+    )
+    actor_label: ClassVar[str | LazyProxy] = l_("Kicked by")
+    result_title: ClassVar[str | LazyProxy] = l_("User kicked")
     event_type: ClassVar[LogEvent] = LogEvent.USER_KICKED
 
     @staticmethod

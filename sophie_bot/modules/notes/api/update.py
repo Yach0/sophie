@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated
 
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.auth import rest_require_admin
-from sophie_bot.utils.api.dependencies import get_chat_or_404
+from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
 
 from .schemas import NoteResponse, NoteUpdate
 
@@ -20,10 +17,10 @@ router = APIRouter()
 
 @router.patch("/{chat_iid}/{note_id}", response_model=NoteResponse)
 async def update_note(
-    chat: Annotated[ChatModel, Depends(get_chat_or_404)],
+    chat: ChatDep,
     note_id: PydanticObjectId,
     note_data: NoteUpdate,
-    user: Annotated[ChatModel, Depends(rest_require_admin(permission="can_change_info"))],
+    user: ChangeInfoAdminDep,
 ) -> NoteResponse:
     note = await NoteModel.get(note_id)
     if not note or note.chat_tid != chat.tid:

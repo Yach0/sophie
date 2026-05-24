@@ -17,7 +17,7 @@ async def _execute_restriction(
     chat_tid: int,
     user_tid: int,
     action_name: str,
-    coro_factory: Callable[[], Awaitable[None]],
+    coro_factory: Callable[[], Awaitable[bool]],
 ) -> bool:
     try:
         await coro_factory()
