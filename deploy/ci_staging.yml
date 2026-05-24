@@ -4,7 +4,9 @@ variables:
 
 deploy_staging_all:
   stage: deploy
-  needs: ["build_runtime_container"]
+  needs:
+    - job: build_runtime_container
+      optional: true
   image: willhallonline/ansible:2.18.6-alpine-3.18
   before_script:
     - cp $SSHKEY /tmp/sshkey
