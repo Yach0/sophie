@@ -41,7 +41,9 @@ def _search_kagi(query: str, limit: int) -> list[KagiSearchResult]:
     return [_from_search_result(result) for result in response.data.search]
 
 
-async def _kagi_search_tool_call(ctx: RunContext[SophieAIToolContenxt], query: str, limit: int = 5) -> list[KagiSearchResult]:
+async def _kagi_search_tool_call(
+    ctx: RunContext[SophieAIToolContenxt], query: str, limit: int = 5
+) -> list[KagiSearchResult]:
     async with track_ai_tool("kagi_search"):
         _ = ctx
         limited_results = max(1, min(limit, 10))
