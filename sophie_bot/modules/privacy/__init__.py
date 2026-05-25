@@ -7,7 +7,7 @@ from sophie_bot.modules import ModuleManifest, get_module_manifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from .callbacks import PrivacyMenuCallback as PrivacyMenuCallback
+from .callbacks import PrivacyMenuCallback
 from .handlers.export import EXPORTABLE_MODULES, TriggerExport
 from .handlers.privacy import PrivacyMenu
 
