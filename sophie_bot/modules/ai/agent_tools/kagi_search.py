@@ -41,22 +41,17 @@ def _search_kagi(query: str, limit: int) -> list[KagiSearchResult]:
     return [_from_search_result(result) for result in response.data.search]
 
 
-class KagiSearchAgentTool:
-    @staticmethod
-    async def tool_call(ctx: RunContext[SophieAIToolContenxt], query: str, limit: int = 5) -> list[KagiSearchResult]:
-        async with track_ai_tool("kagi_search"):
-            _ = ctx
-            limited_results = max(1, min(limit, 10))
-            return await asyncio.to_thread(_search_kagi, query, limited_results)
-
-    def __new__(cls) -> Tool[SophieAIToolContenxt]:
-        return Tool(
-            cls.tool_call,
-            name="kagi_search",
-            description="Search the web with Kagi and return result titles, URLs, snippets, and publication dates.",
-            takes_ctx=True,
-        )
+async def _kagi_search_tool_call(ctx: RunContext[SophieAIToolContenxt], query: str, limit: int = 5) -> list[KagiSearchResult]:
+    async with track_ai_tool("kagi_search"):
+        _ = ctx
+        limited_results = max(1, min(limit, 10))
+        return await asyncio.to_thread(_search_kagi, query, limited_results)
 
 
 def kagi_search_ai_tool() -> Tool[SophieAIToolContenxt]:
-    return KagiSearchAgentTool()
+    return Tool(
+        _kagi_search_tool_call,
+        name="kagi_search",
+        description="Search the web with Kagi and return result titles, URLs, snippets, and publication dates.",
+        takes_ctx=True,
+    )
