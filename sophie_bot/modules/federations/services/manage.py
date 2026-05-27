@@ -146,7 +146,7 @@ class FederationManageService:
         if isinstance(federation.log_chat, ChatModel):
             log_chat = federation.log_chat
         else:
-            log_chat = await federation.log_chat.fetch()
+            log_chat = await ChatModel.get_by_iid(federation.log_chat.ref.id)
             if not log_chat:
                 return
         try:
