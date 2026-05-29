@@ -166,7 +166,13 @@ class FederationBanHandler(FederationCommandHandler):
                 reason = ai_reason
 
         # Ban user
-        user_iid = self.data["user_db"].iid
+        banner_db = self.data.get("user_db")
+        if not banner_db and self.event.from_user:
+            banner_db = await ChatModel.get_by_tid(self.event.from_user.id)
+        if not banner_db:
+            await self.event.reply(_("Could not identify the command sender."))
+            return
+        user_iid = banner_db.iid
         try:
             ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason, original_message_text)
         except FederationBanValidationError as err:
