@@ -47,9 +47,14 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
 
         # Try to get chat_iid from state, then from callback_data
         chat_iid = data.get("ws_chat_iid")
-        if not chat_iid and hasattr(self, "callback_data") and self.callback_data:
-            if hasattr(self.callback_data, "chat_iid") and self.callback_data.chat_iid:
-                chat_iid = self.callback_data.chat_iid
+        if (
+            not chat_iid
+            and hasattr(self, "callback_data")
+            and self.callback_data
+            and hasattr(self.callback_data, "chat_iid")
+            and self.callback_data.chat_iid
+        ):
+            chat_iid = self.callback_data.chat_iid
 
         if not chat_iid:
             await self.event.answer(_("Captcha expired. Please try again."))
