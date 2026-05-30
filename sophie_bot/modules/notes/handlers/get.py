@@ -63,11 +63,12 @@ class GetNote(SophieMessageHandler):
 
 
 class HashtagGetNote(SophieMessageHandler):
-    hashtag_regex = re.compile(r"#([\w-]+)")
+    hashtag_filter_pattern = r".*#([\w/.+=-]*[\w/+=-]).*"
+    hashtag_regex = re.compile(r"#([\w/.+=-]*[\w/+=-])")
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (F.text.regexp(r".*#([\w-]+).*"),)
+        return (F.text.regexp(HashtagGetNote.hashtag_filter_pattern),)
 
     async def _fine_note(self, note_name: str) -> Optional[NoteModel]:
         chat: ChatConnection = self.data["connection"]
