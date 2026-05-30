@@ -17,6 +17,7 @@ from sophie_bot.modules.welcomesecurity.utils_.captcha_rules import captcha_send
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 
 class CaptchaConfirmHandler(SophieCallbackQueryHandler):
@@ -65,7 +66,9 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
             raise ValueError("No chat found in database")
 
         if "captcha" not in data:
-            raise ValueError("No captcha data found in FSM context")
+            log.warning("Captcha callback with no captcha data in FSM state, likely expired")
+            await self.event.answer(_("Captcha expired. Please try again."))
+            return
 
         captcha = EmojiCaptcha(data=data["captcha"])
 
