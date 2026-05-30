@@ -87,7 +87,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
             if ALL_MODERN_ACTIONS[action.name].is_restrictive:
                 data["restrictive_filter_triggered"] = True
-                mark_restrictive_triggered(message.message_id)
+                mark_restrictive_triggered(message.chat.id, message.message_id)
 
             action_message = await handle_effective_filter_action(message, action, data, filter_item)
             if action_message:

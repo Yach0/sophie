@@ -25,7 +25,7 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
         i18n: I18nNew = data["i18n"]
 
-        if isinstance(event, Message) and is_restrictive_triggered(event.message_id):
+        if isinstance(event, Message) and is_restrictive_triggered(event.chat.id, event.message_id):
             log.debug("AiAutoTranslateMiddleware: skipping restrictive filter-triggered message")
             return None
 
