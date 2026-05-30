@@ -1,9 +1,8 @@
 """Migration: deduplicate_users_in_groups
 
 Description:
-    Removes duplicate `users_in_groups` records and drops the old non-unique
-    `user.$id_1_group.$id_1` and `user.id_1_group.id_1` indexes so Banie can
-    recreate them as unique with explicit names.
+    Removes duplicate `users_in_groups` records and drops old indexes so Banie
+    can create the single unique `$id` index.
 
 Affected Collections:
     - users_in_groups
@@ -49,13 +48,18 @@ class Forward:
     async def deduplicate(self, session) -> None:
         collection = UserInGroupModel.get_pymongo_collection()
 
-        # Drop old non-unique indexes so Banie can recreate them as unique.
-        # The auto-generated names conflict because MongoDB won't alter an
-        # existing index from non-unique to unique — it must be dropped first.
-        for old_index_name in ("user.$id_1_group.$id_1", "user.id_1_group.id_1"):
+        # Drop old indexes so Banie can create the single unique index.
+        # MongoDB won't alter an existing index from non-unique to unique.
+        # The user.id/group.id index is removed entirely — Link fields store
+        # as DBRef ($id), so user.id is always null and the index is useless.
+        for old_index_name in (
+            "user.$id_1_group.$id_1",
+            "user.id_1_group.id_1",
+            "user_group_ref_key",
+        ):
             try:
                 await collection.drop_index(old_index_name)
-                log.info("Dropped old non-unique index", index_name=old_index_name)
+                log.info("Dropped old index", index_name=old_index_name)
             except pymongo.errors.OperationFailure:
                 # Index doesn't exist — nothing to drop.
                 pass
