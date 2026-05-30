@@ -7,5 +7,9 @@ renovate:
   variables:
     RENOVATE_PLATFORM: "gitlab"
     RENOVATE_GITLAB_IGNORE_PR_AUTHOR: "true"
+  before_script:
+    - mkdir -p libs
+    - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
+    - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
   script:
     - renovate SophieBot/sophie
