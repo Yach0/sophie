@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices"
+  ],
+  "postCloneTasks": [
+    {
+      "commands": [
+        "mkdir -p libs",
+        "git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf",
+        "git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass"
+      ],
+      "fileFilters": ["**.*"],
+      "executionMode": "update"
+    }
+  ]
+}
