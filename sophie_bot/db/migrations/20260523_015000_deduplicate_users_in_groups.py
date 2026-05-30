@@ -1,8 +1,8 @@
 """Migration: deduplicate_users_in_groups
 
 Description:
-    Removes duplicate `users_in_groups` records before the `user`/`group`
-    compound index becomes unique.
+    Removes duplicate `users_in_groups` records and drops the old non-unique
+    `user.$id_1_group.$id_1` index so Banie can recreate it as unique.
 
 Affected Collections:
     - users_in_groups
@@ -18,6 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+import pymongo.errors
 from beanie import free_fall_migration
 
 from sophie_bot.db.models.chat import UserInGroupModel
@@ -46,6 +47,17 @@ class Forward:
     @free_fall_migration(document_models=[UserInGroupModel])
     async def deduplicate(self, session) -> None:
         collection = UserInGroupModel.get_pymongo_collection()
+
+        # Drop the old non-unique index so Banie can recreate it as unique.
+        # The auto-generated name conflicts because MongoDB won't alter an
+        # existing index from non-unique to unique — it must be dropped first.
+        try:
+            await collection.drop_index("user.$id_1_group.$id_1")
+            log.info("Dropped old non-unique index user.$id_1_group.$id_1")
+        except pymongo.errors.OperationFailure:
+            # Index doesn't exist — nothing to drop.
+            pass
+
         grouped_documents: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
 
         async for document in collection.find(session=session):
