@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from typing import Optional
 
 from beanie import Document, PydanticObjectId
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
@@ -30,6 +32,13 @@ class WelcomeMute(BaseModel):
 class WelcomeSecurity(BaseModel):
     enabled: bool = False
     expire: Optional[timedelta] = timedelta(hours=48)
+
+    @field_validator("expire", mode="before")
+    @classmethod
+    def _coerce_expire(cls, value: object) -> object:
+        if isinstance(value, int):
+            return timedelta(milliseconds=value)
+        return value
 
 
 class GreetingsModel(Document):
