@@ -141,7 +141,7 @@ class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_D
         doc = Doc(
             Title(_("Filter action")),
             Template(
-                _(self.auto_banned_text),
+                _(str(self.auto_banned_text)),
                 user=UserLink(message.from_user.id, message.from_user.first_name),
             ),
         )
