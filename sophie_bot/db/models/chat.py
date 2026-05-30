@@ -47,14 +47,6 @@ class UserInGroupModel(Document):
                 unique=True,
                 name="user_group_dedup_key",
             ),
-            IndexModel(
-                [
-                    ("user.id", ASCENDING),
-                    ("group.id", ASCENDING),
-                ],
-                unique=True,
-                name="user_group_ref_key",
-            ),
         ]
 
     @staticmethod
