@@ -30,6 +30,8 @@ FeatureType = Literal[
     "ai_notes_related_system_prompt",
     "ai_notes_related_system_prompt_full_content",
     "ai_agent_save_notes",
+    "ai_memories_to_notes",
+    "ai_delete_notes",
     "ai_provider_zai",
     "notes_rag_embeddings",
     "notes_rag_search_command",
@@ -110,6 +112,8 @@ class FeatureStates(TypedDict):
     ai_notes_related_system_prompt: bool
     ai_notes_related_system_prompt_full_content: bool
     ai_agent_save_notes: bool
+    ai_memories_to_notes: bool
+    ai_delete_notes: bool
     ai_provider_zai: bool
     notes_rag_embeddings: bool
     notes_rag_search_command: bool
@@ -189,6 +193,8 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_notes_related_system_prompt",
     "ai_notes_related_system_prompt_full_content",
     "ai_agent_save_notes",
+    "ai_memories_to_notes",
+    "ai_delete_notes",
     "ai_provider_zai",
     "notes_rag_embeddings",
     "notes_rag_search_command",
@@ -276,6 +282,8 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_notes_related_system_prompt": False,
     "ai_notes_related_system_prompt_full_content": False,
     "ai_agent_save_notes": False,
+    "ai_memories_to_notes": False,
+    "ai_delete_notes": False,
     "ai_provider_zai": True,
     "notes_rag_embeddings": False,
     "notes_rag_search_command": False,

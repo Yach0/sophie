@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, cast
 
 from aiogram.enums import ChatType
@@ -21,7 +23,12 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_ai_tool
 from sophie_bot.modules.ai.agent_tools.memory import ForgetMemoryAgentTool, MemoryAgentTool
-from sophie_bot.modules.ai.agent_tools.notes import note_content_ai_tool, notes_list_ai_tool, save_note_ai_tool
+from sophie_bot.modules.ai.agent_tools.notes import (
+    delete_note_ai_tool,
+    note_content_ai_tool,
+    notes_list_ai_tool,
+    save_note_ai_tool,
+)
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header, ai_credit_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
@@ -59,6 +66,7 @@ CHATBOT_TOOLS_TITLES: dict[str, Any] = {
     "get_notes": l_("Scanned notes 🗒"),
     "get_note_content": l_("Read note 🗒"),
     "save_note": l_("Saved note 🗒"),
+    "delete_note": l_("Deleted note 🗑"),
 }
 CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "write_memory": l_("Memory 💾"),
@@ -69,6 +77,7 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "get_notes": l_("Notes 🗒"),
     "get_note_content": l_("Note 🗒"),
     "save_note": l_("Save note 🗒"),
+    "delete_note": l_("Delete note 🗑"),
 }
 
 
@@ -102,19 +111,28 @@ async def _get_search_tool(chat_tid: int) -> Any | None:
 
 
 async def _get_chatbot_tools(chat_tid: int) -> list[Any]:
-    tools = [*CHATBOT_TOOLS]
+    memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=chat_tid)
+    tools = [
+        tool
+        for tool in CHATBOT_TOOLS
+        if not memories_to_notes or tool.name not in {"write_memory", "forget_memory"}
+    ]
     if search_tool := await _get_search_tool(chat_tid):
         tools.append(search_tool)
-    if await is_enabled("ai_agent_save_notes", chat_tid=chat_tid):
+    if memories_to_notes or await is_enabled("ai_agent_save_notes", chat_tid=chat_tid):
         tools.append(save_note_ai_tool())
+    if await is_enabled("ai_delete_notes", chat_tid=chat_tid):
+        tools.append(delete_note_ai_tool())
     return tools
 
 
 async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_text: str | None = None) -> Doc:
-    memory_lines = await AIMemoryModel.get_lines(chat_iid)
+    memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=chat_tid)
     system_prompt = Doc(
         _("You can use the web search tool to search for information. Include information sources as links."),
-        _("You can also save important things to the memory."),
+        _("You can also save important things to chat notes.")
+        if memories_to_notes
+        else _("You can also save important things to the memory."),
         _(
             "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
         ),
@@ -162,7 +180,7 @@ async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_t
                     "Related chat notes. Use get_note_content with the notename when note details may help."
                 )
             system_prompt += Section(VList(*rendered_related_notes), title=section_title)
-    if memory_lines:
+    if not memories_to_notes and (memory_lines := await AIMemoryModel.get_lines(chat_iid)):
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         system_prompt += Section(
             VList(*indexed_memory_lines), title=_("You have the following information in your memory")
