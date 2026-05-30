@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Optional
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -130,7 +132,7 @@ class PromoteUserHandler(SophieMessageHandler):
                     raise
 
         # Reset admin cache
-        await get_admins_rights(connection.tid, force_update=True)
+        await get_admins_rights(connection.tid)
 
         doc = Section(
             KeyValue(_("Chat"), connection.title),
