@@ -45,6 +45,7 @@ class UserInGroupModel(Document):
                     ("group.$id", ASCENDING),
                 ],
                 unique=True,
+                name="user_group_dedup_key",
             ),
             IndexModel(
                 [
@@ -52,6 +53,7 @@ class UserInGroupModel(Document):
                     ("group.id", ASCENDING),
                 ],
                 unique=True,
+                name="user_group_ref_key",
             ),
         ]
 
