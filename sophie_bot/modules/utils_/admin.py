@@ -165,11 +165,8 @@ async def is_chat_creator(chat: Union[int, PydanticObjectId], user: Union[int, P
     return admin.member.status == ChatMemberStatus.CREATOR
 
 
-async def get_admins_rights(chat: Union[int, PydanticObjectId], force_update: bool = False) -> None:
-    """Refresh admin cache for the chat (wrapper for update_chat_admins)."""
-    # This seems to map to logic that updates admins in DB.
-    # Assuming update_chat_admins is the modern equivalent if it exists or we implement logic here.
-    # For now, we can check if update_chat_members handles admins or if there is a specific function.
+async def get_admins_rights(chat: Union[int, PydanticObjectId]) -> None:
+    """Refresh admin cache for the chat."""
     chat_model = await _resolve_model(chat)
     if not chat_model:
         return
