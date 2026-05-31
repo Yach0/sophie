@@ -139,6 +139,10 @@ def _check_forward_user(message: Message) -> bool:
     return not message.forward_from.is_bot
 
 
+def _check_guest_bot(message: Message) -> bool:
+    return bool(getattr(message, "guest_bot_caller_user", None))
+
+
 def _check_url(message: Message) -> bool:
     return _has_entity_type(message, MessageEntityType.URL) or _has_entity_type(message, MessageEntityType.TEXT_LINK)
 
@@ -251,6 +255,10 @@ def _check_edited(message: Message) -> bool:
     return bool(message.edit_date)
 
 
+def _check_outside_reaction(message: Message) -> bool:
+    return False
+
+
 LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.ALL: lambda m: True,
     LockType.ALBUM: lambda m: bool(m.media_group_id),
@@ -279,10 +287,12 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.FORWARD_STORY: _check_forward_story,
     LockType.FORWARD_USER: _check_forward_user,
     LockType.GAME: lambda m: bool(m.game),
+    LockType.GUEST_BOT: _check_guest_bot,
     LockType.GIF: lambda m: bool(m.animation),
     LockType.INLINE: _check_inline,
     LockType.MENTION: _check_mention,
     LockType.INVITE_LINK: _check_invite_link,
+    LockType.OUTSIDE_REACTION: _check_outside_reaction,
     LockType.LOCATION: lambda m: bool(m.location or m.venue),
     LockType.PHONE: lambda m: _has_entity_type(m, MessageEntityType.PHONE_NUMBER),
     LockType.PHOTO: lambda m: bool(m.photo),

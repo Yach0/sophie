@@ -11,6 +11,7 @@ from sophie_bot.modules.locks.handlers.locks_list import LocksListHandler
 from sophie_bot.modules.locks.handlers.locksticker import LockStickerHandler
 from sophie_bot.modules.locks.handlers.unlock import UnlockHandler
 from sophie_bot.modules.locks.middlewares.enforcer import LocksEnforcerMiddleware
+from sophie_bot.modules.locks.middlewares.reaction_enforcer import ReactionLocksEnforcerMiddleware
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -28,6 +29,7 @@ __all__ = (
 
 async def pre_setup() -> None:
     router.message.outer_middleware(LocksEnforcerMiddleware())
+    router.message_reaction.outer_middleware(ReactionLocksEnforcerMiddleware())
 
 
 module_manifest = ModuleManifest(
