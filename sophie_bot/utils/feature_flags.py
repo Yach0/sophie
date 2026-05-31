@@ -24,6 +24,7 @@ FeatureType = Literal[
     "ai_chatbot_admin_status",
     "ai_chatbot_blockquote",
     "ai_chatbot_thinking_message",
+    "ai_chatbot_tool_thinking",
     "ai_chatbot_random_emoji",
     "ai_chatbot_streaming",
     "ai_chatbot_streaming_backoff_seconds",
@@ -88,6 +89,7 @@ class FeatureStates(TypedDict):
     ai_chatbot_admin_status: bool
     ai_chatbot_blockquote: bool
     ai_chatbot_thinking_message: bool
+    ai_chatbot_tool_thinking: bool
     ai_chatbot_random_emoji: bool
     ai_chatbot_streaming: bool
     ai_chatbot_streaming_backoff_seconds: float
@@ -151,6 +153,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_chatbot_admin_status",
     "ai_chatbot_blockquote",
     "ai_chatbot_thinking_message",
+    "ai_chatbot_tool_thinking",
     "ai_chatbot_random_emoji",
     "ai_chatbot_streaming",
     "ai_chatbot_streaming_backoff_seconds",
@@ -222,6 +225,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_chatbot_admin_status": False,
     "ai_chatbot_blockquote": True,
     "ai_chatbot_thinking_message": False,
+    "ai_chatbot_tool_thinking": False,
     "ai_chatbot_random_emoji": False,
     "ai_chatbot_streaming": False,
     "ai_chatbot_streaming_backoff_seconds": 1.5,

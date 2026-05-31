@@ -86,6 +86,7 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
 }
 
 TextStreamCallback = Callable[[str], Awaitable[None]]
+ToolCallCallback = Callable[[str], Awaitable[None]]
 
 _DEFAULT_THINKING_CUSTOM_EMOJI_ID = "5258317508326214175"
 _THINKING_CUSTOM_EMOJI_IDS = (
@@ -100,6 +101,46 @@ _THINKING_CUSTOM_EMOJI_IDS = (
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
 _MAX_STREAM_TEXT_LENGTH = DEFAULT_DRAFT_MAX_TEXT_LENGTH - 128
+_TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
+    "tavily_search": (
+        _("Searching the web..."),
+        _("Looking it up online..."),
+        _("Browsing the internet..."),
+    ),
+    "kagi_search": (
+        _("Searching the web..."),
+        _("Looking it up online..."),
+        _("Browsing the internet..."),
+    ),
+    "write_memory": (
+        _("Updating memory..."),
+        _("Saving to memory..."),
+    ),
+    "forget_memory": (
+        _("Removing from memory..."),
+        _("Forgetting..."),
+    ),
+    "cmds_help": (
+        _("Checking command help..."),
+        _("Looking up commands..."),
+    ),
+    "get_notes": (
+        _("Scanning notes..."),
+        _("Looking through notes..."),
+    ),
+    "get_note_content": (
+        _("Reading note..."),
+        _("Fetching note content..."),
+    ),
+    "save_note": (
+        _("Saving note..."),
+        _("Writing to notes..."),
+    ),
+    "delete_note": (
+        _("Deleting note..."),
+        _("Removing note..."),
+    ),
+}
 
 
 def _thinking_custom_emoji(emoji_id: str | None = None) -> Element:
@@ -148,6 +189,10 @@ class ChatbotMessageStreamer:
     enabled: bool
     throttle_seconds: float
     response_message: Message | None = None
+    tool_thinking_texts: dict[str, tuple[str, ...]] | None = None
+    connection: ChatConnection | None = None
+    model: Model | None = None
+    emoji_id: str | None = None
     last_sent_text: str = ""
     last_sent_at: float = 0.0
 
@@ -183,6 +228,34 @@ class ChatbotMessageStreamer:
 
         self.last_sent_text = draft_text
         self.last_sent_at = monotonic_time
+
+    async def update_thinking_for_tool(self, tool_name: str) -> None:
+        if not self.tool_thinking_texts or not self.connection or not self.model:
+            return
+
+        texts = self.tool_thinking_texts.get(tool_name)
+        if not texts:
+            return
+
+        thinking_text = choice(texts)
+        thinking_element = HList(_thinking_custom_emoji(self.emoji_id), thinking_text, divider=" ")
+        self.header = await _build_chatbot_header(
+            self.connection,
+            self.model,
+            [],
+            additional_header_items=[thinking_element],
+            skip_battery=True,
+        )
+        if self.response_message is None:
+            return
+
+        try:
+            await self.response_message.edit_text(
+                Doc(self.header).to_html(),
+                disable_web_page_preview=True,
+            )
+        except TelegramAPIError:
+            pass
 
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
         if self.response_message is None:
@@ -367,6 +440,7 @@ async def _generate_chatbot_result(
     explicit_debug_mode: bool,
     service_tier: str | None = None,
     on_text_stream: TextStreamCallback | None = None,
+    on_tool_call: ToolCallCallback | None = None,
 ) -> Any:
     allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
     draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
@@ -385,6 +459,7 @@ async def _generate_chatbot_result(
             user_tracking_id=connection.db_model.iid,
             session_id=session_id,
             service_tier=service_tier,
+            on_tool_call=on_tool_call,
         )
 
     return await new_ai_generate(
@@ -458,8 +533,8 @@ async def _build_message_streamer(
         return None
 
     header_items = None
+    emoji_id = None
     if thinking_enabled:
-        emoji_id = None
         if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id):
             emoji_id = choice(_THINKING_CUSTOM_EMOJI_IDS)
         header_items = [_thinking_header_element(emoji_id=emoji_id)]
@@ -478,6 +553,12 @@ async def _build_message_streamer(
         header=header,
         enabled=streaming_enabled,
         throttle_seconds=backoff_seconds,
+        tool_thinking_texts=_TOOL_THINKING_TEXTS
+        if await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
+        else None,
+        connection=connection,
+        model=model,
+        emoji_id=emoji_id,
     )
     if thinking_enabled:
         await streamer.send_thinking_message()
@@ -531,6 +612,11 @@ async def ai_chatbot_reply(
             await _reply_debug_history(message, history)
 
         service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=message.chat.id)
+        on_tool_call = (
+            message_streamer.update_thinking_for_tool
+            if message_streamer and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
+            else None
+        )
         result = await _generate_chatbot_result(
             message,
             connection,
@@ -539,6 +625,7 @@ async def ai_chatbot_reply(
             explicit_debug_mode,
             service_tier,
             on_text_stream=message_streamer.stream if message_streamer and message_streamer.enabled else None,
+            on_tool_call=on_tool_call,
         )
 
         # Track AI usage metrics
