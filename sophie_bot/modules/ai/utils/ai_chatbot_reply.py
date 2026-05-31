@@ -214,7 +214,7 @@ async def _reply_debug_history(message: Message, history: NewAIMessageHistory) -
 async def _resolve_model(connection: ChatConnection, model: Model | None) -> Model:
     if model is not None:
         return model
-    return await get_chat_default_model(connection.db_model.iid)
+    return await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid)
 
 
 async def _generate_chatbot_result(

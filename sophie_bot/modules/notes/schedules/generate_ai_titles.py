@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models import AIEnabledModel, BetaModeModel, ChatModel, NoteModel
@@ -14,7 +16,9 @@ from sophie_bot.utils.logger import log
 
 class GenerateAITitles:
     @staticmethod
-    async def generate_data(note: NoteModel, chat_iid: PydanticObjectId) -> AIUpdateNoteData:
+    async def generate_data(
+        note: NoteModel, chat_iid: PydanticObjectId, chat_tid: int | None = None
+    ) -> AIUpdateNoteData:
         system_prompt = _(
             "You need to update the data of the chat notes. Generate the note data from the provided note text"
         )
@@ -23,7 +27,7 @@ class GenerateAITitles:
         messages.add_custom(note.text or "", name=None)
         messages.add_system(system_prompt)
 
-        model = await get_chat_default_model(chat_iid)
+        model = await get_chat_default_model(chat_iid, chat_tid=chat_tid)
         return await new_ai_generate_schema(messages, AIUpdateNoteData, model, user_tracking_id=chat_iid)
 
     @staticmethod
@@ -50,7 +54,7 @@ class GenerateAITitles:
             if not note.text:
                 log.debug("generate_ai_titles: note has no text, skipping...", note=note)
 
-            generated_data = await self.generate_data(note, chat.iid)
+            generated_data = await self.generate_data(note, chat.iid, chat_tid=chat.tid)
             await self.update_note(note, generated_data)
 
     async def handle(self):

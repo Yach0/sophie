@@ -88,7 +88,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
             return
 
         messages = await NewAIMessageHistory.chatbot(message, additional_system_prompt=filter_data.prompt)
-        provider = await get_chat_default_model(connection.db_model.iid)
+        provider = await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid)
 
         result = await new_ai_generate(messages, provider, user_tracking_id=chat_db.iid)
 
