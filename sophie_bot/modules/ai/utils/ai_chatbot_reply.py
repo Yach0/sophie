@@ -22,7 +22,7 @@ from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section,
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel
+from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.cmds_help import CmdsHelpAgentTool
@@ -268,6 +268,7 @@ async def _get_chatbot_tools(chat_tid: int) -> list[Any]:
 
 async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_text: str | None = None) -> Doc:
     memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=chat_tid)
+    chat_name_enabled = await is_enabled("ai_chatbot_chat_name", chat_tid=chat_tid)
     system_prompt = Doc(
         _("You can use the web search tool to search for information. Include information sources as links."),
         _("You can also save important things to chat notes.")
@@ -278,6 +279,13 @@ async def _build_system_prompt(chat_iid: PydanticObjectId, chat_tid: int, user_t
         ),
         Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
     )
+    if chat_name_enabled:
+        chat_model = await ChatModel.get_by_tid(chat_tid)
+        if chat_model and chat_model.first_name_or_title:
+            system_prompt += Template(
+                _("This conversation is taking place in chat: {chat_name}"),
+                chat_name=chat_model.first_name_or_title,
+            )
     if await is_enabled("ai_system_prompt_summaries", chat_tid=chat_tid):
         summary_lines = await AIChatSummaryModel.get_recent_lines(chat_iid)
         if summary_lines:
