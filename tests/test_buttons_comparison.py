@@ -11,27 +11,20 @@ from sophie_bot.modules.utils_.legacy_buttons import LEGACY_BUTTON_ACTIONS
 TEST_CASES = [
     # URL Button
     "[Google](buttonurl:https://google.com)",
-
     # Sophie URL
     "[Sophie](buttonsophieurl)",
-
     # Rules Button (Start button)
     "[Rules](buttonrules)",
-
     # DelMsg Button (Callback button)
     "[Delete](buttondelmsg)",
-
     # Connect Button (Start button)
     "[Connect](buttonconnect)",
-
     # Welcome Security (Start button)
     "[WS](buttonwelcomesecurity)",
-
     # Note button
     "[Note](buttonnote)",
     "[NoteArg](buttonnote:arg)",
     "[NoteHash](#NoteArg)",  # TODO: Enable when '#' syntax is supported by new parser
-
     # Same row test
     "[Btn1](buttonurl:https://1.com) [Btn2](buttonurl:https://2.com:same)",
 ]
@@ -57,14 +50,16 @@ def setup_mocks(monkeypatch):
     gettext_ctx.set(mock)
 
     # Populate LEGACY_BUTTON_ACTIONS as they would be in the app
-    LEGACY_BUTTON_ACTIONS.update({
-        "rules": "btn_rules",
-        "delmsg": "btn_deletemsg_cb",
-        "welcomesecurity": "btnwelcomesecuritystart",
-        "connect": "btn_connect_start",
-        "note": "btnnotesm",
-        "#": "btnnotesm",
-    })
+    LEGACY_BUTTON_ACTIONS.update(
+        {
+            "rules": "btn_rules",
+            "delmsg": "btn_deletemsg_cb",
+            "welcomesecurity": "btnwelcomesecuritystart",
+            "connect": "btn_connect_start",
+            "note": "btnnotesm",
+            "#": "btnnotesm",
+        }
+    )
 
 
 def compare_markups(markup1: InlineKeyboardMarkup, markup2: InlineKeyboardMarkup):

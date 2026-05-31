@@ -40,8 +40,8 @@ async def test_reverse_arg_text_and_buttons():
 
     assert length == len(text)
     assert isinstance(result, dict)
-    text_res = result['text'].value
-    buttons_res = result['buttons'].value
+    text_res = result["text"].value
+    buttons_res = result["buttons"].value
 
     # ReverseArg strips whitespace between args
     assert text_res == "This is a note."
@@ -62,8 +62,8 @@ async def test_reverse_arg_multiple_buttons():
     assert arg.check(text, entities)
     length, result = await arg.parse(text, 0, entities)
 
-    text_res = result['text'].value
-    buttons_res = result['buttons'].value
+    text_res = result["text"].value
+    buttons_res = result["buttons"].value
     assert text_res == "Text"
     assert len(buttons_res) == 2
     assert buttons_res[0].title == "Btn1"
@@ -97,7 +97,7 @@ async def test_reverse_arg_buttons_with_newlines():
     assert arg.check(text, entities)
     length, result = await arg.parse(text, 0, entities)
 
-    text_res = result['text'].value
+    text_res = result["text"].value
     # TextArg should capture everything before the button
     assert text_res == "Text"
 

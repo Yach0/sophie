@@ -10,7 +10,6 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
@@ -27,7 +26,7 @@ class AcceptTransferHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("accepttransfer",)), FeatureFlagFilter("new_feds_accepttransfer")
+        return (CMDFilter(("accepttransfer",)),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

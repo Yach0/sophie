@@ -7,7 +7,6 @@ from aiogram.types import Message
 from stfu_tg import Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -21,7 +20,7 @@ class SetFederationLogHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fsetlog", "setfedlog")), FeatureFlagFilter("new_feds_setlog")
+        return (CMDFilter(("fsetlog", "setfedlog")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
@@ -97,7 +96,7 @@ class UnsetFederationLogHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("funsetlog", "unsetfedlog")), FeatureFlagFilter("new_feds_unsetlog"))
+        return (CMDFilter(("funsetlog", "unsetfedlog")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

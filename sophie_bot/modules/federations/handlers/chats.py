@@ -11,7 +11,6 @@ from stfu_tg import Code, Doc, KeyValue, Section, Title, VList
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
@@ -27,7 +26,7 @@ class FederationChatsHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fchats",)), FeatureFlagFilter("new_feds_fchats")
+        return (CMDFilter(("fchats",)),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

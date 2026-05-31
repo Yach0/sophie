@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Final
 
 from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.db.models.federations import FederationExportTask
-from sophie_bot.utils.feature_flags import FeatureType, is_enabled
 from sophie_bot.utils.logger import log
-
-# Constants
-CSV_EXPORT_FEATURE_FLAG: Final[FeatureType] = "new_feds_fbanlist"
 
 
 class CleanupOldExports:
@@ -28,9 +23,6 @@ class CleanupOldExports:
 
         deleted_count = 0
         for task in tasks_to_delete:
-            chat = await task.chat.fetch()
-            if not await is_enabled(CSV_EXPORT_FEATURE_FLAG, chat_tid=chat.tid):
-                continue
             if task.completed_at and task.completed_at.replace(tzinfo=timezone.utc) < cutoff_date:
                 await task.delete()
                 deleted_count += 1

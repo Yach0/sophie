@@ -10,7 +10,6 @@ from stfu_tg import Code, Doc, Template, Title
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
 from sophie_bot.utils import flags
@@ -27,7 +26,6 @@ class JoinFederationHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("joinfed", "fjoin")),
-            FeatureFlagFilter("new_feds_joinfed"),
             UserRestricting(user_owner=True),
         )
 

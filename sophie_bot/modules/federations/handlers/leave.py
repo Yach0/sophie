@@ -7,7 +7,6 @@ from stfu_tg import Doc, Italic, Template, Title, UserLink
 
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -23,7 +22,6 @@ class LeaveFederationHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("leavefed", "fleave")),
-            FeatureFlagFilter("new_feds_leavefed"),
             UserRestricting(user_owner=True),
         )
 
