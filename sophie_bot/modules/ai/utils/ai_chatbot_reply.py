@@ -554,7 +554,7 @@ async def _build_message_streamer(
         enabled=streaming_enabled,
         throttle_seconds=backoff_seconds,
         tool_thinking_texts=_TOOL_THINKING_TEXTS
-        if await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
+        if thinking_enabled and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
         else None,
         connection=connection,
         model=model,
