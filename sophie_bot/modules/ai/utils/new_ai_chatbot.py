@@ -1,10 +1,11 @@
 from collections.abc import Awaitable, Callable
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from aiogram.types import Message, ReplyKeyboardMarkup
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior
+from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models import Model
 
 from sophie_bot.metrics import track_ai_request
@@ -14,6 +15,20 @@ from sophie_bot.utils.exception import SophieException
 
 RESPONSE_TYPE = TypeVar("RESPONSE_TYPE", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
+ToolCallCallback = Callable[[str], Awaitable[None]]
+
+
+async def _notify_tool_calls(result_stream: Any, on_tool_call: ToolCallCallback | None) -> None:
+    if on_tool_call is None:
+        return
+
+    seen_tool_names: set[str] = set()
+    for message in result_stream.all_messages():
+        for part in message.parts:
+            if not isinstance(part, ToolCallPart) or part.tool_name in seen_tool_names:
+                continue
+            seen_tool_names.add(part.tool_name)
+            await on_tool_call(part.tool_name)
 
 
 def _inject_request_options(
@@ -69,6 +84,7 @@ async def new_ai_generate_stream(
     user_tracking_id: object | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
+    on_tool_call: ToolCallCallback | None = None,
     **kwargs,
 ) -> AIAgentResult:
     """
@@ -88,6 +104,7 @@ async def new_ai_generate_stream(
                 message_history=history.message_history,
                 **agent_kwargs,
             ) as result_stream:
+                await _notify_tool_calls(result_stream, on_tool_call)
                 accumulated_text = ""
                 async for text_delta in result_stream.stream_text(delta=True, debounce_by=0.2):
                     accumulated_text += text_delta
