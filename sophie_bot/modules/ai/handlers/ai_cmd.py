@@ -21,6 +21,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 )
 @flags.help(description=l_("Ask Sophie a question"))
 @flags.status("typing")
+@flags.ai_chatbot_response()
 @flags.ai_cache(cache_handler_result=True)
 @flags.disableable(name="ai")
 class AiCmd(SophieMessageHandler):

@@ -1,6 +1,11 @@
+import time
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from random import choice
 from typing import Any, cast
 
 from aiogram.enums import ChatType
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from beanie import PydanticObjectId
 from pydantic_ai.common_tools.tavily import tavily_search_tool
@@ -28,7 +33,7 @@ from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
+from sophie_bot.modules.ai.utils.draft_stream import DEFAULT_DRAFT_MAX_TEXT_LENGTH, MessageDraftStreamer
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_stream
 from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
@@ -70,6 +75,134 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
     "get_note_content": l_("Note 🗒"),
     "save_note": l_("Save note 🗒"),
 }
+
+TextStreamCallback = Callable[[str], Awaitable[None]]
+
+_THINKING_CUSTOM_EMOJI_ID = "5258317508326214175"
+_DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
+_MIN_STREAM_BACKOFF_SECONDS = 0.5
+_MAX_STREAM_TEXT_LENGTH = DEFAULT_DRAFT_MAX_TEXT_LENGTH - 128
+
+
+def _thinking_custom_emoji() -> Element:
+    return PreformattedHTML(f'<tg-emoji emoji-id="{_THINKING_CUSTOM_EMOJI_ID}">💭</tg-emoji>')
+
+
+def _random_thinking_text() -> str:
+    return choice(
+        (
+            _("Thinking..."),
+            _("Working on it..."),
+            _("Let me think..."),
+            _("Generating response..."),
+            _("Preparing an answer..."),
+            _("Reading the context..."),
+            _("Checking the details..."),
+            _("Looking into it..."),
+        )
+    )
+
+
+def _thinking_header_element() -> Element:
+    return HList(_thinking_custom_emoji(), _random_thinking_text(), divider=" ")
+
+
+def _coerce_stream_backoff_seconds(value: object) -> float:
+    if isinstance(value, (int, float)):
+        return max(float(value), _MIN_STREAM_BACKOFF_SECONDS)
+
+    try:
+        return max(float(str(value)), _MIN_STREAM_BACKOFF_SECONDS)
+    except ValueError:
+        return _DEFAULT_STREAM_BACKOFF_SECONDS
+
+
+def _truncate_stream_text(output_text: str) -> str:
+    if len(output_text) <= _MAX_STREAM_TEXT_LENGTH:
+        return output_text
+    return f"{output_text[: _MAX_STREAM_TEXT_LENGTH - 3]}..."
+
+
+@dataclass(slots=True)
+class ChatbotMessageStreamer:
+    source_message: Message
+    header: Element
+    enabled: bool
+    throttle_seconds: float
+    response_message: Message | None = None
+    last_sent_text: str = ""
+    last_sent_at: float = 0.0
+
+    async def send_thinking_message(self) -> None:
+        self.response_message = await self.source_message.reply(
+            Doc(self.header).to_html(),
+            disable_web_page_preview=True,
+        )
+
+    async def stream(self, text: str) -> None:
+        if not self.enabled or not text.strip():
+            return
+
+        monotonic_time = time.monotonic()
+        if monotonic_time - self.last_sent_at < self.throttle_seconds:
+            return
+
+        draft_text = _truncate_stream_text(text)
+        if draft_text == self.last_sent_text:
+            return
+
+        doc = await _build_reply_doc(
+            self.header,
+            draft_text,
+            model=None,
+            result=None,
+            explicit_debug_mode=False,
+            chat_tid=self.source_message.chat.id,
+        )
+        if not await self._edit_or_send(doc):
+            self.enabled = False
+            return
+
+        self.last_sent_text = draft_text
+        self.last_sent_at = monotonic_time
+
+    async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
+        if self.response_message is None:
+            return await self.source_message.reply(
+                doc.to_html(),
+                disable_web_page_preview=True,
+                **reply_kwargs,
+            )
+
+        try:
+            edited_message = await self.response_message.edit_text(
+                doc.to_html(),
+                disable_web_page_preview=True,
+                **reply_kwargs,
+            )
+            if isinstance(edited_message, Message):
+                return edited_message
+            return self.response_message
+        except TelegramAPIError:
+            return await self.source_message.reply(
+                doc.to_html(),
+                disable_web_page_preview=True,
+                **reply_kwargs,
+            )
+
+    async def _edit_or_send(self, doc: Doc) -> bool:
+        try:
+            if self.response_message is None:
+                self.response_message = await self.source_message.reply(
+                    doc.to_html(),
+                    disable_web_page_preview=True,
+                )
+                return True
+
+            await self.response_message.edit_text(doc.to_html(), disable_web_page_preview=True)
+            return True
+        except TelegramAPIError:
+            return False
 
 
 def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse], *, short: bool = False) -> list[Element]:
@@ -208,21 +341,22 @@ async def _generate_chatbot_result(
     model: Model,
     explicit_debug_mode: bool,
     service_tier: str | None = None,
-):
-    allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode
+    on_text_stream: TextStreamCallback | None = None,
+) -> Any:
+    allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
     draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
     agent_kwargs = {"deps": SophieAIToolContenxt(connection=connection)}
     session_id = _build_session_id(connection.db_model.iid, message.message_thread_id)
 
     tools = await _get_chatbot_tools(connection.tid)
 
-    if allow_draft_streaming:
+    if on_text_stream is not None or allow_draft_streaming:
         return await new_ai_generate_stream(
             history,
             tools=tools,
             model=model,
             agent_kwargs=agent_kwargs,
-            on_text_stream=draft_streamer.stream,
+            on_text_stream=on_text_stream or draft_streamer.stream,
             user_tracking_id=connection.db_model.iid,
             session_id=session_id,
             service_tier=service_tier,
@@ -240,11 +374,18 @@ async def _generate_chatbot_result(
 
 
 async def _build_chatbot_header(
-    connection: ChatConnection, model: Model, message_history: list[ModelRequest | ModelResponse]
+    connection: ChatConnection,
+    model: Model,
+    message_history: list[ModelRequest | ModelResponse],
+    additional_header_items: list[Element] | None = None,
 ) -> Element:
     short_title_enabled = await is_enabled("ai_chatbot_short_title", chat_tid=connection.tid)
     quota_info = await get_quota_info(connection.db_model.iid)
-    header_items = [*retrieve_tools_titles(message_history, short=short_title_enabled), HList(divider=", ")]
+    header_items = [
+        *(additional_header_items or []),
+        *retrieve_tools_titles(message_history, short=short_title_enabled),
+        HList(divider=", "),
+    ]
     if quota_info:
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
@@ -278,10 +419,40 @@ def _truncate_output(header: Element, output_text: str) -> str:
     return output_text
 
 
+async def _build_message_streamer(
+    message: Message,
+    connection: ChatConnection,
+    model: Model,
+    explicit_debug_mode: bool,
+) -> ChatbotMessageStreamer | None:
+    if explicit_debug_mode or message.chat.type == ChatType.PRIVATE:
+        return None
+
+    thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id)
+    streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id)
+    if not thinking_enabled and not streaming_enabled:
+        return None
+
+    header_items = [_thinking_header_element()] if thinking_enabled else None
+    header = await _build_chatbot_header(connection, model, [], additional_header_items=header_items)
+    backoff_seconds = _coerce_stream_backoff_seconds(
+        await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id)
+    )
+    streamer = ChatbotMessageStreamer(
+        source_message=message,
+        header=header,
+        enabled=streaming_enabled,
+        throttle_seconds=backoff_seconds,
+    )
+    if thinking_enabled:
+        await streamer.send_thinking_message()
+    return streamer
+
+
 async def _build_reply_doc(
     header: Element,
     output_text: str,
-    model: Model,
+    model: Model | None,
     result: Any,
     explicit_debug_mode: bool,
     chat_tid: int | None,
@@ -291,7 +462,7 @@ async def _build_reply_doc(
         reply_body = BlockQuote(reply_body)
 
     doc = Doc(header, reply_body)
-    if explicit_debug_mode:
+    if explicit_debug_mode and model is not None:
         doc += " "
         doc += _build_debug_doc(model, result)
     return doc
@@ -303,8 +474,8 @@ async def ai_chatbot_reply(
     user_text: str | None = None,
     debug_mode: bool = False,
     model: Model | None = None,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     """
     Sends a reply from AI based on user input and message history.
     """
@@ -317,14 +488,23 @@ async def ai_chatbot_reply(
 
     # Track active AI conversation
     async with track_ai_conversation():
-        history = await _prepare_history(message, connection.db_model.iid, user_text)
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
+        model = await _resolve_model(connection, model)
+        message_streamer = await _build_message_streamer(message, connection, model, explicit_debug_mode)
+        history = await _prepare_history(message, connection.db_model.iid, user_text)
         if explicit_debug_mode:
             await _reply_debug_history(message, history)
 
-        model = await _resolve_model(connection, model)
         service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=message.chat.id)
-        result = await _generate_chatbot_result(message, connection, history, model, explicit_debug_mode, service_tier)
+        result = await _generate_chatbot_result(
+            message,
+            connection,
+            history,
+            model,
+            explicit_debug_mode,
+            service_tier,
+            on_text_stream=message_streamer.stream if message_streamer and message_streamer.enabled else None,
+        )
 
         # Track AI usage metrics
         if result.usage:
@@ -341,4 +521,6 @@ async def ai_chatbot_reply(
             explicit_debug_mode,
             chat_tid=message.chat.id,
         )
+        if message_streamer:
+            return await message_streamer.send_final(doc, **kwargs)
         return await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)

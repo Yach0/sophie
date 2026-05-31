@@ -21,6 +21,9 @@ FeatureType = Literal[
     "ai_chatbot",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
+    "ai_chatbot_thinking_message",
+    "ai_chatbot_streaming",
+    "ai_chatbot_streaming_backoff_seconds",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -101,6 +104,9 @@ class FeatureStates(TypedDict):
     ai_chatbot: bool
     ai_chatbot_short_title: bool
     ai_chatbot_blockquote: bool
+    ai_chatbot_thinking_message: bool
+    ai_chatbot_streaming: bool
+    ai_chatbot_streaming_backoff_seconds: float
     ai_translations: bool
     ai_moderation: bool
     ai_moderation_reasons: bool
@@ -180,6 +186,9 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_chatbot",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
+    "ai_chatbot_thinking_message",
+    "ai_chatbot_streaming",
+    "ai_chatbot_streaming_backoff_seconds",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -267,6 +276,9 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_chatbot": True,
     "ai_chatbot_short_title": False,
     "ai_chatbot_blockquote": True,
+    "ai_chatbot_thinking_message": False,
+    "ai_chatbot_streaming": False,
+    "ai_chatbot_streaming_backoff_seconds": 1.5,
     "ai_translations": True,
     "ai_moderation": True,
     "ai_moderation_reasons": True,
