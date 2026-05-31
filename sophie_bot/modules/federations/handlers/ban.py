@@ -6,7 +6,8 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg, TextArg
-from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
+from stfu_tg import Code, Doc, KeyValue, Section, Template, Title, UserLink
+from stfu_tg.formatting import Spoiler
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
@@ -96,7 +97,10 @@ def _build_ban_log_doc(
     if reason:
         log_doc += KeyValue(_("Reason"), reason)
     if original_message_text:
-        log_doc += KeyValue(_("Original message"), original_message_text)
+        log_doc += Section(
+            Spoiler(original_message_text),
+            title=_("Original message"),
+        )
     return log_doc
 
 

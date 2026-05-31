@@ -150,7 +150,7 @@ class FederationManageService:
             if not log_chat:
                 return
         try:
-            await bot.send_message(log_chat.tid, text)
+            await bot.send_message(log_chat.tid, text, disable_web_page_preview=True)
         except (TelegramBadRequest, TelegramForbiddenError):
             pass
 
