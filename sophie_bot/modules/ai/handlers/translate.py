@@ -172,7 +172,7 @@ class AiTranslate(SophieMessageHandler):
 
         log.debug("AiTranslate", ai_context=ai_context.history_debug())
 
-        model = await get_chat_translations_model(self.connection.db_model.iid)
+        model = await get_chat_translations_model(self.connection.db_model.iid, chat_tid=self.connection.db_model.tid)
 
         try:
             service_tier = await get_service_tier("ai_translations_service_tier", chat_tid=self.event.chat.id)

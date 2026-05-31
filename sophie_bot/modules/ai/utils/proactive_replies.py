@@ -487,7 +487,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         title=chat.first_name_or_title,
         db_model=chat,
     )
-    model = await get_chat_default_model(chat.iid)
+    model = await get_chat_default_model(chat.iid, chat_tid=chat_tid)
     service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=chat_tid)
     _log_proactive_info(
         "Proactive AI answer generation started",

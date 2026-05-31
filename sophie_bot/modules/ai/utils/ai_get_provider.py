@@ -13,7 +13,14 @@ from sophie_bot.utils.feature_flags import _DEFAULT_STATES, get_value
 from sophie_bot.utils.logger import log
 
 
-async def get_chat_default_model(chat_id: PydanticObjectId) -> Model:
+async def get_chat_default_model(chat_id: PydanticObjectId, chat_tid: int | None = None) -> Model:
+    feature_model_name = str(await get_value("ai_chatbot_model", chat_tid=chat_tid))
+    if feature_model_name:
+        if feature_model_name in AI_MODELS:
+            log.debug(f"Chatbot model override for chat {chat_id}: {feature_model_name}")
+            return AI_MODELS[feature_model_name]
+        log.warning(f"Invalid ai_chatbot_model override: {feature_model_name!r}, falling back to default")
+
     provider_name = await AIProviderModel.get_provider_name(chat_id)
     provider_key = provider_name or AIProviders.auto.name
     default_model_name = get_default_model_name(provider_key)
@@ -23,12 +30,19 @@ async def get_chat_default_model(chat_id: PydanticObjectId) -> Model:
     return AI_MODELS[default_model_name]
 
 
-async def get_chat_translations_model(chat_id: PydanticObjectId) -> Model:
+async def get_chat_translations_model(chat_id: PydanticObjectId, chat_tid: int | None = None) -> Model:
+    feature_model_name = str(await get_value("ai_translation_model", chat_tid=chat_tid))
+    if feature_model_name:
+        if feature_model_name in AI_MODELS:
+            log.debug(f"Translation model override for chat {chat_id}: {feature_model_name}")
+            return AI_MODELS[feature_model_name]
+        log.warning(f"Invalid ai_translation_model override: {feature_model_name!r}, falling back to default")
+
     provider_name = await AIProviderModel.get_provider_name(chat_id)
     provider_key = provider_name or AIProviders.auto.name
     default_model_name = get_default_model_name(provider_key, translation=True)
 
-    log.debug(f"Default model for chat {chat_id}: {default_model_name}", provider_name=provider_name)
+    log.debug(f"Default translation model for chat {chat_id}: {default_model_name}", provider_name=provider_name)
 
     return AI_MODELS[default_model_name]
 

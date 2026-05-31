@@ -203,7 +203,7 @@ class AIFilterAddHandler(SophieMessageHandler):
         history.add_system(_build_system_prompt(base_prompt))
         history.prompt = [prompt]
 
-        model = await get_chat_default_model(self.connection.db_model.iid)
+        model = await get_chat_default_model(self.connection.db_model.iid, chat_tid=self.connection.db_model.tid)
 
         try:
             result = await new_ai_generate_schema_with_result(
