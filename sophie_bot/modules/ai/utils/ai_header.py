@@ -39,7 +39,7 @@ def _battery_custom_emoji(percentage: int) -> Element:
 def ai_short_title_header(model: Model, *additional_elements: Element) -> Element:
     return HList(
         Title(Template(_("{ai_emoji} AI"), ai_emoji=AI_EMOJI), bold=False),
-        Title(_get_short_model_text(model), bold=False),
+        _get_short_model_text(model),
         *additional_elements,
         divider=" | ",
     )
@@ -57,7 +57,7 @@ async def ai_chatbot_header(chat_tid: int, model: Model, *additional_elements: E
 
 def ai_credit_header(percentage: int, *, short: bool = False) -> Element:
     if short:
-        return HList(_battery_custom_emoji(percentage), Title(str(percentage), bold=False), "%", divider=" ")
+        return HList(_battery_custom_emoji(percentage), str(percentage) + "%", divider=" ")
     return Title(
         _("{credit_emoji} Quota {percentage}%").format(credit_emoji=AI_CREDIT_EMOJI, percentage=percentage), bold=False
     )
