@@ -22,12 +22,8 @@ async def _notify_tool_calls(result_stream: Any, on_tool_call: ToolCallCallback 
     if on_tool_call is None:
         return
 
-    seen_tool_names: set[str] = set()
-    for message in result_stream.all_messages():
-        for part in message.parts:
-            if not isinstance(part, ToolCallPart) or part.tool_name in seen_tool_names:
-                continue
-            seen_tool_names.add(part.tool_name)
+    for part in result_stream.response.parts:
+        if isinstance(part, ToolCallPart):
             await on_tool_call(part.tool_name)
 
 
