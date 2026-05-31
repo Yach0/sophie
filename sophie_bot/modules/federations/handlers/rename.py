@@ -11,7 +11,6 @@ from sophie_bot.constants import MAX_FEDERATION_NAME_LENGTH
 from sophie_bot.db.models import Federation
 from sophie_bot.db.models.federations import Federation as FederationModel
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils import flags
@@ -25,7 +24,7 @@ class FederationRenameHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("frename",)), FeatureFlagFilter("new_feds_frename")
+        return (CMDFilter(("frename",)),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

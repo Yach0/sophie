@@ -12,7 +12,6 @@ from stfu_tg import Code, Doc, Template, Title
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
@@ -31,10 +30,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (
-            CMDFilter(("transferfed", "ftransfer")),
-            FeatureFlagFilter("new_feds_transferfed"),
-        )
+        return (CMDFilter(("transferfed", "ftransfer")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

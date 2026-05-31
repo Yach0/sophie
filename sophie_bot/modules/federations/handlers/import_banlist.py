@@ -10,7 +10,6 @@ from sophie_bot.db.models import Federation
 from sophie_bot.db.models.federations import FederationImportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils import flags
@@ -24,7 +23,7 @@ class FederationImportHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("importfbans", "fimport")), FeatureFlagFilter("new_feds_import")
+        return (CMDFilter(("importfbans", "fimport")),)
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         """Import federation ban list from CSV file."""

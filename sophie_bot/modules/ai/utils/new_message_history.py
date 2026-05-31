@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import datetime
 from asyncio import gather
-from typing import BinaryIO, Optional
+from typing import BinaryIO, Optional, cast
 
-from aiogram.types import Message
+from aiogram.enums import ChatMemberStatus
+from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message
 from attr import dataclass
 from mistralai.client.models.assistantmessage import AssistantMessage
 from mistralai.client.models.systemmessage import SystemMessage
@@ -23,6 +26,8 @@ from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.chat import ChatType
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -32,7 +37,7 @@ from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import get_value
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -50,7 +55,7 @@ class ToCache:
 class AIUserMessageFormatter:
     @staticmethod
     def sanitize_name(name: str) -> str:
-        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
+        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-()[] ")
         return "".join(char for char in name if char in allowed_chars) or "Unknown"
 
     @classmethod
@@ -59,13 +64,45 @@ class AIUserMessageFormatter:
         text: str,
         name: str,
         reply_to_user: Optional[str] = None,
-    ):
+    ) -> str:
         name = cls.sanitize_name(name)
         if reply_to_user:
             reply_to_user = cls.sanitize_name(reply_to_user)
             text = f"From {name}, as reply to {reply_to_user}: {text}"
 
         return f"{name}: {text}"
+
+
+async def _admin_context_name(chat_tid: int, user_tid: int, name: str, is_group: bool) -> str:
+    if not is_group or not await is_enabled("ai_chatbot_admin_status", chat_tid=chat_tid):
+        return name
+
+    chat_model = await ChatModel.get_by_tid(chat_tid)
+    user_model = await ChatModel.get_by_tid(user_tid)
+    if not chat_model or not user_model:
+        return name
+    if chat_model.type not in {ChatType.group, ChatType.supergroup}:
+        return name
+
+    admin = await ChatAdminModel.find_one(
+        ChatAdminModel.chat.id == chat_model.iid,
+        ChatAdminModel.user.id == user_model.iid,
+    )
+    if not admin:
+        return name
+
+    if admin.member.status == ChatMemberStatus.CREATOR:
+        role = "Owner"
+    elif admin.member.status == ChatMemberStatus.ADMINISTRATOR:
+        role = "Admin"
+    else:
+        return name
+
+    admin_member = cast(ChatMemberAdministrator | ChatMemberOwner, admin.member)
+    custom_title = admin_member.custom_title
+    if custom_title:
+        return f"{name} [{role} - {custom_title}]"
+    return f"{name} [{role}]"
 
 
 def _extract_message_content(
@@ -198,7 +235,7 @@ class NewAIMessageHistory:
         self.message_history.append(ModelRequest(parts=[SystemPromptPart(content=system_message + additional)]))
 
     @staticmethod
-    async def _cache_transform_msg(msg: MessageType) -> ModelResponse | ModelRequest:
+    async def _cache_transform_msg(chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
         """Transforms a message from the cache to a message that can be sent to the AI."""
         user = await ChatModel.get_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
@@ -207,12 +244,17 @@ class NewAIMessageHistory:
             text = cut_titlebar(msg.text) if is_ai_message(msg.text) else msg.text
             return ModelResponse(parts=[TextPart(content=text)])
 
-        return ModelRequest(parts=[UserPromptPart(content=AIUserMessageFormatter.user_message(msg.text, first_name))])
+        from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
+        return ModelRequest(
+            parts=[UserPromptPart(content=AIUserMessageFormatter.user_message(msg.text, from_user_name))]
+        )
 
-    async def add_from_cache(self, chat_id: int, limit: int | None = None):
+    async def add_from_cache(self, chat_id: int, limit: int | None = None) -> None:
         """Adds messages from the cache to the message history."""
         self.message_history.extend(
-            await gather(*[self._cache_transform_msg(msg) for msg in await get_cached_messages(chat_id, limit=limit)])
+            await gather(
+                *[self._cache_transform_msg(chat_id, msg) for msg in await get_cached_messages(chat_id, limit=limit)]
+            )
         )
 
     async def add_from_message(
@@ -222,7 +264,7 @@ class NewAIMessageHistory:
         normalize_texts: bool = False,
         allow_reply_messages: bool = True,
         disable_name: bool = False,
-    ):
+    ) -> None:
         """Adds a user message to the context, returns a list of additional messages to cache for future use."""
 
         # Handle replied message first
@@ -239,17 +281,21 @@ class NewAIMessageHistory:
         message_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
 
         prompt: list[UserContent] = self.prompt or []
+        from_user_name = await _admin_context_name(
+            message.chat.id,
+            message.from_user.id,
+            message.from_user.full_name,
+            message.chat.type in {"group", "supergroup"},
+        )
         prompt.extend(
-            await _build_message_parts(
-                message, message_text, message.from_user.full_name, replied_user_name, disable_name
-            )
+            await _build_message_parts(message, message_text, from_user_name, replied_user_name, disable_name)
         )
 
         self.prompt = prompt
 
     async def initialize_chat_history(
         self, chat_id: int, additional_system_prompt: str = "", cache_limit: int | None = None
-    ):
+    ) -> NewAIMessageHistory:
         # Add system message
         await self.add_chatbot_system_msg(additional=additional_system_prompt, chat_tid=chat_id)
 

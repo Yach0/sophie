@@ -10,7 +10,6 @@ from stfu_tg import Code, Doc, KeyValue, Section, Template, Title, VList
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.services import (
     FederationBanService,
@@ -30,7 +29,7 @@ class FederationInfoHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fedinfo", "finfo")), FeatureFlagFilter("new_feds_finfo")
+        return (CMDFilter(("fedinfo", "finfo")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

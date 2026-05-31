@@ -12,6 +12,8 @@ from sophie_bot.services.redis import aredis
 FeatureType = Literal[
     "ai_summary_model",
     "ai_filter_handler_model",
+    "ai_chatbot_model",
+    "ai_translation_model",
     "ai_search_provider",
     "ai_chatbot_system_prompt",
     "ai_translate_system_prompt",
@@ -19,6 +21,7 @@ FeatureType = Literal[
     "ai_moderation_reason_prompt",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
+    "ai_chatbot_admin_status",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
     "ai_chatbot_thinking_message",
@@ -33,7 +36,8 @@ FeatureType = Literal[
     "ai_notes_related_system_prompt",
     "ai_notes_related_system_prompt_full_content",
     "ai_agent_save_notes",
-    "ai_provider_zai",
+    "ai_memories_to_notes",
+    "ai_delete_notes",
     "notes_rag_embeddings",
     "notes_rag_search_command",
     "notes_rag_list_search",
@@ -51,30 +55,7 @@ FeatureType = Literal[
     "antiflood_rest_api",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
-    "new_feds_newfed",
-    "new_feds_joinfed",
-    "new_feds_leavefed",
-    "new_feds_finfo",
-    "new_feds_fban",
-    "new_feds_funban",
-    "new_feds_fbanlist",
-    "new_feds_fcheck",
-    "new_feds_transferfed",
-    "new_feds_accepttransfer",
-    "new_feds_setlog",
-    "new_feds_unsetlog",
-    "new_feds_fsub",
-    "new_feds_funsub",
-    "new_feds_import",
-    "new_feds_frename",
-    "new_feds_fdelete",
-    "new_feds_fchats",
-    "new_feds_fpromote",
-    "new_feds_fdemote",
-    "new_feds_fadmins",
     "feds_rest_api",
-    "new_feds_fban_lazy",
-    "new_feds",
     "op_debug_ai_summarization",
     "ai_chatbot_service_tier",
     "ai_translations_service_tier",
@@ -95,6 +76,8 @@ FeatureType = Literal[
 class FeatureStates(TypedDict):
     ai_summary_model: str
     ai_filter_handler_model: str
+    ai_chatbot_model: str
+    ai_translation_model: str
     ai_search_provider: str
     ai_chatbot_system_prompt: str
     ai_translate_system_prompt: str
@@ -102,6 +85,7 @@ class FeatureStates(TypedDict):
     ai_moderation_reason_prompt: str
     ai_filter_suggestions_prompt: str
     ai_chatbot: bool
+    ai_chatbot_admin_status: bool
     ai_chatbot_short_title: bool
     ai_chatbot_blockquote: bool
     ai_chatbot_thinking_message: bool
@@ -116,7 +100,8 @@ class FeatureStates(TypedDict):
     ai_notes_related_system_prompt: bool
     ai_notes_related_system_prompt_full_content: bool
     ai_agent_save_notes: bool
-    ai_provider_zai: bool
+    ai_memories_to_notes: bool
+    ai_delete_notes: bool
     notes_rag_embeddings: bool
     notes_rag_search_command: bool
     notes_rag_list_search: bool
@@ -134,30 +119,7 @@ class FeatureStates(TypedDict):
     antiflood_rest_api: bool
     welcomecaptcha: bool
     welcomecaptcha_autokick: bool
-    new_feds_newfed: bool
-    new_feds_joinfed: bool
-    new_feds_leavefed: bool
-    new_feds_finfo: bool
-    new_feds_fban: bool
-    new_feds_funban: bool
-    new_feds_fbanlist: bool
-    new_feds_fcheck: bool
-    new_feds_transferfed: bool
-    new_feds_accepttransfer: bool
-    new_feds_setlog: bool
-    new_feds_unsetlog: bool
-    new_feds_fsub: bool
-    new_feds_funsub: bool
-    new_feds_import: bool
-    new_feds_frename: bool
-    new_feds_fdelete: bool
-    new_feds_fchats: bool
-    new_feds_fpromote: bool
-    new_feds_fdemote: bool
-    new_feds_fadmins: bool
     feds_rest_api: bool
-    new_feds_fban_lazy: bool
-    new_feds: bool
     op_debug_ai_summarization: bool
     ai_chatbot_service_tier: str
     ai_translations_service_tier: str
@@ -177,6 +139,8 @@ class FeatureStates(TypedDict):
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_summary_model",
     "ai_filter_handler_model",
+    "ai_chatbot_model",
+    "ai_translation_model",
     "ai_search_provider",
     "ai_chatbot_system_prompt",
     "ai_translate_system_prompt",
@@ -184,6 +148,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_moderation_reason_prompt",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
+    "ai_chatbot_admin_status",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
     "ai_chatbot_thinking_message",
@@ -198,7 +163,8 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_notes_related_system_prompt",
     "ai_notes_related_system_prompt_full_content",
     "ai_agent_save_notes",
-    "ai_provider_zai",
+    "ai_memories_to_notes",
+    "ai_delete_notes",
     "notes_rag_embeddings",
     "notes_rag_search_command",
     "notes_rag_list_search",
@@ -216,30 +182,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "antiflood_rest_api",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
-    "new_feds_newfed",
-    "new_feds_joinfed",
-    "new_feds_leavefed",
-    "new_feds_finfo",
-    "new_feds_fban",
-    "new_feds_funban",
-    "new_feds_fbanlist",
-    "new_feds_fcheck",
-    "new_feds_transferfed",
-    "new_feds_accepttransfer",
-    "new_feds_setlog",
-    "new_feds_unsetlog",
-    "new_feds_fsub",
-    "new_feds_funsub",
-    "new_feds_import",
-    "new_feds_frename",
-    "new_feds_fdelete",
-    "new_feds_fchats",
-    "new_feds_fpromote",
-    "new_feds_fdemote",
-    "new_feds_fadmins",
     "feds_rest_api",
-    "new_feds_fban_lazy",
-    "new_feds",
     "op_debug_ai_summarization",
     "ai_chatbot_service_tier",
     "ai_translations_service_tier",
@@ -267,6 +210,8 @@ FeatureValue = bool | str | int | float
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_summary_model": "openai/gpt-5.5",
     "ai_filter_handler_model": "openai/gpt-5-nano",
+    "ai_chatbot_model": "",
+    "ai_translation_model": "",
     "ai_search_provider": "kagi",
     "ai_chatbot_system_prompt": "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nFocus primarily on answering the LATEST user message.\nPrefer to search information in the internet",
     "ai_translate_system_prompt": "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences).",
@@ -274,6 +219,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_moderation_reason_prompt": "Generate a brief, professional moderation reason for restricting a user based on their message.",
     "ai_filter_suggestions_prompt": "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data.",
     "ai_chatbot": True,
+    "ai_chatbot_admin_status": False,
     "ai_chatbot_short_title": False,
     "ai_chatbot_blockquote": True,
     "ai_chatbot_thinking_message": False,
@@ -288,7 +234,8 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_notes_related_system_prompt": False,
     "ai_notes_related_system_prompt_full_content": False,
     "ai_agent_save_notes": False,
-    "ai_provider_zai": True,
+    "ai_memories_to_notes": False,
+    "ai_delete_notes": False,
     "notes_rag_embeddings": False,
     "notes_rag_search_command": False,
     "notes_rag_list_search": False,
@@ -306,30 +253,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "antiflood_rest_api": True,
     "welcomecaptcha": True,
     "welcomecaptcha_autokick": True,
-    "new_feds_newfed": True,
-    "new_feds_joinfed": True,
-    "new_feds_leavefed": True,
-    "new_feds_finfo": True,
-    "new_feds_fban": True,
-    "new_feds_funban": True,
-    "new_feds_fbanlist": True,
-    "new_feds_fcheck": True,
-    "new_feds_transferfed": True,
-    "new_feds_accepttransfer": True,
-    "new_feds_setlog": True,
-    "new_feds_unsetlog": True,
-    "new_feds_fsub": True,
-    "new_feds_funsub": True,
-    "new_feds_import": True,
-    "new_feds_frename": True,
-    "new_feds_fdelete": True,
-    "new_feds_fchats": True,
-    "new_feds_fpromote": True,
-    "new_feds_fdemote": True,
-    "new_feds_fadmins": True,
     "feds_rest_api": False,
-    "new_feds_fban_lazy": True,
-    "new_feds": True,
     "op_debug_ai_summarization": False,
     "ai_chatbot_service_tier": "none",
     "ai_translations_service_tier": "none",

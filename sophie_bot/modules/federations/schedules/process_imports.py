@@ -16,12 +16,10 @@ from sophie_bot.db.models.federations import Federation, FederationBan, Federati
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
 from sophie_bot.services.bot import bot
-from sophie_bot.utils.feature_flags import FeatureType, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 # Constants
-CSV_IMPORT_FEATURE_FLAG: Final[FeatureType] = "new_feds_import"
 MAX_REASON_LENGTH: Final[int] = 500
 REQUIRED_CSV_HEADERS: Final[set[str]] = {"user_id", "reason", "by", "time"}
 BATCH_SIZE: Final[int] = 100
@@ -188,10 +186,6 @@ class ProcessFederationImports:
 
     async def _process_task(self, task: FederationImportTask) -> None:
         """Process a single import task."""
-        chat = await task.chat.fetch()
-        if not await is_enabled(CSV_IMPORT_FEATURE_FLAG, chat_tid=chat.tid):
-            return
-
         await self._update_task_status(task, TaskStatus.PROCESSING)
 
         try:

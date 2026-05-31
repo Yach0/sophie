@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -8,6 +10,7 @@ from sophie_bot.metrics import track_ai_tool
 from sophie_bot.modules.ai.agent_tools._utils.get_chat_notes import AIChatGetNoteFunc, AIChatNote, AIChatNotesFunc
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
+from sophie_bot.utils.i18n import gettext as _
 
 
 class NotesListAgentTool:
@@ -76,6 +79,33 @@ class SaveNoteAgentTool:
         )
 
 
+class DeleteNoteAgentTool:
+    @staticmethod
+    async def tool_call(ctx: RunContext[SophieAIToolContenxt], notename: str) -> str:
+        """Delete a chat note by notename."""
+        async with track_ai_tool("delete_note"):
+            normalized_notename = notename.strip().lower().removeprefix("#")
+            if not normalized_notename:
+                raise ValueError("notename must not be empty")
+
+            note = await NoteModel.get_by_notenames(ctx.deps.connection.db_model.iid, (normalized_notename,))
+            if note is None:
+                return _("Note was not found.")
+
+            await note.delete()
+            return _("Note was successfully deleted.")
+
+    def __new__(cls) -> Any:
+        return Tool(
+            cls.tool_call,
+            name="delete_note",
+            description=(
+                "Delete a chat note by notename. Use only when the user explicitly asks Sophie to delete a note."
+            ),
+            takes_ctx=True,
+        )
+
+
 def notes_list_ai_tool() -> Any:
     return NotesListAgentTool()
 
@@ -86,3 +116,7 @@ def note_content_ai_tool() -> Any:
 
 def save_note_ai_tool() -> Any:
     return SaveNoteAgentTool()
+
+
+def delete_note_ai_tool() -> Any:
+    return DeleteNoteAgentTool()

@@ -11,7 +11,6 @@ from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService
@@ -29,7 +28,6 @@ class FederationCheckGroupHandler(FederationCommandHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("fcheck", "fbanstat")),
-            FeatureFlagFilter("new_feds_fcheck"),
             GroupOrConnectedFilter(allow_abort=False),
         )
 

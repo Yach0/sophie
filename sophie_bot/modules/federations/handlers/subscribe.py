@@ -8,7 +8,6 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Doc, KeyValue, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
@@ -24,7 +23,7 @@ class SubscribeFederationHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fsub",)), FeatureFlagFilter("new_feds_fsub")
+        return (CMDFilter(("fsub",)),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -94,7 +93,7 @@ class UnsubscribeFederationHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("funsub",)), FeatureFlagFilter("new_feds_funsub"))
+        return (CMDFilter(("funsub",)),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

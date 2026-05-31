@@ -9,7 +9,6 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.exceptions import (
     FederationAlreadyExistsError,
     FederationLimitExceededError,
@@ -28,7 +27,7 @@ class CreateFederationHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("newfed", "fnew")), FeatureFlagFilter("new_feds_newfed")
+        return (CMDFilter(("newfed", "fnew")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

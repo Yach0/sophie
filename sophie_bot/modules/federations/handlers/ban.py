@@ -6,13 +6,13 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg, TextArg
-from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
+from stfu_tg import Code, Doc, KeyValue, Section, Template, Title, UserLink
+from stfu_tg.formatting import Spoiler
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
@@ -23,7 +23,6 @@ from sophie_bot.modules.restrictions.utils.logging import extract_offending_mess
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -98,7 +97,10 @@ def _build_ban_log_doc(
     if reason:
         log_doc += KeyValue(_("Reason"), reason)
     if original_message_text:
-        log_doc += KeyValue(_("Original message"), original_message_text)
+        log_doc += Section(
+            Spoiler(original_message_text),
+            title=_("Original message"),
+        )
     return log_doc
 
 
@@ -108,10 +110,7 @@ class FederationBanHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (
-            CMDFilter(("fban", "sfban")),
-            FeatureFlagFilter("new_feds_fban"),
-        )
+        return (CMDFilter(("fban", "sfban")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
@@ -188,12 +187,10 @@ class FederationBanHandler(FederationCommandHandler):
         )
 
         # Lazy-ban: Also ban in federations that subscribe to this federation
-        lazy_ban_count = 0
-        if await is_enabled("new_feds_fban_lazy", chat_tid=self.connection.db_model.tid):
-            lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-                federation, user_tid, user_iid, reason, original_message_text
-            )
-            lazy_ban_count = len(lazy_bans)
+        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+            federation, user_tid, user_iid, reason, original_message_text
+        )
+        lazy_ban_count = len(lazy_bans)
 
         # Format response
         silent = bool(self.event.text and self.event.text.startswith("/sfban"))

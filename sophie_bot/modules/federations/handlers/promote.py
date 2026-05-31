@@ -6,7 +6,6 @@ from aiogram.dispatcher.event.handler import CallbackType
 
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.promote_demote_base import FederationPromoteDemoteHandler
 from sophie_bot.modules.federations.services import FederationAdminService
 from sophie_bot.utils import flags
@@ -28,7 +27,7 @@ class FederationPromoteHandler(FederationPromoteDemoteHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fpromote",)), FeatureFlagFilter("new_feds_fpromote")
+        return (CMDFilter(("fpromote",)),)
 
     async def _execute_action(self, federation: Federation, user_db: ChatModel) -> None:
         try:
