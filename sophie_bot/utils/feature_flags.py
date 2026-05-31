@@ -22,9 +22,9 @@ FeatureType = Literal[
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
     "ai_chatbot_admin_status",
-    "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
     "ai_chatbot_thinking_message",
+    "ai_chatbot_random_emoji",
     "ai_chatbot_streaming",
     "ai_chatbot_streaming_backoff_seconds",
     "ai_translations",
@@ -86,9 +86,9 @@ class FeatureStates(TypedDict):
     ai_filter_suggestions_prompt: str
     ai_chatbot: bool
     ai_chatbot_admin_status: bool
-    ai_chatbot_short_title: bool
     ai_chatbot_blockquote: bool
     ai_chatbot_thinking_message: bool
+    ai_chatbot_random_emoji: bool
     ai_chatbot_streaming: bool
     ai_chatbot_streaming_backoff_seconds: float
     ai_translations: bool
@@ -149,9 +149,9 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
     "ai_chatbot_admin_status",
-    "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
     "ai_chatbot_thinking_message",
+    "ai_chatbot_random_emoji",
     "ai_chatbot_streaming",
     "ai_chatbot_streaming_backoff_seconds",
     "ai_translations",
@@ -220,9 +220,9 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_filter_suggestions_prompt": "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data.",
     "ai_chatbot": True,
     "ai_chatbot_admin_status": False,
-    "ai_chatbot_short_title": False,
     "ai_chatbot_blockquote": True,
     "ai_chatbot_thinking_message": False,
+    "ai_chatbot_random_emoji": False,
     "ai_chatbot_streaming": False,
     "ai_chatbot_streaming_backoff_seconds": 1.5,
     "ai_translations": True,
