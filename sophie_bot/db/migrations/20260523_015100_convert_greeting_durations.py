@@ -24,9 +24,11 @@ from sophie_bot.db.models.greetings import GreetingsModel
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import convert_timedelta_or_str
 
 
-def _duration_to_milliseconds(value: str | timedelta | int | None) -> int | None:
-    if value is None or isinstance(value, int):
-        return value
+def _duration_to_milliseconds(value: str | timedelta | int | float | None) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
     return int(convert_timedelta_or_str(value).total_seconds() * 1000)
 
 

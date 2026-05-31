@@ -401,8 +401,8 @@ msgstr ""
 #: sophie_bot/modules/locks/handlers/locksticker.py:66
 #: sophie_bot/modules/notes/handlers/delete.py:47
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/promotes/handlers/demote.py:76
-#: sophie_bot/modules/promotes/handlers/promote.py:136
+#: sophie_bot/modules/promotes/handlers/demote.py:78
+#: sophie_bot/modules/promotes/handlers/promote.py:138
 #: sophie_bot/modules/restrictions/handlers/base.py:125
 #: sophie_bot/modules/restrictions/services/silent.py:76
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
@@ -762,109 +762,141 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:54
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:59
 msgid "Memory updated 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:55
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:60
 msgid "Memory forgotten 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:56
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:61
 msgid "Commands help 📋"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:57
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:58
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:62
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:63
 msgid "Internet Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:59
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:64
 msgid "Scanned notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:60
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:65
 msgid "Read note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:61
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:66
 msgid "Saved note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:64
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:69
 msgid "Memory 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:65
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:70
 msgid "Forget 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:66
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:71
 msgid "Commands 📋"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:67
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:68
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:72
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:73
 msgid "Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:69
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:74
 msgid "Notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:70
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:75
 msgid "Note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:71
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:76
 msgid "Save note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:116
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:94
+msgid "Thinking..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:95
+msgid "Working on it..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:96
+msgid "Let me think..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:97
+msgid "Generating response..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:98
+msgid "Preparing an answer..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:99
+msgid "Reading the context..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:100
+msgid "Checking the details..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:101
+msgid "Looking into it..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:249
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:117
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:250
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:119
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:252
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:121
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:254
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:128
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:261
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:136
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:269
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:144
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:277
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:151
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:284
 msgid "Related chat notes with content."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:155
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:288
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:162
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:295
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:168
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:301
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -1127,10 +1159,10 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/promote.py:20
 #: sophie_bot/modules/federations/handlers/unban.py:39
 #: sophie_bot/modules/federations/handlers/unban.py:148
-#: sophie_bot/modules/promotes/handlers/demote.py:39
-#: sophie_bot/modules/promotes/handlers/demote.py:77
-#: sophie_bot/modules/promotes/handlers/promote.py:55
-#: sophie_bot/modules/promotes/handlers/promote.py:137
+#: sophie_bot/modules/promotes/handlers/demote.py:41
+#: sophie_bot/modules/promotes/handlers/demote.py:79
+#: sophie_bot/modules/promotes/handlers/promote.py:57
+#: sophie_bot/modules/promotes/handlers/promote.py:139
 #: sophie_bot/modules/restrictions/handlers/base.py:67
 #: sophie_bot/modules/restrictions/handlers/base.py:126
 #: sophie_bot/modules/restrictions/services/silent.py:77
@@ -2037,7 +2069,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:127
 #: sophie_bot/modules/federations/handlers/info.py:120
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:54
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:59
 msgid "Chat not found in database"
 msgstr ""
 
@@ -4671,59 +4703,59 @@ msgstr ""
 msgid "Manage user permissions and administrative privileges."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:27
+#: sophie_bot/modules/promotes/handlers/demote.py:29
 msgid "Demotes the user from admins."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:50
+#: sophie_bot/modules/promotes/handlers/demote.py:52
 msgid "I cannot demote myself."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:53
+#: sophie_bot/modules/promotes/handlers/demote.py:55
 msgid "You cannot demote yourself."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:78
+#: sophie_bot/modules/promotes/handlers/demote.py:80
 msgid "Demoted by"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:79
+#: sophie_bot/modules/promotes/handlers/demote.py:81
 msgid "User demoted successfully"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:40
+#: sophie_bot/modules/promotes/handlers/promote.py:42
 msgid "Promotes the user to admins."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:57
+#: sophie_bot/modules/promotes/handlers/promote.py:59
 msgid "?Admin title"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:72
+#: sophie_bot/modules/promotes/handlers/promote.py:74
 msgid "I cannot promote myself."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:75
+#: sophie_bot/modules/promotes/handlers/promote.py:77
 msgid "You cannot promote yourself."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:78
+#: sophie_bot/modules/promotes/handlers/promote.py:80
 msgid "Admin title is too long."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:138
+#: sophie_bot/modules/promotes/handlers/promote.py:140
 msgid "Promoted by"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:139
+#: sophie_bot/modules/promotes/handlers/promote.py:141
 msgid "Admin title"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:139
+#: sophie_bot/modules/promotes/handlers/promote.py:141
 msgid "No admin title"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/promote.py:140
+#: sophie_bot/modules/promotes/handlers/promote.py:142
 msgid "Admin promoted successfully"
 msgstr ""
 
@@ -5195,15 +5227,15 @@ msgstr ""
 msgid "Tools for fixing problems and issues"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/admincache.py:14
+#: sophie_bot/modules/troubleshooters/handlers/admincache.py:17
 msgid "Reset admin rights cache, use if Sophie didn't get the recently added admin"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/admincache.py:23
+#: sophie_bot/modules/troubleshooters/handlers/admincache.py:26
 msgid "You can't use this command in private chats."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/admincache.py:27
+#: sophie_bot/modules/troubleshooters/handlers/admincache.py:29
 msgid "Admin rights cache has been reset."
 msgstr ""
 
@@ -5634,7 +5666,7 @@ msgstr ""
 
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:110
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:115
 #: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:74
 msgid "Confirm"
 msgstr ""
@@ -5840,17 +5872,18 @@ msgstr ""
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:55
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:61
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:70
 msgid "Captcha expired. Please try again."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:79
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:84
 #: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:51
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:87
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:92
 msgid "❌ Incorrect solution. Please, try again."
 msgstr ""
 
