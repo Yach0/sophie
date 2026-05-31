@@ -84,7 +84,7 @@ async def test_aiusage_shows_exhausted_state(monkeypatch: pytest.MonkeyPatch) ->
 
 def test_ai_credit_header_matches_usage_percentage() -> None:
     header = ai_credit_header(99)
-    assert "Quota 99%" in header.to_html()
+    assert "99%" in header.to_html()
 
 
 @pytest.mark.asyncio

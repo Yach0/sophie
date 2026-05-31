@@ -87,14 +87,23 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Any] = {
 
 TextStreamCallback = Callable[[str], Awaitable[None]]
 
-_THINKING_CUSTOM_EMOJI_ID = "5258317508326214175"
+_DEFAULT_THINKING_CUSTOM_EMOJI_ID = "5258317508326214175"
+_THINKING_CUSTOM_EMOJI_IDS = (
+    "5256211041615889001",
+    "5257997017866585370",
+    _DEFAULT_THINKING_CUSTOM_EMOJI_ID,
+    "5258417125797678733",
+    "5258464881539040501",
+    "5258494813166129825",
+    "5258331634473650007",
+)
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
 _MAX_STREAM_TEXT_LENGTH = DEFAULT_DRAFT_MAX_TEXT_LENGTH - 128
 
 
-def _thinking_custom_emoji() -> Element:
-    return PreformattedHTML(f'<tg-emoji emoji-id="{_THINKING_CUSTOM_EMOJI_ID}">💭</tg-emoji>')
+def _thinking_custom_emoji(emoji_id: str | None = None) -> Element:
+    return PreformattedHTML(f'<tg-emoji emoji-id="{emoji_id or _DEFAULT_THINKING_CUSTOM_EMOJI_ID}">💭</tg-emoji>')
 
 
 def _random_thinking_text() -> str:
@@ -112,8 +121,8 @@ def _random_thinking_text() -> str:
     )
 
 
-def _thinking_header_element() -> Element:
-    return HList(_thinking_custom_emoji(), _random_thinking_text(), divider=" ")
+def _thinking_header_element(emoji_id: str | None = None) -> Element:
+    return HList(_thinking_custom_emoji(emoji_id), _random_thinking_text(), divider=" ")
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:
@@ -394,20 +403,19 @@ async def _build_chatbot_header(
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
     additional_header_items: list[Element] | None = None,
+    skip_battery: bool = False,
 ) -> Element:
-    short_title_enabled = await is_enabled("ai_chatbot_short_title", chat_tid=connection.tid)
-    quota_info = await get_quota_info(connection.db_model.iid)
     header_items = [
         *(additional_header_items or []),
-        *retrieve_tools_titles(message_history, short=short_title_enabled),
+        *retrieve_tools_titles(message_history, short=True),
         HList(divider=", "),
     ]
-    if quota_info:
+    if not skip_battery and (quota_info := await get_quota_info(connection.db_model.iid)):
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
-        header_items.append(ai_credit_header(percentage, short=short_title_enabled))
-    return await ai_chatbot_header(connection.tid, model, *header_items)
+        header_items.append(ai_credit_header(percentage))
+    return ai_chatbot_header(model, *header_items)
 
 
 def _build_debug_doc(model: Model, result: Any) -> Section:
@@ -449,8 +457,19 @@ async def _build_message_streamer(
     if not thinking_enabled and not streaming_enabled:
         return None
 
-    header_items = [_thinking_header_element()] if thinking_enabled else None
-    header = await _build_chatbot_header(connection, model, [], additional_header_items=header_items)
+    header_items = None
+    if thinking_enabled:
+        emoji_id = None
+        if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id):
+            emoji_id = choice(_THINKING_CUSTOM_EMOJI_IDS)
+        header_items = [_thinking_header_element(emoji_id=emoji_id)]
+    header = await _build_chatbot_header(
+        connection,
+        model,
+        [],
+        additional_header_items=header_items,
+        skip_battery=thinking_enabled,
+    )
     backoff_seconds = _coerce_stream_backoff_seconds(
         await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id)
     )
