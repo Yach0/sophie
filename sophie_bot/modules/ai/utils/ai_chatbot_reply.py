@@ -113,9 +113,7 @@ async def _get_search_tool(chat_tid: int) -> Any | None:
 async def _get_chatbot_tools(chat_tid: int) -> list[Any]:
     memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=chat_tid)
     tools = [
-        tool
-        for tool in CHATBOT_TOOLS
-        if not memories_to_notes or tool.name not in {"write_memory", "forget_memory"}
+        tool for tool in CHATBOT_TOOLS if not memories_to_notes or tool.name not in {"write_memory", "forget_memory"}
     ]
     if search_tool := await _get_search_tool(chat_tid):
         tools.append(search_tool)
