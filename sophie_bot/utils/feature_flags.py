@@ -19,6 +19,7 @@ FeatureType = Literal[
     "ai_moderation_reason_prompt",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
+    "ai_chatbot_admin_status",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
     "ai_translations",
@@ -99,6 +100,7 @@ class FeatureStates(TypedDict):
     ai_moderation_reason_prompt: str
     ai_filter_suggestions_prompt: str
     ai_chatbot: bool
+    ai_chatbot_admin_status: bool
     ai_chatbot_short_title: bool
     ai_chatbot_blockquote: bool
     ai_translations: bool
@@ -178,6 +180,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_moderation_reason_prompt",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
+    "ai_chatbot_admin_status",
     "ai_chatbot_short_title",
     "ai_chatbot_blockquote",
     "ai_translations",
@@ -265,6 +268,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_moderation_reason_prompt": "Generate a brief, professional moderation reason for restricting a user based on their message.",
     "ai_filter_suggestions_prompt": "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data.",
     "ai_chatbot": True,
+    "ai_chatbot_admin_status": False,
     "ai_chatbot_short_title": False,
     "ai_chatbot_blockquote": True,
     "ai_translations": True,
