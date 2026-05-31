@@ -116,7 +116,9 @@ async def test_cleanup_migration_repairs_dangling_connections(db_init: Any) -> N
         },
     )
 
-    migration_module = importlib.import_module("sophie_bot.db.migrations.20260302_090000_cleanup_connections_dangling_chat_links")
+    migration_module = importlib.import_module(
+        "sophie_bot.db.migrations.20260302_090000_cleanup_connections_dangling_chat_links"
+    )
     migration_forward = migration_module.Forward()
     await migration_forward.cleanup.run(session=None)
 

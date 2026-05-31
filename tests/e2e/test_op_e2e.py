@@ -22,11 +22,14 @@ async def test_op_regenerate_chat_summary_forces_generation(test_client: TestCli
     assert chat is not None
     summary_date = datetime.now(timezone.utc).date()
 
-    with patch.object(CONFIG, "operators", [operator_wrapper.user.id]), patch.object(
-        GenerateChatSummaries,
-        "process_chat",
-        AsyncMock(),
-    ) as process_chat:
+    with (
+        patch.object(CONFIG, "operators", [operator_wrapper.user.id]),
+        patch.object(
+            GenerateChatSummaries,
+            "process_chat",
+            AsyncMock(),
+        ) as process_chat,
+    ):
         requests = await test_client.send_command(
             command="op_regenerate_chat_summary",
             from_user=operator_wrapper.user,

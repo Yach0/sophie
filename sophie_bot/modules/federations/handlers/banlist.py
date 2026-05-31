@@ -11,7 +11,6 @@ from sophie_bot.db.models import Federation
 from sophie_bot.db.models.federations import FederationExportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
@@ -26,10 +25,7 @@ class FederationBanListHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (
-            CMDFilter(("fbanlist", "exportfbans", "fexport")),
-            FeatureFlagFilter("new_feds_fbanlist"),
-        )
+        return (CMDFilter(("fbanlist", "exportfbans", "fexport")),)
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         """Create export task for federation ban list."""

@@ -9,7 +9,6 @@ from stfu_tg import Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.db.models import Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
@@ -47,7 +46,7 @@ class FederationDeleteHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fdelete",)), FeatureFlagFilter("new_feds_fdelete")
+        return (CMDFilter(("fdelete",)),)
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         """Ask the owner to confirm federation deletion."""
@@ -77,7 +76,7 @@ class FederationDeleteCallbackHandler(SophieCallbackQueryHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return FederationDeleteCallback.filter(), FeatureFlagFilter("new_feds_fdelete")
+        return (FederationDeleteCallback.filter(),)
 
     async def handle(self) -> Any:
         """Confirm federation deletion."""

@@ -12,7 +12,6 @@ from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
@@ -28,7 +27,7 @@ class FederationUnbanHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("unfban", "funban")), FeatureFlagFilter("new_feds_funban")
+        return (CMDFilter(("unfban", "funban")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

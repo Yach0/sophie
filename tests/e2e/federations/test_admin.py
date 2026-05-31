@@ -83,9 +83,7 @@ async def test_demote_admin_via_service(test_client: TestClient) -> None:
         target_model = await ChatModel.get_by_tid(6004)
         assert target_model is not None
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Demote Test Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Demote Test Fed", owner_model)
 
     # Promote then demote
     await FederationAdminService.promote_admin(federation, target_model.iid)
@@ -120,9 +118,7 @@ async def test_promote_duplicate_raises(test_client: TestClient) -> None:
         target_model = await ChatModel.get_by_tid(6006)
         assert target_model is not None
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Dup Promote Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Dup Promote Fed", owner_model)
 
     await FederationAdminService.promote_admin(federation, target_model.iid)
 
@@ -154,9 +150,7 @@ async def test_demote_non_admin_raises(test_client: TestClient) -> None:
         target_model = await ChatModel.get_by_tid(6008)
         assert target_model is not None
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Bad Demote Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Bad Demote Fed", owner_model)
 
     with pytest.raises(ValueError, match="not an admin"):
         await FederationAdminService.demote_admin(federation, target_model.iid)
@@ -182,9 +176,7 @@ async def test_owner_is_always_admin(test_client: TestClient) -> None:
             group_title="Owner Admin Group",
         )
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Owner Admin Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Owner Admin Fed", owner_model)
 
     is_admin = await FederationAdminService.is_admin(federation, 6009)
     assert is_admin is True, "Owner should always be recognized as admin"
@@ -218,9 +210,7 @@ async def test_non_admin_has_no_permissions(test_client: TestClient) -> None:
         random_wrapper = test_client.create_user(user_id=6011, first_name="RandomUser", username="random_user")
         await test_client.send_message(text="init", from_user=random_wrapper.user, chat=group)
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "Perm Test Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "Perm Test Fed", owner_model)
 
     is_admin = await FederationAdminService.is_admin(federation, 6011)
     assert is_admin is False

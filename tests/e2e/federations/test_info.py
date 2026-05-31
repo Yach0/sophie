@@ -44,7 +44,9 @@ async def test_fedinfo_by_id(test_client: TestClient) -> None:
         federation = await create_federation_via_command(test_client, owner_user, group, "Info Test Fed", owner_model)
 
         # Should not crash when querying by ID
-        requests = await test_client.send_command(command="fedinfo", from_user=owner_user, args=federation.fed_id, chat=group)
+        requests = await test_client.send_command(
+            command="fedinfo", from_user=owner_user, args=federation.fed_id, chat=group
+        )
         assert requests, "Bot should respond to /fedinfo with federation ID"
         assert any("Info Test Fed" in (r.text or "") for r in requests), "Response should contain federation name"
 
@@ -101,7 +103,9 @@ async def test_fedinfo_not_in_federation(test_client: TestClient) -> None:
         # Should not crash
         requests = await test_client.send_command(command="fedinfo", from_user=owner_user, chat=group)
         assert requests, "Bot should respond even when not in federation"
-        assert any("not" in (r.text or "").lower() or "no" in (r.text or "").lower() for r in requests), "Response should indicate chat is not in federation"
+        assert any("not" in (r.text or "").lower() or "no" in (r.text or "").lower() for r in requests), (
+            "Response should indicate chat is not in federation"
+        )
 
 
 @pytest.mark.asyncio

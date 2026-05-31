@@ -7,7 +7,6 @@ from stfu_tg import Bold, Code, Doc, HList, KeyValue, Section, Template, Title, 
 
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.utils import flags
@@ -22,7 +21,7 @@ class FederationAdminsHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("fadmins", "fedadmins")), FeatureFlagFilter("new_feds_fadmins")
+        return (CMDFilter(("fadmins", "fedadmins")),)
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         if not self.event.from_user:
