@@ -165,7 +165,7 @@ class FederationBanHandler(FederationCommandHandler):
                 reason = ai_reason
 
         # Ban user
-        user_iid = self.data["user_db"].iid
+        user_iid = user.iid
         try:
             ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason, original_message_text)
         except FederationBanValidationError as err:
