@@ -17,17 +17,6 @@ from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 CHATBOT_TOOLS_TITLES: dict[str, Element] = {
-    "write_memory": cast(Element, l_("Memory updated 💾")),
-    "forget_memory": cast(Element, l_("Memory forgotten 🗑")),
-    "cmds_help": cast(Element, l_("Commands help 📋")),
-    "tavily_search": cast(Element, l_("Internet Search 🔍")),
-    "kagi_search": cast(Element, l_("Internet Search 🔍")),
-    "get_notes": cast(Element, l_("Scanned notes 🗒")),
-    "get_note_content": cast(Element, l_("Read note 🗒")),
-    "save_note": cast(Element, l_("Saved note 🗒")),
-    "delete_note": cast(Element, l_("Deleted note 🗑")),
-}
-CHATBOT_TOOLS_SHORT_TITLES: dict[str, Element] = {
     "write_memory": cast(Element, l_("Memory 💾")),
     "forget_memory": cast(Element, l_("Forget 🗑")),
     "cmds_help": cast(Element, l_("Commands 📋")),
@@ -40,8 +29,7 @@ CHATBOT_TOOLS_SHORT_TITLES: dict[str, Element] = {
 }
 
 
-def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse], *, short: bool = False) -> list[Element]:
-    tool_titles = CHATBOT_TOOLS_SHORT_TITLES if short else CHATBOT_TOOLS_TITLES
+def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -> list[Element]:
     tool_title_elements: list[Element] = []
     seen_tool_names: set[str] = set()
 
@@ -49,10 +37,10 @@ def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse], *
         for part in message.parts:
             if not isinstance(part, (ToolCallPart, ToolReturnPart)):
                 continue
-            if part.tool_name in seen_tool_names or part.tool_name not in tool_titles:
+            if part.tool_name in seen_tool_names or part.tool_name not in CHATBOT_TOOLS_TITLES:
                 continue
             seen_tool_names.add(part.tool_name)
-            tool_title_elements.append(tool_titles[part.tool_name])
+            tool_title_elements.append(CHATBOT_TOOLS_TITLES[part.tool_name])
 
     return tool_title_elements
 
@@ -66,7 +54,7 @@ async def build_chatbot_header(
 ) -> Element:
     header_items = [
         *(additional_header_items or []),
-        *retrieve_tools_titles(message_history, short=True),
+        *retrieve_tools_titles(message_history),
         HList(divider=", "),
     ]
     if not skip_battery and (quota_info := await get_quota_info(chat_iid)):

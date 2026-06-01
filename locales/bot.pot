@@ -906,68 +906,35 @@ msgid "You have the following information in your memory"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:20
-msgid "Memory updated 💾"
+msgid "Memory 💾"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:21
-msgid "Memory forgotten 🗑"
+msgid "Forget 🗑"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:22
-msgid "Commands help 📋"
+msgid "Commands 📋"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:23
 #: sophie_bot/modules/ai/utils/chatbot_response.py:24
-msgid "Internet Search 🔍"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:25
-msgid "Scanned notes 🗒"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:26
-msgid "Read note 🗒"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:27
-msgid "Saved note 🗒"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:28
-msgid "Deleted note 🗑"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:31
-msgid "Memory 💾"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:32
-msgid "Forget 🗑"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:33
-msgid "Commands 📋"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:34
-#: sophie_bot/modules/ai/utils/chatbot_response.py:35
 msgid "Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:36
+#: sophie_bot/modules/ai/utils/chatbot_response.py:25
 msgid "Notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:37
+#: sophie_bot/modules/ai/utils/chatbot_response.py:26
 msgid "Note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:38
+#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Save note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:39
+#: sophie_bot/modules/ai/utils/chatbot_response.py:28
 msgid "Delete note 🗑"
 msgstr ""
 
