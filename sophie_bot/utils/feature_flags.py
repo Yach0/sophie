@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import hashlib
 import asyncio
+import hashlib
 import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
@@ -83,6 +83,7 @@ FeatureType = Literal[
     "ai_chatbot_rich_markdown",
     "ai_chatbot_rich_streaming",
     "ai_chatbot_tables",
+    "ussr_spam_detection",
 ]
 
 
@@ -260,6 +261,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_rich_markdown": _feature(False),
     "ai_chatbot_rich_streaming": _feature(False),
     "ai_chatbot_tables": _feature(False),
+    "ussr_spam_detection": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
