@@ -8,9 +8,6 @@
   variables:
     TOKEN: "123456:test"
   before_script:
-    - mkdir -p libs
-    - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
-    - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
     - unset VIRTUAL_ENV
     - uv sync --frozen
     - uv run pybabel compile -d locales -D sophie --use-fuzzy
