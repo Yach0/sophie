@@ -53,6 +53,7 @@ async def test_research_command_returns_summary_and_sources(test_client: TestCli
     group_chat = ChatFactory.create_group(chat_id=-1002910000002, title="Research Enabled Group")
     user_wrapper = test_client.create_user(user_id=929100002, first_name="ResearchUser", username="research_enabled")
     response = ResearchFinalResponse(
+        research_title="Telegram bot research",
         text="Sophie can now research topics.",
         sources=[
             ResearchSource(
