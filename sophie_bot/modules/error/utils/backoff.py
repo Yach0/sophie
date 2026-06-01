@@ -4,8 +4,8 @@ import hashlib
 import time
 import traceback
 from typing import Final
-from redis.asyncio import Redis as AsyncRedis
 
+from redis.asyncio import Redis as AsyncRedis
 from redis.exceptions import RedisError
 
 from sophie_bot.services.redis import aredis
@@ -60,7 +60,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
 
     try:
         # Load current state
-        raw_data = await client.hgetall(key)  # ty: ignore[invalid-await]
+        raw_data = await client.hgetall(key)
         raw = {}
         if isinstance(raw_data, dict):
             for k, v in raw_data.items():
@@ -79,14 +79,14 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
             next_allowed_at = 0
 
         # Always update last_seen_at
-        await client.hset(key, mapping={"last_seen_at": str(now)})  # ty: ignore[invalid-await]
+        await client.hset(key, mapping={"last_seen_at": str(now)})
 
         if step < 0:
             # First occurrence after reset/new: allow immediately and set initial backoff
             step = 0
             delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
             next_allowed = now + delay
-            await client.hset(  # ty: ignore[invalid-await]
+            await client.hset(
                 key,
                 mapping={
                     "step": str(step),
@@ -110,7 +110,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
         delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
         next_allowed = now + delay
 
-        await client.hset(  # ty: ignore[invalid-await]
+        await client.hset(
             key,
             mapping={
                 "step": str(step),

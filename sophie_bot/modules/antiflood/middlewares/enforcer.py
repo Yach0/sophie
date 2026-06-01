@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, cast
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -65,7 +65,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
     async def _increment_flood_count(self, chat_id: int, user_id: int) -> int:
         """Increment and return user's message count."""
         key = self._get_count_key(chat_id, user_id)
-        count = await aredis.incr(key)
+        count = await cast(Awaitable[int], aredis.incr(key))
         # Set expiration on first increment
         if count == 1:
             await aredis.expire(key, FLOOD_WINDOW_SECONDS)

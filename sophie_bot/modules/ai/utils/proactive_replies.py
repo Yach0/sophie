@@ -468,7 +468,7 @@ async def _build_answer_history(chat_tid: int, target_message: MessageType) -> N
             "answer minimal instead of trying to cover everything."
         ),
     )
-    await history.add_chatbot_system_msg(additional=proactive_answer_prompt.to_md(), chat_tid=chat_tid)
+    history.add_system(proactive_answer_prompt.to_md())
     await history.add_from_cache(chat_tid)
     username = target_message.username or str(target_message.user_id)
     prompt_text = AIUserMessageFormatter.user_message(target_message.text, username)

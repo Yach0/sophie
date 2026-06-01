@@ -191,7 +191,9 @@ The list below is generated from the same source used by /lockable.
 - **`bot`**: Messages from bot accounts
 - **`anonchannel`**: Messages sent on behalf of a channel anonymously
 - **`comment`**: Messages sent as comments in channels
+- **`guestbot`**: Messages from guest bots (bots mentioned via @username without being chat members)
 - **`inline`**: Messages sent via inline bots
+- **`outsidereaction`**: Reactions from users who are not members of the chat
 - **`media`**: Any media message (photo, video, audio, document, sticker, etc.)
 - **`edited`**: Edited messages
 ---

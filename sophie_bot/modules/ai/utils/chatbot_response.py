@@ -83,7 +83,7 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
             Doc(
                 KeyValue("Model", AI_MODEL_TO_SHORT_NAME[model.model_name]),
                 KeyValue("LLM Requests", result.usage.requests),
-                KeyValue("Retries", result.retries),
+                KeyValue("Retries", result.retries if result.retries is not None else "-"),
                 KeyValue("Request tokens", result.usage.request_tokens),
                 KeyValue("Response tokens", result.usage.response_tokens),
                 KeyValue("Total tokens", result.usage.total_tokens),

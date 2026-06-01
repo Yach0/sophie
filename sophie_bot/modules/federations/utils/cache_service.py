@@ -7,6 +7,10 @@ from beanie import PydanticObjectId
 from sophie_bot.services.redis import aredis
 
 
+def _decode_redis_value(value: bytes | str) -> str:
+    return value.decode() if isinstance(value, bytes) else value
+
+
 class FederationCacheService:
     """Cache service for federation lookups to reduce database queries."""
 
@@ -18,7 +22,7 @@ class FederationCacheService:
     async def get_fed_id_for_chat(chat_iid: PydanticObjectId) -> Optional[str]:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}chat_fed_id:{chat_iid}"
         cached = await aredis.get(cache_key)
-        return cached.decode() if cached else None
+        return _decode_redis_value(cached) if cached else None
 
     @staticmethod
     async def set_fed_id_for_chat(chat_iid: PydanticObjectId, fed_id: str) -> None:
@@ -35,7 +39,7 @@ class FederationCacheService:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}ban_status:{fed_id}:{user_tid}"
         cached = await aredis.get(cache_key)
         if cached:
-            return cached.decode() == "1"
+            return _decode_redis_value(cached) == "1"
         return None
 
     @staticmethod

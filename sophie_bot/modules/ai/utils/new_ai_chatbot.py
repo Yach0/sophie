@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, TypeVar, cast
@@ -10,7 +11,13 @@ from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior, Usag
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 
-from sophie_bot.metrics import track_ai_request
+from sophie_bot.metrics import (
+    count_retries_from_messages,
+    track_ai_agent_result,
+    track_ai_request,
+    track_ai_stream_result,
+    track_ai_time_to_first_token,
+)
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult, ai_agent_run
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.utils.exception import SophieException
@@ -68,7 +75,14 @@ def _build_run_kwargs(
     base_model_settings: Mapping[str, object] | None = None,
 ) -> dict[str, Any]:
     run_kwargs = dict(agent_kwargs or {})
-    run_model_settings = build_model_settings(base_model_settings, request_options)
+    run_model_settings_input = run_kwargs.pop("model_settings", None)
+    merged_model_settings = dict(base_model_settings or {})
+    if run_model_settings_input is not None:
+        if not isinstance(run_model_settings_input, Mapping):
+            raise TypeError("run model_settings must be a mapping when request options are injected")
+        merged_model_settings.update(cast(Mapping[str, object], run_model_settings_input))
+
+    run_model_settings = build_model_settings(merged_model_settings, request_options)
     if run_model_settings is not None:
         run_kwargs["model_settings"] = run_model_settings
     return run_kwargs
@@ -145,6 +159,9 @@ async def new_ai_generate_stream(
     async with track_ai_request(metrics_model, "agent"):
         try:
             run_stream_kwargs = _build_run_kwargs(agent_kwargs, resolved_request_options, base_model_settings)
+            stream_start = time.perf_counter()
+            first_token_seen = False
+            stream_chunk_count = 0
             if on_tool_call is not None:
                 seen_tool_names: set[str] = set()
 
@@ -172,12 +189,16 @@ async def new_ai_generate_stream(
             ) as result_stream:
                 accumulated_text = ""
                 async for text_delta in result_stream.stream_text(delta=True, debounce_by=0.2):
+                    if text_delta and not first_token_seen:
+                        first_token_seen = True
+                        track_ai_time_to_first_token(metrics_model, time.perf_counter() - stream_start)
+                    stream_chunk_count += 1
                     accumulated_text += text_delta
                     await on_text_stream(accumulated_text)
 
                 output_text = await result_stream.get_output()
-                usage = result_stream.usage()
-                result_message_history = result_stream.all_messages()
+                usage = result_stream.usage
+                result_message_history = cast(list[ModelRequest | ModelResponse], result_stream.all_messages())
         except UnexpectedModelBehavior as error:
             raise SophieException("AI provider returned an invalid response. Please try again later.") from error
         except UsageLimitExceeded as error:
@@ -187,9 +208,25 @@ async def new_ai_generate_stream(
         except ModelHTTPError as error:
             raise SophieException(f"AI model error: {error.message}") from error
 
+    retries = count_retries_from_messages(result_message_history)
+    track_ai_agent_result(
+        metrics_model,
+        usage,
+        result_message_history,
+        output_length=len(output_text),
+        retries=retries,
+    )
+    track_ai_stream_result(
+        metrics_model,
+        chunks=stream_chunk_count,
+        text_length=len(output_text),
+        first_token_seen=first_token_seen,
+    )
+
     return AIAgentResult(
         output=output_text,
-        message_history=cast(list[ModelRequest | ModelResponse], result_message_history),
+        retries=retries,
+        message_history=result_message_history,
         usage=usage,
     )
 

@@ -13,9 +13,6 @@ Impact:
 
 from __future__ import annotations
 
-from collections.abc import Awaitable
-from typing import cast
-
 from beanie import free_fall_migration
 
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
@@ -46,7 +43,7 @@ class Forward:
     @free_fall_migration(document_models=[FeatureFlagOverride])
     async def migrate(self, session: object) -> None:
         collection = FeatureFlagOverride.get_pymongo_collection()
-        raw_global_overrides = await cast(Awaitable[dict[bytes | str, bytes | str]], aredis.hgetall(_REDIS_KEY))
+        raw_global_overrides = await aredis.hgetall(_REDIS_KEY)
 
         for raw_feature, raw_value in raw_global_overrides.items():
             feature = _decode_redis_value(raw_feature)
@@ -68,7 +65,7 @@ class Forward:
             if chat_tid is None:
                 continue
 
-            raw_chat_overrides = await cast(Awaitable[dict[bytes | str, bytes | str]], aredis.hgetall(redis_key))
+            raw_chat_overrides = await aredis.hgetall(redis_key)
             for raw_feature, raw_value in raw_chat_overrides.items():
                 feature = _decode_redis_value(raw_feature)
                 if feature not in FEATURE_FLAGS:
@@ -99,6 +96,6 @@ class Backward:
                 continue
 
             redis_key = _REDIS_KEY if chat_tid is None else f"{_REDIS_CHAT_KEY_PREFIX}:{chat_tid}"
-            await cast(Awaitable[int], aredis.hset(redis_key, feature, _serialize_value(value)))
+            await aredis.hset(redis_key, feature, _serialize_value(value))
 
         await collection.drop(session=session)

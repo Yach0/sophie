@@ -114,8 +114,8 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
         try:
             async with aredis.pipeline() as pipe:
-                await pipe.incr(key)
-                await pipe.expire(key, GLOBAL_RATE_WINDOW)
+                pipe.incr(key)
+                pipe.expire(key, GLOBAL_RATE_WINDOW)
                 results = await pipe.execute()
 
             current_count = results[0]

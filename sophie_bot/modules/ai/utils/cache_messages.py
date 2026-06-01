@@ -99,13 +99,19 @@ async def reset_messages(chat_id: int) -> None:
     await aredis.delete(key)
 
 
+def _parse_cached_message(raw_message: object) -> MessageType | None:
+    if not isinstance(raw_message, (str, bytes, bytearray)):
+        return None
+    return MessageType.model_validate_json(raw_message)
+
+
 async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: datetime) -> Tuple[MessageType, ...]:
     """Retrieve cached messages in a given inclusive time window."""
     key = get_message_cache_key(chat_id)
     raw_messages = await aredis.zrangebyscore(  # type: ignore[misc]
         key, start_at.timestamp(), end_at.timestamp()
     )
-    messages = [MessageType.model_validate_json(raw_msg) for raw_msg in raw_messages]
+    messages = [message for raw_message in raw_messages if (message := _parse_cached_message(raw_message))]
     valid_messages = [
         message for message in messages if message.created_at and start_at <= message.created_at <= end_at
     ]

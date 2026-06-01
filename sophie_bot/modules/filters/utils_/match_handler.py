@@ -86,8 +86,8 @@ async def consume_ai_filter_daily_quota(chat_tid: int) -> bool:
     daily_ttl = _seconds_until_next_utc_day(now)
 
     async with aredis.pipeline() as pipe:
-        await pipe.incr(rate_limit_key)
-        await pipe.expire(rate_limit_key, daily_ttl)
+        pipe.incr(rate_limit_key)
+        pipe.expire(rate_limit_key, daily_ttl)
         daily_count, _ = await pipe.execute()
 
     return int(daily_count) <= AI_FILTER_DAILY_LIMIT_PER_CHAT

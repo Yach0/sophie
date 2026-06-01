@@ -4,6 +4,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Literal
 
+from pydantic_ai.messages import ModelRequest, ModelResponse, RetryPromptPart, ToolCallPart
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
@@ -103,6 +104,18 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
         )
 
 
+def _ai_metric_attributes(model: Model, operation: str) -> dict[str, str]:
+    return {"provider": get_provider_from_model(model), "model": get_model_name(model), "operation": operation}
+
+
+def count_retries_from_messages(message_history: list[ModelRequest | ModelResponse]) -> int:
+    return sum(1 for message in message_history for part in message.parts if isinstance(part, RetryPromptPart))
+
+
+def count_tool_calls_from_messages(message_history: list[ModelRequest | ModelResponse]) -> int:
+    return sum(1 for message in message_history for part in message.parts if isinstance(part, ToolCallPart))
+
+
 def track_ai_usage(model: Model, usage: RunUsage) -> None:
     """Track AI token usage metrics"""
     if not CONFIG.metrics_enable:
@@ -132,6 +145,66 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
             usage.total_tokens,
             attributes={"provider": provider, "model": model_name, "token_type": "total"},
         )
+
+
+def track_ai_agent_result(
+    model: Model,
+    usage: RunUsage,
+    message_history: list[ModelRequest | ModelResponse],
+    *,
+    operation: str = "agent",
+    output_length: int | None = None,
+    retries: int | None = None,
+) -> None:
+    """Track per-run AI agent telemetry that is only known after completion."""
+    if not CONFIG.metrics_enable:
+        return
+
+    attributes = _ai_metric_attributes(model, operation)
+    retry_count = retries if retries is not None else count_retries_from_messages(message_history)
+    tool_call_count = usage.tool_calls or count_tool_calls_from_messages(message_history)
+
+    distribution_metric("sophie.ai.agent.requests_per_run", usage.requests, attributes=attributes)
+    distribution_metric("sophie.ai.agent.retries", retry_count, attributes=attributes)
+    distribution_metric("sophie.ai.agent.tool_calls", tool_call_count, attributes=attributes)
+    if output_length is not None:
+        distribution_metric("sophie.ai.agent.output_length", output_length, attributes=attributes)
+
+    if retry_count:
+        count_metric("sophie.ai.agent.retried_runs", attributes={**attributes, "retry_count": retry_count})
+    if tool_call_count:
+        count_metric("sophie.ai.agent.tool_call_runs", attributes={**attributes, "tool_call_count": tool_call_count})
+
+
+def track_ai_time_to_first_token(model: Model, seconds: float, *, operation: str = "agent") -> None:
+    """Track streaming latency until the first text delta is received."""
+    if not CONFIG.metrics_enable:
+        return
+
+    distribution_metric(
+        "sophie.ai.agent.time_to_first_token",
+        seconds,
+        attributes=_ai_metric_attributes(model, operation),
+        unit="second",
+    )
+
+
+def track_ai_stream_result(
+    model: Model,
+    *,
+    operation: str = "agent",
+    chunks: int,
+    text_length: int,
+    first_token_seen: bool,
+) -> None:
+    """Track aggregate telemetry for streamed agent responses."""
+    if not CONFIG.metrics_enable:
+        return
+
+    attributes = _ai_metric_attributes(model, operation)
+    distribution_metric("sophie.ai.agent.stream_chunks", chunks, attributes=attributes)
+    distribution_metric("sophie.ai.agent.stream_output_length", text_length, attributes=attributes)
+    count_metric("sophie.ai.agent.streams", attributes={**attributes, "first_token_seen": first_token_seen})
 
 
 def track_ai_proactive_event(event: ProactiveAIEvent, attributes: MetricAttributes | None = None) -> None:
