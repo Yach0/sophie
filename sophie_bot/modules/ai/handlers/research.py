@@ -5,7 +5,7 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.exceptions import TelegramBadRequest
 from ass_tg.types import OptionalArg, TextArg
-from stfu_tg import Doc, PreformattedHTML, Section, Template
+from stfu_tg import Doc, HList, PreformattedHTML, Section, Template
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
@@ -64,10 +64,15 @@ class AiResearch(SophieMessageHandler):
         for section in report.sections:
             doc += Section(PreformattedHTML(section["body"]), title=section["heading"])
         if report.sources:
-            sources_text = "\n".join(
-                str(Template('• <a href="{url}">{title}</a>', url=source["url"], title=source["title"]))
-                for source in report.sources
+            doc += Section(
+                HList(
+                    *(
+                        Template('<a href="{url}">{title}</a>', url=source["url"], title=source["title"])
+                        for source in report.sources
+                    ),
+                    divider=" | ",
+                ),
+                title=str(_("Sources")),
             )
-            doc += Section(PreformattedHTML(sources_text), title=str(_("Sources")))
 
         await progress_msg.edit_text(str(doc), parse_mode="HTML")
