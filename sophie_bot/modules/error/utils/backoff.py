@@ -60,7 +60,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
 
     try:
         # Load current state
-        raw_data = await client.hgetall(key)
+        raw_data = await client.hgetall(key)  # ty: ignore[invalid-await]
         raw = {}
         if isinstance(raw_data, dict):
             for k, v in raw_data.items():
@@ -79,7 +79,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
             next_allowed_at = 0
 
         # Always update last_seen_at
-        await client.hset(key, mapping={"last_seen_at": str(now)})
+        await client.hset(key, mapping={"last_seen_at": str(now)})  # ty: ignore[invalid-await]
 
         if step < 0:
             # First occurrence after reset/new: allow immediately and set initial backoff
@@ -93,7 +93,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
                     "last_allowed_at": str(now),
                     "next_allowed_at": str(next_allowed),
                 },
-            )
+            )  # ty: ignore[invalid-await]
             # Expire slightly past quiet reset so keys clean up
             await client.expire(key, _QUIET_RESET + _INITIAL_DELAY)
             return True
@@ -117,7 +117,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
                 "last_allowed_at": str(now),
                 "next_allowed_at": str(next_allowed),
             },
-        )
+        )  # ty: ignore[invalid-await]
         await client.expire(key, int(max(_QUIET_RESET, delay)))
         return True
 

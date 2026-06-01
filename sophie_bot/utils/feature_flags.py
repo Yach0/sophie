@@ -331,7 +331,7 @@ def _coerce_db_value(value: Any) -> FeatureValue | None:
 
 
 async def _get_override(feature: FeatureType) -> FeatureValue | None:
-    value = await aredis.hget(_REDIS_KEY, feature)
+    value = await aredis.hget(_REDIS_KEY, feature)  # ty: ignore[invalid-await]
     parsed_value = _parse_override(value, _DEFAULT_STATES[feature])
     if parsed_value is not None:
         return parsed_value
@@ -342,13 +342,13 @@ async def _get_override(feature: FeatureType) -> FeatureValue | None:
 
     db_value = _coerce_db_value(override.value)
     if db_value is not None:
-        await aredis.hset(_REDIS_KEY, feature, _serialize_value(db_value))
+        await aredis.hset(_REDIS_KEY, feature, _serialize_value(db_value))  # ty: ignore[invalid-await]
     return db_value
 
 
 async def _set_override(feature: FeatureType, value: FeatureValue) -> None:
     await FeatureFlagOverride.set_override(feature, value)
-    await aredis.hset(_REDIS_KEY, feature, _serialize_value(value))
+    await aredis.hset(_REDIS_KEY, feature, _serialize_value(value))  # ty: ignore[invalid-await]
 
 
 async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
@@ -364,7 +364,7 @@ async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
             continue
 
         parsed_overrides[typed_feature] = parsed_value
-        await aredis.hset(_REDIS_KEY, typed_feature, _serialize_value(parsed_value))
+        await aredis.hset(_REDIS_KEY, typed_feature, _serialize_value(parsed_value))  # ty: ignore[invalid-await]
 
     return parsed_overrides
 
@@ -374,7 +374,7 @@ def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
 
 
 async def get_chat_override(feature: FeatureType, chat_tid: int) -> FeatureValue | None:
-    value = await aredis.hget(_chat_redis_key(chat_tid), feature)
+    value = await aredis.hget(_chat_redis_key(chat_tid), feature)  # ty: ignore[invalid-await]
     parsed_value = _parse_override(value, _DEFAULT_STATES[feature])
     if parsed_value is not None:
         return parsed_value
@@ -385,18 +385,18 @@ async def get_chat_override(feature: FeatureType, chat_tid: int) -> FeatureValue
 
     db_value = _coerce_db_value(override.value)
     if db_value is not None:
-        await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(db_value))
+        await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(db_value))  # ty: ignore[invalid-await]
     return db_value
 
 
 async def set_chat_override(feature: FeatureType, chat_tid: int, value: FeatureValue) -> None:
     await FeatureFlagOverride.set_override(feature, value, chat_tid=chat_tid)
-    await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))
+    await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))  # ty: ignore[invalid-await]
 
 
 async def delete_chat_override(feature: FeatureType, chat_tid: int) -> None:
     await FeatureFlagOverride.delete_override(feature, chat_tid=chat_tid)
-    await aredis.hdel(_chat_redis_key(chat_tid), feature)
+    await aredis.hdel(_chat_redis_key(chat_tid), feature)  # ty: ignore[invalid-await]
 
 
 async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
@@ -410,7 +410,7 @@ async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
         parsed_value = _coerce_db_value(override.value)
         if parsed_value is not None:
             parsed_overrides[typed_feature] = parsed_value
-            await aredis.hset(_chat_redis_key(chat_tid), typed_feature, _serialize_value(parsed_value))
+            await aredis.hset(_chat_redis_key(chat_tid), typed_feature, _serialize_value(parsed_value))  # ty: ignore[invalid-await]
     return parsed_overrides
 
 
