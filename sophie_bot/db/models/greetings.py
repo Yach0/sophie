@@ -31,7 +31,7 @@ def _coerce_timedelta(value: object) -> object:
 
 class WelcomeMute(BaseModel):
     enabled: bool = False
-    time: Optional[timedelta] = timedelta(hours=48)
+    time: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = timedelta(hours=48)
 
 
 class WelcomeSecurity(BaseModel):
