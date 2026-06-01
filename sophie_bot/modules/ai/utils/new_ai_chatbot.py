@@ -1,10 +1,13 @@
-from collections.abc import AsyncIterable, Awaitable, Callable
-from typing import Optional, TypeVar
+from __future__ import annotations
 
-from aiogram.types import Message, ReplyKeyboardMarkup
+from collections.abc import AsyncIterable, Awaitable, Callable, Mapping
+from dataclasses import dataclass
+from typing import Any, TypeVar, cast
+
 from pydantic import BaseModel
 from pydantic_ai import Agent, AgentStreamEvent, FunctionToolCallEvent, RunContext
-from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior
+from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior, UsageLimitExceeded
+from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 
 from sophie_bot.metrics import track_ai_request
@@ -12,80 +15,136 @@ from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult, ai_agent_run
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.utils.exception import SophieException
 
+OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 RESPONSE_TYPE = TypeVar("RESPONSE_TYPE", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
 
-def _inject_request_options(
-    kwargs: dict,
-    user_tracking_id: object | None = None,
-    session_id: str | None = None,
-    service_tier: str | None = None,
-) -> None:
-    if user_tracking_id is None and session_id is None and service_tier is None:
-        return
-    model_settings = dict(kwargs.get("model_settings") or {})
-    extra_body = dict(model_settings.get("extra_body") or {})
-    if user_tracking_id is not None:
-        extra_body["user"] = str(user_tracking_id)
-    if session_id is not None:
-        extra_body["session_id"] = session_id
-    if service_tier is not None:
-        extra_body["service_tier"] = service_tier
+@dataclass(frozen=True, slots=True)
+class AIRequestOptions:
+    user_tracking_id: object | None = None
+    session_id: str | None = None
+    service_tier: str | None = None
+
+    @property
+    def has_extra_body(self) -> bool:
+        return self.user_tracking_id is not None or self.session_id is not None or self.service_tier is not None
+
+
+def build_model_settings(
+    base_model_settings: Mapping[str, object] | None,
+    request_options: AIRequestOptions | None,
+) -> dict[str, object] | None:
+    model_settings = dict(base_model_settings or {})
+    if request_options is None or not request_options.has_extra_body:
+        return model_settings or None
+
+    extra_body = dict(cast(Mapping[str, object], model_settings.get("extra_body") or {}))
+    if request_options.user_tracking_id is not None:
+        extra_body["user"] = str(request_options.user_tracking_id)
+    if request_options.session_id is not None:
+        extra_body["session_id"] = request_options.session_id
+    if request_options.service_tier is not None:
+        extra_body["service_tier"] = request_options.service_tier
     model_settings["extra_body"] = extra_body
-    kwargs["model_settings"] = model_settings
+    return model_settings
+
+
+def _request_options_from_args(
+    request_options: AIRequestOptions | None,
+    user_tracking_id: object | None,
+    session_id: str | None,
+    service_tier: str | None,
+) -> AIRequestOptions:
+    if request_options is not None:
+        return request_options
+    return AIRequestOptions(user_tracking_id=user_tracking_id, session_id=session_id, service_tier=service_tier)
+
+
+def _build_run_kwargs(
+    agent_kwargs: Mapping[str, Any] | None,
+    request_options: AIRequestOptions,
+    base_model_settings: Mapping[str, object] | None = None,
+) -> dict[str, Any]:
+    run_kwargs = dict(agent_kwargs or {})
+    run_model_settings = build_model_settings(base_model_settings, request_options)
+    if run_model_settings is not None:
+        run_kwargs["model_settings"] = run_model_settings
+    return run_kwargs
+
+
+def _pop_model_settings(agent_init_kwargs: dict[str, Any]) -> Mapping[str, object] | None:
+    model_settings = agent_init_kwargs.pop("model_settings", None)
+    if model_settings is None:
+        return None
+    if isinstance(model_settings, Mapping):
+        return cast(Mapping[str, object], model_settings)
+    raise TypeError("model_settings must be a mapping when request options are injected")
+
+
+def _resolve_model_for_metrics(agent: Agent[Any, Any], model: Model) -> Model:
+    agent_model = agent.model
+    if agent_model is None:
+        return model
+    if not isinstance(agent_model, Model):
+        raise ValueError(f"Agent model must be a Model instance, got {type(agent_model)}")
+    return agent_model
 
 
 async def new_ai_generate(
     history: NewAIMessageHistory,
     model: Model,
-    agent_kwargs=None,
+    agent_kwargs: Mapping[str, Any] | None = None,
     user_tracking_id: object | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
-    **kwargs,
-) -> AIAgentResult:
+    request_options: AIRequestOptions | None = None,
+    agent: Agent[Any, OUTPUT_TYPE] | None = None,
+    **kwargs: Any,
+) -> AIAgentResult[OUTPUT_TYPE]:
     """
-    Used to generate the AI Chat-bot result text
+    Used to generate the AI Chat-bot result text.
     """
-    if agent_kwargs is None:
-        agent_kwargs = {}
+    resolved_request_options = _request_options_from_args(request_options, user_tracking_id, session_id, service_tier)
+    agent_init_kwargs = dict(kwargs)
+    base_model_settings = _pop_model_settings(agent_init_kwargs)
+    active_agent = agent if agent is not None else cast(Agent[Any, OUTPUT_TYPE], Agent(model, **agent_init_kwargs))
+    run_kwargs = _build_run_kwargs(agent_kwargs, resolved_request_options, base_model_settings)
 
-    kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
-
-    agent = Agent(model, **kwargs)
-    result = await ai_agent_run(
-        agent, user_prompt=history.prompt, message_history=history.message_history, **agent_kwargs
+    return await ai_agent_run(
+        active_agent,
+        user_prompt=history.prompt,
+        message_history=history.message_history,
+        **run_kwargs,
     )
-    return result
 
 
 async def new_ai_generate_stream(
     history: NewAIMessageHistory,
     model: Model,
     on_text_stream: TextStreamCallback,
-    agent_kwargs=None,
+    agent_kwargs: Mapping[str, Any] | None = None,
     user_tracking_id: object | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
+    request_options: AIRequestOptions | None = None,
+    agent: Agent[Any, str] | None = None,
     on_tool_call: ToolCallCallback | None = None,
-    **kwargs,
-) -> AIAgentResult:
+    **kwargs: Any,
+) -> AIAgentResult[str]:
     """
     Generate AI response while streaming cumulative text chunks through a callback.
     """
-    if agent_kwargs is None:
-        agent_kwargs = {}
+    resolved_request_options = _request_options_from_args(request_options, user_tracking_id, session_id, service_tier)
+    agent_init_kwargs = dict(kwargs)
+    base_model_settings = _pop_model_settings(agent_init_kwargs)
+    active_agent = agent if agent is not None else Agent(model, **agent_init_kwargs)
+    metrics_model = _resolve_model_for_metrics(active_agent, model)
 
-    kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
-
-    agent = Agent(model, **kwargs)
-    async with track_ai_request(model, "agent"):
+    async with track_ai_request(metrics_model, "agent"):
         try:
-            run_stream_kwargs = dict(agent_kwargs)
+            run_stream_kwargs = _build_run_kwargs(agent_kwargs, resolved_request_options, base_model_settings)
             if on_tool_call is not None:
                 seen_tool_names: set[str] = set()
 
@@ -106,7 +165,7 @@ async def new_ai_generate_stream(
 
                 run_stream_kwargs["event_stream_handler"] = event_stream_handler
 
-            async with agent.run_stream(
+            async with active_agent.run_stream(
                 user_prompt=history.prompt,
                 message_history=history.message_history,
                 **run_stream_kwargs,
@@ -121,14 +180,16 @@ async def new_ai_generate_stream(
                 result_message_history = result_stream.all_messages()
         except UnexpectedModelBehavior as error:
             raise SophieException("AI provider returned an invalid response. Please try again later.") from error
-        except ModelHTTPError as err:
-            raise SophieException(f"AI model error: {err.message}") from err
+        except UsageLimitExceeded as error:
+            raise SophieException(
+                "AI request exceeded the configured usage limits. Please try a shorter request."
+            ) from error
+        except ModelHTTPError as error:
+            raise SophieException(f"AI model error: {error.message}") from error
 
     return AIAgentResult(
         output=output_text,
-        steps=0,
-        retries=0,
-        message_history=result_message_history,
+        message_history=cast(list[ModelRequest | ModelResponse], result_message_history),
         usage=usage,
     )
 
@@ -140,17 +201,22 @@ async def new_ai_generate_schema(
     user_tracking_id: object | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
-    **kwargs,
+    request_options: AIRequestOptions | None = None,
+    **kwargs: Any,
 ) -> RESPONSE_TYPE:
     """
-    Generate AI response with structured schema output
+    Generate AI response with structured schema output.
     """
-    kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
+    resolved_request_options = _request_options_from_args(request_options, user_tracking_id, session_id, service_tier)
+    agent_init_kwargs = dict(kwargs)
+    base_model_settings = _pop_model_settings(agent_init_kwargs)
 
-    agent = Agent(model, output_type=schema, **kwargs)
+    agent = cast(Agent[Any, RESPONSE_TYPE], Agent(model, output_type=schema, **agent_init_kwargs))
     result: AIAgentResult[RESPONSE_TYPE] = await ai_agent_run(
-        agent, user_prompt=history.prompt, message_history=history.message_history
+        agent,
+        user_prompt=history.prompt,
+        message_history=history.message_history,
+        **_build_run_kwargs(None, resolved_request_options, base_model_settings),
     )
     return result.output
 
@@ -162,36 +228,20 @@ async def new_ai_generate_schema_with_result(
     user_tracking_id: object | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
-    **kwargs,
+    request_options: AIRequestOptions | None = None,
+    **kwargs: Any,
 ) -> AIAgentResult[RESPONSE_TYPE]:
     """
     Generate AI response with structured schema output and return full result including usage.
     """
-    kwargs = dict(kwargs)
-    _inject_request_options(kwargs, user_tracking_id, session_id, service_tier)
+    resolved_request_options = _request_options_from_args(request_options, user_tracking_id, session_id, service_tier)
+    agent_init_kwargs = dict(kwargs)
+    base_model_settings = _pop_model_settings(agent_init_kwargs)
 
-    agent = Agent(model, output_type=schema, **kwargs)
-    return await ai_agent_run(agent, user_prompt=history.prompt, message_history=history.message_history)
-
-
-async def new_ai_reply(message: Message, markup: Optional[ReplyKeyboardMarkup] = None) -> Message:
-    """
-    Generate AI reply and send it as a message
-    """
-    from sophie_bot.db.models import ChatModel
-    from sophie_bot.middlewares.connections import ChatConnection
-    from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-
-    chat_db = await ChatModel.get_by_tid(message.chat.id)
-    if not chat_db:
-        raise ValueError("Chat not found in database")
-
-    connection = ChatConnection(
-        type=chat_db.type,
-        is_connected=False,
-        tid=chat_db.tid,
-        title=chat_db.first_name_or_title,
-        db_model=chat_db,
+    agent = cast(Agent[Any, RESPONSE_TYPE], Agent(model, output_type=schema, **agent_init_kwargs))
+    return await ai_agent_run(
+        agent,
+        user_prompt=history.prompt,
+        message_history=history.message_history,
+        **_build_run_kwargs(None, resolved_request_options, base_model_settings),
     )
-
-    return await ai_chatbot_reply(message, connection, user_text=None, reply_markup=markup)

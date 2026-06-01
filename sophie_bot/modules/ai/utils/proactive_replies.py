@@ -20,20 +20,19 @@ from sophie_bot.metrics import (
     track_ai_usage,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_chatbot_reply import (
-    CHATBOT_TOOLS,
-    _build_chatbot_header,
-    _build_reply_doc,
-    _build_system_prompt,
-    _truncate_output,
-)
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
-from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContenxt
+from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message, get_cached_messages
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate, new_ai_generate_schema_with_result
+from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_agent, build_chatbot_usage_limits, get_chatbot_tools
+from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc, truncate_output
+from sophie_bot.modules.ai.utils.new_ai_chatbot import (
+    AIRequestOptions,
+    new_ai_generate,
+    new_ai_generate_schema_with_result,
+)
 from sophie_bot.modules.ai.utils.new_message_history import AIUserMessageFormatter, NewAIMessageHistory
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
@@ -459,11 +458,9 @@ async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: s
     )
 
 
-async def _build_answer_history(chat_tid: int, chat: ChatModel, target_message: MessageType) -> NewAIMessageHistory:
+async def _build_answer_history(chat_tid: int, target_message: MessageType) -> NewAIMessageHistory:
     history = NewAIMessageHistory()
-    system_prompt = await _build_system_prompt(chat.iid, chat_tid, target_message.text)
     proactive_answer_prompt = Doc(
-        system_prompt,
         _(
             "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: "
             "1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the "
@@ -496,24 +493,37 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         model=model.model_name,
         service_tier=service_tier or "none",
     )
-    history = await _build_answer_history(chat_tid, chat, target_message)
-    agent_kwargs = {"deps": SophieAIToolContenxt(connection=connection)}
+    history = await _build_answer_history(chat_tid, target_message)
+    context = SophieAIToolContext(
+        connection=connection,
+        chat_tid=chat_tid,
+        chat_iid=chat.iid,
+        user_text=target_message.text,
+    )
+    agent_kwargs = {
+        "deps": context,
+        "usage_limits": await build_chatbot_usage_limits(chat_tid),
+    }
+    request_options = AIRequestOptions(
+        user_tracking_id=chat.iid,
+        session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
+        service_tier=service_tier,
+    )
+    agent = build_chatbot_agent(model, await get_chatbot_tools(chat_tid))
     async with track_ai_conversation():
         result = await new_ai_generate(
             history,
-            tools=CHATBOT_TOOLS,
             model=model,
+            agent=agent,
             agent_kwargs=agent_kwargs,
-            user_tracking_id=chat.iid,
-            session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
-            service_tier=service_tier,
+            request_options=request_options,
         )
     if result.usage:
         track_ai_usage(model, result.usage)
         await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, model, result.usage)
-    header = await _build_chatbot_header(connection, model, result.message_history)
-    output_text = _truncate_output(header, str(result.output))
-    doc = await _build_reply_doc(header, output_text, model, result, False, chat_tid=chat_tid)
+    header = await build_chatbot_header(chat.iid, model, result.message_history)
+    output_text = truncate_output(header, str(result.output))
+    doc = await build_reply_doc(header, output_text, model, result, False, chat_tid=chat_tid)
     _log_proactive_info(
         "Proactive AI answer send started",
         chat_id=chat_tid,
