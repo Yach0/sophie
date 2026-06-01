@@ -38,7 +38,7 @@ dependencies = [
     "av>=18,<19",
     "openapi-client",
     "psutil>=7.2.2,<8",
-    "ussr",
+    "ussr @ git+ssh://git@gitlab.com/SophieBot/ussr.git",
 ]
 
 [dependency-groups]
@@ -67,7 +67,7 @@ dev = [
 stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
-ussr = { git = "https://gitlab.com/SophieBot/ussr.git" }
+ussr = { git = "ssh://git@gitlab.com/SophieBot/ussr.git" }
 
 [tool.ty.src]
 include = ["sophie_bot/**"]
