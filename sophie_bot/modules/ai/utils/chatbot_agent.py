@@ -16,6 +16,7 @@ from sophie_bot.modules.ai.agent_tools.notes import (
     get_notes_tool,
     save_note_tool,
 )
+from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -68,6 +69,8 @@ async def get_chatbot_tools(chat_tid: int) -> list[Any]:
         tools.append(save_note_tool)
     if await is_enabled("ai_delete_notes", chat_tid=chat_tid):
         tools.append(delete_note_tool)
+    if await is_enabled("ai_research", chat_tid=chat_tid):
+        tools.append(research_topic_tool)
     return tools
 
 

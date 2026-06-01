@@ -67,5 +67,10 @@ async def get_proactive_replies_model(chat_tid: int | None = None) -> Model:
     return _get_ai_models()[model_name]
 
 
+async def get_research_model(chat_tid: int | None = None) -> Model:
+    model_name = str(await get_value("ai_research_model", chat_tid=chat_tid))
+    return _get_ai_models()[model_name]
+
+
 AI_MODELS = _LazyAIModels()
 MODERATION_REASON_MODEL = _LazyFixedModel(_moderation_reason_model_name)

@@ -143,27 +143,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:111
+#: sophie_bot/modules/ai/__init__.py:113
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:113
+#: sophie_bot/modules/ai/__init__.py:115
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:116
+#: sophie_bot/modules/ai/__init__.py:118
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:117
+#: sophie_bot/modules/ai/__init__.py:119
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:120
+#: sophie_bot/modules/ai/__init__.py:122
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:121
+#: sophie_bot/modules/ai/__init__.py:123
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -579,6 +579,68 @@ msgstr ""
 msgid "The AI mode has been exited."
 msgstr ""
 
+#: sophie_bot/modules/ai/handlers/research.py:30
+msgid "Preparing search queries..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:31
+msgid "Planning the research..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:32
+msgid "Choosing what to search for..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:35
+msgid "Searching the internet..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:36
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:36
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
+msgid "Looking it up online..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:37
+msgid "Gathering sources from the web..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:40
+msgid "Reviewing search results..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:41
+msgid "Checking if more searches are needed..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:42
+msgid "Reading through the sources..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:45
+msgid "Summarizing the research..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:46
+msgid "Putting the findings together..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:47
+msgid "Preparing the final answer..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:70
+msgid "Starting the research..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:104
+msgid "Research topic"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/research.py:106
+msgid "Research a topic using multistage web search and return a summary with sources"
+msgstr ""
+
 #: sophie_bot/modules/ai/handlers/reset_context.py:19
 msgid "Reset the chat's AI context and AI memory"
 msgstr ""
@@ -807,6 +869,38 @@ msgstr ""
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/ai_progress.py:36
+msgid "Thinking..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:37
+msgid "Working on it..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:38
+msgid "Let me think..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:39
+msgid "Generating response..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:40
+msgid "Preparing an answer..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:41
+msgid "Reading the context..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:42
+msgid "Checking the details..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:43
+msgid "Looking into it..."
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/ai_quota_docs.py:15
 #: sophie_bot/modules/ai/utils/ai_quota_docs.py:27
 msgid "AI Quota Exhausted"
@@ -938,107 +1032,74 @@ msgstr ""
 msgid "Delete note 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:39
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:44
+#: sophie_bot/modules/ai/utils/chatbot_response.py:29
+msgid "Research 🔎"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:35
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:40
 msgid "Searching the web..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:40
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
-msgid "Looking it up online..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:37
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
 msgid "Browsing the internet..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:49
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
 msgid "Updating memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
 msgid "Saving to memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:53
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:49
 msgid "Removing from memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
 msgid "Forgetting..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:57
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:53
 msgid "Checking command help..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
 msgid "Looking up commands..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:61
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:57
 msgid "Scanning notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
 msgid "Looking through notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:65
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:61
 msgid "Reading note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
 msgid "Fetching note content..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:69
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:65
 msgid "Saving note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
 msgid "Writing to notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:73
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:69
 msgid "Deleting note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
 msgid "Removing note..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:86
-msgid "Thinking..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:87
-msgid "Working on it..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:88
-msgid "Let me think..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:89
-msgid "Generating response..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:90
-msgid "Preparing an answer..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:91
-msgid "Reading the context..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:92
-msgid "Checking the details..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:93
-msgid "Looking into it..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/new_message_history.py:115
@@ -1057,6 +1118,38 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/proactive_replies.py:465
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:113
+msgid "Research currently supports the Kagi search provider. Set ai_search_provider to kagi to use it."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:116
+msgid "Research requires a configured Kagi API key."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:288
+msgid "Research requires a saved chat context."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:334
+msgid "I could not find enough search results to research this topic."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:397
+msgid "No snippet available."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:405
+msgid "Research"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:407
+msgid "Sources"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/research.py:409
+msgid "No sources."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/transform_video.py:67

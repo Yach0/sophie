@@ -1,0 +1,410 @@
+from __future__ import annotations
+
+import json
+from collections.abc import Awaitable, Callable, Iterable
+from dataclasses import dataclass
+from datetime import date, datetime
+from email.utils import parsedate_to_datetime
+from typing import Final, Literal
+
+from babel.dates import format_date
+from pydantic_ai.messages import ModelRequest, ModelResponse
+from pydantic_ai.models import Model
+from stfu_tg import BlockQuote, Bold, Code, Doc, Italic, Section, Template, Title, Url, VList
+from stfu_tg.doc import Element
+
+from sophie_bot.config import CONFIG
+from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, search_kagi
+from sophie_bot.modules.ai.json_schemas.research import (
+    ResearchDecision,
+    ResearchFinalResponse,
+    ResearchQueryPlan,
+    ResearchSearchQuery,
+    ResearchSource,
+)
+from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
+from sophie_bot.modules.ai.utils.ai_model_factory import get_research_model
+from sophie_bot.modules.ai.utils.ai_usage_service import AIUsageLike, charge_ai_usage
+from sophie_bot.modules.ai.utils.new_ai_chatbot import AIRequestOptions, new_ai_generate_schema_with_result
+from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
+from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import get_service_tier, get_value
+from sophie_bot.utils.i18n import gettext as _
+
+_RESEARCH_SEARCH_PROVIDER_KAGI: Final[str] = "kagi"
+_DEFAULT_MAX_ROUNDS: Final[int] = 3
+_DEFAULT_QUERIES_PER_ROUND: Final[int] = 5
+_DEFAULT_RESULTS_PER_QUERY: Final[int] = 5
+
+ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
+ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
+
+
+@dataclass(frozen=True)
+class ResearchWorkflowSettings:
+    max_rounds: int
+    queries_per_round: int
+    results_per_query: int
+    service_tier: str | None
+
+
+@dataclass(frozen=True)
+class ResearchWorkflowResult:
+    response: ResearchFinalResponse
+    model: Model
+    message_history: list[ModelRequest | ModelResponse]
+
+
+def _coerce_positive_int(value: object, default: int, maximum: int) -> int:
+    if isinstance(value, bool):
+        return default
+    try:
+        parsed_value = int(value) if isinstance(value, int | float | str) else default
+    except ValueError:
+        return default
+    if parsed_value <= 0:
+        return default
+    return min(parsed_value, maximum)
+
+
+async def get_research_settings(chat_tid: int | None = None) -> ResearchWorkflowSettings:
+    return ResearchWorkflowSettings(
+        max_rounds=_coerce_positive_int(await get_value("ai_research_max_rounds", chat_tid=chat_tid), 3, 5),
+        queries_per_round=_coerce_positive_int(
+            await get_value("ai_research_queries_per_round", chat_tid=chat_tid), 5, 10
+        ),
+        results_per_query=_coerce_positive_int(
+            await get_value("ai_research_results_per_query", chat_tid=chat_tid), 5, 10
+        ),
+        service_tier=await get_service_tier("ai_research_service_tier", chat_tid=chat_tid),
+    )
+
+
+def _limit_queries(queries: Iterable[ResearchSearchQuery], limit: int) -> list[ResearchSearchQuery]:
+    limited_queries: list[ResearchSearchQuery] = []
+    seen_queries: set[str] = set()
+    for query in queries:
+        normalized_query = query.query.strip()
+        normalized_key = normalized_query.casefold()
+        if not normalized_query or normalized_key in seen_queries:
+            continue
+        limited_queries.append(ResearchSearchQuery(query=normalized_query, reason=query.reason.strip()))
+        seen_queries.add(normalized_key)
+        if len(limited_queries) >= limit:
+            break
+    return limited_queries
+
+
+def _source_from_kagi(result: KagiSearchResult) -> ResearchSource:
+    return ResearchSource(
+        title=result.title,
+        url=result.url,
+        snippet=result.snippet,
+        published=result.published,
+    )
+
+
+async def search_web_for_research(chat_tid: int, query: str, limit: int) -> list[ResearchSource]:
+    search_provider = str(await get_value("ai_search_provider", chat_tid=chat_tid)).lower()
+    if search_provider != _RESEARCH_SEARCH_PROVIDER_KAGI:
+        raise SophieException(
+            _("Research currently supports the Kagi search provider. Set ai_search_provider to kagi to use it.")
+        )
+    if not CONFIG.kagi_api_key:
+        raise SophieException(_("Research requires a configured Kagi API key."))
+
+    results = await search_kagi(query, limit)
+    return [_source_from_kagi(result) for result in results]
+
+
+async def _run_queries(
+    chat_tid: int, queries: list[ResearchSearchQuery], results_per_query: int
+) -> list[ResearchSource]:
+    sources: list[ResearchSource] = []
+    seen_urls: set[str] = set()
+    for query in queries:
+        for source in await search_web_for_research(chat_tid, query.query, results_per_query):
+            normalized_url = source.url.strip()
+            if not normalized_url or normalized_url in seen_urls:
+                continue
+            sources.append(source)
+            seen_urls.add(normalized_url)
+    return sources
+
+
+def _build_history(system_prompt: str, user_prompt: str) -> NewAIMessageHistory:
+    history = NewAIMessageHistory()
+    history.add_system(system_prompt)
+    history.prompt = [user_prompt]
+    return history
+
+
+def _sources_payload(sources: list[ResearchSource]) -> str:
+    return json.dumps([source.model_dump() for source in sources], ensure_ascii=False, indent=2)
+
+
+def _queries_payload(queries: list[ResearchSearchQuery]) -> str:
+    return json.dumps([query.model_dump() for query in queries], ensure_ascii=False, indent=2)
+
+
+async def _charge_research_usage(connection: ChatConnection, model: Model, result_usage: AIUsageLike | None) -> None:
+    if result_usage is None:
+        return
+    await charge_ai_usage(connection.db_model.iid, AI_FEATURE_RESEARCH, model, result_usage)
+
+
+async def _generate_initial_queries(
+    prompt: str,
+    connection: ChatConnection,
+    model: Model,
+    settings: ResearchWorkflowSettings,
+) -> ResearchQueryPlan:
+    history = _build_history(
+        "\n".join(
+            (
+                "You plan web research for Sophie, a Telegram bot.",
+                "Generate precise, diverse search queries that help answer the user's request.",
+                "Do not answer the request yet. Return only the structured query plan.",
+            )
+        ),
+        "\n".join(
+            (
+                "Research request:",
+                prompt,
+                f"Return up to {settings.queries_per_round} search queries.",
+            )
+        ),
+    )
+    result = await new_ai_generate_schema_with_result(
+        history,
+        ResearchQueryPlan,
+        model,
+        request_options=AIRequestOptions(
+            user_tracking_id=connection.db_model.iid,
+            session_id=f"research:{connection.db_model.iid}:queries",
+            service_tier=settings.service_tier,
+        ),
+    )
+    await _charge_research_usage(connection, model, result.usage)
+    return ResearchQueryPlan(queries=_limit_queries(result.output.queries, settings.queries_per_round))
+
+
+async def _decide_next_step(
+    prompt: str,
+    queries: list[ResearchSearchQuery],
+    sources: list[ResearchSource],
+    round_index: int,
+    connection: ChatConnection,
+    model: Model,
+    settings: ResearchWorkflowSettings,
+) -> ResearchDecision:
+    history = _build_history(
+        "\n".join(
+            (
+                "You review web search results for a multistage research workflow.",
+                "Choose action='search' only when follow-up searches are needed because evidence is missing, weak, outdated, or contradictory.",
+                "Choose action='continue' when there is enough evidence to summarize.",
+                "When action='search', return focused follow-up queries and do not exceed the requested limit.",
+            )
+        ),
+        "\n".join(
+            (
+                "Research request:",
+                prompt,
+                f"Round: {round_index + 1} of {settings.max_rounds}",
+                "Queries already run:",
+                _queries_payload(queries),
+                "Search results gathered so far:",
+                _sources_payload(sources),
+                f"Return up to {settings.queries_per_round} follow-up queries if more search is needed.",
+            )
+        ),
+    )
+    result = await new_ai_generate_schema_with_result(
+        history,
+        ResearchDecision,
+        model,
+        request_options=AIRequestOptions(
+            user_tracking_id=connection.db_model.iid,
+            session_id=f"research:{connection.db_model.iid}:decision:{round_index}",
+            service_tier=settings.service_tier,
+        ),
+    )
+    await _charge_research_usage(connection, model, result.usage)
+    return ResearchDecision(
+        action=result.output.action,
+        followup_queries=_limit_queries(result.output.followup_queries, settings.queries_per_round),
+        reasoning=result.output.reasoning,
+    )
+
+
+async def _summarize_research(
+    prompt: str,
+    sources: list[ResearchSource],
+    connection: ChatConnection,
+    model: Model,
+    settings: ResearchWorkflowSettings,
+) -> AIAgentResult[ResearchFinalResponse]:
+    history = _build_history(
+        "\n".join(
+            (
+                "You summarize multistage web research for Sophie, a Telegram bot.",
+                "Use only the provided search results as evidence.",
+                "Mention uncertainty when evidence is weak or sources disagree.",
+                "Return a concise final answer and a sources list containing only sources used to support the answer.",
+            )
+        ),
+        "\n".join(
+            (
+                "Research request:",
+                prompt,
+                "Search results:",
+                _sources_payload(sources),
+            )
+        ),
+    )
+    result = await new_ai_generate_schema_with_result(
+        history,
+        ResearchFinalResponse,
+        model,
+        request_options=AIRequestOptions(
+            user_tracking_id=connection.db_model.iid,
+            session_id=f"research:{connection.db_model.iid}:summary",
+            service_tier=settings.service_tier,
+        ),
+    )
+    await _charge_research_usage(connection, model, result.usage)
+    return result
+
+
+async def run_research_workflow(
+    prompt: str,
+    connection: ChatConnection,
+    progress_callback: ResearchProgressCallback | None = None,
+) -> ResearchWorkflowResult:
+    if not connection.db_model:
+        raise SophieException(_("Research requires a saved chat context."))
+
+    chat_tid = connection.tid
+    settings = await get_research_settings(chat_tid)
+    model = await get_research_model(chat_tid)
+    if progress_callback is not None:
+        await progress_callback("planning")
+    query_plan = await _generate_initial_queries(prompt, connection, model, settings)
+    current_queries = query_plan.queries
+    all_sources: list[ResearchSource] = []
+    seen_urls: set[str] = set()
+
+    for round_index in range(settings.max_rounds):
+        if not current_queries:
+            break
+
+        if progress_callback is not None:
+            await progress_callback("searching")
+        round_sources = await _run_queries(chat_tid, current_queries, settings.results_per_query)
+        for source in round_sources:
+            if source.url in seen_urls:
+                continue
+            all_sources.append(source)
+            seen_urls.add(source.url)
+
+        if round_index >= settings.max_rounds - 1:
+            break
+
+        if progress_callback is not None:
+            await progress_callback("reviewing")
+        decision = await _decide_next_step(
+            prompt,
+            current_queries,
+            all_sources,
+            round_index,
+            connection,
+            model,
+            settings,
+        )
+        if decision.action == "continue":
+            break
+        current_queries = decision.followup_queries
+
+    if not all_sources:
+        return ResearchWorkflowResult(
+            response=ResearchFinalResponse(
+                text=_("I could not find enough search results to research this topic."),
+                sources=[],
+            ),
+            model=model,
+            message_history=[],
+        )
+
+    if progress_callback is not None:
+        await progress_callback("summarizing")
+    summary_result = await _summarize_research(prompt, all_sources, connection, model, settings)
+    return ResearchWorkflowResult(
+        response=summary_result.output,
+        model=model,
+        message_history=summary_result.message_history,
+    )
+
+
+async def run_research_workflow_response(
+    prompt: str,
+    connection: ChatConnection,
+    progress_callback: ResearchProgressCallback | None = None,
+) -> ResearchFinalResponse:
+    result = await run_research_workflow(prompt, connection, progress_callback=progress_callback)
+    return result.response
+
+
+def _parse_source_date(value: str | None) -> date | None:
+    if not value:
+        return None
+
+    normalized_value = value.strip()
+    if not normalized_value:
+        return None
+
+    try:
+        return datetime.fromisoformat(normalized_value.replace("Z", "+00:00")).date()
+    except ValueError:
+        pass
+
+    try:
+        return parsedate_to_datetime(normalized_value).date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_source_title(source: ResearchSource, current_locale: str) -> Element:
+    source_date = _parse_source_date(source.published)
+    if source_date is None:
+        return Url(source.title, source.url)
+
+    formatted_date = format_date(source_date, format="long", locale=current_locale)
+    return Url(Template("{title} {date}", title=Bold(source.title), date=Italic(formatted_date)), source.url)
+
+
+def build_research_doc(
+    response: ResearchFinalResponse,
+    header: Element | None = None,
+    current_locale: str = "en_US",
+) -> Doc:
+    source_items = []
+    for source in response.sources:
+        source_items.append(
+            Section(
+                source.snippet or _("No snippet available."),
+                title=_format_source_title(source, current_locale),
+                title_underline=False,
+                title_bold=False,
+            )
+        )
+
+    return Doc(
+        header or Title(_("Research")),
+        response.text,
+        BlockQuote(Section(VList(*source_items), title=_("Sources")), expandable=True)
+        if source_items
+        else Section(Code(_("No sources."))),
+    )

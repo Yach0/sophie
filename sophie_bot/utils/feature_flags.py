@@ -74,6 +74,12 @@ FeatureType = Literal[
     "ai_proactive_replies_max_answers",
     "ai_proactive_replies_max_reactions",
     "ai_proactive_replies_min_messages",
+    "ai_research",
+    "ai_research_model",
+    "ai_research_max_rounds",
+    "ai_research_queries_per_round",
+    "ai_research_results_per_query",
+    "ai_research_service_tier",
 ]
 
 
@@ -143,6 +149,12 @@ class FeatureStates(TypedDict):
     ai_proactive_replies_max_answers: int
     ai_proactive_replies_max_reactions: int
     ai_proactive_replies_min_messages: int
+    ai_research: bool
+    ai_research_model: str
+    ai_research_max_rounds: int
+    ai_research_queries_per_round: int
+    ai_research_results_per_query: int
+    ai_research_service_tier: str
 
 
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
@@ -211,6 +223,12 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_proactive_replies_max_answers",
     "ai_proactive_replies_max_reactions",
     "ai_proactive_replies_min_messages",
+    "ai_research",
+    "ai_research_model",
+    "ai_research_max_rounds",
+    "ai_research_queries_per_round",
+    "ai_research_results_per_query",
+    "ai_research_service_tier",
 )
 
 
@@ -287,6 +305,12 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_proactive_replies_max_answers": 1,
     "ai_proactive_replies_max_reactions": 1,
     "ai_proactive_replies_min_messages": 30,
+    "ai_research": False,
+    "ai_research_model": "openai/gpt-5.5",
+    "ai_research_max_rounds": 3,
+    "ai_research_queries_per_round": 5,
+    "ai_research_results_per_query": 5,
+    "ai_research_service_tier": "flex",
 }
 
 

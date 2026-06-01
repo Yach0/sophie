@@ -26,6 +26,7 @@ CHATBOT_TOOLS_TITLES: dict[str, Element] = {
     "get_note_content": cast(Element, l_("Note 🗒")),
     "save_note": cast(Element, l_("Save note 🗒")),
     "delete_note": cast(Element, l_("Delete note 🗑")),
+    "research_topic": cast(Element, l_("Research 🔎")),
 }
 
 

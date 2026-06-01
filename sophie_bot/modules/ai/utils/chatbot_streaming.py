@@ -10,10 +10,15 @@ from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.models import Model
-from stfu_tg import Doc, HList, PreformattedHTML
+from stfu_tg import Doc, HList
 from stfu_tg.doc import Element
 
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.utils.ai_progress import (
+    ai_progress_custom_emoji,
+    random_ai_progress_custom_emoji_id,
+    random_ai_thinking_text,
+)
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc
 from sophie_bot.modules.ai.utils.draft_stream import DEFAULT_DRAFT_MAX_TEXT_LENGTH
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -21,16 +26,7 @@ from sophie_bot.utils.i18n import gettext as _
 
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
-_DEFAULT_THINKING_CUSTOM_EMOJI_ID = "5258317508326214175"
-_THINKING_CUSTOM_EMOJI_IDS = (
-    "5256211041615889001",
-    "5257997017866585370",
-    _DEFAULT_THINKING_CUSTOM_EMOJI_ID,
-    "5258417125797678733",
-    "5258464881539040501",
-    "5258494813166129825",
-    "5258331634473650007",
-)
+
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
 _MAX_STREAM_TEXT_LENGTH = DEFAULT_DRAFT_MAX_TEXT_LENGTH - 128
@@ -76,27 +72,8 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _thinking_custom_emoji(emoji_id: str | None = None) -> Element:
-    return PreformattedHTML(f'<tg-emoji emoji-id="{emoji_id or _DEFAULT_THINKING_CUSTOM_EMOJI_ID}">💭</tg-emoji>')
-
-
-def _random_thinking_text() -> str:
-    return choice(
-        (
-            _("Thinking..."),
-            _("Working on it..."),
-            _("Let me think..."),
-            _("Generating response..."),
-            _("Preparing an answer..."),
-            _("Reading the context..."),
-            _("Checking the details..."),
-            _("Looking into it..."),
-        )
-    )
-
-
 def _thinking_header_element(emoji_id: str | None = None) -> Element:
-    return HList(_thinking_custom_emoji(emoji_id), _random_thinking_text(), divider=" ")
+    return HList(ai_progress_custom_emoji(emoji_id), random_ai_thinking_text(), divider=" ")
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:
@@ -171,7 +148,7 @@ class ChatbotMessageStreamer:
             return
 
         thinking_text = choice(texts)
-        thinking_element = HList(_thinking_custom_emoji(self.emoji_id), thinking_text, divider=" ")
+        thinking_element = HList(ai_progress_custom_emoji(self.emoji_id), thinking_text, divider=" ")
         self.header = await build_chatbot_header(
             self.connection.db_model.iid,
             self.model,
@@ -247,7 +224,7 @@ async def build_message_streamer(
     emoji_id = None
     if thinking_enabled:
         if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id):
-            emoji_id = choice(_THINKING_CUSTOM_EMOJI_IDS)
+            emoji_id = random_ai_progress_custom_emoji_id()
         header_items = [_thinking_header_element(emoji_id=emoji_id)]
     header = await build_chatbot_header(
         connection.db_model.iid,
