@@ -222,6 +222,7 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None
     with (
         patch("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(return_value="Base system prompt")),
         patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
+        patch("sophie_bot.modules.ai.utils.chatbot_context.AIMemoryModel.get_lines", AsyncMock(return_value=[])),
     ):
         instructions = await build_chatbot_instructions(
             SimpleNamespace(chat_tid=-100123, chat_iid="chat-iid", user_text=None)
@@ -235,12 +236,18 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
     async def enabled_side_effect(feature: str, chat_tid: int | None = None) -> bool:
         return feature == "ai_research"
 
-    with patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(side_effect=enabled_side_effect)):
+    with (
+        patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
+        patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
+    ):
         tools = await get_chatbot_tools(-100123)
 
     assert research_topic_tool in tools
 
-    with patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)):
+    with (
+        patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)),
+        patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
+    ):
         tools = await get_chatbot_tools(-100123)
 
     assert research_topic_tool not in tools
