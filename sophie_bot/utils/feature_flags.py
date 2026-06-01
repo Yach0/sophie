@@ -31,6 +31,7 @@ FeatureType = Literal[
     "ai_chatbot_request_limit",
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
+    "ai_research",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -100,6 +101,7 @@ class FeatureStates(TypedDict):
     ai_chatbot_request_limit: int
     ai_chatbot_tool_calls_limit: int
     ai_chatbot_response_tokens_limit: int
+    ai_research: bool
     ai_translations: bool
     ai_moderation: bool
     ai_moderation_reasons: bool
@@ -168,6 +170,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "ai_chatbot_request_limit",
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
+    "ai_research",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -244,6 +247,7 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "ai_chatbot_request_limit": 8,
     "ai_chatbot_tool_calls_limit": 12,
     "ai_chatbot_response_tokens_limit": 0,
+    "ai_research": False,
     "ai_translations": True,
     "ai_moderation": True,
     "ai_moderation_reasons": True,

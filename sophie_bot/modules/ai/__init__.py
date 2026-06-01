@@ -28,6 +28,7 @@ from sophie_bot.modules.ai.handlers.playground import (
 from sophie_bot.modules.ai.handlers.pm import AiPmHandle, AiPmInitialize, AiPmStop
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
+from sophie_bot.modules.ai.handlers.research import AiResearch
 from sophie_bot.modules.ai.handlers.translate import AiTranslate
 from sophie_bot.modules.ai.handlers.usage import AiUsage
 from sophie_bot.modules.ai.magic_handlers.modern_action import AIReplyAction
@@ -97,6 +98,7 @@ module_manifest = ModuleManifest(
         AIPlaygroundModelSelectCallback,
         AiPmInitialize,
         AIContextReset,
+        AiResearch,
         AiTranslate,
         AiUsage,
         SetQuota,

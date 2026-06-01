@@ -68,6 +68,10 @@ async def get_chatbot_tools(chat_tid: int) -> list[Any]:
         tools.append(save_note_tool)
     if await is_enabled("ai_delete_notes", chat_tid=chat_tid):
         tools.append(delete_note_tool)
+    if await is_enabled("ai_research", chat_tid=chat_tid):
+        from sophie_bot.modules.ai.agent_tools.research import research_ai_tool
+
+        tools.append(research_ai_tool)
     return tools
 
 
