@@ -26,24 +26,6 @@ locale: extract_lang update_lang compile_lang
 
 # Build
 
-pull_libs:
-	@echo "Pulling latest libs..."
-	mkdir -p libs
-	if [ ! -d "libs/stf" ]; then \
-		git clone https://gitlab.com/SophieBot/stf.git libs/stf; \
-	else \
-		cd libs/stf && git pull; \
-	fi
-	if [ ! -d "libs/ass" ]; then \
-		git clone https://gitlab.com/SophieBot/ass.git libs/ass; \
-	else \
-		cd libs/ass && git pull; \
-	fi
-
-sync_libs: pull_libs
-	uv sync --reinstall-package ass-tg
-	uv sync --reinstall-package stf-tg
-
 clean:
 	@echo "Cleaning build directories..."
 	rm -rf output/
@@ -220,3 +202,29 @@ dev_branch: setup_worktree
 	@echo ""
 	@echo "🌲 Worktree is ready for development!"
 	@echo "   Run 'make commit' to verify everything is working."
+
+# Local lib development (ass-tg/stfu-tg)
+# Clones ass and stf into libs/ and overrides git sources with local paths.
+# Use when developing ass-tg or stfu-tg in parallel with SophieBot.
+
+dev-libs:
+	@echo "Cloning ass and stf into libs/..."
+	@mkdir -p libs
+	@if [ ! -d "libs/stf" ]; then \
+		git clone https://gitlab.com/SophieBot/stf.git libs/stf; \
+	else \
+		cd libs/stf && git pull; \
+	fi
+	@if [ ! -d "libs/ass" ]; then \
+		git clone https://gitlab.com/SophieBot/ass.git libs/ass; \
+	else \
+		cd libs/ass && git pull; \
+	fi
+	@echo "Installing ass-tg and stfu-tg from local paths..."
+	uv pip install ./libs/ass ./libs/stf
+	@echo "Done. Edit libs/ass and libs/stf, then run: make dev-libs"
+
+dev-libs-clean:
+	@echo "Removing local libs and reverting to git sources..."
+	rm -rf libs
+	uv sync

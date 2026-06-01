@@ -61,8 +61,8 @@ dev = [
 ]
 
 [tool.uv.sources]
-stfu-tg = { path = "./libs/stf" }
-ass-tg = { path = "./libs/ass" }
+stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
+ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 
 [tool.ty.src]

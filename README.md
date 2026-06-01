@@ -47,9 +47,10 @@ Clone the repository and install dependencies using `uv`:
 ```bash
 git clone https://gitlab.com/SophieBot/sophie.git
 cd sophie
-make pull_libs
 uv sync
 ```
+
+> **Developing ass-tg or stfu-tg locally?** Use `make dev-libs` to clone them into `libs/` and override the git sources.
 
 ### 2. Configuration
 
