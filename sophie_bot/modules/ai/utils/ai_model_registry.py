@@ -108,6 +108,7 @@ AI_MODEL_REGISTRY: list[SophieAIModel] = [
         default_for_translation=True,
     ),
     SophieAIModel(AIProviders.openai, "openai/gpt-5.4-nano", "GPT-5.4 nano"),
+    SophieAIModel(AIProviders.openai, "xiaomi/mimo-v2.5-pro", "Xiaomi Mimo V2.5 Pro"),
 ]
 
 AI_MODELS_BY_NAME: dict[str, SophieAIModel] = {model.name: model for model in AI_MODEL_REGISTRY}

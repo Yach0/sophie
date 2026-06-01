@@ -31,5 +31,8 @@ class ResearchDecision(BaseModel):
 
 
 class ResearchFinalResponse(BaseModel):
+    research_title: str = Field(description="Short filesystem-safe title for the research result.")
     text: str = Field(description="Final research summary.")
     sources: list[ResearchSource] = Field(description="Sources used to support the summary.")
+    research_query: str | None = Field(default=None, description="Original research request.")
+    research_model: str | None = Field(default=None, description="Research model used to produce the summary.")

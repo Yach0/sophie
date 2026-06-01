@@ -16,6 +16,8 @@ from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
+TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
+
 CHATBOT_TOOLS_TITLES: dict[str, Element] = {
     "write_memory": cast(Element, l_("Memory 💾")),
     "forget_memory": cast(Element, l_("Forget 🗑")),
@@ -70,7 +72,7 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
     return Section(
         BlockQuote(
             Doc(
-                KeyValue("Model", AI_MODEL_TO_SHORT_NAME[model.model_name]),
+                KeyValue("Model", AI_MODEL_TO_SHORT_NAME.get(model.model_name, model.model_name)),
                 KeyValue("LLM Requests", result.usage.requests),
                 KeyValue("Retries", result.retries if result.retries is not None else "-"),
                 KeyValue("Request tokens", result.usage.request_tokens),

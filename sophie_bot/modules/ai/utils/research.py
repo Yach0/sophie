@@ -1,17 +1,32 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Awaitable, Callable, Iterable
+import re
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 from random import choice
 from typing import Final, Literal
 
+from aiogram.types import BufferedInputFile
 from babel.dates import format_date
-from pydantic_ai.messages import ModelRequest, ModelResponse
+from pydantic_ai.messages import ModelRequest, ModelResponse, ToolReturnPart
 from pydantic_ai.models import Model
-from stfu_tg import BlockQuote, Bold, Code, Doc, Italic, Section, Template, Title, Url, VList
+from stfu_tg import (
+    BlockQuote,
+    Bold,
+    Code,
+    Doc,
+    Italic,
+    KeyValue,
+    PreformattedHTML,
+    Section,
+    Template,
+    Title,
+    Url,
+    VList,
+)
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
@@ -27,6 +42,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_model_factory import get_research_model
 from sophie_bot.modules.ai.utils.ai_usage_service import AIUsageLike, charge_ai_usage
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.new_ai_chatbot import AIRequestOptions, new_ai_generate_schema_with_result
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
@@ -38,6 +54,8 @@ _RESEARCH_SEARCH_PROVIDER_KAGI: Final[str] = "kagi"
 _DEFAULT_MAX_ROUNDS: Final[int] = 3
 _DEFAULT_QUERIES_PER_ROUND: Final[int] = 5
 _DEFAULT_RESULTS_PER_QUERY: Final[int] = 5
+_RESEARCH_MARKDOWN_FILENAME_FALLBACK: Final[str] = "research"
+_RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
@@ -294,7 +312,7 @@ async def _summarize_research(
                 "You summarize multistage web research for Sophie, a Telegram bot.",
                 "Use only the provided search results as evidence.",
                 "Mention uncertainty when evidence is weak or sources disagree.",
-                "Return a concise final answer and a sources list containing only sources used to support the answer.",
+                "Return a concise final answer, a short research_title, and a sources list containing only sources used to support the answer.",
             )
         ),
         "\n".join(
@@ -372,8 +390,11 @@ async def run_research_workflow(
     if not all_sources:
         return ResearchWorkflowResult(
             response=ResearchFinalResponse(
+                research_title=_("Research"),
                 text=_("I could not find enough search results to research this topic."),
                 sources=[],
+                research_query=prompt,
+                research_model=model.model_name,
             ),
             model=model,
             message_history=[],
@@ -383,7 +404,12 @@ async def run_research_workflow(
         await progress_callback("summarizing")
     summary_result = await _summarize_research(prompt, all_sources, connection, model, settings)
     return ResearchWorkflowResult(
-        response=summary_result.output,
+        response=summary_result.output.model_copy(
+            update={
+                "research_query": prompt,
+                "research_model": model.model_name,
+            }
+        ),
         model=model,
         message_history=summary_result.message_history,
     )
@@ -417,7 +443,31 @@ def _parse_source_date(value: str | None) -> date | None:
         return None
 
 
-def _format_source_title(source: ResearchSource, current_locale: str) -> Element:
+def _research_response_from_tool_content(content: object) -> ResearchFinalResponse | None:
+    if isinstance(content, ResearchFinalResponse):
+        return content
+
+    if isinstance(content, Mapping):
+        try:
+            return ResearchFinalResponse.model_validate(content)
+        except ValueError:
+            return None
+
+    return None
+
+
+def retrieve_latest_research_response(
+    message_history: list[ModelRequest | ModelResponse],
+) -> ResearchFinalResponse | None:
+    for message in reversed(message_history):
+        for part in reversed(message.parts):
+            if not isinstance(part, ToolReturnPart) or part.tool_name != "research_topic":
+                continue
+            return _research_response_from_tool_content(part.content)
+    return None
+
+
+def format_research_source_title(source: ResearchSource, current_locale: str) -> Element:
     source_date = _parse_source_date(source.published)
     if source_date is None:
         return Url(source.title, source.url)
@@ -426,26 +476,84 @@ def _format_source_title(source: ResearchSource, current_locale: str) -> Element
     return Url(Template("{title} {date}", title=Bold(source.title), date=Italic(formatted_date)), source.url)
 
 
+def _truncate_with_ellipsis(text: str, max_length: int) -> str:
+    if len(text) <= max_length:
+        return text
+    if max_length <= 3:
+        return text[:max_length]
+    return text[: max_length - 3].rstrip() + "..."
+
+
+def build_research_source_section(
+    source: ResearchSource,
+    current_locale: str = "en_US",
+    snippet_limit: int | None = None,
+) -> Section:
+    snippet = source.snippet or _("No snippet available.")
+    if snippet_limit is not None:
+        snippet = _truncate_with_ellipsis(snippet, snippet_limit)
+    return Section(
+        snippet,
+        title=format_research_source_title(source, current_locale),
+        title_underline=False,
+        title_bold=False,
+    )
+
+
+def _build_research_sources_section(
+    sources: list[ResearchSource],
+    current_locale: str,
+    snippet_limit: int | None = None,
+) -> Section | None:
+    if not sources:
+        return None
+    source_items = [
+        build_research_source_section(source, current_locale=current_locale, snippet_limit=snippet_limit)
+        for source in sources
+    ]
+    return Section(VList(*source_items), title=_("Sources"))
+
+
 def build_research_doc(
     response: ResearchFinalResponse,
     header: Element | None = None,
     current_locale: str = "en_US",
 ) -> Doc:
-    source_items = []
-    for source in response.sources:
-        source_items.append(
-            Section(
-                source.snippet or _("No snippet available."),
-                title=_format_source_title(source, current_locale),
-                title_underline=False,
-                title_bold=False,
-            )
-        )
-
     return Doc(
         header or Title(_("Research")),
-        response.text,
-        BlockQuote(Section(VList(*source_items), title=_("Sources")), expandable=True)
-        if source_items
+        PreformattedHTML(ai_markdown_to_html(response.text, extract_headings=True)),
+        BlockQuote(_build_research_sources_section(response.sources, current_locale), expandable=True)
+        if response.sources
         else Section(Code(_("No sources."))),
     )
+
+
+def build_research_file_doc(response: ResearchFinalResponse, current_locale: str = "en_US") -> Doc:
+    return Doc(
+        Section(
+            KeyValue(_("Original request"), response.research_query or "-"),
+            KeyValue(_("Research model"), response.research_model or "-"),
+            response.text,
+            _build_research_sources_section(
+                response.sources,
+                current_locale,
+                snippet_limit=_RESEARCH_SOURCE_SNIPPET_LIMIT,
+            ),
+            title=response.research_title,
+        )
+    )
+
+
+def render_research_markdown(response: ResearchFinalResponse, current_locale: str = "en_US") -> str:
+    return build_research_file_doc(response, current_locale).to_md()
+
+
+def research_markdown_filename(response: ResearchFinalResponse) -> str:
+    normalized_title = re.sub(r"[^\w.-]+", "_", response.research_title, flags=re.ASCII).strip("._-")
+    safe_title = normalized_title[:64] or _RESEARCH_MARKDOWN_FILENAME_FALLBACK
+    return f"{safe_title}.md"
+
+
+def build_research_markdown_file(response: ResearchFinalResponse, current_locale: str = "en_US") -> BufferedInputFile:
+    markdown_text = render_research_markdown(response, current_locale)
+    return BufferedInputFile(markdown_text.encode("utf-8"), filename=research_markdown_filename(response))

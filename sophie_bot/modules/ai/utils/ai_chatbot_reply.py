@@ -7,7 +7,7 @@ from aiogram.enums import ChatType
 from aiogram.types import Message
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
-from stfu_tg import BlockQuote, Section
+from stfu_tg import BlockQuote, Doc, Section
 from stfu_tg.doc import Element
 
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
@@ -23,13 +23,20 @@ from sophie_bot.modules.ai.utils.chatbot_agent import (
     get_chatbot_tools,
 )
 from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
-from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc, truncate_output
+from sophie_bot.modules.ai.utils.chatbot_response import (
+    TELEGRAM_MESSAGE_SAFE_LIMIT,
+    build_chatbot_header,
+    build_reply_doc,
+    truncate_output,
+)
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
 from sophie_bot.modules.ai.utils.new_ai_chatbot import AIRequestOptions, new_ai_generate, new_ai_generate_stream
 from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
+from sophie_bot.utils.i18n import gettext as _
 
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
@@ -78,8 +85,62 @@ async def _build_chatbot_header(
     )
 
 
-_build_reply_doc = build_reply_doc
-_truncate_output = truncate_output
+def _truncate_to_boundary(text: str, max_length: int) -> str:
+    if len(text) <= max_length:
+        return text
+    if max_length <= 3:
+        return text[:max_length]
+
+    truncated_text = text[: max_length - 3]
+    split_index = max(
+        truncated_text.rfind("\n\n"),
+        truncated_text.rfind("\n"),
+        truncated_text.rfind(". "),
+        truncated_text.rfind(" "),
+    )
+    if split_index >= max_length // 2:
+        truncated_text = truncated_text[:split_index]
+    return truncated_text.rstrip() + "..."
+
+
+async def _build_fitting_reply_doc(
+    header: Element,
+    output_text: str,
+    model: Model | None,
+    result: AIAgentResult[str] | None,
+    explicit_debug_mode: bool,
+    chat_tid: int,
+) -> Doc:
+    fitted_output_text = output_text
+    for _attempt_index in range(8):
+        doc = await build_reply_doc(
+            header,
+            fitted_output_text,
+            model,
+            result,
+            explicit_debug_mode,
+            chat_tid=chat_tid,
+        )
+        html_length = len(doc.to_html())
+        if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
+            return doc
+
+        overflow = html_length - TELEGRAM_MESSAGE_SAFE_LIMIT
+        next_length = len(fitted_output_text) - overflow - 128
+        if next_length >= len(fitted_output_text):
+            next_length = len(fitted_output_text) - 256
+        if next_length <= 0:
+            break
+        fitted_output_text = _truncate_to_boundary(fitted_output_text, next_length)
+
+    return await build_reply_doc(
+        header,
+        _truncate_to_boundary(fitted_output_text, max(0, min(len(fitted_output_text), 512))),
+        model,
+        result,
+        explicit_debug_mode,
+        chat_tid=chat_tid,
+    )
 
 
 async def _generate_chatbot_result(
@@ -190,8 +251,13 @@ async def ai_chatbot_reply(
             await charge_ai_usage(connection.db_model.iid, AI_FEATURE_CHATBOT, model, result.usage)
 
         header = await _build_chatbot_header(connection, model, result.message_history)
-        output_text = _truncate_output(header, str(result.output))
-        doc = await _build_reply_doc(
+        research_response = (
+            retrieve_latest_research_response(result.message_history)
+            if await is_enabled("ai_chatbot_research_quote", chat_tid=message.chat.id)
+            else None
+        )
+        output_text = truncate_output(header, str(result.output))
+        doc = await _build_fitting_reply_doc(
             header,
             output_text,
             model,
@@ -200,5 +266,10 @@ async def ai_chatbot_reply(
             chat_tid=message.chat.id,
         )
         if message_streamer:
-            return await message_streamer.send_final(doc, **kwargs)
-        return await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
+            final_message = await message_streamer.send_final(doc, **kwargs)
+        else:
+            final_message = await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
+
+        if research_response is not None:
+            await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))
+        return final_message

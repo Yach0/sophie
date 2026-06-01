@@ -1,6 +1,7 @@
 from sophie_bot.modules.ai.utils.ai_model_factory import (
     AI_MODELS,
     MODERATION_REASON_MODEL,
+    get_ai_model,
     get_filter_handler_model,
     get_proactive_replies_model,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "PROVIDER_TO_MODELS",
     "AI_MODELS",
     "MODERATION_REASON_MODEL",
+    "get_ai_model",
     "get_filter_handler_model",
     "get_proactive_replies_model",
     "get_model_pricing",

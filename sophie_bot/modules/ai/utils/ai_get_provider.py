@@ -16,10 +16,8 @@ from sophie_bot.utils.logger import log
 async def get_chat_default_model(chat_id: PydanticObjectId, chat_tid: int | None = None) -> Model:
     feature_model_name = str(await get_value("ai_chatbot_model", chat_tid=chat_tid))
     if feature_model_name:
-        if feature_model_name in AI_MODELS:
-            log.debug(f"Chatbot model override for chat {chat_id}: {feature_model_name}")
-            return AI_MODELS[feature_model_name]
-        log.warning(f"Invalid ai_chatbot_model override: {feature_model_name!r}, falling back to default")
+        log.debug(f"Chatbot model override for chat {chat_id}: {feature_model_name}")
+        return AI_MODELS[feature_model_name]
 
     provider_name = await AIProviderModel.get_provider_name(chat_id)
     provider_key = provider_name or AIProviders.auto.name
@@ -33,10 +31,8 @@ async def get_chat_default_model(chat_id: PydanticObjectId, chat_tid: int | None
 async def get_chat_translations_model(chat_id: PydanticObjectId, chat_tid: int | None = None) -> Model:
     feature_model_name = str(await get_value("ai_translation_model", chat_tid=chat_tid))
     if feature_model_name:
-        if feature_model_name in AI_MODELS:
-            log.debug(f"Translation model override for chat {chat_id}: {feature_model_name}")
-            return AI_MODELS[feature_model_name]
-        log.warning(f"Invalid ai_translation_model override: {feature_model_name!r}, falling back to default")
+        log.debug(f"Translation model override for chat {chat_id}: {feature_model_name}")
+        return AI_MODELS[feature_model_name]
 
     provider_name = await AIProviderModel.get_provider_name(chat_id)
     provider_key = provider_name or AIProviders.auto.name

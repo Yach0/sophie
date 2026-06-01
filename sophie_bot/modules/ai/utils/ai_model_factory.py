@@ -4,14 +4,14 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 
 from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODEL_REGISTRY, AI_MODELS_BY_NAME
-from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS
+from sophie_bot.modules.ai.utils.ai_providers import AI_PROVIDERS, AIProviders
 from sophie_bot.utils.feature_flags import get_value
 
 _ai_models: dict[str, Model] | None = None
 _moderation_reason_model_name = "mistralai/mistral-small-2603"
 
 
-def _build_model(model_name: str) -> Model:
+def _build_registered_model(model_name: str) -> Model:
     model_metadata = AI_MODELS_BY_NAME[model_name]
     provider_factory = AI_PROVIDERS[model_metadata.provider.name]
     provider_instance = provider_factory()
@@ -19,19 +19,32 @@ def _build_model(model_name: str) -> Model:
     return OpenRouterModel(model_metadata.name, provider=provider_instance, settings=settings)
 
 
+def _build_custom_model(model_name: str) -> Model:
+    provider_factory = AI_PROVIDERS[AIProviders.openai.name]
+    provider_instance = provider_factory()
+    return OpenRouterModel(model_name, provider=provider_instance)
+
+
+def get_ai_model(model_name: str) -> Model:
+    models = _get_ai_models()
+    if model_name not in models:
+        models[model_name] = _build_custom_model(model_name)
+    return models[model_name]
+
+
 def _get_ai_models() -> dict[str, Model]:
     global _ai_models
     if _ai_models is None:
-        _ai_models = {model.name: _build_model(model.name) for model in AI_MODEL_REGISTRY}
+        _ai_models = {model.name: _build_registered_model(model.name) for model in AI_MODEL_REGISTRY}
     return _ai_models
 
 
 class _LazyAIModels(dict):
     def __getitem__(self, key: str) -> Model:
-        return _get_ai_models()[key]
+        return get_ai_model(key)
 
     def __contains__(self, key: object) -> bool:
-        return key in _get_ai_models()
+        return isinstance(key, str)
 
     def keys(self):
         return _get_ai_models().keys()
@@ -43,7 +56,9 @@ class _LazyAIModels(dict):
         return _get_ai_models().items()
 
     def get(self, key, default=None):
-        return _get_ai_models().get(key, default)
+        if not isinstance(key, str):
+            return default
+        return get_ai_model(key)
 
 
 class _LazyFixedModel:
@@ -51,25 +66,25 @@ class _LazyFixedModel:
         self.model_name = model_name
 
     def __get__(self, obj, objtype=None):
-        return _get_ai_models()[self.model_name]
+        return get_ai_model(self.model_name)
 
     def __call__(self):
-        return _get_ai_models()[self.model_name]
+        return get_ai_model(self.model_name)
 
 
 async def get_filter_handler_model(chat_tid: int | None = None) -> Model:
     model_name = str(await get_value("ai_filter_handler_model", chat_tid=chat_tid))
-    return _get_ai_models()[model_name]
+    return get_ai_model(model_name)
 
 
 async def get_proactive_replies_model(chat_tid: int | None = None) -> Model:
     model_name = str(await get_value("ai_proactive_replies_model", chat_tid=chat_tid))
-    return _get_ai_models()[model_name]
+    return get_ai_model(model_name)
 
 
 async def get_research_model(chat_tid: int | None = None) -> Model:
     model_name = str(await get_value("ai_research_model", chat_tid=chat_tid))
-    return _get_ai_models()[model_name]
+    return get_ai_model(model_name)
 
 
 AI_MODELS = _LazyAIModels()

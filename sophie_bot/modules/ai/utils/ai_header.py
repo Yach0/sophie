@@ -14,7 +14,7 @@ _HIGH_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5816915599019741395"
 
 
 def _get_short_model_text(provider: Model) -> str:
-    return AI_MODEL_TO_SHORT_NAME[provider.model_name].replace(" Preview", "")
+    return AI_MODEL_TO_SHORT_NAME.get(provider.model_name, provider.model_name).replace(" Preview", "")
 
 
 def _get_battery_custom_emoji_id(percentage: int) -> str:
