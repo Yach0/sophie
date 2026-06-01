@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject, Update
+from ussr import predict_message
 
+from sophie_bot.db.models.spam_match import SpamMatchModel
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
@@ -31,8 +35,6 @@ class SpamDetectionMiddleware(BaseMiddleware):
         if not await is_enabled("ussr_spam_detection"):
             return
 
-        from sophie_bot.modules.utils_.admin import is_user_admin
-
         chat_db = data.get("group_db") or data.get("chat_db")
         user_id = message.from_user.id if message.from_user else None
 
@@ -50,9 +52,7 @@ class SpamDetectionMiddleware(BaseMiddleware):
             return
 
         try:
-            from ussr import predict_message
-
-            result = predict_message(text)
+            result = await asyncio.to_thread(predict_message, text)
             if not result:
                 return
 
@@ -68,8 +68,6 @@ class SpamDetectionMiddleware(BaseMiddleware):
                 )
 
                 if await is_enabled("ussr_spam_save_to_db"):
-                    from sophie_bot.db.models.spam_match import SpamMatchModel
-
                     match = SpamMatchModel(
                         text=text,
                         spam_probability=spam_prob,
