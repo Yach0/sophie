@@ -14,7 +14,7 @@ from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
-from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
+from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     CHATBOT_TOOLS,
@@ -91,6 +91,7 @@ async def _generate_chatbot_result(
     service_tier: str | None = None,
     on_text_stream: TextStreamCallback | None = None,
     on_tool_call: ToolCallCallback | None = None,
+    on_research_progress: ResearchProgressCallback | None = None,
     user_text: str | None = None,
 ) -> AIAgentResult[str]:
     allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
@@ -101,6 +102,7 @@ async def _generate_chatbot_result(
         chat_tid=connection.tid,
         chat_iid=connection.db_model.iid,
         user_text=user_text,
+        research_progress_callback=on_research_progress,
     )
     agent = build_chatbot_agent(model, tools)
     request_options = AIRequestOptions(
@@ -179,6 +181,7 @@ async def ai_chatbot_reply(
             service_tier,
             on_text_stream=message_streamer.stream if message_streamer and message_streamer.enabled else None,
             on_tool_call=on_tool_call,
+            on_research_progress=message_streamer.update_research_progress if message_streamer else None,
             user_text=user_text,
         )
 

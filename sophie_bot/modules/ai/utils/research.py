@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
+from random import choice
 from typing import Final, Literal
 
 from babel.dates import format_date
@@ -40,6 +41,46 @@ _DEFAULT_RESULTS_PER_QUERY: Final[int] = 5
 
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
+
+_RESEARCH_PROGRESS_SUFFIXES: Final[dict[ResearchProgressStage, str]] = {
+    "planning": "🧑‍🔬",
+    "searching": "🔎",
+    "reviewing": "🧐",
+    "summarizing": "🧾",
+}
+
+
+def _research_progress_texts(stage: ResearchProgressStage) -> tuple[str, ...]:
+    return {
+        "planning": (
+            _("Preparing search queries..."),
+            _("Planning the research..."),
+            _("Choosing what to search for..."),
+        ),
+        "searching": (
+            _("Searching the internet..."),
+            _("Looking it up online..."),
+            _("Gathering sources from the web..."),
+        ),
+        "reviewing": (
+            _("Reviewing search results..."),
+            _("Checking if more searches are needed..."),
+            _("Reading through the sources..."),
+        ),
+        "summarizing": (
+            _("Summarizing the research..."),
+            _("Putting the findings together..."),
+            _("Preparing the final answer..."),
+        ),
+    }[stage]
+
+
+def random_research_progress_text(stage: ResearchProgressStage) -> str:
+    return choice(_research_progress_texts(stage))
+
+
+def research_progress_suffix(stage: ResearchProgressStage) -> str:
+    return _RESEARCH_PROGRESS_SUFFIXES[stage]
 
 
 @dataclass(frozen=True)

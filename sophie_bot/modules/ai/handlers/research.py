@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from random import choice
 from typing import Any, cast
 
 from aiogram import Bot
@@ -16,45 +15,18 @@ from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
-from sophie_bot.modules.ai.utils.research import ResearchProgressStage, build_research_doc, run_research_workflow
+from sophie_bot.modules.ai.utils.research import (
+    ResearchProgressStage,
+    build_research_doc,
+    random_research_progress_text,
+    research_progress_suffix,
+    run_research_workflow,
+)
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-
-
-def _research_progress_texts(stage: ResearchProgressStage) -> tuple[str, ...]:
-    return {
-        "planning": (
-            _("Preparing search queries..."),
-            _("Planning the research..."),
-            _("Choosing what to search for..."),
-        ),
-        "searching": (
-            _("Searching the internet..."),
-            _("Looking it up online..."),
-            _("Gathering sources from the web..."),
-        ),
-        "reviewing": (
-            _("Reviewing search results..."),
-            _("Checking if more searches are needed..."),
-            _("Reading through the sources..."),
-        ),
-        "summarizing": (
-            _("Summarizing the research..."),
-            _("Putting the findings together..."),
-            _("Preparing the final answer..."),
-        ),
-    }[stage]
-
-
-_RESEARCH_PROGRESS_SUFFIXES: dict[ResearchProgressStage, str] = {
-    "planning": "🧑‍🔬",
-    "searching": "🔎",
-    "reviewing": "🧐",
-    "summarizing": "🧾",
-}
 
 
 class ResearchProgressMessage:
@@ -73,8 +45,8 @@ class ResearchProgressMessage:
         return cls(message, emoji_id, cast(Bot, source_message.bot))
 
     async def update(self, stage: ResearchProgressStage) -> None:
-        text = choice(_research_progress_texts(stage))
-        suffix = _RESEARCH_PROGRESS_SUFFIXES[stage]
+        text = random_research_progress_text(stage)
+        suffix = research_progress_suffix(stage)
         try:
             await self.bot.edit_message_text(
                 text=Doc(ai_progress_line(text, self.emoji_id, suffix)).to_html(),

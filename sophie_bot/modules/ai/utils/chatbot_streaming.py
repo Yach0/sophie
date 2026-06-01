@@ -21,6 +21,11 @@ from sophie_bot.modules.ai.utils.ai_progress import (
 )
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc
 from sophie_bot.modules.ai.utils.draft_stream import DEFAULT_DRAFT_MAX_TEXT_LENGTH
+from sophie_bot.modules.ai.utils.research import (
+    ResearchProgressStage,
+    random_research_progress_text,
+    research_progress_suffix,
+)
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
@@ -69,6 +74,7 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
         _("Deleting note..."),
         _("Removing note..."),
     ),
+    "research_topic": (_("Starting the research..."),),
 }
 
 
@@ -140,15 +146,24 @@ class ChatbotMessageStreamer:
         self.last_sent_at = monotonic_time
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
-        if not self.tool_thinking_texts or not self.connection or not self.model:
+        if not self.tool_thinking_texts:
             return
 
         texts = self.tool_thinking_texts.get(tool_name)
         if not texts:
             return
 
-        thinking_text = choice(texts)
-        thinking_element = HList(ai_progress_custom_emoji(self.emoji_id), thinking_text, divider=" ")
+        await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), choice(texts), divider=" "))
+
+    async def update_research_progress(self, stage: ResearchProgressStage) -> None:
+        text = random_research_progress_text(stage)
+        suffix = research_progress_suffix(stage)
+        await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), text, suffix, divider=" "))
+
+    async def _update_thinking_header(self, thinking_element: Element) -> None:
+        if not self.connection or not self.model:
+            return
+
         self.header = await build_chatbot_header(
             self.connection.db_model.iid,
             self.model,

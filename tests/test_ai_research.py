@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
+from sophie_bot.modules.ai.agent_tools.research import research_topic, research_topic_tool
 from sophie_bot.modules.ai.json_schemas.research import (
     ResearchDecision,
     ResearchFinalResponse,
@@ -14,6 +14,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.chatbot_agent import get_chatbot_tools
+from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     ResearchWorkflowSettings,
@@ -110,6 +111,50 @@ def test_build_research_doc_formats_summary_and_sources() -> None:
     assert "&lt;a href" not in html
     assert "January 1, 2026" in html
     assert "Supporting snippet" in html
+
+
+@pytest.mark.asyncio
+async def test_research_tool_forwards_chatbot_progress_callback() -> None:
+    expected_response = ResearchFinalResponse(text="Answer", sources=[])
+
+    async def progress_callback(stage: ResearchProgressStage) -> None:
+        assert stage == "planning"
+
+    context = SimpleNamespace(
+        deps=SimpleNamespace(
+            connection=SimpleNamespace(),
+            research_progress_callback=progress_callback,
+        )
+    )
+
+    with patch(
+        "sophie_bot.modules.ai.agent_tools.research.run_research_workflow_response",
+        AsyncMock(return_value=expected_response),
+    ) as workflow_mock:
+        response = await research_topic(context, "complicated topic")
+
+    assert response == expected_response
+    workflow_mock.assert_awaited_once_with(
+        "complicated topic",
+        context.deps.connection,
+        progress_callback=progress_callback,
+    )
+
+
+@pytest.mark.asyncio
+async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None:
+    async def enabled_side_effect(feature: str, chat_tid: int | None = None) -> bool:
+        return feature == "ai_research"
+
+    with (
+        patch("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(return_value="Base system prompt")),
+        patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
+    ):
+        instructions = await build_chatbot_instructions(
+            SimpleNamespace(chat_tid=-100123, chat_iid="chat-iid", user_text=None)
+        )
+
+    assert "research tool to research complicated topics instead of plain web search" in instructions
 
 
 @pytest.mark.asyncio

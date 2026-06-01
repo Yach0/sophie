@@ -15,7 +15,11 @@ async def research_topic(ctx: RunContext[SophieAIToolContext], topic: str) -> Re
         topic: Topic or question to research.
     """
     async with track_ai_tool("research_topic"):
-        return await run_research_workflow_response(topic, ctx.deps.connection)
+        return await run_research_workflow_response(
+            topic,
+            ctx.deps.connection,
+            progress_callback=ctx.deps.research_progress_callback,
+        )
 
 
 research_topic_tool = Tool(

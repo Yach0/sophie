@@ -39,6 +39,9 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
         Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
     )
 
+    if await is_enabled("ai_research", chat_tid=context.chat_tid):
+        context_doc += _("You can use the research tool to research complicated topics instead of plain web search.")
+
     if chat_name_enabled:
         chat_model = await ChatModel.get_by_tid(context.chat_tid)
         if chat_model and chat_model.first_name_or_title:
