@@ -8,14 +8,12 @@ from stfu_tg.doc import Element
 
 from sophie_bot.utils.i18n import gettext as _
 
-DEFAULT_AI_PROGRESS_CUSTOM_EMOJI_ID: Final[str] = "5258317508326214175"
 AI_PROGRESS_CUSTOM_EMOJI_IDS: Final[tuple[str, ...]] = (
     "5256211041615889001",
-    "5257997017866585370",
-    DEFAULT_AI_PROGRESS_CUSTOM_EMOJI_ID,
+    "5258317508326214175",
     "5258417125797678733",
-    "5258464881539040501",
     "5258494813166129825",
+    "5258333275151157392",
     "5258331634473650007",
 )
 
@@ -25,9 +23,8 @@ def random_ai_progress_custom_emoji_id() -> str:
 
 
 def ai_progress_custom_emoji(emoji_id: str | None = None, fallback: str = "💭") -> Element:
-    return PreformattedHTML(
-        f'<tg-emoji emoji-id="{emoji_id or DEFAULT_AI_PROGRESS_CUSTOM_EMOJI_ID}">{fallback}</tg-emoji>'
-    )
+    progress_emoji_id = emoji_id or random_ai_progress_custom_emoji_id()
+    return PreformattedHTML(f'<tg-emoji emoji-id="{progress_emoji_id}">{fallback}</tg-emoji>')
 
 
 def random_ai_thinking_text() -> str:
@@ -41,6 +38,18 @@ def random_ai_thinking_text() -> str:
             _("Reading the context..."),
             _("Checking the details..."),
             _("Looking into it..."),
+            _("Sorting through the context..."),
+            _("Connecting the dots..."),
+            _("Reviewing the conversation..."),
+            _("Drafting a reply..."),
+            _("Checking what matters..."),
+            _("Putting it together..."),
+            _("Thinking this through..."),
+            _("Finding the right angle..."),
+            _("Weighing the options..."),
+            _("Tracing the details..."),
+            _("Building the answer..."),
+            _("Making sense of it..."),
         )
     )
 

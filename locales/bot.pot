@@ -847,36 +847,84 @@ msgstr ""
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:36
+#: sophie_bot/modules/ai/utils/ai_progress.py:33
 msgid "Thinking..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:37
+#: sophie_bot/modules/ai/utils/ai_progress.py:34
 msgid "Working on it..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:38
+#: sophie_bot/modules/ai/utils/ai_progress.py:35
 msgid "Let me think..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:39
+#: sophie_bot/modules/ai/utils/ai_progress.py:36
 msgid "Generating response..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:40
+#: sophie_bot/modules/ai/utils/ai_progress.py:37
 msgid "Preparing an answer..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:41
+#: sophie_bot/modules/ai/utils/ai_progress.py:38
 msgid "Reading the context..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:42
+#: sophie_bot/modules/ai/utils/ai_progress.py:39
 msgid "Checking the details..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:43
+#: sophie_bot/modules/ai/utils/ai_progress.py:40
 msgid "Looking into it..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:41
+msgid "Sorting through the context..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:42
+msgid "Connecting the dots..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:43
+msgid "Reviewing the conversation..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:44
+msgid "Drafting a reply..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:45
+msgid "Checking what matters..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:46
+msgid "Putting it together..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:47
+msgid "Thinking this through..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:48
+msgid "Finding the right angle..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:49
+msgid "Weighing the options..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:50
+msgid "Tracing the details..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:51
+msgid "Building the answer..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:52
+msgid "Making sense of it..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_quota_docs.py:15
