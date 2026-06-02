@@ -18,6 +18,8 @@ from sophie_bot.utils.feature_flags import (
     FEATURE_FLAGS,
     FeatureType,
     FeatureValue,
+    delete_chat_override,
+    delete_override,
     get_value,
     is_enabled,
     list_all,
@@ -161,6 +163,24 @@ class KillSwitchHandler(SophieMessageHandler):
                 Template(_("Allowed features: {features}"), features=Code(allowed)),
             )
             return await self.event.reply(doc.to_html())
+
+        if raw_value.strip().lower() == "unset":
+            if chat_tid is not None:
+                await delete_chat_override(feature, chat_tid)
+                return await self.event.reply(
+                    Template(
+                        _("{feature} override for chat {chat} deleted."),
+                        feature=Code(feature),
+                        chat=chat_tid,
+                    ).to_html()
+                )
+            await delete_override(feature)
+            return await self.event.reply(
+                Template(
+                    _("{feature} override deleted."),
+                    feature=Code(feature),
+                ).to_html()
+            )
 
         value = _parse_value(raw_value)
         if chat_tid is not None:

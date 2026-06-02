@@ -422,6 +422,11 @@ async def set_chat_override(feature: FeatureType, chat_tid: int, value: FeatureV
     await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))  # ty: ignore[invalid-await]
 
 
+async def delete_override(feature: FeatureType) -> None:
+    await FeatureFlagOverride.delete_override(feature)
+    await aredis.hdel(_REDIS_KEY, feature)  # ty: ignore[invalid-await]
+
+
 async def delete_chat_override(feature: FeatureType, chat_tid: int) -> None:
     await FeatureFlagOverride.delete_override(feature, chat_tid=chat_tid)
     await aredis.hdel(_chat_redis_key(chat_tid), feature)  # ty: ignore[invalid-await]
