@@ -10,7 +10,7 @@ from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.models import Model
-from stfu_tg import Doc, HList
+from stfu_tg import Doc, HList, Template
 from stfu_tg.doc import Element
 
 from sophie_bot.middlewares.connections import ChatConnection
@@ -154,6 +154,16 @@ class ChatbotMessageStreamer:
             return
 
         await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), choice(texts), divider=" "))
+
+    async def update_retrying(self, attempt: int, total_attempts: int) -> None:
+        await self._update_thinking_header(
+            HList(
+                ai_progress_custom_emoji(self.emoji_id),
+                random_ai_thinking_text(),
+                Template(_("(Retrying {attempt}/{total_attempts}...)"), attempt=attempt, total_attempts=total_attempts),
+                divider=" ",
+            )
+        )
 
     async def update_research_progress(self, stage: ResearchProgressStage) -> None:
         text = random_research_progress_text(stage)

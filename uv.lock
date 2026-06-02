@@ -2165,6 +2165,7 @@ dependencies = [
     { name = "sentry-sdk" },
     { name = "stfu-tg" },
     { name = "structlog" },
+    { name = "tenacity" },
     { name = "ujson" },
     { name = "uvicorn" },
     { name = "uvloop" },
@@ -2222,6 +2223,7 @@ requires-dist = [
     { name = "sentry-sdk", specifier = ">=2.60.0,<3" },
     { name = "stfu-tg", git = "https://gitlab.com/SophieBot/stf.git" },
     { name = "structlog", specifier = ">=25.5.0,<26" },
+    { name = "tenacity", specifier = ">=9.1.4,<10" },
     { name = "ujson", specifier = ">=5.12.1,<6" },
     { name = "uvicorn", specifier = ">=0.48,<0.49" },
     { name = "uvloop", specifier = ">=0.22.1,<0.23" },
@@ -2306,6 +2308,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c3/17/c9eb61fdb8787008321724256a7b4d8537c2bd7e5dea3a9d906f344b873a/tavily_python-0.7.25.tar.gz", hash = "sha256:7fa4a4e9248db8766af1273d0604e48dbf8ff4359af683238feaba8974b259ea", size = 29755, upload-time = "2026-05-29T14:18:23.33Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/87/4a/b64377abab39ea156473fff10b8f395c4f6c40e609ce20490ecfae245b60/tavily_python-0.7.25-py3-none-any.whl", hash = "sha256:add36692a488d3ca9fb838d92d04e4004bf149a7260c9e12fb727963056af3b0", size = 21866, upload-time = "2026-05-29T14:18:22.063Z" },
+]
+
+[[package]]
+name = "tenacity"
+version = "9.1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413, upload-time = "2026-02-07T10:45:33.841Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
 ]
 
 [[package]]
