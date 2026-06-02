@@ -4537,32 +4537,42 @@ msgstr ""
 msgid "Generate a test emoji captcha"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:101
-#: sophie_bot/modules/op/handlers/KillSwitch.py:182
+#: sophie_bot/modules/op/handlers/KillSwitch.py:103
+#: sophie_bot/modules/op/handlers/KillSwitch.py:202
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:142
+#: sophie_bot/modules/op/handlers/KillSwitch.py:144
 msgid "No per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:152
+#: sophie_bot/modules/op/handlers/KillSwitch.py:154
 msgid "Usage: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:153
-#: sophie_bot/modules/op/handlers/KillSwitch.py:161
+#: sophie_bot/modules/op/handlers/KillSwitch.py:155
+#: sophie_bot/modules/op/handlers/KillSwitch.py:163
 #, python-brace-format
 msgid "Allowed features: {features}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:160
+#: sophie_bot/modules/op/handlers/KillSwitch.py:162
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:171
+#: sophie_bot/modules/op/handlers/KillSwitch.py:172
+#, python-brace-format
+msgid "{feature} override for chat {chat} deleted."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:180
+#, python-brace-format
+msgid "{feature} override deleted."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/KillSwitch.py:191
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr ""
