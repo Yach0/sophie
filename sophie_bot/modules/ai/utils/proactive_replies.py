@@ -7,7 +7,7 @@ from typing import Literal, cast
 import sentry_sdk
 from aiogram.types import Message, ReactionTypeEmoji
 from pydantic import BaseModel, Field
-from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserContent
+from pydantic_ai.messages import UserContent
 from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
@@ -23,17 +23,13 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
-from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
+from sophie_bot.modules.ai.utils.ai_run import run_ai_text
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message, get_cached_messages
-from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_agent, build_chatbot_usage_limits, get_chatbot_tools
+from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_run_config
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc, truncate_output
-from sophie_bot.modules.ai.utils.new_ai_chatbot import (
-    AIRequestOptions,
-    new_ai_generate,
-    new_ai_generate_schema_with_result,
-)
-from sophie_bot.modules.ai.utils.new_message_history import AIUserMessageFormatter, NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
 from sophie_bot.services.bot import bot
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
@@ -290,21 +286,13 @@ def _normalize_reaction_emoji(emoji: str | None) -> str | None:
     return _FALLBACK_REACTION_EMOJI
 
 
-def _build_decision_history(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> NewAIMessageHistory:
-    history = NewAIMessageHistory()
-    history.message_history = [
-        ModelRequest(
-            parts=[
-                SystemPromptPart(
-                    content=(
-                        "Return structured JSON only. Sophie is usually silent and only joins when her contribution is clearly "
-                        "timely, useful, or funny. Prefer none unless there is a strong natural opening; use reactions for "
-                        "lightweight moments."
-                    )
-                )
-            ]
-        )
-    ]
+def _build_decision_history(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> AIMessageHistory:
+    history = AIMessageHistory()
+    history.add_system(
+        "Return structured JSON only. Sophie is usually silent and only joins when her contribution is clearly "
+        "timely, useful, or funny. Prefer none unless there is a strong natural opening; use reactions for "
+        "lightweight moments."
+    )
     history.prompt = [_build_decision_prompt(messages, settings)]
     return history
 
@@ -404,17 +392,19 @@ async def _generate_decision(
         message_count=len(messages),
     )
     history = _build_decision_history(messages, settings)
-    result = await new_ai_generate_schema_with_result(
-        history,
-        ProactiveDecision,
+    result = await run_structured_task(
+        AIStructuredTask(
+            instructions="",
+            output_type=ProactiveDecision,
+            feature=AI_FEATURE_CHATBOT,
+        ),
         model,
-        user_tracking_id=chat.iid,
+        history,
+        chat_iid=chat.iid,
+        chat_tid=chat_tid,
         session_id=f"proactive:{chat.iid}",
         service_tier=service_tier,
     )
-    if result.usage:
-        track_ai_usage(model, result.usage)
-        await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, model, result.usage)
     limited_actions = _limit_actions(result.output, settings)
     track_ai_proactive_event("decision_generated", _metric_attributes())
     track_ai_proactive_batch(len(messages), len(limited_actions), _metric_attributes())
@@ -458,8 +448,8 @@ async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: s
     )
 
 
-async def _build_answer_history(chat_tid: int, target_message: MessageType) -> NewAIMessageHistory:
-    history = NewAIMessageHistory()
+async def _build_answer_history(chat_tid: int, target_message: MessageType) -> AIMessageHistory:
+    history = AIMessageHistory()
     proactive_answer_prompt = Doc(
         _(
             "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: "
@@ -494,29 +484,23 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         service_tier=service_tier or "none",
     )
     history = await _build_answer_history(chat_tid, target_message)
-    context = SophieAIToolContext(
-        connection=connection,
-        chat_tid=chat_tid,
-        chat_iid=chat.iid,
+    run_config = await build_chatbot_run_config(
+        chat_tid,
+        connection,
+        model,
         user_text=target_message.text,
-    )
-    agent_kwargs = {
-        "deps": context,
-        "usage_limits": await build_chatbot_usage_limits(chat_tid),
-    }
-    request_options = AIRequestOptions(
-        user_tracking_id=chat.iid,
+        thread_id=target_message.message_thread_id,
         session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
         service_tier=service_tier,
     )
-    agent = build_chatbot_agent(model, await get_chatbot_tools(chat_tid))
     async with track_ai_conversation():
-        result = await new_ai_generate(
-            history,
-            model=model,
-            agent=agent,
-            agent_kwargs=agent_kwargs,
-            request_options=request_options,
+        result = await run_ai_text(
+            run_config.agent,
+            user_prompt=history.prompt,
+            message_history=history.message_history,
+            deps=run_config.deps,
+            usage_limits=run_config.usage_limits,
+            request_options=run_config.request_options,
         )
     if result.usage:
         track_ai_usage(model, result.usage)

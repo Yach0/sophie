@@ -11,6 +11,7 @@ from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestion,
     AIFilterSuggestionsResponse,
 )
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 
 
 @pytest.mark.asyncio
@@ -59,7 +60,7 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(
-            "sophie_bot.modules.ai.handlers.ai_addfilter.new_ai_generate_schema_with_result",
+            "sophie_bot.modules.ai.handlers.ai_addfilter.run_structured_task",
             AsyncMock(return_value=ai_result),
         ),
     ):
@@ -100,8 +101,8 @@ async def test_aiaddfilter_returns_generic_error_when_ai_fails(test_client: Test
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(
-            "sophie_bot.modules.ai.handlers.ai_addfilter.new_ai_generate_schema_with_result",
-            AsyncMock(side_effect=TimeoutError),
+            "sophie_bot.modules.ai.handlers.ai_addfilter.run_structured_task",
+            AsyncMock(side_effect=AIRequestFailed("fake-sentry-id")),
         ),
     ):
         requests = await test_client.send_command(
@@ -113,4 +114,4 @@ async def test_aiaddfilter_returns_generic_error_when_ai_fails(test_client: Test
 
     assert requests, "Bot should reply with a generic error when AI generation fails"
     response_text = requests[-1].text or ""
-    assert "Could not generate suggestions." in response_text
+    assert "AI provider did not complete" in response_text

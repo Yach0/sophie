@@ -5,8 +5,8 @@ from sophie_bot.db.models import AIEnabledModel, ChatModel, NoteModel
 from sophie_bot.middlewares import i18n
 from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateNoteData
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -53,14 +53,19 @@ class NotesDescriptionsScheduler:
                             "Generate the note data from the provided note text"
                         )
 
-                        messages = NewAIMessageHistory()
+                        messages = AIMessageHistory()
                         messages.add_system(system_prompt)
                         messages.add_custom(note.text, name=None)
 
                         model = await get_chat_default_model(chat.iid, chat_tid=chat.tid)
-                        generated_data = await new_ai_generate_schema(
-                            messages, AIUpdateNoteData, model, user_tracking_id=chat.iid
+                        result = await run_structured_task(
+                            AIStructuredTask(instructions="", output_type=AIUpdateNoteData),
+                            model,
+                            messages,
+                            chat_iid=chat.iid,
+                            chat_tid=chat.tid,
                         )
+                        generated_data = result.output
                         log.debug("- NotesDescriptionsScheduler: generated data", generated_data=generated_data)
 
                         note.description = generated_data.description

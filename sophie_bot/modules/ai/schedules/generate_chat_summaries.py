@@ -11,16 +11,15 @@ from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, AIEnabledModel, ChatModel
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_summary_model
-from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.bot import bot
 from sophie_bot.services.sentry_metrics import count_metric
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import get_i18n
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -173,21 +172,24 @@ class GenerateChatSummaries:
     async def generate_summary_groups(
         messages: tuple[MessageType, ...], chat_iid: PydanticObjectId, chat_tid: int
     ) -> AIChatSummaryGroups:
-        history = NewAIMessageHistory()
+        history = AIMessageHistory()
         instructions = str(await get_value("ai_chat_summaries_prompt", chat_tid=chat_tid))
         history.add_system(_("You summarize Telegram group discussions into structured topic lines."))
         history.add_custom(_build_summary_prompt(messages, instructions), name="Transcript")
 
         model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
-        service_tier = await get_service_tier("ai_chat_summaries_service_tier", chat_tid=chat_tid)
-        result = await new_ai_generate_schema_with_result(
-            history,
-            AIChatSummaryGroups,
+        result = await run_structured_task(
+            AIStructuredTask(
+                instructions="",
+                output_type=AIChatSummaryGroups,
+                feature=AI_FEATURE_CHATBOT,
+                service_tier_feature_key="ai_chat_summaries_service_tier",
+            ),
             model,
-            user_tracking_id=chat_iid,
-            service_tier=service_tier,
+            history,
+            chat_iid=chat_iid,
+            chat_tid=chat_tid,
         )
-        await charge_ai_usage(chat_iid, AI_FEATURE_CHATBOT, model, result.usage)
         return result.output
 
     @staticmethod

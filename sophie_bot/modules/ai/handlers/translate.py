@@ -4,7 +4,6 @@ from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
-from pydantic_ai import ModelHTTPError
 from stfu_tg import (
     BlockQuote,
     Bold,
@@ -21,19 +20,17 @@ from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_model
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
-from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
-from sophie_bot.modules.error.utils.capture import capture_sentry
-from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
-from sophie_bot.utils.feature_flags import get_service_tier, get_value
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -147,7 +144,7 @@ class AiTranslate(SophieMessageHandler):
             return
 
         # AI Context
-        ai_context = NewAIMessageHistory()
+        ai_context = AIMessageHistory()
         if reply_to_message and (reply_to_message.photo or reply_to_message.sticker or reply_to_message.animation):
             ai_context.add_system(
                 Template(
@@ -175,28 +172,24 @@ class AiTranslate(SophieMessageHandler):
         model = await get_chat_translations_model(self.connection.db_model.iid, chat_tid=self.connection.db_model.tid)
 
         try:
-            service_tier = await get_service_tier("ai_translations_service_tier", chat_tid=self.event.chat.id)
-            result = await new_ai_generate_schema_with_result(
+            result = await run_structured_task(
+                AIStructuredTask(
+                    instructions="",
+                    output_type=AITranslateResponseSchema,
+                    feature=AI_FEATURE_AUTO_TRANSLATE if is_autotranslate else AI_FEATURE_TRANSLATE,
+                    service_tier_feature_key="ai_translations_service_tier",
+                ),
+                model,
                 ai_context,
-                AITranslateResponseSchema,
-                model=model,
-                user_tracking_id=self.connection.db_model.iid,
-                service_tier=service_tier,
+                chat_iid=self.connection.db_model.iid,
+                chat_tid=self.event.chat.id,
             )
             translated = result.output
-            if result.usage and result.usage.total_tokens:
-                await charge_ai_usage(
-                    self.connection.db_model.iid,
-                    AI_FEATURE_AUTO_TRANSLATE if is_autotranslate else AI_FEATURE_TRANSLATE,
-                    model,
-                    result.usage,
-                )
-        except ModelHTTPError as err:
-            event_id = capture_sentry(err)
+        except AIRequestFailed as err:
             if self.data.get("silent_error"):
                 return
             await self.event.reply(
-                **generic_error_message(err, sentry_event_id=event_id, title=_("Error generating translation"))
+                **ai_request_failed_message(err.sentry_event_id, title=_("Error generating translation"))
             )
             return
 

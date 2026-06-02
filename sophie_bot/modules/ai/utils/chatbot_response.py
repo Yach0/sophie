@@ -12,6 +12,7 @@ from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header, ai_credit_header
 from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -75,8 +76,8 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
                 KeyValue("Model", AI_MODEL_TO_SHORT_NAME.get(model.model_name, model.model_name)),
                 KeyValue("LLM Requests", result.usage.requests),
                 KeyValue("Retries", result.retries if result.retries is not None else "-"),
-                KeyValue("Request tokens", result.usage.request_tokens),
-                KeyValue("Response tokens", result.usage.response_tokens),
+                KeyValue("Request tokens", usage_input_tokens(result.usage) or 0),
+                KeyValue("Response tokens", usage_output_tokens(result.usage) or 0),
                 KeyValue("Total tokens", result.usage.total_tokens),
                 KeyValue("Details", result.usage.details or "-"),
             ),

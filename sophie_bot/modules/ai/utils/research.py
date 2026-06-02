@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 from random import choice
-from typing import Final, Literal
+from typing import Final, Literal, TypeVar
 
 from aiogram.types import BufferedInputFile
 from babel.dates import format_date
+from pydantic import BaseModel
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolReturnPart
 from pydantic_ai.models import Model
 from stfu_tg import (
@@ -39,12 +40,11 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSearchQuery,
     ResearchSource,
 )
-from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_model_factory import get_research_model
-from sophie_bot.modules.ai.utils.ai_usage_service import AIUsageLike, charge_ai_usage
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.modules.ai.utils.new_ai_chatbot import AIRequestOptions, new_ai_generate_schema_with_result
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import get_service_tier, get_value
@@ -59,6 +59,7 @@ _RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
+ResearchStepT = TypeVar("ResearchStepT", bound=BaseModel)
 
 _RESEARCH_PROGRESS_SUFFIXES: Final[dict[ResearchProgressStage, str]] = {
     "planning": "🧑‍🔬",
@@ -193,8 +194,8 @@ async def _run_queries(
     return sources
 
 
-def _build_history(system_prompt: str, user_prompt: str) -> NewAIMessageHistory:
-    history = NewAIMessageHistory()
+def _build_history(system_prompt: str, user_prompt: str) -> AIMessageHistory:
+    history = AIMessageHistory()
     history.add_system(system_prompt)
     history.prompt = [user_prompt]
     return history
@@ -208,10 +209,27 @@ def _queries_payload(queries: list[ResearchSearchQuery]) -> str:
     return json.dumps([query.model_dump() for query in queries], ensure_ascii=False, indent=2)
 
 
-async def _charge_research_usage(connection: ChatConnection, model: Model, result_usage: AIUsageLike | None) -> None:
-    if result_usage is None:
-        return
-    await charge_ai_usage(connection.db_model.iid, AI_FEATURE_RESEARCH, model, result_usage)
+async def run_research_structured_step(
+    history: AIMessageHistory,
+    output_type: type[ResearchStepT],
+    connection: ChatConnection,
+    model: Model,
+    settings: ResearchWorkflowSettings,
+    session_suffix: str,
+) -> AIAgentResult[ResearchStepT]:
+    return await run_structured_task(
+        AIStructuredTask(
+            instructions="",
+            output_type=output_type,
+            feature=AI_FEATURE_RESEARCH,
+        ),
+        model,
+        history,
+        chat_iid=connection.db_model.iid,
+        chat_tid=connection.tid,
+        session_id=f"research:{connection.db_model.iid}:{session_suffix}",
+        service_tier=settings.service_tier,
+    )
 
 
 async def _generate_initial_queries(
@@ -236,17 +254,14 @@ async def _generate_initial_queries(
             )
         ),
     )
-    result = await new_ai_generate_schema_with_result(
+    result = await run_research_structured_step(
         history,
         ResearchQueryPlan,
+        connection,
         model,
-        request_options=AIRequestOptions(
-            user_tracking_id=connection.db_model.iid,
-            session_id=f"research:{connection.db_model.iid}:queries",
-            service_tier=settings.service_tier,
-        ),
+        settings,
+        "queries",
     )
-    await _charge_research_usage(connection, model, result.usage)
     return ResearchQueryPlan(queries=_limit_queries(result.output.queries, settings.queries_per_round))
 
 
@@ -281,17 +296,14 @@ async def _decide_next_step(
             )
         ),
     )
-    result = await new_ai_generate_schema_with_result(
+    result = await run_research_structured_step(
         history,
         ResearchDecision,
+        connection,
         model,
-        request_options=AIRequestOptions(
-            user_tracking_id=connection.db_model.iid,
-            session_id=f"research:{connection.db_model.iid}:decision:{round_index}",
-            service_tier=settings.service_tier,
-        ),
+        settings,
+        f"decision:{round_index}",
     )
-    await _charge_research_usage(connection, model, result.usage)
     return ResearchDecision(
         action=result.output.action,
         followup_queries=_limit_queries(result.output.followup_queries, settings.queries_per_round),
@@ -324,17 +336,14 @@ async def _summarize_research(
             )
         ),
     )
-    result = await new_ai_generate_schema_with_result(
+    result = await run_research_structured_step(
         history,
         ResearchFinalResponse,
+        connection,
         model,
-        request_options=AIRequestOptions(
-            user_tracking_id=connection.db_model.iid,
-            session_id=f"research:{connection.db_model.iid}:summary",
-            service_tier=settings.service_tier,
-        ),
+        settings,
+        "summary",
     )
-    await _charge_research_usage(connection, model, result.usage)
     return result
 
 

@@ -7,7 +7,7 @@ from stfu_tg import Doc, HList, Section, Template, VList
 
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.new_message_history import CHATBOT_CACHE_MESSAGE_LIMIT, NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -112,8 +112,8 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
     return instruction_doc.to_md()
 
 
-async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> NewAIMessageHistory:
-    history = NewAIMessageHistory()
+async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> AIMessageHistory:
+    history = AIMessageHistory()
     await history.add_from_cache(context.chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT)
     await history.add_from_message(message, custom_text=context.user_text)
     return history

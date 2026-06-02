@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram.enums import ChatType
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
@@ -12,15 +13,14 @@ from stfu_tg.doc import Element
 
 from sophie_bot.metrics import track_ai_conversation, track_ai_usage
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     CHATBOT_TOOLS,
-    build_chatbot_agent,
-    build_chatbot_usage_limits,
-    get_chatbot_tools,
+    build_chatbot_run_config,
 )
 from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
 from sophie_bot.modules.ai.utils.chatbot_response import (
@@ -31,8 +31,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
-from sophie_bot.modules.ai.utils.new_ai_chatbot import AIRequestOptions, new_ai_generate, new_ai_generate_stream
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
@@ -44,19 +43,13 @@ ToolCallCallback = Callable[[str], Awaitable[None]]
 __all__ = ("CHATBOT_TOOLS", "ChatbotMessageStreamer", "ai_chatbot_reply")
 
 
-def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
-    if thread_id:
-        return f"{chat_iid}:{thread_id}"
-    return str(chat_iid)
-
-
 def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode: bool) -> bool:
     if debug_mode:
         return True
     return "^llm_debug" in (user_text or message.text or "")
 
 
-async def _reply_debug_history(message: Message, history: NewAIMessageHistory) -> None:
+async def _reply_debug_history(message: Message, history: AIMessageHistory) -> None:
     await message.reply(
         Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
         disable_web_page_preview=True,
@@ -146,54 +139,73 @@ async def _build_fitting_reply_doc(
 async def _generate_chatbot_result(
     message: Message,
     connection: ChatConnection,
-    history: NewAIMessageHistory,
+    history: AIMessageHistory,
     model: Model,
     explicit_debug_mode: bool,
     service_tier: str | None = None,
     on_text_stream: TextStreamCallback | None = None,
     on_tool_call: ToolCallCallback | None = None,
     on_research_progress: ResearchProgressCallback | None = None,
+    on_retry: AIRetryCallback | None = None,
     user_text: str | None = None,
 ) -> AIAgentResult[str]:
     allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
     draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
-    tools = await get_chatbot_tools(connection.tid)
-    context = SophieAIToolContext(
-        connection=connection,
-        chat_tid=connection.tid,
-        chat_iid=connection.db_model.iid,
+    run_config = await build_chatbot_run_config(
+        connection.tid,
+        connection,
+        model,
         user_text=user_text,
-        research_progress_callback=on_research_progress,
-    )
-    agent = build_chatbot_agent(model, tools)
-    request_options = AIRequestOptions(
-        user_tracking_id=connection.db_model.iid,
-        session_id=_build_session_id(connection.db_model.iid, message.message_thread_id),
+        progress_callback=on_research_progress,
+        thread_id=message.message_thread_id,
         service_tier=service_tier,
     )
-    agent_kwargs = {
-        "deps": context,
-        "usage_limits": await build_chatbot_usage_limits(connection.tid),
-    }
 
     if on_text_stream is not None or allow_draft_streaming:
-        return await new_ai_generate_stream(
-            history,
-            model=model,
-            agent=agent,
-            agent_kwargs=agent_kwargs,
+        return await run_ai_stream(
+            run_config.agent,
+            user_prompt=history.prompt,
+            message_history=history.message_history,
             on_text_stream=on_text_stream or draft_streamer.stream,
-            request_options=request_options,
+            deps=run_config.deps,
+            usage_limits=run_config.usage_limits,
+            request_options=run_config.request_options,
             on_tool_call=on_tool_call,
+            on_retry=on_retry,
         )
 
-    return await new_ai_generate(
-        history,
-        model=model,
-        agent=agent,
-        agent_kwargs=agent_kwargs,
-        request_options=request_options,
+    return await run_ai_text(
+        run_config.agent,
+        user_prompt=history.prompt,
+        message_history=history.message_history,
+        deps=run_config.deps,
+        usage_limits=run_config.usage_limits,
+        request_options=run_config.request_options,
+        on_retry=on_retry,
     )
+
+
+async def _send_chatbot_ai_failure_reply(
+    message: Message,
+    message_streamer: ChatbotMessageStreamer | None,
+    error: AIRequestFailed,
+    **reply_kwargs: Any,
+) -> Message:
+    failure_message = ai_request_failed_message(error.sentry_event_id)
+    if message_streamer and message_streamer.response_message is not None:
+        try:
+            edited_message = await message_streamer.response_message.edit_text(
+                failure_message["text"],
+                disable_web_page_preview=True,
+                **reply_kwargs,
+            )
+            if isinstance(edited_message, Message):
+                return edited_message
+            return message_streamer.response_message
+        except TelegramAPIError:
+            pass
+
+    return await message.reply(**failure_message, disable_web_page_preview=True, **reply_kwargs)
 
 
 async def ai_chatbot_reply(
@@ -233,18 +245,22 @@ async def ai_chatbot_reply(
             if message_streamer and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
             else None
         )
-        result = await _generate_chatbot_result(
-            message,
-            connection,
-            history,
-            model,
-            explicit_debug_mode,
-            service_tier,
-            on_text_stream=message_streamer.stream if message_streamer and message_streamer.enabled else None,
-            on_tool_call=on_tool_call,
-            on_research_progress=message_streamer.update_research_progress if message_streamer else None,
-            user_text=user_text,
-        )
+        try:
+            result = await _generate_chatbot_result(
+                message,
+                connection,
+                history,
+                model,
+                explicit_debug_mode,
+                service_tier,
+                on_text_stream=message_streamer.stream if message_streamer and message_streamer.enabled else None,
+                on_tool_call=on_tool_call,
+                on_research_progress=message_streamer.update_research_progress if message_streamer else None,
+                on_retry=message_streamer.update_retrying if message_streamer else None,
+                user_text=user_text,
+            )
+        except AIRequestFailed as err:
+            return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
 
         if result.usage:
             track_ai_usage(model, result.usage)

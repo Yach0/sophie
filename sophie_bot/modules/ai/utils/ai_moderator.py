@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, cast
+from typing import cast
 
 from aiogram.types import Message
 from mistralai.client.models.chatmoderationrequest import ChatModerationRequestInputs3
@@ -9,7 +9,7 @@ from mistralai.client.models.moderationobject import ModerationObject
 from mistralai.client.models.moderationresponse import ModerationResponse
 
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory, convert_to_moderation_format
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_moderation_format
 from sophie_bot.services.ai import mistral_client
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
@@ -89,8 +89,8 @@ class ModerationResult:
     categories: CategoriesDict
 
 
-async def check_moderator(message: Message, settings: Optional[AIModeratorModel] = None) -> ModerationResult:
-    history = NewAIMessageHistory()
+async def check_moderator(message: Message, settings: AIModeratorModel | None = None) -> ModerationResult:
+    history = AIMessageHistory()
     await history.add_from_message(message, normalize_texts=True)
 
     # Use Mistral moderation model; see https://docs.mistral.ai/capabilities/guardrailing/

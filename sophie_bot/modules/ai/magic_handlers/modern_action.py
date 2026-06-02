@@ -1,7 +1,10 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel
+from pydantic_ai import Agent
 from stfu_tg import Italic, Section, Template, Title
 from stfu_tg.doc import Doc, Element, PreformattedHTML
 
@@ -10,18 +13,18 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ActionSetupTryAgainException,
     ModernActionABC,
     ModernActionSetting,
 )
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -78,7 +81,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: AIReplyActionDataModel) -> Optional[Element]:
+    async def handle(self, message: Message, data: dict, filter_data: AIReplyActionDataModel) -> Element | None:
         connection: ChatConnection = data["connection"]
 
         if not (chat_db := await ChatModel.get_by_tid(connection.tid)):
@@ -87,10 +90,18 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         if not (message.text or message.caption and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db)):
             return
 
-        messages = await NewAIMessageHistory.chatbot(message, additional_system_prompt=filter_data.prompt)
+        messages = AIMessageHistory()
+        messages.add_system(filter_data.prompt)
+        await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT)
+        await messages.add_from_message(message)
         provider = await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid)
 
-        result = await new_ai_generate(messages, provider, user_tracking_id=chat_db.iid)
+        result = await run_ai_text(
+            Agent(provider, output_type=str),
+            user_prompt=messages.prompt,
+            message_history=messages.message_history,
+            request_options=AIRequestOptions(user_tracking_id=chat_db.iid),
+        )
 
         if result.usage and result.usage.total_tokens:
             await charge_ai_usage(chat_db.iid, AI_FEATURE_FILTER, provider, result.usage)

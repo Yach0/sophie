@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Iterable, Protocol, cast
+from typing import Any, Iterable, Protocol, cast
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
@@ -64,6 +64,14 @@ class AIModelLike(Protocol):
     model_name: str
 
 
+def usage_input_tokens(usage: Any) -> int | None:
+    return getattr(usage, "input_tokens", None) or getattr(usage, "request_tokens", None)
+
+
+def usage_output_tokens(usage: Any) -> int | None:
+    return getattr(usage, "output_tokens", None) or getattr(usage, "response_tokens", None)
+
+
 async def charge_ai_usage(
     chat_iid: PydanticObjectId, feature: AIFeature, model: AIModelLike, usage: AIUsageLike
 ) -> None:
@@ -71,8 +79,8 @@ async def charge_ai_usage(
     if total_tokens <= 0:
         return
 
-    input_tokens = usage.request_tokens if usage.request_tokens else None
-    output_tokens = usage.response_tokens if usage.response_tokens else None
+    input_tokens = usage_input_tokens(usage)
+    output_tokens = usage_output_tokens(usage)
 
     await consume_quota(
         chat_iid,

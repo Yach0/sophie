@@ -6,15 +6,13 @@ and federations using AI when no reason is provided by the user.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 from sophie_bot.db.models import AIEnabledModel, ChatModel, RulesModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.ai.utils.ai_models import MODERATION_REASON_MODEL
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
 
@@ -50,9 +48,9 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
 
 async def generate_restriction_reason(
     chat_db: ChatModel,
-    message_text: Optional[str] = None,
+    message_text: str | None = None,
     include_rules: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """Generate a reason for a restriction using AI.
 
     Args:
@@ -86,19 +84,23 @@ async def generate_restriction_reason(
         prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text, base_prompt=reason_prompt)
 
         # Generate AI response
-        history = NewAIMessageHistory()
+        history = AIMessageHistory()
         history.add_system(
             "You are a moderation assistant for a Telegram group management bot. "
             "Generate concise, professional reasons for user restrictions."
         )
         history.add_custom(prompt, "Moderator")
 
-        result: AIReasonResponse = await new_ai_generate_schema(
-            history, AIReasonResponse, MODERATION_REASON_MODEL(), user_tracking_id=chat_db.iid
+        result = await run_structured_task(
+            AIStructuredTask(instructions="", output_type=AIReasonResponse),
+            MODERATION_REASON_MODEL(),
+            history,
+            chat_iid=chat_db.iid,
+            chat_tid=chat_db.tid,
         )
 
         # Clean up the reason
-        reason = result.reason.strip()
+        reason = result.output.reason.strip()
         if reason:
             log.debug(
                 "Generated AI reason for restriction",

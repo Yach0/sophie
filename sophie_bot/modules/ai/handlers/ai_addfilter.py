@@ -6,7 +6,6 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from ass_tg.types.base_abc import ArgFabric
-from pydantic_ai import ModelHTTPError
 from stfu_tg import Code, Doc, KeyValue, Section, Template, Title, VList
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT
@@ -20,10 +19,10 @@ from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestion,
     AIFilterSuggestionsResponse,
 )
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
-from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.shared.lock_constants import (
     CONTENT_TYPES,
     ENTITY_TYPES,
@@ -198,7 +197,7 @@ class AIFilterAddHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         prompt: str = self.data["prompt"].strip()
-        history = NewAIMessageHistory()
+        history = AIMessageHistory()
         base_prompt = str(await get_value("ai_filter_suggestions_prompt", chat_tid=self.event.chat.id))
         history.add_system(_build_system_prompt(base_prompt))
         history.prompt = [prompt]
@@ -206,19 +205,26 @@ class AIFilterAddHandler(SophieMessageHandler):
         model = await get_chat_default_model(self.connection.db_model.iid, chat_tid=self.connection.db_model.tid)
 
         try:
-            result = await new_ai_generate_schema_with_result(
-                history,
-                AIFilterSuggestionsResponse,
+            result = await run_structured_task(
+                AIStructuredTask(
+                    instructions="",
+                    output_type=AIFilterSuggestionsResponse,
+                    feature=AI_FEATURE_FILTER,
+                ),
                 model,
-                user_tracking_id=self.connection.db_model.iid,
+                history,
+                chat_iid=self.connection.db_model.iid,
+                chat_tid=self.event.chat.id,
             )
             suggestions = _validate_suggestions(result.output.suggestions)
-        except (ModelHTTPError, SophieException, TimeoutError):
+        except AIRequestFailed as err:
+            await self.event.reply(
+                **ai_request_failed_message(err.sentry_event_id, title=_("Could not generate suggestions"))
+            )
+            return
+        except SophieException:
             await self.event.reply(_("Could not generate suggestions. Please try again or use /addfilter directly."))
             return
-
-        if result.usage and result.usage.total_tokens:
-            await charge_ai_usage(self.connection.db_model.iid, AI_FEATURE_FILTER, model, result.usage)
 
         doc_parts: list[Any] = [f"🪄 {_('AI Filter Suggestions')}"]
         for index, suggestion in enumerate(suggestions, start=1):

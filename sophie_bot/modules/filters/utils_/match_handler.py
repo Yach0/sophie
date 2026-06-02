@@ -12,8 +12,8 @@ from stfu_tg import Template
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import get_filter_handler_model
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
 from sophie_bot.modules.filters.utils_.extract_content import extract_message_content
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
@@ -142,7 +142,7 @@ async def match_ai_handler(
         text_content, image_data = await extract_message_content(message)
 
         # Build the AI message history
-        history = NewAIMessageHistory()
+        history = AIMessageHistory()
 
         # Add system prompt
         system_prompt = _(
@@ -174,18 +174,27 @@ async def match_ai_handler(
         model = await get_filter_handler_model(chat_tid)
         service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=chat_tid)
 
-        result = await new_ai_generate_schema(
-            history,
-            AIFilterResponseSchema,
+        result = await run_structured_task(
+            AIStructuredTask(
+                instructions="",
+                output_type=AIFilterResponseSchema,
+                model_settings=OpenRouterModelSettings(openrouter_reasoning={"effort": "low"}),
+            ),
             model,
+            history,
             user_tracking_id=chat_iid,
+            chat_tid=chat_tid,
             service_tier=service_tier,
-            model_settings=OpenRouterModelSettings(openrouter_reasoning={"effort": "low"}),
         )
 
-        log.debug("match_ai_handler: AI evaluation", prompt=prompt, matches=result.matches, reasoning=result.reasoning)
+        log.debug(
+            "match_ai_handler: AI evaluation",
+            prompt=prompt,
+            matches=result.output.matches,
+            reasoning=result.output.reasoning,
+        )
 
-        return result.matches
+        return result.output.matches
 
     except Exception as e:
         log.warning("match_ai_handler: AI filter evaluation failed", error=str(e))

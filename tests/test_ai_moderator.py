@@ -47,8 +47,8 @@ def _make_message(text: str = "Hello world") -> AsyncMock:
 
 @pytest.fixture
 def mock_history() -> AsyncMock:
-    """Mock NewAIMessageHistory to avoid needing real message processing."""
-    with patch("sophie_bot.modules.ai.utils.ai_moderator.NewAIMessageHistory") as mock_cls:
+    """Mock AIMessageHistory to avoid needing real message processing."""
+    with patch("sophie_bot.modules.ai.utils.ai_moderator.AIMessageHistory") as mock_cls:
         instance = AsyncMock()
         instance.add_from_message = AsyncMock()
         instance.to_moderation = [{"role": "user", "content": "test message"}]

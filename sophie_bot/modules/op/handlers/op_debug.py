@@ -20,10 +20,9 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_summary_model
-from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
+from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
-from sophie_bot.modules.ai.utils.new_ai_chatbot import new_ai_generate_schema_with_result
-from sophie_bot.modules.ai.utils.new_message_history import NewAIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.op.json_schemas.op_debug_ai_summary import OpDebugAISummary
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
@@ -481,7 +480,7 @@ async def _generate_ai_summary(
     chat_tid: int,
 ) -> OpDebugAISummary | None:
     """Call AI to generate a structured summary of the debug report."""
-    history = NewAIMessageHistory()
+    history = AIMessageHistory()
     history.add_system(
         "You are a debugging assistant for SophieBot, a Telegram moderation bot. Analyze operator debug reports and provide structured summaries."
     )
@@ -490,13 +489,17 @@ async def _generate_ai_summary(
     history.add_custom(prompt_text, name="OperatorDebug")
 
     model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
-    result = await new_ai_generate_schema_with_result(
-        history,
-        OpDebugAISummary,
+    result = await run_structured_task(
+        AIStructuredTask(
+            instructions="",
+            output_type=OpDebugAISummary,
+            feature=AI_FEATURE_CHATBOT,
+        ),
         model,
-        user_tracking_id=chat_iid,
+        history,
+        chat_iid=chat_iid,
+        chat_tid=chat_tid,
     )
-    await charge_ai_usage(chat_iid, AI_FEATURE_CHATBOT, model, result.usage)
     return result.output
 
 

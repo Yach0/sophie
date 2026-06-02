@@ -91,7 +91,7 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(
-            "sophie_bot.modules.ai.utils.research.new_ai_generate_schema_with_result",
+            "sophie_bot.modules.ai.utils.research.run_research_structured_step",
             AsyncMock(side_effect=generated_results),
         ) as generate_mock,
         patch(

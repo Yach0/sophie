@@ -14,6 +14,7 @@ import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageBreakdownItem,
     ChatUsageView,
@@ -357,11 +358,10 @@ async def test_translate_success(test_client: TestClient) -> None:
         _apply_ai_admin_patches(stack)
         stack.enter_context(
             patch(
-                "sophie_bot.modules.ai.handlers.translate.new_ai_generate_schema_with_result",
+                "sophie_bot.modules.ai.handlers.translate.run_structured_task",
                 AsyncMock(return_value=mock_ai_result),
             )
         )
-        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.charge_ai_usage", AsyncMock()))
         stack.enter_context(
             patch(
                 "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model",
@@ -420,26 +420,21 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
 
-    from pydantic_ai import ModelHTTPError
-
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
         stack.enter_context(
             patch(
-                "sophie_bot.modules.ai.handlers.translate.new_ai_generate_schema_with_result",
-                AsyncMock(side_effect=ModelHTTPError(status_code=500, model_name="test-model", body=b"Server Error")),
+                "sophie_bot.modules.ai.handlers.translate.run_structured_task",
+                AsyncMock(side_effect=AIRequestFailed("fake-sentry-id")),
             )
         )
-        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.charge_ai_usage", AsyncMock()))
         stack.enter_context(
             patch(
                 "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model",
                 AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
             )
         )
-        stack.enter_context(
-            patch("sophie_bot.modules.ai.handlers.translate.capture_sentry", lambda err: "fake-sentry-id")
-        )
+
         requests = await test_client.send_command(
             command="translate",
             from_user=user_wrapper.user,
@@ -449,4 +444,4 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
 
     assert requests, "Bot should respond with an error when AI fails"
     response_text = requests[-1].text or ""
-    assert "error" in response_text.lower() or "Error" in response_text, f"Expected error message, got: {response_text}"
+    assert "AI provider did not complete" in response_text, f"Expected AI failure message, got: {response_text}"

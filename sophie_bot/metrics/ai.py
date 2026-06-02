@@ -125,24 +125,28 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
     model_name = get_model_name(model)
 
     # Track different token types
-    if usage.request_tokens:
+    input_tokens = usage.input_tokens
+    output_tokens = usage.output_tokens
+    total_tokens = usage.total_tokens
+
+    if input_tokens:
         count_metric(
             "sophie.ai.tokens",
-            usage.request_tokens,
+            input_tokens,
             attributes={"provider": provider, "model": model_name, "token_type": "request"},
         )
 
-    if usage.response_tokens:
+    if output_tokens:
         count_metric(
             "sophie.ai.tokens",
-            usage.response_tokens,
+            output_tokens,
             attributes={"provider": provider, "model": model_name, "token_type": "response"},
         )
 
-    if usage.total_tokens:
+    if total_tokens:
         count_metric(
             "sophie.ai.tokens",
-            usage.total_tokens,
+            total_tokens,
             attributes={"provider": provider, "model": model_name, "token_type": "total"},
         )
 

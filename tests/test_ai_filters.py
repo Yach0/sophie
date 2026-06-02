@@ -24,7 +24,7 @@ async def test_match_ai_handler_skips_users_older_than_threshold() -> None:
     with (
         patch("sophie_bot.modules.filters.utils_.match_handler.is_enabled", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.filters.utils_.match_handler.extract_message_content", AsyncMock()) as extract_mock,
-        patch("sophie_bot.modules.filters.utils_.match_handler.new_ai_generate_schema", AsyncMock()) as ai_mock,
+        patch("sophie_bot.modules.filters.utils_.match_handler.run_structured_task", AsyncMock()) as ai_mock,
     ):
         matched = await match_ai_handler(message, "spam", user_in_group=user_in_group)
 
