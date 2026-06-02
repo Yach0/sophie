@@ -18,8 +18,8 @@ async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None,
 
 @pytest.mark.asyncio
 async def test_is_enabled_returns_default_when_no_override_exists() -> None:
-    assert await is_enabled("filters_rest_api") is False
-    assert await is_enabled("notes_rest_api") is True
+    assert await is_enabled("welcomecaptcha") is True
+    assert await is_enabled("op_debug_ai_summarization") is False
 
 
 @pytest.mark.asyncio
@@ -42,33 +42,32 @@ async def test_proactive_replies_feature_flags_have_safe_defaults() -> None:
 
 @pytest.mark.asyncio
 async def test_set_enabled_persists_override_for_later_reads() -> None:
-    await set_enabled("filters_rest_api", True)
+    await set_enabled("op_debug_ai_summarization", True)
 
-    assert await is_enabled("filters_rest_api") is True
-    assert await aredis.hget("sophie:kill_switch", "filters_rest_api") == b"1"
+    assert await is_enabled("op_debug_ai_summarization") is True
+    assert await aredis.hget("sophie:kill_switch", "op_debug_ai_summarization") == b"1"
 
 
 @pytest.mark.asyncio
 async def test_list_all_returns_all_features_in_declared_order_with_effective_values() -> None:
-    await set_enabled("filters_rest_api", True)
-    await set_enabled("notes_rest_api", False)
+    await set_enabled("op_debug_ai_summarization", True)
+    await set_enabled("welcomecaptcha", False)
 
     states = await list_all()
 
     assert list(states) == list(FEATURE_FLAGS)
-    assert states["filters_rest_api"] is True
-    assert states["notes_rest_api"] is False
-    assert states["welcomecaptcha"] is True
+    assert states["op_debug_ai_summarization"] is True
+    assert states["welcomecaptcha"] is False
 
 
 @pytest.mark.asyncio
 async def test_invalid_redis_value_falls_back_to_default() -> None:
-    await aredis.hset("sophie:kill_switch", "filters_rest_api", b"invalid")
+    await aredis.hset("sophie:kill_switch", "op_debug_ai_summarization", b"invalid")
 
-    assert await is_enabled("filters_rest_api") is False
+    assert await is_enabled("op_debug_ai_summarization") is False
 
     states = await list_all()
-    assert states["filters_rest_api"] is False
+    assert states["op_debug_ai_summarization"] is False
 
 
 @pytest.mark.asyncio

@@ -6,14 +6,14 @@ from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.utils.api.auth import get_current_user
 
-from .dependencies import require_filters_feature, require_filters_rest_api
+from .dependencies import require_filters_feature
 from .schemas import FilterActionsCatalogResponse, FilterCatalogLimits
 from .utils import MAX_FILTER_ACTIONS, build_filter_action_catalog
 
 router = APIRouter(
     prefix="/filters/actions",
     tags=["filters"],
-    dependencies=[Depends(require_filters_rest_api), Depends(require_filters_feature)],
+    dependencies=[Depends(require_filters_feature)],
 )
 
 

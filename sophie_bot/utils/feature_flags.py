@@ -49,18 +49,8 @@ FeatureType = Literal[
     "filters",
     "antiflood",
     "locks",
-    "filters_rest_api",
-    "notes_rest_api",
-    "warns_rest_api",
-    "rules_rest_api",
-    "locks_rest_api",
-    "disabling_rest_api",
-    "logging_rest_api",
-    "ai_moderator_rest_api",
-    "antiflood_rest_api",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
-    "feds_rest_api",
     "op_debug_ai_summarization",
     "ai_chatbot_service_tier",
     "ai_translations_service_tier",
@@ -125,18 +115,8 @@ class FeatureStates(TypedDict):
     filters: bool
     antiflood: bool
     locks: bool
-    filters_rest_api: bool
-    notes_rest_api: bool
-    warns_rest_api: bool
-    rules_rest_api: bool
-    locks_rest_api: bool
-    disabling_rest_api: bool
-    logging_rest_api: bool
-    ai_moderator_rest_api: bool
-    antiflood_rest_api: bool
     welcomecaptcha: bool
     welcomecaptcha_autokick: bool
-    feds_rest_api: bool
     op_debug_ai_summarization: bool
     ai_chatbot_service_tier: str
     ai_translations_service_tier: str
@@ -200,18 +180,8 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = (
     "filters",
     "antiflood",
     "locks",
-    "filters_rest_api",
-    "notes_rest_api",
-    "warns_rest_api",
-    "rules_rest_api",
-    "locks_rest_api",
-    "disabling_rest_api",
-    "logging_rest_api",
-    "ai_moderator_rest_api",
-    "antiflood_rest_api",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
-    "feds_rest_api",
     "op_debug_ai_summarization",
     "ai_chatbot_service_tier",
     "ai_translations_service_tier",
@@ -283,18 +253,8 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     "filters": True,
     "antiflood": True,
     "locks": True,
-    "filters_rest_api": False,
-    "notes_rest_api": True,
-    "warns_rest_api": True,
-    "rules_rest_api": True,
-    "locks_rest_api": True,
-    "disabling_rest_api": True,
-    "logging_rest_api": True,
-    "ai_moderator_rest_api": True,
-    "antiflood_rest_api": True,
     "welcomecaptcha": True,
     "welcomecaptcha_autokick": True,
-    "feds_rest_api": False,
     "op_debug_ai_summarization": False,
     "ai_chatbot_service_tier": "none",
     "ai_translations_service_tier": "none",

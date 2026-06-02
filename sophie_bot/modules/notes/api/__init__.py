@@ -1,6 +1,4 @@
-from fastapi import APIRouter, Depends
-
-from sophie_bot.utils.api.feature_gate import require_rest_feature
+from fastapi import APIRouter
 
 from .create import router as create_router
 from .delete import router as delete_router
@@ -11,7 +9,6 @@ from .update import router as update_router
 notes_router = APIRouter(
     prefix="/notes",
     tags=["notes"],
-    dependencies=[Depends(require_rest_feature("notes_rest_api"))],
 )
 
 notes_router.include_router(pmnotes_router)

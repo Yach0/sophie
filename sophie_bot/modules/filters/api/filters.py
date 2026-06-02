@@ -11,14 +11,14 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.utils.api.auth import rest_require_admin
 
-from .dependencies import require_filters_feature, require_filters_rest_api
+from .dependencies import require_filters_feature
 from .schemas import FilterCreate, FilterResponse, FiltersResponse, FilterUpdate
 from .utils import build_filter_response, get_chat_or_404, validate_filter_actions, validate_filter_handler
 
 router = APIRouter(
     prefix="/filters",
     tags=["filters"],
-    dependencies=[Depends(require_filters_rest_api), Depends(require_filters_feature)],
+    dependencies=[Depends(require_filters_feature)],
 )
 
 
