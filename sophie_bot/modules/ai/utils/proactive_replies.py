@@ -17,7 +17,6 @@ from sophie_bot.metrics import (
     track_ai_proactive_action,
     track_ai_proactive_batch,
     track_ai_proactive_event,
-    track_ai_usage,
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
@@ -394,7 +393,6 @@ async def _generate_decision(
     history = _build_decision_history(messages, settings)
     result = await run_structured_task(
         AIStructuredTask(
-            instructions="",
             output_type=ProactiveDecision,
             feature=AI_FEATURE_CHATBOT,
         ),
@@ -503,7 +501,6 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
             request_options=run_config.request_options,
         )
     if result.usage:
-        track_ai_usage(model, result.usage)
         await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, model, result.usage)
     header = await build_chatbot_header(chat.iid, model, result.message_history)
     output_text = truncate_output(header, str(result.output))

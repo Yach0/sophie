@@ -59,7 +59,7 @@ class NotesDescriptionsScheduler:
 
                         model = await get_chat_default_model(chat.iid, chat_tid=chat.tid)
                         result = await run_structured_task(
-                            AIStructuredTask(instructions="", output_type=AIUpdateNoteData),
+                            AIStructuredTask(output_type=AIUpdateNoteData),
                             model,
                             messages,
                             chat_iid=chat.iid,

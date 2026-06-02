@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_run import (
     run_ai_structured,
 )
 
+# Temporary compatibility module; these private helpers are used only to preserve the old wrapper API.
 OutputT = TypeVar("OutputT")
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 

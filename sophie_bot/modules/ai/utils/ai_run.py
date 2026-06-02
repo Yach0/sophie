@@ -234,6 +234,7 @@ async def run_ai_stream(
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[str]:
     metrics_model = _get_agent_model(agent)
+    # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
     async def run_stream_once() -> tuple[str, RunUsage, list[ModelRequest | ModelResponse], bool, int]:

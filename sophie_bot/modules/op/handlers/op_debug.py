@@ -491,7 +491,6 @@ async def _generate_ai_summary(
     model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
     result = await run_structured_task(
         AIStructuredTask(
-            instructions="",
             output_type=OpDebugAISummary,
             feature=AI_FEATURE_CHATBOT,
         ),

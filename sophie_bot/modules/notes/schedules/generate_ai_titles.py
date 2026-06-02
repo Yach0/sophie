@@ -29,7 +29,7 @@ class GenerateAITitles:
 
         model = await get_chat_default_model(chat_iid, chat_tid=chat_tid)
         result = await run_structured_task(
-            AIStructuredTask(instructions="", output_type=AIUpdateNoteData),
+            AIStructuredTask(output_type=AIUpdateNoteData),
             model,
             messages,
             chat_iid=chat_iid,

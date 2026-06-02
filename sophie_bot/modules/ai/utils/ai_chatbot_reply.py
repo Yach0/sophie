@@ -11,7 +11,7 @@ from pydantic_ai.models import Model
 from stfu_tg import BlockQuote, Doc, Section
 from stfu_tg.doc import Element
 
-from sophie_bot.metrics import track_ai_conversation, track_ai_usage
+from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
@@ -263,7 +263,6 @@ async def ai_chatbot_reply(
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
 
         if result.usage:
-            track_ai_usage(model, result.usage)
             await charge_ai_usage(connection.db_model.iid, AI_FEATURE_CHATBOT, model, result.usage)
 
         header = await _build_chatbot_header(connection, model, result.message_history)

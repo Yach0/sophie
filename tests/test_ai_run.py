@@ -1,14 +1,61 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
-from pydantic_ai import Agent
-from pydantic_ai.models.test import TestModel
+from collections.abc import AsyncGenerator, AsyncIterable
+from contextlib import asynccontextmanager
+from typing import Any, cast
 
-from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, build_model_settings, run_ai_structured, run_ai_text
+from pydantic import BaseModel
+from pydantic_ai import Agent, FunctionToolCallEvent
+from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.usage import RunUsage
+
+from sophie_bot.modules.ai.utils.ai_run import (
+    AIRequestOptions,
+    build_model_settings,
+    run_ai_stream,
+    run_ai_structured,
+    run_ai_text,
+)
 
 
 class StructuredOutput(BaseModel):
     value: str
+
+
+class FakeStreamResult:
+    usage = RunUsage(input_tokens=1, output_tokens=2, requests=1)
+
+    async def stream_text(self, delta: bool, debounce_by: float) -> AsyncIterable[str]:
+        assert delta is True
+        assert debounce_by == 0.2
+        for chunk in ("hel", "lo"):
+            yield chunk
+
+    async def get_output(self) -> str:
+        return "hello"
+
+    def all_messages(self) -> list[ModelRequest | ModelResponse]:
+        return []
+
+
+class FakeStreamingAgent:
+    def __init__(self) -> None:
+        self.model = TestModel()
+
+    @asynccontextmanager
+    async def run_stream(self, **kwargs: Any) -> AsyncGenerator[FakeStreamResult]:
+        event_handler = kwargs["event_stream_handler"]
+        await event_handler(
+            None,
+            _tool_events("search", "search", "notes"),
+        )
+        yield FakeStreamResult()
+
+
+async def _tool_events(*tool_names: str) -> AsyncIterable[FunctionToolCallEvent]:
+    for tool_name in tool_names:
+        yield FunctionToolCallEvent(part=ToolCallPart(tool_name=tool_name, args={}))
 
 
 def test_build_model_settings_injects_openai_extra_body() -> None:
@@ -46,3 +93,25 @@ async def test_run_ai_structured_wraps_typed_output() -> None:
 
     assert result.output == StructuredOutput(value="ok")
     assert result.usage.total_tokens
+
+
+async def test_run_ai_stream_sends_cumulative_text_and_deduplicates_tools() -> None:
+    streamed_text: list[str] = []
+    tool_calls: list[str] = []
+
+    async def on_text_stream(text: str) -> None:
+        streamed_text.append(text)
+
+    async def on_tool_call(tool_name: str) -> None:
+        tool_calls.append(tool_name)
+
+    result = await run_ai_stream(
+        cast(Agent[Any, str], FakeStreamingAgent()),
+        user_prompt="Say hello",
+        on_text_stream=on_text_stream,
+        on_tool_call=on_tool_call,
+    )
+
+    assert streamed_text == ["hel", "hello"]
+    assert tool_calls == ["search", "notes"]
+    assert result.output == "hello"

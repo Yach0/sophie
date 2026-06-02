@@ -219,7 +219,6 @@ async def run_research_structured_step(
 ) -> AIAgentResult[ResearchStepT]:
     return await run_structured_task(
         AIStructuredTask(
-            instructions="",
             output_type=output_type,
             feature=AI_FEATURE_RESEARCH,
         ),

@@ -315,23 +315,23 @@ msgstr ""
 msgid "Describe what the filter should catch"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:222
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:221
 msgid "Could not generate suggestions"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:226
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:225
 msgid "Could not generate suggestions. Please try again or use /addfilter directly."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:229
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
 msgid "AI Filter Suggestions"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:239
 msgid "Use /addfilter <handler> to create the filter."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:241
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr ""
@@ -649,7 +649,7 @@ msgid ""
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:192
+#: sophie_bot/modules/ai/handlers/translate.py:191
 msgid "Error generating translation"
 msgstr ""
 
@@ -783,9 +783,9 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:290
-#: sophie_bot/modules/ai/utils/research.py:402
-#: sophie_bot/modules/ai/utils/research.py:532
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:289
+#: sophie_bot/modules/ai/utils/research.py:401
+#: sophie_bot/modules/ai/utils/research.py:531
 msgid "Research"
 msgstr ""
 
@@ -1106,7 +1106,7 @@ msgstr ""
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:455
+#: sophie_bot/modules/ai/utils/proactive_replies.py:453
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr ""
 
@@ -1162,31 +1162,31 @@ msgstr ""
 msgid "Research requires a configured Kagi API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:356
+#: sophie_bot/modules/ai/utils/research.py:355
 msgid "Research requires a saved chat context."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:403
+#: sophie_bot/modules/ai/utils/research.py:402
 msgid "I could not find enough search results to research this topic."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:501
+#: sophie_bot/modules/ai/utils/research.py:500
 msgid "No snippet available."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:523
+#: sophie_bot/modules/ai/utils/research.py:522
 msgid "Sources"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:536
+#: sophie_bot/modules/ai/utils/research.py:535
 msgid "No sources."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:543
+#: sophie_bot/modules/ai/utils/research.py:542
 msgid "Original request"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:544
+#: sophie_bot/modules/ai/utils/research.py:543
 msgid "Research model"
 msgstr ""
 
@@ -4809,11 +4809,11 @@ msgstr ""
 msgid "AI Analysis"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:584
+#: sophie_bot/modules/op/handlers/op_debug.py:583
 msgid "Collect diagnostic context for debugging bot issues."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:594
+#: sophie_bot/modules/op/handlers/op_debug.py:593
 msgid "Collect diagnostic context with AI summarization (requires feature flag)."
 msgstr ""
 

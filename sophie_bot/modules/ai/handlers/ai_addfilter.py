@@ -207,7 +207,6 @@ class AIFilterAddHandler(SophieMessageHandler):
         try:
             result = await run_structured_task(
                 AIStructuredTask(
-                    instructions="",
                     output_type=AIFilterSuggestionsResponse,
                     feature=AI_FEATURE_FILTER,
                 ),

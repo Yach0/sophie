@@ -6,10 +6,11 @@ and federations using AI when no reason is provided by the user.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from sophie_bot.db.models import AIEnabledModel, ChatModel, RulesModel
 from sophie_bot.db.models.notes import Saveable
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_models import MODERATION_REASON_MODEL
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -68,56 +69,55 @@ async def generate_restriction_reason(
     if not message_text:
         return None
 
+    # Get group rules if needed
+    rules_text = ""
+    if include_rules:
+        rules = await RulesModel.get_rules(chat_db.iid)
+        if rules:
+            # Extract rules text from Saveable model
+            rules_content = extract_rules_text(rules)
+            if rules_content:
+                rules_text = f"\n\nGroup Rules:\n{rules_content}"
+
+    # Build the prompt
+    reason_prompt = str(await get_value("ai_moderation_reason_prompt", chat_tid=chat_db.tid))
+    prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text, base_prompt=reason_prompt)
+
+    # Generate AI response
+    history = AIMessageHistory()
+    history.add_system(
+        "You are a moderation assistant for a Telegram group management bot. "
+        "Generate concise, professional reasons for user restrictions."
+    )
+    history.add_custom(prompt, "Moderator")
+
     try:
-        # Get group rules if needed
-        rules_text = ""
-        if include_rules:
-            rules = await RulesModel.get_rules(chat_db.iid)
-            if rules:
-                # Extract rules text from Saveable model
-                rules_content = extract_rules_text(rules)
-                if rules_content:
-                    rules_text = f"\n\nGroup Rules:\n{rules_content}"
-
-        # Build the prompt
-        reason_prompt = str(await get_value("ai_moderation_reason_prompt", chat_tid=chat_db.tid))
-        prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text, base_prompt=reason_prompt)
-
-        # Generate AI response
-        history = AIMessageHistory()
-        history.add_system(
-            "You are a moderation assistant for a Telegram group management bot. "
-            "Generate concise, professional reasons for user restrictions."
-        )
-        history.add_custom(prompt, "Moderator")
-
         result = await run_structured_task(
-            AIStructuredTask(instructions="", output_type=AIReasonResponse),
+            AIStructuredTask(output_type=AIReasonResponse),
             MODERATION_REASON_MODEL(),
             history,
             chat_iid=chat_db.iid,
             chat_tid=chat_db.tid,
         )
-
-        # Clean up the reason
-        reason = result.output.reason.strip()
-        if reason:
-            log.debug(
-                "Generated AI reason for restriction",
-                chat_id=chat_db.tid,
-                reason=reason[:50],
-            )
-            return reason
-
-        return None
-
-    except Exception as err:
+    except AIRequestFailed as err:
         log.warning(
             "Failed to generate AI reason for restriction",
             chat_id=chat_db.tid,
-            error=str(err),
+            sentry_event_id=err.sentry_event_id,
         )
         return None
+
+    # Clean up the reason
+    reason = result.output.reason.strip()
+    if reason:
+        log.debug(
+            "Generated AI reason for restriction",
+            chat_id=chat_db.tid,
+            reason=reason[:50],
+        )
+        return reason
+
+    return None
 
 
 def extract_rules_text(rules_model: RulesModel) -> str:
@@ -141,15 +141,12 @@ def extract_rules_text(rules_model: RulesModel) -> str:
             content = rules_model.model_dump()
             if "text" in content and content["text"]:
                 return str(content["text"])
-        except Exception:
+        except (AttributeError, TypeError, ValueError, ValidationError) as err:
             log.warning("Failed to extract text from Saveable rules model")
+            raise ValueError("Failed to extract text from Saveable rules model") from err
 
     # Fallback: convert entire model to string representation
-    try:
-        return str(rules_model)
-    except Exception:
-        log.warning("Failed to convert rules model to string, returning empty")
-        return ""
+    return str(rules_model)
 
 
 def build_reason_prompt(message_text: str, rules_text: str, base_prompt: str) -> str:
