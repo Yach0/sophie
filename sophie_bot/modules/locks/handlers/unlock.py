@@ -1,18 +1,23 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import InlineKeyboardButton, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from ass_tg.types import OptionalArg
+from stfu_tg import Italic, Template
 
 from sophie_bot.args.lock_type import LockTypeArg
 from sophie_bot.db.models import LocksModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.locks.callbacks import UnlockAllCallback
 from sophie_bot.modules.locks.handlers.base import BaseLockToggleHandler
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -37,6 +42,57 @@ class UnlockHandler(BaseLockToggleHandler):
             CMDFilter("unlock"),
             UserRestricting(admin=True),
             FeatureFlagFilter("locks"),
+        )
+
+    async def handle(self) -> Any:
+        lock_type: str | None = self.data.get("lock_type")
+
+        if lock_type and lock_type.lower() == "all":
+            return await self._handle_unlock_all()
+
+        return await super().handle()
+
+    async def _handle_unlock_all(self) -> Any:
+        message: Message = self.event
+        connection = self.connection
+
+        if not message.from_user:
+            return
+
+        model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
+
+        if not model.locked_types:
+            await message.reply(
+                Template(
+                    _("There are no locked types in {chat_name}."),
+                    chat_name=connection.title,
+                ).to_html()
+            )
+            return
+
+        buttons = InlineKeyboardBuilder()
+        buttons.add(
+            InlineKeyboardButton(
+                text=str(_("✅ Confirm")),
+                callback_data=UnlockAllCallback(user_id=message.from_user.id).pack(),
+            ),
+        )
+        buttons.add(
+            InlineKeyboardButton(
+                text=str(_("🚫 Cancel")),
+                callback_data="cancel",
+            ),
+        )
+
+        await message.reply(
+            str(
+                Template(
+                    _("Do you want to unlock all {count} locked types in {chat_name}?"),
+                    count=len(model.locked_types),
+                    chat_name=Italic(connection.title),
+                )
+            ),
+            reply_markup=buttons.as_markup(),
         )
 
     async def _toggle_lock(self, model: LocksModel, lock_type: str) -> bool:
