@@ -10,6 +10,8 @@ from sophie_bot.modules.locks.handlers.locklanguages import ListLockLanguagesHan
 from sophie_bot.modules.locks.handlers.locks_list import LocksListHandler
 from sophie_bot.modules.locks.handlers.locksticker import LockStickerHandler
 from sophie_bot.modules.locks.handlers.unlock import UnlockHandler
+from sophie_bot.modules.locks.handlers.unlock_all import UnlockAllCallbackHandler
+from sophie_bot.modules.locks.handlers.unlock_all_cmd import UnlockAllCmdHandler
 from sophie_bot.modules.locks.middlewares.enforcer import LocksEnforcerMiddleware
 from sophie_bot.modules.locks.middlewares.reaction_enforcer import ReactionLocksEnforcerMiddleware
 from sophie_bot.utils.i18n import LazyProxy
@@ -43,6 +45,8 @@ module_manifest = ModuleManifest(
         LockStickerHandler,
         LocksListHandler,
         ListLockLanguagesHandler,
+        UnlockAllCmdHandler,
+        UnlockAllCallbackHandler,
     ),
     pre_setup=pre_setup,
     title=l_("Locks"),
