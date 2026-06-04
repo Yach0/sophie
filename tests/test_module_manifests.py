@@ -16,7 +16,7 @@ from sophie_bot.modules import ModuleManifest, get_module_manifest
         ("ai", 22),
         ("help", 7),
         ("privacy", 2),
-        ("locks", 6),
+        ("locks", 8),
     ],
 )
 def test_module_manifest_registers_handlers(module_name: str, expected_handler_count: int) -> None:
