@@ -2154,7 +2154,11 @@ msgstr ""
 msgid "Please specify a user or reply to a user's message."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:151
+#: sophie_bot/modules/federations/handlers/ban.py:149
+msgid "Could not resolve the command user. Please try again."
+msgstr ""
+
+#: sophie_bot/modules/federations/handlers/ban.py:154
 msgid "You don't have permission to ban users in this federation."
 msgstr ""
 

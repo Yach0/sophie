@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from beanie import PydanticObjectId
-from aiogram_test_framework import TestClient
+from aiogram_test_framework import MessageFactory, TestClient, UpdateFactory
 from bson import DBRef
 
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
@@ -135,6 +135,46 @@ async def test_fban_user_via_service(test_client: TestClient) -> None:
     # Verify via lookup
     is_banned = await FederationBanService.is_user_banned(federation.fed_id, 4002)
     assert is_banned is not None, "User should be banned"
+
+
+@pytest.mark.asyncio
+async def test_sfban_reply_records_banner_as_command_sender(test_client: TestClient) -> None:
+    """Test that reply-based /sfban stores the command sender as the banner."""
+    admin_mock = AsyncMock(return_value=True)
+
+    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
+        owner_user, group, owner_model = await create_test_user_and_group(
+            test_client,
+            user_id=4050,
+            first_name="ReplyBanOwner",
+            username="reply_ban_owner",
+            chat_id=-1001000004050,
+            group_title="Reply Ban Test Group",
+        )
+
+        target_wrapper = test_client.create_user(user_id=4051, first_name="ReplyTarget", username="reply_target")
+        await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
+        target_model = await ChatModel.get_by_tid(4051)
+        assert target_model is not None
+
+        federation = await create_federation_via_command(test_client, owner_user, group, "Reply Ban Test Fed", owner_model)
+        await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+        target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
+        command_message = MessageFactory.create_command(
+            command="sfban",
+            from_user=owner_user,
+            chat=group,
+        ).model_copy(update={"reply_to_message": target_message})
+        await test_client.dispatcher.feed_update(
+            bot=test_client.bot,
+            update=UpdateFactory.create_message_update(command_message),
+        )
+
+    ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id, FederationBan.user_id == 4051)
+    assert ban is not None
+    assert _extract_link_id(ban.by) == owner_model.iid
+    assert _extract_link_id(ban.by) != target_model.iid
 
 
 @pytest.mark.asyncio

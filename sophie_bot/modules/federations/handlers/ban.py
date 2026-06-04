@@ -141,13 +141,16 @@ class FederationBanHandler(FederationCommandHandler):
                 return
             user = await ChatModel.get_by_tid(reply_from_user.id)
             if not user:
-                user = await ChatModel.upsert_user(reply_from_user)
+                user = ChatModel.get_user_model(reply_from_user)
 
         user_tid = user.tid
+        banner = await ChatModel.get_by_tid(self.event.from_user.id)
+        if not banner:
+            await self.event.reply(_("Could not resolve the command user. Please try again."))
+            return
 
         # Permission check
-        banner_tid = self.event.from_user.id if self.event.from_user else 0
-        if not await FederationPermissionService.can_ban_in_federation(federation, banner_tid):
+        if not await FederationPermissionService.can_ban_in_federation(federation, banner.tid):
             await self.event.reply(_("You don't have permission to ban users in this federation."))
             return
 
@@ -165,9 +168,8 @@ class FederationBanHandler(FederationCommandHandler):
                 reason = ai_reason
 
         # Ban user
-        user_iid = user.iid
         try:
-            ban = await FederationBanService.ban_user(federation, user_tid, user_iid, reason, original_message_text)
+            ban = await FederationBanService.ban_user(federation, user_tid, banner.iid, reason, original_message_text)
         except FederationBanValidationError as err:
             await self.event.reply(str(err))
             return
@@ -188,7 +190,7 @@ class FederationBanHandler(FederationCommandHandler):
 
         # Lazy-ban: Also ban in federations that subscribe to this federation
         lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-            federation, user_tid, user_iid, reason, original_message_text
+            federation, user_tid, banner.iid, reason, original_message_text
         )
         lazy_ban_count = len(lazy_bans)
 
