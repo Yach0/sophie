@@ -4608,44 +4608,148 @@ msgstr ""
 msgid "Generate a test emoji captcha"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:103
-#: sophie_bot/modules/op/handlers/KillSwitch.py:202
-#, python-brace-format
-msgid "{feature}: {value}"
-msgstr ""
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:144
-msgid "No per-chat overrides are set."
-msgstr ""
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:154
-msgid "Usage: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
-msgstr ""
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:155
-#: sophie_bot/modules/op/handlers/KillSwitch.py:163
-#, python-brace-format
-msgid "Allowed features: {features}"
-msgstr ""
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:162
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:89
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:172
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:90
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:99
+#, python-brace-format
+msgid "Allowed features: {features}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:98
+msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:130
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
+#, python-brace-format
+msgid "{feature}: {value}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:162
+#, python-brace-format
+msgid "Invalid value for {feature}: expected {expected}, got {actual}."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:176
+#, python-brace-format
+msgid "Invalid value for {feature}: {value}."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
+#, python-brace-format
+msgid "Args: {args}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:281
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+msgid "No changed feature flags are set."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+msgid "Changed feature flags"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+msgid "All feature flags"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+msgid "No feature flags are registered."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
+msgid "Rollouts"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:462
+msgid "No feature flag rollouts are set."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:298
+msgid "Manual per-chat overrides"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:300
+msgid "No manual per-chat overrides are set."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:305
+msgid "Rollout-created per-chat overrides"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:307
+msgid "No rollout-created per-chat overrides are set."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:342
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:493
+msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:344
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:458
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:495
+msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:346
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:456
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:473
+msgid "Usage: /op_ff ^days=<days> <feature> <value>"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:350
+msgid "Usage: /op_ff ^chat_overrides"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:396
 #, python-brace-format
 msgid "{feature} override for chat {chat} deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:180
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:404
 #, python-brace-format
 msgid "{feature} override deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:191
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:418
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:449
+msgid "Rollouts cannot be combined with per-chat overrides."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:452
+msgid "Use only one rollout argument at a time."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:478
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:523
+#, python-brace-format
+msgid "No rollout is set for {feature}."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:512
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:528
+#, python-brace-format
+msgid "{feature}: {rollout}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:490
+#, python-brace-format
+msgid "{feature} rollout deleted."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:509
+msgid "Rollout was not saved."
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:23

@@ -9,7 +9,7 @@ from sophie_bot.modules.ai.utils.ai_models import (
     AIProviders,
     get_default_model_name,
 )
-from sophie_bot.utils.feature_flags import _DEFAULT_STATES, get_value
+from sophie_bot.utils.feature_flags import get_default_value, get_value
 from sophie_bot.utils.logger import log
 
 
@@ -45,7 +45,7 @@ async def get_chat_translations_model(chat_id: PydanticObjectId, chat_tid: int |
 
 async def get_chat_summary_model(chat_id: PydanticObjectId, chat_tid: int | None = None) -> Model:
     feature_model_name = str(await get_value("ai_summary_model", chat_tid=chat_tid))
-    default_model_name = _DEFAULT_STATES["ai_summary_model"]
+    default_model_name = get_default_value("ai_summary_model")
     model_name = feature_model_name
     if feature_model_name == default_model_name:
         model_name = await AIProviderModel.get_summary_model_name(chat_id)

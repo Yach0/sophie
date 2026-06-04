@@ -37,6 +37,6 @@ output/
 openapi.json
 
 # Libs
-libs/
+# libs/
 
 *.egg-info/

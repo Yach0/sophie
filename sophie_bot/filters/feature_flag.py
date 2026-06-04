@@ -24,6 +24,8 @@ class FeatureFlagFilter(BaseFilter):
     async def __call__(self, event: Message | CallbackQuery) -> bool:
         """Check if the feature flag condition is met."""
         message = event.message if isinstance(event, CallbackQuery) else event
+        if message is None:
+            return False
         chat_tid = message.chat.id if isinstance(message, Message) else None
         flag_enabled = await is_enabled(self.feature, chat_tid=chat_tid)
         return flag_enabled == self.enabled

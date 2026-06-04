@@ -27,7 +27,7 @@ from sophie_bot.modules.op.json_schemas.op_debug_ai_summary import OpDebugAISumm
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import _DEFAULT_STATES, FEATURE_FLAGS, is_enabled, list_all
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, get_default_value, is_enabled, list_all
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.versions import SOPHIE_BRANCH, SOPHIE_COMMIT, SOPHIE_VERSION
@@ -289,7 +289,7 @@ async def _collect_feature_flags() -> tuple[Section, dict[str, Any]]:
     overridden_count = 0
     for feature in FEATURE_FLAGS:
         enabled = states[feature]
-        default_enabled = _DEFAULT_STATES[feature]
+        default_enabled = get_default_value(feature)
         marker = "✦" if enabled != default_enabled else " "
         if enabled != default_enabled:
             overridden_count += 1

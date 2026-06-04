@@ -6,7 +6,7 @@ from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.op.handlers.Banner import OpBannerHandler
 from sophie_bot.modules.op.handlers.ButtonsTest import ButtonsTestHandler
 from sophie_bot.modules.op.handlers.Captcha import OpCaptchaHandler
-from sophie_bot.modules.op.handlers.KillSwitch import KillSwitchHandler
+from sophie_bot.modules.op.handlers.FeatureFlags import FeatureFlagsHandler
 from sophie_bot.modules.op.handlers.ListJobs import ListJobsHandler
 from sophie_bot.modules.op.handlers.PreviewChatSummary import OpRegenerateChatSummaryHandler
 from sophie_bot.modules.op.handlers.StopJobs import StopJobsHandler
@@ -32,7 +32,7 @@ module_manifest = ModuleManifest(
     handlers=(
         ListJobsHandler,
         StopJobsHandler,
-        KillSwitchHandler,
+        FeatureFlagsHandler,
         OpBannerHandler,
         OpCaptchaHandler,
         OpRegenerateChatSummaryHandler,

@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from beanie import Document, UpdateResponse
 from beanie.odm.operators.update.general import Set
 from pymongo import ASCENDING, IndexModel
 
 
+FeatureFlagOverrideSource = Literal["manual", "rollout"]
+
+
 class FeatureFlagOverride(Document):
     feature: str
     chat_tid: Optional[int] = None
     value: Any
+    source: FeatureFlagOverrideSource = "manual"
 
     class Settings:
         name = "feature_flag_overrides"
@@ -26,13 +30,18 @@ class FeatureFlagOverride(Document):
         )
 
     @staticmethod
-    async def set_override(feature: str, value: Any, chat_tid: int | None = None) -> FeatureFlagOverride:
+    async def set_override(
+        feature: str,
+        value: Any,
+        chat_tid: int | None = None,
+        source: FeatureFlagOverrideSource = "manual",
+    ) -> FeatureFlagOverride:
         return await FeatureFlagOverride.find_one(
             FeatureFlagOverride.feature == feature,
             FeatureFlagOverride.chat_tid == chat_tid,
         ).upsert(
-            Set({FeatureFlagOverride.value: value}),
-            on_insert=FeatureFlagOverride(feature=feature, chat_tid=chat_tid, value=value),
+            Set({FeatureFlagOverride.value: value, FeatureFlagOverride.source: source}),
+            on_insert=FeatureFlagOverride(feature=feature, chat_tid=chat_tid, value=value, source=source),
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
 
