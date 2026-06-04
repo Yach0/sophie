@@ -8,6 +8,7 @@ build_runtime_container:
   interruptible: true
   before_script:
     - podman login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" registry.gitlab.com
+    - rm -rf libs
     - mkdir -p libs
     - git clone --depth 1 https://gitlab.com/SophieBot/stf.git libs/stf
     - git clone --depth 1 https://gitlab.com/SophieBot/ass.git libs/ass
