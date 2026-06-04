@@ -8,6 +8,7 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
+from sentry_sdk.ai import set_conversation_id
 from stfu_tg import BlockQuote, Doc, Section
 from stfu_tg.doc import Element
 
@@ -226,6 +227,7 @@ async def ai_chatbot_reply(
         return None
 
     async with track_ai_conversation():
+        set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         model = await _resolve_model(connection, model)
         message_streamer = await build_message_streamer(message, connection, model, explicit_debug_mode)
