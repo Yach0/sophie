@@ -2039,7 +2039,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/handlers/unban.py:157
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:77
 #: sophie_bot/modules/warns/handlers/warns_group.py:40
 msgid "Unknown"
 msgstr ""
@@ -4335,7 +4335,7 @@ msgid "Private Notes"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:41
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:88
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:86
 #: sophie_bot/modules/utils_/status_handler.py:51
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
@@ -5473,11 +5473,11 @@ msgstr ""
 msgid "Rules filter failed"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/__init__.py:38
+#: sophie_bot/modules/troubleshooters/__init__.py:40
 msgid "Troubleshooters"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/__init__.py:40
+#: sophie_bot/modules/troubleshooters/__init__.py:42
 msgid "Tools for fixing problems and issues"
 msgstr ""
 
@@ -5498,23 +5498,51 @@ msgid "Auto"
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:14
-msgid "Stable"
+msgid "Old"
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:15
-msgid "Beta"
+msgid "Latest"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:20
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:28
 msgid "Preferred strategy mode"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:22
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:30
 msgid "Set preferred strategy mode"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:65
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:40
+msgid "Sophie Support"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:50
+msgid "New strategy"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:52
+msgid "Preferred mode cannot always match the current state due to development and rollout progress."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:56
+msgid "Preferred mode changed"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:63
 msgid "Get current strategy mode / current state"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:82
+msgid "Preferred mode"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:83
+msgid "Current mode"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:84
+msgid "Mode information"
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel.py:13

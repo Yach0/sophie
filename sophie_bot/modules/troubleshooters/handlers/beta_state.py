@@ -11,17 +11,25 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 mode_names = {
     "auto": l_("Auto"),
-    "stable": l_("Stable"),
-    "beta": l_("Beta"),
+    "stable": l_("Old"),
+    "beta": l_("Latest"),
+}
+
+preferred_mode_by_user_mode = {
+    "auto": PreferredMode.auto,
+    "latest": PreferredMode.beta,
+    "old": PreferredMode.stable,
+    "beta": PreferredMode.beta,
+    "stable": PreferredMode.stable,
 }
 
 
 @flags.args(
-    new_state=OneOf(("auto", "stable", "beta"), l_("Preferred strategy mode")),
+    new_state=OneOf(("auto", "latest", "old", "beta", "stable"), l_("Preferred strategy mode")),
 )
 @flags.help(description=l_("Set preferred strategy mode"))
-async def set_preferred_mode(message: Message, new_state: str, chat_db: ChatModel):
-    state = PreferredMode[new_state]
+async def set_preferred_mode(message: Message, new_state: str, chat_db: ChatModel) -> None:
+    state = preferred_mode_by_user_mode[new_state]
 
     await BetaModeModel.set_preferred_mode(chat_db.iid, state)
 
@@ -29,7 +37,7 @@ async def set_preferred_mode(message: Message, new_state: str, chat_db: ChatMode
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="Sophie Support",
+                    text=_("Sophie Support"),
                     url=CONFIG.support_link,
                 )
             ]
@@ -39,23 +47,13 @@ async def set_preferred_mode(message: Message, new_state: str, chat_db: ChatMode
     await message.reply(
         str(
             Section(
-                KeyValue("New strategy", mode_names[state.name]),
+                KeyValue(_("New strategy"), mode_names[state.name]),
                 (
-                    (
-                        "Please keep in mind, that Beta mode can have bugs and issues."
-                        " Report your findings to the support chat"
-                        if new_state
-                        else None
-                    )
-                    if state == PreferredMode.beta
-                    else None
-                ),
-                (
-                    "Preferred mode can not always match the current state due to development and rollout progress."
+                    _("Preferred mode cannot always match the current state due to development and rollout progress.")
                     if state != PreferredMode.auto
                     else None
                 ),
-                title="Preferred mode changed",
+                title=_("Preferred mode changed"),
             )
         ),
         reply_markup=buttons,
@@ -63,7 +61,7 @@ async def set_preferred_mode(message: Message, new_state: str, chat_db: ChatMode
 
 
 @flags.help(description=l_("Get current strategy mode / current state"))
-async def show_beta_state(message: Message, chat_db: ChatModel):
+async def show_beta_state(message: Message, chat_db: ChatModel) -> None:
     beta_state = await BetaModeModel.get_by_chat_iid(chat_db.iid)
 
     preferred_mode = PreferredMode(beta_state.preferred_mode) if beta_state else PreferredMode.auto
@@ -81,10 +79,10 @@ async def show_beta_state(message: Message, chat_db: ChatModel):
     await message.reply(
         str(
             Section(
-                KeyValue("Preferred mode", mode_names[preferred_mode.name]),
-                KeyValue("Current mode", current_mode_text),
-                title="Beta mode information",
+                KeyValue(_("Preferred mode"), mode_names[preferred_mode.name]),
+                KeyValue(_("Current mode"), current_mode_text),
+                title=_("Mode information"),
             )
-            + Template(_("Use '{cmd}' to change it."), cmd=Italic("/enablebeta (auto / stable / beta)")),
+            + Template(_("Use '{cmd}' to change it."), cmd=Italic("/setmode (auto / latest / old)")),
         )
     )

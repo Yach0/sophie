@@ -18,8 +18,10 @@ router = Router(name="troubleshooters")
 
 async def pre_setup() -> None:
     # Beta
-    router.message.register(set_preferred_mode, CMDFilter("enablebeta"), HasArgs(True), UserRestricting(admin=True))
-    router.message.register(show_beta_state, CMDFilter("enablebeta"), UserRestricting(admin=True))
+    router.message.register(
+        set_preferred_mode, CMDFilter(("setmode", "enablebeta")), HasArgs(True), UserRestricting(admin=True)
+    )
+    router.message.register(show_beta_state, CMDFilter(("setmode", "enablebeta")), UserRestricting(admin=True))
 
 
 module_manifest = ModuleManifest(
