@@ -4,6 +4,7 @@ variables:
 
 deploy_prod_beta:
   stage: deploy
+  interruptible: false
   needs:
     - job: build_runtime_container
       optional: true
@@ -24,6 +25,7 @@ deploy_prod_beta:
 
 deploy_prod_stable:
   stage: deploy
+  interruptible: false
   needs:
     - job: build_runtime_container
       optional: true

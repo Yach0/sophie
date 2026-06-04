@@ -1,6 +1,9 @@
 variables:
   CI_IMAGE: "registry.gitlab.com/sophiebot/sophie-ci/sophie-ci:main"
 
+default:
+  interruptible: true
+
 stages:
   - test
   - build

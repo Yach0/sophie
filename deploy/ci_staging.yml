@@ -4,6 +4,7 @@ variables:
 
 deploy_staging_all:
   stage: deploy
+  interruptible: false
   needs:
     - job: build_runtime_container
       optional: true
