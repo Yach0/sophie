@@ -2,6 +2,7 @@ import logging.config
 import os
 
 import structlog
+from aiohttp.log import access_logger
 from aiogram.loggers import event
 from structlog.dev import plain_traceback
 from structlog.typing import EventDict
@@ -158,6 +159,10 @@ logging.config.dictConfig(
                 "level": logging.WARNING,
                 "propagate": True,
             },
+            "aiohttp.access": {
+                "level": logging.WARNING,
+                "propagate": True,
+            },
         },
     }
 )
@@ -174,7 +179,9 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
-event.setLevel(logging.DEBUG)
-event.addFilter(_NotHandledFilter())
+if CONFIG.debug_mode in ("normal", "high"):
+    event.setLevel(logging.DEBUG)
+    event.addFilter(_NotHandledFilter())
+    access_logger.setLevel(logging.DEBUG)
 log = structlog.get_logger()
 security_log = structlog.get_logger("security")
