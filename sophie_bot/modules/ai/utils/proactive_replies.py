@@ -8,6 +8,7 @@ import sentry_sdk
 from aiogram.types import Message, ReactionTypeEmoji
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import UserContent
+from sentry_sdk.ai import set_conversation_id
 from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
@@ -492,6 +493,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         service_tier=service_tier,
     )
     async with track_ai_conversation():
+        set_conversation_id(f"{chat.iid}:proactive")
         result = await run_ai_text(
             run_config.agent,
             user_prompt=history.prompt,

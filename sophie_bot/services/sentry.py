@@ -56,4 +56,6 @@ def init_sentry() -> None:
         traces_sample_rate=CONFIG.sentry_traces_sample_rate,
         profile_session_sample_rate=CONFIG.sentry_profile_session_sample_rate,
         profile_lifecycle="trace",
+        stream_gen_ai_spans=True,
+        send_default_pii=True,
     )
