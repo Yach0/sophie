@@ -6654,12 +6654,12 @@ msgstr ""
 msgid "Key-values of {}"
 msgstr ""
 
-#: types/keyvalue.py:65
+#: types/keyvalue.py:67
 #, python-brace-format
 msgid "The optional argument {name} must contain a value!"
 msgstr ""
 
-#: types/keyvalue.py:90 types/keyvalue.py:91
+#: types/keyvalue.py:92 types/keyvalue.py:93
 msgid "Key-values"
 msgstr ""
 
