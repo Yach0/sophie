@@ -20,8 +20,6 @@ class UnlockAllCallbackHandler(SophieCallbackQueryHandler):
         return UnlockAllCallback.filter(), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
-        await self.check_for_message()
-
         connection = self.connection
         data: UnlockAllCallback = self.callback_data
 
@@ -33,11 +31,11 @@ class UnlockAllCallbackHandler(SophieCallbackQueryHandler):
         locked_types = model.locked_types
 
         if not locked_types:
-            await self.event.message.edit_text(
+            await self.edit_text(
                 Template(
                     _(str(l_("There are no locked types in {chat_name}."))),
                     chat_name=Italic(connection.title),
-                ).to_html(),
+                ),
             )
             return
 
@@ -52,4 +50,4 @@ class UnlockAllCallbackHandler(SophieCallbackQueryHandler):
             )
         )
 
-        await self.event.message.edit_text(doc.to_html())
+        await self.edit_text(doc)
