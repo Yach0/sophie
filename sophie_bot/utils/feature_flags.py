@@ -516,7 +516,7 @@ async def list_rollouts() -> dict[FeatureType, FeatureRollout]:
         cached_rollouts[typed_feature] = _serialize_rollout(rollout)
 
     if cached_rollouts:
-        await asyncio.gather(
+        await asyncio.gather(  # ty: ignore[no-matching-overload]
             *[
                 aredis.hset(_REDIS_ROLLOUT_KEY, feature, serialized_rollout)
                 for feature, serialized_rollout in cached_rollouts.items()
@@ -566,7 +566,7 @@ async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
             cached_overrides[typed_feature] = _serialize_value(parsed_value)
     if cached_overrides:
         redis_key = _chat_redis_key(chat_tid)
-        await asyncio.gather(
+        await asyncio.gather(  # ty: ignore[no-matching-overload]
             *[
                 aredis.hset(redis_key, feature, serialized_value)
                 for feature, serialized_value in cached_overrides.items()
