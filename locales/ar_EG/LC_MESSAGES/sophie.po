@@ -1,3 +1,17 @@
+msgid ""
+msgstr ""
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+"X-Crowdin-Project: sophiebot\n"
+"X-Crowdin-Project-ID: 356879\n"
+"X-Crowdin-Language: ar-EG\n"
+"X-Crowdin-File: /beta/locales/sophie.pot\n"
+"X-Crowdin-File-ID: 288\n"
+"Project-Id-Version: sophiebot\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language-Team: Arabic, Egypt\n"
+"Language: ar_EG\n"
+"PO-Revision-Date: 2026-06-05 06:15\n"
+
 #: sophie_bot/args/chats.py:22
 msgid "Could not find the requested Chat ID in the database."
 msgstr "لم يتم العثور على معرف الدردشة المطلوب في قاعدة البيانات."
@@ -21,7 +35,7 @@ msgid "Chat ID"
 msgstr "رقم تعريف الدردشة"
 
 #: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:83
-#: sophie_bot/modules/users/handlers/info.py:52 types/user.py:129
+#: sophie_bot/modules/users/handlers/info.py:52
 msgid "Username"
 msgstr "اسم المستخدم"
 
@@ -53,7 +67,7 @@ msgstr "حظر الروابط"
 
 #: sophie_bot/args/lock_type.py:50
 msgid "Block web page previews"
-msgstr ""
+msgstr "حظر معاينات صفحات الويب"
 
 #: sophie_bot/args/lock_type.py:51
 msgid "Block forwarded messages"
@@ -75,19 +89,19 @@ msgstr "معرف مستخدم غير صالح."
 msgid "Could not find the requested User ID in the database."
 msgstr "لم يتم العثور على معرف المستخدم المطلوب في قاعدة البيانات."
 
-#: sophie_bot/args/users.py:75 types/user.py:120
+#: sophie_bot/args/users.py:75
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr "المستخدم: 'معرف المستخدم (رقمي) / اسم المستخدم (يبدأ بـ @) / إشارة (روابط إلى المستخدمين)'"
 
-#: sophie_bot/args/users.py:76 types/user.py:122
+#: sophie_bot/args/users.py:76
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr "المستخدمون: 'معرفات المستخدمين (رقمي) / أسماء المستخدمين (تبدأ بـ @) / إشارات (روابط إلى المستخدمين)'"
 
-#: sophie_bot/args/users.py:82 types/user.py:128
+#: sophie_bot/args/users.py:82
 msgid "User ID"
 msgstr "معرف المستخدم"
 
-#: sophie_bot/args/users.py:85 types/user.py:134
+#: sophie_bot/args/users.py:85
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "رابط إلى المستخدم، يتم إنشاؤه عادةً عن طريق الإشارة إلى مستخدم بدون اسم مستخدم."
 
@@ -176,48 +190,38 @@ msgid "No modules found."
 msgstr "لم يتم العثور على وحدات."
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:34
-#, fuzzy
-msgid ""
-"SOPHIE BOT HELP CONTEXT\n"
-"\n"
-"Commands are organized by module. Each module represents a feature area of the bot.\n"
-"\n"
+msgid "SOPHIE BOT HELP CONTEXT\n\n"
+"Commands are organized by module. Each module represents a feature area of the bot.\n\n"
 "Module fields:\n"
 "  - Name: the human-readable name of the module.\n"
 "  - Icon: emoji representing the module.\n"
 "  - Description: what the module does.\n"
 "  - Info: additional information about the module.\n"
 "  - Public: whether the module is shown in public listings.\n"
-"  - Wiki: whether the module has a wiki page.\n"
-"\n"
+"  - Wiki: whether the module has a wiki page.\n\n"
 "Command fields:\n"
 "  - Commands: slash commands that trigger the handler.\n"
 "  - Description: human-readable summary of what the handler does.\n"
 "  - Arguments: expected arguments (order matters).\n"
 "  - Context: where the command can be used (PM / groups / both).\n"
 "  - Permissions: whether admin / OP rights are required.\n"
-"  - Disableable: name of the feature flag used to disable this command in a chat, if any.\n"
-"\n"
-msgstr ""
-"SOPHIE BOT HELP CONTEXT\n"
-"\n"
-"الأوامر منظمة حسب الوحدات. كل وحدة تمثل منطقة ميزة من الروبوت.\n"
-"\n"
+"  - Disableable: name of the feature flag used to disable this command in a chat, if any.\n\n"
+msgstr "SOPHIE BOT HELP CONTEXT\n\n"
+"الأوامر مُنظَّمة حسب الوحدة. تمثّل كل وحدة مجال ميزة في البوت.\n\n"
 "حقول الوحدة:\n"
-"  - الاسم: الاسم الذي يمكن قراءته من قبل الإنسان للوحدة.\n"
-"  - الأيقونة: emoji تمثل الوحدة.\n"
+"  - الاسم: الاسم المقروء للمستخدم للوحدة.\n"
+"  - الأيقونة: الرمز التعبيري الذي يُمثّل الوحدة.\n"
 "  - الوصف: ما تفعله الوحدة.\n"
 "  - المعلومات: معلومات إضافية عن الوحدة.\n"
-"  - العام: ما إذا كانت الوحدة تظهر في القوائم العامة.\n"
-"  - ويكي: ما إذا كانت الوحدة لها صفحة ويكي.\n"
-"\n"
+"  - عام: ما إذا كانت الوحدة تظهر في القوائم العامة.\n"
+"  - الويكي: ما إذا كانت للوحدة صفحة ويكي.\n\n"
 "حقول الأمر:\n"
-"  - الأوامر: أوامر slash التي تنشط المعالج.\n"
-"  - الوصف: ملخص يمكن قراءته من قبل الإنسان لما يفعله المعالج.\n"
-"  - الحجج: الحجج المتوقعة (الترتيب مهم).\n"
-"  - السياق: حيث يمكن استخدام الأمر (PM / المجموعات / كلاما).\n"
-"  - الأذونات: ما إذا كانت هناك حاجة إلى حقوق المشرف / OP.\n"
-"  - قابلة للتعطيل: اسم علم الميزة المستخدمتعطيل هذا الأمر في الدردشة، إن وجد."
+"  - الأوامر: أوامر السلاش التي تُشغّل المعالج.\n"
+"  - الوصف: ملخّص مقروء يوضّح ما يفعله المعالج.\n"
+"  - الوسائط: الوسائط المتوقعة (ترتيبها مهم).\n"
+"  - السياق: أين يمكن استخدام الأمر (رسائل خاصة / مجموعات / كلاهما).\n"
+"  - الأذونات: هل يتطلب حقوق مشرف / OP.\n"
+"  - قابل للتعطيل: اسم علم الميزة المستخدم لتعطيل هذا الأمر في دردشة، إن وُجد.\n\n"
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:60
 #: sophie_bot/modules/federations/handlers/info.py:63
@@ -294,9 +298,8 @@ msgid "No commands in this module."
 msgstr "لا يوجد أوامر في هذه الوحدة."
 
 #: sophie_bot/modules/ai/agent_tools/notes.py:89
-#, fuzzy
 msgid "Note was successfully deleted."
-msgstr "تم حذف الملاحظة بنجاح"
+msgstr "تم حذف الملاحظة بنجاح."
 
 #: sophie_bot/modules/ai/filters/ai_enabled.py:33
 msgid "The AI Features are currently deactivated for this chat."
@@ -336,24 +339,23 @@ msgstr "يقترح معالجات الفلتر من وصف باللغة الطب
 msgid "Describe what the filter should catch"
 msgstr "صف ما يجب أن يكتشفه الفلتر"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:222
-#, fuzzy
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:221
 msgid "Could not generate suggestions"
-msgstr "لم يتم العثور على الإشارة إلى المستخدم"
+msgstr "تعذّر إنشاء اقتراحات"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:226
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:225
 msgid "Could not generate suggestions. Please try again or use /addfilter directly."
 msgstr "تعذر إنشاء اقتراحات. يرجى المحاولة مرة أخرى أو استخدام /addfilter مباشرة."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:229
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
 msgid "AI Filter Suggestions"
 msgstr "اقتراحات فلتر الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:239
 msgid "Use /addfilter <handler> to create the filter."
 msgstr "استخدم /addfilter <handler> لإنشاء الفلتر."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:241
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:240
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr "على سبيل المثال، {cmd}"
@@ -608,15 +610,15 @@ msgstr "تم الخروج من وضع AI."
 #: sophie_bot/modules/ai/handlers/research.py:42
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
 msgid "Starting the research..."
-msgstr ""
+msgstr "بدأ البحث..."
 
 #: sophie_bot/modules/ai/handlers/research.py:76
 msgid "Research topic"
-msgstr ""
+msgstr "موضوع البحث"
 
 #: sophie_bot/modules/ai/handlers/research.py:78
 msgid "Research a topic using multistage web search and return a summary with sources"
-msgstr ""
+msgstr "ابحَث عن موضوع باستخدام بحث ويب متعدد المراحل وأعد ملخصًا مع المصادر"
 
 #: sophie_bot/modules/ai/handlers/reset_context.py:19
 msgid "Reset the chat's AI context and AI memory"
@@ -666,14 +668,12 @@ msgstr "إذا لزم الأمر، قم بترجمة الصورة إلى {langua
 
 #: sophie_bot/modules/ai/handlers/translate.py:162
 #, python-brace-format
-msgid ""
-"Translate the following text to {language_name}:\n"
+msgid "Translate the following text to {language_name}:\n"
 "{to_translate}"
-msgstr ""
-"ترجم النص التالي إلى {language_name}:\n"
+msgstr "ترجم النص التالي إلى {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:192
+#: sophie_bot/modules/ai/handlers/translate.py:191
 msgid "Error generating translation"
 msgstr "خطأ في إنشاء الترجمة"
 
@@ -811,25 +811,23 @@ msgstr "أنت تلخص مناقشات مجموعات تيليجرام في سط
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "باستخدام ميزات الذكاء الاصطناعي، أنت توافق على سياسة الخصوصية الخاصة بنا (/privacy) وخدمات الذكاء الاصطناعي من الأطراف الثالثة المستخدمة."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:290
-#: sophie_bot/modules/ai/utils/research.py:402
-#: sophie_bot/modules/ai/utils/research.py:532
-#, fuzzy
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:289
+#: sophie_bot/modules/ai/utils/research.py:401
+#: sophie_bot/modules/ai/utils/research.py:531
 msgid "Research"
-msgstr "نص للبحث"
+msgstr "بحث"
 
 #: sophie_bot/modules/ai/utils/ai_errors.py:40
 msgid "The AI request failed. Please try again in a moment."
-msgstr ""
+msgstr "فشل طلب الذكاء الاصطناعي. الرجاء المحاولة بعد قليل."
 
 #: sophie_bot/modules/ai/utils/ai_errors.py:144
-#, fuzzy
 msgid "🤖 AI request failed"
-msgstr "فشل فلتر القواعد"
+msgstr "🤖 فشل طلب الذكاء الاصطناعي"
 
 #: sophie_bot/modules/ai/utils/ai_errors.py:150
 msgid "The AI provider did not complete the request. Please try again in a moment."
-msgstr ""
+msgstr "مزود الذكاء الاصطناعي لم يكمل الطلب. الرجاء المحاولة بعد قليل."
 
 #: sophie_bot/modules/ai/utils/ai_errors.py:154
 #: sophie_bot/modules/error/utils/error_message.py:45
@@ -837,9 +835,9 @@ msgid "Reference ID"
 msgstr "معرف المرجع"
 
 #: sophie_bot/modules/ai/utils/ai_header.py:35
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{ai_emoji} AI"
-msgstr "{ai_emoji} استجابة الذكاء الاصطناعي"
+msgstr "{ai_emoji} الذكاء الاصطناعي"
 
 #: sophie_bot/modules/ai/utils/ai_moderator.py:19
 msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
@@ -877,40 +875,85 @@ msgstr "المحتوى الذي يحتوي على أو يحاول استدراج
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr "المحتوى الذي يطلب أو يشارك أو يحاول استدراج معلومات تعريفية شخصية مثل الأسماء الكاملة أو العناوين أو أرقام الهاتف أو أرقام الضمان الاجتماعي أو تفاصيل الحسابات المالية."
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:36
+#: sophie_bot/modules/ai/utils/ai_progress.py:33
 msgid "Thinking..."
-msgstr ""
+msgstr "أفكّر..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:34
+msgid "Working on it..."
+msgstr "أعمل على ذلك..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:35
+msgid "Let me think..."
+msgstr "دعني أفكّر..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:36
+msgid "Generating response..."
+msgstr "إنشاء الرد..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:37
-#, fuzzy
-msgid "Working on it..."
-msgstr "Warnings count"
+msgid "Preparing an answer..."
+msgstr "إعداد إجابة..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:38
-msgid "Let me think..."
-msgstr ""
+msgid "Reading the context..."
+msgstr "قراءة السياق..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:39
-#, fuzzy
-msgid "Generating response..."
-msgstr "استجابة الذكاء الاصطناعي"
+msgid "Checking the details..."
+msgstr "التحقق من التفاصيل..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:40
-msgid "Preparing an answer..."
-msgstr ""
+msgid "Looking into it..."
+msgstr "أتحقق من الأمر..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:41
-#, fuzzy
-msgid "Reading the context..."
-msgstr "استرجع الملاحظة."
+msgid "Sorting through the context..."
+msgstr "فرز السياق..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:42
-msgid "Checking the details..."
-msgstr ""
+msgid "Connecting the dots..."
+msgstr "ربط النقاط..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:43
-msgid "Looking into it..."
-msgstr ""
+msgid "Reviewing the conversation..."
+msgstr "مراجعة المحادثة..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:44
+msgid "Drafting a reply..."
+msgstr "صياغة رد..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:45
+msgid "Checking what matters..."
+msgstr "التحقق من الأمور المهمة..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:46
+msgid "Putting it together..."
+msgstr "تجميع المعلومات..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:47
+msgid "Thinking this through..."
+msgstr "أفكّر في الأمر بعمق..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:48
+msgid "Finding the right angle..."
+msgstr "إيجاد الزاوية المناسبة..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:49
+msgid "Weighing the options..."
+msgstr "موازنة الخيارات..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:50
+msgid "Tracing the details..."
+msgstr "تتبّع التفاصيل..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:51
+msgid "Building the answer..."
+msgstr "بناء الإجابة..."
+
+#: sophie_bot/modules/ai/utils/ai_progress.py:52
+msgid "Making sense of it..."
+msgstr "محاولة فهم الأمر..."
 
 #: sophie_bot/modules/ai/utils/ai_quota_docs.py:15
 #: sophie_bot/modules/ai/utils/ai_quota_docs.py:27
@@ -951,14 +994,12 @@ msgid "Today is "
 msgstr "اليوم هو "
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:25
-#, fuzzy
 msgid "You can use the web search tool to search for information. Include information sources as links."
-msgstr "يمكنك استخدام Tavily للبحث عن المعلومات. قم بتضمين مصادر المعلومات كروابط."
+msgstr "يمكنك استخدام أداة البحث على الويب للبحث عن معلومات. أدرج مصادر المعلومات كرابط."
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:33
-#, fuzzy
 msgid "You can also save important things to chat notes."
-msgstr "يمكنك أيضًا حفظ الأشياء المهمة في الذاكرة."
+msgstr "يمكنك أيضًا حفظ الأشياء المهمة في ملاحظات الدردشة."
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:35
 msgid "You can also save important things to the memory."
@@ -975,12 +1016,12 @@ msgstr "وحدات Sophie المتاحة: {modules}"
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:43
 msgid "You can use the research tool to research complicated topics instead of plain web search."
-msgstr ""
+msgstr "يمكنك استخدام أداة البحث لإجراء بحوث حول مواضيع معقّدة بدلًا من البحث العادي."
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:49
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
-msgstr ""
+msgstr "تجري هذه المحادثة في الدردشة: {chat_name}"
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:58
 #, python-brace-format
@@ -992,157 +1033,140 @@ msgid "Recent chat summaries"
 msgstr "ملخصات الدردشة الأخيرة"
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:77
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
-msgstr ""
-"معايير الفلتر: {criteria}\n"
-"\n"
-"محتوى الرسالة: {content}"
+msgstr "{notename} | العنوان: {title} | المحتوى: {content}"
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:84
-#, fuzzy
 msgid "Related chat notes with content."
-msgstr "نوتات معيبة في الكود،"
+msgstr "ملاحظات الدردشة المرتبطة مع المحتوى."
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:88
 #, python-brace-format
 msgid "{notename} | title: {title}"
-msgstr ""
+msgstr "{notename} | العنوان: {title}"
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:95
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
-msgstr ""
+msgstr "ملاحظات الدردشة المرتبطة. استخدم get_note_content مع اسم الملاحظة عندما قد تفيد تفاصيل الملاحظة."
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:102
 msgid "You have the following information in your memory"
 msgstr "لديك المعلومات التالية في ذاكرتك"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:23
-#, fuzzy
 msgid "Memory 💾"
-msgstr "تم تحديث الذاكرة 💾"
+msgstr "الذاكرة 💾"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:24
 msgid "Forget 🗑"
-msgstr ""
+msgstr "نسيان 🗑"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:25
-#, fuzzy
 msgid "Commands 📋"
-msgstr "الأوامر"
+msgstr "الأوامر 📋"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:26
 #: sophie_bot/modules/ai/utils/chatbot_response.py:27
-#, fuzzy
 msgid "Search 🔍"
-msgstr "?ابحث عن الملاحظات"
+msgstr "بحث 🔍"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:28
-#, fuzzy
 msgid "Notes 🗒"
-msgstr "ملاحظات"
+msgstr "ملاحظات 🗒"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:29
-#, fuzzy
 msgid "Note 🗒"
-msgstr "ملاحظات"
+msgstr "ملاحظة 🗒"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:30
-#, fuzzy
 msgid "Save note 🗒"
-msgstr "ملاحظات مسحوبة 🗒"
+msgstr "حفظ ملاحظة 🗒"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:31
-#, fuzzy
 msgid "Delete note 🗑"
-msgstr "يحذف الملاحظات."
+msgstr "حذف ملاحظة 🗑"
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:32
-#, fuzzy
 msgid "Research 🔎"
-msgstr "?ابحث عن الملاحظات"
+msgstr "بحث 🔎"
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:40
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
 msgid "Searching the web..."
-msgstr ""
+msgstr "جارٍ البحث على الويب..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
 #: sophie_bot/modules/ai/utils/research.py:81
 msgid "Looking it up online..."
-msgstr ""
+msgstr "أبحث عنها على الإنترنت..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
 msgid "Browsing the internet..."
-msgstr ""
+msgstr "تصفّح الإنترنت..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
 msgid "Updating memory..."
-msgstr ""
+msgstr "تحديث الذاكرة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
 msgid "Saving to memory..."
-msgstr ""
+msgstr "حفظ في الذاكرة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
 msgid "Removing from memory..."
-msgstr ""
+msgstr "إزالة من الذاكرة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
 msgid "Forgetting..."
-msgstr ""
+msgstr "نسيان..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
-#, fuzzy
 msgid "Checking command help..."
-msgstr "مساعدة الأوامر 📋"
+msgstr "التحقق من مساعدة الأمر..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
 msgid "Looking up commands..."
-msgstr ""
+msgstr "البحث عن الأوامر..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
-#, fuzzy
 msgid "Scanning notes..."
-msgstr "ملاحظات مسحوبة 🗒"
+msgstr "مسح الملاحظات..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
 msgid "Looking through notes..."
-msgstr ""
+msgstr "استعراض الملاحظات..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
 msgid "Reading note..."
-msgstr ""
+msgstr "قراءة الملاحظة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
-#, fuzzy
 msgid "Fetching note content..."
-msgstr "يبحث عن محتويات الملاحظات"
+msgstr "جلب محتوى الملاحظة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
-#, fuzzy
 msgid "Saving note..."
-msgstr "احفظ الملاحظة."
+msgstr "حفظ الملاحظة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
 msgid "Writing to notes..."
-msgstr ""
+msgstr "الكتابة في الملاحظات..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
-#, fuzzy
 msgid "Deleting note..."
-msgstr "يحذف الملاحظات."
+msgstr "حذف الملاحظة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
 msgid "Removing note..."
-msgstr ""
+msgstr "إزالة الملاحظة..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
-msgstr ""
+msgstr "(إعادة المحاولة {attempt}/{total_attempts}...)"
 
 #: sophie_bot/modules/ai/utils/message_history.py:105
 #: sophie_bot/modules/ai/utils/message_history.py:107
@@ -1158,93 +1182,89 @@ msgstr "الصورة فارغة"
 msgid "[Video transcription: {text}]"
 msgstr "[نسخ الفيديو: {text}]"
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:455
+#: sophie_bot/modules/ai/utils/proactive_replies.py:453
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
-msgstr ""
+msgstr "أنت تنضم بشكل استباقي إلى دردشة مجموعة على تيليجرام. اجعل الرد موجزًا وعفويًا وسريعًا: 1-2 جملة قصيرة. لا تدرج شروحات طويلة أو قوائم نقطية أو تفاصيل تشبه الأدوات ما لم تطلب الرسالة المستهدفة ذلك صراحة. إذا انتقل الموضوع أو كان الرد سيبدو مجحفًا، اجعل الإجابة مختصرة بدلاً من محاولة تغطية كل شيء."
 
 #: sophie_bot/modules/ai/utils/research.py:75
 msgid "Preparing search queries..."
-msgstr ""
+msgstr "إعداد استعلامات البحث..."
 
 #: sophie_bot/modules/ai/utils/research.py:76
 msgid "Planning the research..."
-msgstr ""
+msgstr "تخطيط البحث..."
 
 #: sophie_bot/modules/ai/utils/research.py:77
 msgid "Choosing what to search for..."
-msgstr ""
+msgstr "اختيار ما الذي نبحث عنه..."
 
 #: sophie_bot/modules/ai/utils/research.py:80
-#, fuzzy
 msgid "Searching the internet..."
-msgstr "نمط البحث"
+msgstr "البحث في الإنترنت..."
 
 #: sophie_bot/modules/ai/utils/research.py:82
 msgid "Gathering sources from the web..."
-msgstr ""
+msgstr "جمع المصادر من الويب..."
 
 #: sophie_bot/modules/ai/utils/research.py:85
 msgid "Reviewing search results..."
-msgstr ""
+msgstr "مراجعة نتائج البحث..."
 
 #: sophie_bot/modules/ai/utils/research.py:86
 msgid "Checking if more searches are needed..."
-msgstr ""
+msgstr "التحقق مما إذا كانت هناك حاجة لمزيد من عمليات البحث..."
 
 #: sophie_bot/modules/ai/utils/research.py:87
 msgid "Reading through the sources..."
-msgstr ""
+msgstr "قراءة المصادر..."
 
 #: sophie_bot/modules/ai/utils/research.py:90
 msgid "Summarizing the research..."
-msgstr ""
+msgstr "تلخيص البحث..."
 
 #: sophie_bot/modules/ai/utils/research.py:91
 msgid "Putting the findings together..."
-msgstr ""
+msgstr "تجميع النتائج..."
 
 #: sophie_bot/modules/ai/utils/research.py:92
 msgid "Preparing the final answer..."
-msgstr ""
+msgstr "إعداد الإجابة النهائية..."
 
 #: sophie_bot/modules/ai/utils/research.py:173
 msgid "Research currently supports the Kagi search provider. Set ai_search_provider to kagi to use it."
-msgstr ""
+msgstr "يدعم البحث حاليًا موفّر البحث Kagi. اضبط ai_search_provider إلى kagi لاستخدامه."
 
 #: sophie_bot/modules/ai/utils/research.py:176
 msgid "Research requires a configured Kagi API key."
-msgstr ""
+msgstr "يتطلب البحث وجود مفتاح API لـ Kagi مُعدّ."
 
-#: sophie_bot/modules/ai/utils/research.py:356
+#: sophie_bot/modules/ai/utils/research.py:355
 msgid "Research requires a saved chat context."
-msgstr ""
+msgstr "يتطلب البحث وجود سياق دردشة محفوظ."
 
-#: sophie_bot/modules/ai/utils/research.py:403
+#: sophie_bot/modules/ai/utils/research.py:402
 msgid "I could not find enough search results to research this topic."
-msgstr ""
+msgstr "لم أجد نتائج بحث كافية لإجراء بحث حول هذا الموضوع."
 
-#: sophie_bot/modules/ai/utils/research.py:501
-#, fuzzy
+#: sophie_bot/modules/ai/utils/research.py:500
 msgid "No snippet available."
-msgstr "يسرد الملاحظات المتاحة."
+msgstr "لا توجد مقتطفات متاحة."
 
-#: sophie_bot/modules/ai/utils/research.py:523
-#, fuzzy
+#: sophie_bot/modules/ai/utils/research.py:522
 msgid "Sources"
-msgstr "عمليات التطهير"
+msgstr "المصادر"
 
-#: sophie_bot/modules/ai/utils/research.py:536
+#: sophie_bot/modules/ai/utils/research.py:535
 msgid "No sources."
-msgstr ""
+msgstr "لا توجد مصادر."
+
+#: sophie_bot/modules/ai/utils/research.py:542
+msgid "Original request"
+msgstr "الطلب الأصلي"
 
 #: sophie_bot/modules/ai/utils/research.py:543
-msgid "Original request"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/research.py:544
-#, fuzzy
 msgid "Research model"
-msgstr "?ابحث عن الملاحظات"
+msgstr "نموذج البحث"
 
 #: sophie_bot/modules/ai/utils/transform_video.py:67
 msgid "Failed to download video file"
@@ -1539,7 +1559,7 @@ msgstr "🔌 قطع الاتصال"
 
 #: sophie_bot/modules/connections/utils/texts.py:4
 msgid "⚠️ The connection module is obsolete in favor of the web app. Click on the 'Dashboard' button in the text field."
-msgstr ""
+msgstr "⚠️ وحدة الاتصال معتلنة لصالح تطبيق الويب. انقر على زر 'لوحة التحكم' في حقل النص."
 
 #: sophie_bot/modules/disabling/__init__.py:35
 msgid "Disabling"
@@ -2051,7 +2071,7 @@ msgstr "ليس لديك إذن لعرض مشرفي هذا الاتحاد."
 #: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/handlers/unban.py:157
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:79
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:77
 #: sophie_bot/modules/warns/handlers/warns_group.py:40
 msgid "Unknown"
 msgstr "غير معروف"
@@ -2148,9 +2168,8 @@ msgid "By"
 msgstr "بواسطة"
 
 #: sophie_bot/modules/federations/handlers/ban.py:102
-#, fuzzy
 msgid "Original message"
-msgstr "كل الرسائل"
+msgstr "الرسالة الأصلية"
 
 #: sophie_bot/modules/federations/handlers/ban.py:107
 msgid "Ban a user from the federation"
@@ -2167,7 +2186,11 @@ msgstr "?سبب"
 msgid "Please specify a user or reply to a user's message."
 msgstr "الرجاء تحديد مستخدم أو الرد على رسالة مستخدم."
 
-#: sophie_bot/modules/federations/handlers/ban.py:151
+#: sophie_bot/modules/federations/handlers/ban.py:149
+msgid "Could not resolve the command user. Please try again."
+msgstr "تعذّر تحديد مستخدم الأمر. الرجاء المحاولة مرة أخرى."
+
+#: sophie_bot/modules/federations/handlers/ban.py:154
 msgid "You don't have permission to ban users in this federation."
 msgstr "لا تمتلك الإذن لحظر المستخدمين في هذا الاتحاد."
 
@@ -3203,20 +3226,16 @@ msgid "You can edit the filter's actions with {cmd}."
 msgstr "يمكنك تحرير إجراءات الفلتر باستخدام {cmd}."
 
 #: sophie_bot/modules/filters/utils_/filter_handler_rules.py:93
-msgid ""
-"AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
+msgid "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
 "Example: ai:Message contains crypto scam"
-msgstr ""
-"لا يمكن أن يكون موجه فلتر الذكاء الاصطناعي فارغًا. يرجى تقديم وصف لمتى يتم تنشيط الفلتر.\n"
+msgstr "لا يمكن أن يكون موجه فلتر الذكاء الاصطناعي فارغًا. يرجى تقديم وصف لمتى يتم تنشيط الفلتر.\n"
 "مثال: ai: يحتوي الرسالة على احتيال العملات المشفرة"
 
 #: sophie_bot/modules/filters/utils_/filter_handler_rules.py:116
 #, python-brace-format
-msgid ""
-"Maximum number of AI filter handlers reached ({limit} per chat).\n"
+msgid "Maximum number of AI filter handlers reached ({limit} per chat).\n"
 "AI filters consume tokens and can overload the system. Please remove an existing AI filter before adding a new one."
-msgstr ""
-"تم الوصول إلى الحد الأقصى لمعالجات مرشحات الذكاء الاصطناعي ({limit} لكل دردشة).\n"
+msgstr "تم الوصول إلى الحد الأقصى لمعالجات مرشحات الذكاء الاصطناعي ({limit} لكل دردشة).\n"
 "تستهلك مرشحات الذكاء الاصطناعي الرموز ويمكنها إغراق النظام. يرجى إزالة مرشح الذكاء الاصطناعي الحالي قبل إضافة مرشح جديد."
 
 #: sophie_bot/modules/filters/utils_/filter_handler_rules.py:140
@@ -3248,13 +3267,9 @@ msgstr "أنت مساعد moderation.content. قم بتقييم ما إذا كا
 
 #: sophie_bot/modules/filters/utils_/match_handler.py:156
 #, python-brace-format
-msgid ""
-"Filter criteria: {criteria}\n"
-"\n"
+msgid "Filter criteria: {criteria}\n\n"
 "Message content: {content}"
-msgstr ""
-"معايير الفلتر: {criteria}\n"
-"\n"
+msgstr "معايير الفلتر: {criteria}\n\n"
 "محتوى الرسالة: {content}"
 
 #: sophie_bot/modules/filters/utils_/match_handler.py:158
@@ -3270,11 +3285,9 @@ msgid "Welcome new users to your chat"
 msgstr "ترحيب بالمستخدمين الجدد إلى دردشتك"
 
 #: sophie_bot/modules/greetings/__init__.py:51
-msgid ""
-"This module helps you to welcome new users automatically, while keeping the chat clean.\n"
+msgid "This module helps you to welcome new users automatically, while keeping the chat clean.\n"
 "If you want to enforce captcha / rules verification, please see 'Welcome Security' module instead."
-msgstr ""
-"يساعد هذا الوحدة في الترحيب بالمستخدمين الجدد تلقائيًا، مع الحفاظ على نظافة الدردشة.\n"
+msgstr "يساعد هذا الوحدة في الترحيب بالمستخدمين الجدد تلقائيًا، مع الحفاظ على نظافة الدردشة.\n"
 "إذا كنت ترغب في فرض التحقق من captcha / القواعد، يرجى مراجعة وحدة 'أمان الترحيب' بدلاً من ذلك."
 
 #: sophie_bot/modules/greetings/default_welcome.py:9
@@ -3799,27 +3812,24 @@ msgid "GIFs"
 msgstr "صور GIF"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:63
-#, fuzzy
 msgid "Guest bots"
-msgstr "أزرار القواعد"
+msgstr "بوتات ضيفة"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:64
 msgid "Inline results"
 msgstr "نتائج مدمجة"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:65
-#, fuzzy, python-brace-format
 msgid "Mentions"
-msgstr "مرحبا {mention}!"
+msgstr "المنشنات"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:66
 msgid "Invite links"
 msgstr "روابط الدعوة"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:67
-#, fuzzy
 msgid "Outside reactions"
-msgstr "الاتحادات"
+msgstr "تفاعلات خارجية"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:68
 msgid "Locations"
@@ -3880,7 +3890,7 @@ msgstr "رسائل صوتية"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:82
 msgid "Web previews"
-msgstr ""
+msgstr "معاينات الويب"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:83
 msgid "Zalgo text"
@@ -3891,49 +3901,41 @@ msgid "Dice"
 msgstr "النرد"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:85
-#, fuzzy
 msgid "Arabic text"
-msgstr "نص سيريلية"
+msgstr "نص عربي"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:86
-#, fuzzy
 msgid "Hashtags"
-msgstr "الدردشات"
+msgstr "هاشتاغات"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:87
-#, fuzzy
 msgid "Inline code"
-msgstr "في أسطر التصحيح،"
+msgstr "كود مضمن"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:88
-#, fuzzy
 msgid "Code blocks"
-msgstr "الأقفال النشطة"
+msgstr "كتل الكود"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:89
-#, fuzzy
 msgid "Blockquotes"
-msgstr "أنواع القفل"
+msgstr "اقتباسات"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:90
-#, fuzzy
 msgid "Underlined text"
-msgstr "نص RTL"
+msgstr "نص مسطّر"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:91
 msgid "Strikethrough text"
-msgstr ""
+msgstr "نص مشطوب"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:92
-#, fuzzy
 msgid "Media messages"
-msgstr "رسائل الألعاب"
+msgstr "رسائل وسائط"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:93
 #: sophie_bot/shared/lock_constants.py:71
-#, fuzzy
 msgid "Edited messages"
-msgstr "رسائل نصية"
+msgstr "رسائل معدلة"
 
 #: sophie_bot/modules/locks/handlers/lockable.py:100
 #, python-brace-format
@@ -4364,7 +4366,7 @@ msgid "Private Notes"
 msgstr "الملاحظات الخاصة"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:41
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:88
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:86
 #: sophie_bot/modules/utils_/status_handler.py:51
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
@@ -4637,35 +4639,149 @@ msgstr "يشمل إحصاءات النظام وإدارة المهام ووظا�
 msgid "Generate a test emoji captcha"
 msgstr "إنشاء كابتشا إيموجي اختبار"
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:101
-#: sophie_bot/modules/op/handlers/KillSwitch.py:182
-#, python-brace-format
-msgid "{feature}: {value}"
-msgstr "{feature}: {value}"
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:142
-msgid "No per-chat overrides are set."
-msgstr "لم يتم تعيين أي تجاوزات لكل دردشة."
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:152
-msgid "Usage: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
-msgstr "الاستخدام: /op_killswitch [^chat[=<chat_id>]] <feature> <value>"
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:153
-#: sophie_bot/modules/op/handlers/KillSwitch.py:161
-#, python-brace-format
-msgid "Allowed features: {features}"
-msgstr "الميزات المسموح بها: {features}"
-
-#: sophie_bot/modules/op/handlers/KillSwitch.py:160
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:89
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr "ميزة غير معروفة {feature}."
 
-#: sophie_bot/modules/op/handlers/KillSwitch.py:171
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:90
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:99
+#, python-brace-format
+msgid "Allowed features: {features}"
+msgstr "الميزات المسموح بها: {features}"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:98
+msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
+msgstr "الاستخدام: /op_ff [^chat[=<chat_id>]] <feature> <value>"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:130
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
+#, python-brace-format
+msgid "{feature}: {value}"
+msgstr "{feature}: {value}"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:162
+#, python-brace-format
+msgid "Invalid value for {feature}: expected {expected}, got {actual}."
+msgstr "قيمة غير صالحة للـ {feature}: المتوقّع {expected}، المُستلم {actual}."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:176
+#, python-brace-format
+msgid "Invalid value for {feature}: {value}."
+msgstr "قيمة غير صالحة للـ {feature}: {value}."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
+#, python-brace-format
+msgid "Args: {args}"
+msgstr "الوسائط: {args}"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:281
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+msgid "No changed feature flags are set."
+msgstr "لا توجد أعلام ميزات مُعدّلة مُضبوطة."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+msgid "Changed feature flags"
+msgstr "أعلام الميزات المُعدّلة"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+msgid "All feature flags"
+msgstr "جميع أعلام الميزات"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+msgid "No feature flags are registered."
+msgstr "لا توجد أعلام ميزات مُسجلة."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
+msgid "Rollouts"
+msgstr "النشر التدريجي"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:462
+msgid "No feature flag rollouts are set."
+msgstr "لا توجد عمليات نشر تدريجي لأعلام الميزات مُعتمدة."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:298
+msgid "Manual per-chat overrides"
+msgstr "تجاوزات يدوية لكل دردشة"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:300
+msgid "No manual per-chat overrides are set."
+msgstr "لا توجد تجاوزات يدوية مضبوطة لكل دردشة."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:305
+msgid "Rollout-created per-chat overrides"
+msgstr "تجاوزات لكل دردشة تم إنشاؤها عبر النشر التدريجي"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:307
+msgid "No rollout-created per-chat overrides are set."
+msgstr "لا توجد تجاوزات لكل دردشة تم إنشاؤها عبر النشر التدريجي."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:342
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:493
+msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
+msgstr "الاستخدام: /op_ff ^rollout=<0-100> <feature> <value>"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:344
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:458
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:495
+msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
+msgstr "الاستخدام: /op_ff ^rollout_bump=<0-100> <feature>"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:346
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:456
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:473
+msgid "Usage: /op_ff ^days=<days> <feature> <value>"
+msgstr "الاستخدام: /op_ff ^days=<days> <feature> <value>"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:350
+msgid "Usage: /op_ff ^chat_overrides"
+msgstr "الاستخدام: /op_ff ^chat_overrides"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:396
+#, python-brace-format
+msgid "{feature} override for chat {chat} deleted."
+msgstr "تم حذف تجاوز {feature} للدردشة {chat}."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:404
+#, python-brace-format
+msgid "{feature} override deleted."
+msgstr "تم حذف تجاوز {feature}."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:418
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr "{feature} للدردشة {chat}: {value}"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:449
+msgid "Rollouts cannot be combined with per-chat overrides."
+msgstr "لا يمكن دمج النشر التدريجي مع تجاوزات كل دردشة."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:452
+msgid "Use only one rollout argument at a time."
+msgstr "استخدم وسيط نشر واحد فقط في كل مرة."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:478
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:523
+#, python-brace-format
+msgid "No rollout is set for {feature}."
+msgstr "لا يوجد نشر تدريجي مضبوط لـ {feature}."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:512
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:528
+#, python-brace-format
+msgid "{feature}: {rollout}"
+msgstr "{feature}: {rollout}"
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:490
+#, python-brace-format
+msgid "{feature} rollout deleted."
+msgstr "تم حذف نشر {feature}."
+
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:509
+msgid "Rollout was not saved."
+msgstr "لم يتم حفظ النشر التدريجي."
 
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:23
 msgid "Force-regenerate today's chat summary for the current chat"
@@ -4690,236 +4806,203 @@ msgstr "يطبع حدث الرسالة كـ JSON."
 #: sophie_bot/modules/op/handlers/op_debug.py:112
 #: sophie_bot/modules/op/handlers/op_debug.py:368
 #: sophie_bot/modules/op/handlers/op_debug.py:385
-#, fuzzy
 msgid "unknown"
 msgstr "غير معروف"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:114
-#, fuzzy
 msgid "last seen"
-msgstr "Last Name"
+msgstr "آخر ظهور"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:115
-#, fuzzy
 msgid "last allowed"
-msgstr "Last Name"
+msgstr "آخر مرّة سُمح فيها"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:115
-#, fuzzy
 msgid "step"
-msgstr "إعداد"
+msgstr "خطوة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:120
-#, fuzzy
 msgid "🔧 Operator Debug"
-msgstr "المشغل"
+msgstr "🔧 تصحيح المشغل"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:168
-#, fuzzy
 msgid "reply to"
-msgstr "رد"
+msgstr "رد إلى"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:178
 msgid "bot"
-msgstr ""
+msgstr "بوت"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:178
-#, fuzzy
 msgid "user"
-msgstr "المستخدم"
+msgstr "مستخدم"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:196
 msgid "No cached messages found. Chat history is populated when AI chatbot is active."
-msgstr ""
+msgstr "لم يتم العثور على رسائل مخزَّنة. يتم تعبئة سجل الدردشة عندما يكون روبوت المحادثة بالذكاء الاصطناعي نشطًا."
 
 #: sophie_bot/modules/op/handlers/op_debug.py:197
 #: sophie_bot/modules/op/handlers/op_debug.py:205
-#, fuzzy, python-brace-format
 msgid "Chat History"
-msgstr "سجل الدردشة لـ {today}"
+msgstr "سجل الدردشة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:206
-#, fuzzy
 msgid "No cached messages found."
-msgstr "لم يتم العثور على دردشات."
+msgstr "لم يتم العثور على رسائل مخزَّنة."
 
 #: sophie_bot/modules/op/handlers/op_debug.py:218
-#, fuzzy
 msgid "command args"
-msgstr "الأوامر"
+msgstr "وسائط الأمر"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:225
 #: sophie_bot/modules/op/handlers/op_debug.py:230
-#, fuzzy
 msgid "No additional notes provided."
-msgstr "لا توجد إجراءات إضافية متاحة."
+msgstr "لم يتم توفير ملاحظات إضافية."
 
 #: sophie_bot/modules/op/handlers/op_debug.py:229
-#, fuzzy
 msgid "Operator Notes"
-msgstr "الملاحظات الخاصة"
+msgstr "ملاحظات المشغّل"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:265
 msgid "Active error signatures"
-msgstr ""
+msgstr "تواقيع الأخطاء النشطة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:268
-#, fuzzy
 msgid "Sentry organization"
-msgstr "User Information"
+msgstr "منظّمة Sentry"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:271
 msgid "No active error signatures found."
-msgstr ""
+msgstr "لم يتم العثور على تواقيع أخطاء نشطة."
 
 #: sophie_bot/modules/op/handlers/op_debug.py:281
 msgid "Error Backoff"
-msgstr ""
+msgstr "مهلة التراجع عند الخطأ"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:296
-#, fuzzy
 msgid "default"
-msgstr "دردشة افتراضية"
+msgstr "الافتراضي"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:301
 #, python-brace-format
 msgid "{count} flag(s) differ from defaults (marked with ✦)"
-msgstr ""
+msgstr "{count} من الأعلام تختلف عن الإعدادات الافتراضية (معلَّمة بـ ✦)"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:303
-#, fuzzy
 msgid "Feature Flags"
-msgstr "توزيع الميزات"
+msgstr "أعلام الميزات"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:325
-#, fuzzy
 msgid "Ping"
-msgstr "تثبيتات"
+msgstr "اختبار الاتصال"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:326
 msgid "Database keys"
-msgstr ""
+msgstr "مفاتيح قاعدة البيانات"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:327
-#, fuzzy
 msgid "Sophie keys"
-msgstr "صوفي AI"
+msgstr "مفاتيح Sophie"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:328
-#, fuzzy
 msgid "No sophie:* keys found."
-msgstr "لم يتم العثور على وحدات."
+msgstr "لم يتم العثور على مفاتيح sophie:*."
 
 #: sophie_bot/modules/op/handlers/op_debug.py:329
 msgid "Redis Health"
-msgstr ""
+msgstr "حالة Redis"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:351
-#, fuzzy
 msgid "Current time (UTC)"
-msgstr "الحالة الحالية"
+msgstr "الوقت الحالي (UTC)"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:352
-#, fuzzy
 msgid "Unix time"
-msgstr "وقت الإجراء"
+msgstr "وقت Unix"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:353
-#, fuzzy
 msgid "Version"
-msgstr "السبب"
+msgstr "الإصدار"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:354
-#, fuzzy
 msgid "Commit"
-msgstr "التعليقات"
+msgstr "معرّف الكوميت"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:355
-#, fuzzy
 msgid "Branch"
-msgstr "حظر"
+msgstr "الفرع"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:356
 msgid "Instance"
-msgstr ""
+msgstr "المثيل"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:357
 msgid "Environment"
-msgstr ""
+msgstr "البيئة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:358
 msgid "Debug mode"
-msgstr ""
+msgstr "وضع التصحيح"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:359
-#, fuzzy
 msgid "SOPHIE_MODE"
-msgstr "صوفي AI"
+msgstr "SOPHIE_MODE"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:360
 msgid "System Context"
-msgstr ""
+msgstr "سياق النظام"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:384
-#, fuzzy
 msgid "Chat type"
-msgstr "نوع القفل"
+msgstr "نوع الدردشة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:385
-#, fuzzy
 msgid "Chat title"
-msgstr "رقم تعريف الدردشة"
+msgstr "عنوان الدردشة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:386
-#, fuzzy
 msgid "Invoked by"
-msgstr "مطرود بواسطة"
+msgstr "تم الاستدعاء بواسطة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:387
-#, fuzzy
 msgid "Current Chat"
-msgstr "الحالة الحالية"
+msgstr "الدردشة الحالية"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:446
-#, fuzzy
 msgid "🐛 Bug Report"
-msgstr "تقارير"
+msgstr "🐛 تقرير خطأ"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:446
-#, fuzzy
 msgid "✨ Feature Request"
-msgstr "🏛 تم إرسال طلب النقل"
+msgstr "✨ طلب ميزة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:451
-#, fuzzy
 msgid "Type"
-msgstr "نوع القفل"
+msgstr "النوع"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:452
-#, fuzzy
 msgid "Title"
-msgstr "عنوان المدير"
+msgstr "العنوان"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:453
 msgid "Severity"
-msgstr ""
+msgstr "درجة الخطورة"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:458
-#, fuzzy
 msgid "AI Summary"
-msgstr "يوم الملخص"
+msgstr "ملخص الذكاء الاصطناعي"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:468
 msgid "AI Analysis"
-msgstr ""
+msgstr "تحليل الذكاء الاصطناعي"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:584
+#: sophie_bot/modules/op/handlers/op_debug.py:583
 msgid "Collect diagnostic context for debugging bot issues."
-msgstr ""
+msgstr "جمع السياق التشخيصي لاستكشاف مشكلات البوت وإصلاحها."
 
-#: sophie_bot/modules/op/handlers/op_debug.py:594
+#: sophie_bot/modules/op/handlers/op_debug.py:593
 msgid "Collect diagnostic context with AI summarization (requires feature flag)."
-msgstr ""
+msgstr "جمع السياق التشخيصي مع تلخيص بالذكاء الاصطناعي (يتطلب تمكين ميزة)."
 
 #: sophie_bot/modules/op/handlers/stats.py:95
 msgid "Show bot statistics."
@@ -5204,24 +5287,21 @@ msgid "Change ban duration"
 msgstr "تغيير مدة الحظر"
 
 #: sophie_bot/modules/restrictions/actions/base.py:99
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Restricts user for {time}"
-msgstr "يكتم المستخدم ل {time}"
+msgstr "يقيد المستخدم لمدة {time}"
 
 #: sophie_bot/modules/restrictions/actions/base.py:102
-#, fuzzy
 msgid "Restricts user indefinitely"
-msgstr "يكتم المستخدم إلى أجل غير مسمى"
+msgstr "يقيد المستخدم بشكل دائم"
 
 #: sophie_bot/modules/restrictions/actions/base.py:111
-#, fuzzy
 msgid "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
-msgstr "يرجى كتابة مدة الحظر، على سبيل المثال 2h لمدة ساعتين، 7d لمدة 7 أيام أو 2w لمدة أسبوعين. أو 0 لحظر دائم."
+msgstr "الرجاء كتابة المدة، على سبيل المثال 2h لمدّة ساعتين، 7d لمدّة 7 أيام أو 2w لمدّة أسبوعين. أو 0 للمؤبد."
 
 #: sophie_bot/modules/restrictions/actions/base.py:116
-#, fuzzy
 msgid "Invalid duration, please try again."
-msgstr "مدة الحظر غير صالحة، يرجى المحاولة مرة أخرى."
+msgstr "مدة غير صالحة، الرجاء المحاولة مرة أخرى."
 
 #: sophie_bot/modules/restrictions/actions/base.py:150
 msgid "For"
@@ -5528,11 +5608,11 @@ msgstr "يستجيب للرسالة بقواعد الدردشة"
 msgid "Rules filter failed"
 msgstr "فشل فلتر القواعد"
 
-#: sophie_bot/modules/troubleshooters/__init__.py:38
+#: sophie_bot/modules/troubleshooters/__init__.py:40
 msgid "Troubleshooters"
 msgstr "مستطلعات"
 
-#: sophie_bot/modules/troubleshooters/__init__.py:40
+#: sophie_bot/modules/troubleshooters/__init__.py:42
 msgid "Tools for fixing problems and issues"
 msgstr "Tools for fixing problems and issues"
 
@@ -5553,24 +5633,52 @@ msgid "Auto"
 msgstr "تلقائي"
 
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:14
-msgid "Stable"
-msgstr "مستقر"
+msgid "Old"
+msgstr "قديم"
 
 #: sophie_bot/modules/troubleshooters/handlers/beta_state.py:15
-msgid "Beta"
-msgstr "بيتا"
+msgid "Latest"
+msgstr "أحدث"
 
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:20
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:28
 msgid "Preferred strategy mode"
 msgstr "وضع الاستراتيجية المفضل"
 
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:22
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:30
 msgid "Set preferred strategy mode"
 msgstr "تعيين وضع الاستراتيجية المفضل"
 
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:65
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:40
+msgid "Sophie Support"
+msgstr "دعم Sophie"
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:50
+msgid "New strategy"
+msgstr "استراتيجية جديدة"
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:52
+msgid "Preferred mode cannot always match the current state due to development and rollout progress."
+msgstr "الوضع المفضّل قد لا يتطابق دائمًا مع الحالة الحالية بسبب التقدّم في التطوير والنشر التدريجي."
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:56
+msgid "Preferred mode changed"
+msgstr "تغير الوضع المفضّل"
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:63
 msgid "Get current strategy mode / current state"
 msgstr "الحصول على وضع الاستراتيجية الحالي / الحالة الحالية"
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:82
+msgid "Preferred mode"
+msgstr "الوضع المفضّل"
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:83
+msgid "Current mode"
+msgstr "الوضع الحالي"
+
+#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:84
+msgid "Mode information"
+msgstr "معلومات الوضع"
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel.py:13
 msgid "Cancel current state, use if Sophie is not responding on your message"
@@ -6425,7 +6533,7 @@ msgstr "الرسائل التي تحتوي على رسوم متحركة GIF"
 
 #: sophie_bot/shared/lock_constants.py:43
 msgid "Messages from guest bots (bots mentioned via @username without being chat members)"
-msgstr ""
+msgstr "رسائل من بوتات ضيفة (بوتات مذكورة عبر @username دون أن تكون أعضاء في الدردشة)"
 
 #: sophie_bot/shared/lock_constants.py:44
 msgid "Messages sent via inline bots"
@@ -6433,7 +6541,7 @@ msgstr "الرسائل المرسلة عبر البوتات المضمنة"
 
 #: sophie_bot/shared/lock_constants.py:45
 msgid "Mention entities (@username)"
-msgstr ""
+msgstr "المنشنات (@username)"
 
 #: sophie_bot/shared/lock_constants.py:46
 msgid "Telegram invite links (t.me/+)"
@@ -6441,7 +6549,7 @@ msgstr "روابط دعوة تلغرام (t.me/+)"
 
 #: sophie_bot/shared/lock_constants.py:47
 msgid "Reactions from users who are not members of the chat"
-msgstr ""
+msgstr "تفاعلات من مستخدمين ليسوا أعضاءً في الدردشة"
 
 #: sophie_bot/shared/lock_constants.py:48
 msgid "Messages with location or venue"
@@ -6496,46 +6604,40 @@ msgid "Messages with voice recordings"
 msgstr "الرسائل التي تحتوي على تسجيلات صوتية"
 
 #: sophie_bot/shared/lock_constants.py:62
-#, fuzzy
 msgid "Messages with web page link previews"
-msgstr "الرسائل التي تحتوي على ملفات صوتية"
+msgstr "رسائل مع معاينات روابط صفحات الويب"
 
 #: sophie_bot/shared/lock_constants.py:63
-#, fuzzy
 msgid "Messages containing Arabic script"
-msgstr "الرسائل التي تحتوي على أحرف سيريلية"
+msgstr "رسائل تحتوي على نص عربي"
 
 #: sophie_bot/shared/lock_constants.py:64
-#, fuzzy
 msgid "Hashtag entities (#tag)"
-msgstr "كيانات Cashtag ($TICKER)"
+msgstr "الهاشتاغات (#tag)"
 
 #: sophie_bot/shared/lock_constants.py:65
 msgid "Inline code entities (`code`)"
-msgstr ""
+msgstr "كود مضمن (`code`)"
 
 #: sophie_bot/shared/lock_constants.py:66
 msgid "Preformatted code blocks"
-msgstr ""
+msgstr "كتل كود مُنسَّقة مسبقًا"
 
 #: sophie_bot/shared/lock_constants.py:67
-#, fuzzy
 msgid "Blockquote entities"
-msgstr "كيانات إيموجي مخصصة"
+msgstr "اقتباسات"
 
 #: sophie_bot/shared/lock_constants.py:68
-#, fuzzy
 msgid "Underlined text entities"
-msgstr "كيانات نص المفسد"
+msgstr "نص مسطّر"
 
 #: sophie_bot/shared/lock_constants.py:69
-#, fuzzy
 msgid "Strikethrough text entities"
-msgstr "كيانات نص المفسد"
+msgstr "نص مشطوب"
 
 #: sophie_bot/shared/lock_constants.py:70
 msgid "Any media message (photo, video, audio, document, sticker, etc.)"
-msgstr ""
+msgstr "أي رسالة وسائط (صورة، فيديو، صوت، مستند، ملصق، إلخ)"
 
 #: sophie_bot/shared/lock_constants.py:72
 msgid "Messages with excessive formatting characters (glitch text)"
@@ -6583,12 +6685,12 @@ msgstr "مفتاح-قيمة من {}"
 msgid "Key-values of {}"
 msgstr "مفاتيح-قيم من {}"
 
-#: types/keyvalue.py:65
+#: types/keyvalue.py:67
 #, python-brace-format
 msgid "The optional argument {name} must contain a value!"
 msgstr "الوسيط الاختياري {name} يجب أن يحتوي على قيمة!"
 
-#: types/keyvalue.py:90 types/keyvalue.py:91
+#: types/keyvalue.py:92 types/keyvalue.py:93
 msgid "Key-values"
 msgstr "مفاتيح-قيم"
 
@@ -6806,111 +6908,23 @@ msgstr "حدث خطأ غير متوقع أثناء محاولة الحصول ع�
 msgid "Could not find the user mention"
 msgstr "لم يتم العثور على الإشارة إلى المستخدم"
 
-#~ msgid "💻 Best for coding"
-#~ msgstr "💻 أفضل للترميز"
+#: types/user.py:120
+msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
+msgstr "المستخدم: 'معرف المستخدم (رقمي) / اسم المستخدم (يبدأ بـ @) / إشارة (روابط إلى المستخدمين)'"
 
-#~ msgid "Should be AI prompt, please try again!"
-#~ msgstr "يجب أن يكون تحفيز الذكاء الاصطناعي، يرجى المحاولة مرة أخرى!"
+#: types/user.py:122
+msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
+msgstr "المستخدمون: 'معرفات المستخدمين (رقمي) / أسماء المستخدمين (تبدأ بـ @) / إشارات (روابط إلى المستخدمين)'"
 
-#~ msgid "You're a professional AI translator / transcriber."
-#~ msgstr "أنت المترجم/الناسخ الاحترافي للذكاء الاصطناعي."
+#: types/user.py:128
+msgid "User ID"
+msgstr "معرف المستخدم"
 
-#~ msgid "Set translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
-#~ msgstr "اجعل قيمة translation_explanations مساويةً لـ null ما لم يكن النصّ الأصلي غامضًا أو متناقضًا مع نفسه، أو يتطلب شرحًا ضروريًا من الناحية الثقافية/السياقية، أو يحتوي على تعابير لا تُترجم مثل الاستعارات/ألعاب الكلمات/تعدد المعاني التي تؤثر على المعنى، أو يحتاج إلى توضيح اسم علم/مصطلح تقني/اختصار؛ وإذا أُدرج، فلتكن العبارة موجزة (بحد أقصى جملتين حقائقيتين)."
+#: types/user.py:129
+msgid "Username"
+msgstr "اسم المستخدم"
 
-#~ msgid "Summarize the chat day into one short general overview and several topic lines."
-#~ msgstr "لخص يوم الدردشة في نظرة عامة قصيرة وعدة سطور موضوعية."
-
-#~ msgid "Each topic line must contain a short title, one fitting emoji, and the list of source message IDs."
-#~ msgstr "يجب أن يحتوي كل سطر موضوع على عنوان قصير، وإيموجي مناسب، وقائمة بمعرفات الرسائل المصدر."
-
-#~ msgid "Do not include any IDs that are not present in the provided transcript."
-#~ msgstr "لا تقم بتضمين أي معرفات غير موجودة في النص المقدم."
-
-#~ msgid "Skip one-off chatter that does not form a meaningful discussion."
-#~ msgstr "تخطى الدردشة العشوائية التي لا تشكل نقاشاً ذا معنى."
-
-#~ msgid "Prefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
-#~ msgstr "فضل المواضيع التي تتضمن ثلاث رسائل على الأقل أو مشاركين اثنين على الأقل، وتجنب الأجزاء الضعيفة من شخص واحد."
-
-#~ msgid "Memory forgotten 🗑"
-#~ msgstr "الذاكرة المنسية 🗑"
-
-#~ msgid "Internet Search 🔍"
-#~ msgstr "بحث في الإنترنت 🔍"
-
-#~ msgid "{credit_emoji} Quota {percentage}%"
-#~ msgstr "{credit_emoji} حصة {percentage}%"
-
-#~ msgid "No photo or sticker found"
-#~ msgstr "لم يتم العثور على صورة أو ملصق."
-
-#~ msgid "You're a telegram bot named Sophie."
-#~ msgstr "أنت بوت تيليجرام يُدعى صوفي."
-
-#~ msgid "Be funny when the topic is casual."
-#~ msgstr "كن مرحاً عندما يكون الموضوع غير رسمي."
-
-#~ msgid "Send short messages unless longer explanations are needed."
-#~ msgstr "أرسل رسائل قصيرة ما لم تكن هناك حاجة لشرح أطول."
-
-#~ msgid "Focus primarily on answering the LATEST user message."
-#~ msgstr "ركز بشكل أساسي على الإجابة عن أَحدث رسالة من المستخدم."
-
-#~ msgid "Prefer to search information in the internet"
-#~ msgstr "فضّل البحث عن المعلومات على الإنترنت."
-
-#~ msgid "Filter with handler {handler} can not be edited right now!"
-#~ msgstr "لا يمكن تحرير الفلتر بالمسؤول {handler} الآن!"
-
-#~ msgid "The given filter was created before the filters update, and considered 'legacy'"
-#~ msgstr "تم إنشاء الفلتر المعطى قبل تحديث الفلاتر، ويعتبر 'قديم'"
-
-#~ msgid "Stay tuned for an update of Sophie."
-#~ msgstr "ترقبوا تحديثًا جديدًا لصوفي."
-
-#~ msgid "Alternatively you can delete this filter and create again."
-#~ msgstr "بدلاً من ذلك يمكنك حذف هذا الفلتر وإنشاؤه مرة أخرى."
-
-#~ msgid "Unknown lock type: {type}. Use /lockable to see all available types."
-#~ msgstr "نوع قفل غير معروف: {type}. استخدم /lockable لرؤية جميع الأنواع المتاحة."
-
-#~ msgid "Unknown lock type: {type}"
-#~ msgstr "نوع قفل غير معروف: {type}"
-
-#~ msgid "Now, please type the note name you want to automatically send."
-#~ msgstr "الآن، يرجى كتابة اسم الملاحظة التي تريد إرسالها تلقائيًا."
-
-#~ msgid "Cannot find the note with this name. Please make sure it exists and try again."
-#~ msgstr "لا يمكن العثور على الملاحظة بهذا الاسم. يرجى التأكد من وجودها وحاول مرة أخرى."
-
-#~ msgid "Reply filter"
-#~ msgstr "فلتر الرد"
-
-#~ msgid "Now, please type the text you want to automatically send. It supports buttons and custom formatting."
-#~ msgstr "الآن، يرجى كتابة النص الذي تريد إرساله تلقائيًا. يدعم الأزرار والتنسيق المخصص."
-
-#~ msgid "💭 Reply to message"
-#~ msgstr "💭 الرد على الرسالة"
-
-#~ msgid "🗒 Send a note"
-#~ msgstr "🗒 أرسل ملاحظة"
-
-#~ msgid "🗑 Delete message"
-#~ msgstr "🗑 حذف الرسالة"
-
-#~ msgid "Bans user for {time}"
-#~ msgstr "يحظر المستخدم لمدة {time}"
-
-#~ msgid "Bans user indefinitely"
-#~ msgstr "يحظر المستخدم بشكل غير محدد"
-
-#~ msgid "Invalid mute duration, please try again."
-#~ msgstr "مدة كتم الصوت غير صالحة، يرجى المحاولة مرة أخرى."
-
-#~ msgid "Please write the mute duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for a permanent mute."
-#~ msgstr "يرجى كتابة مدة الكتم، على سبيل المثال 2h لمدة ساعتين، 7d لمدة 7 أيام أو 2w لمدة أسبوعين. أو 0 لكتم دائم."
-
-#~ msgid "🪧 Send chat rules"
-#~ msgstr "🪧 إرسال قواعد الدردشة"
+#: types/user.py:134
+msgid "A link to user, usually creates by mentioning a user without username."
+msgstr "رابط إلى المستخدم، يتم إنشاؤه عادةً عن طريق الإشارة إلى مستخدم بدون اسم مستخدم."
 
