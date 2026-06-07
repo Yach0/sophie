@@ -56,6 +56,7 @@ class AIUsageModel(Document):
 
         return usage.monthly_requests_by_feature.get(month_key, {})
 
+    @staticmethod
     async def record_feature_consumption(chat_iid: PydanticObjectId, feature: AIFeature, credits: int) -> None:
         month_key = date.today().strftime("%Y-%m")
         date_today = date.today()
