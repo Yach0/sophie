@@ -81,9 +81,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         if not (group_db := await ChatModel.get_by_tid(chat_id)):
             log.warning("LegacyWSButtonHandler: Group not found in DB", chat_id=chat_id)
-            return await self.event.reply(
-                _("This group no longer exists or has been removed.")
-            )
+            return await self.event.reply(_("This group no longer exists or has been removed."))
 
         log.debug("LegacyWSButtonHandler: Handling WS button press", group=group_db.iid, chat_id=chat_id)
 
