@@ -22,7 +22,6 @@ from sophie_bot.modules.utils_.legacy_buttons import (
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
 from sophie_bot.services.bot import bot
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
@@ -81,7 +80,10 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         chat_id = int(match.group(1))
 
         if not (group_db := await ChatModel.get_by_tid(chat_id)):
-            raise SophieException("Cannot find group")
+            log.warning("LegacyWSButtonHandler: Group not found in DB", chat_id=chat_id)
+            return await self.event.reply(
+                _("This group no longer exists or has been removed.")
+            )
 
         log.debug("LegacyWSButtonHandler: Handling WS button press", group=group_db.iid, chat_id=chat_id)
 
