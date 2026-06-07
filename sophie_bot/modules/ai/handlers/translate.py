@@ -24,8 +24,8 @@ from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_fa
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_model
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.utils import flags
@@ -152,6 +152,10 @@ class AiTranslate(SophieMessageHandler):
                 ).to_html()
             )
             await ai_context.add_from_message(reply_to_message, disable_name=True)
+
+        # User prompt — ensure content is always present
+        if not ai_context.prompt:
+            ai_context.prompt = [to_translate]
 
         translator_prompt = str(await get_value("ai_translate_system_prompt", chat_tid=self.event.chat.id))
         ai_context.add_system(
