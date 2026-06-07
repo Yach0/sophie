@@ -1,12 +1,20 @@
 from datetime import timedelta
-from typing import Optional
+from typing import Annotated, Optional
 
 from beanie import Document, PydanticObjectId
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import Saveable
+
+
+# TODO: Migrate properly
+def _coerce_timedelta(value: object) -> object:
+    """Coerce legacy int milliseconds to timedelta for MongoDB migration."""
+    if isinstance(value, int):
+        return timedelta(milliseconds=value)
+    return value
 
 
 class CleanWelcome(BaseModel):
@@ -24,12 +32,12 @@ WELCOMESECURITY_EXPIRE_DEFAULT_VALUE = "48h"
 
 class WelcomeMute(BaseModel):
     enabled: bool = False
-    time: Optional[timedelta] = timedelta(hours=48)
+    time: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = timedelta(hours=48)
 
 
 class WelcomeSecurity(BaseModel):
     enabled: bool = False
-    expire: Optional[timedelta] = timedelta(hours=48)
+    expire: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = timedelta(hours=48)
 
 
 class GreetingsModel(Document):
