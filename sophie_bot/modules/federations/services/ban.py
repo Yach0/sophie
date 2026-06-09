@@ -198,33 +198,6 @@ class FederationBanService:
         return True, None
 
     @staticmethod
-    async def unban_user_in_federation_chats(federation: Federation, user_tid: int) -> int:
-        return await FederationBanService.unban_user_in_federation_chats_with_subscribers(federation, user_tid)
-
-    @staticmethod
-    async def unban_user_in_federation_chats_with_subscribers(federation: Federation, user_tid: int) -> int:
-        chat_iids: set[PydanticObjectId] = set()
-        if federation.chats:
-            chat_iids.update(normalize_chat_iids([chat.to_ref() for chat in federation.chats]))
-        subscribing_feds = await Federation.find(Federation.subscribed == federation.fed_id).to_list()
-        for sub_fed in subscribing_feds:
-            if sub_fed.chats:
-                chat_iids.update(normalize_chat_iids([chat.to_ref() for chat in sub_fed.chats]))
-        if not chat_iids:
-            return 0
-        chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
-
-        sem = asyncio.Semaphore(15)
-
-        async def _unban_task(chat):
-            async with sem:
-                return await restrict_unban_user(chat.tid, user_tid)
-
-        tasks = [_unban_task(chat) for chat in chats]
-        results = await asyncio.gather(*tasks)
-        return sum(1 for res in results if res)
-
-    @staticmethod
     async def unban_user_in_chat_iids(chat_iids: list[object], user_tid: int) -> int:
         normalized_chat_iids = normalize_chat_iids(chat_iids)
         if not normalized_chat_iids:
