@@ -1,6 +1,8 @@
 from stfu_tg import Doc, Section
 
+from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import Saveable
+from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -24,6 +26,8 @@ def get_default_join_request_message() -> Saveable:
     doc = Doc(
         _("Hi {mention}!"),
         _("Please check your direct messages with me to complete verification and join the group."),
-        _("[Open DM with Sophie](btnsophieurl)"),
     )
-    return Saveable(text=str(doc))
+    return Saveable(
+        text=str(doc),
+        buttons=[[Button(text=_("Open DM with Sophie"), action=ButtonAction.sophiedm)]],
+    )
