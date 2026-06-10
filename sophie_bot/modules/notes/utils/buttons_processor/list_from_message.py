@@ -15,7 +15,8 @@ from sophie_bot.utils.i18n import gettext as _
 async def parse_buttons_list_from_message(message: Message, text: str, offset: int = 0) -> tuple[str, ButtonsList]:
     try:
         arg = TextWithButtonsArg()
-        entities = ArgEntities((getattr(message, "entities", None) or [])).cut_before(offset)
+        raw_entities = getattr(message, "entities", None) or getattr(message, "caption_entities", None) or []
+        entities = ArgEntities(raw_entities).cut_before(offset)
         _length, result = await arg.parse(text, 0, entities)
         note_text = result["text"].value
         buttons = ButtonsList(buttons_from_ass(result["buttons"].value))
