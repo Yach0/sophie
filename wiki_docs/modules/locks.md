@@ -26,6 +26,7 @@ icon: 🔓
 | `/unlock` | `<Lock type>` | Unlock a message type in the chat | *Disable-able* |
 | `/locksticker` | - | Lock a sticker pack in the chat | *Disable-able* |
 | `/locks` `/locked` | - | Show currently locked message types in the chat | *Disable-able* |
+| `/unlockall` | - | - |  |
 {.card-view-on-mobile}
 ---
 
