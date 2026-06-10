@@ -201,7 +201,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:60
 #: sophie_bot/modules/federations/handlers/info.py:63
-#: sophie_bot/modules/notes/handlers/delete.py:48
+#: sophie_bot/modules/notes/handlers/delete.py:56
 msgid "Name"
 msgstr ""
 
@@ -407,7 +407,7 @@ msgstr ""
 #: sophie_bot/modules/locks/handlers/locks_list.py:69
 #: sophie_bot/modules/locks/handlers/locksticker.py:52
 #: sophie_bot/modules/locks/handlers/locksticker.py:66
-#: sophie_bot/modules/notes/handlers/delete.py:47
+#: sophie_bot/modules/notes/handlers/delete.py:54
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:138
@@ -642,14 +642,14 @@ msgstr ""
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:162
+#: sophie_bot/modules/ai/handlers/translate.py:166
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:191
+#: sophie_bot/modules/ai/handlers/translate.py:195
 msgid "Error generating translation"
 msgstr ""
 
@@ -783,7 +783,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:289
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:291
 #: sophie_bot/modules/ai/utils/research.py:401
 #: sophie_bot/modules/ai/utils/research.py:531
 msgid "Research"
@@ -1154,7 +1154,7 @@ msgstr ""
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:453
+#: sophie_bot/modules/ai/utils/proactive_replies.py:454
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr ""
 
@@ -3623,19 +3623,19 @@ msgstr ""
 msgid "Language set to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:48
+#: sophie_bot/modules/locks/__init__.py:52
 msgid "Locks"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:50
+#: sophie_bot/modules/locks/__init__.py:54
 msgid "Lock specific message types in chats"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:53
+#: sophie_bot/modules/locks/__init__.py:57
 msgid "Allows administrators to lock specific types of messages in chats."
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:55
+#: sophie_bot/modules/locks/__init__.py:59
 msgid "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
 msgstr ""
 
@@ -4199,16 +4199,20 @@ msgstr ""
 msgid "Deletes notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/delete.py:38
+#: sophie_bot/modules/notes/handlers/delete.py:48
 #, python-brace-format
-msgid "No notes was found with {name} name."
+msgid "No notes were found with the specified names in {chat}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/delete.py:48
+#: sophie_bot/modules/notes/handlers/delete.py:56
 msgid "Names"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/delete.py:49
+#: sophie_bot/modules/notes/handlers/delete.py:66
+msgid "Not found"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/delete.py:67
 msgid "Note was successfully deleted"
 msgstr ""
 
@@ -6308,6 +6312,10 @@ msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:13
 msgid "Welcome Captcha"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:84
+msgid "This group no longer exists or has been removed."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:94

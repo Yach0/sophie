@@ -446,7 +446,7 @@ async def test_delnote_not_found(
 
     assert requests, "Bot should respond when deleting a non-existent note"
     response_text = requests[-1].text or ""
-    assert "No notes was found" in response_text or "ghost" in response_text, (
+    assert "No notes were found" in response_text or "ghost" in response_text, (
         f"Response should indicate note not found, got: {response_text}"
     )
 
