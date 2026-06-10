@@ -9,9 +9,48 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
+from aiogram.types import (
+    Chat,
+    ChatMember,
+    ChatMemberAdministrator,
+    ChatMemberBanned,
+    ChatMemberLeft,
+    ChatMemberMember,
+    ChatMemberRestricted,
+    Update,
+    User,
+)
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, ChatType
+from tests.e2e.save_chats.conftest import TestDataFactory
+
+
+def _save_chat_model(chat_tid: int, chat_type: ChatType, title: str) -> ChatModel:
+    return ChatModel(
+        tid=chat_tid,
+        type=chat_type,
+        first_name_or_title=title,
+        is_bot=False,
+        username=None,
+        last_saw=datetime.now(timezone.utc),
+    )
+
+
+def _bot_user() -> User:
+    return TestDataFactory.create_bot_user(CONFIG.bot_id)
+
+
+def _admin_user(first_name: str = "Admin") -> User:
+    return TestDataFactory.create_user(user_id=123456789, first_name=first_name, username=None)
+
+
+def _group_chat() -> Chat:
+    return TestDataFactory.create_group_chat()
+
+
+def _my_chat_member_update(chat: Chat, user: User, old_member: ChatMember, new_member: ChatMember) -> Update:
+    return TestDataFactory.create_my_chat_member_update(chat, user, old_member, new_member)
 
 
 class TestMyChatMember:
@@ -25,33 +64,17 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test that bot being kicked removes user from group."""
-        from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember, ChatMemberUpdated, Update, User
-
         # Arrange - Create user and group (with required username field)
-        user_model = ChatModel(
-            tid=123456789,
-            type=ChatType.private,
-            first_name_or_title="Kicker",
-            is_bot=False,
-            username=None,
-            last_saw=datetime.now(timezone.utc),
-        )
+        user_model = _save_chat_model(123456789, ChatType.private, "Kicker")
         await user_model.save()
 
-        group_model = ChatModel(
-            tid=-1001234567890,
-            type=ChatType.supergroup,
-            first_name_or_title="Test Group",
-            is_bot=False,
-            username=None,
-            last_saw=datetime.now(timezone.utc),
-        )
+        group_model = _save_chat_model(-1001234567890, ChatType.supergroup, "Test Group")
         await group_model.save()
 
         # Bot is kicked
-        user = User(id=123456789, first_name="Kicker", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
+        user = _admin_user("Kicker")
+        bot_user = _bot_user()
+        chat = _group_chat()
 
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
@@ -59,15 +82,7 @@ class TestMyChatMember:
             until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -88,25 +103,15 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test that bot becoming member doesn't call handler."""
-        from aiogram.types import Chat, ChatMemberLeft, ChatMemberMember, ChatMemberUpdated, Update, User
-
         # Arrange
-        user = User(id=123456789, first_name="Admin", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
+        user = _admin_user()
+        bot_user = _bot_user()
+        chat = _group_chat()
 
         old_member = ChatMemberLeft(user=bot_user)  # Use ChatMemberLeft for left status
         new_member = ChatMemberMember(user=bot_user)  # ChatMemberMember is always "member"
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -124,19 +129,10 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test bot being promoted to administrator."""
-        from aiogram.types import (
-            Chat,
-            ChatMemberAdministrator,
-            ChatMemberMember,
-            ChatMemberUpdated,
-            Update,
-            User,
-        )
-
         # Arrange
-        user = User(id=123456789, first_name="Admin", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
+        user = _admin_user()
+        bot_user = _bot_user()
+        chat = _group_chat()
 
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberAdministrator(
@@ -159,15 +155,7 @@ class TestMyChatMember:
             can_manage_topics=True,
         )
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -185,19 +173,10 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test bot being restricted in a chat."""
-        from aiogram.types import (
-            Chat,
-            ChatMemberMember,
-            ChatMemberRestricted,
-            ChatMemberUpdated,
-            Update,
-            User,
-        )
-
         # Arrange
-        user = User(id=123456789, first_name="Admin", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
+        user = _admin_user()
+        bot_user = _bot_user()
+        chat = _group_chat()
 
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberRestricted(
@@ -222,15 +201,7 @@ class TestMyChatMember:
             until_date=datetime.now(timezone.utc),
         )
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -248,12 +219,10 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test bot being kicked/blocked in private chat."""
-        from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember, ChatMemberUpdated, Update, User
-
         # Arrange
-        user = User(id=123456789, first_name="User", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=123456789, type="private", first_name="User")
+        user = _admin_user("User")
+        bot_user = _bot_user()
+        chat = TestDataFactory.create_private_chat(chat_id=123456789, first_name="User", username=None)
 
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
@@ -261,15 +230,7 @@ class TestMyChatMember:
             until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -287,25 +248,15 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test bot being added to a channel."""
-        from aiogram.types import Chat, ChatMemberLeft, ChatMemberMember, ChatMemberUpdated, Update, User
-
         # Arrange
-        user = User(id=123456789, first_name="Admin", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="channel", title="Test Channel")
+        user = _admin_user()
+        bot_user = _bot_user()
+        chat = TestDataFactory.create_group_chat(chat_type="channel", title="Test Channel")
 
         old_member = ChatMemberLeft(user=bot_user)  # Use ChatMemberLeft for left status
         new_member = ChatMemberMember(user=bot_user)  # ChatMemberMember is always "member"
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -323,12 +274,10 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test my_chat_member when group doesn't exist in database."""
-        from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember, ChatMemberUpdated, Update, User
-
         # Arrange - No group in database
-        user = User(id=123456789, first_name="Kicker", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
+        user = _admin_user("Kicker")
+        bot_user = _bot_user()
+        chat = _group_chat()
 
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
@@ -336,15 +285,7 @@ class TestMyChatMember:
             until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 
@@ -362,34 +303,18 @@ class TestMyChatMember:
         base_data,
     ) -> None:
         """Test my_chat_member when user was never in the group."""
-        from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember, ChatMemberUpdated, Update, User
-
         # Arrange - Create group but user was never added (with required username field)
-        group_model = ChatModel(
-            tid=-1001234567890,
-            type=ChatType.supergroup,
-            first_name_or_title="Test Group",
-            is_bot=False,
-            username=None,
-            last_saw=datetime.now(timezone.utc),
-        )
+        group_model = _save_chat_model(-1001234567890, ChatType.supergroup, "Test Group")
         await group_model.save()
 
-        user_model = ChatModel(
-            tid=123456789,
-            type=ChatType.private,
-            first_name_or_title="Kicker",
-            is_bot=False,
-            username=None,
-            last_saw=datetime.now(timezone.utc),
-        )
+        user_model = _save_chat_model(123456789, ChatType.private, "Kicker")
         await user_model.save()
 
         # But don't add to group
 
-        user = User(id=123456789, first_name="Kicker", is_bot=False)
-        bot_user = User(id=CONFIG.bot_id, first_name="Bot", is_bot=True)
-        chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
+        user = _admin_user("Kicker")
+        bot_user = _bot_user()
+        chat = _group_chat()
 
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
@@ -397,15 +322,7 @@ class TestMyChatMember:
             until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
-        my_chat_member = ChatMemberUpdated(
-            chat=chat,
-            from_user=user,
-            date=datetime.now(timezone.utc),
-            old_chat_member=old_member,
-            new_chat_member=new_member,
-        )
-
-        update = Update(update_id=1, my_chat_member=my_chat_member)
+        update = _my_chat_member_update(chat, user, old_member, new_member)
         base_data["event_from_user"] = user
         base_data["event_chat"] = chat
 

@@ -22,10 +22,12 @@ from sophie_bot.utils.feature_flags import (
     delete_chat_override,
     delete_override,
     delete_rollout,
+    get_allowed_string_values,
     get_default_value,
     get_rollout,
     get_rollout_percentage,
     get_value,
+    is_valid_value_type,
     is_enabled,
     list_all,
     list_chat_override_details,
@@ -49,28 +51,6 @@ _ROLLOUT_BUMP_OPTION = "rollout_bump"
 _CHAT_OVERRIDES_OPTION = "chat_overrides"
 _KEY_VALUE_HELP = "^chat[=<chat_id>] ^chat_overrides ^rollout=<0-100> ^days=<days> ^rollout_bump=<0-100>"
 _MESSAGE_SOFT_LIMIT = 3400
-_MODEL_FEATURES: frozenset[FeatureType] = frozenset(
-    {
-        "ai_summary_model",
-        "ai_filter_handler_model",
-        "ai_chatbot_model",
-        "ai_translation_model",
-        "ai_proactive_replies_model",
-        "ai_research_model",
-    }
-)
-_SERVICE_TIER_FEATURES: frozenset[FeatureType] = frozenset(
-    {
-        "ai_chatbot_service_tier",
-        "ai_translations_service_tier",
-        "ai_filters_service_tier",
-        "ai_chat_summaries_service_tier",
-        "ai_proactive_replies_service_tier",
-        "ai_research_service_tier",
-    }
-)
-_SERVICE_TIER_VALUES = frozenset({"none", "auto", "default", "flex", "priority"})
-_SEARCH_PROVIDER_VALUES = frozenset({"kagi"})
 
 
 class _IntKeyValue(IntArg):
@@ -131,18 +111,11 @@ def _render_full_value(feature: FeatureType, value: FeatureValue) -> str:
 
 
 def _is_valid_feature_value_type(feature: FeatureType, value: FeatureValue) -> bool:
-    default_value = get_default_value(feature)
-    return type(value) is type(default_value)
+    return is_valid_value_type(feature, value)
 
 
 def _get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
-    if feature in _MODEL_FEATURES:
-        return frozenset(AI_MODELS_BY_NAME)
-    if feature in _SERVICE_TIER_FEATURES:
-        return _SERVICE_TIER_VALUES
-    if feature == "ai_search_provider":
-        return _SEARCH_PROVIDER_VALUES
-    return None
+    return get_allowed_string_values(feature, ai_model_names=frozenset(AI_MODELS_BY_NAME))
 
 
 def _is_valid_feature_value(feature: FeatureType, value: FeatureValue) -> bool:

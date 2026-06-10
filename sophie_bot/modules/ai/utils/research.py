@@ -43,17 +43,15 @@ from sophie_bot.modules.ai.json_schemas.research import (
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_model_factory import get_research_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import get_service_tier, get_value
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 
 _RESEARCH_SEARCH_PROVIDER_KAGI: Final[str] = "kagi"
-_DEFAULT_MAX_ROUNDS: Final[int] = 3
-_DEFAULT_QUERIES_PER_ROUND: Final[int] = 5
-_DEFAULT_RESULTS_PER_QUERY: Final[int] = 5
 _RESEARCH_MARKDOWN_FILENAME_FALLBACK: Final[str] = "research"
 _RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 
@@ -103,43 +101,14 @@ def research_progress_suffix(stage: ResearchProgressStage) -> str:
 
 
 @dataclass(frozen=True)
-class ResearchWorkflowSettings:
-    max_rounds: int
-    queries_per_round: int
-    results_per_query: int
-    service_tier: str | None
-
-
-@dataclass(frozen=True)
 class ResearchWorkflowResult:
     response: ResearchFinalResponse
     model: Model
     message_history: list[ModelRequest | ModelResponse]
 
 
-def _coerce_positive_int(value: object, default: int, maximum: int) -> int:
-    if isinstance(value, bool):
-        return default
-    try:
-        parsed_value = int(value) if isinstance(value, int | float | str) else default
-    except ValueError:
-        return default
-    if parsed_value <= 0:
-        return default
-    return min(parsed_value, maximum)
-
-
 async def get_research_settings(chat_tid: int | None = None) -> ResearchWorkflowSettings:
-    return ResearchWorkflowSettings(
-        max_rounds=_coerce_positive_int(await get_value("ai_research_max_rounds", chat_tid=chat_tid), 3, 5),
-        queries_per_round=_coerce_positive_int(
-            await get_value("ai_research_queries_per_round", chat_tid=chat_tid), 5, 10
-        ),
-        results_per_query=_coerce_positive_int(
-            await get_value("ai_research_results_per_query", chat_tid=chat_tid), 5, 10
-        ),
-        service_tier=await get_service_tier("ai_research_service_tier", chat_tid=chat_tid),
-    )
+    return await get_research_workflow_settings(chat_tid)
 
 
 def _limit_queries(queries: Iterable[ResearchSearchQuery], limit: int) -> list[ResearchSearchQuery]:

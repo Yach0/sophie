@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable
-from datetime import datetime, timedelta, timezone
 from typing import Literal, cast
 
-import sentry_sdk
 from aiogram.types import Message, ReactionTypeEmoji
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import UserContent
@@ -26,39 +23,28 @@ from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message, get_cached_messages
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_run_config
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc, truncate_output
+from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
+from sophie_bot.modules.ai.utils.proactive_prompt import build_decision_history as _build_decision_history
+from sophie_bot.modules.ai.utils.proactive_tracking import (
+    acquire_lock as _acquire_lock,
+    clear_tracked_messages as _clear_tracked_messages,
+    get_recent_candidates as _get_recent_candidates,
+    is_candidate as _tracking_is_candidate,
+    log_proactive_info as _log_proactive_info,
+    release_lock as _release_lock,
+    track_eligible_message as _track_eligible_message,
+)
 from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
 from sophie_bot.utils.i18n import gettext as _
-from sophie_bot.utils.logger import log
 
 ProactiveActionName = Literal["none", "react", "answer"]
 
-_ELIGIBLE_KEY_TEMPLATE = "ai:proactive:{chat_tid}:eligible"
-_LOCK_KEY_TEMPLATE = "ai:proactive:{chat_tid}:lock"
-_LOCK_TTL_SECONDS = 120
-_PROCESSED_TTL_SECONDS = 86400
-_DEFAULT_BATCH_SIZE = 30
-_DEFAULT_WINDOW_SECONDS = 180
-_DEFAULT_MAX_ANSWERS = 1
-_DEFAULT_MAX_REACTIONS = 1
-_DEFAULT_MIN_MESSAGES = 30
-_MAX_DECISION_ANSWERS = 1
-_MAX_DECISION_REACTIONS = 2
-_DEFAULT_PROMPT = (
-    "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited "
-    "into the conversation, someone asks an open question that Sophie can help with, or there is a very strong "
-    "natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, "
-    "moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre "
-    "answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly "
-    "needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in "
-    "every topic."
-)
 _TELEGRAM_REACTION_EMOJIS: frozenset[str] = frozenset(
     {
         "❤",
@@ -150,41 +136,8 @@ class ProactiveDecision(BaseModel):
     actions: list[ProactiveAction] = Field(default_factory=list)
 
 
-class ProactiveReplySettings(BaseModel):
-    batch_size: int = _DEFAULT_BATCH_SIZE
-    window_seconds: int = _DEFAULT_WINDOW_SECONDS
-    max_answers: int = _DEFAULT_MAX_ANSWERS
-    max_reactions: int = _DEFAULT_MAX_REACTIONS
-    min_messages: int = _DEFAULT_MIN_MESSAGES
-    prompt: str = _DEFAULT_PROMPT
-
-
-async def _feature_int(feature: str, chat_tid: int, default: int, minimum: int = 1) -> int:
-    value = await get_value(cast(FeatureType, feature), chat_tid=chat_tid)
-    try:
-        parsed_value = int(value)
-    except (TypeError, ValueError):
-        return default
-    return max(parsed_value, minimum)
-
-
 async def _get_settings(chat_tid: int) -> ProactiveReplySettings:
-    batch_size = await _feature_int("ai_proactive_replies_batch_size", chat_tid, _DEFAULT_BATCH_SIZE)
-    window_seconds = await _feature_int("ai_proactive_replies_window_seconds", chat_tid, _DEFAULT_WINDOW_SECONDS)
-    max_answers = await _feature_int("ai_proactive_replies_max_answers", chat_tid, _DEFAULT_MAX_ANSWERS, minimum=0)
-    max_reactions = await _feature_int(
-        "ai_proactive_replies_max_reactions", chat_tid, _DEFAULT_MAX_REACTIONS, minimum=0
-    )
-    min_messages = await _feature_int("ai_proactive_replies_min_messages", chat_tid, _DEFAULT_MIN_MESSAGES)
-    prompt = str(await get_value("ai_proactive_replies_prompt", chat_tid=chat_tid))
-    settings = ProactiveReplySettings(
-        batch_size=batch_size,
-        window_seconds=window_seconds,
-        max_answers=min(max_answers, _MAX_DECISION_ANSWERS),
-        max_reactions=min(max_reactions, _MAX_DECISION_REACTIONS),
-        min_messages=min(min_messages, batch_size),
-        prompt=prompt,
-    )
+    settings = await get_proactive_reply_settings(chat_tid)
     _log_proactive_info(
         "Proactive AI settings resolved",
         chat_id=chat_tid,
@@ -202,74 +155,12 @@ def _metric_attributes() -> dict[str, str]:
     return {"feature": "ai_proactive_replies"}
 
 
-def _log_proactive_info(message: str, **data: object) -> None:
-    log.info(message, **data)
-    sentry_sdk.add_breadcrumb(
-        category="ai.proactive_replies",
-        message=message,
-        level="info",
-        data=data,
-    )
-
-
-def _eligible_key(chat_tid: int) -> str:
-    return _ELIGIBLE_KEY_TEMPLATE.format(chat_tid=chat_tid)
-
-
-def _lock_key(chat_tid: int) -> str:
-    return _LOCK_KEY_TEMPLATE.format(chat_tid=chat_tid)
-
-
-def _is_candidate(message: MessageType) -> bool:
-    return bool(
-        message.eligible_for_proactive_ai
-        and not message.handled_by_ai
-        and not message.has_ai_command
-        and not message.reply_to_is_sophie_ai
-        and message.user_id != CONFIG.bot_id
-    )
-
-
 def _target_by_message_id(messages: tuple[MessageType, ...]) -> dict[int, MessageType]:
     return {message.message_id: message for message in messages}
 
 
-def _render_messages_for_prompt(messages: tuple[MessageType, ...]) -> str:
-    rendered_messages: list[str] = []
-    for message in messages:
-        username = message.username or str(message.user_id)
-        reply_part = ""
-        if message.reply_to_message_id:
-            reply_username = message.reply_to_username or str(message.reply_to_user_id or "unknown")
-            reply_part = f" | replies_to={message.reply_to_message_id} ({reply_username})"
-        rendered_messages.append(
-            " | ".join(
-                (
-                    f"message_id={message.message_id}",
-                    f"time={message.created_at.isoformat() if message.created_at else 'unknown'}",
-                    f"user={username}{reply_part}",
-                    f"text={message.text}",
-                )
-            )
-        )
-    return "\n".join(rendered_messages)
-
-
-def _build_decision_prompt(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> str:
-    rendered_messages = _render_messages_for_prompt(messages)
-    return "\n".join(
-        (
-            "Decide how Sophie should naturally join this Telegram chat: none, react, or answer.",
-            f"Limits: max {settings.max_answers} answers, max {settings.max_reactions} reactions.",
-            "Use answer when Sophie should reply to a specific message; the answer action will be sent as a Telegram reply to that message.",
-            settings.prompt,
-            "React only when it clearly fits the moment; do not react just to do something. Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉.",
-            "Choose none when Sophie would not add anything, or the batch is spam, pure transactions, moderation chatter, or an obvious interruption.",
-            "Pick only provided message_id values.",
-            "Recent messages:",
-            rendered_messages,
-        )
-    )
+def _is_candidate(message: MessageType) -> bool:
+    return _tracking_is_candidate(message)
 
 
 def _normalize_reaction_emoji(emoji: str | None) -> str | None:
@@ -284,17 +175,6 @@ def _normalize_reaction_emoji(emoji: str | None) -> str | None:
         fallback_emoji=_FALLBACK_REACTION_EMOJI,
     )
     return _FALLBACK_REACTION_EMOJI
-
-
-def _build_decision_history(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> AIMessageHistory:
-    history = AIMessageHistory()
-    history.add_system(
-        "Return structured JSON only. Sophie is usually silent and only joins when her contribution is clearly "
-        "timely, useful, or funny. Prefer none unless there is a strong natural opening; use reactions for "
-        "lightweight moments."
-    )
-    history.prompt = [_build_decision_prompt(messages, settings)]
-    return history
 
 
 def _limit_actions(decision: ProactiveDecision, settings: ProactiveReplySettings) -> tuple[ProactiveAction, ...]:
@@ -315,68 +195,6 @@ def _limit_actions(decision: ProactiveDecision, settings: ProactiveReplySettings
             reaction_count += 1
             limited_actions.append(action)
     return tuple(limited_actions)
-
-
-async def _get_recent_candidates(chat_tid: int, settings: ProactiveReplySettings) -> tuple[MessageType, ...]:
-    now = datetime.now(timezone.utc)
-    messages = await get_cached_messages(chat_tid, now=now)
-    min_created_at = now - timedelta(seconds=settings.window_seconds)
-    candidates = tuple(
-        message
-        for message in messages
-        if message.created_at and message.created_at >= min_created_at and _is_candidate(message)
-    )
-    selected_candidates = candidates[-settings.batch_size :]
-    _log_proactive_info(
-        "Proactive AI candidates loaded",
-        chat_id=chat_tid,
-        cached_messages=len(messages),
-        eligible_candidates=len(candidates),
-        selected_candidates=len(selected_candidates),
-        window_seconds=settings.window_seconds,
-    )
-    return selected_candidates
-
-
-async def _track_eligible_message(chat_tid: int, message: Message, settings: ProactiveReplySettings) -> int:
-    key = _eligible_key(chat_tid)
-    cutoff_score = (datetime.now(timezone.utc) - timedelta(seconds=settings.window_seconds)).timestamp()
-    async with aredis.pipeline(transaction=True) as pipe:
-        await pipe.zadd(key, {str(message.message_id): message.date.timestamp()})  # type: ignore[misc]
-        await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
-        await pipe.expire(key, _PROCESSED_TTL_SECONDS, lt=True)
-        await pipe.zcard(key)  # type: ignore[misc]
-        results = await pipe.execute()
-    tracked_count = int(results[-1])
-    _log_proactive_info(
-        "Proactive AI eligible message tracked",
-        chat_id=chat_tid,
-        message_id=message.message_id,
-        tracked_count=tracked_count,
-        window_seconds=settings.window_seconds,
-    )
-    return tracked_count
-
-
-async def _clear_tracked_messages(chat_tid: int, messages: tuple[MessageType, ...]) -> None:
-    if not messages:
-        return
-    key = _eligible_key(chat_tid)
-    await aredis.zrem(key, *(str(message.message_id) for message in messages))
-    _log_proactive_info("Proactive AI tracked messages cleared", chat_id=chat_tid, message_count=len(messages))
-
-
-async def _acquire_lock(chat_tid: int) -> bool:
-    acquired = bool(
-        await cast(Awaitable[bool | None], aredis.set(_lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True))
-    )
-    _log_proactive_info("Proactive AI lock state resolved", chat_id=chat_tid, acquired=acquired)
-    return acquired
-
-
-async def _release_lock(chat_tid: int) -> None:
-    await aredis.delete(_lock_key(chat_tid))
-    _log_proactive_info("Proactive AI lock released", chat_id=chat_tid)
 
 
 async def _generate_decision(

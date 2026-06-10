@@ -28,6 +28,8 @@ from sophie_bot.utils.api.rate_limiter import rate_limit
 from sophie_bot.utils.logger import log
 
 router = APIRouter(prefix="/telegram", tags=["telegram-media"])
+CurrentUser = Annotated[Any, Depends(get_current_user)]
+_RATE_LIMIT_DEPENDENCIES = [Depends(rate_limit)]
 
 
 class ResolveCustomEmojisRequest(BaseModel):
@@ -133,14 +135,14 @@ def _resolve_result_to_response(result: ResolveResult, request: Request) -> dict
 @router.post(
     "/custom-emojis/resolve",
     response_model=ResolveCustomEmojisResponse,
-    dependencies=[Depends(rate_limit)],
+    dependencies=_RATE_LIMIT_DEPENDENCIES,
     summary="Resolve custom emoji IDs",
     description="Resolve a list of Telegram custom emoji IDs into renderable metadata.",
 )
 async def resolve_custom_emojis(
     request: Request,
     data: ResolveCustomEmojisRequest,
-    user: Annotated[Any, Depends(get_current_user)],
+    user: CurrentUser,
 ) -> dict[str, Any]:
     unique_ids = list(dict.fromkeys(data.ids))
 
@@ -165,14 +167,14 @@ async def resolve_custom_emojis(
 @router.post(
     "/stickers/resolve",
     response_model=ResolveStickersResponse,
-    dependencies=[Depends(rate_limit)],
+    dependencies=_RATE_LIMIT_DEPENDENCIES,
     summary="Resolve sticker file IDs",
     description="Resolve a list of Telegram sticker file IDs into renderable metadata.",
 )
 async def resolve_stickers(
     request: Request,
     data: ResolveStickersRequest,
-    user: Annotated[Any, Depends(get_current_user)],
+    user: CurrentUser,
 ) -> dict[str, Any]:
     unique_ids = list(dict.fromkeys(data.file_ids))
 
@@ -197,14 +199,14 @@ async def resolve_stickers(
 @router.post(
     "/media/resolve",
     response_model=ResolveMediaResponseModel,
-    dependencies=[Depends(rate_limit)],
+    dependencies=_RATE_LIMIT_DEPENDENCIES,
     summary="Resolve all media types",
     description="Unified endpoint to resolve custom emojis, stickers, and other Telegram media.",
 )
 async def resolve_media(
     request: Request,
     data: ResolveMediaRequest,
-    user: Annotated[Any, Depends(get_current_user)],
+    user: CurrentUser,
 ) -> dict[str, Any]:
     custom_emoji_ids = list(dict.fromkeys(data.custom_emoji_ids)) if data.custom_emoji_ids else None
     sticker_file_ids = list(dict.fromkeys(data.sticker_file_ids)) if data.sticker_file_ids else None
@@ -235,11 +237,11 @@ async def resolve_media(
     "/media/proxy/{file_id}",
     summary="Proxy Telegram media asset",
     description="Fetch and proxy a Telegram media file. Returns the raw bytes with appropriate content type.",
-    dependencies=[Depends(rate_limit)],
+    dependencies=_RATE_LIMIT_DEPENDENCIES,
 )
 async def proxy_media(
     file_id: str = Path(..., description="Telegram file ID to fetch"),
-    user: Annotated[Any, Depends(get_current_user)] = None,
+    user: CurrentUser = None,
 ) -> Response:
     _ = user
     file_path = await TelegramMediaService.get_file_path(file_id)
@@ -276,14 +278,14 @@ async def proxy_media(
 @router.get(
     "/sticker-set/{set_name}",
     response_model=StickerSetResponse,
-    dependencies=[Depends(rate_limit)],
+    dependencies=_RATE_LIMIT_DEPENDENCIES,
     summary="Resolve sticker set",
     description="Fetch and resolve a Telegram sticker set by name. Returns all stickers with their metadata.",
 )
 async def resolve_sticker_set(
     request: Request,
     set_name: str = Path(..., description="Name of the sticker set to resolve"),
-    user: Annotated[Any, Depends(get_current_user)] = None,
+    user: CurrentUser = None,
 ) -> StickerSetResponse:
     _ = user
     result = await TelegramMediaService.resolve_sticker_set(set_name)

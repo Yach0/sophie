@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import asyncio
 import json
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, Final, Literal, TypedDict, cast, get_args
 
@@ -78,16 +79,43 @@ FeatureType = Literal[
 ]
 
 
-# Derived from FeatureType so that new flags only need to be added in two places:
-# FeatureType and _DEFAULT_STATES.
+# Derived from FeatureType; defaults and validation metadata live in _FEATURE_DEFINITIONS.
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = get_args(FeatureType)
 
 
 FeatureValue = bool | str | int | float
+FeatureValueKind = Literal["plain", "ai_model", "service_tier", "search_provider"]
+
+
+class FeatureDefinition(TypedDict):
+    default: FeatureValue
+    value_kind: FeatureValueKind
 
 
 def get_default_value(feature: FeatureType) -> FeatureValue:
     return _DEFAULT_STATES[feature]
+
+
+def get_value_kind(feature: FeatureType) -> FeatureValueKind:
+    return _FEATURE_DEFINITIONS[feature]["value_kind"]
+
+
+def get_allowed_string_values(
+    feature: FeatureType, *, ai_model_names: frozenset[str] | None = None
+) -> frozenset[str] | None:
+    value_kind = get_value_kind(feature)
+    if value_kind == "ai_model":
+        return ai_model_names
+    if value_kind == "service_tier":
+        return _SERVICE_TIER_VALUES
+    if value_kind == "search_provider":
+        return _SEARCH_PROVIDER_VALUES
+    return None
+
+
+def is_valid_value_type(feature: FeatureType, value: FeatureValue) -> bool:
+    default_value = get_default_value(feature)
+    return type(value) is type(default_value)
 
 
 def parse_feature_value(raw: str) -> FeatureValue:
@@ -129,69 +157,97 @@ class ChatFeatureOverride(TypedDict):
     source: FeatureFlagOverrideSource
 
 
+_PLAIN_FEATURE: Final[FeatureValueKind] = "plain"
+_AI_MODEL_FEATURE: Final[FeatureValueKind] = "ai_model"
+_SERVICE_TIER_FEATURE: Final[FeatureValueKind] = "service_tier"
+_SEARCH_PROVIDER_FEATURE: Final[FeatureValueKind] = "search_provider"
+_SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
+_SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi"})
+
+
+def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATURE) -> FeatureDefinition:
+    return {"default": default, "value_kind": value_kind}
+
+
+_FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
+    "ai_summary_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
+    "ai_filter_handler_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
+    "ai_chatbot_model": _feature("", _AI_MODEL_FEATURE),
+    "ai_translation_model": _feature("", _AI_MODEL_FEATURE),
+    "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
+    "ai_chatbot_system_prompt": _feature(
+        "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet"
+    ),
+    "ai_translate_system_prompt": _feature(
+        "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
+    ),
+    "ai_chat_summaries_prompt": _feature(
+        "Summarize the chat day into one short general overview and several topic lines.\nEach topic line must contain a short title, one fitting emoji, and the list of source message IDs.\nDo not include any IDs that are not present in the provided transcript.\nSkip one-off chatter that does not form a meaningful discussion.\nPrefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
+    ),
+    "ai_moderation_reason_prompt": _feature(
+        "Generate a brief, professional moderation reason for restricting a user based on their message."
+    ),
+    "ai_filter_suggestions_prompt": _feature(
+        "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data."
+    ),
+    "ai_chatbot": _feature(True),
+    "ai_chatbot_admin_status": _feature(False),
+    "ai_chatbot_chat_name": _feature(False),
+    "ai_chatbot_blockquote": _feature(True),
+    "ai_chatbot_research_quote": _feature(True),
+    "ai_chatbot_thinking_message": _feature(False),
+    "ai_chatbot_tool_thinking": _feature(False),
+    "ai_chatbot_random_emoji": _feature(False),
+    "ai_chatbot_streaming": _feature(False),
+    "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
+    "ai_chatbot_request_limit": _feature(8),
+    "ai_chatbot_tool_calls_limit": _feature(12),
+    "ai_chatbot_response_tokens_limit": _feature(0),
+    "ai_translations": _feature(True),
+    "ai_moderation": _feature(True),
+    "ai_moderation_reasons": _feature(True),
+    "ai_filters": _feature(True),
+    "ai_chat_summaries": _feature(True),
+    "ai_system_prompt_summaries": _feature(False),
+    "ai_notes_related_system_prompt": _feature(False),
+    "ai_notes_related_system_prompt_full_content": _feature(False),
+    "ai_agent_save_notes": _feature(False),
+    "ai_memories_to_notes": _feature(False),
+    "ai_delete_notes": _feature(False),
+    "notes_rag_embeddings": _feature(False),
+    "notes_rag_search_command": _feature(False),
+    "notes_rag_list_search": _feature(False),
+    "filters": _feature(True),
+    "antiflood": _feature(True),
+    "locks": _feature(True),
+    "welcomecaptcha": _feature(True),
+    "welcomecaptcha_autokick": _feature(True),
+    "op_debug_ai_summarization": _feature(False),
+    "ai_chatbot_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
+    "ai_translations_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
+    "ai_filters_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
+    "ai_chat_summaries_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
+    "ai_proactive_replies": _feature(False),
+    "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
+    "ai_proactive_replies_prompt": _feature(
+        "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited into the conversation, someone asks an open question that Sophie can help with, or there is a very strong natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in every topic."
+    ),
+    "ai_proactive_replies_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
+    "ai_proactive_replies_batch_size": _feature(30),
+    "ai_proactive_replies_window_seconds": _feature(180),
+    "ai_proactive_replies_max_answers": _feature(1),
+    "ai_proactive_replies_max_reactions": _feature(1),
+    "ai_proactive_replies_min_messages": _feature(30),
+    "ai_research": _feature(False),
+    "ai_research_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
+    "ai_research_max_rounds": _feature(3),
+    "ai_research_queries_per_round": _feature(5),
+    "ai_research_results_per_query": _feature(5),
+    "ai_research_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
+}
+
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
-    "ai_summary_model": "openai/gpt-5.5",
-    "ai_filter_handler_model": "openai/gpt-5-nano",
-    "ai_chatbot_model": "",
-    "ai_translation_model": "",
-    "ai_search_provider": "kagi",
-    "ai_chatbot_system_prompt": "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet",
-    "ai_translate_system_prompt": "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences).",
-    "ai_chat_summaries_prompt": "Summarize the chat day into one short general overview and several topic lines.\nEach topic line must contain a short title, one fitting emoji, and the list of source message IDs.\nDo not include any IDs that are not present in the provided transcript.\nSkip one-off chatter that does not form a meaningful discussion.\nPrefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments.",
-    "ai_moderation_reason_prompt": "Generate a brief, professional moderation reason for restricting a user based on their message.",
-    "ai_filter_suggestions_prompt": "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data.",
-    "ai_chatbot": True,
-    "ai_chatbot_admin_status": False,
-    "ai_chatbot_chat_name": False,
-    "ai_chatbot_blockquote": True,
-    "ai_chatbot_research_quote": True,
-    "ai_chatbot_thinking_message": False,
-    "ai_chatbot_tool_thinking": False,
-    "ai_chatbot_random_emoji": False,
-    "ai_chatbot_streaming": False,
-    "ai_chatbot_streaming_backoff_seconds": 1.5,
-    "ai_chatbot_request_limit": 8,
-    "ai_chatbot_tool_calls_limit": 12,
-    "ai_chatbot_response_tokens_limit": 0,
-    "ai_translations": True,
-    "ai_moderation": True,
-    "ai_moderation_reasons": True,
-    "ai_filters": True,
-    "ai_chat_summaries": True,
-    "ai_system_prompt_summaries": False,
-    "ai_notes_related_system_prompt": False,
-    "ai_notes_related_system_prompt_full_content": False,
-    "ai_agent_save_notes": False,
-    "ai_memories_to_notes": False,
-    "ai_delete_notes": False,
-    "notes_rag_embeddings": False,
-    "notes_rag_search_command": False,
-    "notes_rag_list_search": False,
-    "filters": True,
-    "antiflood": True,
-    "locks": True,
-    "welcomecaptcha": True,
-    "welcomecaptcha_autokick": True,
-    "op_debug_ai_summarization": False,
-    "ai_chatbot_service_tier": "none",
-    "ai_translations_service_tier": "none",
-    "ai_filters_service_tier": "none",
-    "ai_chat_summaries_service_tier": "none",
-    "ai_proactive_replies": False,
-    "ai_proactive_replies_model": "openai/gpt-5-nano",
-    "ai_proactive_replies_prompt": "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited into the conversation, someone asks an open question that Sophie can help with, or there is a very strong natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in every topic.",
-    "ai_proactive_replies_service_tier": "flex",
-    "ai_proactive_replies_batch_size": 30,
-    "ai_proactive_replies_window_seconds": 180,
-    "ai_proactive_replies_max_answers": 1,
-    "ai_proactive_replies_max_reactions": 1,
-    "ai_proactive_replies_min_messages": 30,
-    "ai_research": False,
-    "ai_research_model": "openai/gpt-5.5",
-    "ai_research_max_rounds": 3,
-    "ai_research_queries_per_round": 5,
-    "ai_research_results_per_query": 5,
-    "ai_research_service_tier": "flex",
+    feature: definition["default"] for feature, definition in _FEATURE_DEFINITIONS.items()
 }
 
 assert set(FEATURE_FLAGS) == set(_DEFAULT_STATES), "FeatureType and _DEFAULT_STATES must define the same flags"
@@ -390,6 +446,7 @@ async def _set_override(feature: FeatureType, value: FeatureValue) -> None:
 
 async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
     parsed_overrides: dict[FeatureType, FeatureValue] = {}
+    cached_overrides: dict[str, str] = {}
 
     async for override in FeatureFlagOverride.find({"chat_tid": None}):  # deepsource-ignore[PYL-E1133]
         if override.feature not in FEATURE_FLAGS:
@@ -401,9 +458,19 @@ async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
             continue
 
         parsed_overrides[typed_feature] = parsed_value
-        await aredis.hset(_REDIS_KEY, typed_feature, _serialize_value(parsed_value))  # ty: ignore[invalid-await]
+        cached_overrides[typed_feature] = _serialize_value(parsed_value)
+
+    await _cache_serialized_values(_REDIS_KEY, cached_overrides)
 
     return parsed_overrides
+
+
+async def _cache_serialized_values(redis_key: str, values: Mapping[str, str]) -> None:
+    if not values:
+        return
+    await asyncio.gather(  # ty: ignore[no-matching-overload]
+        *[aredis.hset(redis_key, feature, value) for feature, value in values.items()]
+    )
 
 
 def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
@@ -515,13 +582,7 @@ async def list_rollouts() -> dict[FeatureType, FeatureRollout]:
         rollouts[typed_feature] = rollout
         cached_rollouts[typed_feature] = _serialize_rollout(rollout)
 
-    if cached_rollouts:
-        await asyncio.gather(  # ty: ignore[no-matching-overload]
-            *[
-                aredis.hset(_REDIS_ROLLOUT_KEY, feature, serialized_rollout)
-                for feature, serialized_rollout in cached_rollouts.items()
-            ]
-        )
+    await _cache_serialized_values(_REDIS_ROLLOUT_KEY, cached_rollouts)
 
     return rollouts
 
@@ -566,12 +627,7 @@ async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
             cached_overrides[typed_feature] = _serialize_value(parsed_value)
     if cached_overrides:
         redis_key = _chat_redis_key(chat_tid)
-        await asyncio.gather(  # ty: ignore[no-matching-overload]
-            *[
-                aredis.hset(redis_key, feature, serialized_value)
-                for feature, serialized_value in cached_overrides.items()
-            ]
-        )
+        await _cache_serialized_values(redis_key, cached_overrides)
     return parsed_overrides
 
 

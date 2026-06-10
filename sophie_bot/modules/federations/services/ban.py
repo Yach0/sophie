@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
 from beanie import PydanticObjectId
 from beanie.odm.fields import Link as BeanieLink
@@ -18,6 +19,8 @@ from sophie_bot.modules.federations.services.manage import FederationManageServi
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
 from sophie_bot.modules.restrictions.utils.restrictions import unban_user as restrict_unban_user
+
+ChatActionResultT = TypeVar("ChatActionResultT")
 
 
 class FederationBanService:
@@ -156,20 +159,13 @@ class FederationBanService:
         if current_chat_iid:
             detected_chat_iids.add(current_chat_iid)
 
-        banned_chat_iids: list[PydanticObjectId] = []
-
-        sem = asyncio.Semaphore(15)
-
-        async def _ban_task(chat):
+        async def ban_chat(chat: ChatModel) -> PydanticObjectId | None:
             if chat.iid not in detected_chat_iids:
                 return None
-            async with sem:
-                success = await restrict_ban_user(chat.tid, user_tid)
-                return chat.iid if success else None
+            success = await restrict_ban_user(chat.tid, user_tid)
+            return chat.iid if success else None
 
-        tasks = [_ban_task(chat) for chat in chats]
-        results = await asyncio.gather(*tasks)
-        banned_chat_iids = [res for res in results if res is not None]
+        banned_chat_iids = await FederationBanService._run_limited_chat_actions(chats, ban_chat)
 
         if banned_chat_iids:
             if not ban.banned_chats:
@@ -214,15 +210,11 @@ class FederationBanService:
             return 0
         chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
 
-        sem = asyncio.Semaphore(15)
+        async def unban_chat(chat: ChatModel) -> bool:
+            return await restrict_unban_user(chat.tid, user_tid)
 
-        async def _unban_task(chat):
-            async with sem:
-                return await restrict_unban_user(chat.tid, user_tid)
-
-        tasks = [_unban_task(chat) for chat in chats]
-        results = await asyncio.gather(*tasks)
-        return sum(1 for res in results if res)
+        results = await FederationBanService._run_limited_chat_actions(chats, unban_chat)
+        return sum(1 for result in results if result)
 
     @staticmethod
     async def unban_user_in_chat_iids(chat_iids: list[object], user_tid: int) -> int:
@@ -231,15 +223,26 @@ class FederationBanService:
             return 0
         chats = await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
 
-        sem = asyncio.Semaphore(15)
+        async def unban_chat(chat: ChatModel) -> bool:
+            return await restrict_unban_user(chat.tid, user_tid)
 
-        async def _unban_task(chat):
-            async with sem:
-                return await restrict_unban_user(chat.tid, user_tid)
+        results = await FederationBanService._run_limited_chat_actions(chats, unban_chat)
+        return sum(1 for result in results if result)
 
-        tasks = [_unban_task(chat) for chat in chats]
-        results = await asyncio.gather(*tasks)
-        return sum(1 for res in results if res)
+    @staticmethod
+    async def _run_limited_chat_actions(
+        chats: list[ChatModel],
+        action: Callable[[ChatModel], Awaitable[ChatActionResultT | None]],
+        limit: int = 15,
+    ) -> list[ChatActionResultT]:
+        semaphore = asyncio.Semaphore(limit)
+
+        async def run_action(chat: ChatModel) -> ChatActionResultT | None:
+            async with semaphore:
+                return await action(chat)
+
+        results = await asyncio.gather(*(run_action(chat) for chat in chats))
+        return [result for result in results if result is not None]
 
     @staticmethod
     async def get_federation_bans(

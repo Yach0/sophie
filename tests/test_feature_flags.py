@@ -26,12 +26,15 @@ from sophie_bot.utils.feature_flags import (
     delete_chat_override,
     delete_override,
     delete_rollout,
+    get_allowed_string_values,
     get_chat_override,
     get_default_value,
     get_rollout,
     get_rollout_percentage,
+    get_value_kind,
     get_service_tier,
     get_value,
+    is_valid_value_type,
     is_enabled,
     list_all,
     list_chat_override_details,
@@ -144,6 +147,31 @@ class TestSerializeValue:
 
     def test_float(self) -> None:
         assert _serialize_value(1.5) == "1.5"
+
+
+class TestFeatureMetadata:
+    def test_defaults_are_derived_for_all_flags(self) -> None:
+        assert {feature: get_default_value(feature) for feature in FEATURE_FLAGS}
+
+    def test_value_type_matches_default(self) -> None:
+        assert is_valid_value_type("welcomecaptcha", True)
+        assert not is_valid_value_type("welcomecaptcha", "true")
+
+    def test_ai_model_values_are_supplied_by_caller(self) -> None:
+        assert get_value_kind("ai_summary_model") == "ai_model"
+        assert get_allowed_string_values("ai_summary_model", ai_model_names=frozenset({"openai/gpt-5.5"})) == frozenset(
+            {"openai/gpt-5.5"}
+        )
+
+    def test_service_tier_values_are_declared_in_metadata(self) -> None:
+        assert get_value_kind("ai_chatbot_service_tier") == "service_tier"
+        assert get_allowed_string_values("ai_chatbot_service_tier") == frozenset(
+            {"none", "auto", "default", "flex", "priority"}
+        )
+
+    def test_plain_string_values_are_unrestricted(self) -> None:
+        assert get_value_kind("ai_chatbot_system_prompt") == "plain"
+        assert get_allowed_string_values("ai_chatbot_system_prompt") is None
 
 
 class TestCoerceDbValue:

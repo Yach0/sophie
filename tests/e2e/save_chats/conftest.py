@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest_asyncio
-from aiogram.types import Chat, Message, Update, User
+from aiogram.types import Chat, ChatMember, ChatMemberUpdated, Message, Update, User
 
 from tests.utils.db_fixture import (
     cleanup_beanie,
@@ -126,3 +126,28 @@ class TestDataFactory:
     def create_update(message: Message | None = None, **kwargs: Any) -> Update:
         """Create a test update."""
         return Update(update_id=1, message=message, **kwargs)
+
+    @staticmethod
+    def create_bot_user(bot_id: int, first_name: str = "Bot") -> User:
+        """Create the bot user used in chat member updates."""
+        return User(id=bot_id, first_name=first_name, is_bot=True)
+
+    @staticmethod
+    def create_my_chat_member_update(
+        chat: Chat,
+        from_user: User,
+        old_member: ChatMember,
+        new_member: ChatMember,
+        update_id: int = 1,
+    ) -> Update:
+        """Create a my_chat_member update for SaveChatsMiddleware tests."""
+        return Update(
+            update_id=update_id,
+            my_chat_member=ChatMemberUpdated(
+                chat=chat,
+                from_user=from_user,
+                date=datetime.now(timezone.utc),
+                old_chat_member=old_member,
+                new_chat_member=new_member,
+            ),
+        )
