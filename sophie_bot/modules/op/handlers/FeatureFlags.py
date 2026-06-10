@@ -204,6 +204,33 @@ def _extract_optional_int(value: object) -> int | None:
     return cast(int, parsed_value)
 
 
+_INLINE_OPTION_KEYS: frozenset[str] = frozenset({_CHAT_OPTION, _CHAT_OVERRIDES_OPTION, _ROLLOUT_BUMP_OPTION, _ROLLOUT_OPTION, _DAYS_OPTION})
+
+
+def _extract_inline_options(raw_value: str) -> tuple[str, dict[str, str | None]]:
+    """Extract ^key=value tokens embedded in the value text.
+
+    ASS's KeyValuesArg only matches ``^`` tokens at the start of the text,
+    so when the user writes ``/op_ff feature ^rollout=0 value`` the
+    ``^rollout=0`` token is absorbed by TextArg instead of being parsed as
+    an option.  This helper recovers such tokens from the raw value text.
+    """
+    tokens = raw_value.split()
+    option_tokens: dict[str, str | None] = {}
+    value_tokens: list[str] = []
+
+    for token in tokens:
+        if token.startswith("^"):
+            stripped = token[1:]
+            key, _, val = stripped.partition("=")
+            if key in _INLINE_OPTION_KEYS:
+                option_tokens[key] = val if val else None
+                continue
+        value_tokens.append(token)
+
+    return " ".join(value_tokens), option_tokens
+
+
 def _is_valid_percentage(value: int | object | None) -> bool:
     return not isinstance(value, int) or 0 <= value <= 100
 
@@ -310,6 +337,30 @@ class FeatureFlagsHandler(SophieMessageHandler):
         rollout_percentage = _extract_rollout_percentage(rollout_arg)
         days = _extract_optional_int(_extract_option_value(options, _DAYS_OPTION))
         rollout_bump = _extract_optional_int(_extract_option_value(options, _ROLLOUT_BUMP_OPTION))
+
+        # ASS's KeyValuesArg only matches ^ tokens at the start of the text.
+        # When the user places them after the feature name they end up inside
+        # raw_value.  Recover them here so both orderings work:
+        #   /op_ff ^rollout=0 ai_research False   (correct)
+        #   /op_ff ai_research ^rollout=0 False   (also works now)
+        if raw_value is not None and "^" in raw_value:
+            cleaned_value, inline_options = _extract_inline_options(raw_value)
+            raw_value = cleaned_value or None
+
+            if _ROLLOUT_OPTION in inline_options and rollout_percentage is None:
+                val = inline_options[_ROLLOUT_OPTION]
+                rollout_percentage = int(val) if val is not None else _ROLLOUT_LIST_SENTINEL
+            if _DAYS_OPTION in inline_options and days is None:
+                val = inline_options[_DAYS_OPTION]
+                days = int(val) if val is not None else None
+            if _ROLLOUT_BUMP_OPTION in inline_options and rollout_bump is None:
+                val = inline_options[_ROLLOUT_BUMP_OPTION]
+                rollout_bump = int(val) if val is not None else None
+            if _CHAT_OPTION in inline_options and chat_tid is None:
+                val = inline_options[_CHAT_OPTION]
+                chat_tid = int(val) if val is not None else self.event.chat.id
+            if _CHAT_OVERRIDES_OPTION in inline_options and not chat_overrides:
+                chat_overrides = True
 
         if not _is_valid_percentage(rollout_percentage):
             return await self.event.reply(_("Usage: /op_ff ^rollout=<0-100> <feature> <value>"))
