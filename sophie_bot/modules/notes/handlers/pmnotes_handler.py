@@ -13,7 +13,6 @@ from sophie_bot.modules.connections.utils.constants import CONNECTION_DISCONNECT
 from sophie_bot.modules.notes.callbacks import PrivateNotesStartUrlCallback
 from sophie_bot.modules.notes.filters.pm_notes import PMNotesFilter
 from sophie_bot.modules.notes.handlers.list import LIST_CMDS, NotesList
-from sophie_bot.modules.notes.handlers.search import SEARCH_CMD
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -23,7 +22,7 @@ from sophie_bot.utils.i18n import gettext as _
 class PrivateNotesRedirectHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (~ChatTypeFilter("private"), CMDFilter((*LIST_CMDS, SEARCH_CMD)), PMNotesFilter())
+        return (~ChatTypeFilter("private"), CMDFilter(LIST_CMDS), PMNotesFilter())
 
     async def handle(self) -> Any:
         text = _("Please connect to the chat to interact with chat notes")
