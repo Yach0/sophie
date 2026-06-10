@@ -27,7 +27,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class AiCmd(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("ai"), AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_CHATBOT)
+        return CMDFilter("ai", allow_caption=True), AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
         self.data["ai_message_handled"] = True
