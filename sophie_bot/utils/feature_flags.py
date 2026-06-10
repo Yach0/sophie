@@ -126,9 +126,9 @@ def parse_feature_value(raw: str) -> FeatureValue:
     and ``_serialize_value`` is its logical inverse.
     """
     normalized_value = raw.lower()
-    if normalized_value in {"true", "1"}:
+    if normalized_value in {"true", "1", "yes", "on", "enable"}:
         return True
-    if normalized_value in {"false", "0"}:
+    if normalized_value in {"false", "0", "no", "off", "disable"}:
         return False
     try:
         return int(raw)
