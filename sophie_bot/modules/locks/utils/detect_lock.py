@@ -103,10 +103,6 @@ def _check_emoji_only(message: Message) -> bool:
     return bool(EMOJI_ONLY_REGEX.match(normalized))
 
 
-def _check_emoji_custom(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.CUSTOM_EMOJI)
-
-
 def _check_stickerpack(message: Message, pack_name: str) -> bool:
     if not message.sticker:
         return False
@@ -152,28 +148,16 @@ def _check_webpreview(message: Message) -> bool:
     return bool(link_preview_options and not link_preview_options.is_disabled)
 
 
-def _check_invite_link(message: Message) -> bool:
-    entities = _get_all_entities(message)
-    for entity in entities:
+def _check_url_by_regex(message: Message, pattern: re.Pattern[str]) -> bool:
+    """Check if any URL entity in the message matches the given regex pattern."""
+    text_content = _get_text_content(message)
+    for entity in _get_all_entities(message):
         if entity.type == MessageEntityType.URL:
-            url = entity.url or (_get_text_content(message)[entity.offset : entity.offset + entity.length])
-            if url and INVITE_LINK_REGEX.search(url):
+            url = entity.url or text_content[entity.offset : entity.offset + entity.length]
+            if url and pattern.search(url):
                 return True
         elif entity.type == MessageEntityType.TEXT_LINK:
-            if entity.url and INVITE_LINK_REGEX.search(entity.url):
-                return True
-    return False
-
-
-def _check_botlink(message: Message) -> bool:
-    entities = _get_all_entities(message)
-    for entity in entities:
-        if entity.type == MessageEntityType.URL:
-            url = entity.url or (_get_text_content(message)[entity.offset : entity.offset + entity.length])
-            if url and BOT_LINK_REGEX.search(url):
-                return True
-        elif entity.type == MessageEntityType.TEXT_LINK:
-            if entity.url and BOT_LINK_REGEX.search(entity.url):
+            if entity.url and pattern.search(entity.url):
                 return True
     return False
 
@@ -184,10 +168,6 @@ def _check_button(message: Message) -> bool:
 
 def _check_inline(message: Message) -> bool:
     return bool(message.via_bot)
-
-
-def _check_mention(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.MENTION)
 
 
 def _check_anon_channel(message: Message) -> bool:
@@ -212,30 +192,6 @@ def _check_language(message: Message, lang_code: str) -> bool:
     except Exception as e:
         log.debug("Language detection error", error=str(e), lang_code=lang_code)
         return False
-
-
-def _check_hashtag(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.HASHTAG)
-
-
-def _check_code(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.CODE)
-
-
-def _check_pre(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.PRE)
-
-
-def _check_blockquote(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.BLOCKQUOTE)
-
-
-def _check_underline(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.UNDERLINE)
-
-
-def _check_strikethrough(message: Message) -> bool:
-    return _has_entity_type(message, MessageEntityType.STRIKETHROUGH)
 
 
 def _check_media(message: Message) -> bool:
@@ -265,7 +221,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.ANON_CHANNEL: _check_anon_channel,
     LockType.AUDIO: lambda m: bool(m.audio),
     LockType.BOT: lambda m: bool(m.from_user and m.from_user.is_bot),
-    LockType.BOT_LINK: _check_botlink,
+    LockType.BOT_LINK: lambda m: _check_url_by_regex(m, BOT_LINK_REGEX),
     LockType.BUTTON: _check_button,
     LockType.CASHTAG: lambda m: _has_entity_type(m, MessageEntityType.CASHTAG),
     LockType.CHECKLIST: lambda m: bool(getattr(m, "checklist", None)),
@@ -277,7 +233,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.DOCUMENT: lambda m: bool(m.document),
     LockType.EMAIL: lambda m: _has_entity_type(m, MessageEntityType.EMAIL),
     LockType.EMOJI: _check_emoji,
-    LockType.EMOJI_CUSTOM: _check_emoji_custom,
+    LockType.EMOJI_CUSTOM: lambda m: _has_entity_type(m, MessageEntityType.CUSTOM_EMOJI),
     LockType.EMOJI_GAME: lambda m: bool(m.game),
     LockType.EMOJI_ONLY: _check_emoji_only,
     LockType.EXTERNAL_REPLY: lambda m: bool(getattr(m, "external_reply", None)),
@@ -290,8 +246,8 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.GUEST_BOT: _check_guest_bot,
     LockType.GIF: lambda m: bool(m.animation),
     LockType.INLINE: _check_inline,
-    LockType.MENTION: _check_mention,
-    LockType.INVITE_LINK: _check_invite_link,
+    LockType.MENTION: lambda m: _has_entity_type(m, MessageEntityType.MENTION),
+    LockType.INVITE_LINK: lambda m: _check_url_by_regex(m, INVITE_LINK_REGEX),
     LockType.OUTSIDE_REACTION: _check_outside_reaction,
     LockType.LOCATION: lambda m: bool(m.location or m.venue),
     LockType.PHONE: lambda m: _has_entity_type(m, MessageEntityType.PHONE_NUMBER),
@@ -313,12 +269,12 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.ZALGO: _check_zalgo,
     LockType.DICE: lambda m: bool(m.dice),
     LockType.ARABIC: _check_arabic,
-    LockType.HASHTAG: _check_hashtag,
-    LockType.CODE: _check_code,
-    LockType.PRE: _check_pre,
-    LockType.BLOCKQUOTE: _check_blockquote,
-    LockType.UNDERLINE: _check_underline,
-    LockType.STRIKETHROUGH: _check_strikethrough,
+    LockType.HASHTAG: lambda m: _has_entity_type(m, MessageEntityType.HASHTAG),
+    LockType.CODE: lambda m: _has_entity_type(m, MessageEntityType.CODE),
+    LockType.PRE: lambda m: _has_entity_type(m, MessageEntityType.PRE),
+    LockType.BLOCKQUOTE: lambda m: _has_entity_type(m, MessageEntityType.BLOCKQUOTE),
+    LockType.UNDERLINE: lambda m: _has_entity_type(m, MessageEntityType.UNDERLINE),
+    LockType.STRIKETHROUGH: lambda m: _has_entity_type(m, MessageEntityType.STRIKETHROUGH),
     LockType.MEDIA: _check_media,
     LockType.EDITED: _check_edited,
 }
