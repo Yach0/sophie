@@ -72,7 +72,7 @@ class BanUnpassedUsers:
                 await bot.decline_chat_join_request(chat_id=group.tid, user_id=user.tid)
                 log.info("ban_unpassed_users: declined join request", user=user.tid, group=group.tid)
             except TelegramAPIError as err:
-                log.error(
+                log.warning(
                     "ban_unpassed_users: failed to decline join request",
                     user=user.tid,
                     group=group.tid,
@@ -84,7 +84,7 @@ class BanUnpassedUsers:
                 await ban_user(chat_tid=group.tid, user_tid=user.tid)
                 log.info("ban_unpassed_users: banned user", user=user.tid, group=group.tid)
             except TelegramAPIError as err:
-                log.error("ban_unpassed_users: failed to ban user", user=user.tid, group=group.tid, error=str(err))
+                log.warning("ban_unpassed_users: failed to ban user", user=user.tid, group=group.tid, error=str(err))
 
         # Remove from database
         await ws_user.delete()
