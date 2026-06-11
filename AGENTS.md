@@ -55,6 +55,17 @@
   - `chat_iid`: database object ID (`PydanticObjectId`)
 - For `Link[ChatModel]` queries, resolve the chat model first (for example with `ChatModel.get_by_tid(...)`) and then use `chat.iid`.
 
+### Local ASS/STFU development
+
+- ASS and STFU are first-party Sophie project components, not unrelated external dependencies.
+- Use `make dev-libs` when Sophie must run against local ASS/STFU sources.
+- `make dev-libs` clones or updates ASS into `libs/ass` and STFU into `libs/stf`, then installs both packages in editable mode.
+- Makefile-driven commands prepend `libs/ass` and `libs/stf` to `PYTHONPATH`, so `ass_tg` and `stfu_tg` imports resolve from `libs/` before site-packages when those directories exist.
+- If a bug or feature belongs in ASS or STFU rather than Sophie, it is acceptable to change the corresponding local checkout and prepare a merge request for that upstream repository as part of the work.
+- Keep Sophie-side changes and ASS/STFU-side changes clearly separated so each repository can receive its own focused commit or merge request.
+- Use `make dev-libs-clean` to remove local checkouts and return to the Git sources configured in `pyproject.toml`.
+- `libs/` is intentionally ignored by Git; do not add local ASS/STFU checkouts back to the Sophie repository.
+
 ### Delivery workflow
 
 - Run `make commit` after every task. This is very important!
