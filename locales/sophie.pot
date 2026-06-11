@@ -784,8 +784,8 @@ msgid "By using AI features you agree to the our Privacy Policy (/privacy) and t
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:291
-#: sophie_bot/modules/ai/utils/research.py:401
-#: sophie_bot/modules/ai/utils/research.py:531
+#: sophie_bot/modules/ai/utils/research.py:370
+#: sophie_bot/modules/ai/utils/research.py:500
 msgid "Research"
 msgstr ""
 
@@ -1070,7 +1070,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
-#: sophie_bot/modules/ai/utils/research.py:81
+#: sophie_bot/modules/ai/utils/research.py:79
 msgid "Looking it up online..."
 msgstr ""
 
@@ -1154,87 +1154,87 @@ msgstr ""
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:454
+#: sophie_bot/modules/ai/utils/proactive_replies.py:272
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:75
+#: sophie_bot/modules/ai/utils/research.py:73
 msgid "Preparing search queries..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:76
+#: sophie_bot/modules/ai/utils/research.py:74
 msgid "Planning the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:77
+#: sophie_bot/modules/ai/utils/research.py:75
 msgid "Choosing what to search for..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:80
+#: sophie_bot/modules/ai/utils/research.py:78
 msgid "Searching the internet..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:82
+#: sophie_bot/modules/ai/utils/research.py:80
 msgid "Gathering sources from the web..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:85
+#: sophie_bot/modules/ai/utils/research.py:83
 msgid "Reviewing search results..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:86
+#: sophie_bot/modules/ai/utils/research.py:84
 msgid "Checking if more searches are needed..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:87
+#: sophie_bot/modules/ai/utils/research.py:85
 msgid "Reading through the sources..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:90
+#: sophie_bot/modules/ai/utils/research.py:88
 msgid "Summarizing the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:91
+#: sophie_bot/modules/ai/utils/research.py:89
 msgid "Putting the findings together..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:92
+#: sophie_bot/modules/ai/utils/research.py:90
 msgid "Preparing the final answer..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:173
+#: sophie_bot/modules/ai/utils/research.py:142
 msgid "Research currently supports the Kagi search provider. Set ai_search_provider to kagi to use it."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:176
+#: sophie_bot/modules/ai/utils/research.py:145
 msgid "Research requires a configured Kagi API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:355
+#: sophie_bot/modules/ai/utils/research.py:324
 msgid "Research requires a saved chat context."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:402
+#: sophie_bot/modules/ai/utils/research.py:371
 msgid "I could not find enough search results to research this topic."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:500
+#: sophie_bot/modules/ai/utils/research.py:469
 msgid "No snippet available."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:522
+#: sophie_bot/modules/ai/utils/research.py:491
 msgid "Sources"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:535
+#: sophie_bot/modules/ai/utils/research.py:504
 msgid "No sources."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:542
+#: sophie_bot/modules/ai/utils/research.py:511
 msgid "Original request"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:543
+#: sophie_bot/modules/ai/utils/research.py:512
 msgid "Research model"
 msgstr ""
 
@@ -1517,7 +1517,7 @@ msgid "Notices"
 msgstr ""
 
 #: sophie_bot/modules/connections/utils/connection.py:87
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:67
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:66
 msgid "⏳ This connection will last for 48 hours."
 msgstr ""
 
@@ -4174,19 +4174,19 @@ msgstr ""
 msgid "Message deleted"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:75
+#: sophie_bot/modules/notes/__init__.py:73
 msgid "Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:77
+#: sophie_bot/modules/notes/__init__.py:75
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:81
+#: sophie_bot/modules/notes/__init__.py:79
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:84
+#: sophie_bot/modules/notes/__init__.py:82
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
@@ -4270,45 +4270,41 @@ msgid "No notes found in {chat_name}."
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:67
-#: sophie_bot/modules/notes/handlers/search.py:44
 msgid "Search pattern"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:69
-#: sophie_bot/modules/notes/handlers/search.py:46
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:73
-#: sophie_bot/modules/notes/handlers/search.py:50
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:74
-#: sophie_bot/modules/notes/handlers/search.py:51
 msgid "#(Note name)"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:29
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:28
 msgid "Please connect to the chat to interact with chat notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:35
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:34
 msgid "🔌 Connect"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:59
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:58
 msgid "Chat not found in the database. Please try to disconnect and connect again."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:65
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:64
 #, python-brace-format
 msgid "Connected to chat {chat_name} successfully!"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:66
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:65
 #, python-brace-format
 msgid "Use {command} to disconnect"
 msgstr ""
@@ -4390,19 +4386,6 @@ msgstr ""
 #: sophie_bot/modules/notes/handlers/save.py:74
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/search.py:20
-msgid "Text to search"
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/search.py:22
-msgid "Searches for note contents"
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/search.py:39
-#, python-brace-format
-msgid "No notes found by the provided search pattern {pattern}."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:52
@@ -4551,15 +4534,15 @@ msgstr ""
 msgid "URL must start with http or https"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:27
+#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:28
 msgid "The buttons are not valid."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:28
+#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:29
 msgid "Please check the buttons documentation for the list of the allowed buttons."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:30
+#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:31
 msgid "Buttons are not valid."
 msgstr ""
 
@@ -4612,147 +4595,147 @@ msgstr ""
 msgid "Generate a test emoji captcha"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:89
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:69
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:90
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:99
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:70
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:79
 #, python-brace-format
 msgid "Allowed features: {features}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:98
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:78
 msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:130
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:110
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:402
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:162
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:135
 #, python-brace-format
 msgid "Invalid value for {feature}: expected {expected}, got {actual}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:176
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:149
 #, python-brace-format
 msgid "Invalid value for {feature}: {value}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:227
 #, python-brace-format
 msgid "Args: {args}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:281
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:257
 msgid "No changed feature flags are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:257
 msgid "Changed feature flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:259
 msgid "All feature flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:259
 msgid "No feature flags are registered."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:260
 msgid "Rollouts"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:462
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:260
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:435
 msgid "No feature flag rollouts are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:298
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:271
 msgid "Manual per-chat overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:300
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:273
 msgid "No manual per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:305
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:278
 msgid "Rollout-created per-chat overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:307
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:280
 msgid "No rollout-created per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:342
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:493
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:315
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:466
 msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:344
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:458
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:495
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:317
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:431
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:468
 msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:346
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:456
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:473
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:319
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:446
 msgid "Usage: /op_ff ^days=<days> <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:350
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:323
 msgid "Usage: /op_ff ^chat_overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:396
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:369
 #, python-brace-format
 msgid "{feature} override for chat {chat} deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:404
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:377
 #, python-brace-format
 msgid "{feature} override deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:418
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:391
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:449
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:422
 msgid "Rollouts cannot be combined with per-chat overrides."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:452
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:425
 msgid "Use only one rollout argument at a time."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:478
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:523
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:451
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:496
 #, python-brace-format
 msgid "No rollout is set for {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:512
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:528
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:455
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:485
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:501
 #, python-brace-format
 msgid "{feature}: {rollout}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:490
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:463
 #, python-brace-format
 msgid "{feature} rollout deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:509
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
 msgid "Rollout was not saved."
 msgstr ""
 
