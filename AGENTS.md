@@ -37,8 +37,13 @@
 - Default to a functional, async-first style.
 - Prefer pure functions, immutable data where practical, and small focused units of logic.
 - Prefer composition over inheritance.
-- Avoid overly guarding code
+- Avoid overly guarding code.
 - Avoid broad `except Exception` handlers; catch specific exceptions and let the framework handle unexpected failures.
+
+### Translation system
+
+- Import translations from `sophie_bot.utils.i18n`.
+- Use `gettext as _` for runtime text and `lazy_gettext as l_` for metadata such as help descriptions.
 
 ### Bot-specific rules
 
@@ -65,8 +70,8 @@
 
 ## Quick references
 
-- Handler and library conventions: `wiki_docs/Development/Making%20ASS%20args%20definitions.md`
-- STFU usage patterns: `wiki_docs/Development/Using%20STFU%20formatting%20tools.md`
+- Handler and library conventions: `wiki_docs/Development/Making ASS args definitions.md`
+- STFU usage patterns: `wiki_docs/Development/Using STFU formatting tools.md`
 - Feature flag source of truth: `sophie_bot/utils/feature_flags.py`
 - Chat lookup helper: `sophie_bot/db/models/chat.py`
 - Main bot code: `sophie_bot/`
