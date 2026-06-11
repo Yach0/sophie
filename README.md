@@ -50,8 +50,6 @@ cd sophie
 uv sync
 ```
 
-> **Developing ass-tg or stfu-tg locally?** Use `make dev-libs` to clone them into `libs/` and override the git sources.
-
 ### 2. Configuration
 
 Copy the example environment file and edit it:
@@ -95,10 +93,45 @@ We use `make` for common development tasks. Please read our **[CONTRIBUTING.md](
 
 - **Check everything:** `make commit` (runs formatters, linters, tests, and generates docs)
 - **Format code:** `make fix_code_style`
-- **Sync libraries:** `make sync_libs` (reinstalls ASS/STFU)
+- **Local ASS/STFU development:** `make dev-libs`
 - **Run tests:** `make run_tests`
 - **Type checking:** `make test_codeanalysis`
 - **Translations:** `make locale`
+
+### 🧩 Local ASS/STFU development
+
+Sophie uses the in-house [`ass-tg`](https://gitlab.com/SophieBot/ass) and [`stfu-tg`](https://gitlab.com/SophieBot/stf) libraries. By default, `uv sync` installs them from the Git sources configured in `pyproject.toml`.
+
+When you need to work on Sophie together with local ASS/STFU changes, run:
+
+```bash
+make dev-libs
+```
+
+This target:
+
+- clones or updates ASS into `libs/ass`;
+- clones or updates STFU into `libs/stf`;
+- installs both packages in editable mode;
+- configures Makefile-driven commands to import `ass_tg` and `stfu_tg` from `libs/` before site-packages.
+
+After that, commands started through the Makefile, such as `make dev_bot`, `make dev_rest`, `make extract_lang`, and `make commit`, use your local `libs/ass` and `libs/stf` checkouts.
+
+To verify which copies are being imported:
+
+```bash
+uv run python -c "import ass_tg, stfu_tg; print(ass_tg.__path__[0]); print(stfu_tg.__path__[0])"
+```
+
+The paths should point to `libs/ass/ass_tg` and `libs/stf/stfu_tg` when local development is active.
+
+To stop using local library checkouts and return to the configured Git sources:
+
+```bash
+make dev-libs-clean
+```
+
+`libs/` is ignored by Git, so local library checkouts are not pushed with Sophie.
 
 ### 🌲 Git Worktrees
 

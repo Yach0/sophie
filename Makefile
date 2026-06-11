@@ -1,11 +1,19 @@
 PROJECT_DIR := "sophie_bot"
 
+# Export PYTHONPATH to support git worktrees and local ass-tg/stfu-tg development.
+# Local library paths are prepended so imports resolve from libs/ before site-packages.
+PYTHONPATH_ENTRIES := $(CURDIR)
+ifneq ($(wildcard $(CURDIR)/libs/ass),)
+PYTHONPATH_ENTRIES := $(CURDIR)/libs/ass:$(PYTHONPATH_ENTRIES)
+endif
+ifneq ($(wildcard $(CURDIR)/libs/stf),)
+PYTHONPATH_ENTRIES := $(CURDIR)/libs/stf:$(PYTHONPATH_ENTRIES)
+endif
+export PYTHONPATH := $(PYTHONPATH_ENTRIES)
+
 # Use uv for package management - no need for explicit environment path
 PYTHON := "uv"
 ASS_PATH := $(shell uv run python -c "import ass_tg as _; print(_.__path__[0])" 2>/dev/null)
-
-# Export PYTHONPATH to support git worktrees
-export PYTHONPATH := $(CURDIR)
 
 # Use uv run for pybabel
 PYBABEL := uv run pybabel
@@ -220,9 +228,9 @@ dev-libs:
 	else \
 		cd libs/ass && git pull; \
 	fi
-	@echo "Installing ass-tg and stfu-tg from local paths..."
-	uv pip install ./libs/ass ./libs/stf
-	@echo "Done. Edit libs/ass and libs/stf, then run: make dev-libs"
+	@echo "Installing ass-tg and stfu-tg from local paths in editable mode..."
+	uv pip install --editable ./libs/ass --editable ./libs/stf
+	@echo "Done. Make targets now import ass_tg/stfu_tg from libs/ before site-packages."
 
 dev-libs-clean:
 	@echo "Removing local libs and reverting to git sources..."
