@@ -204,7 +204,9 @@ def _extract_optional_int(value: object) -> int | None:
     return cast(int, parsed_value)
 
 
-_INLINE_OPTION_KEYS: frozenset[str] = frozenset({_CHAT_OPTION, _CHAT_OVERRIDES_OPTION, _ROLLOUT_BUMP_OPTION, _ROLLOUT_OPTION, _DAYS_OPTION})
+_INLINE_OPTION_KEYS: frozenset[str] = frozenset(
+    {_CHAT_OPTION, _CHAT_OVERRIDES_OPTION, _ROLLOUT_BUMP_OPTION, _ROLLOUT_OPTION, _DAYS_OPTION}
+)
 
 
 def _extract_inline_options(raw_value: str) -> tuple[str, dict[str, str | None]]:
