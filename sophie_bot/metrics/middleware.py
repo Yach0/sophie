@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import time
-from typing import Any, Awaitable, Callable, Dict, Optional, cast
+from typing import Any, Awaitable, Callable, ClassVar, Dict, Optional, cast
 
 from aiogram import BaseMiddleware
 from aiogram.types import (
@@ -178,86 +178,54 @@ class MetricsMiddleware(BaseMiddleware):
             "message_kind": message_kind,
         }
 
+    # (message attribute, kind label) — checked in order, first truthy match wins
+    _MESSAGE_KIND_MAP: ClassVar[list[tuple[str, str]]] = [
+        ("text", "text"),
+        ("photo", "photo"),
+        ("video", "video"),
+        ("audio", "audio"),
+        ("voice", "voice"),
+        ("document", "document"),
+        ("sticker", "sticker"),
+        ("animation", "animation"),
+        ("video_note", "video_note"),
+        ("contact", "contact"),
+        ("location", "location"),
+        ("venue", "venue"),
+        ("poll", "poll"),
+        ("dice", "dice"),
+        ("game", "game"),
+        ("invoice", "invoice"),
+        ("successful_payment", "successful_payment"),
+        ("connected_website", "connected_website"),
+        ("passport_data", "passport_data"),
+        ("proximity_alert_triggered", "proximity_alert"),
+        ("forum_topic_created", "forum_topic_created"),
+        ("forum_topic_closed", "forum_topic_closed"),
+        ("forum_topic_reopened", "forum_topic_reopened"),
+        ("general_forum_topic_hidden", "general_forum_topic_hidden"),
+        ("general_forum_topic_unhidden", "general_forum_topic_unhidden"),
+        ("write_access_allowed", "write_access_allowed"),
+        ("user_shared", "user_shared"),
+        ("chat_shared", "chat_shared"),
+        ("new_chat_members", "new_chat_members"),
+        ("left_chat_member", "left_chat_member"),
+        ("new_chat_title", "new_chat_title"),
+        ("new_chat_photo", "new_chat_photo"),
+        ("delete_chat_photo", "delete_chat_photo"),
+        ("group_chat_created", "group_chat_created"),
+        ("supergroup_chat_created", "supergroup_chat_created"),
+        ("channel_chat_created", "channel_chat_created"),
+        ("migrate_to_chat_id", "migrate_to_chat_id"),
+        ("migrate_from_chat_id", "migrate_from_chat_id"),
+        ("pinned_message", "pinned_message"),
+    ]
+
     def _get_message_kind(self, message: Message) -> str:
         """Determine message kind for labeling"""
-        if message.text:
-            return "text"
-        if message.photo:
-            return "photo"
-        if message.video:
-            return "video"
-        if message.audio:
-            return "audio"
-        if message.voice:
-            return "voice"
-        if message.document:
-            return "document"
-        if message.sticker:
-            return "sticker"
-        if message.animation:
-            return "animation"
-        if message.video_note:
-            return "video_note"
-        if message.contact:
-            return "contact"
-        if message.location:
-            return "location"
-        if message.venue:
-            return "venue"
-        if message.poll:
-            return "poll"
-        if message.dice:
-            return "dice"
-        if message.game:
-            return "game"
-        if message.invoice:
-            return "invoice"
-        if message.successful_payment:
-            return "successful_payment"
-        if message.connected_website:
-            return "connected_website"
-        if message.passport_data:
-            return "passport_data"
-        if message.proximity_alert_triggered:
-            return "proximity_alert"
-        if message.forum_topic_created:
-            return "forum_topic_created"
-        if message.forum_topic_closed:
-            return "forum_topic_closed"
-        if message.forum_topic_reopened:
-            return "forum_topic_reopened"
-        if message.general_forum_topic_hidden:
-            return "general_forum_topic_hidden"
-        if message.general_forum_topic_unhidden:
-            return "general_forum_topic_unhidden"
-        if message.write_access_allowed:
-            return "write_access_allowed"
-        if message.user_shared:
-            return "user_shared"
-        if message.chat_shared:
-            return "chat_shared"
-        if message.new_chat_members:
-            return "new_chat_members"
-        if message.left_chat_member:
-            return "left_chat_member"
-        if message.new_chat_title:
-            return "new_chat_title"
-        if message.new_chat_photo:
-            return "new_chat_photo"
-        if message.delete_chat_photo:
-            return "delete_chat_photo"
-        if message.group_chat_created:
-            return "group_chat_created"
-        if message.supergroup_chat_created:
-            return "supergroup_chat_created"
-        if message.channel_chat_created:
-            return "channel_chat_created"
-        if message.migrate_to_chat_id:
-            return "migrate_to_chat_id"
-        if message.migrate_from_chat_id:
-            return "migrate_from_chat_id"
-        if message.pinned_message:
-            return "pinned_message"
+        for attr, kind in self._MESSAGE_KIND_MAP:
+            if getattr(message, attr, None):
+                return kind
         return "other"
 
     def _extract_command_name(self, event: TelegramObject) -> str | None:
@@ -333,15 +301,9 @@ class MetricsMiddleware(BaseMiddleware):
                     class_part = parts[-2].split()[-1]  # Get the class name
                     handler_name = class_part
             elif " object at " in handler_str:
-                # Handle cases like "<sophie_bot.middlewares.connections.ConnectionsMiddleware object at 0x7fa6c518c380>"
-                # Extract the class name before " object at"
+                # Handle cases like "<sophie_bot.middlewares.connections.ConnectionsMiddleware object at 0x...>"
                 before_object = handler_str.split(" object at ")[0]
-                if "." in before_object:
-                    # Get the last part after the last dot (the class name)
-                    handler_name = before_object.split(".")[-1]
-                else:
-                    # If no dots, remove angle brackets and use as is
-                    handler_name = before_object.strip("<>")
+                handler_name = before_object.split(".")[-1] if "." in before_object else before_object.strip("<>")
             elif " " in handler_str:
                 handler_name = handler_str.split(" ")[1]
             # Handle classes (if handler is a class itself) - moved after string parsing
