@@ -24,9 +24,11 @@ from sophie_bot.modules.ai.utils.research import (
 )
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.logger import log
 
 
 class ResearchProgressMessage:
@@ -92,7 +94,12 @@ class ResearchCmd(SophieMessageHandler):
     async def handle(self) -> Any:
         prompt: str = self.data["text"]
         progress_message = await ResearchProgressMessage.send(self.event)
-        result = await run_research_workflow(prompt, self.connection, progress_callback=progress_message.update)
+        try:
+            result = await run_research_workflow(prompt, self.connection, progress_callback=progress_message.update)
+        except SophieException as exc:
+            log.warning("research: SophieException during workflow", error=str(exc))
+            await self.event.reply(str(exc))
+            return
         header = await build_chatbot_header(
             self.connection.db_model.iid,
             result.model,
