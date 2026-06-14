@@ -40,7 +40,18 @@ class NotesList(SophieMessageHandler):
         to_search: Optional[str] = self.data.get("search")
         connection = self.connection
 
-        if to_search and await is_enabled("notes_rag_list_search", chat_tid=connection.tid):
+        rag_search_allowed = (
+            to_search
+            and await is_enabled("notes_rag_list_search", chat_tid=connection.tid)
+            and await is_enabled("ai", chat_tid=connection.tid)
+        )
+        if rag_search_allowed:
+            from sophie_bot.modules.ai.utils.ai_quota import check_quota
+
+            quota_result = await check_quota(connection.db_model.iid)
+            rag_search_allowed = quota_result.allowed
+
+        if rag_search_allowed:
             notes = await semantic_search_notes(connection.db_model.iid, to_search)
         else:
             notes = await NoteModel.get_chat_notes(connection.db_model.iid)
