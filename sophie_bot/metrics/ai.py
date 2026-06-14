@@ -268,6 +268,13 @@ async def track_ai_tool(tool_name: str) -> AsyncGenerator[None, None]:
         distribution_metric("sophie.ai.tool.duration", duration, attributes={"tool_name": tool_name}, unit="second")
 
 
+def track_ai_quota_exceeded(*, feature: str, chat_type: str = "unknown") -> None:
+    if not CONFIG.metrics_enable:
+        return
+
+    count_metric("sophie.ai.quota.exceeded", attributes={"feature": feature, "chat_type": chat_type})
+
+
 def track_active_conversation_start() -> None:
     """Track the start of an AI conversation"""
     if not CONFIG.metrics_enable:

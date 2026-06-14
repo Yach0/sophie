@@ -12,6 +12,7 @@ from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.metrics.federation import track_federation_import_completed
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationImportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
@@ -197,6 +198,7 @@ class ProcessFederationImports:
             await self._update_task_status(
                 task, TaskStatus.COMPLETED, imported_count=imported_count, failed_count=failed_count
             )
+            track_federation_import_completed(items_imported=imported_count, items_failed=failed_count)
             await _send_import_result(task, federation)
 
         except Exception as e:

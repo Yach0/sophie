@@ -9,6 +9,7 @@ from stfu_tg.doc import Element
 
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.metrics.notes import track_note_retrieved
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.combine import combine_saveables
 from sophie_bot.modules.notes.utils.send import send_saveable
@@ -58,6 +59,11 @@ class GetNote(SophieMessageHandler):
             reply_to=reply_to,
             connection=chat,
         )
+        track_note_retrieved(
+            trigger="command",
+            has_media=bool(note.model_dump().get("file")),
+            chat_type=self.event.chat.type,
+        )
 
         return message
 
@@ -105,4 +111,9 @@ class HashtagGetNote(SophieMessageHandler):
             reply_to = self.event.message_id
 
         chat: ChatConnection = self.data["connection"]
+        track_note_retrieved(
+            trigger="hashtag",
+            has_media=any(bool(n.model_dump().get("file")) for n in notes_to_stack),
+            chat_type=self.event.chat.type,
+        )
         return await send_saveable(self.event, self.event.chat.id, saveable, reply_to=reply_to, connection=chat)

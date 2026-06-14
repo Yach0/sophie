@@ -12,6 +12,7 @@ from stfu_tg import KeyValue, Section, Template, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
+from sophie_bot.metrics.moderation import track_moderation_action
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
@@ -32,6 +33,16 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 RestrictionActionFunc = Callable[[int, int, timedelta | None], Awaitable[bool]]
+
+_LOG_EVENT_TO_ACTION: dict[LogEvent, str] = {
+    LogEvent.USER_BANNED: "ban",
+    LogEvent.USER_UNBANNED: "unban",
+    LogEvent.USER_KICKED: "kick",
+    LogEvent.USER_MUTED: "mute",
+    LogEvent.USER_UNMUTED: "unmute",
+    LogEvent.USER_RESTRICTED: "restrict",
+    LogEvent.USER_UNRESTRICTED: "unrestrict",
+}
 
 
 class BaseRestrictionHandler(SophieMessageHandler):
@@ -97,6 +108,12 @@ class BaseRestrictionHandler(SophieMessageHandler):
         restriction_action = self.get_restriction_action()
         if not await restriction_action(connection.tid, user.chat_id, until_date):
             return await self.event.reply(str(self.failed_action_text))
+
+        track_moderation_action(
+            _LOG_EVENT_TO_ACTION.get(self.event_type, "unknown"),
+            chat_type=self.event.chat.type,
+            is_temporary=bool(until_date),
+        )
 
         reason = self.data.get("reason")
 

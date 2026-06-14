@@ -1,4 +1,3 @@
-# ... existing code ...
 from datetime import datetime, timedelta, timezone
 
 from aiogram.exceptions import TelegramAPIError
@@ -6,6 +5,7 @@ from aiogram.exceptions import TelegramAPIError
 from sophie_bot.constants import WELCOMESECURITY_BAN_TIMEOUT_HOURS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.ws_user import WSUserModel
+from sophie_bot.metrics.welcome import track_captcha_failed
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import is_enabled
@@ -66,6 +66,7 @@ class BanUnpassedUsers:
             return
 
         # Process unpassed user (no need to check ws_user.passed again)
+        track_captcha_failed("timeout")
         if ws_user.is_join_request:
             # Decline the join request
             try:

@@ -7,6 +7,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.metrics.moderation import track_purge
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.common_try import common_try
@@ -58,6 +59,7 @@ class PurgeMessagesHandler(SophieMessageHandler):
         await common_try(bot.delete_messages(chat_id, messages))
 
         count = last - first + 1
+        track_purge(count)
         await log_event(
             chat_id,
             self.event.from_user.id,

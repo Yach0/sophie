@@ -2,6 +2,7 @@ from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 
 from sophie_bot.db.models import ChatModel, GreetingsModel
 from sophie_bot.db.models.greetings import WelcomeMute
+from sophie_bot.metrics.welcome import track_captcha_passed
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
@@ -33,6 +34,7 @@ async def complete_captcha(
         is_join_request: Whether this was from a join request
     """
     # Mark captcha as correct
+    track_captcha_passed()
     captcha = EmojiCaptcha()
     captcha.show_emoji("✅")
 

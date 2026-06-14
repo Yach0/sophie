@@ -6,6 +6,7 @@ from stfu_tg import HList, KeyValue, Section, Template, VList
 
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.admin_rights import UserRestricting
+from sophie_bot.metrics.notes import track_note_deleted
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.logging.events import LogEvent
@@ -40,6 +41,7 @@ class DelNote(SophieMessageHandler):
                 await note.delete()
                 deleted.append(note)
                 await log_event(chat.tid, self.event.from_user.id, LogEvent.NOTE_DELETED, {"note_names": note.names})
+                track_note_deleted(chat_type=self.event.chat.type)
             else:
                 not_found.append(raw_name)
 

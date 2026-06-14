@@ -11,6 +11,7 @@ from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
+from sophie_bot.metrics.federation import track_federation_ban
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationExportTask
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
@@ -59,6 +60,7 @@ class FederationBanService:
         )
         await ban.insert()
         await FederationCacheService.incr_ban_count(federation.fed_id, 1)
+        track_federation_ban()
 
         await FederationBanService._invalidate_export_tasks(federation.fed_id)
         await FederationCacheService.set_user_ban_status(federation.fed_id, user_tid, True)

@@ -11,6 +11,7 @@ from sophie_bot.db.models.notes import Saveable
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.metrics.notes import track_note_saved
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
@@ -62,6 +63,10 @@ class SaveNote(SophieMessageHandler):
             return
 
         is_created = await self.save(saveable, notenames, connection.db_model.iid, self.event.from_user.id, self.data)
+        track_note_saved(
+            has_media=bool(saveable.model_dump().get("file")),
+            chat_type=self.event.chat.type,
+        )
 
         await self.event.reply(
             str(

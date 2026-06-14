@@ -10,6 +10,7 @@ from pydantic import TypeAdapter, ValidationError
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
+from sophie_bot.metrics.moderation import track_moderation_action, track_warn_threshold_reached
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user, kick_user, mute_user
 from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
@@ -140,6 +141,7 @@ async def warn_user(
     # Create warn record
     warn = WarnModel(chat=chat.iid, user=user.iid, admin=admin.iid, reason=reason)
     await warn.save()
+    track_moderation_action("warn")
 
     # Check counts
     current_warns = await WarnModel.count_user_warns(chat.iid, user.iid)
@@ -175,6 +177,8 @@ async def warn_user(
                 trigger_message=trigger_message,
                 action_context=action_context,
             )
+
+        track_warn_threshold_reached(punishment or "ban")
 
     return current_warns, max_warns, punishment, warn
 

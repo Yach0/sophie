@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Bold, Italic, Template
 
 from sophie_bot.db.models import ChatModel
+from sophie_bot.metrics.welcome import track_captcha_sent
 from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityMoveCB, WelcomeSecurityConfirmCB
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
@@ -78,12 +79,14 @@ async def initiate_captcha(
 
     # DM mode: send to user's DM
     try:
-        return await bot.send_photo(
+        msg = await bot.send_photo(
             chat_id=user.tid,
             photo=BufferedInputFile(captcha.image, "captcha.jpeg"),
             caption=str(text),
             reply_markup=buttons.as_markup(),
         )
+        track_captcha_sent()
+        return msg
     except TelegramForbiddenError as err:
         log.warning(
             "initiate_captcha: could not send captcha to user DM",
