@@ -70,7 +70,7 @@ openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git"
 
 [tool.ty.src]
 include = ["sophie_bot/**"]
-exclude = ["**/legacy_modules/**", "**/legacy_*.py"]
+exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/StfuGallery.py"]
 
 [tool.ty.environment]
 python-version = "3.12"

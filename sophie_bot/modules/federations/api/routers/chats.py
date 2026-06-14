@@ -94,11 +94,20 @@ async def add_chat_to_federation(
 async def remove_chat_from_federation(
     fed_id: str,
     chat_iid: PydanticObjectId,
-    user: OwnerAdminDep,
+    user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
+
+    # Verify the caller is the federation owner (operators bypass this check)
+    if user.tid not in CONFIG.operators:
+        creator = await federation.creator.fetch()
+        if creator is None or creator.iid != user.iid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be the federation owner to remove chats",
+            )
 
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:

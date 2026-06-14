@@ -18,9 +18,11 @@
 
 import logging
 import re
+from typing import Any, cast
 
 import sentry_sdk
 from sentry_sdk.integrations import Integration
+from sentry_sdk.types import Event
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
@@ -40,14 +42,15 @@ def _scrub_bot_token(url: str) -> str:
     return _BOT_TOKEN_RE.sub(r"\1[REDACTED]\2", url)
 
 
-def _before_send_transaction(event: dict, hint: object) -> dict:
+def _before_send_transaction(event: Event, hint: dict[str, Any]) -> Event | None:
     """Redact Telegram bot token from outbound request URLs in trace spans."""
-    for span in event.get("spans", []):
+    ev = cast(dict[str, Any], event)
+    for span in ev.get("spans", []):
         data = span.get("data", {})
         for key in ("url", "http.url", "db.statement"):
             if isinstance(data.get(key), str):
                 data[key] = _scrub_bot_token(data[key])
-    request = event.get("request", {})
+    request = ev.get("request", {})
     if isinstance(request.get("url"), str):
         request["url"] = _scrub_bot_token(request["url"])
     return event
