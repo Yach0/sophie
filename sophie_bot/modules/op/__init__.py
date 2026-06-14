@@ -6,15 +6,17 @@ from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.op.handlers.Banner import OpBannerHandler
 from sophie_bot.modules.op.handlers.ButtonsTest import ButtonsTestHandler
 from sophie_bot.modules.op.handlers.Captcha import OpCaptchaHandler
+from sophie_bot.modules.op.handlers.event import EventHandler
 from sophie_bot.modules.op.handlers.FeatureFlags import FeatureFlagsHandler
 from sophie_bot.modules.op.handlers.ListJobs import ListJobsHandler
-from sophie_bot.modules.op.handlers.PreviewChatSummary import OpRegenerateChatSummaryHandler
-from sophie_bot.modules.op.handlers.StopJobs import StopJobsHandler
-from sophie_bot.modules.op.handlers.event import EventHandler
 from sophie_bot.modules.op.handlers.op_debug import OpDebugAISummaryHandler, OpDebugHandler
+from sophie_bot.modules.op.handlers.PreviewChatSummary import OpRegenerateChatSummaryHandler
 from sophie_bot.modules.op.handlers.stats import StatsHandler, get_system_stats
+from sophie_bot.modules.op.handlers.StfuGallery import StfuGalleryHandler
+from sophie_bot.modules.op.handlers.StopJobs import StopJobsHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
 from .api import health_router
 
 api_router = APIRouter()
@@ -37,6 +39,7 @@ module_manifest = ModuleManifest(
         OpCaptchaHandler,
         OpRegenerateChatSummaryHandler,
         ButtonsTestHandler,
+        StfuGalleryHandler,
         EventHandler,
         StatsHandler,
         OpDebugHandler,
