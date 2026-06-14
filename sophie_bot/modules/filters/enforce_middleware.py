@@ -182,6 +182,12 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: dropping...")
             return await handler(event, data)
 
+        from sophie_bot.utils.feature_flags import is_enabled as _is_enabled
+
+        if not await _is_enabled("filters", chat_tid=event.chat.id):
+            log.debug("EnforceFiltersMiddleware: filters feature disabled globally, skipping...")
+            return await handler(event, data)
+
         await self._process_filters(event, data)
 
         return await handler(event, data)
