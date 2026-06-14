@@ -31,6 +31,7 @@ __all__ = (
 
 async def pre_setup() -> None:
     router.message.outer_middleware(LocksEnforcerMiddleware())
+    router.edited_message.outer_middleware(LocksEnforcerMiddleware())
     router.message_reaction.outer_middleware(ReactionLocksEnforcerMiddleware())
 
 
