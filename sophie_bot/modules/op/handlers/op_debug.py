@@ -240,7 +240,7 @@ async def _collect_error_backoff() -> tuple[Section, dict[str, Any]]:
 
     for raw_key in raw_keys:
         signature_key = _decode_redis_value(raw_key)
-        raw_hash = cast(Mapping[bytes | str, bytes | str | int | float], await aredis.hgetall(signature_key))  # ty: ignore[invalid-await]
+        raw_hash = cast(Mapping[bytes | str, bytes | str | int | float], await aredis.hgetall(signature_key))
         signature_data = _decode_hash(raw_hash)
         last_seen_at = signature_data.get("last_seen_at")
         try:
@@ -307,7 +307,7 @@ async def _collect_feature_flags() -> tuple[Section, dict[str, Any]]:
 
 
 async def _collect_redis_health() -> tuple[Section, dict[str, Any]]:
-    ping_result = await aredis.ping()  # ty: ignore[invalid-await]
+    ping_result = await aredis.ping()
     db_size = await aredis.dbsize()
     raw_keys = await aredis.keys(_SOPHIE_KEY_PREFIX)
     key_groups = Counter(_redis_key_group(raw_key) for raw_key in raw_keys)
