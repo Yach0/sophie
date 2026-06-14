@@ -202,6 +202,8 @@ msgstr ""
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:60
 #: sophie_bot/modules/federations/handlers/info.py:63
 #: sophie_bot/modules/notes/handlers/delete.py:56
+#: sophie_bot/modules/op/handlers/StfuGallery.py:140
+#: sophie_bot/modules/op/handlers/StfuGallery.py:141
 msgid "Name"
 msgstr ""
 
@@ -3306,6 +3308,7 @@ msgstr ""
 #: sophie_bot/modules/greetings/handlers/status_greetings.py:20
 #: sophie_bot/modules/notes/handlers/save.py:32
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/TextWithButtonsArg.py:14
+#: sophie_bot/modules/op/handlers/StfuGallery.py:221
 #: sophie_bot/modules/rules/handlers/set.py:20
 msgid "Content"
 msgstr ""
@@ -4575,19 +4578,19 @@ msgstr ""
 msgid "The text is too long"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:45
+#: sophie_bot/modules/op/__init__.py:48
 msgid "Operator"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:47
+#: sophie_bot/modules/op/__init__.py:50
 msgid "Operator-only commands and tools"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:50
+#: sophie_bot/modules/op/__init__.py:53
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:51
+#: sophie_bot/modules/op/__init__.py:54
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr ""
 
@@ -4749,6 +4752,343 @@ msgstr ""
 
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:43
 msgid "Summary day"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:106
+#, python-brace-format
+msgid "Template with {style} and escaped {user_input}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:107
+msgid "bold placeholder"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:112
+msgid "STFU Formatting Gallery"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:114
+msgid "first line"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:114
+msgid "second line"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:115
+msgid "Regular title"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:116
+msgid "Field"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:116
+msgid "Section title"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:119
+msgid "Containers and meta elements"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:122
+#: sophie_bot/modules/op/handlers/StfuGallery.py:153
+msgid "bold text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:123
+#: sophie_bot/modules/op/handlers/StfuGallery.py:154
+msgid "italic text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:124
+#: sophie_bot/modules/op/handlers/StfuGallery.py:155
+msgid "underlined text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:125
+#: sophie_bot/modules/op/handlers/StfuGallery.py:156
+msgid "strikethrough text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:126
+msgid "spoiler text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:129
+msgid "Telegram"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:130
+msgid "User mention"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:131
+msgid "quoted text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:132
+msgid "Regular inline formatting"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:135
+msgid "Key"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:135
+#: sophie_bot/modules/op/handlers/StfuGallery.py:140
+#: sophie_bot/modules/op/handlers/StfuGallery.py:141
+#: sophie_bot/modules/op/handlers/StfuGallery.py:197
+msgid "Value"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+msgid "alpha"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+msgid "beta"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+msgid "first item"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+msgid "second item"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:138
+msgid "before"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:138
+msgid "after"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:139
+msgid "left"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:139
+msgid "right"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:140
+#: sophie_bot/modules/op/handlers/StfuGallery.py:141
+msgid "Rows"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:144
+msgid "Convenience and Markdown helpers"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:151
+msgid "STFU Rich HTML Gallery: Text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:157
+msgid "deleted text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:158
+msgid "marked text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:161
+#: sophie_bot/modules/op/handlers/StfuGallery.py:218
+#: sophie_bot/modules/op/handlers/StfuGallery.py:220
+msgid "The Author"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:164
+msgid "22:45 tomorrow"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:166
+msgid "Inline rich components"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:170
+msgid "Reference"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:171
+msgid "Referenced text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:172
+msgid "inline URL"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:173
+msgid "inline e-mail"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:174
+msgid "inline phone number"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:175
+msgid "inline mention of a user"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:176
+msgid "Links, anchors, and references"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:179
+msgid "Heading 1"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:180
+msgid "Heading 2"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:181
+msgid "Heading 3"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:182
+msgid "Heading 4"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:183
+msgid "Heading 5"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:184
+msgid "Heading 6"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:185
+msgid "Paragraph text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:187
+msgid "Footer text"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:189
+msgid "Rich text blocks"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:196
+msgid "Header 1"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:196
+msgid "Header 2"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:197
+msgid "Value 2"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:198
+msgid "Value 4"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:198
+msgid "Value 5"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:201
+msgid "Table caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:205
+msgid "STFU Rich HTML Gallery: Structure"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:207
+msgid "unordered list item"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:208
+#: sophie_bot/modules/op/handlers/StfuGallery.py:211
+msgid "ordered list item"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:213
+msgid "explicit number"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
+msgid "Lists"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:218
+msgid "Block quotation started"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:218
+msgid "continued"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:220
+msgid "Pull quote"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:221
+#: sophie_bot/modules/op/handlers/op_debug.py:452
+msgid "Title"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:222
+msgid "Quotes and collapsible blocks"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:227
+msgid "Tables and formulas"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:234
+msgid "STFU Rich HTML Gallery: Media"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:242
+msgid "Media blocks"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:247
+msgid "Photo caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:247
+msgid "Photo credit"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:249
+msgid "Video caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:250
+msgid "Audio caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:252
+msgid "Map caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:253
+msgid "Figures and maps"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:259
+msgid "Collage caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:264
+msgid "Slideshow caption"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:266
+msgid "Collages and slideshows"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:280
+msgid "Show an operator-only STFU formatting gallery."
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/event.py:13
@@ -4934,10 +5274,6 @@ msgstr ""
 
 #: sophie_bot/modules/op/handlers/op_debug.py:451
 msgid "Type"
-msgstr ""
-
-#: sophie_bot/modules/op/handlers/op_debug.py:452
-msgid "Title"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/op_debug.py:453
