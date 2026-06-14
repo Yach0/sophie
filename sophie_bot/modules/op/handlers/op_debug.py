@@ -585,9 +585,9 @@ class OpDebugHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:
         from aiogram.enums import ChatType
-        from aiogram.filters import ChatTypeFilter
+        from sophie_bot.filters.chat_status import ChatTypeFilter
 
-        return (CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(chat_type=[ChatType.PRIVATE]))
+        return (CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(ChatType.PRIVATE))
 
     async def handle(self) -> None:
         await _collect_debug_context(self.event)
