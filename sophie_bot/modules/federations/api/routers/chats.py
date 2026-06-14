@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from aiogram.enums import ChatMemberStatus
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
 from sophie_bot.utils.api.auth import get_current_user
-from sophie_bot.utils.api.dependencies import OwnerAdminDep
 
 from ..schemas import FederationChatAdd, FederationChatResponse
 from .common import _require_federation_access
@@ -46,15 +48,36 @@ async def list_federation_chats(
 async def add_chat_to_federation(
     fed_id: str,
     payload: FederationChatAdd,
-    user: OwnerAdminDep,
+    user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
 
+    # Verify the caller is the federation owner (operators bypass this check)
+    if user.tid not in CONFIG.operators:
+        creator = await federation.creator.fetch()
+        if creator is None or creator.iid != user.iid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be the federation owner to add chats",
+            )
+
     chat = await ChatModel.get_by_iid(payload.chat_iid)
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
+
+    # Verify the caller owns (is the creator of) the chat being added
+    if user.tid not in CONFIG.operators:
+        admin_record = await ChatAdminModel.find_one(
+            ChatAdminModel.chat.id == chat.iid,
+            ChatAdminModel.user.id == user.iid,
+        )
+        if admin_record is None or admin_record.member.status != ChatMemberStatus.CREATOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be the chat owner to add it to a federation",
+            )
 
     existing_federation = await FederationManageService.get_federation_for_chat(chat.iid)
     if existing_federation:
