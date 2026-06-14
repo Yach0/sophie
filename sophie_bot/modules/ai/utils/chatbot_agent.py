@@ -125,18 +125,21 @@ async def build_chatbot_run_config(
     connection: ChatConnection,
     model: Model,
     user_text: str | None = None,
+    user_tid: int | None = None,
     progress_callback: ResearchProgressCallback | None = None,
     thread_id: int | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
+    use_base_tools: bool = False,
 ) -> ChatbotRunConfig:
-    tools = await get_chatbot_tools(chat_tid)
+    tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(chat_tid)
     deps = SophieAIToolContext(
         connection=connection,
         chat_tid=chat_tid,
         chat_iid=connection.db_model.iid,
         user_text=user_text,
         research_progress_callback=progress_callback,
+        user_tid=user_tid,
     )
     return ChatbotRunConfig(
         agent=build_chatbot_agent(model, tools),

@@ -48,6 +48,11 @@ async def save_note(
         content: Markdown content to store in the note.
         title: Optional human-readable title or short description for the note.
     """
+    from sophie_bot.modules.utils_.admin import is_user_admin
+
+    if ctx.deps.user_tid is None or not await is_user_admin(ctx.deps.chat_tid, ctx.deps.user_tid):
+        raise ModelRetry("Note management requires admin privileges in this chat. I cannot save notes for non-admin users.")
+
     normalized_notename = _normalize_notename(notename)
     normalized_content = content.strip()
     if not normalized_content:
@@ -79,6 +84,11 @@ async def delete_note(ctx: RunContext[SophieAIToolContext], notename: str) -> st
     Args:
         notename: The note name or alias to delete. A leading # is optional.
     """
+    from sophie_bot.modules.utils_.admin import is_user_admin
+
+    if ctx.deps.user_tid is None or not await is_user_admin(ctx.deps.chat_tid, ctx.deps.user_tid):
+        raise ModelRetry("Note management requires admin privileges in this chat. I cannot delete notes for non-admin users.")
+
     normalized_notename = _normalize_notename(notename)
     async with track_ai_tool("delete_note"):
         note = await NoteModel.get_by_notenames(ctx.deps.chat_iid, (normalized_notename,))

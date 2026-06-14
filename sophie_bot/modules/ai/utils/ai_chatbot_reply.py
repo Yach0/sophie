@@ -47,7 +47,12 @@ __all__ = ("CHATBOT_TOOLS", "ChatbotMessageStreamer", "ai_chatbot_reply")
 def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode: bool) -> bool:
     if debug_mode:
         return True
-    return "^llm_debug" in (user_text or message.text or "")
+    if "^llm_debug" in (user_text or message.text or ""):
+        from sophie_bot.config import CONFIG
+
+        from_user = message.from_user
+        return from_user is not None and from_user.id in CONFIG.operators
+    return False
 
 
 async def _reply_debug_history(message: Message, history: AIMessageHistory) -> None:
@@ -157,6 +162,7 @@ async def _generate_chatbot_result(
         connection,
         model,
         user_text=user_text,
+        user_tid=message.from_user.id if message.from_user else None,
         progress_callback=on_research_progress,
         thread_id=message.message_thread_id,
         service_tier=service_tier,
@@ -236,6 +242,7 @@ async def ai_chatbot_reply(
             chat_tid=connection.tid,
             chat_iid=connection.db_model.iid,
             user_text=user_text,
+            user_tid=message.from_user.id if message.from_user else None,
         )
         history = await prepare_chatbot_history(message, context)
         if explicit_debug_mode:

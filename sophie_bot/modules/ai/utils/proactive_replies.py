@@ -306,9 +306,11 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         connection,
         model,
         user_text=target_message.text,
+        user_tid=None,
         thread_id=target_message.message_thread_id,
         session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
         service_tier=service_tier,
+        use_base_tools=True,
     )
     async with track_ai_conversation():
         set_conversation_id(f"{chat.iid}:proactive")
