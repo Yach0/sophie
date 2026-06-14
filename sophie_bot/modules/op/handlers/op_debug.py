@@ -580,11 +580,14 @@ async def _collect_debug_context(
         await message.reply(str(doc))
 
 
-@flags.help(description=l_("Collect diagnostic context for debugging bot issues."))
+@flags.help(description=l_("Collect diagnostic context for debugging bot issues (private chat only)."))
 class OpDebugHandler(SophieMessageHandler):
     @staticmethod
-    def filters() -> tuple[CMDFilter, IsOP]:
-        return (CMDFilter("op_debug"), IsOP(True))
+    def filters() -> tuple:
+        from aiogram.enums import ChatType
+        from aiogram.filters import ChatTypeFilter
+
+        return (CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(chat_type=[ChatType.PRIVATE]))
 
     async def handle(self) -> None:
         await _collect_debug_context(self.event)
