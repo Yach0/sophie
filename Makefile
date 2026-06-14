@@ -118,7 +118,7 @@ gen_wiki:
 gen_openapi:
 	uv run python tools/openapi_gen/generate.py
 
- api:
+api:
 	make gen_openapi
 	if [ -d "../sdash" ]; then \
 		cp openapi.json ../sdash/openapi.json; \
@@ -143,7 +143,7 @@ migrate_up:
 
 migrate_status:
 	@echo "Migration status:"
-	@uv run python tools/migration_helper.py status
+	@uv run python tools/migration_helper.py status || echo "(skipped: database not reachable)"
 
 migrate_rollback:
 	@if [ -z "$(MIGRATION)" ]; then \
