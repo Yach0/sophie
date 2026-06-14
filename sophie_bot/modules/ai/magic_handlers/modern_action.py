@@ -87,7 +87,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         if not (chat_db := await ChatModel.get_by_tid(connection.tid)):
             raise SophieException("Chat not found in database")
 
-        if not (message.text or message.caption and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db)):
+        if not ((message.text or message.caption) and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db)):
             return
 
         messages = AIMessageHistory()
