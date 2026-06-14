@@ -10,20 +10,15 @@ from aiogram.exceptions import (
 from aiogram.methods import TelegramMethod
 
 from sophie_bot.modules.utils_.telegram_exceptions import (
-    BOTS_CANT_ADD_NEW_CHAT_MEMBERS,
     CAN_NOT_BE_DELETED,
     CHAT_WRITE_FORBIDDEN,
-    HIDE_REQUESTER_MISSING,
     INVALID_BUTTON_URL,
     MSG_NOT_MODIFIED,
     MSG_TEXT_EMPTY,
     MSG_TO_DEL_NOT_FOUND,
     MSG_TOO_LONG,
-    NOT_ENOUGH_RIGHTS,
     NO_TEXT_IN_MSG_TO_EDIT,
     REPLIED_NOT_FOUND,
-    RIGHT_FORBIDDEN,
-    USER_ALREADY_PARTICIPANT,
 )
 from sophie_bot.utils.logger import log
 
@@ -69,21 +64,6 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
             return None
         if CHAT_WRITE_FORBIDDEN in err.message:
             log.debug("common_try: Chat write forbidden, ignoring")
-            return None
-        if RIGHT_FORBIDDEN in err.message:
-            log.debug("common_try: Right forbidden, ignoring")
-            return None
-        if NOT_ENOUGH_RIGHTS in err.message:
-            log.debug("common_try: Not enough rights, ignoring")
-            return None
-        if BOTS_CANT_ADD_NEW_CHAT_MEMBERS in err.message:
-            log.debug("common_try: Bots can't add new chat members, ignoring")
-            return None
-        if USER_ALREADY_PARTICIPANT in err.message:
-            log.debug("common_try: User already participant, ignoring")
-            return None
-        if HIDE_REQUESTER_MISSING in err.message:
-            log.debug("common_try: Hide requester missing, ignoring")
             return None
         log.warning("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
         raise err
