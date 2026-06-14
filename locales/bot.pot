@@ -91,35 +91,35 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:270
+#: sophie_bot/filters/admin_rights.py:269
 msgid "I don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:272
+#: sophie_bot/filters/admin_rights.py:271
 msgid "You don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:277
+#: sophie_bot/filters/admin_rights.py:276
 msgid "I must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:279
+#: sophie_bot/filters/admin_rights.py:278
 msgid "You must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:293
+#: sophie_bot/filters/admin_rights.py:285
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:305
+#: sophie_bot/filters/admin_rights.py:289
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:319
+#: sophie_bot/filters/admin_rights.py:295
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:334
+#: sophie_bot/filters/admin_rights.py:302
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
@@ -275,7 +275,7 @@ msgstr ""
 msgid "No commands in this module."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/notes.py:89
+#: sophie_bot/modules/ai/agent_tools/notes.py:103
 msgid "Note was successfully deleted."
 msgstr ""
 
@@ -348,6 +348,7 @@ msgid "Ask Sophie a question"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:38
+#: sophie_bot/modules/ai/handlers/research.py:102
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr ""
 
@@ -585,16 +586,16 @@ msgstr ""
 msgid "The AI mode has been exited."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:42
+#: sophie_bot/modules/ai/handlers/research.py:44
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
 msgid "Starting the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:76
+#: sophie_bot/modules/ai/handlers/research.py:78
 msgid "Research topic"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:78
+#: sophie_bot/modules/ai/handlers/research.py:80
 msgid "Research a topic using multistage web search and return a summary with sources"
 msgstr ""
 
@@ -732,7 +733,7 @@ msgstr ""
 msgid "Change AI prompt"
 msgstr ""
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:110
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:112
 #, python-brace-format
 msgid "{ai_emoji} AI Response"
 msgstr ""
@@ -785,7 +786,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:291
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:298
 #: sophie_bot/modules/ai/utils/research.py:370
 #: sophie_bot/modules/ai/utils/research.py:500
 msgid "Research"
@@ -1978,41 +1979,42 @@ msgid "This command can only be used by users."
 msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:52
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:69
 msgid "No pending transfer request found for this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:60
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:58
 msgid "Invalid transfer request data."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:65
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:63
 msgid "This transfer request is not for you."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:69
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:73
 msgid "Federation ID mismatch."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:77
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:81
 #: sophie_bot/modules/federations/handlers/subscribe.py:56
 #: sophie_bot/modules/federations/handlers/subscribe.py:126
 msgid "Federation not found."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:84
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:88
 msgid "Transfer request is outdated. The federation owner has changed."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:95
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:99
 msgid "🏛 Ownership Transferred"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:96
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:100
 #, python-brace-format
 msgid "You are now the owner of federation '{fed_name}'."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:97
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:101
 #: sophie_bot/modules/federations/handlers/create.py:65
 #: sophie_bot/modules/federations/handlers/join.py:73
 #: sophie_bot/modules/federations/handlers/leave.py:57
@@ -3626,19 +3628,19 @@ msgstr ""
 msgid "Language set to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:52
+#: sophie_bot/modules/locks/__init__.py:53
 msgid "Locks"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:54
+#: sophie_bot/modules/locks/__init__.py:55
 msgid "Lock specific message types in chats"
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:57
+#: sophie_bot/modules/locks/__init__.py:58
 msgid "Allows administrators to lock specific types of messages in chats."
 msgstr ""
 
-#: sophie_bot/modules/locks/__init__.py:59
+#: sophie_bot/modules/locks/__init__.py:60
 msgid "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
 msgstr ""
 
@@ -4262,31 +4264,31 @@ msgstr ""
 msgid "Lists available notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:54
+#: sophie_bot/modules/notes/handlers/list.py:66
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:62
+#: sophie_bot/modules/notes/handlers/list.py:74
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:67
+#: sophie_bot/modules/notes/handlers/list.py:79
 msgid "Search pattern"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:69
+#: sophie_bot/modules/notes/handlers/list.py:81
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:73
+#: sophie_bot/modules/notes/handlers/list.py:85
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:74
+#: sophie_bot/modules/notes/handlers/list.py:86
 msgid "#(Note name)"
 msgstr ""
 
@@ -4578,19 +4580,19 @@ msgstr ""
 msgid "The text is too long"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:48
+#: sophie_bot/modules/op/__init__.py:54
 msgid "Operator"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:50
+#: sophie_bot/modules/op/__init__.py:56
 msgid "Operator-only commands and tools"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:53
+#: sophie_bot/modules/op/__init__.py:59
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:54
+#: sophie_bot/modules/op/__init__.py:60
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr ""
 
@@ -4614,7 +4616,7 @@ msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/FeatureFlags.py:110
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:402
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:455
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr ""
@@ -4629,116 +4631,116 @@ msgstr ""
 msgid "Invalid value for {feature}: {value}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:227
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:256
 #, python-brace-format
 msgid "Args: {args}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:257
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:283
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
 msgid "No changed feature flags are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:257
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
 msgid "Changed feature flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:259
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:288
 msgid "All feature flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:259
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:288
 msgid "No feature flags are registered."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:260
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:289
 msgid "Rollouts"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:260
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:435
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:289
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:488
 msgid "No feature flag rollouts are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:271
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:300
 msgid "Manual per-chat overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:273
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:302
 msgid "No manual per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:278
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:307
 msgid "Rollout-created per-chat overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:280
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:309
 msgid "No rollout-created per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:315
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:466
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:368
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:519
 msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:317
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:431
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:468
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:370
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:484
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:521
 msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:319
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:446
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:372
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:499
 msgid "Usage: /op_ff ^days=<days> <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:323
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:376
 msgid "Usage: /op_ff ^chat_overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:369
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:422
 #, python-brace-format
 msgid "{feature} override for chat {chat} deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:377
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:430
 #, python-brace-format
 msgid "{feature} override deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:391
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:444
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:422
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:475
 msgid "Rollouts cannot be combined with per-chat overrides."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:425
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:478
 msgid "Use only one rollout argument at a time."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:451
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:496
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:504
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:549
 #, python-brace-format
 msgid "No rollout is set for {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:455
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:485
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:501
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:508
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:538
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:554
 #, python-brace-format
 msgid "{feature}: {rollout}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:463
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:516
 #, python-brace-format
 msgid "{feature} rollout deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:535
 msgid "Rollout was not saved."
 msgstr ""
 
@@ -5289,10 +5291,10 @@ msgid "AI Analysis"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/op_debug.py:583
-msgid "Collect diagnostic context for debugging bot issues."
+msgid "Collect diagnostic context for debugging bot issues (private chat only)."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/op_debug.py:593
+#: sophie_bot/modules/op/handlers/op_debug.py:596
 msgid "Collect diagnostic context with AI summarization (requires feature flag)."
 msgstr ""
 
