@@ -59,15 +59,31 @@ def make_request(
 
 
 def test_get_client_ip_prefers_real_ip_header() -> None:
-    request = make_request(headers={"x-real-ip": " 198.51.100.5 "})
+    # Proxy headers are only trusted when the direct connection comes from a trusted proxy (127.0.0.1)
+    request = make_request(headers={"x-real-ip": " 198.51.100.5 "}, client_host="127.0.0.1")
 
     assert get_client_ip(request) == "198.51.100.5"
 
 
+def test_get_client_ip_ignores_real_ip_header_from_untrusted_client() -> None:
+    # Headers from non-trusted IPs must not override the direct connection IP
+    request = make_request(headers={"x-real-ip": " 198.51.100.5 "})
+
+    assert get_client_ip(request) == "203.0.113.10"
+
+
 def test_get_client_ip_uses_first_forwarded_for_value() -> None:
-    request = make_request(headers={"x-forwarded-for": "198.51.100.6, 198.51.100.7"})
+    # Proxy headers are only trusted when the direct connection comes from a trusted proxy (127.0.0.1)
+    request = make_request(headers={"x-forwarded-for": "198.51.100.6, 198.51.100.7"}, client_host="127.0.0.1")
 
     assert get_client_ip(request) == "198.51.100.6"
+
+
+def test_get_client_ip_ignores_forwarded_for_from_untrusted_client() -> None:
+    # X-Forwarded-For from a non-trusted IP must not override the direct connection IP
+    request = make_request(headers={"x-forwarded-for": "198.51.100.6, 198.51.100.7"})
+
+    assert get_client_ip(request) == "203.0.113.10"
 
 
 def test_get_client_ip_falls_back_to_unknown_without_client() -> None:

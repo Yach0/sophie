@@ -1,23 +1,21 @@
 import structlog
 from fastapi import HTTPException, Request, status
 
+from sophie_bot.config import CONFIG
 from sophie_bot.services.redis import aredis
 
 log = structlog.get_logger(__name__)
 
 
 def get_client_ip(request: Request) -> str:
-    """Extract client IP, respecting reverse proxy headers.
-
-    Checks X-Real-IP first (set by nginx/similar), then X-Forwarded-For
-    (first IP in the chain is the original client), then falls back to the
-    direct connection address.
-    """
-    if real_ip := request.headers.get("x-real-ip"):
-        return real_ip.strip()
-    if forwarded_for := request.headers.get("x-forwarded-for"):
-        return forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    """Extract client IP, respecting reverse proxy headers only from trusted proxies."""
+    direct_ip = request.client.host if request.client else None
+    if direct_ip in CONFIG.trusted_proxies:
+        if real_ip := request.headers.get("x-real-ip"):
+            return real_ip.strip()
+        if forwarded_for := request.headers.get("x-forwarded-for"):
+            return forwarded_for.split(",")[0].strip()
+    return direct_ip or "unknown"
 
 
 async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> None:
