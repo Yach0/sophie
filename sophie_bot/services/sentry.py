@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import re
 
 import sentry_sdk
 from sentry_sdk.integrations import Integration
@@ -30,6 +31,26 @@ from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.error.utils.ignored import IGNORED_EXCEPTIONS
 from sophie_bot.utils.logger import log
 from sophie_bot.versions import SOPHIE_VERSION
+
+
+_BOT_TOKEN_RE = re.compile(r"(/bot)\d+:[A-Za-z0-9_-]+(/)")
+
+
+def _scrub_bot_token(url: str) -> str:
+    return _BOT_TOKEN_RE.sub(r"\1[REDACTED]\2", url)
+
+
+def _before_send_transaction(event: dict, hint: object) -> dict:
+    """Redact Telegram bot token from outbound request URLs in trace spans."""
+    for span in event.get("spans", []):
+        data = span.get("data", {})
+        for key in ("url", "http.url", "db.statement"):
+            if isinstance(data.get(key), str):
+                data[key] = _scrub_bot_token(data[key])
+    request = event.get("request", {})
+    if isinstance(request.get("url"), str):
+        request["url"] = _scrub_bot_token(request["url"])
+    return event
 
 
 def init_sentry() -> None:
@@ -58,4 +79,5 @@ def init_sentry() -> None:
         profile_lifecycle="trace",
         stream_gen_ai_spans=True,  # ty: ignore[unknown-argument]
         send_default_pii=True,
+        before_send_transaction=_before_send_transaction,
     )
