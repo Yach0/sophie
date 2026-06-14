@@ -92,6 +92,16 @@ class ResearchCmd(SophieMessageHandler):
         )
 
     async def handle(self) -> Any:
+        # Disconnect from any connected group before running research so that quota
+        # is charged to the private chat, not the connected group.
+        if self.event.chat.type == "private" and self.connection.is_connected and self.event.from_user:
+            from sophie_bot.middlewares.connections import ConnectionsMiddleware
+            from sophie_bot.modules.connections.utils.connection import set_connected_chat
+
+            await set_connected_chat(self.event.from_user.id, None)
+            await self.event.reply(_("You have been automatically disconnected from the chat to use AI."))
+            self.data["connection"] = await ConnectionsMiddleware.get_current_chat_info(self.event.chat)
+
         prompt: str = self.data["text"]
         progress_message = await ResearchProgressMessage.send(self.event)
         try:
