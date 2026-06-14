@@ -47,8 +47,7 @@ async def forget_memory(ctx: RunContext[SophieAIToolContext], index: int) -> str
 
     if ctx.deps.user_tid is None or not await is_user_admin(ctx.deps.chat_tid, ctx.deps.user_tid):
         raise ModelRetry(
-            "Clearing memory requires admin privileges in this chat. "
-            "I cannot forget memory items for non-admin users."
+            "Clearing memory requires admin privileges in this chat. I cannot forget memory items for non-admin users."
         )
 
     if index < 1:

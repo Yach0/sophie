@@ -58,7 +58,9 @@ def create_action_config_system(
         (_ACWSettingsHandler,),
         {
             "cfg": cfg,
-            "filters": staticmethod(lambda: (ACWSettingCallback.filter(F.mod == cfg.callback_prefix), cfg.admin_filter)),
+            "filters": staticmethod(
+                lambda: (ACWSettingCallback.filter(F.mod == cfg.callback_prefix), cfg.admin_filter)
+            ),
         },
     )
 
