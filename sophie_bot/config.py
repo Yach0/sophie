@@ -28,7 +28,7 @@ class Config(BaseSettings):
     mongo_host: str = "mongodb://localhost"
     mongo_port: int = 27017
     mongo_db: str = "sophie"
-    mongo_allow_index_dropping: bool = True
+    mongo_allow_index_dropping: bool = False
     mongo_skip_indexes: bool = False
     mongo_use_replica_set: bool = False  # Set to True for transaction support
 
@@ -70,6 +70,9 @@ class Config(BaseSettings):
     webhooks_secret_token: Optional[str] = None
     webhooks_handle_in_background: bool = True
 
+    # IPs of trusted reverse proxies; only these may set X-Real-IP / X-Forwarded-For
+    trusted_proxies: List[str] = ["127.0.0.1"]
+
     api_listen: str = "127.0.0.1"
     api_port: int = 8075
     api_jwt_secret: str = "change_me_in_production"
@@ -86,7 +89,7 @@ class Config(BaseSettings):
     sentry_url: Optional[AnyHttpUrl] = None
     sentry_enable_logs: bool = True
     sentry_enable_metrics: bool = True
-    sentry_traces_sample_rate: float | None = 0.5
+    sentry_traces_sample_rate: float | None = None
     sentry_profile_session_sample_rate: float | None = 0.2
 
     devs_managed_languages: List[str] = ["en_US"]
