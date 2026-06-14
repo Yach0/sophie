@@ -42,27 +42,31 @@ class AcceptTransferHandler(SophieMessageHandler):
         user_db = self.data["user_db"]
         user_tid = self.connection.tid
 
-        # Atomically get and delete the transfer token to prevent replay attacks
         transfer_key = f"{self.TRANSFER_KEY_PREFIX}{fed_id_input}"
-        transfer_data_raw = await aredis.getdel(
-            transfer_key,
-        )
+
+        # Read the token first without deleting it, so an unauthorized caller cannot
+        # consume (and destroy) a pending transfer intended for someone else.
+        transfer_data_raw = await aredis.get(transfer_key)
 
         if not transfer_data_raw:
             await self.event.reply(_("No pending transfer request found for this federation."))
             return
 
         try:
-            transfer_data = json.loads(
-                transfer_data_raw,
-            )
+            transfer_data = json.loads(transfer_data_raw)
         except json.JSONDecodeError:
             await self.event.reply(_("Invalid transfer request data."))
             return
 
-        # Validate transfer data
+        # Validate recipient before consuming the token
         if transfer_data.get("to_user") != user_tid:
             await self.event.reply(_("This transfer request is not for you."))
+            return
+
+        # Now atomically consume the token; if it was already claimed by a concurrent
+        # request, getdel returns None and we bail out safely.
+        if not await aredis.getdel(transfer_key):
+            await self.event.reply(_("No pending transfer request found for this federation."))
             return
 
         if transfer_data.get("fed_id") != fed_id_input:
