@@ -62,7 +62,7 @@ class SophieButtonABC(MarkdownLinkArgument, ABC):
         return False
 
     async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, AssButtonData[str]]:  # ty: ignore[invalid-method-override]
-        length, (link_name, link_data) = await super().parse(text, offset, entities)
+        length, (_link_name, link_data) = await super().parse(text, offset, entities)
         prefix = self.used_prefix
         if prefix:
             link_data = link_data.removeprefix(prefix)

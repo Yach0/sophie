@@ -112,7 +112,7 @@ class SaveChatsMiddleware(BaseMiddleware):
             return
 
         # Update current user and group
-        chat, user = await self._handle_private_and_group_message(data, message)
+        chat, _user = await self._handle_private_and_group_message(data, message)
 
         if message.chat.type not in ("group", "supergroup"):
             return
