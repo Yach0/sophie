@@ -9,7 +9,7 @@ from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
-from sophie_bot.modules.ai.utils.cache_messages import cache_message
+from sophie_bot.modules.ai.utils.cache_messages import cache_message, reset_messages
 
 
 def _join_response_texts(requests: list) -> str:
@@ -132,6 +132,10 @@ async def test_op_debug_shows_empty_chat_history_when_no_cache(test_client: Test
     await test_client.send_message(text="init", from_user=operator_wrapper.user, chat=private_chat)
     chat = await ChatModel.get_by_tid(private_chat.id)
     assert chat is not None
+
+    # The init message gets cached by the message middleware; clear it so
+    # the chat history section shows the empty-state ("No cached messages found").
+    await reset_messages(private_chat.id)
 
     with patch.object(CONFIG, "operators", [operator_wrapper.user.id]):
         requests = await test_client.send_command(
