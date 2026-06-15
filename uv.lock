@@ -2252,7 +2252,7 @@ requires-dist = [
     { name = "redis", specifier = ">=8,<9" },
     { name = "regex", specifier = ">=2026.5.9" },
     { name = "sentry-sdk", specifier = ">=2.60.0,<3" },
-    { name = "stfu-tg", git = "https://gitlab.com/SophieBot/stf.git" },
+    { name = "stfu-tg", editable = "libs/stf" },
     { name = "structlog", specifier = ">=26.1,<27" },
     { name = "tenacity", specifier = ">=9.1.4,<10" },
     { name = "ujson", specifier = ">=5.12.1,<6" },
@@ -2316,7 +2316,10 @@ wheels = [
 [[package]]
 name = "stfu-tg"
 version = "3.5"
-source = { git = "https://gitlab.com/SophieBot/stf.git#2dac9978aa05fe52e48544ae9071d0e8c423c5e6" }
+source = { editable = "libs/stf" }
+
+[package.metadata]
+provides-extras = ["entities"]
 
 [[package]]
 name = "structlog"

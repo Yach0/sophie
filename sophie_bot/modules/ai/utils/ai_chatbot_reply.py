@@ -5,7 +5,7 @@ from typing import Any
 
 from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import Message
+from aiogram.types import InputRichMessage, Message, ReplyParameters
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
@@ -31,7 +31,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
-from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer
+from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer, RichMessageDraftStreamer
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
@@ -154,9 +154,15 @@ async def _generate_chatbot_result(
     on_research_progress: ResearchProgressCallback | None = None,
     on_retry: AIRetryCallback | None = None,
     user_text: str | None = None,
+    use_rich_draft: bool = False,
 ) -> AIAgentResult[str]:
     allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
-    draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
+    if allow_draft_streaming and use_rich_draft:
+        draft_streamer: MessageDraftStreamer | RichMessageDraftStreamer = RichMessageDraftStreamer(
+            message=message, enabled=True
+        )
+    else:
+        draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
     run_config = await build_chatbot_run_config(
         connection.tid,
         connection,
@@ -248,6 +254,7 @@ async def ai_chatbot_reply(
         if explicit_debug_mode:
             await _reply_debug_history(message, history)
 
+        use_rich_streaming = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id)
         service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=message.chat.id)
         on_tool_call = (
             message_streamer.update_thinking_for_tool
@@ -267,6 +274,7 @@ async def ai_chatbot_reply(
                 on_research_progress=message_streamer.update_research_progress if message_streamer else None,
                 on_retry=message_streamer.update_retrying if message_streamer else None,
                 user_text=user_text,
+                use_rich_draft=use_rich_streaming,
             )
         except AIRequestFailed as err:
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
@@ -291,6 +299,17 @@ async def ai_chatbot_reply(
         )
         if message_streamer:
             final_message = await message_streamer.send_final(doc, **kwargs)
+        elif use_rich_streaming:
+            try:
+                final_message = await message.bot.send_rich_message(
+                    chat_id=message.chat.id,
+                    rich_message=InputRichMessage(html=doc.to_rich()),
+                    reply_parameters=ReplyParameters(message_id=message.message_id),
+                    message_thread_id=message.message_thread_id,
+                    reply_markup=kwargs.get("reply_markup"),
+                )
+            except TelegramAPIError:
+                final_message = await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
         else:
             final_message = await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
 

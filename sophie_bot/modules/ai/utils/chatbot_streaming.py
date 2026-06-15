@@ -8,7 +8,7 @@ from typing import Any
 
 from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import Message
+from aiogram.types import InputRichMessage, Message, ReplyParameters
 from pydantic_ai.models import Model
 from stfu_tg import Doc, HList, Template
 from stfu_tg.doc import Element
@@ -111,6 +111,7 @@ class ChatbotMessageStreamer:
     emoji_id: str | None = None
     last_sent_text: str = ""
     last_sent_at: float = 0.0
+    use_rich_streaming: bool = False
 
     async def send_thinking_message(self) -> None:
         self.response_message = await self.source_message.reply(
@@ -193,6 +194,9 @@ class ChatbotMessageStreamer:
             pass
 
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
+        if self.use_rich_streaming:
+            return await self._send_rich_final(doc, **reply_kwargs)
+
         if self.response_message is None:
             return await self.source_message.reply(
                 doc.to_html(),
@@ -209,6 +213,28 @@ class ChatbotMessageStreamer:
             if isinstance(edited_message, Message):
                 return edited_message
             return self.response_message
+        except TelegramAPIError:
+            return await self.source_message.reply(
+                doc.to_html(),
+                disable_web_page_preview=True,
+                **reply_kwargs,
+            )
+
+    async def _send_rich_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
+        if self.response_message is not None:
+            try:
+                await self.response_message.delete()
+            except TelegramAPIError:
+                pass
+
+        try:
+            return await self.source_message.bot.send_rich_message(
+                chat_id=self.source_message.chat.id,
+                rich_message=InputRichMessage(html=doc.to_rich()),
+                reply_parameters=ReplyParameters(message_id=self.source_message.message_id),
+                message_thread_id=self.source_message.message_thread_id,
+                reply_markup=reply_kwargs.get("reply_markup"),
+            )
         except TelegramAPIError:
             return await self.source_message.reply(
                 doc.to_html(),
@@ -242,7 +268,8 @@ async def build_message_streamer(
 
     thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id)
     streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id)
-    if not thinking_enabled and not streaming_enabled:
+    rich_streaming_enabled = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id)
+    if not thinking_enabled and not streaming_enabled and not rich_streaming_enabled:
         return None
 
     header_items = None
@@ -272,6 +299,7 @@ async def build_message_streamer(
         connection=connection,
         model=model,
         emoji_id=emoji_id,
+        use_rich_streaming=rich_streaming_enabled,
     )
     if thinking_enabled:
         await streamer.send_thinking_message()
