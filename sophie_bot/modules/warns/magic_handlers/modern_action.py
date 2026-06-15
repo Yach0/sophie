@@ -18,6 +18,7 @@ from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.logger import log
 
 
 class WarnActionDataModel(BaseModel):
@@ -77,7 +78,14 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
                 return
             bot_me = await message.bot.get_me()
             admin_db = await ChatModel.upsert_user(bot_me)
-        target_db = data["user_db"]  # In filter/action context, the user who triggered it
+        target_db: Optional[ChatModel] = data.get("user_db")  # In filter/action context, the user who triggered it
+        if target_db is None and message.from_user:
+            target_db = await ChatModel.get_by_tid(message.from_user.id)
+            if target_db is None:
+                target_db = await ChatModel.upsert_user(message.from_user)
+        if target_db is None:
+            log.warning("warn_action: could not resolve target user, skipping warn")
+            return
 
         text = filter_data.reason
         if not text:
