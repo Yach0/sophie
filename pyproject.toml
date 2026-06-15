@@ -64,7 +64,7 @@ dev = [
 
 [tool.uv.sources]
 aiogram = { git = "https://github.com/aiogram/aiogram.git", rev = "refs/pull/1830/head" }
-stfu-tg = { path = "libs/stf", editable = true }
+stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 
