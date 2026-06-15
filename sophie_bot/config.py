@@ -118,6 +118,9 @@ class Config(BaseSettings):
     kagi_api_key: str = ""
     mistral_api_key: str | None = None
 
+    gitlab_token: str | None = None
+    gitlab_project_id: str | None = None  # GitLab project ID or URL-encoded path
+
     ai_autotrans_lowmem: bool = False
     ai_timeout_seconds: int = 120  # Timeout for AI handler execution (seconds)
 
