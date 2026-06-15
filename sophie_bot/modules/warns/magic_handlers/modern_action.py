@@ -97,7 +97,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
         if not text:
             text = _("No reason")
 
-        current, limit, punishment, warn = await warn_user(
+        current, limit, punishment, _warn = await warn_user(
             chat_db,
             target_db,
             admin_db,
