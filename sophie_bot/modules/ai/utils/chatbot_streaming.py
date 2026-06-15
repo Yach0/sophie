@@ -8,7 +8,7 @@ from typing import Any
 
 from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message, ReplyParameters
+from aiogram.types import InputRichMessage, Message, ReplyParameters  # ty: ignore[unresolved-import]
 from pydantic_ai.models import Model
 from stfu_tg import Doc, HList, Template
 from stfu_tg.doc import Element
@@ -228,9 +228,9 @@ class ChatbotMessageStreamer:
                 pass
 
         try:
-            return await self.source_message.bot.send_rich_message(
+            return await self.source_message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
                 chat_id=self.source_message.chat.id,
-                rich_message=InputRichMessage(html=doc.to_rich()),
+                rich_message=InputRichMessage(html=doc.to_rich()),  # ty: ignore[unresolved-attribute]
                 reply_parameters=ReplyParameters(message_id=self.source_message.message_id),
                 message_thread_id=self.source_message.message_thread_id,
                 reply_markup=reply_kwargs.get("reply_markup"),
