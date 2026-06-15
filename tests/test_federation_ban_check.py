@@ -15,6 +15,8 @@ from sophie_bot.utils.federation_ban_check import (
 
 
 class FakeField:
+    __hash__ = None
+
     def __init__(self, name: str) -> None:
         self.name = name
 
