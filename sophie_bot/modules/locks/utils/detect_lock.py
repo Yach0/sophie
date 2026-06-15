@@ -62,24 +62,13 @@ def _get_text_content(message: Message) -> str:
     return message.text or message.caption or ""
 
 
-def _check_cjk(message: Message) -> bool:
-    text = _get_text_content(message)
-    return bool(CJK_REGEX.search(text))
+def _check_regex(pattern: re.Pattern[str]) -> Callable[[Message], bool]:
+    """Build a lock check that matches message text content against a regex pattern."""
 
+    def check(message: Message) -> bool:
+        return bool(pattern.search(_get_text_content(message)))
 
-def _check_cyrillic(message: Message) -> bool:
-    text = _get_text_content(message)
-    return bool(CYRILLIC_REGEX.search(text))
-
-
-def _check_rtl(message: Message) -> bool:
-    text = _get_text_content(message)
-    return bool(RTL_REGEX.search(text))
-
-
-def _check_arabic(message: Message) -> bool:
-    text = _get_text_content(message)
-    return bool(ARABIC_REGEX.search(text))
+    return check
 
 
 def _check_zalgo(message: Message) -> bool:
@@ -88,11 +77,6 @@ def _check_zalgo(message: Message) -> bool:
         return False
     combining_count = len(ZALGO_REGEX.findall(text))
     return combining_count > len(text) * 0.3
-
-
-def _check_emoji(message: Message) -> bool:
-    text = _get_text_content(message)
-    return bool(EMOJI_REGEX.search(text))
 
 
 def _check_emoji_only(message: Message) -> bool:
@@ -225,14 +209,14 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.BUTTON: _check_button,
     LockType.CASHTAG: lambda m: _has_entity_type(m, MessageEntityType.CASHTAG),
     LockType.CHECKLIST: lambda m: bool(getattr(m, "checklist", None)),
-    LockType.CJK: _check_cjk,
+    LockType.CJK: _check_regex(CJK_REGEX),
     LockType.COMMAND: _check_command,
     LockType.COMMENT: _check_comment,
     LockType.CONTACT: lambda m: bool(m.contact),
-    LockType.CYRILLIC: _check_cyrillic,
+    LockType.CYRILLIC: _check_regex(CYRILLIC_REGEX),
     LockType.DOCUMENT: lambda m: bool(m.document),
     LockType.EMAIL: lambda m: _has_entity_type(m, MessageEntityType.EMAIL),
-    LockType.EMOJI: _check_emoji,
+    LockType.EMOJI: _check_regex(EMOJI_REGEX),
     LockType.EMOJI_CUSTOM: lambda m: _has_entity_type(m, MessageEntityType.CUSTOM_EMOJI),
     LockType.EMOJI_GAME: lambda m: bool(m.game),
     LockType.EMOJI_ONLY: _check_emoji_only,
@@ -253,7 +237,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.PHONE: lambda m: _has_entity_type(m, MessageEntityType.PHONE_NUMBER),
     LockType.PHOTO: lambda m: bool(m.photo),
     LockType.POLL: lambda m: bool(m.poll),
-    LockType.RTL: _check_rtl,
+    LockType.RTL: _check_regex(RTL_REGEX),
     LockType.SPOILER: lambda m: _has_entity_type(m, MessageEntityType.SPOILER),
     LockType.STICKER: lambda m: bool(m.sticker),
     LockType.STICKER_ANIMATED: lambda m: bool(m.sticker and m.sticker.is_animated),
@@ -268,7 +252,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.WEB_PREVIEW: _check_webpreview,
     LockType.ZALGO: _check_zalgo,
     LockType.DICE: lambda m: bool(m.dice),
-    LockType.ARABIC: _check_arabic,
+    LockType.ARABIC: _check_regex(ARABIC_REGEX),
     LockType.HASHTAG: lambda m: _has_entity_type(m, MessageEntityType.HASHTAG),
     LockType.CODE: lambda m: _has_entity_type(m, MessageEntityType.CODE),
     LockType.PRE: lambda m: _has_entity_type(m, MessageEntityType.PRE),
