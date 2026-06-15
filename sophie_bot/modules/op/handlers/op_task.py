@@ -9,6 +9,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_summary_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
@@ -114,16 +115,22 @@ class OpTaskHandler(SophieMessageHandler):
         history.add_custom("\n\n".join(prompt_parts), name="OperatorTask")
 
         model = await get_chat_summary_model(chat_model.iid, chat_tid=chat_tid)
-        result = await run_structured_task(
-            AIStructuredTask(
-                output_type=OpTaskAIResult,
-                feature=AI_FEATURE_CHATBOT,
-            ),
-            model,
-            history,
-            chat_iid=chat_model.iid,
-            chat_tid=chat_tid,
-        )
+        try:
+            result = await run_structured_task(
+                AIStructuredTask(
+                    output_type=OpTaskAIResult,
+                    feature=AI_FEATURE_CHATBOT,
+                ),
+                model,
+                history,
+                chat_iid=chat_model.iid,
+                chat_tid=chat_tid,
+            )
+        except AIRequestFailed as err:
+            await message.reply(
+                **ai_request_failed_message(err.sentry_event_id, title=_("Error generating task description"))
+            )
+            return
 
         task_result: OpTaskAIResult = result.output
 
@@ -135,8 +142,8 @@ class OpTaskHandler(SophieMessageHandler):
                 description=task_result.description,
                 labels=task_result.labels,
             )
-        except aiohttp.ClientResponseError as exc:
-            await message.reply(str(Bold(_("Failed to create GitLab issue: {error}").format(error=str(exc)))))
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            await message.reply(str(Section(Bold(_("Failed to create GitLab issue")), Italic(str(exc)))))
             return
 
         issue_url = issue_data.get("web_url", "")
