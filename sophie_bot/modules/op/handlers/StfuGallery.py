@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Final, Protocol
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import InputRichMessage
+from aiogram.types import InputRichMessage  # ty: ignore[unresolved-import]
 from stfu_tg import (
     Anchor,
     Audio,
@@ -286,8 +286,8 @@ class StfuGalleryHandler(SophieMessageHandler):
     async def handle(self) -> None:
         message_thread_id = self.event.message_thread_id if self.event.is_topic_message else None
         for gallery_doc in build_stfu_gallery_docs():
-            await self.event.bot.send_rich_message(
+            await self.event.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
                 chat_id=self.event.chat.id,
                 message_thread_id=message_thread_id,
-                rich_message=InputRichMessage(html=gallery_doc.to_rich()),
+                rich_message=InputRichMessage(html=gallery_doc.to_rich()),  # ty: ignore[unresolved-attribute]
             )
