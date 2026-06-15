@@ -52,7 +52,7 @@ from sophie_bot.utils.feature_flags import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
-FEATURE = "op_debug_ai_summarization"
+FEATURE = "op_task"
 BOOL_FEATURE_DEFAULT_TRUE = "welcomecaptcha"
 STRING_FEATURE = "ai_chatbot_service_tier"
 CHAT_TID_A = -1002950100
