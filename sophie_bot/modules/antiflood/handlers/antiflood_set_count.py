@@ -58,4 +58,6 @@ class AntifloodSetCountHandler(SophieMessageHandler):
             model.message_count = count
             await model.save()
 
-        await self.event.reply(_("✅ Antiflood threshold updated to {count} messages per 30 seconds", count=count))
+        await self.event.reply(
+            Template(_("✅ Antiflood threshold updated to {count} messages per 30 seconds"), count=count).to_html()
+        )
