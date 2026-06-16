@@ -104,7 +104,7 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         batch_user_ids = []
         for row in batch_rows:
             try:
-                batch_user_ids.append(processor._validate_user_id(row.get("user_id", "").strip()))
+                batch_user_ids.append(processor._validate_positive_int(row.get("user_id", "").strip(), "user_id"))
             except BanValidationError:
                 continue
 
@@ -119,7 +119,7 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         by_user_tids = []
         for row in batch_rows:
             try:
-                by_user_tids.append(processor._validate_by_field(row.get("by", "").strip()))
+                by_user_tids.append(processor._validate_positive_int(row.get("by", "").strip(), "'by' field"))
             except BanValidationError:
                 continue
 
@@ -131,9 +131,9 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         for row_num_in_batch, row in enumerate(batch_rows):
             real_row_num = i + row_num_in_batch + 2
             try:
-                user_id = processor._validate_user_id(row.get("user_id", "").strip())
+                user_id = processor._validate_positive_int(row.get("user_id", "").strip(), "user_id")
                 reason = processor._validate_reason(row.get("reason", "").strip())
-                by_user_tid = processor._validate_by_field(row.get("by", "").strip())
+                by_user_tid = processor._validate_positive_int(row.get("by", "").strip(), "'by' field")
                 ban_time = processor._parse_ban_time(row.get("time", "").strip())
 
                 await processor._check_ban_permissions(user_id, federation, importer_user_tid)
@@ -248,35 +248,20 @@ class ProcessFederationImports:
             existing_ban.reason = new_reason
             await existing_ban.save()
 
-    def _validate_user_id(self, user_id_str: str) -> int:
-        """Validate and parse user_id from CSV row."""
-        if not user_id_str:
-            raise BanValidationError("user_id is required")
+    def _validate_positive_int(self, value_str: str, field_name: str) -> int:
+        """Validate and parse a positive integer from a CSV row."""
+        if not value_str:
+            raise BanValidationError(f"{field_name} is required")
 
         try:
-            user_id = int(user_id_str)
+            value = int(value_str)
         except ValueError:
-            raise BanValidationError(f"Invalid user_id: {user_id_str}")
+            raise BanValidationError(f"Invalid {field_name}: {value_str}")
 
-        if user_id <= 0:
-            raise BanValidationError(f"Invalid user_id (must be positive): {user_id}")
+        if value <= 0:
+            raise BanValidationError(f"Invalid {field_name} (must be positive): {value}")
 
-        return user_id
-
-    def _validate_by_field(self, by_str: str) -> int:
-        """Validate and parse 'by' field from CSV row."""
-        if not by_str:
-            raise BanValidationError("'by' field is required")
-
-        try:
-            by_user_id = int(by_str)
-        except ValueError:
-            raise BanValidationError(f"Invalid 'by' field: {by_str}")
-
-        if by_user_id <= 0:
-            raise BanValidationError(f"Invalid 'by' field (must be positive): {by_str}")
-
-        return by_user_id
+        return value
 
     def _validate_reason(self, reason: str) -> str | None:
         """Validate reason field."""
