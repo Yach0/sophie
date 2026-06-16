@@ -30,7 +30,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     build_reply_doc,
     truncate_output,
 )
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
 from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer, RichMessageDraftStreamer
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
@@ -269,7 +269,7 @@ async def ai_chatbot_reply(
                 model,
                 explicit_debug_mode,
                 service_tier,
-                on_text_stream=message_streamer.stream if message_streamer and message_streamer.enabled else None,
+                on_text_stream=message_streamer.stream if message_streamer and message_streamer.mode != StreamMode.THINKING_ONLY else None,
                 on_tool_call=on_tool_call,
                 on_research_progress=message_streamer.update_research_progress if message_streamer else None,
                 on_retry=message_streamer.update_retrying if message_streamer else None,
