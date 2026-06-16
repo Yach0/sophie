@@ -38,6 +38,6 @@ class PrivacyMenu(SophieBaseHandler[Message | CallbackQuery]):
             buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start"))
 
         if isinstance(self.event, CallbackQuery):
-            await self.event.message.edit_text(text, reply_markup=buttons.as_markup())  # type: ignore
+            await self.event.message.edit_text(text=text, reply_markup=buttons.as_markup())  # type: ignore
         else:
             await self.event.reply(text, reply_markup=buttons.as_markup())  # type: ignore

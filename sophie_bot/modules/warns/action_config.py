@@ -35,7 +35,7 @@ async def _on_warn_action_back(handler: Any, callback_query: CallbackQuery) -> N
         return
     chat_iid: PydanticObjectId = handler.connection.db_model.iid
     text, markup = await WarnActionRenderer.render_warnaction_view(chat_iid)
-    await callback_query.message.edit_text(text, reply_markup=markup)
+    await callback_query.message.edit_text(text=text, reply_markup=markup)
     await callback_query.answer()
 
 

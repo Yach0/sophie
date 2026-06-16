@@ -52,7 +52,7 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
                     )
                 ),
             )
-            await callback.message.edit_text(str(doc))
+            await callback.message.edit_text(text=str(doc))
         else:
             await callback.answer(_("Warning not found or already deleted!"), show_alert=True)
             await callback.message.delete()
@@ -97,7 +97,7 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
 
         await callback.answer(_("Warnings reset!"))
         return await callback.message.edit_text(
-            str(Template(_("Reset warnings of {user}."), user=UserLink(target_user_tid, target_user_name)))
+            text=str(Template(_("Reset warnings of {user}."), user=UserLink(target_user_tid, target_user_name)))
         )
 
 
@@ -121,4 +121,4 @@ class ResetAllWarnsCallbackHandler(SophieCallbackQueryHandler):
         await log_event(self.connection.tid, self.event.from_user.id, LogEvent.ALL_WARNS_RESET)
 
         await callback.answer(_("All warnings reset!"))
-        return await callback.message.edit_text(_("Reset all warnings in this chat."))
+        return await callback.message.edit_text(text=_("Reset all warnings in this chat."))

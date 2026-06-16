@@ -167,5 +167,5 @@ class AIPlaygroundModelSelectCallback(SophieCallbackQueryHandler):
         )
 
         if self.event.message and isinstance(self.event.message, Message):
-            await self.event.message.edit_text(str(doc), reply_markup=kb)
+            await self.event.message.edit_text(text=str(doc), reply_markup=kb)
         await self.event.answer(f"✅ Selected: {model_display}")

@@ -65,7 +65,7 @@ class DisableAllCbHandler(SophieCallbackQueryHandler):
         removed_count: int = len(model.cmds) if model else 0
 
         return await self.event.message.edit_text(  # type: ignore
-            str(
+            text=str(
                 Template(
                     _("✅ All the commands ({removed_count}) have been enabled in the {chat_name}"),
                     removed_count=Italic(removed_count),

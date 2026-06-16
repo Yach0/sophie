@@ -89,7 +89,7 @@ class FederationDeleteCallbackHandler(SophieCallbackQueryHandler):
 
         federation = await FederationManageService.get_federation_by_id(data.fed_id)
         if not federation:
-            await self.event.message.edit_text(_("This federation no longer exists."))
+            await self.event.message.edit_text(text=_("This federation no longer exists."))
             await self.event.answer(_("Federation not found"))
             return
 
@@ -110,7 +110,7 @@ class FederationDeleteCallbackHandler(SophieCallbackQueryHandler):
         await FederationManageService.delete_federation(federation)
 
         await self.event.message.edit_text(
-            Doc(
+            text=Doc(
                 Title(_("🏛 Federation Deleted")),
                 Template(_("Federation '{name}' has been deleted."), name=fed_name),
                 KeyValue(_("Federation ID"), fed_id),

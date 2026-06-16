@@ -208,7 +208,7 @@ async def _send_chatbot_ai_failure_reply(
     if message_streamer and message_streamer.response_message is not None:
         try:
             edited_message = await message_streamer.response_message.edit_text(
-                failure_message["text"],
+                text=failure_message["text"],
                 disable_web_page_preview=True,
                 **reply_kwargs,
             )

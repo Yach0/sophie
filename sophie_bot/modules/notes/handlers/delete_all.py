@@ -79,4 +79,4 @@ class DelAllNotesCallbackHandler(SophieCallbackQueryHandler):
             chat_name=connection.title,
         )
 
-        await self.event.message.edit_text(str(text))  # type: ignore
+        await self.event.message.edit_text(text=str(text))  # type: ignore

@@ -227,7 +227,7 @@ class WizardRenderer:
         )
         if isinstance(event, CallbackQuery):
             if event.message and isinstance(event.message, Message):
-                await event.message.edit_text(text, reply_markup=reply_markup)
+                await event.message.edit_text(text=text, reply_markup=reply_markup)
             await event.answer(answer_text)
         else:
             await event.reply(text, reply_markup=reply_markup)

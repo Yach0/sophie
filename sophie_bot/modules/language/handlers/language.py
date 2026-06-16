@@ -110,5 +110,5 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
 
         if self.event.message and isinstance(self.event.message, Message):
             await self.event.message.edit_text(
-                Template(_("Language set to {lang}"), lang=display_name).to_html(), reply_markup=keyboard
+                text=Template(_("Language set to {lang}"), lang=display_name).to_html(), reply_markup=keyboard
             )

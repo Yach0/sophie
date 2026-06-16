@@ -187,7 +187,7 @@ class ChatbotMessageStreamer:
 
         try:
             await self.response_message.edit_text(
-                Doc(self.header).to_html(),
+                text=Doc(self.header).to_html(),
                 disable_web_page_preview=True,
             )
         except TelegramAPIError:
@@ -206,7 +206,7 @@ class ChatbotMessageStreamer:
 
         try:
             edited_message = await self.response_message.edit_text(
-                doc.to_html(),
+                text=doc.to_html(),
                 disable_web_page_preview=True,
                 **reply_kwargs,
             )
@@ -251,7 +251,7 @@ class ChatbotMessageStreamer:
                 )
                 return True
 
-            await self.response_message.edit_text(doc.to_html(), disable_web_page_preview=True)
+            await self.response_message.edit_text(text=doc.to_html(), disable_web_page_preview=True)
             return True
         except TelegramAPIError:
             return False

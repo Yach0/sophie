@@ -111,7 +111,7 @@ class AIProviderSelectCallback(SophieCallbackQueryHandler):
                 title=l_("AI Provider was updated"),
             )
         )
-        await message.edit_text(str(doc))
+        await message.edit_text(text=str(doc))
         await self.event.answer(_("Provider updated"))
         return None
 

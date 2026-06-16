@@ -57,7 +57,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
         text, markup = await WizardRenderer.render_add_action_list(
             self.cfg, chat_tid=callback_query.message.chat.id, default_action_name=self.cfg.default_action_name
         )
-        await callback_query.message.edit_text(text, reply_markup=markup)
+        await callback_query.message.edit_text(text=text, reply_markup=markup)
 
     async def _op_remove(self, callback_query: CallbackQuery, data: ACWCoreCallback) -> None:
         if not data.name:
@@ -173,7 +173,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
             await wizard_state.clear_fsm()
 
         if callback_query.message and isinstance(callback_query.message, Message):
-            await callback_query.message.edit_text(_("Action configuration cancelled."))
+            await callback_query.message.edit_text(text=_("Action configuration cancelled."))
         await callback_query.answer(_("Cancelled"))
 
     async def _show_home(self, callback_query: CallbackQuery) -> None:
@@ -185,7 +185,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
         html, markup = await WizardRenderer.render_home_page(
             self.cfg, chat_iid=chat_iid, chat_title=msg.chat.title, wizard_state=wizard_state
         )
-        await msg.edit_text(html, reply_markup=markup)
+        await msg.edit_text(text=html, reply_markup=markup)
 
     async def _fetch_action_data(self, chat_iid: PydanticObjectId, action_name: str) -> Optional[dict[str, Any]]:
         try:
@@ -234,7 +234,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
         )
 
         if callback_query.message and isinstance(callback_query.message, Message):
-            await callback_query.message.edit_text(setup_message.text, reply_markup=reply_markup)
+            await callback_query.message.edit_text(text=setup_message.text, reply_markup=reply_markup)
 
 
 class _ACWSettingsHandler(SophieCallbackQueryHandler):
@@ -341,7 +341,7 @@ class _ACWSettingsHandler(SophieCallbackQueryHandler):
         )
 
         if callback_query.message and isinstance(callback_query.message, Message):
-            await callback_query.message.edit_text(setup_message.text, reply_markup=reply_markup)
+            await callback_query.message.edit_text(text=setup_message.text, reply_markup=reply_markup)
 
 
 class _ACWNoOpHandler(SophieCallbackQueryHandler):

@@ -25,4 +25,4 @@ class SetLangLegacyHandler(SophieCallbackQueryHandler):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons[i : i + 2] for i in range(0, len(buttons), 2)])
 
         if self.event.message and isinstance(self.event.message, Message):
-            await self.event.message.edit_text(_("Select your language:"), reply_markup=keyboard)
+            await self.event.message.edit_text(text=_("Select your language:"), reply_markup=keyboard)

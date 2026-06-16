@@ -34,7 +34,7 @@ class CancelCallbackHandler(SophieCallbackQueryHandler):
             return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()
-        await message.edit_text(_("❌ Cancelled."))
+        await message.edit_text(text=_("❌ Cancelled."))
 
 
 class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
@@ -53,7 +53,7 @@ class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
         await self.state.clear()
         message = self.event.message
         if isinstance(message, Message):
-            await message.edit_text(_("❌ Cancelled."))
+            await message.edit_text(text=_("❌ Cancelled."))
 
 
 class CallbackActionCancelHandler(SophieCallbackQueryHandler):
@@ -74,5 +74,5 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
         message = self.event.message
         if isinstance(message, Message):
             await message.edit_text(
-                Template(_("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)).to_html()
+                text=Template(_("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)).to_html()
             )
