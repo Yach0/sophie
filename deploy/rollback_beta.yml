@@ -1,0 +1,11 @@
+---
+- name: Rollback Beta Sophie to a specific image
+  hosts: "{{ ansible_limit | default('all') }}"
+  tasks:
+    - include_tasks: tasks/facts.yml
+    - include_tasks: tasks/registry.yml
+    - include_tasks: tasks/deploy_beta_tagged.yml
+
+    - include_tasks: tasks/deploy_scheduler.yml
+    - include_tasks: tasks/deploy_rest.yml
+    - include_tasks: tasks/deploy_swiki.yml

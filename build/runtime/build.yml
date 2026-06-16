@@ -30,6 +30,8 @@ build_runtime_container:
         --tag "$IMAGE_FULL" \
         .
     - podman push "$IMAGE_FULL"
+    - podman tag "$IMAGE_FULL" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA-runtime"
+    - podman push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA-runtime"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^(beta|stable|dev_.*|dev-.*)$/'
       changes:
