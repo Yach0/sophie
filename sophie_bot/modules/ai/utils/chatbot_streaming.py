@@ -8,7 +8,7 @@ from typing import Any
 
 from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message, ReplyParameters
+from aiogram.types import InputRichMessage, Message, ReplyParameters  # ty: ignore[unresolved-import]
 from pydantic_ai.models import Model
 from stfu_tg import Doc, HList, Template
 from stfu_tg.doc import Element
@@ -211,7 +211,7 @@ class ChatbotMessageStreamer:
                 result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
                     chat_id=self.response_message.chat.id,
                     message_id=self.response_message.message_id,
-                    rich_message=InputRichMessage(html=doc.to_rich()),
+                    rich_message=InputRichMessage(html=doc.to_rich()),  # ty: ignore[unknown-argument, unresolved-attribute]
                     **kwargs,
                 )
             else:
@@ -247,10 +247,10 @@ class ChatbotMessageStreamer:
                 await self._send_rich_draft(Doc(self.header))
             case StreamMode.RICH_EDIT if self.response_message is not None:
                 try:
-                    await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+                    await self.response_message.bot.edit_message_text(  # ty: ignore[missing-argument, unresolved-attribute]
                         chat_id=self.response_message.chat.id,
                         message_id=self.response_message.message_id,
-                        rich_message=InputRichMessage(html=Doc(self.header).to_rich()),
+                        rich_message=InputRichMessage(html=Doc(self.header).to_rich()),  # ty: ignore[unknown-argument, unresolved-attribute]
                     )
                 except TelegramAPIError:
                     pass
@@ -270,10 +270,10 @@ class ChatbotMessageStreamer:
                 case StreamMode.RICH_DRAFT:
                     await self._send_rich_draft(doc)
                 case StreamMode.RICH_EDIT if self.response_message is not None:
-                    await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+                    await self.response_message.bot.edit_message_text(  # ty: ignore[missing-argument, unresolved-attribute]
                         chat_id=self.response_message.chat.id,
                         message_id=self.response_message.message_id,
-                        rich_message=InputRichMessage(html=doc.to_rich()),
+                        rich_message=InputRichMessage(html=doc.to_rich()),  # ty: ignore[unknown-argument, unresolved-attribute]
                     )
                 case StreamMode.HTML_EDIT:
                     if self.response_message is None:
@@ -296,7 +296,7 @@ class ChatbotMessageStreamer:
         await self.source_message.bot.send_rich_message_draft(  # ty: ignore[unresolved-attribute]
             chat_id=self.source_message.chat.id,
             draft_id=self.source_message.message_id,
-            rich_message=InputRichMessage(html=doc.to_rich()),
+            rich_message=InputRichMessage(html=doc.to_rich()),  # ty: ignore[unresolved-attribute]
             message_thread_id=self.source_message.message_thread_id,
         )
 
@@ -304,7 +304,7 @@ class ChatbotMessageStreamer:
         try:
             return await self.source_message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
                 chat_id=self.source_message.chat.id,
-                rich_message=InputRichMessage(html=doc.to_rich()),
+                rich_message=InputRichMessage(html=doc.to_rich()),  # ty: ignore[unresolved-attribute]
                 reply_parameters=ReplyParameters(message_id=self.source_message.message_id),
                 message_thread_id=self.source_message.message_thread_id,
                 reply_markup=reply_kwargs.get("reply_markup"),
