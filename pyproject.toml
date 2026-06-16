@@ -1,11 +1,11 @@
 [project]
 name = "sophie_bot"
-version = "4.3.9"
+version = "4.4.0"
 description = "Sophie is modern and fast Telegram chat manager bot"
 authors = [{ name = "Yacha", email = "yacha@orangefox.tech" }]
 requires-python = ">=3.12,<4"
 dependencies = [
-    "aiogram>=3.28.2,<4",
+    "aiogram>=3.29,<4",
     "redis>=8,<9",
     "dnspython>=2.8.0,<3",
     "ujson>=5.12.1,<6",
@@ -17,8 +17,8 @@ dependencies = [
     "emoji-country-flag>=2.1.0,<3",
     "pydantic-settings>=2.14.1,<3",
     "structlog>=26.1,<27",
-    "stfu-tg>=3.5,<4",
-    "ass-tg>=2.4.6",
+    "stfu-tg>=4",
+    "ass-tg>=2.4.7",
     "beanie>=2.1.0,<3",
     "openai>=2.37.0,<3",
     "lingua-language-detector>=2.2.0,<3",
@@ -63,7 +63,6 @@ dev = [
 ]
 
 [tool.uv.sources]
-aiogram = { git = "https://github.com/aiogram/aiogram.git", rev = "refs/pull/1830/head" }
 stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
