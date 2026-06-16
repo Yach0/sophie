@@ -113,7 +113,9 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
     system_prompt = str(await get_value("ai_chatbot_system_prompt", chat_tid=context.chat_tid))
     tables_enabled = await is_enabled("ai_chatbot_tables", chat_tid=context.chat_tid)
-    instruction_doc = _base_chatbot_instruction_doc(system_prompt, datetime.datetime.now(), tables_enabled=tables_enabled)
+    instruction_doc = _base_chatbot_instruction_doc(
+        system_prompt, datetime.datetime.now(), tables_enabled=tables_enabled
+    )
     instruction_doc += await _build_chatbot_runtime_context(context)
     return instruction_doc.to_md()
 

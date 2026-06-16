@@ -1,7 +1,7 @@
 from typing import Final
 
 from pydantic_ai.models import Model
-from stfu_tg import HList, PreformattedHTML, Template, Title
+from stfu_tg import HList, PreformattedHTML, Template
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI

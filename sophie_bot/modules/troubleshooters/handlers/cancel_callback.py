@@ -74,5 +74,7 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
         message = self.event.message
         if isinstance(message, Message):
             await message.edit_text(
-                text=Template(_("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)).to_html()
+                text=Template(
+                    _("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)
+                ).to_html()
             )

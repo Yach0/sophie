@@ -140,4 +140,6 @@ class PMModuleHelp(SophieCallbackQueryHandler):
         if not self.event.message or not isinstance(self.event.message, Message):
             raise SophieException("Message not found or inaccessible")
 
-        await self.event.message.edit_text(text=str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)
+        await self.event.message.edit_text(
+            text=str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True
+        )
