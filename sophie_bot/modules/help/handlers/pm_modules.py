@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc, HList, Section, Template, Title, Url
 
@@ -19,7 +19,6 @@ from sophie_bot.modules.help.callbacks import (
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, get_aliased_cmds
 from sophie_bot.modules.help.utils.format_help import format_handlers, group_handlers
 from sophie_bot.utils import flags
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -77,10 +76,7 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
             _("Alternatively you can now just chat with Sophie how to use herself!"),
         )
 
-        if isinstance(self.event, CallbackQuery):
-            await self.message.edit_text(text=str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)
-        else:
-            await self.event.reply(str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True)
+        await self.answer(doc, reply_markup=buttons.as_markup(), disable_web_page_preview=True)
 
 
 class PMModuleHelp(SophieCallbackQueryHandler):
@@ -137,9 +133,4 @@ class PMModuleHelp(SophieCallbackQueryHandler):
             )
         )
 
-        if not self.event.message or not isinstance(self.event.message, Message):
-            raise SophieException("Message not found or inaccessible")
-
-        await self.event.message.edit_text(
-            text=str(doc), reply_markup=buttons.as_markup(), disable_web_page_preview=True
-        )
+        await self.edit_text(doc, reply_markup=buttons.as_markup(), disable_web_page_preview=True)
