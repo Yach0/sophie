@@ -13,7 +13,7 @@ deploy_prod_beta:
     - cp $SSHKEY /tmp/sshkey
     - chmod 600 /tmp/sshkey
   script:
-    - ansible-playbook -i "$ANSIBLE_INV" deploy/beta.yml --limit sprod
+    - DEPLOY_TAG="${CI_COMMIT_SHORT_SHA}-runtime" ansible-playbook -i "$ANSIBLE_INV" deploy/beta.yml --limit sprod
   environment:
     name: prod
   rules:
@@ -34,7 +34,7 @@ deploy_prod_stable:
     - cp $SSHKEY /tmp/sshkey
     - chmod 600 /tmp/sshkey
   script:
-    - ansible-playbook -i "$ANSIBLE_INV" deploy/stable.yml --limit sprod
+    - DEPLOY_TAG="${CI_COMMIT_SHORT_SHA}-runtime" ansible-playbook -i "$ANSIBLE_INV" deploy/stable.yml --limit sprod
   environment:
     name: prod
   rules:

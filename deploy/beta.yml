@@ -5,7 +5,7 @@
     - include_tasks: tasks/facts.yml
     - include_tasks: tasks/registry.yml
     - include_tasks: tasks/stop_stable.yml
-    - include_tasks: tasks/deploy_beta.yml
+    - include_tasks: tasks/deploy_beta_tagged.yml
     - include_tasks: tasks/start_stable.yml
 
     - include_tasks: tasks/deploy_scheduler.yml

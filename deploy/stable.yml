@@ -4,5 +4,5 @@
   tasks:
     - include_tasks: tasks/facts.yml
     - include_tasks: tasks/registry.yml
-    - include_tasks: tasks/deploy_stable.yml
+    - include_tasks: tasks/deploy_stable_tagged.yml
     - include_tasks: tasks/deploy_rest.yml
