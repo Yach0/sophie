@@ -77,6 +77,7 @@ FeatureType = Literal[
     "ai_research_service_tier",
     "ai_chatbot_rich_markdown",
     "ai_chatbot_rich_streaming",
+    "ai_chatbot_tables",
 ]
 
 
@@ -246,6 +247,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_research_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_chatbot_rich_markdown": _feature(False),
     "ai_chatbot_rich_streaming": _feature(False),
+    "ai_chatbot_tables": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

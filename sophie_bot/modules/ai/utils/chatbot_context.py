@@ -14,12 +14,17 @@ from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 
-def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime) -> Doc:
+def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, *, tables_enabled: bool = False) -> Doc:
+    markdown_instruction = (
+        _("Prefer to use tables when comparing items")
+        if tables_enabled
+        else _(
+            "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
+        )
+    )
     return Doc(
         system_prompt,
-        _(
-            "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
-        ),
+        markdown_instruction,
         _("Use the conversation history only for context, but respond specifically to the latest prompt."),
         _("Today is ") + today.strftime("%d %B %Y, %H:%M"),
         _("You can use the web search tool to search for information. Include information sources as links."),
@@ -107,7 +112,8 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
 
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
     system_prompt = str(await get_value("ai_chatbot_system_prompt", chat_tid=context.chat_tid))
-    instruction_doc = _base_chatbot_instruction_doc(system_prompt, datetime.datetime.now())
+    tables_enabled = await is_enabled("ai_chatbot_tables", chat_tid=context.chat_tid)
+    instruction_doc = _base_chatbot_instruction_doc(system_prompt, datetime.datetime.now(), tables_enabled=tables_enabled)
     instruction_doc += await _build_chatbot_runtime_context(context)
     return instruction_doc.to_md()
 

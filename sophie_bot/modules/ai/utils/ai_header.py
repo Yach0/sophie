@@ -32,7 +32,7 @@ def _battery_custom_emoji(percentage: int) -> Element:
 
 def ai_short_title_header(model: Model, *additional_elements: Element) -> Element:
     return HList(
-        Title(Template(_("{ai_emoji} AI"), ai_emoji=AI_EMOJI), bold=False),
+        Template("[{inside}]", inside=Template(_("{ai_emoji} AI"), ai_emoji=AI_EMOJI), bold=False),
         _get_short_model_text(model),
         *additional_elements,
         divider=" | ",
