@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message
+from aiogram.types import InputRichMessage, Message  # ty: ignore[unresolved-import]
 
 from sophie_bot.services.bot import bot
 
@@ -94,12 +94,12 @@ class RichMessageDraftStreamer:
         if text == self.last_sent_text:
             return
 
-        from stfu_tg.ai_md import ai_markdown_to_doc
+        from stfu_tg.ai_md import ai_markdown_to_doc  # ty: ignore[unresolved-import]
 
         rich_html = ai_markdown_to_doc(text).to_rich()
 
         try:
-            await bot.send_rich_message_draft(
+            await bot.send_rich_message_draft(  # ty: ignore[unresolved-attribute]
                 chat_id=self.message.chat.id,
                 draft_id=self.draft_id,
                 rich_message=InputRichMessage(html=rich_html),
