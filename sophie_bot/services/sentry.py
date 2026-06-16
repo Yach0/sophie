@@ -80,7 +80,7 @@ def init_sentry() -> None:
         traces_sample_rate=CONFIG.sentry_traces_sample_rate,
         profile_session_sample_rate=CONFIG.sentry_profile_session_sample_rate,
         profile_lifecycle="trace",
-        stream_gen_ai_spans=True,
+        stream_gen_ai_spans=True,  # ty: ignore[unknown-argument]
         send_default_pii=True,
         before_send_transaction=_before_send_transaction,
     )
