@@ -13,7 +13,7 @@ deploy_staging_all:
     - cp $SSHKEY /tmp/sshkey
     - chmod 600 /tmp/sshkey
   script:
-    - ansible-playbook -i "$ANSIBLE_INV" deploy/staging.yml --limit sstaging
+    - DEPLOY_TAG="stable-runtime" ansible-playbook -i "$ANSIBLE_INV" deploy/staging.yml --limit sstaging
   environment:
     name: staging
   rules:
