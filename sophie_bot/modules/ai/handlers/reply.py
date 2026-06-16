@@ -7,7 +7,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-from sophie_bot.modules.ai.utils.self_reply import is_ai_message
+from sophie_bot.modules.ai.utils.self_reply import is_ai_message, message_text
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -25,7 +25,7 @@ class AiReplyHandler(SophieMessageHandler):
         if message.reply_to_message.from_user and message.reply_to_message.from_user.id != CONFIG.bot_id:
             return False
 
-        return is_ai_message(message.reply_to_message.text or "")
+        return is_ai_message(message_text(message.reply_to_message))
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
