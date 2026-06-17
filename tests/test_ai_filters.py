@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import Message
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
@@ -37,13 +38,62 @@ async def test_match_ai_handler_skips_users_older_than_threshold() -> None:
 async def test_consume_ai_filter_daily_quota_enforces_chat_limit() -> None:
     chat_tid = -100987654321
 
-    for current_attempt in range(AI_FILTER_DAILY_LIMIT_PER_CHAT):
-        assert await consume_ai_filter_daily_quota(chat_tid) is True, current_attempt
+    async def get_value(feature: str, chat_tid: int | None = None) -> int:
+        _ = chat_tid
+        return AI_FILTER_DAILY_LIMIT_PER_CHAT if feature == "ai_filter_daily_chat_limit" else 100
 
-    assert await consume_ai_filter_daily_quota(chat_tid) is False
+    with patch("sophie_bot.modules.filters.utils_.match_handler.get_value", get_value):
+        for current_attempt in range(AI_FILTER_DAILY_LIMIT_PER_CHAT):
+            assert await consume_ai_filter_daily_quota(chat_tid) is True, current_attempt
+
+        assert await consume_ai_filter_daily_quota(chat_tid) is False
 
     redis_keys = await aredis.keys("ai_filter_daily_limit:*")
     assert redis_keys
+
+
+@pytest.mark.asyncio
+async def test_consume_ai_filter_daily_quota_enforces_user_limit() -> None:
+    chat_tid = -100987654322
+    user_tid = 123456
+
+    async def get_value(feature: str, chat_tid: int | None = None) -> int:
+        _ = chat_tid
+        return 100 if feature == "ai_filter_daily_chat_limit" else 2
+
+    with patch("sophie_bot.modules.filters.utils_.match_handler.get_value", get_value):
+        assert await consume_ai_filter_daily_quota(chat_tid, user_tid=user_tid) is True
+        assert await consume_ai_filter_daily_quota(chat_tid, user_tid=user_tid) is True
+        assert await consume_ai_filter_daily_quota(chat_tid, user_tid=user_tid) is False
+
+
+@pytest.mark.asyncio
+async def test_match_ai_handler_skips_after_new_user_message_limit() -> None:
+    message = AsyncMock(spec=Message)
+    message.chat = SimpleNamespace(id=-100123)
+    message.from_user = SimpleNamespace(id=123)
+    user_in_group = SimpleNamespace(
+        first_saw=datetime.now(timezone.utc),
+        ai_filter_seen_messages=10,
+        save=AsyncMock(),
+    )
+
+    async def get_value(feature: str, chat_tid: int | None = None) -> int:
+        _ = chat_tid
+        return 10 if feature == "ai_filter_new_user_message_limit" else 100
+
+    with (
+        patch("sophie_bot.modules.filters.utils_.match_handler.is_enabled", AsyncMock(return_value=True)),
+        patch("sophie_bot.modules.filters.utils_.match_handler.get_value", get_value),
+        patch("sophie_bot.modules.filters.utils_.match_handler.extract_message_content", AsyncMock()) as extract_mock,
+        patch("sophie_bot.modules.filters.utils_.match_handler.run_structured_task", AsyncMock()) as ai_mock,
+    ):
+        matched = await match_ai_handler(message, "spam", user_in_group=user_in_group)
+
+    assert matched is False
+    user_in_group.save.assert_not_awaited()
+    extract_mock.assert_not_awaited()
+    ai_mock.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -67,6 +117,32 @@ async def test_enforce_filters_evaluates_only_one_ai_filter_per_message(monkeypa
     await middleware._process_filters(message, {"chat_db": chat_db, "user_in_group": None})
 
     assert match_mock.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_enforce_filters_skips_ai_when_deterministic_filter_matches(monkeypatch: pytest.MonkeyPatch) -> None:
+    middleware = EnforceFiltersMiddleware()
+    message = AsyncMock(spec=Message)
+    message.chat = SimpleNamespace(id=-100124)
+
+    chat_db = SimpleNamespace(iid="chat-iid")
+    filters = [
+        SimpleNamespace(handler="ai:first prompt", effective_version=1),
+        SimpleNamespace(handler="exact:spam", effective_version=1),
+    ]
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.enforce_middleware.FiltersModel.get_filters", AsyncMock(return_value=filters)
+    )
+    match_mock = AsyncMock(return_value=True)
+    monkeypatch.setattr("sophie_bot.modules.filters.enforce_middleware.match_filter_handler", match_mock)
+    monkeypatch.setattr(middleware, "_process_filter", AsyncMock(return_value=([], [])))
+
+    with pytest.raises(SkipHandler):
+        await middleware._process_filters(message, {"chat_db": chat_db, "user_in_group": None})
+
+    assert match_mock.await_count == 1
+    assert match_mock.await_args.args[1] == "exact:spam"
 
 
 def test_get_effective_filter_actions_returns_modern_actions() -> None:

@@ -9,7 +9,7 @@ from pydantic_ai.models.openrouter import OpenRouterModelSettings
 from regex import regex
 from stfu_tg import Template
 
-from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
+from sophie_bot.constants import AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_models import get_filter_handler_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -19,7 +19,7 @@ from sophie_bot.modules.filters.utils_.extract_content import extract_message_co
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
+from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -71,8 +71,12 @@ def match_word_handler(text: str, handler: str) -> bool:
     )
 
 
-def _get_ai_filter_daily_limit_key(chat_tid: int, now: datetime) -> str:
+def _get_ai_filter_daily_chat_limit_key(chat_tid: int, now: datetime) -> str:
     return f"ai_filter_daily_limit:{chat_tid}:{now.strftime('%Y%m%d')}"
+
+
+def _get_ai_filter_daily_user_limit_key(chat_tid: int, user_tid: int, now: datetime) -> str:
+    return f"ai_filter_daily_limit:{chat_tid}:user:{user_tid}:{now.strftime('%Y%m%d')}"
 
 
 def _seconds_until_next_utc_day(now: datetime) -> int:
@@ -80,17 +84,53 @@ def _seconds_until_next_utc_day(now: datetime) -> int:
     return max(int((next_day - now).total_seconds()), 1)
 
 
-async def consume_ai_filter_daily_quota(chat_tid: int) -> bool:
+async def _feature_int(feature: FeatureType, chat_tid: int | None) -> int:
+    value = await get_value(feature, chat_tid=chat_tid)
+    return int(value) if isinstance(value, int) else 0
+
+
+async def consume_ai_filter_daily_quota(chat_tid: int, user_tid: int | None = None) -> bool:
     now = datetime.now(timezone.utc)
-    rate_limit_key = _get_ai_filter_daily_limit_key(chat_tid, now)
+    chat_rate_limit_key = _get_ai_filter_daily_chat_limit_key(chat_tid, now)
     daily_ttl = _seconds_until_next_utc_day(now)
+    chat_limit = await _feature_int("ai_filter_daily_chat_limit", chat_tid)
+    user_limit = await _feature_int("ai_filter_daily_user_limit", chat_tid)
 
     async with aredis.pipeline() as pipe:
-        pipe.incr(rate_limit_key)
-        pipe.expire(rate_limit_key, daily_ttl)
-        daily_count, _ = await pipe.execute()
+        pipe.incr(chat_rate_limit_key)
+        pipe.expire(chat_rate_limit_key, daily_ttl)
+        if user_tid is not None:
+            user_rate_limit_key = _get_ai_filter_daily_user_limit_key(chat_tid, user_tid, now)
+            pipe.incr(user_rate_limit_key)
+            pipe.expire(user_rate_limit_key, daily_ttl)
+        results = await pipe.execute()
 
-    return int(daily_count) <= AI_FILTER_DAILY_LIMIT_PER_CHAT
+    chat_daily_count = int(results[0])
+    user_daily_count = int(results[2]) if user_tid is not None else 0
+
+    if chat_limit > 0 and chat_daily_count > chat_limit:
+        return False
+
+    return not (user_tid is not None and user_limit > 0 and user_daily_count > user_limit)
+
+
+async def _is_within_new_user_message_limit(user_in_group: UserInGroupModel, chat_tid: int) -> bool:
+    message_limit = await _feature_int("ai_filter_new_user_message_limit", chat_tid)
+    if message_limit <= 0:
+        return False
+
+    seen_messages = user_in_group.ai_filter_seen_messages
+    if seen_messages >= message_limit:
+        log.debug(
+            "match_ai_handler: user exceeded AI filter message limit",
+            ai_filter_seen_messages=seen_messages,
+            message_limit=message_limit,
+        )
+        return False
+
+    user_in_group.ai_filter_seen_messages = seen_messages + 1
+    await user_in_group.save()
+    return True
 
 
 async def match_ai_handler(
@@ -117,23 +157,30 @@ async def match_ai_handler(
         return False
 
     # Limit AI filters to users who joined recently
-    if user_in_group:
-        joined_after_threshold = datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
-        first_saw = user_in_group.first_saw
-        if first_saw.tzinfo is None:
-            first_saw = first_saw.replace(tzinfo=timezone.utc)
-        if first_saw < joined_after_threshold:
-            log.debug(
-                "match_ai_handler: user joined before AI threshold, skipping AI evaluation",
-                first_saw=user_in_group.first_saw,
-            )
-            return False
+    if not user_in_group:
+        log.debug("match_ai_handler: no user-in-group model, skipping AI evaluation")
+        return False
 
-    if not await consume_ai_filter_daily_quota(message.chat.id):
+    joined_after_threshold = datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
+    first_saw = user_in_group.first_saw
+    if first_saw.tzinfo is None:
+        first_saw = first_saw.replace(tzinfo=timezone.utc)
+    if first_saw < joined_after_threshold:
         log.debug(
-            "match_ai_handler: daily AI filter limit reached for chat, skipping AI evaluation",
+            "match_ai_handler: user joined before AI threshold, skipping AI evaluation",
+            first_saw=user_in_group.first_saw,
+        )
+        return False
+
+    if not await _is_within_new_user_message_limit(user_in_group, message.chat.id):
+        return False
+
+    user_tid = message.from_user.id if message.from_user else None
+    if not await consume_ai_filter_daily_quota(message.chat.id, user_tid=user_tid):
+        log.debug(
+            "match_ai_handler: daily AI filter limit reached, skipping AI evaluation",
             chat_tid=message.chat.id,
-            daily_limit=AI_FILTER_DAILY_LIMIT_PER_CHAT,
+            user_tid=user_tid,
         )
         return False
 

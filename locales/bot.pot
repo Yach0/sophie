@@ -143,27 +143,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:113
+#: sophie_bot/modules/ai/__init__.py:116
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:115
+#: sophie_bot/modules/ai/__init__.py:118
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:118
+#: sophie_bot/modules/ai/__init__.py:121
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:119
+#: sophie_bot/modules/ai/__init__.py:122
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:122
+#: sophie_bot/modules/ai/__init__.py:125
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:123
+#: sophie_bot/modules/ai/__init__.py:126
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -441,6 +441,14 @@ msgstr ""
 
 #: sophie_bot/modules/ai/handlers/enable_setting.py:14
 msgid "Controls AI features"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/feature_setting.py:26
+msgid "Controls AI chat summaries"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/feature_setting.py:37
+msgid "Controls AI note title generation"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/mode.py:17
@@ -3237,11 +3245,11 @@ msgstr ""
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:149
+#: sophie_bot/modules/filters/utils_/match_handler.py:196
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:156
+#: sophie_bot/modules/filters/utils_/match_handler.py:203
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3249,7 +3257,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:158
+#: sophie_bot/modules/filters/utils_/match_handler.py:205
 msgid "(no text content)"
 msgstr ""
 
@@ -4398,7 +4406,7 @@ msgid "Use {cmd} to retrieve this note."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:52
-#: sophie_bot/modules/notes/schedules/generate_ai_titles.py:23
+#: sophie_bot/modules/notes/schedules/generate_ai_titles.py:24
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr ""
 

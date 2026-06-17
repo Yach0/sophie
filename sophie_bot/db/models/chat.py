@@ -35,6 +35,7 @@ class UserInGroupModel(Document):
     group: Link["ChatModel"]
     first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_saw: datetime
+    ai_filter_seen_messages: int = 0
 
     class Settings:
         name = "users_in_groups"

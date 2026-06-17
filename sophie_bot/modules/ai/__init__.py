@@ -18,6 +18,7 @@ from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
 )
 from sophie_bot.modules.ai.handlers.enable_setting import EnableAI
+from sophie_bot.modules.ai.handlers.feature_setting import AIChatSummariesSetting, AINoteTitlesSetting
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
 from sophie_bot.modules.ai.handlers.op_stats import OpAIStatsHandler
@@ -90,6 +91,8 @@ module_manifest = ModuleManifest(
         EnableAI,
         AIModerator,
         AIAutotrans,
+        AIChatSummariesSetting,
+        AINoteTitlesSetting,
         AIFilterAddHandler,
         AIProviderSetting,
         AIProviderSettingAlt,

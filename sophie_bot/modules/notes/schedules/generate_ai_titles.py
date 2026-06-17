@@ -10,6 +10,7 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -73,6 +74,10 @@ class GenerateAITitles:
 
             if status.mode != CurrentMode.beta:
                 log.debug("generate_ai_titles: not in beta mode, skipping...", chat=chat.tid)
+                continue
+
+            if not await is_enabled("ai_note_titles", chat_tid=chat.tid):
+                log.debug("generate_ai_titles: feature flag disabled, skipping...", chat=chat.tid)
                 continue
 
             if not await AIEnabledModel.get_state(chat.id):

@@ -1,6 +1,6 @@
 """End-to-end tests for AI module commands.
 
-Covers: /enableai, /aimoderator, /aiusage, /aireset, /aiprovider, /aitranslate
+Covers: /enableai, /aimoderator, /ai_summaries, /ai_note_titles, /aiusage, /aireset, /aiprovider, /aitranslate
 """
 
 from __future__ import annotations
@@ -157,6 +157,52 @@ async def test_aimoderator_shows_status(test_client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 # /aiusage tests
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ai_summaries_shows_status(test_client: TestClient) -> None:
+    """Admin calling /ai_summaries without args should see the current summary status."""
+    group_chat = ChatFactory.create_group(chat_id=-1002900000041, title="AISummaries Status Group")
+    admin_wrapper = test_client.create_user(user_id=929000041, first_name="AdminSummaries", username="admin_summaries")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        requests = await test_client.send_command(
+            command="ai_summaries",
+            from_user=admin_wrapper.user,
+            chat=group_chat,
+        )
+
+    assert requests, "Bot should respond to admin /ai_summaries"
+    response_text = requests[-1].text or ""
+    assert "Current state" in response_text or "AI Chat Summaries" in response_text, (
+        f"Expected status display, got: {response_text}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_ai_note_titles_shows_status(test_client: TestClient) -> None:
+    """Admin calling /ai_note_titles without args should see the current note title status."""
+    group_chat = ChatFactory.create_group(chat_id=-1002900000042, title="AINoteTitles Status Group")
+    admin_wrapper = test_client.create_user(user_id=929000042, first_name="AdminTitles", username="admin_titles")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        requests = await test_client.send_command(
+            command="ai_note_titles",
+            from_user=admin_wrapper.user,
+            chat=group_chat,
+        )
+
+    assert requests, "Bot should respond to admin /ai_note_titles"
+    response_text = requests[-1].text or ""
+    assert "Current state" in response_text or "AI Note Titles" in response_text, (
+        f"Expected status display, got: {response_text}"
+    )
 
 
 @pytest.mark.asyncio

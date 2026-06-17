@@ -124,27 +124,37 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         if not all_filters:
             return
 
-        # Evaluate all filters asynchronously
         matched_filters: list[FiltersModel] = []
         user_in_group = data.get("user_in_group")
-        ai_filter_evaluated = False
-        for fil in all_filters:
-            if fil.handler.startswith("ai:"):
-                if ai_filter_evaluated:
-                    log.debug("EnforceFiltersMiddleware: skipping extra AI filter for this message")
-                    continue
-                ai_filter_evaluated = True
+        ai_filters: list[FiltersModel] = []
+        for filter_item in all_filters:
+            if filter_item.handler.startswith("ai:"):
+                ai_filters.append(filter_item)
+                continue
 
             matched = await match_filter_handler(
                 message,
-                fil.handler,
+                filter_item.handler,
                 user_in_group=user_in_group,
-                enable_lock_types=fil.effective_version >= 2,
+                enable_lock_types=filter_item.effective_version >= 2,
                 chat_iid=chat_db.iid,
             )
 
             if matched:
-                matched_filters.append(fil)
+                matched_filters.append(filter_item)
+
+        if not matched_filters and ai_filters:
+            matched = await match_filter_handler(
+                message,
+                ai_filters[0].handler,
+                user_in_group=user_in_group,
+                enable_lock_types=ai_filters[0].effective_version >= 2,
+                chat_iid=chat_db.iid,
+            )
+            if matched:
+                matched_filters.append(ai_filters[0])
+            if len(ai_filters) > 1:
+                log.debug("EnforceFiltersMiddleware: skipping extra AI filters for this message")
 
         all_messages = []
         triggered_groups: list[str] = []  # Handled action groups, to stop same actions from repeating
