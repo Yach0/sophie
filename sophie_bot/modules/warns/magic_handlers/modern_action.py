@@ -77,7 +77,11 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
                 return
             bot_me = await message.bot.get_me()
             admin_db = await ChatModel.upsert_user(bot_me)
-        target_db = data["user_db"]  # In filter/action context, the user who triggered it
+        # In filter/action context, the user who triggered it. data["user_db"] may be
+        # None when SaveChatsMiddleware doesn't populate it (channel messages, anonymous
+        # admin sends). Resolve from the message sender, which is guaranteed non-None
+        # by the early return above. SOPHIE-27E.
+        target_db = data.get("user_db") or await ChatModel.upsert_user(message.from_user)
 
         text = filter_data.reason
         if not text:
