@@ -182,6 +182,15 @@ class ProcessFederationImports:
         for task in tasks:
             try:
                 await self._process_task(task)
+            except CSVValidationError as validation_error:
+                # Expected user-input error (wrong CSV format/headers). The task is already
+                # marked FAILED with the error message in _process_task, so the user gets
+                # feedback. Log at warning to avoid Sentry noise for malformed uploads.
+                log.warning(
+                    "Federation import task rejected: invalid CSV format",
+                    task_id=str(task.id),
+                    error=str(validation_error),
+                )
             except Exception as e:
                 log.error("Error processing federation import task", task_id=str(task.id), error=str(e))
 
