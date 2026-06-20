@@ -121,34 +121,20 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
     if not CONFIG.metrics_enable:
         return
 
-    provider = get_provider_from_model(model)
-    model_name = get_model_name(model)
+    base_attributes = {"provider": get_provider_from_model(model), "model": get_model_name(model)}
 
     # Track different token types
-    input_tokens = usage.input_tokens
-    output_tokens = usage.output_tokens
-    total_tokens = usage.total_tokens
-
-    if input_tokens:
-        count_metric(
-            "sophie.ai.tokens",
-            input_tokens,
-            attributes={"provider": provider, "model": model_name, "token_type": "request"},
-        )
-
-    if output_tokens:
-        count_metric(
-            "sophie.ai.tokens",
-            output_tokens,
-            attributes={"provider": provider, "model": model_name, "token_type": "response"},
-        )
-
-    if total_tokens:
-        count_metric(
-            "sophie.ai.tokens",
-            total_tokens,
-            attributes={"provider": provider, "model": model_name, "token_type": "total"},
-        )
+    for value, token_type in (
+        (usage.input_tokens, "request"),
+        (usage.output_tokens, "response"),
+        (usage.total_tokens, "total"),
+    ):
+        if value:
+            count_metric(
+                "sophie.ai.tokens",
+                value,
+                attributes={**base_attributes, "token_type": token_type},
+            )
 
 
 def track_ai_agent_result(
