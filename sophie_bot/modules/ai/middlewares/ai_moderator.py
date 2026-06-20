@@ -15,6 +15,7 @@ from sophie_bot.modules.ai.utils.ai_moderator import (
 )
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -25,7 +26,7 @@ from sophie_bot.utils.logger import log
 class AiModeratorMiddleware(BaseMiddleware):
     @staticmethod
     async def _triggered(message: Message, categories: dict):
-        await message.delete()
+        await common_try(message.delete())
 
         triggered_categories: dict = {key: triggered for key, triggered in categories.items() if triggered}
 
