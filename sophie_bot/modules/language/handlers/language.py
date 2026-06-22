@@ -108,7 +108,4 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
             [InlineKeyboardButton(text=_("Help us translate!"), url="https://crowdin.com/project/sophiebot")]
         )
 
-        if self.event.message and isinstance(self.event.message, Message):
-            await self.event.message.edit_text(
-                text=Template(_("Language set to {lang}"), lang=display_name).to_html(), reply_markup=keyboard
-            )
+        await self.edit_text(Template(_("Language set to {lang}"), lang=display_name).to_html(), reply_markup=keyboard)
