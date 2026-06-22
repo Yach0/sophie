@@ -13,6 +13,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
@@ -71,7 +72,8 @@ class ResearchProgressMessage:
                 return edited_message
             return self.message
         except TelegramAPIError:
-            return await source_message.reply(doc.to_html(), disable_web_page_preview=True)
+            sent = await common_try(source_message.reply(doc.to_html(), disable_web_page_preview=True))
+            return sent if isinstance(sent, Message) else self.message
 
 
 @flags.args(
