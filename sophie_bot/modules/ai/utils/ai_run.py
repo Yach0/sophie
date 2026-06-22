@@ -110,15 +110,6 @@ def _pop_model_settings(agent_init_kwargs: dict[str, Any]) -> Mapping[str, objec
     raise TypeError("model_settings must be a mapping when request options are injected")
 
 
-def _resolve_model_for_metrics(agent: Agent[Any, Any], model: Model) -> Model:
-    agent_model = agent.model
-    if agent_model is None:
-        return model
-    if not isinstance(agent_model, Model):
-        raise ValueError(f"Agent model must be a Model instance, got {type(agent_model)}")
-    return agent_model
-
-
 def _get_agent_model(agent: Agent[Any, Any]) -> Model:
     model = agent.model
     if model is None:
