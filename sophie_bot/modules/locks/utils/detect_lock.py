@@ -88,9 +88,7 @@ def _check_emoji_only(message: Message) -> bool:
 
 
 def _check_stickerpack(message: Message, pack_name: str) -> bool:
-    if not message.sticker:
-        return False
-    return message.sticker.set_name == pack_name
+    return bool(message.sticker and message.sticker.set_name == pack_name)
 
 
 def _check_forward(message: Message) -> bool:
@@ -98,15 +96,11 @@ def _check_forward(message: Message) -> bool:
 
 
 def _check_forward_bot(message: Message) -> bool:
-    if not message.forward_from:
-        return False
-    return message.forward_from.is_bot
+    return bool(message.forward_from and message.forward_from.is_bot)
 
 
 def _check_forward_channel(message: Message) -> bool:
-    if not message.forward_from_chat:
-        return False
-    return message.forward_from_chat.type == "channel"
+    return bool(message.forward_from_chat and message.forward_from_chat.type == "channel")
 
 
 def _check_forward_story(message: Message) -> bool:
@@ -114,9 +108,7 @@ def _check_forward_story(message: Message) -> bool:
 
 
 def _check_forward_user(message: Message) -> bool:
-    if not message.forward_from:
-        return False
-    return not message.forward_from.is_bot
+    return bool(message.forward_from and not message.forward_from.is_bot)
 
 
 def _check_guest_bot(message: Message) -> bool:
@@ -155,9 +147,7 @@ def _check_inline(message: Message) -> bool:
 
 
 def _check_anon_channel(message: Message) -> bool:
-    if not message.sender_chat:
-        return False
-    return message.sender_chat.type in ("channel", "supergroup")
+    return bool(message.sender_chat and message.sender_chat.type in ("channel", "supergroup"))
 
 
 def _check_comment(message: Message) -> bool:
