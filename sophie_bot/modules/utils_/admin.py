@@ -145,26 +145,6 @@ async def is_user_admin(chat: Union[int, PydanticObjectId], user: Union[int, Pyd
     return result is True
 
 
-async def is_chat_creator(chat: Union[int, PydanticObjectId], user: Union[int, PydanticObjectId]) -> bool:
-    """Check if the user is the creator of the chat."""
-    chat_model = await _resolve_model(chat)
-    if not chat_model:
-        return False
-
-    user_model = await _resolve_model(user)
-    if not user_model:
-        return False
-
-    admin = await ChatAdminModel.find_one(
-        ChatAdminModel.chat.id == chat_model.iid,
-        ChatAdminModel.user.id == user_model.iid,
-    )
-    if not admin:
-        return False
-
-    return admin.member.status == ChatMemberStatus.CREATOR
-
-
 async def get_admins_rights(chat: Union[int, PydanticObjectId]) -> None:
     """Refresh admin cache for the chat."""
     chat_model = await _resolve_model(chat)
