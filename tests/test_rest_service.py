@@ -235,9 +235,8 @@ def test_create_app_adds_expected_middleware_and_init_api_routers_includes_route
     init_api_routers(app, [router])
 
     middleware_classes = {middleware.cls for middleware in app.user_middleware}
-    route_paths = {route.path for route in app.routes}
     assert I18nMiddleware in middleware_classes
     assert SecurityHeadersMiddleware in middleware_classes
     assert GlobalRateLimitMiddleware in middleware_classes
     assert RequestSizeLimitMiddleware in middleware_classes
-    assert "/unit-test/ping" in route_paths
+    assert app.url_path_for("ping") == "/unit-test/ping"
