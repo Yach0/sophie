@@ -199,6 +199,5 @@ def test_init_api_routers_includes_each_router() -> None:
 
     init_api_routers(app, [first_router, second_router])
 
-    route_paths = {route.path for route in app.routes}
-    assert "/alpha" in route_paths
-    assert "/beta" in route_paths
+    assert app.url_path_for("alpha") == "/alpha"
+    assert app.url_path_for("beta") == "/beta"
