@@ -19,7 +19,7 @@ from pydantic_ai.messages import (
     UserContent,
     UserPromptPart,
 )
-from stfu_tg import HList, KeyValue, Section, Template, VList
+from stfu_tg import Doc, HList, KeyValue, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
@@ -203,10 +203,59 @@ class AIMessageHistory:
 
     message_history: list[ModelRequest | ModelResponse]
     prompt: list[UserContent]
+    context_lines: list[str]
 
     def __init__(self):
         self.message_history = []
         self.prompt = []
+        self.context_lines = []
+
+    @staticmethod
+    def _is_ai_dialogue(msg: MessageType) -> bool:
+        """Whether a cached user message was actually part of the AI conversation.
+
+        Background group chatter (everything else) must not become a standalone user turn:
+        trailing unanswered user turns get merged into the current prompt by the provider,
+        which makes the model answer several messages at once.
+        """
+        return bool(
+            msg.handled_by_ai
+            or msg.reply_to_is_sophie_ai
+            or msg.has_ai_command
+            or msg.is_ai_filter_reply
+            or msg.proactively_answered
+        )
+
+    async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
+        user = await ChatModel.get_by_tid(msg.user_id)
+        first_name = user.first_name_or_title if user else "Unknown"
+        from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
+        return AIUserMessageFormatter.user_message(msg.text, from_user_name)
+
+    def _fold_trailing_requests(self) -> None:
+        """Move trailing unanswered user turns out of the history and into the context block."""
+        folded: list[str] = []
+        while self.message_history and isinstance(self.message_history[-1], ModelRequest):
+            request = self.message_history.pop()
+            folded.extend(
+                part.content
+                for part in request.parts
+                if isinstance(part, UserPromptPart) and isinstance(part.content, str)
+            )
+        self.context_lines.extend(reversed(folded))
+
+    def apply_context_block(self) -> None:
+        """Prepend collected background chatter to the prompt as reference-only context."""
+        if not self.context_lines:
+            return
+        context_block = Doc(
+            Section(
+                VList(*self.context_lines),
+                title=_("Recent chat messages (context only — respond solely to the latest message)"),
+            )
+        ).to_md()
+        self.prompt = [context_block, *self.prompt]
+        self.context_lines = []
 
     @staticmethod
     async def _cache_transform_msg(chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
@@ -223,13 +272,28 @@ class AIMessageHistory:
             parts=[UserPromptPart(content=AIUserMessageFormatter.user_message(msg.text, from_user_name))]
         )
 
-    async def add_from_cache(self, chat_id: int, limit: int | None = None) -> None:
-        """Adds messages from the cache to the message history."""
-        self.message_history.extend(
-            await gather(
-                *[self._cache_transform_msg(chat_id, msg) for msg in await get_cached_messages(chat_id, limit=limit)]
-            )
-        )
+    async def add_from_cache(self, chat_id: int, limit: int | None = None, fold_background: bool = False) -> None:
+        """Adds messages from the cache to the message history.
+
+        With ``fold_background`` enabled, only genuine AI-conversation messages (and Sophie's own
+        replies) become conversation turns; unrelated group chatter is collected into
+        ``context_lines`` instead, to be surfaced as reference-only context via
+        :meth:`apply_context_block`. This prevents the model from treating a backlog of unanswered
+        group messages as the current turn and answering all of them at once.
+        """
+        messages = await get_cached_messages(chat_id, limit=limit)
+
+        if not fold_background:
+            self.message_history.extend(await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]))
+            return
+
+        for msg in messages:
+            if msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg):
+                self.message_history.append(await self._cache_transform_msg(chat_id, msg))
+            else:
+                self.context_lines.append(await self._format_context_line(chat_id, msg))
+
+        self._fold_trailing_requests()
 
     async def add_from_message(
         self,

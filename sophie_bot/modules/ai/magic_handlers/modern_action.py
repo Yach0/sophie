@@ -94,8 +94,9 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
 
         messages = AIMessageHistory()
         messages.add_system(filter_data.prompt)
-        await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT)
+        await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)
+        messages.apply_context_block()
         provider = await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid)
 
         result = await run_ai_text(
