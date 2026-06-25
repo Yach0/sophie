@@ -348,7 +348,7 @@ msgid "Ask Sophie a question"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:38
-#: sophie_bot/modules/ai/handlers/research.py:102
+#: sophie_bot/modules/ai/handlers/research.py:104
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr ""
 
@@ -594,16 +594,16 @@ msgstr ""
 msgid "The AI mode has been exited."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:44
+#: sophie_bot/modules/ai/handlers/research.py:45
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
 msgid "Starting the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:78
+#: sophie_bot/modules/ai/handlers/research.py:80
 msgid "Research topic"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:80
+#: sophie_bot/modules/ai/handlers/research.py:82
 msgid "Research a topic using multistage web search and return a summary with sources"
 msgstr ""
 
@@ -741,24 +741,24 @@ msgstr ""
 msgid "Change AI prompt"
 msgstr ""
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:112
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:113
 #, python-brace-format
 msgid "{ai_emoji} AI Response"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:33
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:34
 msgid "✋ AI Moderator"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:34
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:35
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:35
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:36
 msgid "Message author"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:45
 #: sophie_bot/modules/federations/handlers/ban.py:57
 #: sophie_bot/modules/federations/handlers/ban.py:98
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:83
@@ -770,7 +770,7 @@ msgstr ""
 #: sophie_bot/modules/restrictions/services/silent.py:80
 #: sophie_bot/modules/warns/handlers/warn.py:52
 #: sophie_bot/modules/warns/handlers/warn.py:78
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:130
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] ""
@@ -1167,6 +1167,10 @@ msgstr ""
 #: sophie_bot/modules/ai/utils/message_history.py:194
 #, python-brace-format
 msgid "[Video transcription: {text}]"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/message_history.py:254
+msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/proactive_replies.py:272
@@ -1642,7 +1646,6 @@ msgstr ""
 
 #: sophie_bot/modules/error/__init__.py:27
 #: sophie_bot/modules/federations/schedules/process_imports.py:71
-#: sophie_bot/modules/federations/utils/federation_context.py:77
 msgid "Error"
 msgstr ""
 
@@ -3018,10 +3021,6 @@ msgstr ""
 msgid "Could not determine federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/utils/federation_context.py:65
-msgid "You don't have permission to perform this action in this federation."
-msgstr ""
-
 #: sophie_bot/modules/filters/__init__.py:83
 #: sophie_bot/modules/filters/handlers/filter_del.py:52
 msgid "Filters"
@@ -3464,7 +3463,7 @@ msgstr ""
 
 #: sophie_bot/modules/help/__init__.py:46
 #: sophie_bot/modules/help/handlers/help_group.py:27
-#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:72
 #: sophie_bot/modules/help/handlers/start_group.py:34
 #: sophie_bot/modules/help/handlers/start_pm.py:54
 msgid "Help"
@@ -3490,47 +3489,47 @@ msgstr ""
 msgid "The help information available in the private messages with Sophie"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:28
+#: sophie_bot/modules/help/handlers/pm_modules.py:27
 msgid "Shows help overview for all modules"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:49
+#: sophie_bot/modules/help/handlers/pm_modules.py:48
 #, python-brace-format
 msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:70
-#: sophie_bot/modules/help/handlers/pm_modules.py:134
+#: sophie_bot/modules/help/handlers/pm_modules.py:69
+#: sophie_bot/modules/help/handlers/pm_modules.py:130
 #: sophie_bot/modules/privacy/handlers/privacy.py:38
 msgid "⬅️ Back"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:74
+#: sophie_bot/modules/help/handlers/pm_modules.py:73
 msgid "There are 2 help sources, you can read the detailed wiki or get a quick commands by modules overview."
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:75
+#: sophie_bot/modules/help/handlers/pm_modules.py:74
 msgid "📖 Wiki (detailed information)"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:77
+#: sophie_bot/modules/help/handlers/pm_modules.py:76
 msgid "Alternatively you can now just chat with Sophie how to use herself!"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:97
+#: sophie_bot/modules/help/handlers/pm_modules.py:93
 msgid "Module not found"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:121
+#: sophie_bot/modules/help/handlers/pm_modules.py:117
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:129
+#: sophie_bot/modules/help/handlers/pm_modules.py:125
 msgid "📖 Look the module's wiki page for more information"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:130
+#: sophie_bot/modules/help/handlers/pm_modules.py:126
 msgid "📖 Wiki page"
 msgstr ""
 
@@ -3635,7 +3634,7 @@ msgstr ""
 msgid "Language changed to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:113
+#: sophie_bot/modules/language/handlers/language.py:111
 #, python-brace-format
 msgid "Language set to {lang}"
 msgstr ""
@@ -4466,7 +4465,7 @@ msgstr ""
 #: sophie_bot/modules/restrictions/actions/base.py:142
 #: sophie_bot/modules/restrictions/actions/kick.py:48
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:117
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:121
 msgid "Filter action"
 msgstr ""
 
@@ -6445,12 +6444,12 @@ msgid "By admin"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/warn.py:48
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:122
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
 msgid "Warnings count"
 msgstr ""
 
 #: sophie_bot/modules/warns/handlers/warn.py:55
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:129
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:133
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr ""
@@ -6582,11 +6581,11 @@ msgstr ""
 msgid "Change warn reason"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:90
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:94
 msgid "No reason"
 msgstr ""
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:119
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:123
 #, python-brace-format
 msgid "User {user} was automatically warned based on a filter action"
 msgstr ""
