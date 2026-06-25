@@ -10,6 +10,7 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
+from sophie_bot.modules.ai.utils import ai_run
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
     build_model_settings,
@@ -115,3 +116,50 @@ async def test_run_ai_stream_sends_cumulative_text_and_deduplicates_tools() -> N
     assert streamed_text == ["hel", "hello"]
     assert tool_calls == ["search", "notes"]
     assert result.output == "hello"
+
+
+async def test_run_with_model_fallback_returns_primary_when_it_succeeds(monkeypatch: Any) -> None:
+    primary = TestModel()
+
+    async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
+        return await operation()
+
+    monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
+
+    seen_models: list[Any] = []
+
+    async def operation(active_model: Any) -> str:
+        seen_models.append(active_model)
+        return "from-primary"
+
+    result, served_model = await ai_run._run_with_model_fallback(operation, primary)
+
+    assert result == "from-primary"
+    assert served_model is primary
+    assert seen_models == [None]
+
+
+async def test_run_with_model_fallback_returns_fallback_model_when_primary_fails(monkeypatch: Any) -> None:
+    primary = TestModel()
+    fallback = TestModel()
+
+    async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
+        return await operation()
+
+    monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
+    monkeypatch.setattr(ai_run, "_resolve_fallback_model", lambda model: fallback)
+
+    seen_models: list[Any] = []
+
+    async def operation(active_model: Any) -> str:
+        seen_models.append(active_model)
+        if active_model is None:
+            raise TimeoutError("primary provider is down")
+        return "from-fallback"
+
+    result, served_model = await ai_run._run_with_model_fallback(operation, primary)
+
+    # The served model must be the fallback so callers attribute usage/result metrics correctly.
+    assert result == "from-fallback"
+    assert served_model is fallback
+    assert seen_models == [None, fallback]

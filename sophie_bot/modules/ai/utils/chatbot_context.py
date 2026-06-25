@@ -122,7 +122,11 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
 
 async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> AIMessageHistory:
     history = AIMessageHistory()
-    await history.add_from_cache(context.chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
+    max_age_minutes = int(await get_value("ai_chatbot_history_max_age_minutes", chat_tid=context.chat_tid))
+    max_age = datetime.timedelta(minutes=max_age_minutes) if max_age_minutes > 0 else None
+    await history.add_from_cache(
+        context.chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True, max_age=max_age
+    )
     await history.add_from_message(message, custom_text=context.user_text)
     history.apply_context_block()
     return history

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import gather
+from datetime import timedelta
 from typing import BinaryIO, cast
 
 from aiogram.enums import ChatMemberStatus
@@ -272,7 +273,13 @@ class AIMessageHistory:
             parts=[UserPromptPart(content=AIUserMessageFormatter.user_message(msg.text, from_user_name))]
         )
 
-    async def add_from_cache(self, chat_id: int, limit: int | None = None, fold_background: bool = False) -> None:
+    async def add_from_cache(
+        self,
+        chat_id: int,
+        limit: int | None = None,
+        fold_background: bool = False,
+        max_age: timedelta | None = None,
+    ) -> None:
         """Adds messages from the cache to the message history.
 
         With ``fold_background`` enabled, only genuine AI-conversation messages (and Sophie's own
@@ -281,7 +288,7 @@ class AIMessageHistory:
         :meth:`apply_context_block`. This prevents the model from treating a backlog of unanswered
         group messages as the current turn and answering all of them at once.
         """
-        messages = await get_cached_messages(chat_id, limit=limit)
+        messages = await get_cached_messages(chat_id, limit=limit, max_age=max_age)
 
         if not fold_background:
             self.message_history.extend(await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]))

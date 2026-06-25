@@ -134,7 +134,7 @@ def get_provider_models(provider_name: str, *, playground_only: bool = False) ->
 
 def _get_default_model(provider_name: str, *, translation: bool) -> SophieAIModel | None:
     if provider_name == AIProviders.auto.name:
-        auto_model_name = "mistralai/mistral-small-2603"
+        auto_model_name = "mistralai/mistral-small-2603" if translation else "google/gemini-3-flash-preview"
         return AI_MODELS_BY_NAME.get(auto_model_name)
 
     models = get_provider_models(provider_name)
