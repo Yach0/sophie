@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, Final, Generic, TypeVar, cast
 
 from pydantic import BaseModel
 from pydantic_ai import Agent, AgentStreamEvent, FunctionToolCallEvent, RunContext
@@ -23,14 +23,64 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     AI_PROVIDER_EXCEPTIONS,
     AIRetryCallback,
     ai_request_failed_from_error,
+    is_retryable_ai_provider_error,
     run_ai_request_with_retries,
 )
+from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
+from sophie_bot.utils.logger import log
 
 DepsT = TypeVar("DepsT")
 OutputT = TypeVar("OutputT")
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
+FallbackOutputT = TypeVar("FallbackOutputT")
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
+
+# Cheap, broadly-capable model used as a last resort when the primary model keeps failing with a
+# transient/provider error after its own retries are exhausted. Better a degraded answer than none.
+AI_FALLBACK_MODEL_NAME: Final = "mistralai/mistral-small-2603"
+
+
+def _resolve_fallback_model(primary_model: Model) -> Model | None:
+    fallback_model = get_ai_model(AI_FALLBACK_MODEL_NAME)
+    if fallback_model.model_name == primary_model.model_name:
+        return None
+    return fallback_model
+
+
+async def _run_with_model_fallback(
+    operation: Callable[[Model | None], Awaitable[FallbackOutputT]],
+    primary_model: Model,
+    on_retry: AIRetryCallback | None = None,
+    operation_label: str = "agent",
+) -> tuple[FallbackOutputT, Model]:
+    """Run ``operation`` with retries on the primary model; on a transient/provider failure that
+    survives retries, retry once on a cheaper fallback model.
+
+    Each model's attempt is tracked under its own name via :func:`track_ai_request`, and the model
+    that actually served the request is returned alongside the result so callers attribute
+    post-completion metrics (usage, agent/stream results) to the served model rather than the
+    primary one.
+    """
+    try:
+        async with track_ai_request(primary_model, operation_label):
+            result = await run_ai_request_with_retries(lambda: operation(None), on_retry=on_retry)
+        return result, primary_model
+    except AI_PROVIDER_EXCEPTIONS as primary_error:
+        if not is_retryable_ai_provider_error(primary_error):
+            raise
+        fallback_model = _resolve_fallback_model(primary_model)
+        if fallback_model is None:
+            raise
+        log.warning(
+            "AI request on %s failed after retries (%s); falling back to %s",
+            primary_model.model_name,
+            type(primary_error).__name__,
+            fallback_model.model_name,
+        )
+        async with track_ai_request(fallback_model, operation_label):
+            result = await run_ai_request_with_retries(lambda: operation(fallback_model), on_retry=on_retry)
+        return result, fallback_model
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,12 +176,15 @@ async def _run_with_retries_and_metrics(
 ) -> AIAgentResult[OutputT]:
     model = _get_agent_model(agent)
 
-    async def run_agent_once() -> Any:
-        return await agent.run(**run_kwargs)
+    async def run_agent_once(active_model: Model | None) -> Any:
+        if active_model is None:
+            return await agent.run(**run_kwargs)
+        run_with_fallback_kwargs = dict(run_kwargs)
+        run_with_fallback_kwargs["model"] = active_model
+        return await agent.run(**run_with_fallback_kwargs)
 
     try:
-        async with track_ai_request(model, "agent"):
-            result = await run_ai_request_with_retries(run_agent_once, on_retry=on_retry)
+        result, served_model = await _run_with_model_fallback(run_agent_once, model, on_retry=on_retry)
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
@@ -139,9 +192,9 @@ async def _run_with_retries_and_metrics(
     retries = count_retries_from_messages(message_history)
 
     if result.usage:
-        track_ai_usage(model, result.usage)
+        track_ai_usage(served_model, result.usage)
         track_ai_agent_result(
-            model,
+            served_model,
             result.usage,
             message_history,
             output_length=len(str(result.output)),
@@ -228,11 +281,16 @@ async def run_ai_stream(
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
-    async def run_stream_once() -> tuple[str, RunUsage, list[ModelRequest | ModelResponse], bool, int]:
+    async def run_stream_once(
+        active_model: Model | None,
+    ) -> tuple[str, RunUsage, list[ModelRequest | ModelResponse], bool, int]:
         run_stream_kwargs = _build_agent_run_kwargs(
             user_prompt, message_history, deps, usage_limits, request_options, model_settings
         )
         run_stream_kwargs.update(extra_run_kwargs)
+        if active_model is not None:
+            run_stream_kwargs["model"] = active_model
+        effective_model = active_model or metrics_model
         stream_start = time.perf_counter()
         first_token_seen = False
         stream_chunk_count = 0
@@ -260,7 +318,7 @@ async def run_ai_stream(
             async for text_delta in result_stream.stream_text(delta=True, debounce_by=0.2):
                 if text_delta and not first_token_seen:
                     first_token_seen = True
-                    track_ai_time_to_first_token(metrics_model, time.perf_counter() - stream_start)
+                    track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
                 stream_chunk_count += 1
                 accumulated_text += text_delta
                 await on_text_stream(accumulated_text)
@@ -271,27 +329,29 @@ async def run_ai_stream(
             return output_text, usage, result_message_history, first_token_seen, stream_chunk_count
 
     try:
-        async with track_ai_request(metrics_model, "agent"):
+        (
             (
                 output_text,
                 usage,
                 result_message_history,
                 first_token_seen,
                 stream_chunk_count,
-            ) = await run_ai_request_with_retries(run_stream_once, on_retry=on_retry)
+            ),
+            served_model,
+        ) = await _run_with_model_fallback(run_stream_once, metrics_model, on_retry=on_retry)
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
     retries = count_retries_from_messages(result_message_history)
     track_ai_agent_result(
-        metrics_model,
+        served_model,
         usage,
         result_message_history,
         output_length=len(output_text),
         retries=retries,
     )
     track_ai_stream_result(
-        metrics_model,
+        served_model,
         chunks=stream_chunk_count,
         text_length=len(output_text),
         first_token_seen=first_token_seen,

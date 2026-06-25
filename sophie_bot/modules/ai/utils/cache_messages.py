@@ -119,11 +119,21 @@ async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: 
 
 
 async def get_cached_messages(
-    chat_id: int, now: datetime | None = None, limit: int | None = None
+    chat_id: int,
+    now: datetime | None = None,
+    limit: int | None = None,
+    max_age: timedelta | None = None,
 ) -> Tuple[MessageType, ...]:
-    """Retrieves and parses cached messages for a given chat."""
+    """Retrieves and parses cached messages for a given chat.
+
+    ``max_age`` further restricts the window to messages newer than ``now - max_age`` (never
+    older than the cache TTL cutoff), on top of the optional trailing-``limit`` count cap.
+    """
     current_time = now or datetime.now(timezone.utc)
-    messages = await get_cached_messages_between(chat_id, _build_cutoff(current_time), current_time)
+    start_at = _build_cutoff(current_time)
+    if max_age is not None:
+        start_at = max(start_at, current_time - max_age)
+    messages = await get_cached_messages_between(chat_id, start_at, current_time)
     if limit is None:
         return messages
     start_index = max(len(messages) - limit, 0)
