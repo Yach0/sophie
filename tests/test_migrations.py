@@ -125,6 +125,94 @@ def test_restore_legacy_note_markdown_update_restores_original_buttons() -> None
     }
 
 
+def _legacy_greetings_migration() -> ModuleType:
+    return importlib.import_module(
+        "sophie_bot.db.migrations.20260625_042041_convert_legacy_greetings_saveables_to_html"
+    )
+
+
+def test_convert_legacy_greetings_saveables_converts_markdown_and_buttons() -> None:
+    migration = _legacy_greetings_migration()
+
+    update = migration.build_greetings_saveables_migration_update(
+        {
+            "_id": "greetings-id",
+            "note": {"text": "**Welcome**", "parse_mode": "md", "version": 1},
+            "security_note": {
+                "text": "Prove you are human\n[I am not a robot](btnwelcomesecurity)",
+                "parse_mode": "md",
+                "version": 1,
+            },
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "note": {
+                "text": "<b>Welcome</b>",
+                "parse_mode": "html",
+                "version": 2,
+                "legacy_markdown_text": "**Welcome**",
+                "buttons": [],
+                "legacy_buttons": [],
+            },
+            "security_note": {
+                "text": "Prove you are human",
+                "parse_mode": "html",
+                "version": 2,
+                "legacy_markdown_text": "Prove you are human\n[I am not a robot](btnwelcomesecurity)",
+                # The captcha button is hard-added in code, so it is dropped here to avoid a duplicate.
+                "buttons": [],
+                "legacy_buttons": [],
+            },
+        }
+    }
+
+
+def test_convert_legacy_greetings_saveables_skips_modern_and_missing() -> None:
+    migration = _legacy_greetings_migration()
+
+    assert (
+        migration.build_greetings_saveables_migration_update(
+            {
+                "_id": "greetings-id",
+                "note": {"text": "<b>modern</b>", "parse_mode": "html", "version": 2},
+                "security_note": None,
+            }
+        )
+        is None
+    )
+
+
+def test_restore_legacy_greetings_saveables_restores_original() -> None:
+    migration = _legacy_greetings_migration()
+
+    update = migration.build_greetings_saveables_rollback_update(
+        {
+            "_id": "greetings-id",
+            "note": {
+                "text": "<b>Welcome</b>",
+                "parse_mode": "html",
+                "version": 2,
+                "legacy_markdown_text": "**Welcome**",
+                "buttons": [],
+                "legacy_buttons": [],
+            },
+        }
+    )
+
+    assert update == {
+        "$set": {
+            "note": {
+                "text": "**Welcome**",
+                "parse_mode": "md",
+                "version": 1,
+                "buttons": [],
+            }
+        }
+    }
+
+
 @pytest.mark.asyncio
 async def test_migration_module_imports() -> None:
     """Test that migration modules can be imported without errors."""
