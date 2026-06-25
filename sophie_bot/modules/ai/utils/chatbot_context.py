@@ -122,6 +122,7 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
 
 async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> AIMessageHistory:
     history = AIMessageHistory()
-    await history.add_from_cache(context.chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT)
+    await history.add_from_cache(context.chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
     await history.add_from_message(message, custom_text=context.user_text)
+    history.apply_context_block()
     return history
