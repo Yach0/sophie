@@ -93,10 +93,6 @@ def _html_source(label: str, item: _HtmlElement) -> KeyValue:
     return _source(label, item.to_html())
 
 
-def _rich_source(label: str, item: _RichElement) -> KeyValue:
-    return _source(label, item.to_rich())
-
-
 def _rich_example(label: str, item: _RichElement) -> Doc:
     return Doc(Paragraph(Strong(label)), item)
 

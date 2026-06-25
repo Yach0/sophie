@@ -27,11 +27,6 @@ except ImportError:
     _av_module: typing_types.ModuleType = None  # ty: ignore[invalid-assignment]
 
 
-def _is_av_available() -> bool:
-    """Check if PyAV is available."""
-    return AV_AVAILABLE
-
-
 async def extract_audio_from_video(video: Video | VideoNote) -> Optional[bytes]:
     """Extract audio from video file using PyAV.
 
