@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sophie_bot.metrics.ai import (
     count_retries_from_messages,
-    instrument_ai_operation,
     track_ai_agent_result,
     track_ai_conversation,
     track_ai_proactive_action,
@@ -57,5 +56,4 @@ __all__ = [
     "track_ai_proactive_action",
     "track_ai_proactive_batch",
     "track_ai_proactive_event",
-    "instrument_ai_operation",
 ]
