@@ -215,7 +215,8 @@ class ProcessFederationImports:
             await self._update_task_status(task, TaskStatus.FAILED, error_message)
             raise
 
-    async def _download_and_parse_csv(self, file_id: str) -> csv.DictReader:
+    @staticmethod
+    async def _download_and_parse_csv(file_id: str) -> csv.DictReader:
         """Download CSV file and parse it into a DictReader."""
         file = await bot.get_file(file_id)
         if not file.file_path:
@@ -240,7 +241,8 @@ class ProcessFederationImports:
 
         return reader
 
-    def _create_ban_entry(self, ban_data: BanData, task_id: object) -> FederationBan:
+    @staticmethod
+    def _create_ban_entry(ban_data: BanData, task_id: object) -> FederationBan:
         """Create a new FederationBan entry from parsed data."""
         return FederationBan(
             fed_id=ban_data["fed_id"],
@@ -251,13 +253,15 @@ class ProcessFederationImports:
             fimport_id=task_id,
         )
 
-    async def _update_existing_ban(self, existing_ban: FederationBan, new_reason: str | None) -> None:
+    @staticmethod
+    async def _update_existing_ban(existing_ban: FederationBan, new_reason: str | None) -> None:
         """Update existing ban reason if different."""
         if existing_ban.reason != new_reason:
             existing_ban.reason = new_reason
             await existing_ban.save()
 
-    def _validate_positive_int(self, value_str: str, field_name: str) -> int:
+    @staticmethod
+    def _validate_positive_int(value_str: str, field_name: str) -> int:
         """Validate and parse a positive integer from a CSV row."""
         if not value_str:
             raise BanValidationError(f"{field_name} is required")
@@ -272,7 +276,8 @@ class ProcessFederationImports:
 
         return value
 
-    def _validate_reason(self, reason: str) -> str | None:
+    @staticmethod
+    def _validate_reason(reason: str) -> str | None:
         """Validate reason field."""
         if not reason:
             return None
@@ -282,7 +287,8 @@ class ProcessFederationImports:
 
         return reason
 
-    def _parse_ban_time(self, time_str: str) -> datetime:
+    @staticmethod
+    def _parse_ban_time(time_str: str) -> datetime:
         """Parse ban time from CSV row."""
         if not time_str:
             return datetime.now(timezone.utc)
@@ -298,7 +304,8 @@ class ProcessFederationImports:
         except ValueError:
             raise BanValidationError(f"Invalid time format: {time_str}")
 
-    async def _check_ban_permissions(self, user_id: int, federation: Federation, importer_user_tid: int) -> None:
+    @staticmethod
+    async def _check_ban_permissions(user_id: int, federation: Federation, importer_user_tid: int) -> None:
         """Check if the ban is permitted for the given user."""
         if user_id in CONFIG.operators:
             raise BanValidationError(f"Cannot ban bot operator: {user_id}")
@@ -319,8 +326,8 @@ class ProcessFederationImports:
         if user_id == importer_user_tid:
             raise BanValidationError("Cannot ban yourself")
 
+    @staticmethod
     async def _update_task_status(
-        self,
         task: FederationImportTask,
         status: TaskStatus,
         error_message: str | None = None,
