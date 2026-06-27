@@ -1,7 +1,7 @@
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import WordArg
 from beanie import PydanticObjectId
-from stfu_tg import Code, Italic, KeyValue, Section, Template
+from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 
 from sophie_bot.db.models import DisablingModel
 from sophie_bot.filters.admin_rights import UserRestricting
@@ -39,7 +39,14 @@ class DisableHandler(SophieMessageHandler):
             return
 
         if handler in await get_disabled_handlers(connection.db_model.iid):
-            await self.event.reply(str(Template(_("Command {cmd} is already disabled."), cmd=Code("/" + cmd_name))))
+            await self.event.reply(
+                str(
+                    Doc(
+                        Template(_("Command {cmd} is already disabled."), cmd=Code("/" + cmd_name)),
+                        Italic(_("Disabled commands still work for chat administrators.")),
+                    )
+                )
+            )
             return
 
         await self.disable_cmd(connection.db_model.iid, handler.cmds[0])
@@ -50,6 +57,7 @@ class DisableHandler(SophieMessageHandler):
                     KeyValue(_("Chat"), connection.title),
                     KeyValue(_("Command"), format_cmd(handler.cmds[0])),
                     Italic(handler.description) if handler.description else None,
+                    Italic(_("Disabled commands still work for chat administrators.")),
                     title=_("Command disabled"),
                 )
             )
