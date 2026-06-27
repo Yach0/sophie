@@ -298,37 +298,3 @@ class AIConversationTracker:
 def track_ai_conversation():
     """Create an AI conversation tracker context manager"""
     return AIConversationTracker()
-
-
-# Decorator for AI operations
-def instrument_ai_operation(operation: str = "chat"):
-    """Decorator for AI operations that need metrics tracking"""
-
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            # Try to extract model from arguments
-            model = None
-            for arg in args:
-                if isinstance(arg, Model):
-                    model = arg
-                    break
-
-            # Try to extract from kwargs
-            if not model:
-                model = kwargs.get("model")
-
-            if model and CONFIG.metrics_enable:
-                async with track_ai_request(model, operation):
-                    result = await func(*args, **kwargs)
-
-                    # If result has usage info, track it
-                    if hasattr(result, "usage") and result.usage:
-                        track_ai_usage(model, result.usage)
-
-                    return result
-            else:
-                return await func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
