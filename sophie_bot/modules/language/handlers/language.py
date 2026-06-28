@@ -78,6 +78,13 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
 
         # Update ChatModel using connection
         chat = self.connection.db_model
+
+        # If the selected language is already active, skip the re-edit — editing the
+        # message with identical content raises "message is not modified". SOPHIE-26R.
+        if chat and chat.language_code == lang_code:
+            await self.event.answer()
+            return
+
         if chat:
             chat.language_code = lang_code
             await chat.save()
