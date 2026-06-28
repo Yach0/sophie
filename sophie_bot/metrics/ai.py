@@ -261,40 +261,15 @@ def track_ai_quota_exceeded(*, feature: str, chat_type: str = "unknown") -> None
     count_metric("sophie.ai.quota.exceeded", attributes={"feature": feature, "chat_type": chat_type})
 
 
-def track_active_conversation_start() -> None:
-    """Track the start of an AI conversation"""
+@asynccontextmanager
+async def track_ai_conversation() -> AsyncGenerator[None, None]:
+    """Context manager for tracking active AI conversations."""
     if not CONFIG.metrics_enable:
+        yield
         return
 
     change_gauge_metric("sophie.ai.active_conversations", 1)
-
-
-def track_active_conversation_end() -> None:
-    """Track the end of an AI conversation"""
-    if not CONFIG.metrics_enable:
-        return
-
-    change_gauge_metric("sophie.ai.active_conversations", -1)
-
-
-class AIConversationTracker:
-    """Context manager for tracking active AI conversations"""
-
-    def __init__(self) -> None:
-        self.tracked = False
-
-    async def __aenter__(self) -> AIConversationTracker:
-        if CONFIG.metrics_enable:
-            track_active_conversation_start()
-            self.tracked = True
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        _ = (exc_type, exc_val, exc_tb)
-        if self.tracked:
-            track_active_conversation_end()
-
-
-def track_ai_conversation():
-    """Create an AI conversation tracker context manager"""
-    return AIConversationTracker()
+    try:
+        yield
+    finally:
+        change_gauge_metric("sophie.ai.active_conversations", -1)
