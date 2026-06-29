@@ -11,9 +11,19 @@ from sophie_bot.db.models.notes import Saveable
 
 # TODO: Migrate properly
 def _coerce_timedelta(value: object) -> object:
-    """Coerce legacy int milliseconds to timedelta for MongoDB migration."""
+    """Coerce legacy numeric values to timedelta for MongoDB migration.
+
+    - ``int`` values are milliseconds (produced by the greeting-durations migration).
+    - ``float`` values are seconds (produced by old code that stored
+      ``timedelta.total_seconds()``; the migration missed them because it
+      cast floats to ``int`` without running on every document).
+    """
+    if isinstance(value, bool):
+        return value
     if isinstance(value, int):
         return timedelta(milliseconds=value)
+    if isinstance(value, float):
+        return timedelta(seconds=value)
     return value
 
 
