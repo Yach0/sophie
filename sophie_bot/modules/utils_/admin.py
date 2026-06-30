@@ -32,6 +32,15 @@ async def _resolve_model(model_id: Union[int, PydanticObjectId]) -> Optional[Cha
     return await ChatModel.get_by_iid(model_id)
 
 
+def _is_auto_admin(chat_tid: int, user_tid: int) -> bool:
+    """Return True when a user is implicitly an admin without a DB lookup.
+
+    Covers the user's own PM, bot operators, and the anonymous admin bot
+    workaround.
+    """
+    return chat_tid == user_tid or user_tid in CONFIG.operators or user_tid == TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
+
+
 async def check_user_admin_permissions(
     chat: Union[int, PydanticObjectId],
     user: Union[int, PydanticObjectId],
@@ -58,16 +67,7 @@ async def check_user_admin_permissions(
 
     # Fast path for TIDs (ints)
     if isinstance(chat, int) and isinstance(user, int) and not require_creator:
-        # User's PM should have admin rights
-        if chat == user:
-            return True
-
-        # Bot operators always have admin rights with all permissions
-        if user in CONFIG.operators:
-            return True
-
-        # Workaround to support anonymous admins - they have all permissions
-        if user == TELEGRAM_ANONYMOUS_ADMIN_BOT_ID:
+        if _is_auto_admin(chat, user):
             return True
 
     # Resolve models
@@ -83,11 +83,7 @@ async def check_user_admin_permissions(
 
     # Check if we missed the fast path checks (e.g. if one was IID)
     if not (isinstance(chat, int) and isinstance(user, int)) and not require_creator:
-        if chat_model.tid == user_model.tid:
-            return True
-        if user_model.tid in CONFIG.operators:
-            return True
-        if user_model.tid == TELEGRAM_ANONYMOUS_ADMIN_BOT_ID:
+        if _is_auto_admin(chat_model.tid, user_model.tid):
             return True
 
     # Check database for admin status
