@@ -1,0 +1,162 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from beanie.odm.operators.find.comparison import In
+
+from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
+from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
+from sophie_bot.modules.federations.utils.ban_docs import (
+    build_ban_log_doc,
+    build_ban_reply_doc,
+    build_task_failed_doc,
+    build_unban_log_text,
+    build_unban_reply_doc,
+)
+from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.services.bot import bot
+from sophie_bot.utils.logger import log
+
+
+class ProcessFederationBans:
+    """Scheduler job that propagates deferred federation (un)ban tasks.
+
+    The handler already applied the ban to the DB record and the current chat; this
+    job propagates it across the rest of the federation's chats and the subscriber
+    chain, then edits the original reply with the final counts and posts the fed log.
+    """
+
+    async def handle(self) -> None:
+        """Process all pending federation ban tasks."""
+        tasks = await FederationTask.find(
+            In(FederationTask.task_type, [FederationTaskType.BAN, FederationTaskType.UNBAN]),
+            FederationTask.status == TaskStatus.PENDING,
+        ).to_list()
+
+        for task in tasks:
+            try:
+                await self._process_task(task)
+            except Exception as e:  # noqa: BLE001 - keep one bad task from blocking the rest
+                log.error("Error processing federation ban task", task_id=str(task.id), error=str(e))
+
+    async def _process_task(self, task: FederationTask) -> None:
+        await self._update_status(task, TaskStatus.PROCESSING)
+
+        try:
+            federation = await Federation.find_one(Federation.fed_id == task.fed_id)
+            if not federation:
+                raise ValueError(f"Federation {task.fed_id} not found")
+
+            if task.task_type == FederationTaskType.BAN:
+                await self._process_ban(task, federation)
+            else:
+                await self._process_unban(task, federation)
+
+            await self._update_status(task, TaskStatus.COMPLETED)
+        except Exception as e:
+            await self._update_status(task, TaskStatus.FAILED, error_message=str(e))
+            # Surface the failure to the user instead of leaving the reply on "Propagating…".
+            await self._edit_reply(task, build_task_failed_doc(str(e)).to_html())
+            raise
+
+    async def _process_ban(self, task: FederationTask, federation: Federation) -> None:
+        by_user = await task.user.fetch()
+        banner_name = by_user.first_name if by_user else ""
+
+        ban = await FederationBan.get(task.ban_id) if task.ban_id else None
+        if not ban:
+            # The ban record is gone (e.g. the user was unbanned before this ran) - nothing to do.
+            log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
+            return
+
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
+            federation,
+            ban,
+            task.target_user_id,
+            current_chat_iid=task.current_chat_iid,
+        )
+
+        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+            federation,
+            task.target_user_id,
+            by_user.iid if by_user else ban.by.ref.id,
+            task.reason,
+            task.original_message_text,
+        )
+        lazy_ban_count = len(lazy_bans)
+
+        task.banned_count = banned_count
+        task.lazy_ban_count = lazy_ban_count
+
+        user = await ChatModel.get_by_tid(task.target_user_id)
+        if user and by_user:
+            reply_doc = build_ban_reply_doc(
+                federation,
+                user,
+                by_user.tid,
+                banner_name,
+                task.reason,
+                task.silent,
+                banned_count=banned_count,
+                lazy_ban_count=lazy_ban_count,
+            )
+            await self._edit_reply(task, reply_doc.to_html())
+
+            total_chats = len(federation.chats) if federation.chats else 0
+            log_doc = build_ban_log_doc(
+                federation,
+                user,
+                banner_name,
+                banned_count,
+                total_chats,
+                task.reason,
+                task.original_message_text,
+            )
+            await FederationManageService.post_federation_log(federation, log_doc.to_html(), bot)
+
+    async def _process_unban(self, task: FederationTask, federation: Federation) -> None:
+        unbanned_count = (
+            await FederationBanService.unban_user_in_chat_iids(list(task.unban_chat_iids), task.target_user_id)
+            if task.unban_chat_iids
+            else 0
+        )
+        task.unbanned_count = unbanned_count
+
+        by_user = await task.user.fetch()
+        user = await ChatModel.get_by_tid(task.target_user_id)
+        if user and by_user:
+            reply_doc = build_unban_reply_doc(
+                federation,
+                user,
+                by_user.tid,
+                by_user.first_name,
+                unbanned_count=unbanned_count,
+            )
+            await self._edit_reply(task, reply_doc.to_html())
+
+            log_text = build_unban_log_text(user, by_user.tid, by_user.first_name)
+            await FederationManageService.post_federation_log(federation, log_text, bot)
+
+    @staticmethod
+    async def _edit_reply(task: FederationTask, text: str) -> None:
+        """Edit the original reply with the final result, tolerating a deleted message."""
+        if not task.reply_chat_id or not task.reply_message_id:
+            return
+        await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
+
+    @staticmethod
+    async def _update_status(
+        task: FederationTask,
+        status: TaskStatus,
+        error_message: str | None = None,
+    ) -> None:
+        task.status = status
+        if error_message:
+            task.error_message = error_message
+        if status == TaskStatus.PROCESSING:
+            task.started_at = datetime.now(timezone.utc)
+        elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
+            task.completed_at = datetime.now(timezone.utc)
+        await task.save()

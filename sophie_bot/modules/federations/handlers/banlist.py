@@ -8,8 +8,8 @@ from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.constants import MAX_BANLIST_EXPORT_SIZE
 from sophie_bot.db.models import Federation
-from sophie_bot.db.models.federations import FederationExportTask
-from sophie_bot.db.models.federations_enums import TaskStatus
+from sophie_bot.db.models.federations import FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService
@@ -64,10 +64,11 @@ class FederationBanListHandler(FederationCommandHandler):
             )
             return
 
-        existing_task = await FederationExportTask.find_one(
-            FederationExportTask.fed_id == federation.fed_id,
-            FederationExportTask.user.id == user_iid,
-            FederationExportTask.status == TaskStatus.PENDING,
+        existing_task = await FederationTask.find_one(
+            FederationTask.fed_id == federation.fed_id,
+            FederationTask.task_type == FederationTaskType.EXPORT,
+            FederationTask.user.id == user_iid,
+            FederationTask.status == TaskStatus.PENDING,
         )
 
         if existing_task:
@@ -83,8 +84,9 @@ class FederationBanListHandler(FederationCommandHandler):
             )
             return
 
-        export_task = FederationExportTask(
+        export_task = FederationTask(
             fed_id=federation.fed_id,
+            task_type=FederationTaskType.EXPORT,
             fed_name=federation.fed_name,
             chat=self.connection.db_model.iid,
             user=user_iid,

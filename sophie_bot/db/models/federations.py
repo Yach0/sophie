@@ -6,7 +6,7 @@ from pydantic import Field
 from pymongo import ASCENDING, IndexModel
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.federations_enums import TaskStatus
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 
 from ._link_type import Link
 
@@ -55,52 +55,65 @@ class FederationBan(Document):
         ]
 
 
-class FederationImportTask(Document):
-    """Federation import task model for CSV ban list imports"""
+class FederationTask(Document):
+    """Unified deferred federation task processed by the scheduler.
+
+    A single collection backs all federation background work — CSV imports/exports
+    and ban/unban propagation — discriminated by ``task_type``. Type-specific fields
+    are optional and only populated for the relevant task type.
+    """
 
     fed_id: str
-    chat: Link[ChatModel]  # Chat where the import command was issued
-    user: Link[ChatModel]  # User who initiated the import
-    file_id: str  # Telegram file ID for the uploaded CSV
+    task_type: FederationTaskType
     status: TaskStatus = TaskStatus.PENDING
+    chat: Link[ChatModel]  # Chat where the command was issued
+    user: Link[ChatModel]  # User who initiated the task (importer / exporter / banner)
     error_message: Optional[str] = None
-    imported_count: int = 0
-    failed_count: int = 0
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
+    # IMPORT / EXPORT
+    file_id: Optional[str] = None  # Telegram file ID (uploaded CSV for import, generated CSV for export)
+    fed_name: Optional[str] = None  # EXPORT: snapshot of the federation name for the caption
+    imported_count: int = 0
+    failed_count: int = 0
+    ban_count: int = 0
+    file_size_bytes: Optional[int] = None
+
+    # BAN / UNBAN
+    target_user_id: Optional[int] = None  # Telegram user ID of the (un)banned user
+    current_chat_iid: Optional[BeanieObjectId] = None  # Set when the issuing chat is part of the fed
+    reply_chat_id: Optional[int] = None  # Chat/message of the reply to edit with the final result
+    reply_message_id: Optional[int] = None
+    reason: Optional[str] = None
+    original_message_text: Optional[str] = None
+    silent: bool = False
+    ban_id: Optional[BeanieObjectId] = None  # BAN: the FederationBan record to update
+    unban_chat_iids: list[BeanieObjectId] = Field(default_factory=list)  # UNBAN: chats to clear
+    banned_count: int = 0
+    lazy_ban_count: int = 0
+    unbanned_count: int = 0
+
     class Settings:
-        name = "fed_import_tasks"
+        name = "fed_tasks"
         indexes = [
             IndexModel([("fed_id", ASCENDING)]),
+            IndexModel([("task_type", ASCENDING), ("status", ASCENDING)]),
             IndexModel([("user.$id", ASCENDING)]),
             IndexModel([("status", ASCENDING)]),
             IndexModel([("created_at", ASCENDING)]),
         ]
+
+
+# Legacy task collections, superseded by the unified ``FederationTask`` (``fed_tasks``).
+# These are NOT registered as active models; they exist only so the historical
+# ``convert_federations_to_links`` migration can still address the original collections.
+class FederationImportTask(Document):
+    class Settings:
+        name = "fed_import_tasks"
 
 
 class FederationExportTask(Document):
-    """Task for exporting federation ban lists to CSV files"""
-
-    fed_id: str
-    fed_name: str
-    chat: Link[ChatModel]
-    user: Link[ChatModel]
-    file_id: Optional[str] = None
-    status: TaskStatus = TaskStatus.PENDING
-    ban_count: int = 0
-    error_message: Optional[str] = None
-    created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    file_size_bytes: Optional[int] = None
-
     class Settings:
         name = "fed_export_tasks"
-        indexes = [
-            IndexModel([("fed_id", ASCENDING)]),
-            IndexModel([("user.$id", ASCENDING)]),
-            IndexModel([("status", ASCENDING)]),
-            IndexModel([("created_at", ASCENDING)]),
-        ]

@@ -7,8 +7,8 @@ from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.db.models import Federation
-from sophie_bot.db.models.federations import FederationImportTask
-from sophie_bot.db.models.federations_enums import TaskStatus
+from sophie_bot.db.models.federations import FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
@@ -54,8 +54,9 @@ class FederationImportHandler(FederationCommandHandler):
             return
 
         # Create import task
-        import_task = FederationImportTask(
+        import_task = FederationTask(
             fed_id=federation.fed_id,
+            task_type=FederationTaskType.IMPORT,
             chat=self.connection.db_model.iid,
             user=user_iid,
             file_id=document.file_id,
