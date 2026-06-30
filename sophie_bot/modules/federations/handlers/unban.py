@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -10,11 +11,17 @@ from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel, Federation
+from sophie_bot.db.models.federations import FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
+from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.modules.federations.utils.ban_docs import build_unban_reply_doc
+from sophie_bot.modules.restrictions.utils.restrictions import unban_user as restrict_unban_user
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
@@ -68,7 +75,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             await self._reply_user_not_banned()
             return
 
-        # Attempt unban
+        # Attempt unban (removes the DB record - the FedBan middleware stops blocking immediately)
         was_unbanned, subscription_ban = await FederationBanService.unban_user(federation.fed_id, user.tid)
         if not was_unbanned:
             if subscription_ban and subscription_ban.origin_fed:
@@ -77,14 +84,55 @@ class FederationUnbanHandler(FederationCommandHandler):
                 await self.event.reply(_("Failed to unban user."))
             return
 
-        banned_chat_refs = [chat.to_ref() for chat in ban.banned_chats] if ban.banned_chats else []
-        if banned_chat_refs:
-            unbanned_count = await FederationBanService.unban_user_in_chat_iids(banned_chat_refs, user.tid)
-        else:
-            unbanned_count = 0
+        # Snapshot the chats the user was actually banned in before the record is gone;
+        # the scheduler clears the user from each of them.
+        unban_chat_iids = normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]) if ban.banned_chats else []
 
-        # Success - format and send response
-        await self._send_success_response(federation, user, unbanned_count)
+        from_user = self.event.from_user
+        banner = await ChatModel.get_by_tid(from_user.id)
+        if not banner:
+            await self.event.reply(_("Could not resolve the command user. Please try again."))
+            return
+
+        # Is current chat part of the federation?
+        federation_chat_iids = (
+            normalize_chat_iids([chat.to_ref() for chat in federation.chats]) if federation.chats else []
+        )
+        current_chat = self.connection.db_model
+        chat_part_of_federation: bool = current_chat.iid in federation_chat_iids
+
+        # Unban in the current chat right away; the scheduler propagates to the rest.
+        immediate_chat_unbanned = False
+        if chat_part_of_federation:
+            immediate_chat_unbanned = await restrict_unban_user(self.event.chat.id, user.tid)
+
+        # Immediate (in-progress) response; the scheduler edits it with the final counts.
+        doc = build_unban_reply_doc(
+            federation,
+            user,
+            from_user.id,
+            from_user.first_name,
+            propagating=True,
+            immediate_chat_unbanned=immediate_chat_unbanned,
+        )
+        reply_msg = await common_try(
+            self.event.reply(doc.to_html()),
+            reply_not_found=lambda: self.event.answer(doc.to_html()),
+        )
+
+        # Propagate the unban across the chats the user was banned in via the scheduler.
+        await FederationTask(
+            fed_id=federation.fed_id,
+            task_type=FederationTaskType.UNBAN,
+            target_user_id=user.tid,
+            user=banner.iid,
+            chat=current_chat.iid,
+            current_chat_iid=current_chat.iid if chat_part_of_federation else None,
+            reply_chat_id=self.event.chat.id,
+            reply_message_id=reply_msg.message_id,
+            unban_chat_iids=unban_chat_iids,
+            created_at=datetime.now(timezone.utc),
+        ).insert()
 
     async def _check_permissions(self, federation: Federation) -> bool:
         """Check if user has permission to unban in this federation."""
@@ -134,27 +182,3 @@ class FederationUnbanHandler(FederationCommandHandler):
         doc += Template(_("`/funsub {fed_id}`"), fed_id=Code(origin_fed.fed_id)).to_html()
 
         await reply_or_answer(self.event, doc)
-
-    async def _send_success_response(self, federation: Federation, user: ChatModel, unbanned_count: int) -> None:
-        """Send success response for unbanning."""
-        from_user = self.event.from_user
-        if not from_user:
-            return
-
-        doc = Doc(
-            Title(_("🏛 User Unbanned from Federation")),
-            KeyValue(_("Federation"), federation.fed_name),
-            KeyValue(_("User"), UserLink(user.tid, user.first_name_or_title or _("Unknown"))),
-            KeyValue(_("Unbanned by"), UserLink(from_user.id, from_user.first_name)),
-            KeyValue(_("Result"), Template(_("Unbanned in {count} chats"), count=str(unbanned_count))),
-        )
-
-        await reply_or_answer(self.event, doc)
-
-        # Log the unban
-        log_text = Template(
-            _("🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."),
-            unbanned_user=UserLink(user.tid, user.first_name_or_title or _("Unknown")),
-            unbanner=from_user.mention_html(),
-        ).to_html()
-        await FederationManageService.post_federation_log(federation, log_text, self.event.bot)

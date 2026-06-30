@@ -40,3 +40,6 @@ openapi.json
 libs/
 
 *.egg-info/
+
+# Local agent worktree metadata
+.claude/worktrees/

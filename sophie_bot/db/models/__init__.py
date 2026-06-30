@@ -23,7 +23,11 @@ from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettings
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.chat_photo import ChatPhotoModel
 from sophie_bot.db.models.disabling import DisablingModel
-from sophie_bot.db.models.federations import Federation, FederationBan, FederationImportTask, FederationExportTask
+from sophie_bot.db.models.federations import (
+    Federation,
+    FederationBan,
+    FederationTask,
+)
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.greetings import GreetingsModel
@@ -76,8 +80,7 @@ models: list[type[Document]] = [
     ApiTokenModel,
     Federation,
     FederationBan,
-    FederationImportTask,
-    FederationExportTask,
+    FederationTask,
     RefreshTokenModel,
     OpDebugSnapshotModel,
     FeatureFlagOverride,
@@ -107,8 +110,7 @@ __all__ = [
     "FeatureFlagOverride",
     "Federation",
     "FederationBan",
-    "FederationExportTask",
-    "FederationImportTask",
+    "FederationTask",
     "FiltersModel",
     "GlobalSettings",
     "GreetingsModel",

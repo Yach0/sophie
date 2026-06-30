@@ -1,25 +1,28 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import OptionalArg, TextArg
-from stfu_tg import Code, Doc, KeyValue, Section, Template, Title, UserLink
-from stfu_tg.formatting import Spoiler
 
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import ChatModel, Federation
+from sophie_bot.db.models.federations import FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
-from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
+from sophie_bot.modules.federations.services import FederationBanService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.modules.federations.utils.ban_docs import build_ban_reply_doc
 from sophie_bot.modules.restrictions.utils.logging import extract_offending_message_text
+from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
@@ -35,73 +38,6 @@ async def delete_messages_after_delay(
     """Delete messages after a specified delay."""
     await asyncio.sleep(delay_seconds)
     await common_try(bot.delete_messages(chat_id, message_ids))
-
-
-def _build_ban_reply_doc(
-    federation: Federation,
-    user: ChatModel,
-    banner,
-    reason: str | None,
-    banned_count: int,
-    lazy_ban_count: int,
-    silent: bool,
-) -> Doc:
-    """Format the user-facing ban response document."""
-    doc = Doc(
-        Title(_("🏛 User Banned from Federation")),
-        KeyValue(_("Federation"), federation.fed_name),
-        KeyValue(_("User"), UserLink(user.tid, user.first_name_or_title or _("Unknown"))),
-        KeyValue(_("Banned by"), UserLink(banner.id, banner.first_name)),
-    )
-    if reason:
-        doc += KeyValue(_("Reason"), reason)
-    doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count)))
-
-    if lazy_ban_count > 0:
-        doc += KeyValue(_("Also banned in"), Template(_("{count} subscribed federations"), count=Code(lazy_ban_count)))
-
-    if silent:
-        doc += _("The action is silent, all related messages would be deleted shortly")
-
-    return doc
-
-
-def _build_ban_log_doc(
-    federation: Federation,
-    user: ChatModel,
-    banner,
-    banned_count: int,
-    total_chats: int,
-    reason: str | None,
-    original_message_text: str | None,
-) -> Doc:
-    """Format the federation log entry document."""
-    log_doc = Doc(
-        Title(_("Ban user in the fed #FedBan")),
-        KeyValue(_("Fed"), Template("{fed_name} ({fed_id})", fed_name=federation.fed_name, fed_id=federation.fed_id)),
-        KeyValue(
-            _("User"),
-            Template(
-                "{user_name} ({user_id})",
-                user_name=user.first_name_or_title or _("Unknown"),
-                user_id=Code(user.tid),
-            ),
-        ),
-        KeyValue(_("By"), banner.first_name),
-        Template(
-            "User banned in {banned_count} out of {total_chats} chats in the federation",
-            banned_count=banned_count,
-            total_chats=total_chats,
-        ),
-    )
-    if reason:
-        log_doc += KeyValue(_("Reason"), reason)
-    if original_message_text:
-        log_doc += Section(
-            Spoiler(original_message_text),
-            title=_("Original message"),
-        )
-    return log_doc
 
 
 @flags.help(description=l_("Ban a user from the federation"))
@@ -167,7 +103,8 @@ class FederationBanHandler(FederationCommandHandler):
             if ai_reason:
                 reason = ai_reason
 
-        # Ban user
+        # Ban user (DB record - the FedBan middleware enforces the ban immediately,
+        # before the scheduler proactively kicks the user from the federation's chats)
         try:
             ban = await FederationBanService.ban_user(federation, user_tid, banner.iid, reason, original_message_text)
         except FederationBanValidationError as err:
@@ -178,25 +115,35 @@ class FederationBanHandler(FederationCommandHandler):
         federation_chat_iids = (
             normalize_chat_iids([chat.to_ref() for chat in federation.chats]) if federation.chats else []
         )
-        chat_part_of_federation: bool = self.connection.db_model.iid in federation_chat_iids
+        current_chat = self.connection.db_model
+        chat_part_of_federation: bool = current_chat.iid in federation_chat_iids
 
-        banned_count = await FederationBanService.ban_user_in_federation_chats(
+        # Ban in the current chat right away so a spamming user is stopped on the spot,
+        # before the scheduler propagates the ban across the rest of the federation.
+        immediate_chat_banned = False
+        if chat_part_of_federation:
+            immediate_chat_banned = await restrict_ban_user(self.event.chat.id, user_tid)
+            if immediate_chat_banned:
+                existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
+                if current_chat.iid not in existing_chat_iids:
+                    ban.banned_chats.append(current_chat)
+                    await ban.save()
+
+        # Immediate (in-progress) response; the scheduler edits it with the final counts.
+        # Detect silent mode from the parsed command name so it works with any command
+        # prefix (e.g. /sfban, !sfban, .sfban) and an optional @mention.
+        command_obj = self.data.get("command")
+        silent = bool(command_obj and command_obj.command.lower() == "sfban")
+        doc = build_ban_reply_doc(
             federation,
-            ban,
-            user_tid,
-            # Ban user in current chat if it's part of the federation
-            current_chat_iid=(self.connection.db_model.iid if chat_part_of_federation else None),
+            user,
+            self.event.from_user.id,
+            self.event.from_user.first_name,
+            reason,
+            silent,
+            propagating=True,
+            immediate_chat_banned=immediate_chat_banned,
         )
-
-        # Lazy-ban: Also ban in federations that subscribe to this federation
-        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-            federation, user_tid, banner.iid, reason, original_message_text
-        )
-        lazy_ban_count = len(lazy_bans)
-
-        # Format response
-        silent = bool(self.event.text and self.event.text.startswith("/sfban"))
-        doc = _build_ban_reply_doc(federation, user, self.event.from_user, reason, banned_count, lazy_ban_count, silent)
 
         reply_msg = await common_try(
             self.event.reply(doc.to_html()),
@@ -210,15 +157,19 @@ class FederationBanHandler(FederationCommandHandler):
                 messages_to_delete.append(self.event.reply_to_message.message_id)
             asyncio.create_task(delete_messages_after_delay(self.event.chat.id, messages_to_delete))
 
-        # Log the ban
-        total_chats = len(federation.chats) if federation.chats else 0
-        log_doc = _build_ban_log_doc(
-            federation,
-            user,
-            self.event.from_user,
-            banned_count,
-            total_chats,
-            reason,
-            original_message_text,
-        )
-        await FederationManageService.post_federation_log(federation, log_doc.to_html(), self.event.bot)
+        # Propagate the ban across the rest of the federation + subscriber chain in the scheduler.
+        await FederationTask(
+            fed_id=federation.fed_id,
+            task_type=FederationTaskType.BAN,
+            target_user_id=user_tid,
+            user=banner.iid,
+            chat=current_chat.iid,
+            current_chat_iid=current_chat.iid if chat_part_of_federation else None,
+            reply_chat_id=self.event.chat.id,
+            reply_message_id=reply_msg.message_id,
+            reason=reason,
+            original_message_text=original_message_text,
+            silent=silent,
+            ban_id=ban.id,
+            created_at=datetime.now(timezone.utc),
+        ).insert()

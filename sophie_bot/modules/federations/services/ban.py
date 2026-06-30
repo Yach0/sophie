@@ -12,8 +12,8 @@ from beanie.odm.operators.find.comparison import In
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.metrics.federation import track_federation_ban
-from sophie_bot.db.models.federations import Federation, FederationBan, FederationExportTask
-from sophie_bot.db.models.federations_enums import TaskStatus
+from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.manage import FederationManageService
@@ -277,9 +277,10 @@ class FederationBanService:
 
     @staticmethod
     async def _invalidate_export_tasks(fed_id: str) -> None:
-        await FederationExportTask.find(
-            FederationExportTask.fed_id == fed_id,
-            FederationExportTask.status == TaskStatus.PENDING,
+        await FederationTask.find(
+            FederationTask.task_type == FederationTaskType.EXPORT,
+            FederationTask.fed_id == fed_id,
+            FederationTask.status == TaskStatus.PENDING,
         ).update(
             {
                 "$set": {
