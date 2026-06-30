@@ -12,6 +12,7 @@ from sophie_bot.modules.op.handlers.ListJobs import ListJobsHandler
 from sophie_bot.modules.op.handlers.op_debug import OpDebugHandler
 from sophie_bot.modules.op.handlers.op_task import OpTaskHandler
 from sophie_bot.modules.op.handlers.PreviewChatSummary import OpRegenerateChatSummaryHandler
+from sophie_bot.modules.op.handlers.SetMode import SetModeHandler
 from sophie_bot.modules.op.handlers.stats import StatsHandler, get_system_stats
 from sophie_bot.modules.op.handlers.StopJobs import StopJobsHandler
 
@@ -51,6 +52,7 @@ module_manifest = ModuleManifest(
         StatsHandler,
         OpDebugHandler,
         OpTaskHandler,
+        SetModeHandler,
     ),
     title=l_("Operator"),
     emoji="👑",

@@ -202,8 +202,8 @@ msgstr ""
 #: sophie_bot/modules/ai/agent_tools/cmds_help.py:60
 #: sophie_bot/modules/federations/handlers/info.py:63
 #: sophie_bot/modules/notes/handlers/delete.py:58
-#: sophie_bot/modules/op/handlers/StfuGallery.py:140
-#: sophie_bot/modules/op/handlers/StfuGallery.py:141
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
 msgid "Name"
 msgstr ""
 
@@ -404,7 +404,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aiprovider.py:109
 #: sophie_bot/modules/connections/handlers/connect_dm.py:38
-#: sophie_bot/modules/disabling/handlers/disable.py:50
+#: sophie_bot/modules/disabling/handlers/disable.py:57
 #: sophie_bot/modules/disabling/handlers/enable.py:52
 #: sophie_bot/modules/locks/handlers/base.py:58
 #: sophie_bot/modules/locks/handlers/locks_list.py:69
@@ -412,6 +412,8 @@ msgstr ""
 #: sophie_bot/modules/locks/handlers/locksticker.py:66
 #: sophie_bot/modules/notes/handlers/delete.py:56
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/op/handlers/SetMode.py:112
+#: sophie_bot/modules/op/handlers/SetMode.py:149
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:138
 #: sophie_bot/modules/restrictions/handlers/base.py:142
@@ -1155,21 +1157,21 @@ msgstr ""
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:105
-#: sophie_bot/modules/ai/utils/message_history.py:107
+#: sophie_bot/modules/ai/utils/message_history.py:106
+#: sophie_bot/modules/ai/utils/message_history.py:108
 msgid "<No text provided>"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:158
+#: sophie_bot/modules/ai/utils/message_history.py:159
 msgid "Image is empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:194
+#: sophie_bot/modules/ai/utils/message_history.py:195
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:254
+#: sophie_bot/modules/ai/utils/message_history.py:255
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr ""
 
@@ -1257,7 +1259,7 @@ msgstr ""
 msgid "Research model"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/transform_video.py:67
+#: sophie_bot/modules/ai/utils/transform_video.py:62
 msgid "Failed to download video file"
 msgstr ""
 
@@ -1565,7 +1567,7 @@ msgid "Useful for restricting bot functionality to only necessary commands."
 msgstr ""
 
 #: sophie_bot/modules/disabling/handlers/disable.py:20
-#: sophie_bot/modules/disabling/handlers/disable.py:51
+#: sophie_bot/modules/disabling/handlers/disable.py:58
 #: sophie_bot/modules/disabling/handlers/enable.py:22
 #: sophie_bot/modules/disabling/handlers/enable.py:53
 msgid "Command"
@@ -1582,13 +1584,18 @@ msgstr ""
 msgid "Command {cmd} not found."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:42
+#: sophie_bot/modules/disabling/handlers/disable.py:45
 #: sophie_bot/modules/disabling/handlers/enable.py:44
 #, python-brace-format
 msgid "Command {cmd} is already disabled."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:53
+#: sophie_bot/modules/disabling/handlers/disable.py:46
+#: sophie_bot/modules/disabling/handlers/disable.py:60
+msgid "Disabled commands still work for chat administrators."
+msgstr ""
+
+#: sophie_bot/modules/disabling/handlers/disable.py:61
 msgid "Command disabled"
 msgstr ""
 
@@ -2058,7 +2065,7 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/unban.py:147
 #: sophie_bot/modules/federations/handlers/unban.py:157
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:77
+#: sophie_bot/modules/op/handlers/SetMode.py:107
 #: sophie_bot/modules/warns/handlers/warns_group.py:40
 msgid "Unknown"
 msgstr ""
@@ -3321,7 +3328,7 @@ msgstr ""
 #: sophie_bot/modules/greetings/handlers/status_greetings.py:20
 #: sophie_bot/modules/notes/handlers/save.py:33
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/TextWithButtonsArg.py:14
-#: sophie_bot/modules/op/handlers/StfuGallery.py:221
+#: sophie_bot/modules/op/handlers/StfuGallery.py:217
 #: sophie_bot/modules/rules/handlers/set.py:20
 msgid "Content"
 msgstr ""
@@ -3621,7 +3628,7 @@ msgid "Select the language you want to use in this chat."
 msgstr ""
 
 #: sophie_bot/modules/language/handlers/language.py:58
-#: sophie_bot/modules/language/handlers/language.py:108
+#: sophie_bot/modules/language/handlers/language.py:115
 msgid "Help us translate!"
 msgstr ""
 
@@ -3629,12 +3636,12 @@ msgstr ""
 msgid "Language not found."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:88
+#: sophie_bot/modules/language/handlers/language.py:95
 #, python-brace-format
 msgid "Language changed to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:111
+#: sophie_bot/modules/language/handlers/language.py:118
 #, python-brace-format
 msgid "Language set to {lang}"
 msgstr ""
@@ -4351,7 +4358,7 @@ msgid "Private Notes"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:41
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:86
+#: sophie_bot/modules/op/handlers/SetMode.py:118
 #: sophie_bot/modules/utils_/status_handler.py:51
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
@@ -4591,19 +4598,19 @@ msgstr ""
 msgid "The text is too long"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:55
+#: sophie_bot/modules/op/__init__.py:57
 msgid "Operator"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:57
+#: sophie_bot/modules/op/__init__.py:59
 msgid "Operator-only commands and tools"
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:60
+#: sophie_bot/modules/op/__init__.py:62
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr ""
 
-#: sophie_bot/modules/op/__init__.py:61
+#: sophie_bot/modules/op/__init__.py:63
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr ""
 
@@ -4767,340 +4774,389 @@ msgstr ""
 msgid "Summary day"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:106
+#: sophie_bot/modules/op/handlers/SetMode.py:25
+msgid "Auto"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:26
+msgid "Old"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:27
+msgid "Latest"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:76
+msgid "Preferred strategy mode"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:88
+#, python-brace-format
+msgid "Chat {chat} not found."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:113
+msgid "Preferred mode"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:114
+msgid "Current mode"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:115
+msgid "Mode information"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:130
+msgid "Preferred mode cannot always match the current state due to development and rollout progress."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:139
+msgid "Sophie Support"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:150
+msgid "New strategy"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/SetMode.py:152
+msgid "Preferred mode changed"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:102
 #, python-brace-format
 msgid "Template with {style} and escaped {user_input}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:107
+#: sophie_bot/modules/op/handlers/StfuGallery.py:103
 msgid "bold placeholder"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:112
+#: sophie_bot/modules/op/handlers/StfuGallery.py:108
 msgid "STFU Formatting Gallery"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:114
+#: sophie_bot/modules/op/handlers/StfuGallery.py:110
 msgid "first line"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:114
+#: sophie_bot/modules/op/handlers/StfuGallery.py:110
 msgid "second line"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:115
+#: sophie_bot/modules/op/handlers/StfuGallery.py:111
 msgid "Regular title"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:116
+#: sophie_bot/modules/op/handlers/StfuGallery.py:112
 msgid "Field"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:116
+#: sophie_bot/modules/op/handlers/StfuGallery.py:112
 msgid "Section title"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:119
+#: sophie_bot/modules/op/handlers/StfuGallery.py:115
 msgid "Containers and meta elements"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:122
-#: sophie_bot/modules/op/handlers/StfuGallery.py:153
+#: sophie_bot/modules/op/handlers/StfuGallery.py:118
+#: sophie_bot/modules/op/handlers/StfuGallery.py:149
 msgid "bold text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:123
-#: sophie_bot/modules/op/handlers/StfuGallery.py:154
+#: sophie_bot/modules/op/handlers/StfuGallery.py:119
+#: sophie_bot/modules/op/handlers/StfuGallery.py:150
 msgid "italic text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:124
-#: sophie_bot/modules/op/handlers/StfuGallery.py:155
+#: sophie_bot/modules/op/handlers/StfuGallery.py:120
+#: sophie_bot/modules/op/handlers/StfuGallery.py:151
 msgid "underlined text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:125
-#: sophie_bot/modules/op/handlers/StfuGallery.py:156
+#: sophie_bot/modules/op/handlers/StfuGallery.py:121
+#: sophie_bot/modules/op/handlers/StfuGallery.py:152
 msgid "strikethrough text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:126
+#: sophie_bot/modules/op/handlers/StfuGallery.py:122
 msgid "spoiler text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:129
+#: sophie_bot/modules/op/handlers/StfuGallery.py:125
 msgid "Telegram"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:130
+#: sophie_bot/modules/op/handlers/StfuGallery.py:126
 msgid "User mention"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:131
+#: sophie_bot/modules/op/handlers/StfuGallery.py:127
 msgid "quoted text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:132
+#: sophie_bot/modules/op/handlers/StfuGallery.py:128
 msgid "Regular inline formatting"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:135
+#: sophie_bot/modules/op/handlers/StfuGallery.py:131
 msgid "Key"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:135
-#: sophie_bot/modules/op/handlers/StfuGallery.py:140
-#: sophie_bot/modules/op/handlers/StfuGallery.py:141
-#: sophie_bot/modules/op/handlers/StfuGallery.py:197
+#: sophie_bot/modules/op/handlers/StfuGallery.py:131
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+#: sophie_bot/modules/op/handlers/StfuGallery.py:193
 msgid "Value"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:132
 msgid "alpha"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:132
 msgid "beta"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+#: sophie_bot/modules/op/handlers/StfuGallery.py:133
 msgid "first item"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+#: sophie_bot/modules/op/handlers/StfuGallery.py:133
 msgid "second item"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:138
+#: sophie_bot/modules/op/handlers/StfuGallery.py:134
 msgid "before"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:138
+#: sophie_bot/modules/op/handlers/StfuGallery.py:134
 msgid "after"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:139
+#: sophie_bot/modules/op/handlers/StfuGallery.py:135
 msgid "left"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:139
+#: sophie_bot/modules/op/handlers/StfuGallery.py:135
 msgid "right"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:140
-#: sophie_bot/modules/op/handlers/StfuGallery.py:141
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
 msgid "Rows"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:144
+#: sophie_bot/modules/op/handlers/StfuGallery.py:140
 msgid "Convenience and Markdown helpers"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:151
+#: sophie_bot/modules/op/handlers/StfuGallery.py:147
 msgid "STFU Rich HTML Gallery: Text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:157
+#: sophie_bot/modules/op/handlers/StfuGallery.py:153
 msgid "deleted text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:158
+#: sophie_bot/modules/op/handlers/StfuGallery.py:154
 msgid "marked text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:161
-#: sophie_bot/modules/op/handlers/StfuGallery.py:218
-#: sophie_bot/modules/op/handlers/StfuGallery.py:220
+#: sophie_bot/modules/op/handlers/StfuGallery.py:157
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
+#: sophie_bot/modules/op/handlers/StfuGallery.py:216
 msgid "The Author"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:164
+#: sophie_bot/modules/op/handlers/StfuGallery.py:160
 msgid "22:45 tomorrow"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:166
+#: sophie_bot/modules/op/handlers/StfuGallery.py:162
 msgid "Inline rich components"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:170
+#: sophie_bot/modules/op/handlers/StfuGallery.py:166
 msgid "Reference"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:171
+#: sophie_bot/modules/op/handlers/StfuGallery.py:167
 msgid "Referenced text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:172
+#: sophie_bot/modules/op/handlers/StfuGallery.py:168
 msgid "inline URL"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:173
+#: sophie_bot/modules/op/handlers/StfuGallery.py:169
 msgid "inline e-mail"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:174
+#: sophie_bot/modules/op/handlers/StfuGallery.py:170
 msgid "inline phone number"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:175
+#: sophie_bot/modules/op/handlers/StfuGallery.py:171
 msgid "inline mention of a user"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:176
+#: sophie_bot/modules/op/handlers/StfuGallery.py:172
 msgid "Links, anchors, and references"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:179
+#: sophie_bot/modules/op/handlers/StfuGallery.py:175
 msgid "Heading 1"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:180
+#: sophie_bot/modules/op/handlers/StfuGallery.py:176
 msgid "Heading 2"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:181
+#: sophie_bot/modules/op/handlers/StfuGallery.py:177
 msgid "Heading 3"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:182
+#: sophie_bot/modules/op/handlers/StfuGallery.py:178
 msgid "Heading 4"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:183
+#: sophie_bot/modules/op/handlers/StfuGallery.py:179
 msgid "Heading 5"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:184
+#: sophie_bot/modules/op/handlers/StfuGallery.py:180
 msgid "Heading 6"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:185
+#: sophie_bot/modules/op/handlers/StfuGallery.py:181
 msgid "Paragraph text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:187
+#: sophie_bot/modules/op/handlers/StfuGallery.py:183
 msgid "Footer text"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:189
+#: sophie_bot/modules/op/handlers/StfuGallery.py:185
 msgid "Rich text blocks"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:196
+#: sophie_bot/modules/op/handlers/StfuGallery.py:192
 msgid "Header 1"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:196
+#: sophie_bot/modules/op/handlers/StfuGallery.py:192
 msgid "Header 2"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:197
+#: sophie_bot/modules/op/handlers/StfuGallery.py:193
 msgid "Value 2"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:198
+#: sophie_bot/modules/op/handlers/StfuGallery.py:194
 msgid "Value 4"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:198
+#: sophie_bot/modules/op/handlers/StfuGallery.py:194
 msgid "Value 5"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:201
+#: sophie_bot/modules/op/handlers/StfuGallery.py:197
 msgid "Table caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:205
+#: sophie_bot/modules/op/handlers/StfuGallery.py:201
 msgid "STFU Rich HTML Gallery: Structure"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:207
+#: sophie_bot/modules/op/handlers/StfuGallery.py:203
 msgid "unordered list item"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:208
-#: sophie_bot/modules/op/handlers/StfuGallery.py:211
+#: sophie_bot/modules/op/handlers/StfuGallery.py:204
+#: sophie_bot/modules/op/handlers/StfuGallery.py:207
 msgid "ordered list item"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:213
+#: sophie_bot/modules/op/handlers/StfuGallery.py:209
 msgid "explicit number"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:214
+#: sophie_bot/modules/op/handlers/StfuGallery.py:210
 msgid "Lists"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:218
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
 msgid "Block quotation started"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:218
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
 msgid "continued"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:220
+#: sophie_bot/modules/op/handlers/StfuGallery.py:216
 msgid "Pull quote"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:221
+#: sophie_bot/modules/op/handlers/StfuGallery.py:217
 #: sophie_bot/modules/op/handlers/op_task.py:154
 msgid "Title"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:222
+#: sophie_bot/modules/op/handlers/StfuGallery.py:218
 msgid "Quotes and collapsible blocks"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:227
+#: sophie_bot/modules/op/handlers/StfuGallery.py:223
 msgid "Tables and formulas"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:234
+#: sophie_bot/modules/op/handlers/StfuGallery.py:230
 msgid "STFU Rich HTML Gallery: Media"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:242
+#: sophie_bot/modules/op/handlers/StfuGallery.py:238
 msgid "Media blocks"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:247
+#: sophie_bot/modules/op/handlers/StfuGallery.py:243
 msgid "Photo caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:247
+#: sophie_bot/modules/op/handlers/StfuGallery.py:243
 msgid "Photo credit"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:249
+#: sophie_bot/modules/op/handlers/StfuGallery.py:245
 msgid "Video caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:250
+#: sophie_bot/modules/op/handlers/StfuGallery.py:246
 msgid "Audio caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:252
+#: sophie_bot/modules/op/handlers/StfuGallery.py:248
 msgid "Map caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:253
+#: sophie_bot/modules/op/handlers/StfuGallery.py:249
 msgid "Figures and maps"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:259
+#: sophie_bot/modules/op/handlers/StfuGallery.py:255
 msgid "Collage caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:264
+#: sophie_bot/modules/op/handlers/StfuGallery.py:260
 msgid "Slideshow caption"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:266
+#: sophie_bot/modules/op/handlers/StfuGallery.py:262
 msgid "Collages and slideshows"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/StfuGallery.py:280
+#: sophie_bot/modules/op/handlers/StfuGallery.py:276
 msgid "Show an operator-only STFU formatting gallery."
 msgstr ""
 
@@ -5933,11 +5989,11 @@ msgstr ""
 msgid "Rules filter failed"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/__init__.py:40
+#: sophie_bot/modules/troubleshooters/__init__.py:27
 msgid "Troubleshooters"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/__init__.py:42
+#: sophie_bot/modules/troubleshooters/__init__.py:29
 msgid "Tools for fixing problems and issues"
 msgstr ""
 
@@ -5951,58 +6007,6 @@ msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/admincache.py:29
 msgid "Admin rights cache has been reset."
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:13
-msgid "Auto"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:14
-msgid "Old"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:15
-msgid "Latest"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:28
-msgid "Preferred strategy mode"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:30
-msgid "Set preferred strategy mode"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:40
-msgid "Sophie Support"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:50
-msgid "New strategy"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:52
-msgid "Preferred mode cannot always match the current state due to development and rollout progress."
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:56
-msgid "Preferred mode changed"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:63
-msgid "Get current strategy mode / current state"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:82
-msgid "Preferred mode"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:83
-msgid "Current mode"
-msgstr ""
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:84
-msgid "Mode information"
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel.py:13

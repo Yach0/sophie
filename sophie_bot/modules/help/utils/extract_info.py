@@ -1,4 +1,4 @@
-from asyncio import iscoroutinefunction
+import inspect
 from collections import OrderedDict
 from dataclasses import dataclass
 from itertools import chain
@@ -77,7 +77,7 @@ async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> Optional[A
         return None
     if isinstance(args, dict):
         return cast(ARGS_DICT, args)
-    if iscoroutinefunction(args):
+    if inspect.iscoroutinefunction(args):
         result = await args(None, {})
         return cast(ARGS_DICT, result)
     raise ValueError

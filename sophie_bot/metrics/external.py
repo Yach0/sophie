@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 import functools
+import inspect
 import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar
@@ -158,7 +158,7 @@ def instrument_external_service(service_name: str):
                     exception_name=exception_name,
                 )
 
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
 
