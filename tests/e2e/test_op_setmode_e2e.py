@@ -19,6 +19,17 @@ async def _reset_beta_modes(db_init: object) -> AsyncGenerator[None, None]:
     await BetaModeModel.get_pymongo_collection().delete_many({})
 
 
+async def _stored_preferred_mode(chat_iid: object) -> PreferredMode | None:
+    # Read the raw document rather than BetaModeModel.get_by_chat_iid: the mocked
+    # MongoDB (mongomock) stores the chat Link as a bson DBRef and cannot resolve
+    # the `chat.$id` subfield query that the helper relies on, even though it works
+    # against a real MongoDB.
+    raw = await BetaModeModel.get_pymongo_collection().find_one({})
+    if raw is None or raw["chat"].id != chat_iid:
+        return None
+    return PreferredMode(raw["preferred_mode"])
+
+
 async def _send_op_setmode(
     test_client: TestClient,
     *,
@@ -59,9 +70,7 @@ async def test_op_setmode_sets_preferred_mode(test_client: TestClient) -> None:
 
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    beta_state = await BetaModeModel.get_by_chat_iid(chat.iid)
-    assert beta_state is not None
-    assert beta_state.preferred_mode == PreferredMode.beta
+    assert await _stored_preferred_mode(chat.iid) == PreferredMode.beta
 
 
 @pytest.mark.asyncio
@@ -91,9 +100,7 @@ async def test_op_setmode_chat_arg_targets_chat(test_client: TestClient) -> None
 
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    beta_state = await BetaModeModel.get_by_chat_iid(chat.iid)
-    assert beta_state is not None
-    assert beta_state.preferred_mode == PreferredMode.stable
+    assert await _stored_preferred_mode(chat.iid) == PreferredMode.stable
 
 
 @pytest.mark.asyncio
