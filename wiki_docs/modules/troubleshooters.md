@@ -20,6 +20,4 @@ icon: 🧰
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/admincache` | - | Reset admin rights cache, use if Sophie didn't get the recently added admin |  |
-| `/setmode` `/enablebeta` | `<Preferred strategy mode>` | Set preferred strategy mode |  |
-| `/setmode` `/enablebeta` | - | Get current strategy mode / current state |  |
 {.card-view-on-mobile}
