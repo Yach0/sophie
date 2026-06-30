@@ -1,5 +1,5 @@
 from sophie_bot.db.models.beta import PreferredMode
-from sophie_bot.modules.troubleshooters.handlers.beta_state import preferred_mode_by_user_mode
+from sophie_bot.modules.op.handlers.SetMode import preferred_mode_by_user_mode
 
 
 def test_user_modes_map_to_existing_database_modes() -> None:
