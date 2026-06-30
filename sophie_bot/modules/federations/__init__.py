@@ -26,7 +26,8 @@ from sophie_bot.modules.federations.handlers.subscribe import SubscribeFederatio
 from sophie_bot.modules.federations.handlers.transfer import TransferOwnershipHandler
 from sophie_bot.modules.federations.handlers.unban import FederationUnbanHandler
 from sophie_bot.modules.federations.middlewares.check_fban import FedBanMiddleware
-from sophie_bot.modules.federations.schedules.cleanup_exports import CleanupOldExports
+from sophie_bot.modules.federations.schedules.cleanup_tasks import CleanupOldTasks
+from sophie_bot.modules.federations.schedules.process_bans import ProcessFederationBans
 from sophie_bot.modules.federations.schedules.process_exports import ProcessFederationExports
 from sophie_bot.modules.federations.schedules.process_imports import ProcessFederationImports
 from sophie_bot.services.scheduler import scheduler
@@ -43,9 +44,10 @@ async def pre_setup() -> None:
 
 async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
+        scheduler.add_job(ProcessFederationBans().handle, "interval", seconds=10, jobstore="ram")
         scheduler.add_job(ProcessFederationImports().handle, "interval", seconds=30, jobstore="ram")
         scheduler.add_job(ProcessFederationExports().handle, "interval", seconds=30, jobstore="ram")
-        scheduler.add_job(CleanupOldExports().handle, "interval", hours=6, jobstore="ram")
+        scheduler.add_job(CleanupOldTasks().handle, "interval", hours=6, jobstore="ram")
 
 
 module_manifest = ModuleManifest(

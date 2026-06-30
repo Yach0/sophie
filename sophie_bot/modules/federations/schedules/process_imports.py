@@ -13,8 +13,8 @@ from stfu_tg import Doc, KeyValue, Title
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.metrics.federation import track_federation_import_completed
-from sophie_bot.db.models.federations import Federation, FederationBan, FederationImportTask
-from sophie_bot.db.models.federations_enums import TaskStatus
+from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
@@ -53,7 +53,7 @@ class BanValidationError(ValueError):
     """Raised when ban validation fails."""
 
 
-async def _send_import_result(task: FederationImportTask, federation: Federation) -> None:
+async def _send_import_result(task: FederationTask, federation: Federation) -> None:
     """Format and send the import result notification."""
     try:
         status_text = _("✅ Import completed successfully")
@@ -76,7 +76,7 @@ async def _send_import_result(task: FederationImportTask, federation: Federation
         log.error("Failed to send import completion notification", task_id=str(task.id), error=str(e))
 
 
-async def _execute_import_task(processor: ProcessFederationImports, task: FederationImportTask) -> dict:
+async def _execute_import_task(processor: ProcessFederationImports, task: FederationTask) -> dict:
     """Handles the actual import execution and returns a result dict."""
     federation = await Federation.find_one(Federation.fed_id == task.fed_id)
     if not federation:
@@ -87,6 +87,8 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         raise CSVValidationError("Importing user not found")
     importer_user_tid = importer_user.tid
 
+    if not task.file_id:
+        raise CSVValidationError("Import task is missing the uploaded file ID")
     reader = await processor._download_and_parse_csv(task.file_id)
 
     imported_count = 0
@@ -177,7 +179,10 @@ class ProcessFederationImports:
 
     async def handle(self) -> None:
         """Process all pending import tasks."""
-        tasks = await FederationImportTask.find(FederationImportTask.status == TaskStatus.PENDING).to_list()
+        tasks = await FederationTask.find(
+            FederationTask.task_type == FederationTaskType.IMPORT,
+            FederationTask.status == TaskStatus.PENDING,
+        ).to_list()
 
         for task in tasks:
             try:
@@ -194,7 +199,7 @@ class ProcessFederationImports:
             except Exception as e:
                 log.error("Error processing federation import task", task_id=str(task.id), error=str(e))
 
-    async def _process_task(self, task: FederationImportTask) -> None:
+    async def _process_task(self, task: FederationTask) -> None:
         """Process a single import task."""
         await self._update_task_status(task, TaskStatus.PROCESSING)
 
@@ -328,7 +333,7 @@ class ProcessFederationImports:
 
     @staticmethod
     async def _update_task_status(
-        task: FederationImportTask,
+        task: FederationTask,
         status: TaskStatus,
         error_message: str | None = None,
         imported_count: int | None = None,

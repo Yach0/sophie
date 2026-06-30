@@ -11,8 +11,8 @@ from beanie.odm.operators.find.comparison import In
 from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.federations import FederationBan, FederationExportTask
-from sophie_bot.db.models.federations_enums import TaskStatus
+from sophie_bot.db.models.federations import FederationBan, FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -26,7 +26,10 @@ class ProcessFederationExports:
 
     async def handle(self) -> None:
         """Process all pending export tasks."""
-        tasks = await FederationExportTask.find(FederationExportTask.status == TaskStatus.PENDING).to_list()
+        tasks = await FederationTask.find(
+            FederationTask.task_type == FederationTaskType.EXPORT,
+            FederationTask.status == TaskStatus.PENDING,
+        ).to_list()
 
         for task in tasks:
             try:
@@ -34,7 +37,7 @@ class ProcessFederationExports:
             except Exception as e:
                 log.error("Error processing federation export task", task_id=str(task.id), error=str(e))
 
-    async def _process_task(self, task: FederationExportTask) -> None:
+    async def _process_task(self, task: FederationTask) -> None:
         """Process a single export task."""
         chat = await task.chat.fetch()
         await self._update_task_status(task, TaskStatus.PROCESSING)
@@ -133,7 +136,7 @@ class ProcessFederationExports:
 
         return getattr(link_ref, "id", None)
 
-    def _build_caption(self, task: FederationExportTask, ban_count: int) -> str:
+    def _build_caption(self, task: FederationTask, ban_count: int) -> str:
         """Build caption for exported document."""
         doc = Doc(
             Title(_("🏛 Federation Ban List Export")),
@@ -145,7 +148,7 @@ class ProcessFederationExports:
 
     async def _update_task_status(
         self,
-        task: FederationExportTask,
+        task: FederationTask,
         status: TaskStatus,
         error_message: str | None = None,
     ) -> None:
