@@ -11,6 +11,7 @@ from sophie_bot.modules.federations.services import FederationBanService, Federa
 from sophie_bot.modules.federations.utils.ban_docs import (
     build_ban_log_doc,
     build_ban_reply_doc,
+    build_ban_superseded_doc,
     build_task_failed_doc,
     build_unban_log_text,
     build_unban_reply_doc,
@@ -71,7 +72,9 @@ class ProcessFederationBans:
         ban = await FederationBan.get(task.ban_id) if task.ban_id else None
         if not ban:
             # The ban record is gone (e.g. the user was unbanned before this ran) - nothing to do.
+            # Edit the queued reply to a terminal state so it doesn't stay on "Propagating…".
             log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
+            await self._edit_reply(task, build_ban_superseded_doc().to_html())
             return
 
         banned_count = await FederationBanService.ban_user_in_federation_chats(

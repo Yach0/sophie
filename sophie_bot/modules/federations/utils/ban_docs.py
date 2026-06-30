@@ -137,6 +137,19 @@ def build_task_failed_doc(error_message: str | None) -> Doc:
     return doc
 
 
+def build_ban_superseded_doc() -> Doc:
+    """Format the reply shown when the ban record is gone before propagation ran.
+
+    The user was unbanned between recording the ban and this job running, so there is
+    nothing left to propagate. Edit the queued reply to a terminal state instead of
+    leaving it stuck on "Propagating across the federation…".
+    """
+    return Doc(
+        Title(_("ℹ️ Ban Superseded")),
+        _("This user was unbanned before the ban finished propagating, so there was nothing left to do."),
+    )
+
+
 def build_unban_log_text(user: ChatModel, unbanner_tid: int, unbanner_name: str) -> str:
     """Format the federation log entry for an unban."""
     return Template(
