@@ -62,6 +62,9 @@ class ProcessFederationBans:
             raise
 
     async def _process_ban(self, task: FederationTask, federation: Federation) -> None:
+        if task.target_user_id is None:
+            raise ValueError("Ban task is missing the target user ID")
+
         by_user = await task.user.fetch()
         banner_name = by_user.first_name if by_user else ""
 
@@ -117,6 +120,9 @@ class ProcessFederationBans:
             await FederationManageService.post_federation_log(federation, log_doc.to_html(), bot)
 
     async def _process_unban(self, task: FederationTask, federation: Federation) -> None:
+        if task.target_user_id is None:
+            raise ValueError("Unban task is missing the target user ID")
+
         unbanned_count = (
             await FederationBanService.unban_user_in_chat_iids(list(task.unban_chat_iids), task.target_user_id)
             if task.unban_chat_iids

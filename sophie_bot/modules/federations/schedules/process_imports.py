@@ -87,6 +87,8 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         raise CSVValidationError("Importing user not found")
     importer_user_tid = importer_user.tid
 
+    if not task.file_id:
+        raise CSVValidationError("Import task is missing the uploaded file ID")
     reader = await processor._download_and_parse_csv(task.file_id)
 
     imported_count = 0
@@ -331,7 +333,7 @@ class ProcessFederationImports:
 
     @staticmethod
     async def _update_task_status(
-        task: FederationImportTask,
+        task: FederationTask,
         status: TaskStatus,
         error_message: str | None = None,
         imported_count: int | None = None,
