@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from beanie.odm.operators.find.comparison import In
+from beanie.odm.operators.find.comparison import LT, In
 
 from sophie_bot.constants import FEDERATION_EXPORT_TTL_DAYS
 from sophie_bot.db.models.federations import FederationTask
@@ -19,7 +19,7 @@ class CleanupOldTasks:
 
         result = await FederationTask.find(
             In(FederationTask.status, [TaskStatus.COMPLETED, TaskStatus.FAILED]),
-            FederationTask.completed_at < cutoff_date,
+            LT(FederationTask.completed_at, cutoff_date),
         ).delete()
 
         deleted_count = result.deleted_count if result else 0
