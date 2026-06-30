@@ -40,6 +40,7 @@ BOT_LINK_REGEX = re.compile(r"(t\.me/|telegram\.me/)[a-zA-Z0-9_]+bot\b", re.IGNO
 EMOJI_ONLY_REGEX = re.compile(
     r"^[\s\U0001f600-\U0001f64f\U0001f300-\U0001f5ff\U0001f680-\U0001f6ff\U0001f1e0-\U0001f1ff\U00002702-\U000027b0\U0001f900-\U0001f9ff\U0001fa70-\U0001faff\U00002600-\U000026ff\U00002700-\U000027bf]*$"
 )
+MEDIA_ATTRIBUTES = ("photo", "video", "audio", "document", "sticker", "animation", "voice", "video_note")
 
 
 def _get_all_entities(message: Message) -> list[MessageEntity]:
@@ -169,16 +170,7 @@ def _check_language(message: Message, lang_code: str) -> bool:
 
 
 def _check_media(message: Message) -> bool:
-    return bool(
-        message.photo
-        or message.video
-        or message.audio
-        or message.document
-        or message.sticker
-        or message.animation
-        or message.voice
-        or message.video_note
-    )
+    return any(getattr(message, attribute) for attribute in MEDIA_ATTRIBUTES)
 
 
 def _check_edited(message: Message) -> bool:
@@ -232,9 +224,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.STICKER: lambda m: bool(m.sticker),
     LockType.STICKER_ANIMATED: lambda m: bool(m.sticker and m.sticker.is_animated),
     LockType.STICKER_PREMIUM: lambda m: bool(m.sticker and m.sticker.premium_animation),
-    LockType.TEXT: lambda m: (
-        bool(m.text) and not any([m.photo, m.video, m.audio, m.document, m.sticker, m.animation, m.voice, m.video_note])
-    ),
+    LockType.TEXT: lambda m: bool(m.text) and not _check_media(m),
     LockType.URL: _check_url,
     LockType.VIDEO: lambda m: bool(m.video),
     LockType.VIDEO_NOTE: lambda m: bool(m.video_note),
