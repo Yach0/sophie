@@ -16,7 +16,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
-from sophie_bot.modules.ai.utils.chatbot_agent import get_chatbot_tools
+from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_usage_limits, get_chatbot_tools
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
 from sophie_bot.modules.ai.utils.research import (
@@ -251,3 +251,20 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
         tools = await get_chatbot_tools(-100123)
 
     assert research_topic_tool not in tools
+
+
+@pytest.mark.asyncio
+async def test_build_chatbot_usage_limits_maps_token_limit() -> None:
+    async def value_side_effect(feature: str, chat_tid: int | None = None) -> int:
+        return {
+            "ai_chatbot_request_limit": 3,
+            "ai_chatbot_tool_calls_limit": 5,
+            "ai_chatbot_response_tokens_limit": 2048,
+        }[feature]
+
+    with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(side_effect=value_side_effect)):
+        limits = await build_chatbot_usage_limits(-100123)
+
+    assert limits.request_limit == 3
+    assert limits.tool_calls_limit == 5
+    assert limits.output_tokens_limit == 2048
