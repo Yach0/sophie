@@ -106,11 +106,11 @@ async def build_chatbot_usage_limits(chat_tid: int) -> UsageLimits:
     tool_calls_limit = _coerce_usage_limit(
         await get_value("ai_chatbot_tool_calls_limit", chat_tid=chat_tid), _DEFAULT_CHATBOT_TOOL_CALLS_LIMIT
     )
-    response_tokens_limit = _coerce_usage_limit(await get_value("ai_chatbot_response_tokens_limit", chat_tid=chat_tid))
+    output_tokens_limit = _coerce_usage_limit(await get_value("ai_chatbot_response_tokens_limit", chat_tid=chat_tid))
     return UsageLimits(
         request_limit=request_limit,
         tool_calls_limit=tool_calls_limit,
-        response_tokens_limit=response_tokens_limit,
+        output_tokens_limit=output_tokens_limit,
     )
 
 
