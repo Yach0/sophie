@@ -9,6 +9,7 @@
     TOKEN: "123456:test"
   before_script:
     - unset VIRTUAL_ENV
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/SophieBot/".insteadOf "https://gitlab.com/SophieBot/"
     - uv sync --frozen
     - uv run pybabel compile -d locales -D sophie --use-fuzzy
 
