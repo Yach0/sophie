@@ -100,8 +100,6 @@ class SophieMessageCallbackQueryHandler(SophieBaseHandler[Message | CallbackQuer
 
         if not msg:
             raise SophieException("No message in the event")
-        if isinstance(msg, InaccessibleMessage):
-            raise SophieException(_("The message is inaccessible. Please write the command again"))
         if not isinstance(msg, Message):
             raise SophieException(_("The message is inaccessible. Please write the command again"))
         return msg
