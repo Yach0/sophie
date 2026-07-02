@@ -60,6 +60,15 @@ CHAT_TID_B = -1002950101
 CHAT_TID_C = -1002950102
 
 
+def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
+    for chat_tid in range(-1002951000, -1002950000):
+        if _is_chat_in_rollout(FEATURE, chat_tid, 10) is expected_in_rollout:
+            return chat_tid
+
+    msg = f"No chat tid found with expected rollout state {expected_in_rollout}"
+    raise AssertionError(msg)
+
+
 @pytest.fixture(autouse=True)
 async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None, None]:
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
@@ -895,8 +904,8 @@ class TestRolloutChatIntegration:
         assert await get_value(FEATURE, chat_tid=CHAT_TID_A) is False
 
     async def test_deterministic_cohort(self) -> None:
-        selected_tid = next(tid for tid in range(-1002951000, -1002950000) if _is_chat_in_rollout(FEATURE, tid, 10))
-        excluded_tid = next(tid for tid in range(-1002951000, -1002950000) if not _is_chat_in_rollout(FEATURE, tid, 10))
+        selected_tid = _find_rollout_chat_tid(expected_in_rollout=True)
+        excluded_tid = _find_rollout_chat_tid(expected_in_rollout=False)
         await set_rollout(FEATURE, 10, True)
         assert await is_enabled(FEATURE, chat_tid=selected_tid) is True
         assert await is_enabled(FEATURE, chat_tid=excluded_tid) is False

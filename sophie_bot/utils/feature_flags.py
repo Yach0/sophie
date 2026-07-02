@@ -264,7 +264,9 @@ _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
     feature: definition["default"] for feature, definition in _FEATURE_DEFINITIONS.items()
 }
 
-assert set(FEATURE_FLAGS) == set(_DEFAULT_STATES), "FeatureType and _DEFAULT_STATES must define the same flags"
+if set(FEATURE_FLAGS) != set(_DEFAULT_STATES):
+    msg = "FeatureType and _DEFAULT_STATES must define the same flags"
+    raise RuntimeError(msg)
 
 
 # Redis keys use legacy "kill_switch" naming for backward compatibility.
