@@ -9,6 +9,12 @@ def _pick(options: list[str]) -> str:
     return options[0] if options else ""
 
 
+def _normalize_token(token: str) -> str:
+    if token.startswith("\n"):
+        token = token[1:]
+    return token[:-1] if token.endswith("\n") and token != "\n" else token
+
+
 def parse_random_text(text: str) -> str:
     """
     Parse text with random choice sections delimited by %%%.
@@ -47,11 +53,7 @@ def parse_random_text(text: str) -> str:
             if d2 == -1:
                 # No more delimiters: treat remaining as the last option, trailing text is empty
                 token = text[pos:]
-                # Normalize single leading/trailing newline from multiline blocks
-                if token.startswith("\n"):
-                    token = token[1:]
-                if token.endswith("\n") and token != "\n":
-                    token = token[:-1]
+                token = _normalize_token(token)
                 options.append(token)
                 chosen = _pick(options)
                 result.append(chosen)
@@ -60,11 +62,7 @@ def parse_random_text(text: str) -> str:
 
             # Token between delimiters is an option (can be empty)
             token = text[pos:d2]
-            # Normalize single leading/trailing newline from multiline blocks
-            if token.startswith("\n"):
-                token = token[1:]
-            if token.endswith("\n") and token != "\n":
-                token = token[:-1]
+            token = _normalize_token(token)
 
             trailing_start = d2 + dlen
             d3 = text.find(delim, trailing_start)
