@@ -9,6 +9,14 @@ def _pick(options: list[str]) -> str:
     return options[0] if options else ""
 
 
+def _normalize_option(option: str) -> str:
+    if option.startswith("\n"):
+        option = option[1:]
+    if option.endswith("\n") and option != "\n":
+        return option[:-1]
+    return option
+
+
 def parse_random_text(text: str) -> str:
     """
     Parse text with random choice sections delimited by %%%.
@@ -28,72 +36,47 @@ def parse_random_text(text: str) -> str:
     result: list[str] = []
     idx = 0
     delim = "%%%"
-    dlen = 3
+    dlen = len(delim)
 
     while idx < len(text):
-        # Append normal text up to the next delimiter
         d1 = text.find(delim, idx)
         if d1 == -1:
             result.append(text[idx:])
             break
         result.append(text[idx:d1])
 
-        # We are at the start of a choice section
         pos = d1 + dlen
         options: list[str] = []
 
         while True:
             d2 = text.find(delim, pos)
             if d2 == -1:
-                # No more delimiters: treat remaining as the last option, trailing text is empty
-                token = text[pos:]
-                # Normalize single leading/trailing newline from multiline blocks
-                if token.startswith("\n"):
-                    token = token[1:]
-                if token.endswith("\n") and token != "\n":
-                    token = token[:-1]
-                options.append(token)
-                chosen = _pick(options)
-                result.append(chosen)
+                options.append(_normalize_option(text[pos:]))
+                result.append(_pick(options))
                 idx = len(text)
                 break
 
-            # Token between delimiters is an option (can be empty)
-            token = text[pos:d2]
-            # Normalize single leading/trailing newline from multiline blocks
-            if token.startswith("\n"):
-                token = token[1:]
-            if token.endswith("\n") and token != "\n":
-                token = token[:-1]
-
+            token = _normalize_option(text[pos:d2])
             trailing_start = d2 + dlen
             d3 = text.find(delim, trailing_start)
             if d3 == -1:
-                # Last option; the text after d2 is trailing normal text (end of input)
                 options.append(token)
-                chosen = _pick(options)
-                result.append(chosen)
+                result.append(_pick(options))
                 result.append(text[trailing_start:])
                 idx = len(text)
                 break
 
             trailing = text[trailing_start:d3]
             if trailing.strip() == "":
-                # Boundary between sections (whitespace-only between groups)
-                # Normalize: drop a single leading newline to avoid triple newlines when the chosen
-                # option already ends with a newline and the delimiter line also contributes one.
                 if trailing.startswith("\n"):
                     trailing = trailing[1:]
                 options.append(token)
-                chosen = _pick(options)
-                result.append(chosen)
+                result.append(_pick(options))
                 result.append(trailing)
                 idx = d3
                 break
 
-            # Still inside the same choice section; continue collecting options
             options.append(token)
             pos = d2 + dlen
-            continue
 
     return "".join(result)
