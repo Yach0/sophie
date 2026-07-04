@@ -9,12 +9,10 @@ def _pick(options: list[str]) -> str:
     return options[0] if options else ""
 
 
-def _normalize_option(option: str) -> str:
-    if option.startswith("\n"):
-        option = option[1:]
-    if option.endswith("\n") and option != "\n":
-        return option[:-1]
-    return option
+def _normalize_token(token: str) -> str:
+    if token.startswith("\n"):
+        token = token[1:]
+    return token[:-1] if token.endswith("\n") and token != "\n" else token
 
 
 def parse_random_text(text: str) -> str:
@@ -51,12 +49,19 @@ def parse_random_text(text: str) -> str:
         while True:
             d2 = text.find(delim, pos)
             if d2 == -1:
-                options.append(_normalize_option(text[pos:]))
-                result.append(_pick(options))
+                # No more delimiters: treat remaining as the last option, trailing text is empty
+                token = text[pos:]
+                token = _normalize_token(token)
+                options.append(token)
+                chosen = _pick(options)
+                result.append(chosen)
                 idx = len(text)
                 break
 
-            token = _normalize_option(text[pos:d2])
+            # Token between delimiters is an option (can be empty)
+            token = text[pos:d2]
+            token = _normalize_token(token)
+
             trailing_start = d2 + dlen
             d3 = text.find(delim, trailing_start)
             if d3 == -1:
