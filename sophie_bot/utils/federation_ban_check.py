@@ -48,7 +48,7 @@ async def _get_federation_for_chat(chat_iid: PydanticObjectId) -> Federation | N
     if direct_match:
         return direct_match
 
-    async for federation in Federation.find_all():  # deepsource-ignore[PYL-E1133]
+    async for federation in Federation.find_all():  # skipcq: PYL-E1133
         if not federation.chats:
             continue
         normalized_chat_iids = _normalize_chat_iids([chat_link.to_ref() for chat_link in federation.chats])

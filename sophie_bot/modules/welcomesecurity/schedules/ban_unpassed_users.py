@@ -93,7 +93,7 @@ class BanUnpassedUsers:
     async def handle(self):
         log.debug("ban_unpassed_users: starting")
 
-        async for ws_user in WSUserModel.find({"passed": False}):  # deepsource-ignore[PYL-E1133]
+        async for ws_user in WSUserModel.find({"passed": False}):  # skipcq: PYL-E1133
             await self.process_user(ws_user)
 
         log.debug("ban_unpassed_users: finished")

@@ -21,7 +21,7 @@ class NotesDescriptionsScheduler:
                 await sleep(5)
 
                 delta = datetime.now() - timedelta(days=1)
-                async for chat in ChatModel.find(ChatModel.last_saw >= delta):  # deepsource-ignore[PYL-E1133]
+                async for chat in ChatModel.find(ChatModel.last_saw >= delta):  # skipcq: PYL-E1133
                     await sleep(5)
 
                     if not await AIEnabledModel.get_state(chat.tid):
@@ -30,7 +30,7 @@ class NotesDescriptionsScheduler:
 
                     log.debug("NotesDescriptionsScheduler: processing chat", chat=chat)
 
-                    async for note in NoteModel.find(NoteModel.chat_tid == chat.tid):  # deepsource-ignore[PYL-E1133]
+                    async for note in NoteModel.find(NoteModel.chat_tid == chat.tid):  # skipcq: PYL-E1133
                         notenames = note.names
 
                         if note.description:

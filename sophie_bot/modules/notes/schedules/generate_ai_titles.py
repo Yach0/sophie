@@ -54,7 +54,7 @@ class GenerateAITitles:
             log.debug("generate_ai_titles: chat has too many notes, skipping...", chat=chat)
             return
 
-        async for note in chat_notes:  # deepsource-ignore[PYL-E1133]
+        async for note in chat_notes:  # skipcq: PYL-E1133
             if note.description:
                 log.debug("generate_ai_titles: note already has description, skipping...", note=note)
                 continue
