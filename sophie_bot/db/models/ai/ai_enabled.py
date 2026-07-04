@@ -12,12 +12,7 @@ class AIEnabledModel(Document):
 
     @staticmethod
     async def get_state(chat_iid: PydanticObjectId) -> bool:
-        usage = await AIEnabledModel.find_one(AIEnabledModel.chat.id == chat_iid)
-
-        if not usage:
-            return False
-
-        return True
+        return bool(await AIEnabledModel.find_one(AIEnabledModel.chat.id == chat_iid))
 
     @staticmethod
     async def set_state(chat: "ChatModel", new_state: bool):

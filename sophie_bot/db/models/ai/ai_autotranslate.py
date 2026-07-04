@@ -12,12 +12,7 @@ class AIAutotranslateModel(Document):
 
     @staticmethod
     async def get_state(chat_id: PydanticObjectId) -> bool:
-        state = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat_id)
-
-        if not state:
-            return False
-
-        return True
+        return bool(await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat_id))
 
     @staticmethod
     async def set_state(chat: "ChatModel", new_state: bool):
