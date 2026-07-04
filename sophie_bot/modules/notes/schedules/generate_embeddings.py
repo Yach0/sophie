@@ -11,7 +11,7 @@ from sophie_bot.utils.logger import log
 class GenerateNoteEmbeddings:
     async def process_chat(self, chat: ChatModel) -> None:
         chat_notes = NoteModel.find(NoteModel.chat.id == chat.iid)
-        async for note in chat_notes:  # deepsource-ignore[PYL-E1133]
+        async for note in chat_notes:  # skipcq: PYL-E1133
             updated = await update_note_embedding(note)
             if updated:
                 log.debug("notes_rag: updated note embedding", chat=chat.tid, note=note.names)
