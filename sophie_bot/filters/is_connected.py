@@ -19,16 +19,7 @@ class IsConnectedFilter(Filter):
     async def __call__(
         self, message: Message, *args: Any, connection: Optional[ChatConnection] = None, **kwargs: Any
     ) -> Union[bool, Dict[str, Any]]:
-        if not connection:
-            return False
-
-        if not connection.is_connected:
-            return False
-
-        if not message.from_user:
-            return False
-
-        return True
+        return bool(connection and connection.is_connected and message.from_user)
 
 
 class GroupOrConnectedFilter(Filter):
