@@ -10,40 +10,19 @@ from redis.exceptions import RedisError
 
 from sophie_bot.services.redis import aredis
 
-# Redis-based global exponential backoff for error notifications
-# Schedule: allow -> suppress 1m -> allow -> suppress 2m -> 4m -> 8m ... capped at 1h
-
 _INITIAL_DELAY: Final[int] = 60
 _FACTOR: Final[int] = 2
 _MAX_DELAY: Final[int] = 3600
-_QUIET_RESET: Final[int] = 1800  # reset backoff if no occurrences for 30 minutes
+_QUIET_RESET: Final[int] = 1800
 
 _PREFIX: Final[str] = "sophie:err:sig:"
 
 
 def compute_error_signature(exc: BaseException, frame_depth: int = 3) -> str:
-    """Compute a stable signature for an exception.
-
-    Uses exception class name, message, and top frames (from the traceback) up to frame_depth.
-    Returns a hex sha256 string.
-    """
-    # Collect basic parts
-    exc_type = type(exc).__name__
-    exc_msg = str(exc)
-
-    # Extract traceback frames; prefer exception.__traceback__
-    frames: list[traceback.FrameSummary] = []
-    tb = exc.__traceback__
-    if tb is not None:
-        frames = traceback.extract_tb(tb)
-    # Use the last frames (closest to the error) and limit to frame_depth
-    if frames:
-        take = frames[-frame_depth:]
-        frame_fps = [f"{f.filename}:{f.lineno}:{f.name}" for f in take]
-    else:
-        frame_fps = []
-
-    data = "|".join([exc_type, exc_msg, *frame_fps])
+    """Compute a stable signature for an exception."""
+    frames = traceback.extract_tb(exc.__traceback__) if exc.__traceback__ is not None else []
+    frame_fps = [f"{frame.filename}:{frame.lineno}:{frame.name}" for frame in frames[-frame_depth:]]
+    data = "|".join([type(exc).__name__, str(exc), *frame_fps])
     return hashlib.sha256(data.encode("utf-8", errors="ignore")).hexdigest()
 
 
