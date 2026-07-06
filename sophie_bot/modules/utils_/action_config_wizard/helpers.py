@@ -18,7 +18,7 @@ def convert_action_data_to_model(action: Any, action_data: Any) -> Any:
     if isinstance(action_data, dict) and action_data:
         try:
             return action.data_object(**action_data)
-        except ValidationError, TypeError, ValueError:
+        except (ValidationError, TypeError, ValueError):
             # If validation fails (e.g., wrong fields), fall back to default data
             # This can happen when action data was stored for a different action type
             return action.default_data

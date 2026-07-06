@@ -53,17 +53,17 @@ def _sanitize_for_json(obj: Any) -> Any:
     if isinstance(obj, timedelta):
         try:
             return obj.total_seconds()
-        except OverflowError, ValueError:
+        except (OverflowError, ValueError):
             return str(obj)
     if isinstance(obj, Enum):
         return obj.value
     if hasattr(obj, "model_dump"):
         try:
             return obj.model_dump(mode="json")
-        except AttributeError, TypeError, ValueError:
+        except (AttributeError, TypeError, ValueError):
             try:
                 return obj.dict()
-            except AttributeError, TypeError:
+            except (AttributeError, TypeError):
                 return str(obj)
     if isinstance(obj, dict):
         return {str(key): _sanitize_for_json(val) for key, val in obj.items()}
@@ -151,7 +151,7 @@ class WizardState:
         chat_iid: Optional[PydanticObjectId]
         try:
             chat_iid = PydanticObjectId(chat_iid_raw) if chat_iid_raw else None
-        except InvalidId, TypeError:
+        except (InvalidId, TypeError):
             chat_iid = None
         action_name = data.get(_K_ACTION_NAME)
         action_data = data.get(_K_ACTION_DATA)

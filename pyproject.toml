@@ -74,9 +74,14 @@ exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/StfuGallery.py"]
 [tool.ty.environment]
 python-version = "3.14"
 
+# NOTE: target-version is intentionally pinned below requires-python (3.14).
+# Ruff's 3.14 formatter strips parentheses from multi-type except clauses
+# ('except (A, B):' -> 'except A, B:'), but pycln/libcst cannot parse the
+# unparenthesized form and fails with a SyntaxError. Keeping the target at
+# py313 preserves the parenthesized form so both tools agree.
 [tool.ruff]
 line-length = 120
-target-version = "py314"
+target-version = "py313"
 
 [tool.pytest.ini_options]
 pythonpath = "."
