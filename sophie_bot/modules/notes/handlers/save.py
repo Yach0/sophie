@@ -54,6 +54,9 @@ class SaveNote(SophieMessageHandler):
         buttons = ButtonsList.from_ass(raw_buttons)
 
         notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"])
+        if not notenames:
+            await self.event.reply(_("Please provide at least one valid note name."))
+            return
 
         try:
             saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
