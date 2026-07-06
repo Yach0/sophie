@@ -130,7 +130,7 @@ class NewUserMiddleware(BaseMiddleware):
             additional_keyboard=security_keyboard.as_markup(),
         )
         # Save sent message to cleanup it later
-        if len(muted_users) == 1:
+        if sent_message and len(muted_users) == 1:
             await aredis.set(f"chat_ws_message:{chat_db.iid}:{new_users[0].iid}", sent_message.message_id)
 
         return sent_message

@@ -9,6 +9,7 @@ import pytest
 from aiogram.enums import ChatMemberStatus
 from beanie import PydanticObjectId
 from fastapi import HTTPException
+from pymongo.errors import PyMongoError
 
 from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.utils.api.auth import (
@@ -338,7 +339,7 @@ async def test_get_current_user_db_error(mock_config):
     auth_creds.credentials = token
 
     with patch("sophie_bot.utils.api.auth.ChatModel.get_by_iid", new_callable=AsyncMock) as mock_get_by_iid:
-        mock_get_by_iid.side_effect = Exception("DB Error")
+        mock_get_by_iid.side_effect = PyMongoError("DB Error")
         with pytest.raises(HTTPException) as excinfo:
             await get_current_user(auth_creds)
         assert excinfo.value.status_code == 401

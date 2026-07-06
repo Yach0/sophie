@@ -5,7 +5,7 @@ from typing import Any
 
 from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message, ReplyParameters  # ty: ignore[unresolved-import]
+from aiogram.types import InputRichMessage, Message, ReplyParameters
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
@@ -305,7 +305,7 @@ async def ai_chatbot_reply(
             try:
                 final_message = await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
                     chat_id=message.chat.id,
-                    rich_message=InputRichMessage(html=doc.to_rich()),  # ty: ignore[unresolved-attribute]
+                    rich_message=InputRichMessage(html=doc.to_rich()),
                     reply_parameters=ReplyParameters(message_id=message.message_id),
                     message_thread_id=message.message_thread_id,
                     reply_markup=kwargs.get("reply_markup"),

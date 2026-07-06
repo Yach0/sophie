@@ -16,8 +16,8 @@ async def send_welcome(
     chat_rules: Optional[RulesModel],
     user: Optional[User] = None,
     send_to_chat_id: Optional[int] = None,
-    additional_keyboard: InlineKeyboardMarkup = InlineKeyboardMarkup(inline_keyboard=[]),
-) -> Message:
+    additional_keyboard: InlineKeyboardMarkup | None = None,
+) -> Message | None:
     chat_id = send_to_chat_id or message.chat.id
 
     rules_text = chat_rules.text or "" if chat_rules else _("No chat rules, have fun!")
@@ -33,4 +33,5 @@ async def send_welcome(
         additional_fillings=additional_fillings,
         additional_keyboard=additional_keyboard,
         user=user,
+        message_thread_id=message.message_thread_id if send_to_chat_id is None else None,
     )

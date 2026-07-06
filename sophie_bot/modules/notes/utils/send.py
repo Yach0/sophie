@@ -36,7 +36,7 @@ from sophie_bot.modules.notes.utils.parse import (
     SUPPORTS_CAPTION,
 )
 from sophie_bot.modules.notes.utils._random_parser import parse_random_text
-from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -67,11 +67,12 @@ async def send_saveable(
     reply_to: Optional[int] = None,
     title: Optional[Element] = None,
     raw: Optional[bool] = False,
-    additional_keyboard: InlineKeyboardMarkup = InlineKeyboardMarkup(inline_keyboard=[]),
+    additional_keyboard: InlineKeyboardMarkup | None = None,
     additional_fillings: Optional[dict[str, str]] = None,
     connection: ChatConnection | None = None,
     user: Optional[User] = None,
-):
+    message_thread_id: int | None = None,
+) -> Message | None:
     text = saveable.text or ""
 
     # Note - the order of those operations are actually more important than whatd you think
@@ -85,7 +86,8 @@ async def send_saveable(
 
         inline_markup = render_buttons(saveable.buttons, chat_id_for_buttons)
 
-        inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
+        if additional_keyboard:
+            inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 
     # Process fillings
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)
@@ -131,11 +133,13 @@ async def send_saveable(
 
     if reply_to:
         kwargs["reply_parameters"] = ReplyParameters(message_id=reply_to)
+    if message_thread_id is not None:
+        kwargs["message_thread_id"] = message_thread_id
 
-    def to_try(**cb_kwargs: object):
+    def to_try(**cb_kwargs: object) -> COROUTINE_TYPE:
         return SEND_METHOD[content_type](**cb_kwargs).emit(bot)
 
-    async def reply_not_found():
+    async def reply_not_found() -> Message | None:
         if "reply_parameters" in kwargs:
             del kwargs["reply_parameters"]
         return await to_try(**kwargs)

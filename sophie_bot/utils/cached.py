@@ -65,7 +65,7 @@ def _deserialize(data: bytes | str) -> tuple[Any, float | None, bool]:
             return parsed["v"], expiry, True
         # Legacy format or invalid - treat as cache miss
         return None, None, False
-    except (ujson.JSONDecodeError, TypeError):
+    except ujson.JSONDecodeError, TypeError:
         return None, None, False
 
 

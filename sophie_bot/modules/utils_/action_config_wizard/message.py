@@ -65,7 +65,7 @@ class _ACWSetupHandler(SophieMessageHandler):
         if chat_iid_raw:
             try:
                 chat_iid = PydanticObjectId(chat_iid_raw)
-            except (InvalidId, TypeError):
+            except InvalidId, TypeError:
                 chat_iid = None
             if chat_iid and not await wizard_state.is_active(cfg.module_name, chat_iid):
                 await message.reply(_("Setup session expired. Please start again."))
@@ -90,7 +90,7 @@ class _ACWSetupHandler(SophieMessageHandler):
 
         try:
             chat_iid = PydanticObjectId(chat_iid_raw)
-        except (InvalidId, TypeError):
+        except InvalidId, TypeError:
             await message.reply(_("Invalid chat context. Please restart the setup."))
             await wizard_state.clear_fsm()
             return
@@ -139,7 +139,7 @@ class _ACWSetupHandler(SophieMessageHandler):
 
         try:
             chat_iid = PydanticObjectId(chat_iid_raw)
-        except (InvalidId, TypeError):
+        except InvalidId, TypeError:
             await message.reply(_("Invalid chat context. Please restart the setup."))
             await wizard_state.clear_fsm()
             return

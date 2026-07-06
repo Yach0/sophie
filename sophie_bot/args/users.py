@@ -14,7 +14,7 @@ TELEGRAM_USER_ID_MAX = (1 << 63) - 1
 
 
 class SophieUserIDArg(UserIDArg):
-    def __init__(self, *args, allow_unknown_id: bool = False):
+    def __init__(self, *args: LazyProxy | str | None, allow_unknown_id: bool = False) -> None:
         super().__init__(*args)
         self.allow_unknown_id = allow_unknown_id
 
@@ -55,14 +55,13 @@ class SophieUserMentionArg(UserMentionArg):
         try:
             user = await ChatModel.find_user(aiogram_user.id)
         except DBNotFoundException:
-            # TODO: Insert user
-            user = ChatModel.get_user_model(aiogram_user)
+            user = await ChatModel.upsert_user(aiogram_user)
 
         return length, user
 
 
 class SophieUserArg(OrArg):
-    def __init__(self, *args, allow_unknown_id: bool = False):
+    def __init__(self, *args: LazyProxy | str | None, allow_unknown_id: bool = False) -> None:
         description = args[0] if args else None
         super().__init__(
             SophieUserMentionArg(),

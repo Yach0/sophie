@@ -10,11 +10,14 @@ import jwt
 import structlog
 from aiogram.enums import ChatMemberStatus
 from beanie import PydanticObjectId
+from bson.errors import InvalidId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
 )
+from pydantic_core import ValidationError
+from pymongo.errors import PyMongoError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
@@ -110,7 +113,7 @@ async def get_current_user(auth: Annotated[HTTPAuthorizationCredentials, Depends
 
     try:
         user = await ChatModel.get_by_iid(PydanticObjectId(user_id))
-    except Exception:
+    except InvalidId, TypeError, ValueError, ValidationError, PyMongoError:
         logger.error("Failed to fetch user by iid from JWT", user_id=user_id)
         raise credentials_exception
 

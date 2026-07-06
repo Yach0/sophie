@@ -12,7 +12,7 @@ from bson.dbref import DBRef
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.db.models.notes_buttons import Button
@@ -54,6 +54,7 @@ async def _create_group_and_user(
     group_db = await ChatModel.get_by_tid(group.id)
     assert user_db is not None
     assert group_db is not None
+    await UserInGroupModel.ensure_user_in_group(user_db, group_db)
 
     return user_db, group_db, user_wrapper, group
 
@@ -91,7 +92,10 @@ async def test_legacy_note_button_renders_migrated_button_rows(
     )
 
     get_note = AsyncMock(return_value=note)
-    with patch.object(NoteModel, "get_by_notenames", get_note):
+    with (
+        patch.object(UserInGroupModel, "get_user_in_group", AsyncMock(return_value=SimpleNamespace())),
+        patch.object(NoteModel, "get_by_notenames", get_note),
+    ):
         requests = await test_client.send_command(
             command="start",
             args=f"btnnotesm_menu_{group.id}",
@@ -166,7 +170,10 @@ async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
         version=1,
     )
 
-    with patch.object(NoteModel, "get_by_notenames", AsyncMock(return_value=note)):
+    with (
+        patch.object(UserInGroupModel, "get_user_in_group", AsyncMock(return_value=SimpleNamespace())),
+        patch.object(NoteModel, "get_by_notenames", AsyncMock(return_value=note)),
+    ):
         requests = await test_client.send_command(
             command="start",
             args=f"btnnotesm_menu_{group.id}",
@@ -178,6 +185,47 @@ async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
     assert response.request_type.value == "sendMessage"
     assert "[URL](btnurl:https://example.com/path)" in (response.text or "")
     assert response.reply_markup in (None, {"inline_keyboard": []})
+
+
+@pytest.mark.asyncio
+async def test_legacy_note_button_rejects_users_outside_chat(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
+
+    _member_db, group_db, _member_wrapper, group = await _create_group_and_user(
+        test_client,
+        group_tid=-1009400010008,
+        user_tid=940008,
+        group_title="Private Legacy Notes Group",
+    )
+    outsider_wrapper = test_client.create_user(
+        user_id=940009,
+        first_name="Outsider",
+        username="outside_notes",
+    )
+    note = NoteModel(
+        chat_id=group.id,
+        chat=group_db,
+        names=("private",),
+        text="Members only",
+        version=2,
+    )
+    await note.insert()
+
+    requests = await test_client.send_command(
+        command="start",
+        args=f"btnnotesm_private_{group.id}",
+        from_user=outsider_wrapper.user,
+    )
+
+    outsider_db = await ChatModel.get_by_tid(outsider_wrapper.user.id)
+    assert outsider_db is not None
+    assert await UserInGroupModel.get_user_in_group(outsider_db.iid, group_db.iid) is None
+
+    assert requests, "Legacy note deep link should explain why access is denied"
+    assert "member of this chat" in (requests[-1].text or "")
 
 
 @pytest.mark.asyncio

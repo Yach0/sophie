@@ -15,8 +15,6 @@ from sophie_bot.utils.ai_features import AIFeature, AI_FEATURES_BY_KEY
 
 class AIUsageLike(Protocol):
     total_tokens: int
-    request_tokens: int
-    response_tokens: int
 
 
 @dataclass(frozen=True)

@@ -139,5 +139,6 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         if greetings.clean_welcome and greetings.clean_welcome.enabled and greetings.clean_welcome.last_msg:
             await common_try(bot.delete_message(chat_id=chat_tid, message_id=greetings.clean_welcome.last_msg))
 
-        await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
-        await aredis.set(join_request_message_key, sent_message.message_id, ex=172800)
+        if sent_message:
+            await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
+            await aredis.set(join_request_message_key, sent_message.message_id, ex=172800)

@@ -45,7 +45,7 @@ def _parse_price_per_million(raw_price: object) -> float | None:
 
     try:
         return float(raw_price) * 1_000_000
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -55,7 +55,7 @@ async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, floa
         try:
             cache = ujson.loads(cached_data)
             return cache
-        except (ujson.JSONDecodeError, TypeError):
+        except ujson.JSONDecodeError, TypeError:
             pass
 
     cache: dict[str, tuple[float | None, float | None]] = {}

@@ -436,7 +436,7 @@ async def _resolve_cached_override(
     redis_key: str, feature: FeatureType, *, chat_tid: int | None = None
 ) -> FeatureValue | None:
     """Resolve a feature flag override: Redis cache → DB fallback, warming the cache on DB hit."""
-    value = await aredis.hget(redis_key, feature)  # ty: ignore[invalid-await]
+    value = await aredis.hget(redis_key, feature)
     parsed_value = _parse_override(value, _DEFAULT_STATES[feature])
     if parsed_value is not None:
         return parsed_value
@@ -447,7 +447,7 @@ async def _resolve_cached_override(
 
     db_value = _coerce_db_value(override.value)
     if db_value is not None:
-        await aredis.hset(redis_key, feature, _serialize_value(db_value))  # ty: ignore[invalid-await]
+        await aredis.hset(redis_key, feature, _serialize_value(db_value))
     return db_value
 
 
@@ -457,7 +457,7 @@ async def _get_override(feature: FeatureType) -> FeatureValue | None:
 
 async def _set_override(feature: FeatureType, value: FeatureValue) -> None:
     await FeatureFlagOverride.set_override(feature, value)
-    await aredis.hset(_REDIS_KEY, feature, _serialize_value(value))  # ty: ignore[invalid-await]
+    await aredis.hset(_REDIS_KEY, feature, _serialize_value(value))
 
 
 async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
@@ -484,9 +484,7 @@ async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
 async def _cache_serialized_values(redis_key: str, values: Mapping[str, str]) -> None:
     if not values:
         return
-    await asyncio.gather(  # ty: ignore[no-matching-overload]
-        *[aredis.hset(redis_key, feature, value) for feature, value in values.items()]
-    )
+    await asyncio.gather(*[aredis.hset(redis_key, feature, value) for feature, value in values.items()])
 
 
 def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
@@ -494,7 +492,7 @@ def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
 
 
 async def get_rollout(feature: FeatureType) -> FeatureRollout | None:
-    cached_value = await aredis.hget(_REDIS_ROLLOUT_KEY, feature)  # ty: ignore[invalid-await]
+    cached_value = await aredis.hget(_REDIS_ROLLOUT_KEY, feature)
     parsed_cached_value = _coerce_rollout(cached_value)
     if parsed_cached_value is not None:
         return parsed_cached_value
@@ -505,7 +503,7 @@ async def get_rollout(feature: FeatureType) -> FeatureRollout | None:
 
     rollout = _coerce_rollout(override.value)
     if rollout is not None:
-        await aredis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))  # ty: ignore[invalid-await]
+        await aredis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))
     return rollout
 
 
@@ -566,7 +564,7 @@ async def bump_rollout(feature: FeatureType, percentage: int) -> FeatureRollout:
 
 async def _set_rollout(feature: FeatureType, rollout: FeatureRollout) -> None:
     await FeatureFlagOverride.set_override(_rollout_storage_feature(feature), rollout)
-    await aredis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))  # ty: ignore[invalid-await]
+    await aredis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))
 
 
 async def delete_rollout(feature: FeatureType) -> None:
@@ -577,7 +575,7 @@ async def delete_rollout(feature: FeatureType) -> None:
     entered the rollout.
     """
     await FeatureFlagOverride.delete_override(_rollout_storage_feature(feature))
-    await aredis.hdel(_REDIS_ROLLOUT_KEY, feature)  # ty: ignore[invalid-await]
+    await aredis.hdel(_REDIS_ROLLOUT_KEY, feature)
 
 
 async def list_rollouts() -> dict[FeatureType, FeatureRollout]:
@@ -615,17 +613,17 @@ async def _set_chat_override(
     feature: FeatureType, chat_tid: int, value: FeatureValue, *, source: FeatureFlagOverrideSource
 ) -> None:
     await FeatureFlagOverride.set_override(feature, value, chat_tid=chat_tid, source=source)
-    await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))  # ty: ignore[invalid-await]
+    await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))
 
 
 async def delete_override(feature: FeatureType) -> None:
     await FeatureFlagOverride.delete_override(feature)
-    await aredis.hdel(_REDIS_KEY, feature)  # ty: ignore[invalid-await]
+    await aredis.hdel(_REDIS_KEY, feature)
 
 
 async def delete_chat_override(feature: FeatureType, chat_tid: int) -> None:
     await FeatureFlagOverride.delete_override(feature, chat_tid=chat_tid)
-    await aredis.hdel(_chat_redis_key(chat_tid), feature)  # ty: ignore[invalid-await]
+    await aredis.hdel(_chat_redis_key(chat_tid), feature)
 
 
 async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:

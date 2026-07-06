@@ -6,7 +6,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 from stfu_tg import Bold, HList, Title
 
-from sophie_bot.db.models import ChatModel, NoteModel
+from sophie_bot.db.models import ChatModel, NoteModel, UserInGroupModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.legacy_buttons import LEGACY_NOTE_BUTTON_PATTERN, LEGACY_NOTE_BUTTON_PREFIX
@@ -35,6 +35,11 @@ class LegacyStartNoteButton(SophieMessageHandler):
         chat = await ChatModel.get_by_tid(chat_tid)
         if not chat:
             raise SophieException("Chat not found")
+
+        user_db: ChatModel = self.data["user_db"]
+        if not await UserInGroupModel.get_user_in_group(user_db.iid, chat.iid):
+            await message.reply(_("You need to be a member of this chat to open its notes."))
+            return
 
         note = await NoteModel.get_by_notenames(chat.iid, (note_name,))
 

@@ -103,7 +103,7 @@ async def build_reply_doc(
     chat_tid: int | None,
 ) -> Doc:
     if await is_enabled("ai_chatbot_rich_markdown", chat_tid=chat_tid):
-        from stfu_tg.ai_md import ai_markdown_to_doc  # ty: ignore[unresolved-import]
+        from stfu_tg.ai_md import ai_markdown_to_doc
 
         reply_body: Element = ai_markdown_to_doc(output_text)
     else:

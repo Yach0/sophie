@@ -84,9 +84,8 @@ extract_lang:
 	$(PYBABEL) extract -k "pl_:1,2" -k "p_:1,2" -k "l_:1" \
 	--add-comments="NOTE: " -o "$(LOCALES_DIR)/bot.pot" --omit-header --sort-by-file --no-wrap $(PROJECT_DIR)
 
-	cd "$(ASS_PATH)" && \
 	$(PYBABEL) extract -k "pl_:1,2" -k "p_:1,2" -k "l_:1" \
-	--add-comments="NOTE: " -o "$(LOCALES_DIR)/ass.pot" --omit-header --sort-by-file --no-wrap .
+	--add-comments="NOTE: " -o "$(LOCALES_DIR)/ass.pot" --omit-header --sort-by-file --no-wrap "$(ASS_PATH)"
 
 	# Merge
 	cp "$(LOCALES_DIR)/bot.pot" "$(LOCALES_DIR)/sophie.pot"
@@ -122,7 +121,7 @@ api:
 	make gen_openapi
 	if [ -d "../sdash" ]; then \
 		cp openapi.json ../sdash/openapi.json; \
-		cd ../sdash && bun run gen:api; \
+		cd ../sdash && bun run gen:api || echo "Skipping sdash API generation: bun run gen:api failed"; \
 	else \
 		echo "Skipping sdash API generation: ../sdash directory not found"; \
 	fi

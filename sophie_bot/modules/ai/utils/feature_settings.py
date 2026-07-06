@@ -62,7 +62,7 @@ async def _feature_int(feature: FeatureType, chat_tid: int, default: int, minimu
     value = await get_value(feature, chat_tid=chat_tid)
     try:
         parsed_value = int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
     return max(parsed_value, minimum)
 

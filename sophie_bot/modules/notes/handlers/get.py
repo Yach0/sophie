@@ -58,6 +58,7 @@ class GetNote(SophieMessageHandler):
             raw=raw,
             reply_to=reply_to,
             connection=chat,
+            message_thread_id=self.event.message_thread_id,
         )
         track_note_retrieved(
             trigger="command",
@@ -116,4 +117,11 @@ class HashtagGetNote(SophieMessageHandler):
             has_media=any(bool(n.model_dump().get("file")) for n in notes_to_stack),
             chat_type=self.event.chat.type,
         )
-        return await send_saveable(self.event, self.event.chat.id, saveable, reply_to=reply_to, connection=chat)
+        return await send_saveable(
+            self.event,
+            self.event.chat.id,
+            saveable,
+            reply_to=reply_to,
+            connection=chat,
+            message_thread_id=self.event.message_thread_id,
+        )

@@ -31,7 +31,7 @@ def _action_duration_seconds(action_data: dict[str, Any]) -> Optional[float]:
             ta = TypeAdapter(timedelta)
             td = ta.validate_python(mute_duration)
             return td.total_seconds()
-        except (ValidationError, ValueError):
+        except ValidationError, ValueError:
             pass
 
     ban_duration = action_data.get("ban_duration")
@@ -42,7 +42,7 @@ def _action_duration_seconds(action_data: dict[str, Any]) -> Optional[float]:
             ta = TypeAdapter(timedelta)
             td = ta.validate_python(ban_duration)
             return td.total_seconds()
-        except (ValidationError, ValueError):
+        except ValidationError, ValueError:
             pass
 
     return None
