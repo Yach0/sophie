@@ -12,11 +12,15 @@ from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.utils.i18n import gettext as _
 
 
-def _normalize_notename(notename: str) -> str:
-    normalized_notename = notename.strip().lower().removeprefix("#")
-    if not normalized_notename:
+def _normalize_notenames(notename: str) -> tuple[str, ...]:
+    normalized_notenames = tuple(
+        normalized_name
+        for normalized_name in (name.strip().lower().removeprefix("#") for name in notename.split())
+        if normalized_name
+    )
+    if not normalized_notenames:
         raise ModelRetry("The note name must not be empty. Provide a short non-empty note name.")
-    return normalized_notename
+    return normalized_notenames
 
 
 async def get_notes(ctx: RunContext[SophieAIToolContext]) -> list[AIChatNote]:
@@ -32,7 +36,7 @@ async def get_note_content(ctx: RunContext[SophieAIToolContext], notename: str) 
     Args:
         notename: The note name or alias to retrieve. A leading # is optional.
     """
-    normalized_notename = _normalize_notename(notename)
+    normalized_notename = _normalize_notenames(notename)[0]
     async with track_ai_tool("get_note_content"):
         note_func = AIChatGetNoteFunc()
         return await note_func(ctx, normalized_notename)
@@ -55,21 +59,21 @@ async def save_note(
             "Note management requires admin privileges in this chat. I cannot save notes for non-admin users."
         )
 
-    normalized_notename = _normalize_notename(notename)
+    normalized_notenames = _normalize_notenames(notename)
     normalized_content = content.strip()
     if not normalized_content:
         raise ModelRetry("The note content must not be empty. Provide the content that should be saved.")
 
     async with track_ai_tool("save_note"):
         chat = ctx.deps.connection.db_model
-        existing_note = await NoteModel.get_by_notenames(ctx.deps.chat_iid, [normalized_notename])
+        existing_note = await NoteModel.get_by_notenames(ctx.deps.chat_iid, normalized_notenames)
         if existing_note is not None:
             return AIChatNotesFunc.from_model(existing_note)
 
         note = NoteModel(
             chat_id=ctx.deps.chat_tid,
             chat=chat,
-            names=(normalized_notename,),
+            names=normalized_notenames,
             text=ai_markdown_to_html(normalized_content),
             parse_mode=SaveableParseMode.html,
             description=title,
@@ -93,7 +97,7 @@ async def delete_note(ctx: RunContext[SophieAIToolContext], notename: str) -> st
             "Note management requires admin privileges in this chat. I cannot delete notes for non-admin users."
         )
 
-    normalized_notename = _normalize_notename(notename)
+    normalized_notename = _normalize_notenames(notename)[0]
     async with track_ai_tool("delete_note"):
         note = await NoteModel.get_by_notenames(ctx.deps.chat_iid, (normalized_notename,))
         if note is None:
