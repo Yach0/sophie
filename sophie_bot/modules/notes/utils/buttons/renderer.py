@@ -29,7 +29,7 @@ def _is_valid_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
         return bool(parsed.scheme) and bool(parsed.netloc)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         return False
 
 

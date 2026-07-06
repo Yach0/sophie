@@ -416,7 +416,7 @@ def _parse_source_date(value: str | None) -> date | None:
 
     try:
         return parsedate_to_datetime(normalized_value).date()
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return None
 
 

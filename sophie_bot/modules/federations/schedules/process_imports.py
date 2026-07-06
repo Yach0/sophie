@@ -301,7 +301,7 @@ class ProcessFederationImports:
         try:
             timestamp = float(time_str)
             return datetime.fromtimestamp(timestamp, tz=timezone.utc)
-        except ValueError, OSError:
+        except (ValueError, OSError):
             pass
 
         try:

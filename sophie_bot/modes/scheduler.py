@@ -18,7 +18,7 @@ async def _scheduler_main() -> None:
     stop_event = asyncio.Event()
     try:
         await stop_event.wait()
-    except KeyboardInterrupt, SystemExit:
+    except (KeyboardInterrupt, SystemExit):
         pass
     finally:
         runtime.scheduler.shutdown(wait=False)
@@ -33,5 +33,5 @@ def start_scheduler_mode() -> None:
 
     try:
         asyncio.run(_scheduler_main())
-    except KeyboardInterrupt, SystemExit:
+    except (KeyboardInterrupt, SystemExit):
         pass

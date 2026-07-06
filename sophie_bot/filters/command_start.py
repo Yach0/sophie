@@ -43,7 +43,7 @@ class CmdStartFilter(Filter):
 
         try:
             unpacked = self.cmd_start.unpack(args)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             return False
 
         return {"command": command, "command_start": unpacked}
