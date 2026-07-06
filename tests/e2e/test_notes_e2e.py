@@ -97,6 +97,44 @@ async def test_save_note_success(
     assert saved_note.version == 2
 
 
+@pytest.mark.asyncio
+async def test_save_note_ignores_empty_note_name_segments(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Extra spaces in /save arguments should not create empty note names."""
+    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
+
+    user_wrapper, group_chat, chat_model = await _setup_group_and_user(
+        test_client,
+        chat_id=-1002800000011,
+        user_id=928000011,
+        group_title="Notes Save Space Group",
+        first_name="AdminSpace",
+        username="admin_space",
+    )
+
+    with (
+        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
+        patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
+    ):
+        requests = await test_client.send_command(
+            command="save",
+            from_user=user_wrapper.user,
+            chat=group_chat,
+            args="greeting  Hello with extra spacing",
+        )
+
+    assert requests, "Bot should respond after saving a note with extra spaces"
+    response_text = requests[-1].text or ""
+    assert "Note was successfully created" in response_text
+    assert "greeting" in response_text
+
+    saved_note = await NoteModel.find_one(NoteModel.chat_tid == chat_model.tid)
+    assert saved_note is not None
+    assert saved_note.names == ("greeting",)
+
+
 # ---------------------------------------------------------------------------
 # test_save_note_requires_admin
 # ---------------------------------------------------------------------------

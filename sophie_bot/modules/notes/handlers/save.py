@@ -53,7 +53,7 @@ class SaveNote(SophieMessageHandler):
         raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
         buttons = ButtonsList.from_ass(raw_buttons)
 
-        notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"])
+        notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"] if name)
 
         try:
             saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
