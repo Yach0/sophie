@@ -15,6 +15,7 @@ from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
+from sophie_bot.modules.notes.handlers.save import SaveNote
 
 
 async def _setup_group_and_user(
@@ -133,6 +134,58 @@ async def test_save_note_requires_admin(
     assert "administrator" in response_text.lower() or "admin" in response_text.lower(), (
         f"Response should mention admin requirement, got: {response_text}"
     )
+
+
+@pytest.mark.asyncio
+async def test_save_note_rejects_empty_note_names(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Save rejects a command when all note names are filtered out."""
+    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
+
+    user_wrapper, group_chat, chat_model = await _setup_group_and_user(
+        test_client,
+        chat_id=-1002800000011,
+        user_id=928000011,
+        group_title="Notes Empty Names Group",
+        first_name="AdminEmptyNames",
+        username="admin_empty_names",
+    )
+
+    fake_reply = AsyncMock()
+    fake_event = type(
+        "FakeEvent",
+        (),
+        {
+            "from_user": user_wrapper.user,
+            "chat": group_chat,
+            "reply": fake_reply,
+            "message_id": 1,
+        },
+    )()
+    handler = SaveNote.__new__(SaveNote)
+    handler.event = fake_event
+    handler.data = {
+        "connection": None,
+        "notenames": (),
+        "description": "",
+        "text_with_buttons": {},
+    }
+
+    save_mock = AsyncMock()
+    handler.save = save_mock
+
+    await handler.handle()
+
+    fake_reply.assert_awaited_once()
+    assert fake_reply.await_args is not None
+    response_text = fake_reply.await_args.args[0]
+    assert "valid note name" in response_text.lower(), f"Response should reject empty names, got: {response_text}"
+    save_mock.assert_not_awaited()
+
+    saved_note = await NoteModel.find_one(NoteModel.chat_tid == chat_model.tid)
+    assert saved_note is None, "No note should be created when all note names are filtered out"
 
 
 # ---------------------------------------------------------------------------
