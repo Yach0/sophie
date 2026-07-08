@@ -47,6 +47,27 @@ def compute_error_signature(exc: BaseException, frame_depth: int = 3) -> str:
     return hashlib.sha256(data.encode("utf-8", errors="ignore")).hexdigest()
 
 
+def _decode(value: bytes | str) -> str:
+    return value.decode() if isinstance(value, bytes) else value
+
+
+async def _allow(client: AsyncRedis, key: str, now: float, step: int, *, is_first: bool) -> bool:
+    """Persist backoff state for an allowed notification and return True."""
+    delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
+    await client.hset(
+        key,
+        mapping={
+            "step": str(step),
+            "last_allowed_at": str(now),
+            "next_allowed_at": str(now + delay),
+        },
+    )
+    # Fresh keys expire slightly past quiet reset; ongoing backoff tracks the delay window
+    ttl = _QUIET_RESET + _INITIAL_DELAY if is_first else int(max(_QUIET_RESET, delay))
+    await client.expire(key, ttl)
+    return True
+
+
 async def should_notify(signature: str, now: float | None = None) -> bool:
     """Determine whether we should send a chat error notification for this error signature.
 
@@ -59,14 +80,9 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
     client: AsyncRedis = aredis
 
     try:
-        # Load current state
+        # Load and decode current state (hgetall returns {} for missing keys)
         raw_data = await client.hgetall(key)
-        raw = {}
-        if isinstance(raw_data, dict):
-            for k, v in raw_data.items():
-                rk = k.decode() if isinstance(k, bytes) else k
-                rv = v.decode() if isinstance(v, bytes) else v
-                raw[rk] = rv
+        raw = {_decode(field): _decode(value) for field, value in raw_data.items()}
 
         # Parse existing fields
         step = int(raw.get("step", "-1"))  # -1 indicates unknown/new (will be set to 0 on first allow)
@@ -81,45 +97,17 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
         # Always update last_seen_at
         await client.hset(key, mapping={"last_seen_at": str(now)})
 
+        # First occurrence after reset/new: allow immediately and set initial backoff
         if step < 0:
-            # First occurrence after reset/new: allow immediately and set initial backoff
-            step = 0
-            delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
-            next_allowed = now + delay
-            await client.hset(
-                key,
-                mapping={
-                    "step": str(step),
-                    "last_allowed_at": str(now),
-                    "next_allowed_at": str(next_allowed),
-                },
-            )
-            # Expire slightly past quiet reset so keys clean up
-            await client.expire(key, _QUIET_RESET + _INITIAL_DELAY)
-            return True
+            return await _allow(client, key, now, step=0, is_first=True)
 
-        # Existing signature
+        # Existing signature within backoff window: suppress, but keep TTL fresh
         if now < next_allowed_at:
-            # Suppress within backoff window
-            # Keep TTL fresh to survive through the window, but don't extend indefinitely
             await client.expire(key, int(max(_QUIET_RESET, next_allowed_at - now)))
             return False
 
-        # Allowed now: increment step and compute next delay
-        step = min(step + 1, 32)  # safety cap on exponent
-        delay = min(_INITIAL_DELAY * (_FACTOR**step), _MAX_DELAY)
-        next_allowed = now + delay
-
-        await client.hset(
-            key,
-            mapping={
-                "step": str(step),
-                "last_allowed_at": str(now),
-                "next_allowed_at": str(next_allowed),
-            },
-        )
-        await client.expire(key, int(max(_QUIET_RESET, delay)))
-        return True
+        # Allowed now: advance the backoff step
+        return await _allow(client, key, now, step=min(step + 1, 32), is_first=False)
 
     except RedisError:
         # Redis unavailable: be silent as requested
