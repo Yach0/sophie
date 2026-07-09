@@ -47,15 +47,13 @@ class ResearchWorkflowSettings:
 
 
 def coerce_positive_int(value: object, default: int, maximum: int) -> int:
-    if isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
         return default
     try:
-        parsed_value = int(value) if isinstance(value, int | float | str) else default
+        parsed_value = int(value)
     except ValueError:
         return default
-    if parsed_value <= 0:
-        return default
-    return min(parsed_value, maximum)
+    return default if parsed_value <= 0 else min(parsed_value, maximum)
 
 
 async def _feature_int(feature: FeatureType, chat_tid: int, default: int, minimum: int = 1) -> int:
