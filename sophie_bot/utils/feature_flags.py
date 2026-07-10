@@ -107,12 +107,14 @@ def get_value_kind(feature: FeatureType) -> FeatureValueKind:
     return _FEATURE_DEFINITIONS[feature]["value_kind"]
 
 
-def get_allowed_string_values(
-    feature: FeatureType, *, ai_model_names: frozenset[str] | None = None
-) -> frozenset[str] | None:
+def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
+    """Return the closed set of accepted string values, or None when unrestricted.
+
+    ``ai_model`` features accept any string: the runtime builds unregistered names
+    as custom OpenRouter models (see ``ai_model_factory._build_custom_model``), so
+    the curated registry is only a UI convenience, not a validation boundary.
+    """
     value_kind = get_value_kind(feature)
-    if value_kind == "ai_model":
-        return ai_model_names
     if value_kind == "service_tier":
         return _SERVICE_TIER_VALUES
     if value_kind == "search_provider":

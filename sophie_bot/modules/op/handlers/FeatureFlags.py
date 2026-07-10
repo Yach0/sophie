@@ -11,7 +11,6 @@ from stfu_tg import BlockQuote, Code, Doc, Template
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODELS_BY_NAME
 from sophie_bot.utils.feature_flags import (
     FEATURE_FLAGS,
     ChatFeatureOverride,
@@ -114,17 +113,13 @@ def _is_valid_feature_value_type(feature: FeatureType, value: FeatureValue) -> b
     return is_valid_value_type(feature, value)
 
 
-def _get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
-    return get_allowed_string_values(feature, ai_model_names=frozenset(AI_MODELS_BY_NAME))
-
-
 def _is_valid_feature_value(feature: FeatureType, value: FeatureValue) -> bool:
     if not _is_valid_feature_value_type(feature, value):
         return False
     if not isinstance(value, str):
         return True
 
-    allowed_values = _get_allowed_string_values(feature)
+    allowed_values = get_allowed_string_values(feature)
     return allowed_values is None or value in allowed_values
 
 
