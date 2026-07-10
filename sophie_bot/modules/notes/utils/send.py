@@ -107,29 +107,21 @@ async def send_saveable(
 
     content_type = saveable.file.type if saveable.file else ContentType.TEXT
 
-    kwargs: dict[str, object] = {
-        "chat_id": send_to,
-        "text": text,
-    }
+    kwargs: dict[str, object] = {"chat_id": send_to}
 
-    # Text
     if content_type == ContentType.TEXT:
         kwargs["text"] = text
         kwargs["reply_markup"] = inline_markup
-
         # TODO: Settings?
         kwargs["link_preview_options"] = LinkPreviewOptions(is_disabled=True)
     elif content_type in SUPPORTS_CAPTION:
         kwargs["caption"] = text
         kwargs["reply_markup"] = inline_markup
-
-    # File
-    if content_type == ContentType.TEXT:
-        pass
-    elif content_type in PARSABLE_CONTENT_TYPES and saveable.file:
-        kwargs[content_type] = saveable.file.id
-    elif not saveable.file:
-        raise ValueError(f"Unsupported content type: {content_type}")
+    else:
+        if not saveable.file:
+            raise ValueError(f"Unsupported content type: {content_type}")
+        if content_type in PARSABLE_CONTENT_TYPES:
+            kwargs[content_type] = saveable.file.id
 
     if reply_to:
         kwargs["reply_parameters"] = ReplyParameters(message_id=reply_to)
