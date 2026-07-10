@@ -166,11 +166,11 @@ class TestFeatureMetadata:
         assert is_valid_value_type("welcomecaptcha", True)
         assert not is_valid_value_type("welcomecaptcha", "true")
 
-    def test_ai_model_values_are_supplied_by_caller(self) -> None:
+    def test_ai_model_values_are_unrestricted(self) -> None:
+        # Model names are open-ended: unregistered names are built as custom OpenRouter
+        # models at runtime, so op_ff accepts any string here.
         assert get_value_kind("ai_summary_model") == "ai_model"
-        assert get_allowed_string_values("ai_summary_model", ai_model_names=frozenset({"openai/gpt-5.5"})) == frozenset(
-            {"openai/gpt-5.5"}
-        )
+        assert get_allowed_string_values("ai_summary_model") is None
 
     def test_service_tier_values_are_declared_in_metadata(self) -> None:
         assert get_value_kind("ai_chatbot_service_tier") == "service_tier"
