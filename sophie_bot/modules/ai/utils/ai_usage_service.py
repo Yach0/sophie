@@ -14,7 +14,8 @@ from sophie_bot.utils.ai_features import AIFeature, AI_FEATURES_BY_KEY
 
 
 class AIUsageLike(Protocol):
-    total_tokens: int
+    @property
+    def total_tokens(self) -> int: ...
 
 
 @dataclass(frozen=True)
@@ -59,7 +60,8 @@ class OperatorAIStats:
 
 
 class AIModelLike(Protocol):
-    model_name: str
+    @property
+    def model_name(self) -> str: ...
 
 
 def usage_input_tokens(usage: Any) -> int | None:

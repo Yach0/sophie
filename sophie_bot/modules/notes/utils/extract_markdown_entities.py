@@ -46,27 +46,32 @@ def strip_text(text: str, entities: list[MessageEntity]) -> str:
             del entities[i]
             continue
 
-        if e.offset + e.length > left_offset:
-            if e.offset >= left_offset:
+        # Recompute the offset/length locally and write back a copy at the end; aiogram
+        # MessageEntity objects may be shared, so avoid mutating them in place.
+        offset = e.offset
+        length = e.length
+
+        if offset + length > left_offset:
+            if offset >= left_offset:
                 #  0 1|2 3 4 5       |       0 1|2 3 4 5
                 #     ^     ^        |          ^
                 #   lo(2)  o(5)      |      o(2)/lo(2)
-                e.offset -= left_offset
+                offset -= left_offset
                 #     |0 1 2 3       |          |0 1 2 3
                 #           ^        |          ^
                 #     o=o-lo(3=5-2)  |    o=o-lo(0=2-2)
             else:
-                # e.offset < left_offset and e.offset + e.length > left_offset
+                # offset < left_offset and offset + length > left_offset
                 #  0 1 2 3|4 5 6 7 8 9 10
                 #   ^     ^           ^
                 #  o(1) lo(4)      o+l(1+9)
-                e.length = e.offset + e.length - left_offset
-                e.offset = 0
+                length = offset + length - left_offset
+                offset = 0
                 #         |0 1 2 3 4 5 6
                 #         ^           ^
                 #        o(0)  o+l=0+o+l-lo(6=0+6=0+1+9-4)
         else:
-            # e.offset + e.length <= left_offset
+            # offset + length <= left_offset
             #   0 1 2 3|4 5
             #  ^       ^
             # o(0)   o+l(4)
@@ -74,25 +79,27 @@ def strip_text(text: str, entities: list[MessageEntity]) -> str:
             del entities[i]
             continue
 
-        if e.offset + e.length <= len_final:
+        if offset + length <= len_final:
             # |0 1 2 3 4 5 6 7 8 9
             #   ^                 ^
             #  o(1)       o+l(1+9)/lf(10)
+            entities[i] = e.model_copy(update={"offset": offset, "length": length})
             continue
-        if e.offset >= len_final:
+        if offset >= len_final:
             # |0 1 2 3 4
             #           ^
             #       o(5)/lf(5)
             del entities[i]
         else:
-            # e.offset < len_final and e.offset + e.length > len_final
+            # offset < len_final and offset + length > len_final
             # |0 1 2 3 4 5 (6) (7) (8) (9)
             #   ^         ^           ^
             #  o(1)     lf(6)      o+l(1+8)
-            e.length = len_final - e.offset
+            length = len_final - offset
             # |0 1 2 3 4 5
             #   ^         ^
             #  o(1) o+l=o+lf-o=lf(6=1+5=1+6-1)
+            entities[i] = e.model_copy(update={"offset": offset, "length": length})
 
     return text
 

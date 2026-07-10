@@ -12,10 +12,9 @@ def legacy_button_parser(chat_tid: int, texts: str, pm: bool = False) -> tuple[s
     if pm:
         note_payload_prefix = LEGACY_BUTTON_ACTIONS.get("note")
         for row in markup.inline_keyboard:
-            for button in row:
+            for index, button in enumerate(row):
                 if button.url and note_payload_prefix and note_payload_prefix in button.url:
                     payload = button.url.rsplit("start=", maxsplit=1)[-1]
-                    button.url = None
-                    button.callback_data = payload
+                    row[index] = button.model_copy(update={"url": None, "callback_data": payload})
 
     return text, markup
