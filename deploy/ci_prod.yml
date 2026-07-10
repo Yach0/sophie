@@ -126,18 +126,21 @@ promote_beta_to_stable:
   interruptible: false
   needs: []
   image: willhallonline/ansible:2.18.6-alpine-3.18
-  variables:
-    PROMOTE_TAG: ""
+  # NOTE: intentionally no `variables: PROMOTE_TAG: ""` default here. A job-level
+  # default shadows variables passed at manual-run time, so setting it would make
+  # PROMOTE_TAG un-overridable. Leaving it unset lets the in-script fallback and
+  # any manual/pipeline override both work.
   before_script:
     - cp $SSHKEY /tmp/sshkey
     - chmod 600 /tmp/sshkey
   script:
     - |
-      if [ -z "$PROMOTE_TAG" ]; then
-        echo "ERROR: PROMOTE_TAG must be set to a beta SHA tag (e.g. abc1234-runtime)"
-        exit 1
-      fi
-    - DEPLOY_TAG="$PROMOTE_TAG" ansible-playbook -i "$ANSIBLE_INV" deploy/promote_to_stable.yml --limit sprod
+      # Default to the beta commit this pipeline was triggered on so the
+      # one-click manual "play" works. Override PROMOTE_TAG to promote a
+      # different tag (see list_beta_deployments for available tags).
+      DEPLOY_TAG="${PROMOTE_TAG:-${CI_COMMIT_SHORT_SHA}-runtime}"
+      echo "Promoting image tag: $DEPLOY_TAG"
+    - DEPLOY_TAG="${PROMOTE_TAG:-${CI_COMMIT_SHORT_SHA}-runtime}" ansible-playbook -i "$ANSIBLE_INV" deploy/promote_to_stable.yml --limit sprod
   environment:
     name: prod
   rules:
