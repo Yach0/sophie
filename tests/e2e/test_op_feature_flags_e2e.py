@@ -218,17 +218,21 @@ async def test_op_ff_invalid_feature(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_op_ff_rejects_invalid_model_flag_value(test_client: TestClient) -> None:
+async def test_op_ff_accepts_unregistered_model_flag_value(test_client: TestClient) -> None:
+    # Model names are open-ended: unregistered names are built as custom OpenRouter
+    # models at runtime, so any string is accepted and persisted.
     response_text = await _send_op_ff(
         test_client,
         chat_tid=-1002950000093,
         user_tid=929500093,
-        command="op_ff ai_chatbot_model garbage",
+        command="op_ff ai_chatbot_model deepseek/deepseek-v4-pro",
     )
 
-    assert "Invalid value" in response_text
+    assert "Invalid value" not in response_text
     assert "ai_chatbot_model" in response_text
-    assert await FeatureFlagOverride.find_one(FeatureFlagOverride.feature == "ai_chatbot_model") is None
+    override = await FeatureFlagOverride.find_one(FeatureFlagOverride.feature == "ai_chatbot_model")
+    assert override is not None
+    assert override.value == "deepseek/deepseek-v4-pro"
 
 
 @pytest.mark.asyncio
