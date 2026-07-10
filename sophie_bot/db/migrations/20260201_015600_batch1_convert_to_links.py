@@ -28,6 +28,16 @@ from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettings
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.utils.logger import log
 
+MODELS = (
+    LanguageModel,
+    DisablingModel,
+    GreetingsModel,
+    RulesModel,
+    BetaModeModel,
+    ChatConnectionSettingsModel,
+    WarnSettingsModel,
+)
+
 
 async def migrate_model(collection, session, field_name="chat_id", index_to_drop=None):
     if index_to_drop:
@@ -56,49 +66,17 @@ async def migrate_model(collection, session, field_name="chat_id", index_to_drop
 
 
 class Forward:
-    @free_fall_migration(
-        document_models=[
-            LanguageModel,
-            DisablingModel,
-            GreetingsModel,
-            RulesModel,
-            BetaModeModel,
-            ChatConnectionSettingsModel,
-            WarnSettingsModel,
-        ]
-    )
+    @free_fall_migration(document_models=list(MODELS))
     async def migrate(self, session):
-        await migrate_model(LanguageModel.get_pymongo_collection(), session, index_to_drop="chat_id_1")
-        await migrate_model(DisablingModel.get_pymongo_collection(), session, index_to_drop="chat_id_1")
-        await migrate_model(GreetingsModel.get_pymongo_collection(), session, index_to_drop="chat_id_1")
-        await migrate_model(RulesModel.get_pymongo_collection(), session, index_to_drop="chat_id_1")
-        await migrate_model(BetaModeModel.get_pymongo_collection(), session, index_to_drop="chat_id_1")
-        await migrate_model(ChatConnectionSettingsModel.get_pymongo_collection(), session, index_to_drop="chat_id")
-        await migrate_model(WarnSettingsModel.get_pymongo_collection(), session, index_to_drop="chat_id_1")
+        for model in MODELS:
+            index_to_drop = "chat_id" if model is ChatConnectionSettingsModel else "chat_id_1"
+            await migrate_model(model.get_pymongo_collection(), session, index_to_drop=index_to_drop)
 
 
 class Backward:
-    @free_fall_migration(
-        document_models=[
-            LanguageModel,
-            DisablingModel,
-            GreetingsModel,
-            RulesModel,
-            BetaModeModel,
-            ChatConnectionSettingsModel,
-            WarnSettingsModel,
-        ]
-    )
+    @free_fall_migration(document_models=list(MODELS))
     async def rollback(self, session):
-        for model in [
-            LanguageModel,
-            DisablingModel,
-            GreetingsModel,
-            RulesModel,
-            BetaModeModel,
-            ChatConnectionSettingsModel,
-            WarnSettingsModel,
-        ]:
+        for model in MODELS:
             collection = model.get_pymongo_collection()
             async for doc in collection.find():
                 if "chat" in doc:
