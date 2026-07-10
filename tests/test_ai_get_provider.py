@@ -4,7 +4,11 @@ import pytest
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_provider import AIProviderModel
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model, get_chat_summary_model
+from sophie_bot.modules.ai.utils.ai_get_provider import (
+    get_chat_default_model,
+    get_chat_summary_model,
+    get_chat_translations_model,
+)
 from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header
 from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODEL_TO_SHORT_NAME
 
@@ -77,6 +81,44 @@ async def test_get_chat_default_model_uses_custom_feature_flag_override(monkeypa
     model = await get_chat_default_model(chat_iid, chat_tid=-100123)
 
     assert model is model_map["custom/provider-model"]
+
+
+@pytest.mark.asyncio
+async def test_get_chat_default_model_uses_openai_luna_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    chat_iid = PydanticObjectId()
+    luna_model = object()
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_get_provider.get_value", AsyncMock(return_value=""))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_get_provider.AIProviderModel.get_provider_name",
+        AsyncMock(return_value="openai"),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_get_provider.AI_MODELS",
+        {"openai/gpt-5.6-luna": luna_model},
+    )
+
+    model = await get_chat_default_model(chat_iid)
+
+    assert model is luna_model
+
+
+@pytest.mark.asyncio
+async def test_get_chat_translations_model_uses_openai_luna_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    chat_iid = PydanticObjectId()
+    luna_model = object()
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_get_provider.get_value", AsyncMock(return_value=""))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_get_provider.AIProviderModel.get_provider_name",
+        AsyncMock(return_value="openai"),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_get_provider.AI_MODELS",
+        {"openai/gpt-5.6-luna": luna_model},
+    )
+
+    model = await get_chat_translations_model(chat_iid)
+
+    assert model is luna_model
 
 
 def test_ai_chatbot_header_renders_unknown_model_name() -> None:
