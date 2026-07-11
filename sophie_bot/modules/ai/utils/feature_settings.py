@@ -88,20 +88,18 @@ async def get_proactive_reply_settings(chat_tid: int) -> ProactiveReplySettings:
     )
 
 
+async def _coerce_feature_int(feature: FeatureType, chat_tid: int | None, default: int, maximum: int) -> int:
+    return coerce_positive_int(await get_value(feature, chat_tid=chat_tid), default, maximum)
+
+
 async def get_research_workflow_settings(chat_tid: int | None = None) -> ResearchWorkflowSettings:
     return ResearchWorkflowSettings(
-        max_rounds=coerce_positive_int(
-            await get_value("ai_research_max_rounds", chat_tid=chat_tid), _DEFAULT_RESEARCH_MAX_ROUNDS, 5
+        max_rounds=await _coerce_feature_int("ai_research_max_rounds", chat_tid, _DEFAULT_RESEARCH_MAX_ROUNDS, 5),
+        queries_per_round=await _coerce_feature_int(
+            "ai_research_queries_per_round", chat_tid, _DEFAULT_RESEARCH_QUERIES_PER_ROUND, 10
         ),
-        queries_per_round=coerce_positive_int(
-            await get_value("ai_research_queries_per_round", chat_tid=chat_tid),
-            _DEFAULT_RESEARCH_QUERIES_PER_ROUND,
-            10,
-        ),
-        results_per_query=coerce_positive_int(
-            await get_value("ai_research_results_per_query", chat_tid=chat_tid),
-            _DEFAULT_RESEARCH_RESULTS_PER_QUERY,
-            10,
+        results_per_query=await _coerce_feature_int(
+            "ai_research_results_per_query", chat_tid, _DEFAULT_RESEARCH_RESULTS_PER_QUERY, 10
         ),
         service_tier=await get_service_tier(cast(FeatureType, "ai_research_service_tier"), chat_tid=chat_tid),
     )
