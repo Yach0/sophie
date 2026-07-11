@@ -7,11 +7,12 @@ from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from aiogram import Dispatcher, Router
+from aiogram import Dispatcher, F, Router
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import Chat, ChatMemberAdministrator, Message, Update, User
+from aiogram.types import CallbackQuery, Chat, ChatMemberAdministrator, Message, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
+from aiogram_test_framework.types import RequestType
 
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
@@ -62,6 +63,11 @@ async def e2e_admin_required_handler(message: Message) -> None:
 @TEST_ROUTER.message(CMDFilter("e2e_restrict_required"), UserRestricting(can_restrict_members=True))
 async def e2e_restrict_required_handler(message: Message) -> None:
     await message.reply("E2E_RESTRICT_OK")
+
+
+@TEST_ROUTER.callback_query(F.data == "e2e_admin_cb", UserRestricting(admin=True))
+async def e2e_admin_cb_handler(callback: CallbackQuery) -> None:
+    await callback.answer("E2E_CB_OK")
 
 
 @pytest_asyncio.fixture
@@ -116,6 +122,45 @@ async def test_admin_required_denies_non_admin(
 
     assert requests, "Bot should respond when non-admin uses admin-only command."
     assert any("You must be an administrator" in (request.text or "") for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_admin_required_callback_denies_non_admin_via_alert(
+    test_client: TestClient,
+    register_admin_rights_router: None,
+) -> None:
+    """A non-admin tapping an admin-only inline button must get a private alert
+    popup, not a chat message that spams everyone. Regression for the /lang bug.
+    """
+    user_wrapper = test_client.create_user(user_id=910006, first_name="RegularClicker", username="regular_clicker")
+    group_chat = ChatFactory.create_group(chat_id=-1002000010006, title="Admin Rights Callback Group")
+
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+
+    button_message = Message(
+        message_id=6001,
+        date=datetime.now(timezone.utc),
+        chat=group_chat,
+        from_user=User(id=123456, is_bot=True, first_name="TestBot"),
+        text="Button message",
+    )
+    requests = await test_client.send_callback(
+        data="e2e_admin_cb",
+        from_user=user_wrapper.user,
+        message=button_message,
+    )
+
+    # The denial must be delivered as an alert popup on the clicking user's client.
+    callback_answers = [req for req in requests if req.request_type == RequestType.ANSWER_CALLBACK_QUERY]
+    assert callback_answers, "Non-admin button click should be answered with a callback alert."
+    assert any("You must be an administrator" in (req.text or "") for req in callback_answers)
+    assert all(req.params.get("show_alert") for req in callback_answers)
+
+    # It must NOT be posted as a message to the whole chat.
+    sent_messages = [req for req in requests if req.request_type == RequestType.SEND_MESSAGE]
+    assert not any("You must be an administrator" in (req.text or "") for req in sent_messages), (
+        "Admin denial must not be sent as a chat message from a callback query."
+    )
 
 
 @pytest.mark.asyncio

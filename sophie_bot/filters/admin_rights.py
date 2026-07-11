@@ -249,7 +249,17 @@ class UserRestricting(Filter):
         return None
 
     async def _send_doc_reply(self, event: TelegramObject, doc: Doc) -> None:
-        """Reply to an event with a Doc, falling back to answer on failure."""
+        """Reply to an event with a Doc, falling back to answer on failure.
+
+        For callback queries the reply is shown as a private alert popup on the
+        clicking user's client instead of a chat message, so a non-admin tapping
+        an inline button does not spam the whole chat.
+        """
+        # Callback queries: answer with a private alert popup, not a chat message.
+        if isinstance(event, CallbackQuery):
+            await event.answer(str(doc), show_alert=True)
+            return
+
         actual_message = self._resolve_message(event)
 
         async def answer() -> Any:
