@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
+import re
 from typing import Any, ClassVar
 
 from aiogram.types import Message
+from ass_tg.exceptions import ArgCustomError
 from ass_tg.types import ActionTimeArg, OptionalArg, TextArg
 from ass_tg.types.base_abc import ArgFabric
 from babel.dates import format_timedelta
@@ -33,6 +35,36 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 RestrictionActionFunc = Callable[[int, int, timedelta | None], Awaitable[bool]]
+
+
+class RestrictionActionTimeArg(ActionTimeArg):
+    """Parse restriction durations, including seconds rejected as too small."""
+
+    async def check_type(self, text: str) -> bool:
+        return text != "" and text[0].isdigit() and bool(re.fullmatch(r"(?:\d+[ywdhms])+", text))
+
+    @staticmethod
+    def parse_duration(text: str) -> timedelta:
+        duration = timedelta()
+        for item in re.findall(r"\d+[ywdhms]", text):
+            amount = int(item[:-1])
+            unit = item[-1]
+            duration += {
+                "y": timedelta(days=365 * amount),
+                "w": timedelta(weeks=amount),
+                "d": timedelta(days=amount),
+                "h": timedelta(hours=amount),
+                "m": timedelta(minutes=amount),
+                "s": timedelta(seconds=amount),
+            }[unit]
+        return duration
+
+    async def value(self, text: str) -> timedelta:
+        duration = self.parse_duration(text)
+        if duration < timedelta(minutes=1):
+            raise ArgCustomError(_("The duration is too small. It must be at least 1 minute."))
+        return duration
+
 
 _LOG_EVENT_TO_ACTION: dict[LogEvent, str] = {
     LogEvent.USER_BANNED: "ban",
@@ -78,7 +110,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
             args["user"] = SophieUserArg(l_("User"))
 
         if cls.with_duration:
-            args["time"] = ActionTimeArg(l_("Time (e.g., 2h, 7d, 2w)"))
+            args["time"] = RestrictionActionTimeArg(l_("Time (e.g., 2h, 7d, 2w)"))
 
         args["reason"] = OptionalArg(TextArg(l_("Reason")))
         return args
