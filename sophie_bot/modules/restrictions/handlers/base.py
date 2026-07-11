@@ -78,7 +78,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
             args["user"] = SophieUserArg(l_("User"))
 
         if cls.with_duration:
-            args["time"] = ActionTimeArg(l_("Time (e.g., 2h, 7d, 2w)"))
+            args["time"] = ActionTimeArg(l_("Time (e.g., 2h, 7d, 2w)"), min=timedelta(minutes=1))
 
         args["reason"] = OptionalArg(TextArg(l_("Reason")))
         return args
