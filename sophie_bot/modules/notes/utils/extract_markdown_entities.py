@@ -60,8 +60,10 @@ def strip_text(text: str, entities: list[MessageEntity]) -> str:
                 #  0 1 2 3|4 5 6 7 8 9 10
                 #   ^     ^           ^
                 #  o(1) lo(4)      o+l(1+9)
-                e.length = e.offset + e.length - left_offset
-                e.offset = 0
+                # aiogram MessageEntity is a MutableTelegramObject (frozen=False);
+                # ty misreads the frozen-config override and flags these fields.
+                e.length = e.offset + e.length - left_offset  # ty:ignore[invalid-assignment]
+                e.offset = 0  # ty:ignore[invalid-assignment]
                 #         |0 1 2 3 4 5 6
                 #         ^           ^
                 #        o(0)  o+l=0+o+l-lo(6=0+6=0+1+9-4)
@@ -89,7 +91,7 @@ def strip_text(text: str, entities: list[MessageEntity]) -> str:
             # |0 1 2 3 4 5 (6) (7) (8) (9)
             #   ^         ^           ^
             #  o(1)     lf(6)      o+l(1+8)
-            e.length = len_final - e.offset
+            e.length = len_final - e.offset  # ty:ignore[invalid-assignment]
             # |0 1 2 3 4 5
             #   ^         ^
             #  o(1) o+l=o+lf-o=lf(6=1+5=1+6-1)

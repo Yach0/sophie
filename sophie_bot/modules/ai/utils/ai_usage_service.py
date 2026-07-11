@@ -14,7 +14,11 @@ from sophie_bot.utils.ai_features import AIFeature, AI_FEATURES_BY_KEY
 
 
 class AIUsageLike(Protocol):
-    total_tokens: int
+    # Read-only member: conforming types (e.g. pydantic-ai's RunUsage) expose
+    # total_tokens as a computed property, so the protocol must not require a
+    # writable attribute or ty rejects them as non-conforming.
+    @property
+    def total_tokens(self) -> int: ...
 
 
 @dataclass(frozen=True)
@@ -59,7 +63,10 @@ class OperatorAIStats:
 
 
 class AIModelLike(Protocol):
-    model_name: str
+    # Read-only member: pydantic-ai's Model exposes model_name as a computed
+    # property, so the protocol must not require a writable attribute.
+    @property
+    def model_name(self) -> str: ...
 
 
 def usage_input_tokens(usage: Any) -> int | None:

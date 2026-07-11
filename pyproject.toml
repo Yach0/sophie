@@ -74,9 +74,10 @@ exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/StfuGallery.py"]
 [tool.ty.environment]
 python-version = "3.14"
 # Pin ty to the project's freshly-synced virtualenv. The CI image ships a
-# stale /sophie/.venv (Python 3.13, older deps) and `before_script` unsets
-# VIRTUAL_ENV, so without this ty resolves imports against that stale env and
-# reports false unresolved-import / invalid-await diagnostics.
+# prebuilt /sophie/.venv and `before_script` unsets VIRTUAL_ENV, so without
+# this ty resolves imports against that prebuilt env instead of the freshly
+# `uv sync`-ed one and reports false unresolved-import / invalid-await
+# diagnostics.
 python = "./.venv"
 
 # NOTE: target-version is intentionally pinned below requires-python (3.14).
