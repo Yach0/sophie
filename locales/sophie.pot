@@ -91,35 +91,35 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:269
+#: sophie_bot/filters/admin_rights.py:279
 msgid "I don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:271
+#: sophie_bot/filters/admin_rights.py:281
 msgid "You don't have the following permissions to do this:"
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:276
+#: sophie_bot/filters/admin_rights.py:286
 msgid "I must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:278
+#: sophie_bot/filters/admin_rights.py:288
 msgid "You must be an administrator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:285
+#: sophie_bot/filters/admin_rights.py:295
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:289
+#: sophie_bot/filters/admin_rights.py:299
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:295
+#: sophie_bot/filters/admin_rights.py:305
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr ""
 
-#: sophie_bot/filters/admin_rights.py:302
+#: sophie_bot/filters/admin_rights.py:312
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
@@ -275,7 +275,7 @@ msgstr ""
 msgid "No commands in this module."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/notes.py:103
+#: sophie_bot/modules/ai/agent_tools/notes.py:107
 msgid "Note was successfully deleted."
 msgstr ""
 
@@ -617,52 +617,52 @@ msgstr ""
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:71
+#: sophie_bot/modules/ai/handlers/translate.py:92
 msgid "Auto Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:71
+#: sophie_bot/modules/ai/handlers/translate.py:92
 msgid "Translator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:72
+#: sophie_bot/modules/ai/handlers/translate.py:93
 msgid "Voice"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:78
+#: sophie_bot/modules/ai/handlers/translate.py:99
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:88
+#: sophie_bot/modules/ai/handlers/translate.py:109
 msgid "Translation Notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:99
+#: sophie_bot/modules/ai/handlers/translate.py:120
 msgid "Text to translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:106
+#: sophie_bot/modules/ai/handlers/translate.py:127
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:143
+#: sophie_bot/modules/ai/handlers/translate.py:164
 msgid "Please provide text to translate."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:151
+#: sophie_bot/modules/ai/handlers/translate.py:179
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:166
+#: sophie_bot/modules/ai/handlers/translate.py:194
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:195
+#: sophie_bot/modules/ai/handlers/translate.py:222
 msgid "Error generating translation"
 msgstr ""
 
@@ -4440,15 +4440,19 @@ msgstr ""
 msgid "Save the note."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:76
-msgid "Note was successfully created"
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/save.py:76
-msgid "Note was successfully updated"
+#: sophie_bot/modules/notes/handlers/save.py:58
+msgid "Please provide at least one valid note name."
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/save.py:79
+msgid "Note was successfully created"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/save.py:79
+msgid "Note was successfully updated"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/save.py:82
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
 msgstr ""
@@ -4660,147 +4664,147 @@ msgstr ""
 msgid "Generate a test emoji captcha"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:69
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:68
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:70
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:79
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:69
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:78
 #, python-brace-format
 msgid "Allowed features: {features}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:78
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:77
 msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:110
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:402
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:109
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:397
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:135
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:130
 #, python-brace-format
 msgid "Invalid value for {feature}: expected {expected}, got {actual}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:149
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:144
 #, python-brace-format
 msgid "Invalid value for {feature}: {value}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:227
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:222
 #, python-brace-format
 msgid "Args: {args}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:257
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:249
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:252
 msgid "No changed feature flags are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:257
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:252
 msgid "Changed feature flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:259
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
 msgid "All feature flags"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:259
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
 msgid "No feature flags are registered."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:260
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:255
 msgid "Rollouts"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:260
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:435
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:255
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:430
 msgid "No feature flag rollouts are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:271
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:266
 msgid "Manual per-chat overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:273
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:268
 msgid "No manual per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:278
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:273
 msgid "Rollout-created per-chat overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:280
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:275
 msgid "No rollout-created per-chat overrides are set."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:315
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:466
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:310
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:461
 msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:317
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:431
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:468
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:312
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:426
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:463
 msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:319
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:446
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:314
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:424
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:441
 msgid "Usage: /op_ff ^days=<days> <feature> <value>"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:323
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:318
 msgid "Usage: /op_ff ^chat_overrides"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:369
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:364
 #, python-brace-format
 msgid "{feature} override for chat {chat} deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:377
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:372
 #, python-brace-format
 msgid "{feature} override deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:391
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:386
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:422
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:417
 msgid "Rollouts cannot be combined with per-chat overrides."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:425
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:420
 msgid "Use only one rollout argument at a time."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:451
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:496
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:446
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:491
 #, python-brace-format
 msgid "No rollout is set for {feature}."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:455
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:485
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:501
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:450
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:480
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:496
 #, python-brace-format
 msgid "{feature}: {rollout}"
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:463
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:458
 #, python-brace-format
 msgid "{feature} rollout deleted."
 msgstr ""
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:477
 msgid "Rollout was not saved."
 msgstr ""
 
@@ -7027,289 +7031,289 @@ msgstr ""
 msgid "Invalid {action} duration, please try again."
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/exceptions.py:33
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:33
 msgid "Examples"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/exceptions.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:61
 #, python-brace-format
 msgid "The argument {description} has an invalid type"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/exceptions.py:65
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/exceptions.py:112
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:65
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:112
 msgid "Needed type"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/exceptions.py:108
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:108
 #, python-brace-format
 msgid "The required argument {description} wasn't provided!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/exceptions.py:156
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:156
 #, python-brace-format
 msgid "The argument {description} has an invalid formatting!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/keyvalue.py:31
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:31
 #, python-brace-format
 msgid "Key-value of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/keyvalue.py:32
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:32
 #, python-brace-format
 msgid "Key-values of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/keyvalue.py:67
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:67
 #, python-brace-format
 msgid "The optional argument {name} must contain a value!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/keyvalue.py:92
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/keyvalue.py:93
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:92
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:93
 msgid "Key-values"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:46
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:59
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:46
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:59
 #, python-brace-format
 msgid "List of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:47
 #, python-brace-format
 msgid "Lists of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:65
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:65
 #, python-brace-format
 msgid "The starting character {} of list wasn't found!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:73
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:73
 #, python-brace-format
 msgid "The ending character {} of list wasn't found!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:77
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:77
 msgid "The list is empty!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:97
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:97
 msgid "➡️ The start prefix text of the lists cannot have the overlapping formatting"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:153
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:171
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:153
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:171
 #, python-brace-format
 msgid "Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:157
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/lists.py:175
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:157
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:175
 msgid "Please ensure you correctly divided all of arguments."
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/logic.py:20
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:20
 #, python-brace-format
 msgid "Optional {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/logic.py:21
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:21
 #, python-brace-format
 msgid "Optionals {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/logic.py:44
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/logic.py:45
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/one_of.py:25
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/one_of.py:28
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:44
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:45
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:25
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:28
 msgid " or "
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/logic.py:105
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:105
 msgid ", and "
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/logic.py:121
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:121
 msgid "Example syntax"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/one_of.py:24
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/one_of.py:27
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:24
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:27
 #, python-brace-format
 msgid "One of: {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:13
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Word (string with no spaces)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:13
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Words (strings with no spaces)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:33
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integer (number)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:33
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integers (numbers)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Boolean (Yes / No value)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Booleans (Yes / No values)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:54
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:54
 msgid "True (can means Enabled or Yes)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/oneword.py:55
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:55
 msgid "False (can means Disabled or No)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text.py:18
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text.py:18
 msgid "Text"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:27
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:27
 #, python-brace-format
 msgid "➡️ The Argument should start with {}!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:31
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:31
 #, python-brace-format
 msgid "⬅️️ The Argument should end with {}!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:49
 msgid "➡️ The start text cannot have the overlapping formatting"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:75
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:75
 #, python-brace-format
 msgid "➡️ Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:91
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:95
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:91
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:95
 #, python-brace-format
 msgid "{} surrounded by {} and {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/text_rules.py:107
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:107
 #, python-brace-format
 msgid "Surrounded by {} and {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:24
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:24
 msgid "2 days"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:25
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:25
 msgid "3 weeks and 2 days"
 msgstr ""
 
 #. NOTE: Please use the first letter of the "years" in your language
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:41
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:41
 msgid "y"
 msgstr ""
 
 #. NOTE: Please use the first letter of the "weeks" in your language
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:44
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:44
 msgid "w"
 msgstr ""
 
 #. NOTE: Please use the first letter of the "days" in your language
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:47
 msgid "d"
 msgstr ""
 
 #. NOTE: Please use the first letter of the "hours" in your language
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:50
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:50
 msgid "h"
 msgstr ""
 
 #. NOTE: Please use the first letter of the "minutes" in your language
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:53
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:53
 msgid "m"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:61
 msgid "Action time"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/time_arg.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:61
 msgid "Action times"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:17
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User ID (Numeric)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:17
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User IDs (Numeric)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:37
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:37
 msgid "Username (starts with @)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:47
 msgid "Should start with a prefix"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:49
 msgid "Username is too short"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:51
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:51
 msgid "Username is too long"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:67
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mention (a link to user)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:67
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mentions (links to users)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:99
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:99
 msgid "Should start with mention!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:107
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:107
 msgid "Unexpected error while trying to get the user! Please report this in the support chat!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:108
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:108
 msgid "Could not find the user mention"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:120
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:120
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:122
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:122
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:128
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:128
 msgid "User ID"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:129
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:129
 msgid "Username"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/.venv/lib/python3.14/site-packages/ass_tg/types/user.py:134
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:134
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 

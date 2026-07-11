@@ -2,6 +2,7 @@ from typing import Any
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from stfu_tg import (
@@ -23,6 +24,11 @@ from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSche
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_model
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
+from sophie_bot.modules.ai.utils.ai_progress import (
+    ai_progress_line,
+    random_ai_progress_custom_emoji_id,
+    random_ai_thinking_text,
+)
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
@@ -35,6 +41,21 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
+
+
+async def _edit_or_reply(source_message: Message, progress_message: Message | None, **kwargs: Any) -> None:
+    """Edit the in-progress message in place, falling back to a fresh reply."""
+    if progress_message and source_message.bot:
+        try:
+            await source_message.bot.edit_message_text(
+                chat_id=progress_message.chat.id,
+                message_id=progress_message.message_id,
+                **kwargs,
+            )
+            return
+        except TelegramAPIError:
+            pass
+    await source_message.reply(**kwargs)
 
 
 async def _resolve_translation_input(event: Message, data: dict) -> tuple[str, bool]:
@@ -143,6 +164,13 @@ class AiTranslate(SophieMessageHandler):
             await self.event.reply(_("Please provide text to translate."))
             return
 
+        # In-progress message (skipped for auto-translate, which runs silently)
+        progress_message: Message | None = None
+        if not is_autotranslate:
+            progress_message = await self.event.reply(
+                Doc(ai_progress_line(random_ai_thinking_text(), random_ai_progress_custom_emoji_id())).to_html()
+            )
+
         # AI Context
         ai_context = AIMessageHistory()
         if reply_to_message and (reply_to_message.photo or reply_to_message.sticker or reply_to_message.animation):
@@ -191,9 +219,8 @@ class AiTranslate(SophieMessageHandler):
         except AIRequestFailed as err:
             if self.data.get("silent_error"):
                 return
-            await self.event.reply(
-                **ai_request_failed_message(err.sentry_event_id, title=_("Error generating translation"))
-            )
+            error_message = ai_request_failed_message(err.sentry_event_id, title=_("Error generating translation"))
+            await _edit_or_reply(self.event, progress_message, **error_message)
             return
 
         # Prevent extra translating
@@ -212,4 +239,4 @@ class AiTranslate(SophieMessageHandler):
 
         doc = _build_translate_reply_doc(translated, language_name, is_autotranslate, is_voice, quota_header)
 
-        await self.event.reply(str(doc))
+        await _edit_or_reply(self.event, progress_message, text=str(doc))
