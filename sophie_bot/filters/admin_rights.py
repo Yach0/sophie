@@ -136,6 +136,13 @@ class UserRestricting(Filter):
 
         return payload or True
 
+    @staticmethod
+    def _normalize_admin_title(title: Optional[str]) -> Optional[str]:
+        if title is None:
+            return None
+        normalized_title = " ".join(title.split()).strip()
+        return normalized_title.casefold() if normalized_title else None
+
     async def resolve_anonymous_admin_permissions(
         self,
         event: TelegramObject,
@@ -155,7 +162,7 @@ class UserRestricting(Filter):
         if not sender_chat or sender_chat.id != chat_tid:
             return None
 
-        title = getattr(message, "author_signature", None)
+        title = self._normalize_admin_title(getattr(message, "author_signature", None))
         if not title:
             await self.no_anon_title_msg(event)
             return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=True)
@@ -168,7 +175,7 @@ class UserRestricting(Filter):
         matched_admins = []
         for admin in admins:
             member_is_anonymous = bool(getattr(admin.member, "is_anonymous", False))
-            member_custom_title = getattr(admin.member, "custom_title", None)
+            member_custom_title = self._normalize_admin_title(getattr(admin.member, "custom_title", None))
             if member_is_anonymous and member_custom_title == title:
                 matched_admins.append(admin)
 

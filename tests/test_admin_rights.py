@@ -37,12 +37,12 @@ class FakeAdminsQuery:
         return self.admin_entries
 
 
-def build_anonymous_message() -> SimpleNamespace:
+def build_anonymous_message(author_signature: str = "Moderator") -> SimpleNamespace:
     reply_method = AsyncMock()
     return SimpleNamespace(
         from_user=SimpleNamespace(id=TELEGRAM_ANONYMOUS_ADMIN_BOT_ID, first_name="GroupAnonymousBot"),
         sender_chat=SimpleNamespace(id=-100987654321),
-        author_signature="Moderator",
+        author_signature=author_signature,
         chat=SimpleNamespace(id=-100987654321, type="supergroup"),
         reply=reply_method,
         answer=AsyncMock(),
@@ -57,6 +57,45 @@ def build_connection(chat_model: Any) -> ChatConnection:
         title=chat_model.first_name_or_title,
         db_model=chat_model,
     )
+
+
+@pytest.mark.asyncio
+async def test_anonymous_admin_title_detection_normalizes_whitespace(
+    monkeypatch: pytest.MonkeyPatch,
+    db_init: Any,
+) -> None:
+    admin_filter = UserRestricting(can_restrict_members=True)
+
+    message = build_anonymous_message(author_signature="  Moderator  ")
+    chat_model = SimpleNamespace(
+        iid="chat_iid",
+        tid=-100987654321,
+        type=ChatType.supergroup,
+        first_name_or_title="Forum Chat",
+    )
+    connection = build_connection(chat_model)
+
+    matched_admins = [
+        FakeAdminEntry(
+            member=SimpleNamespace(
+                status=ChatMemberStatus.ADMINISTRATOR,
+                is_anonymous=True,
+                custom_title="Moderator",
+                can_restrict_members=True,
+            ),
+            user=FakeUserLink(user_model=SimpleNamespace(iid="resolved_admin_iid", tid=111111)),
+        )
+    ]
+
+    from sophie_bot.db.models.chat_admin import ChatAdminModel
+
+    monkeypatch.setattr(ChatAdminModel, "find", lambda *args, **kwargs: FakeAdminsQuery(matched_admins))
+
+    result = await admin_filter(message, connection=connection, user_db=None)
+
+    assert isinstance(result, dict)
+    assert result["user_db"] == matched_admins[0].user.user_model
+    assert message.reply.await_count == 0
 
 
 @pytest.mark.asyncio
