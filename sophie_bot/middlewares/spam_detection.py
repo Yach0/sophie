@@ -6,7 +6,6 @@ from typing import Any, Awaitable, Callable
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject, Update
 from ussr import predict_message
-
 from sophie_bot.db.models.spam_match import SpamMatchModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled

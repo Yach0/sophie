@@ -2656,7 +2656,7 @@ wheels = [
 [[package]]
 name = "ussr"
 version = "0.1.0"
-source = { git = "https://gitlab.com/SophieBot/ussr.git#196dc811d88926087e631db4f611d0568505095c" }
+source = { git = "https://gitlab.com/SophieBot/ussr.git#a7ca7be0a259d023b1ddce97697d618412241634" }
 dependencies = [
     { name = "datasets" },
     { name = "joblib" },
