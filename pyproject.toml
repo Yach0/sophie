@@ -39,6 +39,8 @@ dependencies = [
     "openapi-client",
     "psutil>=7.2.2,<8",
     "ussr @ git+https://gitlab.com/SophieBot/ussr.git",
+    "torch>=2.13.0,<3",
+    "torchvision>=0.28.0,<0.29",
 ]
 
 [dependency-groups]
@@ -63,11 +65,18 @@ dev = [
     "aiogram-test-framework>=1.0.3",
 ]
 
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.uv.sources]
 stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 ussr = { git = "https://gitlab.com/SophieBot/ussr.git" }
+torch = [{ index = "pytorch-cpu" }]
+torchvision = [{ index = "pytorch-cpu" }]
 
 [tool.ty.src]
 include = ["sophie_bot/**"]
