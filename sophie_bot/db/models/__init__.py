@@ -43,6 +43,7 @@ from sophie_bot.db.models.settings_keyvalue import GlobalSettings
 from sophie_bot.db.models.op_debug_snapshot import OpDebugSnapshotModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.db.models.ws_user import WSUserModel
+from sophie_bot.db.models.spam_match import SpamMatchModel
 
 models: list[type[Document]] = [
     ChatModel,
@@ -84,6 +85,7 @@ models: list[type[Document]] = [
     RefreshTokenModel,
     OpDebugSnapshotModel,
     FeatureFlagOverride,
+    SpamMatchModel,
 ]
 
 __all__ = [
@@ -128,4 +130,5 @@ __all__ = [
     "WarnModel",
     "WarnSettingsModel",
     "models",
+    "SpamMatchModel",
 ]

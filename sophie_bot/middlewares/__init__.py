@@ -13,6 +13,7 @@ from sophie_bot.middlewares.logic import OrMiddleware
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 from sophie_bot.middlewares.admincache import AdmincacheMiddleware
+from sophie_bot.middlewares.spam_detection import SpamDetectionMiddleware
 from sophie_bot.services.bot import get_bot_runtime
 from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.logger import log
@@ -59,6 +60,7 @@ def enable_middlewares(dispatcher: Dispatcher | None = None) -> None:
 
     active_dispatcher.update.outer_middleware(SaveChatsMiddleware())
     active_dispatcher.update.middleware(AdmincacheMiddleware())
+    active_dispatcher.update.middleware(SpamDetectionMiddleware())
 
     active_dispatcher.update.middleware(ConnectionsMiddleware())
     active_dispatcher.message.middleware(DisablingMiddleware())
