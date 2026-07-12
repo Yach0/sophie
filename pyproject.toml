@@ -38,7 +38,7 @@ dependencies = [
     "av>=18,<19",
     "openapi-client",
     "psutil>=7.2.2,<8",
-    "ussr",
+    "ussr @ git+https://gitlab.com/SophieBot/ussr.git",
 ]
 
 [dependency-groups]
