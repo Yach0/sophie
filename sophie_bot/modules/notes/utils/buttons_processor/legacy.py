@@ -12,13 +12,9 @@ def legacy_button_parser(chat_tid: int, texts: str, pm: bool = False) -> tuple[s
     if pm:
         note_payload_prefix = LEGACY_BUTTON_ACTIONS.get("note")
         for row in markup.inline_keyboard:
-            for button in row:
+            for index, button in enumerate(row):
                 if button.url and note_payload_prefix and note_payload_prefix in button.url:
                     payload = button.url.rsplit("start=", maxsplit=1)[-1]
-                    # aiogram's InlineKeyboardButton is a MutableTelegramObject
-                    # (frozen=False); ty misreads the frozen-config override and
-                    # flags these writable fields as read-only.
-                    button.url = None  # ty:ignore[invalid-assignment]
-                    button.callback_data = payload  # ty:ignore[invalid-assignment]
+                    row[index] = button.model_copy(update={"url": None, "callback_data": payload})
 
     return text, markup
