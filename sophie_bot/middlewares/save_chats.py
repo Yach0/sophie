@@ -8,6 +8,13 @@ from typing_extensions import override
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatTopicModel, UserInGroupModel
+from sophie_bot.db.models.communities import CommunityModel
+from sophie_bot.utils.community_api import (
+    CommunityChangeKind,
+    extract_community_change,
+    fetch_chat_community,
+)
+from sophie_bot.utils.feature_flags import is_enabled
 
 logger = structlog.get_logger(__name__)
 
@@ -85,6 +92,31 @@ class SaveChatsMiddleware(BaseMiddleware):
         pass
 
     @staticmethod
+    async def save_community(message: Message, group: ChatModel):
+        """Record community membership from Bot API 10.2 community service messages.
+
+        Mirrors ``save_topic``: builds Sophie's own community→chats registry passively,
+        since Telegram exposes no way to enumerate a community's chats.
+        """
+        if not await is_enabled("communities", chat_tid=group.tid):
+            return
+
+        change = extract_community_change(message)
+        if change is None:
+            return
+
+        if change.kind is CommunityChangeKind.ADDED:
+            community = change.community or await fetch_chat_community(group.tid)
+            if community is None:
+                return
+            logger.debug("SaveChatsMiddleware: Saving community", group=group.tid, community_id=community.id)
+            await CommunityModel.ensure_community(community.id, community.name)
+            await group.set_community(community.id)
+        else:
+            logger.debug("SaveChatsMiddleware: Removing community from chat", group=group.tid)
+            await group.clear_community()
+
+    @staticmethod
     async def update_from_user(
         message: Message, current_group: ChatModel
     ) -> tuple[Optional[ChatModel], Optional[UserInGroupModel]]:
@@ -124,6 +156,9 @@ class SaveChatsMiddleware(BaseMiddleware):
 
         # Forum topics
         await self.save_topic(message, chat)
+
+        # Communities (Bot API 10.2)
+        await self.save_community(message, chat)
 
         # New chat members
         data["new_users"] = await self._handle_new_chat_members(message, chat)
