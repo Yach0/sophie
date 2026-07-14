@@ -38,11 +38,22 @@ class LocksEnforcerMiddleware(BaseMiddleware):
         locked_types = await get_cached_locks(message.chat.id, chat_db.iid)
         if not locked_types:
             return await handler(event, data)
-        matched_lock = await check_locks(message, locked_types)
+        # When the media-group middleware aggregated an album, `message` is only the
+        # representative item. Check locks against every album message so a locked later
+        # item can't slip through when the first item is allowed, and delete the whole
+        # album when any item matches.
+        album: list[Message] = data.get("album") or [message]
+        matched_lock = None
+        for candidate in album:
+            matched_lock = await check_locks(candidate, locked_types)
+            if matched_lock:
+                break
+
         if matched_lock:
-            try:
-                await message.delete()
-            except Exception as e:
-                log.debug("Failed to delete locked message", error=str(e))
+            for locked_message in album:
+                try:
+                    await locked_message.delete()
+                except Exception as exc:
+                    log.debug("Failed to delete locked message", error=str(exc))
             raise SkipHandler
         return await handler(event, data)

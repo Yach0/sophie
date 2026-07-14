@@ -15,4 +15,9 @@ def combine_saveables(*items: tuple[Saveable, Element]) -> Saveable:
 
         text += PreformattedHTML(saveable.text or "")
 
-    return Saveable(text=text.to_html(), file=items[0][0].file, parse_mode=SaveableParseMode.html)
+    return Saveable(
+        text=text.to_html(),
+        file=items[0][0].file,
+        files=items[0][0].files,
+        parse_mode=SaveableParseMode.html,
+    )

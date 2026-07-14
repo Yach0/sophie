@@ -140,6 +140,11 @@ class Config(BaseSettings):
     def security_log_file(self) -> str:
         return f"data/security.{self.instance_name}.{self.bot_id}.log.txt"
 
+    # Full runtime log file. Captures every log record so AI agents can trace
+    # what happened during development. Truncated on every (re)start, including
+    # dev hot-reloads, so it always reflects only the current run.
+    runtime_log_file: str = "data/runtime.logs"
+
     @field_validator("redis_username")
     @classmethod
     def validate_redis_username(cls, v: str | None) -> str | None:

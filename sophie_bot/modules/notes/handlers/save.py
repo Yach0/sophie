@@ -1,6 +1,7 @@
 from typing import Any, Sequence
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import Message
 from ass_tg.types import DividedArg, OptionalArg, SurroundedArg, TextArg, WordArg
 from ass_tg.types.base_abc import ParsedArg
 from beanie import PydanticObjectId
@@ -58,8 +59,11 @@ class SaveNote(SophieMessageHandler):
             await self.event.reply(_("Please provide at least one valid note name."))
             return
 
+        # Populated by MediaGroupAggregatorMiddleware when the command is sent on an album.
+        album: list[Message] | None = self.data.get("album")
+
         try:
-            saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
+            saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons, album=album)
         except SophieException as exc:
             log.warning("SaveNote: validation failed", error="\n".join(str(doc) for doc in exc.docs))
             await self.event.reply("\n".join(str(doc) for doc in exc.docs))
@@ -67,23 +71,32 @@ class SaveNote(SophieMessageHandler):
 
         is_created = await self.save(saveable, notenames, connection.db_model.iid, self.event.from_user.id, self.data)
         track_note_saved(
-            has_media=bool(saveable.model_dump().get("file")),
+            has_media=bool(saveable.file or saveable.files),
             chat_type=self.event.chat.type,
         )
 
-        await self.event.reply(
-            str(
-                Section(
-                    KeyValue("Note names", format_notes_aliases(notenames)),
-                    KeyValue("Description", self.data.get("description", "-")),
-                    title=_("Note was successfully created") if is_created else _("Note was successfully updated"),
-                )
-                + Template(
-                    _("Use {cmd} to retrieve this note."),
-                    cmd=Code(f"#{self.data['notenames'][0]}"),
-                )
-            )
+        document = Section(
+            KeyValue("Note names", format_notes_aliases(notenames)),
+            KeyValue("Description", self.data.get("description", "-")),
+            title=_("Note was successfully created") if is_created else _("Note was successfully updated"),
+        ) + Template(
+            _("Use {cmd} to retrieve this note."),
+            cmd=Code(f"#{self.data['notenames'][0]}"),
         )
+
+        # Replying to an album only captures the single replied-to item, since a reply
+        # targets one message. Warn the user and point them at the caption-based flow.
+        replied_message = self.event.reply_to_message
+        if replied_message and replied_message.media_group_id:
+            document += Section(
+                Template(
+                    _("To save the whole album, send it with {cmd} in the caption instead."),
+                    cmd=Code(f"/save {self.data['notenames'][0]}"),
+                ),
+                title=_("⚠️ Only the first media of the album was saved"),
+            )
+
+        await self.event.reply(str(document))
 
     async def save(
         self, saveable: Saveable, notenames: Sequence[str], chat_iid: PydanticObjectId, user_id: int, data: dict
@@ -104,6 +117,7 @@ class SaveNote(SophieMessageHandler):
             "ai_description": False,
             "text": saveable_dump["text"],
             "file": saveable_dump["file"],
+            "files": saveable_dump["files"],
             "buttons": saveable_dump["buttons"],
             "parse_mode": saveable_dump["parse_mode"],
             "preview": saveable_dump["preview"],
