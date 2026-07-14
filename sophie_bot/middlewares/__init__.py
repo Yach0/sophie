@@ -17,6 +17,7 @@ from sophie_bot.middlewares.media_group import (
 )
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
+from sophie_bot.middlewares.sentry_tracing import SentryTracingMiddleware
 from sophie_bot.middlewares.admincache import AdmincacheMiddleware
 from sophie_bot.middlewares.spam_detection import SpamDetectionMiddleware
 from sophie_bot.services.bot import get_bot_runtime, redis
@@ -63,6 +64,12 @@ def enable_middlewares(dispatcher: Dispatcher | None = None) -> None:
         fsm_index,
         MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(redis)),
     )
+
+    # Register outermost among inner middlewares (before localization) so the Sentry
+    # transaction wraps all per-update work + handler, but runs after the media-group
+    # aggregator to keep album-collection idle time out of the transaction duration.
+    if CONFIG.sentry_url:
+        active_dispatcher.update.middleware(SentryTracingMiddleware())
 
     active_dispatcher.update.middleware(localization_middleware)
 

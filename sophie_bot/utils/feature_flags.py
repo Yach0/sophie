@@ -87,6 +87,7 @@ FeatureType = Literal[
     "ai_chatbot_tables",
     "ussr_spam_detection",
     "ussr_spam_save_to_db",
+    "sentry_update_tracing",
 ]
 
 
@@ -268,6 +269,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_tables": _feature(False),
     "ussr_spam_detection": _feature(False),
     "ussr_spam_save_to_db": _feature(False),
+    "sentry_update_tracing": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

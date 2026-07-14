@@ -7,6 +7,7 @@ import pytest
 from aiogram.types import Message, Update, User, Chat
 
 from sophie_bot.metrics.middleware import MetricsMiddleware
+from sophie_bot.metrics.update_info import extract_command_name, extract_update_info, get_message_kind
 
 
 @pytest.fixture
@@ -108,16 +109,16 @@ class TestMetricsMiddleware:
         change_gauge_metric_mock.assert_not_called()
         distribution_metric_mock.assert_not_called()
 
-    def test_extract_update_info_message(self, middleware: MetricsMiddleware, mock_update: Update):
+    def test_extract_update_info_message(self, mock_update: Update):
         """Test update info extraction for messages"""
-        info = middleware._extract_update_info(mock_update, {})
+        info = extract_update_info(mock_update, {})
 
         assert info["update_type"] == "message"
         assert info["chat_type"] == "private"
         assert info["transport"] == "polling"
         assert info["message_kind"] == "text"
 
-    def test_extract_update_info_callback_query(self, middleware: MetricsMiddleware, mock_message: Message):
+    def test_extract_update_info_callback_query(self, mock_message: Message):
         """Test update info extraction for callback queries"""
         from aiogram.types import CallbackQuery
 
@@ -130,18 +131,18 @@ class TestMetricsMiddleware:
         )
         update = Update(update_id=1, callback_query=callback_query)
 
-        info = middleware._extract_update_info(update, {})
+        info = extract_update_info(update, {})
 
         assert info["update_type"] == "callback_query"
         assert info["chat_type"] == "private"
         assert info["message_kind"] is None
 
-    def test_get_message_kind_text(self, middleware: MetricsMiddleware, mock_message: Message):
+    def test_get_message_kind_text(self, mock_message: Message):
         """Test message kind extraction for text messages"""
-        kind = middleware._get_message_kind(mock_message)
+        kind = get_message_kind(mock_message)
         assert kind == "text"
 
-    def test_get_message_kind_photo(self, middleware: MetricsMiddleware):
+    def test_get_message_kind_photo(self):
         """Test message kind extraction for photo messages"""
         from aiogram.types import PhotoSize
         from datetime import datetime
@@ -152,10 +153,10 @@ class TestMetricsMiddleware:
 
         message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, photo=photo)
 
-        kind = middleware._get_message_kind(message)
+        kind = get_message_kind(message)
         assert kind == "photo"
 
-    def test_extract_command_name_with_alt_prefix(self, middleware: MetricsMiddleware):
+    def test_extract_command_name_with_alt_prefix(self):
         """Test command extraction with alternate configured prefix."""
         from datetime import datetime
 
@@ -163,10 +164,10 @@ class TestMetricsMiddleware:
         chat = Chat(id=456, type="private")
         message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="!help test")
 
-        command_name = middleware._extract_command_name(message)
+        command_name = extract_command_name(message)
         assert command_name == "help"
 
-    def test_extract_command_name_with_mention(self, middleware: MetricsMiddleware):
+    def test_extract_command_name_with_mention(self):
         """Test command extraction when message contains bot mention."""
         from datetime import datetime
 
@@ -174,7 +175,7 @@ class TestMetricsMiddleware:
         chat = Chat(id=456, type="private")
         message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="/start@TestBot")
 
-        command_name = middleware._extract_command_name(message)
+        command_name = extract_command_name(message)
         assert command_name == "start"
 
     def test_get_handler_name(self, middleware: MetricsMiddleware):
@@ -238,10 +239,10 @@ class TestMetricsMiddleware:
         name = middleware._get_handler_name(test_handler, None)
         assert len(name) == 50
 
-    def test_webhook_transport_detection(self, middleware: MetricsMiddleware, mock_update: Update):
+    def test_webhook_transport_detection(self, mock_update: Update):
         """Test webhook transport detection"""
         data = {"webhook_info": True}
-        info = middleware._extract_update_info(mock_update, data)
+        info = extract_update_info(mock_update, data)
         assert info["transport"] == "webhook"
 
     @pytest.mark.asyncio
