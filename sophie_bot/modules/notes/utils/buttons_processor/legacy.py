@@ -11,7 +11,8 @@ def legacy_button_parser(chat_tid: int, texts: str, pm: bool = False) -> tuple[s
     if pm:
         for row in markup.inline_keyboard:
             for index, button in enumerate(row):
-                if button.url and LEGACY_BUTTON_ACTIONS.get("note") in button.url:
+                note_action = LEGACY_BUTTON_ACTIONS["note"]
+                if button.url is not None and note_action in button.url:
                     row[index] = button.model_copy(
                         update={"url": None, "callback_data": button.url.rsplit("start=", maxsplit=1)[-1]}
                     )
