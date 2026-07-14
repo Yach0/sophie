@@ -69,7 +69,8 @@ def render_button(button: Button, chat_tid: int) -> InlineKeyboardButton | None:
             ButtonAction.note: LEGACY_NOTE_BUTTON_PREFIX,
         }
         payload_prefix = payload_prefixes[action]
-        payload = None if payload_prefix is None else build_legacy_start_payload(payload_prefix, chat_tid, data or "")
+        argument = data or "" if action == ButtonAction.note else ""
+        payload = None if payload_prefix is None else build_legacy_start_payload(payload_prefix, chat_tid, argument)
         return create_inline_button(text=text, url=_telegram_url(payload), style=style)
 
     return None
