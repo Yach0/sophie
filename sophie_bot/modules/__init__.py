@@ -128,6 +128,7 @@ MODULES = [
     "notes",
     "help",
     "federations",
+    "communities",  # After feds
     "privacy",
     "disabling",
     "rules",

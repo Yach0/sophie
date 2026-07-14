@@ -22,6 +22,11 @@ from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.chat_photo import ChatPhotoModel
+from sophie_bot.db.models.communities import (
+    CommunityBanModel,
+    CommunityModel,
+    CommunityTask,
+)
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.db.models.federations import (
     Federation,
@@ -82,6 +87,9 @@ models: list[type[Document]] = [
     Federation,
     FederationBan,
     FederationTask,
+    CommunityModel,
+    CommunityBanModel,
+    CommunityTask,
     RefreshTokenModel,
     OpDebugSnapshotModel,
     FeatureFlagOverride,
@@ -108,6 +116,9 @@ __all__ = [
     "ChatModel",
     "ChatPhotoModel",
     "ChatTopicModel",
+    "CommunityBanModel",
+    "CommunityModel",
+    "CommunityTask",
     "DisablingModel",
     "FeatureFlagOverride",
     "Federation",
