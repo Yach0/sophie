@@ -84,13 +84,24 @@ def parse_reply_message(message: Message) -> tuple[str, Optional[NoteFile], list
 
 
 async def parse_saveable(
-    message: Message, text: Optional[str], allow_reply_message=True, buttons: ButtonsList | None = None, offset: int = 0
+    message: Message,
+    text: Optional[str],
+    allow_reply_message=True,
+    buttons: ButtonsList | None = None,
+    offset: int = 0,
+    album: list[Message] | None = None,
 ) -> Saveable:
-    """Parses the given message and returns common note props to save."""
+    """Parses the given message and returns common note props to save.
+
+    ``album`` is the aggregated media-group messages (from the media-group middleware).
+    When it holds more than one item the note stores every media file in ``files`` and
+    leaves ``file`` unset; text/buttons still come from the representative message.
+    """
     # TODO: Make its own exception for notes saving
     note_text = text
     initial_note_text = text
     replied_buttons = []
+    files: list[NoteFile] = []
 
     if allow_reply_message and message.reply_to_message and not message.reply_to_message.forum_topic_created:
         replied_message_text, file_data, replied_buttons = parse_reply_message(message.reply_to_message)
@@ -102,6 +113,13 @@ async def parse_saveable(
 
     else:
         file_data = extract_file_info(message)
+
+    # Album (media group): gather a file from every item. This supersedes the single
+    # `file_data` grabbed above (album[0] is the representative message itself).
+    if album and len(album) > 1:
+        files = [note_file for note_file in (extract_file_info(item) for item in album) if note_file]
+        if files:
+            file_data = None
 
     # Parse buttons (only when there's text to parse; file-only notes are allowed)
     if note_text and buttons is None:
@@ -133,4 +151,4 @@ async def parse_saveable(
             )
         )
 
-    return Saveable(text=note_text, file=file_data, buttons=buttons, version=CURRENT_SAVEABLE_VERSION)
+    return Saveable(text=note_text, file=file_data, files=files, buttons=buttons, version=CURRENT_SAVEABLE_VERSION)

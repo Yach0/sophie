@@ -73,13 +73,17 @@ def extract_from_record(_, __, event_dict):
 
 
 def _ensure_log_directory():
-    """Ensure the log directory exists. Called lazily to avoid issues during import."""
-    try:
-        os.makedirs(os.path.dirname(CONFIG.security_log_file), exist_ok=True)
-    except OSError:
-        # FileExistsError: path exists but is a file, not a directory
-        # OSError: permission issues or other filesystem errors
-        pass
+    """Ensure the log directories exist. Called lazily to avoid issues during import."""
+    for log_file in (CONFIG.security_log_file, CONFIG.runtime_log_file):
+        directory = os.path.dirname(log_file)
+        if not directory:
+            continue
+        try:
+            os.makedirs(directory, exist_ok=True)
+        except OSError:
+            # FileExistsError: path exists but is a file, not a directory
+            # OSError: permission issues or other filesystem errors
+            pass
 
 
 # Defer directory creation until actually needed
@@ -121,6 +125,16 @@ logging.config.dictConfig(
                 "filename": CONFIG.security_log_file,
                 "formatter": "plain",
             },
+            # Full runtime log. Opened in "w" mode so it is truncated on every
+            # process start; because this config runs on import, each (re)start
+            # -- including dev hot-reloads -- purges the previous run's logs.
+            "runtime_file": {
+                "level": level,
+                "class": "logging.FileHandler",
+                "filename": CONFIG.runtime_log_file,
+                "mode": "w",
+                "formatter": "plain",
+            },
             # "file": {
             #     "level": level,
             #     "class": "logging.handlers.WatchedFileHandler",
@@ -130,12 +144,12 @@ logging.config.dictConfig(
         },
         "loggers": {
             "": {
-                "handlers": ["default"],
+                "handlers": ["default", "runtime_file"],
                 "level": level,
                 "propagate": True,
             },
             "security": {
-                "handlers": ["security_file", "default"],
+                "handlers": ["security_file", "default", "runtime_file"],
                 "level": level,
                 "propagate": False,
             },

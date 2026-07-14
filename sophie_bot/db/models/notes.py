@@ -34,6 +34,9 @@ class Saveable(BaseModel):
     text: Annotated[Optional[str], Indexed(index_type=TEXT)] = ""
 
     file: Optional[NoteFile] = None
+    # Album (media group) items. When set (len > 1) the note is sent via sendMediaGroup
+    # and `file` stays None. Single-media notes keep using `file` with `files` empty.
+    files: list[NoteFile] = Field(default_factory=list)
     buttons: list[list[Button]] = Field(default_factory=list)
 
     parse_mode: Optional[SaveableParseMode] = SaveableParseMode.html
