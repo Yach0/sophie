@@ -40,9 +40,13 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         matched_lock = await check_locks(message, locked_types)
         if matched_lock:
-            try:
-                await message.delete()
-            except Exception as e:
-                log.debug("Failed to delete locked message", error=str(e))
+            # When the media-group middleware aggregated an album, `message` is only the
+            # representative item — delete every message in the album, not just the first.
+            album: list[Message] = data.get("album") or [message]
+            for locked_message in album:
+                try:
+                    await locked_message.delete()
+                except Exception as e:
+                    log.debug("Failed to delete locked message", error=str(e))
             raise SkipHandler
         return await handler(event, data)

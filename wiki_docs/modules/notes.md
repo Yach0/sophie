@@ -38,6 +38,11 @@ Please refer to the [AI help page](ai).
 ## Saving photos / stickers, adding buttons and fillings
 Please refer to the [Saveables help page](/docs/Others/Saveables) of Sophie, as this information is global and work in many other places.
 
+## Saving albums (media groups)
+You can `/save` a whole album (media group) as a single note: send the album with `/save <name>` in its caption and every item is stored. Retrieving the note (`/get` or `#name`) sends the media back as an album.
+
+> Telegram albums cannot carry inline buttons on the media itself. If an album note has buttons, Sophie sends the album first and then a short follow-up message with the buttons attached.
+
 ## Note searching
 Sophie implements 2 ways to search notes.
 The simplest way is to filer by the note names using `/notes <filter>`.

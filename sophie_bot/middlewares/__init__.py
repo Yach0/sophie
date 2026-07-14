@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiogram import Dispatcher
+from aiogram.fsm.middleware import FSMContextMiddleware
 from aiogram.utils.i18n import ConstI18nMiddleware
 from ass_tg.middleware import ArgsMiddleware
 
@@ -10,11 +11,15 @@ from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.middlewares.disabling import DisablingMiddleware
 from sophie_bot.middlewares.localization import LocalizationMiddleware
 from sophie_bot.middlewares.logic import OrMiddleware
+from sophie_bot.middlewares.media_group import (
+    MediaGroupAggregatorMiddleware,
+    RedisMediaGroupAggregator,
+)
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 from sophie_bot.middlewares.admincache import AdmincacheMiddleware
 from sophie_bot.middlewares.spam_detection import SpamDetectionMiddleware
-from sophie_bot.services.bot import get_bot_runtime
+from sophie_bot.services.bot import get_bot_runtime, redis
 from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.logger import log
 
@@ -44,6 +49,20 @@ def enable_middlewares(dispatcher: Dispatcher | None = None) -> None:
         from .debug import UpdateDebugMiddleware
 
         active_dispatcher.update.middleware(UpdateDebugMiddleware())
+
+    # Media-group aggregator must run before the FSM middleware: that middleware holds a
+    # per-(chat, user, thread) isolation lock, and all items of one album share that key.
+    # Running inside the lock would deadlock the aggregator's delay-loop (later album items
+    # could never join the buffered group). Insert it right before FSMContextMiddleware.
+    outer_middlewares = active_dispatcher.update.outer_middleware._middlewares
+    fsm_index = next(
+        (index for index, middleware in enumerate(outer_middlewares) if isinstance(middleware, FSMContextMiddleware)),
+        len(outer_middlewares),
+    )
+    outer_middlewares.insert(
+        fsm_index,
+        MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(redis)),
+    )
 
     active_dispatcher.update.middleware(localization_middleware)
 
