@@ -121,6 +121,9 @@ class ChatModel(Document):
     username: Annotated[Optional[str], Indexed()]
     language_code: Optional[str] = None
     is_bot: bool
+    # Telegram community this chat belongs to (Bot API 10.2). Maintained by
+    # SaveChatsMiddleware; never touched by the upsert_group path so it survives updates.
+    community_tid: Annotated[Optional[int], Indexed()] = None
 
     first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_saw: datetime
@@ -208,6 +211,20 @@ class ChatModel(Document):
 
     async def delete_chat(self):
         await self.delete(link_rule=DeleteRules.DELETE_LINKS)
+
+    async def set_community(self, community_tid: int) -> None:
+        """Attach this chat to a Telegram community (idempotent, scoped update)."""
+        if self.community_tid == community_tid:
+            return
+        self.community_tid = community_tid
+        await ChatModel.find_one(ChatModel.tid == self.tid).update(Set({ChatModel.community_tid: community_tid}))
+
+    async def clear_community(self) -> None:
+        """Detach this chat from any Telegram community."""
+        if self.community_tid is None:
+            return
+        self.community_tid = None
+        await ChatModel.find_one(ChatModel.tid == self.tid).update(Set({ChatModel.community_tid: None}))
 
     @staticmethod
     async def get_by_tid(chat_id: int) -> Optional["ChatModel"]:
