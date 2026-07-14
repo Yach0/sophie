@@ -33,47 +33,45 @@ def _is_valid_url(url: str) -> bool:
         return False
 
 
+def _telegram_url(payload: str | None = None) -> str:
+    base_url = f"https://t.me/{CONFIG.username}"
+    return f"{base_url}?start={payload}" if payload else base_url
+
+
 def render_button(button: Button, chat_tid: int) -> InlineKeyboardButton | None:
     action = button.action
     text = button.text
     data = button.data
+    style = button.style
 
     if action == ButtonAction.url:
         if not data or not _is_valid_url(data):
             log.warning("render_button: skipping invalid URL button", button_text=text, url=data)
             return None
-        return create_inline_button(text=text, url=data, style=button.style)
-
-    if action == ButtonAction.sophiedm:
-        return create_inline_button(text=text, url=f"https://t.me/{CONFIG.username}", style=button.style)
-
-    if action == ButtonAction.rules:
-        payload = build_legacy_start_payload(LEGACY_RULES_BUTTON_PREFIX, chat_tid)
-        return create_inline_button(
-            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
-        )
+        return create_inline_button(text=text, url=data, style=style)
 
     if action == ButtonAction.delmsg:
         payload = build_legacy_start_payload(LEGACY_DELETE_MESSAGE_BUTTON_PREFIX, chat_tid)
-        return create_inline_button(text=text, callback_data=payload, style=button.style)
+        return create_inline_button(text=text, callback_data=payload, style=style)
 
-    if action == ButtonAction.connect:
-        payload = build_legacy_start_payload(LEGACY_CONNECTION_BUTTON_PREFIX, chat_tid)
-        return create_inline_button(
-            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
-        )
-
-    if action == ButtonAction.captcha:
-        payload = build_legacy_start_payload(LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, chat_tid)
-        return create_inline_button(
-            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
-        )
-
-    if action == ButtonAction.note:
-        payload = build_legacy_start_payload(LEGACY_NOTE_BUTTON_PREFIX, chat_tid, data or "")
-        return create_inline_button(
-            text=text, url=f"https://t.me/{CONFIG.username}?start={payload}", style=button.style
-        )
+    if action in {
+        ButtonAction.sophiedm,
+        ButtonAction.rules,
+        ButtonAction.connect,
+        ButtonAction.captcha,
+        ButtonAction.note,
+    }:
+        payload_prefixes = {
+            ButtonAction.sophiedm: None,
+            ButtonAction.rules: LEGACY_RULES_BUTTON_PREFIX,
+            ButtonAction.connect: LEGACY_CONNECTION_BUTTON_PREFIX,
+            ButtonAction.captcha: LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
+            ButtonAction.note: LEGACY_NOTE_BUTTON_PREFIX,
+        }
+        payload_prefix = payload_prefixes[action]
+        argument = data or "" if action == ButtonAction.note else ""
+        payload = None if payload_prefix is None else build_legacy_start_payload(payload_prefix, chat_tid, argument)
+        return create_inline_button(text=text, url=_telegram_url(payload), style=style)
 
     return None
 
