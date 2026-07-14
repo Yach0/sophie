@@ -6,6 +6,9 @@ __pycache__/
 # Config
 data/config.env
 
+# Runtime logs (purged on every start/reload)
+data/runtime.logs
+
 # Ansible inv
 data/*.yaml
 
