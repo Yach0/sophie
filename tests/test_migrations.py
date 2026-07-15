@@ -1,10 +1,14 @@
 """Test suite for database migrations."""
 
 import importlib
+from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.db.models.chat import ChatModel, ChatType
 
 
 def _legacy_notes_migration() -> ModuleType:
@@ -363,6 +367,79 @@ async def test_relink_legacy_note_users_matches_int64_ids() -> None:
     assert (await notes.find_one({"_id": resolvable}))["created_user"] == DBRef("chats", known_user_oid)
     assert "created_user" not in await notes.find_one({"_id": unknown})
     assert await notes.count_documents(migration.legacy_id_query("created_user")) == 0
+
+
+def _zai_provider_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260507_143000_migrate_zai_provider_to_auto")
+
+
+def _summary_model_gpt55_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260507_000000_update_ai_summary_model_to_gpt55")
+
+
+async def _seed_ai_provider_chat() -> ChatModel:
+    """Insert a chat through Beanie so `tid` is stored under its `chat_id` alias."""
+    chat = ChatModel(
+        tid=-1001,
+        type=ChatType.supergroup,
+        first_name_or_title="AI provider chat",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(timezone.utc),
+    )
+    await chat.insert()
+    return chat
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone() -> None:
+    """Backward must not touch chats that were already on "auto" before Forward ran.
+
+    "auto" is AIProviderModel.provider's default, so it is by far the largest population.
+    The original Backward reverted every "auto" chat to "zai" -- a provider this migration
+    removed outright -- rather than the handful Forward moved. This test fails against that
+    version: `already_auto` comes back as "zai".
+    """
+    migration = _zai_provider_migration()
+    chat = await _seed_ai_provider_chat()
+
+    migrated = await AIProviderModel(chat=chat, provider="zai").insert()
+    already_auto = await AIProviderModel(chat=chat, provider="auto").insert()
+
+    await migration.Forward.migrate.run(None)
+
+    assert (await AIProviderModel.get(migrated.id)).provider == "auto"
+
+    await migration.Backward.noop.run(None)
+
+    # The whole bug: this chat was never "zai" and must never become "zai".
+    assert (await AIProviderModel.get(already_auto.id)).provider == "auto"
+    # Forward's own set is not restorable either -- it is now indistinguishable from the above.
+    assert (await AIProviderModel.get(migrated.id)).provider == "auto"
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_summary_model_gpt55_backward_leaves_pre_existing_new_model_alone() -> None:
+    """Backward must not touch documents that were already on the new default summary model.
+
+    "openai/gpt-5.5" is constants.DEFAULT_AI_SUMMARY_MODEL, so documents carry it by default
+    or by deliberate choice. The original Backward downgraded all of them to "openai/gpt-5.4";
+    this test fails against that version.
+    """
+    migration = _summary_model_gpt55_migration()
+    chat = await _seed_ai_provider_chat()
+
+    migrated = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.4").insert()
+    already_new = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.5").insert()
+
+    await migration.Forward.migrate.run(None)
+
+    assert (await AIProviderModel.get(migrated.id)).summary_model == "openai/gpt-5.5"
+
+    await migration.Backward.noop.run(None)
+
+    assert (await AIProviderModel.get(already_new.id)).summary_model == "openai/gpt-5.5"
+    assert (await AIProviderModel.get(migrated.id)).summary_model == "openai/gpt-5.5"
 
 
 if __name__ == "__main__":
