@@ -25,11 +25,16 @@ AdminPermission = Literal[
     "can_pin_messages",
 ]
 
+# A chat or user identified by Telegram ID, DB ID, or an already-resolved model.
+ChatRef = Union[int, PydanticObjectId, ChatModel]
 
-async def _resolve_model(model_id: Union[int, PydanticObjectId]) -> Optional[ChatModel]:
-    if isinstance(model_id, int):
-        return await ChatModel.get_by_tid(model_id)
-    return await ChatModel.get_by_iid(model_id)
+
+async def _resolve_model(ref: ChatRef) -> Optional[ChatModel]:
+    if isinstance(ref, ChatModel):
+        return ref
+    if isinstance(ref, int):
+        return await ChatModel.get_by_tid(ref)
+    return await ChatModel.get_by_iid(ref)
 
 
 def _is_auto_admin(chat_tid: int, user_tid: int) -> bool:
@@ -42,19 +47,17 @@ def _is_auto_admin(chat_tid: int, user_tid: int) -> bool:
 
 
 async def check_user_admin_permissions(
-    chat: Union[int, PydanticObjectId],
-    user: Union[int, PydanticObjectId],
+    chat: ChatRef,
+    user: ChatRef,
     required_permissions: Optional[list[str]] = None,
     require_creator: bool = False,
-    chat_model: Optional[ChatModel] = None,
-    user_model: Optional[ChatModel] = None,
 ) -> Union[bool, list[str]]:
     """
     Check if a user is an admin in the specified chat and has the required permissions.
 
     Args:
-        chat: Telegram chat ID or Internal DB ID
-        user: Telegram user ID or Internal DB ID
+        chat: Telegram chat ID, Internal DB ID, or a resolved ChatModel
+        user: Telegram user ID, Internal DB ID, or a resolved ChatModel
         required_permissions: Optional list of permissions to check (e.g., ["can_restrict_members"])
         require_creator: Require the user to be the chat creator.
 
@@ -65,26 +68,22 @@ async def check_user_admin_permissions(
     """
     log.debug("check_user_admin_permissions", chat=chat, user=user, permissions=required_permissions)
 
-    # Fast path for TIDs (ints)
+    # Must precede resolution: auto-admins (operators, own PM) are granted even
+    # when either side has no chat document to resolve.
     if isinstance(chat, int) and isinstance(user, int) and not require_creator:
         if _is_auto_admin(chat, user):
             return True
 
-    # Resolve models
-    if not chat_model:
-        chat_model = await _resolve_model(chat)
+    chat_model = await _resolve_model(chat)
     if not chat_model:
         return False
 
-    if not user_model:
-        user_model = await _resolve_model(user)
+    user_model = await _resolve_model(user)
     if not user_model:
         return False
 
-    # Check if we missed the fast path checks (e.g. if one was IID)
-    if not (isinstance(chat, int) and isinstance(user, int)) and not require_creator:
-        if _is_auto_admin(chat_model.tid, user_model.tid):
-            return True
+    if not require_creator and _is_auto_admin(chat_model.tid, user_model.tid):
+        return True
 
     # Check database for admin status
     try:
@@ -123,7 +122,7 @@ async def check_user_admin_permissions(
         raise
 
 
-async def is_user_admin(chat: Union[int, PydanticObjectId], user: Union[int, PydanticObjectId]) -> bool:
+async def is_user_admin(chat: ChatRef, user: ChatRef) -> bool:
     """
     Check if a user is an admin in the specified chat.
 
@@ -131,8 +130,8 @@ async def is_user_admin(chat: Union[int, PydanticObjectId], user: Union[int, Pyd
     that only checks admin status without specific permissions.
 
     Args:
-        chat: Telegram chat ID or Internal DB ID
-        user: Telegram user ID or Internal DB ID
+        chat: Telegram chat ID, Internal DB ID, or a resolved ChatModel
+        user: Telegram user ID, Internal DB ID, or a resolved ChatModel
 
     Returns:
         True if the user is an admin, False otherwise
@@ -141,7 +140,7 @@ async def is_user_admin(chat: Union[int, PydanticObjectId], user: Union[int, Pyd
     return result is True
 
 
-async def get_admins_rights(chat: Union[int, PydanticObjectId]) -> None:
+async def get_admins_rights(chat: ChatRef) -> None:
     """Refresh admin cache for the chat."""
     chat_model = await _resolve_model(chat)
     if not chat_model:
