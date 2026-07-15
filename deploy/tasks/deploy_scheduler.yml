@@ -1,3 +1,8 @@
+# The scheduler must run code at least as new as the newest task *producer*. Beta gets
+# features first, so it is deployed from the beta lineage only (beta.yml, staging.yml,
+# rollback_beta.yml, promote_to_stable.yml - whose DEPLOY_TAG is the beta sha being
+# promoted). Never include this from stable.yml: pinning the scheduler to a stable-branch
+# image lets beta enqueue tasks the scheduler has no consumer for.
 - name: Ensure /var/sophie/data exists
   ansible.builtin.file:
     path: /var/sophie/data
@@ -6,9 +11,17 @@
     group: containers
     mode: '0755'
 
+# Without this the host keeps whatever image it already has. Combined with a floating tag
+# that meant the scheduler silently ran 5-week-old code across every restart.
+- name: Pull tagged podman image
+  containers.podman.podman_image:
+    name: "{{ lookup('ansible.builtin.env','IMAGE_NAME') }}"
+    tag: "{{ lookup('ansible.builtin.env','DEPLOY_TAG') }}"
+    force: true
+
 - name: Copy Beta's quadlet for scheduler
   vars:
-    image_tag: "{{ lookup('ansible.builtin.env','BRANCH') }}-runtime"
+    image_tag: "{{ lookup('ansible.builtin.env','DEPLOY_TAG') }}"
   ansible.builtin.template:
     src: sophie-scheduler.container.j2
     dest: /home/containers/.config/containers/systemd/sophie-scheduler.container

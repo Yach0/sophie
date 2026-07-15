@@ -1,6 +1,8 @@
 [Unit]
 Description=Sophie Scheduler
-Requires=mongo.service redis.service sophie-beta.service sophie-stable.service
+# Only the backing stores, matching sophie-rest. Requires= propagates stop, so depending on the
+# bot containers took the scheduler down whenever either bot was stopped or redeployed.
+Requires=mongo.service redis.service
 
 [Service]
 Restart=always

@@ -6,3 +6,7 @@
     - include_tasks: tasks/registry.yml
     - include_tasks: tasks/deploy_stable_tagged.yml
     - include_tasks: tasks/deploy_rest.yml
+
+    # DEPLOY_TAG here is the *beta* sha being promoted, so the scheduler stays on beta-lineage
+    # code - i.e. never older than the bots enqueueing tasks for it.
+    - include_tasks: tasks/deploy_scheduler.yml

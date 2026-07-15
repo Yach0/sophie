@@ -6,9 +6,17 @@
     group: containers
     mode: '0755'
 
+# Without this the host keeps whatever image it already has. Combined with a floating tag
+# that meant the REST API silently ran 5-week-old code across every restart.
+- name: Pull tagged podman image
+  containers.podman.podman_image:
+    name: "{{ lookup('ansible.builtin.env','IMAGE_NAME') }}"
+    tag: "{{ lookup('ansible.builtin.env','DEPLOY_TAG') }}"
+    force: true
+
 - name: Copy REST container quadlet file
   vars:
-    image_tag: "{{ lookup('ansible.builtin.env','BRANCH') }}-runtime"
+    image_tag: "{{ lookup('ansible.builtin.env','DEPLOY_TAG') }}"
   ansible.builtin.template:
     src: sophie-rest.container.j2
     dest: /home/containers/.config/containers/systemd/sophie-rest.container
