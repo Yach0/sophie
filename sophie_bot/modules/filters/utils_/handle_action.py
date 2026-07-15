@@ -32,10 +32,10 @@ async def _handle_modern_filter_action(
 ) -> Optional[Element | str | LazyProxy]:
     action_item: ModernActionABC = ALL_MODERN_ACTIONS[action_name]
 
-    if filter_data:
+    if filter_data and action_item.data_object:
         filter_data = action_item.data_object(**filter_data)
 
-    return await action_item.handle(message, data, filter_data)
+    return await action_item.execute(message, data, filter_data)
 
 
 async def handle_effective_filter_action(
