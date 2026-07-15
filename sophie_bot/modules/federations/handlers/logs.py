@@ -46,8 +46,8 @@ class SetFederationLogHandler(SophieMessageHandler):
 
         # Check if user is federation owner
         creator = await federation.creator.fetch()
-        user_iid = self.data["user_db"].iid
-        if not creator or creator.iid != user_iid:
+        user_db = self.data.get("user_db")
+        if not creator or not user_db or creator.iid != user_db.iid:
             await self.event.reply(_("Only the federation owner can set the log channel."))
             return
 
@@ -122,8 +122,8 @@ class UnsetFederationLogHandler(SophieMessageHandler):
 
         # Check if user is federation owner
         creator = await federation.creator.fetch()
-        user_iid = self.data["user_db"].iid
-        if not creator or creator.iid != user_iid:
+        user_db = self.data.get("user_db")
+        if not creator or not user_db or creator.iid != user_db.iid:
             await self.event.reply(_("Only the federation owner can remove the log channel."))
             return
 
