@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException
 
-from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.db.models.notes import NoteModel, normalize_notenames
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
@@ -31,6 +31,8 @@ async def update_note(
     if "names" in update_dict:
         if not update_dict["names"]:
             raise HTTPException(status_code=400, detail="Note names cannot be empty")
+
+        update_dict["names"] = normalize_notenames(update_dict["names"])
 
         existing = await NoteModel.get_by_notenames(chat.iid, update_dict["names"])
         if existing and existing.id != note.id:

@@ -8,7 +8,7 @@ from beanie import PydanticObjectId
 from stfu_tg import Code, KeyValue, Section, Template
 
 from sophie_bot.db.models import ChatModel, NoteModel
-from sophie_bot.db.models.notes import Saveable
+from sophie_bot.db.models.notes import Saveable, normalize_notenames
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
@@ -54,7 +54,7 @@ class SaveNote(SophieMessageHandler):
         raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
         buttons = ButtonsList.from_ass(raw_buttons)
 
-        notenames: tuple[str, ...] = tuple(name.lower() for name in self.data["notenames"])
+        notenames: tuple[str, ...] = normalize_notenames(self.data["notenames"])
         if not notenames:
             await self.event.reply(_("Please provide at least one valid note name."))
             return
@@ -76,12 +76,12 @@ class SaveNote(SophieMessageHandler):
         )
 
         document = Section(
-            KeyValue("Note names", format_notes_aliases(notenames)),
-            KeyValue("Description", self.data.get("description", "-")),
+            KeyValue(_("Note names"), format_notes_aliases(notenames)),
+            KeyValue(_("Description"), self.data.get("description", "-")),
             title=_("Note was successfully created") if is_created else _("Note was successfully updated"),
         ) + Template(
             _("Use {cmd} to retrieve this note."),
-            cmd=Code(f"#{self.data['notenames'][0]}"),
+            cmd=Code(f"#{notenames[0]}"),
         )
 
         # Replying to an album only captures the single replied-to item, since a reply
@@ -91,7 +91,7 @@ class SaveNote(SophieMessageHandler):
             document += Section(
                 Template(
                     _("To save the whole album, send it with {cmd} in the caption instead."),
-                    cmd=Code(f"/save {self.data['notenames'][0]}"),
+                    cmd=Code(f"/save {notenames[0]}"),
                 ),
                 title=_("⚠️ Only the first media of the album was saved"),
             )
