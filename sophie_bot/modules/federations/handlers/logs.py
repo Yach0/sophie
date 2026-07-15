@@ -8,6 +8,7 @@ from stfu_tg import Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.services import FederationManageService
+from sophie_bot.modules.utils_.acting_user import require_acting_user
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -45,9 +46,12 @@ class SetFederationLogHandler(SophieMessageHandler):
             return
 
         # Check if user is federation owner
+        user_db = await require_acting_user(self.event, self.data)
+        if not user_db:
+            return
+
         creator = await federation.creator.fetch()
-        user_iid = self.data["user_db"].iid
-        if not creator or creator.iid != user_iid:
+        if not creator or creator.iid != user_db.iid:
             await self.event.reply(_("Only the federation owner can set the log channel."))
             return
 
@@ -121,9 +125,12 @@ class UnsetFederationLogHandler(SophieMessageHandler):
             return
 
         # Check if user is federation owner
+        user_db = await require_acting_user(self.event, self.data)
+        if not user_db:
+            return
+
         creator = await federation.creator.fetch()
-        user_iid = self.data["user_db"].iid
-        if not creator or creator.iid != user_iid:
+        if not creator or creator.iid != user_db.iid:
             await self.event.reply(_("Only the federation owner can remove the log channel."))
             return
 

@@ -12,6 +12,7 @@ from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatu
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
+from sophie_bot.modules.utils_.acting_user import require_acting_user
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -46,7 +47,11 @@ class FederationImportHandler(FederationCommandHandler):
             await self.event.reply(_("Please upload a CSV file (ending with .csv)."))
             return
 
-        user_iid = self.data["user_db"].iid
+        user_db = await require_acting_user(self.event, self.data)
+        if not user_db:
+            return
+
+        user_iid = user_db.iid
 
         # Permission check - federation admin or owner
         if not await FederationPermissionService.can_ban_in_federation(federation, self.event.from_user.id):

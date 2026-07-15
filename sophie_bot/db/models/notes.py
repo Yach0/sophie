@@ -1,12 +1,12 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Optional, Sequence
+from typing import Annotated, Any, Optional, Sequence
 
 from aiogram.enums import ContentType
 from beanie import Document, Indexed, PydanticObjectId
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.find.evaluation import Text
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pymongo import TEXT
 from pymongo.results import DeleteResult
 
@@ -65,6 +65,15 @@ class NoteModel(Saveable, Document):
     created_user: Optional[Link[ChatModel]] = None
     edited_date: Optional[datetime] = None
     edited_user: Optional[Link[ChatModel]] = None
+
+    @field_validator("created_user", "edited_user", mode="before")
+    @classmethod
+    def _coerce_legacy_user_link(cls, value: Any) -> Any:
+        # Pre-4.0 these held a raw Telegram user ID rather than a link. Attribution is not
+        # recoverable here, so drop it instead of failing the whole read.
+        if isinstance(value, int):
+            return None
+        return value
 
     class Settings:
         name = "notes"

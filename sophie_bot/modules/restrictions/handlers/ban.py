@@ -26,7 +26,6 @@ class BanUserHandler(BaseRestrictionHandler):
     result_title: ClassVar[str | LazyProxy] = l_("User banned")
     event_type: ClassVar[LogEvent] = LogEvent.USER_BANNED
     check_federation_ban: ClassVar[bool] = True
-    use_common_try: ClassVar[bool] = True
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -54,7 +53,6 @@ class TempBanUserHandler(BaseRestrictionHandler):
     event_type: ClassVar[LogEvent] = LogEvent.USER_BANNED
     with_duration: ClassVar[bool] = True
     check_federation_ban: ClassVar[bool] = True
-    use_common_try: ClassVar[bool] = True
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

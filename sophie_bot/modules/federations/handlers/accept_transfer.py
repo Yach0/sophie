@@ -12,6 +12,7 @@ from stfu_tg import Code, Doc, Template, Title
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.services.redis import aredis
+from sophie_bot.modules.utils_.acting_user import require_acting_user
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -39,8 +40,13 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         fed_id_input: str = self.data["fed_id"]
-        user_db = self.data["user_db"]
-        user_tid = self.connection.tid
+        user_db = await require_acting_user(self.event, self.data)
+        if not user_db:
+            return
+
+        # The token stores the recipient's Telegram user ID, so compare against the acting user --
+        # connection.tid is the chat ID, which only coincides with it in private chats.
+        user_tid = user_db.tid
 
         transfer_key = f"{self.TRANSFER_KEY_PREFIX}{fed_id_input}"
 

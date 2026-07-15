@@ -17,6 +17,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.utils_.acting_user import require_acting_user
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
@@ -82,7 +83,13 @@ class WarnHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         message: Message = self.event
         connection = self.connection
-        admin_user: ChatModel = self.data["user_db"]
+
+        # UserRestricting can grant permission to an anonymous admin without resolving who they are,
+        # so user_db may still be None here even though the rights check passed.
+        admin_user = await require_acting_user(message, self.data)
+        if not admin_user:
+            return
+
         reason: Optional[str] = self.data.get("reason")
 
         # Get user from args or reply

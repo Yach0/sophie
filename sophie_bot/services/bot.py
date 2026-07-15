@@ -15,6 +15,7 @@ from redis.asyncio import Redis
 from sophie_bot.config import CONFIG
 from sophie_bot.utils.logger import log
 from sophie_bot.utils.runtime_proxy import RuntimeProxy
+from sophie_bot.utils.update_sanitizer import sanitizing_json_loads
 
 
 @dataclass(slots=True)
@@ -29,7 +30,7 @@ class BotRuntime:
 
 def create_bot_runtime() -> BotRuntime:
     bot_api = TelegramAPIServer.from_base(str(CONFIG.botapi_server)) if CONFIG.botapi_server else PRODUCTION
-    session = AiohttpSession(api=bot_api)
+    session = AiohttpSession(api=bot_api, json_loads=sanitizing_json_loads)
     log.info(f"Using BotAPI server: {bot_api}")
 
     bot = Bot(token=CONFIG.token, default=DefaultBotProperties(parse_mode="html"), session=session)

@@ -179,45 +179,54 @@ msgstr ""
 msgid "Surrounded by {} and {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:24
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "2 days"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:25
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "3 weeks and 2 days"
 msgstr ""
 
-#. NOTE: Please use the first letter of the "years" in your language
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:41
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:46
 msgid "y"
 msgstr ""
 
-#. NOTE: Please use the first letter of the "weeks" in your language
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:44
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:48
 msgid "w"
 msgstr ""
 
-#. NOTE: Please use the first letter of the "days" in your language
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:50
 msgid "d"
 msgstr ""
 
-#. NOTE: Please use the first letter of the "hours" in your language
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:50
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:52
 msgid "h"
 msgstr ""
 
-#. NOTE: Please use the first letter of the "minutes" in your language
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:53
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:54
 msgid "m"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:56
+msgid "s"
+msgstr ""
+
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action time"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action times"
+msgstr ""
+
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:68
+#, python-brace-format
+msgid "The duration is too small. It must be at least {minimum}."
+msgstr ""
+
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:71
+#, python-brace-format
+msgid "The duration is too large. It must be at most {maximum}."
 msgstr ""
 
 #: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17

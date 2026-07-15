@@ -57,7 +57,6 @@ class BaseRestrictionHandler(SophieMessageHandler):
     check_admin: ClassVar[bool] = True
     check_federation_ban: ClassVar[bool] = False
     gen_ai_reason: ClassVar[bool] = True
-    use_common_try: ClassVar[bool] = False
     silent: ClassVar[bool] = False
     fed_ban_notice_current: ClassVar[str | LazyProxy] = l_(
         "The user is already banned in the current federation: {fed_name} ({fed_id})."
@@ -92,13 +91,13 @@ class BaseRestrictionHandler(SophieMessageHandler):
         user = get_union_user(get_arg_or_reply_user(self.event, self.data))
 
         if user.chat_id == CONFIG.bot_id:
-            return await self.event.reply(str(self.bot_action_text))
+            return await reply_or_answer(self.event, self.bot_action_text)
 
         if user.chat_id == self.event.from_user.id:
-            return await self.event.reply(str(self.self_action_text))
+            return await reply_or_answer(self.event, self.self_action_text)
 
         if self.check_admin and await is_user_admin(connection.tid, user.chat_id):
-            return await self.event.reply(str(self.admin_action_text))
+            return await reply_or_answer(self.event, self.admin_action_text)
 
         federation_ban_info: FederationBanInfo | None = None
         if self.check_federation_ban:
@@ -107,7 +106,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
         until_date = self.data.get("time") if self.with_duration else None
         restriction_action = self.get_restriction_action()
         if not await restriction_action(connection.tid, user.chat_id, until_date):
-            return await self.event.reply(str(self.failed_action_text))
+            return await reply_or_answer(self.event, self.failed_action_text)
 
         track_moderation_action(
             _LOG_EVENT_TO_ACTION.get(self.event_type, "unknown"),
@@ -148,10 +147,9 @@ class BaseRestrictionHandler(SophieMessageHandler):
             title=str(self.result_title),
         )
 
-        if self.use_common_try:
-            reply_message = await reply_or_answer(self.event, doc)
-        else:
-            reply_message = await self.event.reply(str(doc))
+        # The restriction has already been applied by this point, so a deleted reply target must not
+        # take the handler down: fall back to answering the chat instead.
+        reply_message = await reply_or_answer(self.event, doc)
 
         if self.silent and reply_message:
             schedule_message_deletion(
