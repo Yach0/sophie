@@ -5,6 +5,9 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
+from bson import DBRef, ObjectId
+
+from sophie_bot.db.models.disabling import DisablingModel
 
 
 def _legacy_notes_migration() -> ModuleType:
@@ -363,6 +366,34 @@ async def test_relink_legacy_note_users_matches_int64_ids() -> None:
     assert (await notes.find_one({"_id": resolvable}))["created_user"] == DBRef("chats", known_user_oid)
     assert "created_user" not in await notes.find_one({"_id": unknown})
     assert await notes.count_documents(migration.legacy_id_query("created_user")) == 0
+
+
+def _rename_disabled_keys_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260715_225616_rename_legacy_disabled_cmd_keys")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_rename_legacy_disabled_cmd_keys_round_trips() -> None:
+    """Legacy rows hold a first-command key the middleware never enforces; canonical names replace it."""
+    migration = _rename_disabled_keys_migration()
+    disabled = DisablingModel.get_pymongo_collection()
+
+    legacy_id = (
+        await disabled.insert_one(
+            {"chat": DBRef("chats", ObjectId()), "cmds": ["aitranslate", "rules", "enableantiflood"]}
+        )
+    ).inserted_id
+    untouched_id = (await disabled.insert_one({"chat": DBRef("chats", ObjectId()), "cmds": ["rules"]})).inserted_id
+
+    assert await migration.rename_disabled_cmd_keys(None, migration.LEGACY_KEYS_TO_CANONICAL) == 1
+
+    assert (await disabled.find_one({"_id": legacy_id}))["cmds"] == ["translate", "rules", "antiflood"]
+    assert (await disabled.find_one({"_id": untouched_id}))["cmds"] == ["rules"]
+
+    await migration.rename_disabled_cmd_keys(None, migration.CANONICAL_TO_LEGACY_KEYS)
+
+    assert (await disabled.find_one({"_id": legacy_id}))["cmds"] == ["aitranslate", "rules", "enableantiflood"]
+    assert (await disabled.find_one({"_id": untouched_id}))["cmds"] == ["rules"]
 
 
 if __name__ == "__main__":
