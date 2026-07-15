@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Final, TypedDict
+from typing import Final, TypedDict
 
 from aiogram.types import (
     CallbackQuery,
@@ -76,17 +76,13 @@ def get_message_kind(message: Message) -> str:
     return "other"
 
 
-def extract_update_info(event: TelegramObject, data: dict[str, Any]) -> UpdateInfo:
+def extract_update_info(event: TelegramObject) -> UpdateInfo:
     """Extract update information for labeling."""
 
     update_type = "unknown"
     chat_type = "unknown"
-    transport = "polling"  # Default, can be overridden
+    transport = "webhook" if CONFIG.webhooks_enable else "polling"
     message_kind: str | None = None
-
-    # Determine transport method
-    if hasattr(data, "webhook_info") or data.get("webhook_info"):
-        transport = "webhook"
 
     # Extract update type and chat type
     if isinstance(event, Update):
