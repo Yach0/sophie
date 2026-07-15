@@ -31,23 +31,22 @@ class DelMsgCmdHandler(SophieMessageHandler):
         if not self.event.from_user:
             return
 
-        if not self.event.reply_to_message:
+        reply_to_message = self.event.reply_to_message
+        if not reply_to_message:
             return await self.event.reply(_("Reply to a message to delete it."))
 
-        if self.event.date <= (datetime.now(tz=UTC) - timedelta(days=2)):
+        if reply_to_message.date <= (datetime.now(tz=UTC) - timedelta(days=2)):
             return await self.event.reply(
                 _(
                     "Couldn't delete the message older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
                 )
             )
 
-        await common_try(
-            bot.delete_messages(self.event.chat.id, [self.event.message_id, self.event.reply_to_message.message_id])
-        )
+        await common_try(bot.delete_messages(self.event.chat.id, [self.event.message_id, reply_to_message.message_id]))
 
         await log_event(
             self.event.chat.id,
             self.event.from_user.id,
             LogEvent.MESSAGE_DELETED,
-            {"message_id": self.event.reply_to_message.message_id},
+            {"message_id": reply_to_message.message_id},
         )
