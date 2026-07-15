@@ -149,6 +149,19 @@ class Config(BaseSettings):
     def security_log_file(self) -> str:
         return f"data/security.{self.instance_name}.{self.bot_id}.log.txt"
 
+    # Production deploys set ENVIRONMENT to "production" (rest) or "production-<flavour>" (beta, stable,
+    # scheduler). Matching the prefix rather than the exact string keeps a future "production-<something>"
+    # guarded by default instead of silently unguarded. See deploy/templates/*.env.j2.
+    @property
+    def is_production(self) -> bool:
+        return self.environment.startswith("production")
+
+    # The REST API is the only thing that reads api_jwt_secret / api_operator_token / api_cors_origins,
+    # and it only runs in "rest" mode (see sophie_bot/__main__.py).
+    @property
+    def serves_rest_api(self) -> bool:
+        return self.mode == "rest"
+
     # Full runtime log file. Captures every log record so AI agents can trace
     # what happened during development. Truncated on every (re)start, including
     # dev hot-reloads, so it always reflects only the current run.
@@ -175,9 +188,12 @@ class Config(BaseSettings):
 
     # Runs as a model validator rather than per-field validators: `environment` is declared after the
     # fields it guards, and a field_validator's ValidationInfo.data only holds fields validated before it.
+    # Scoped to REST deploys because only they read — and provision — these settings; the bot, scheduler
+    # and stable env files set no API_* vars, so enforcing there would fail their boot on defaults they
+    # never use.
     @model_validator(mode="after")
     def validate_production_safety(self) -> "Config":
-        if self.environment != "production":
+        if not (self.is_production and self.serves_rest_api):
             return self
 
         if self.api_jwt_secret == "change_me_in_production":

@@ -15,10 +15,27 @@ from pydantic import ValidationError
 from sophie_bot.config import Config
 
 PRODUCTION_SAFE: dict[str, Any] = {
+    "mode": "rest",
     "environment": "production",
     "api_jwt_secret": "a-real-generated-secret",
     "api_operator_token": "a-real-operator-token",
     "api_cors_origins": ["https://sophie.example"],
+}
+
+# The exact strings deploy/templates/*.env.j2 render, per service and role. A template change that invents
+# a new environment or moves a service to MODE=rest should break these.
+PRODUCTION_DEPLOYS: dict[str, dict[str, str]] = {
+    "rest": {"mode": "rest", "environment": "production"},
+    "beta": {"mode": "bot", "environment": "production-beta"},
+    "stable": {"mode": "bot", "environment": "production-stable"},
+    "scheduler": {"mode": "scheduler", "environment": "production-beta"},
+}
+
+STAGING_DEPLOYS: dict[str, dict[str, str]] = {
+    "rest": {"mode": "rest", "environment": "staging"},
+    "beta": {"mode": "bot", "environment": "staging-beta"},
+    "stable": {"mode": "bot", "environment": "staging-stable"},
+    "scheduler": {"mode": "scheduler", "environment": "staging-beta"},
 }
 
 
@@ -50,9 +67,9 @@ def test_production_rejects_default_wildcard_cors_origins() -> None:
 
 
 def test_production_rejects_every_default_at_once() -> None:
-    """The exact reproduction of the original bug: `Config(environment="production")` used to construct."""
+    """The exact reproduction of the original bug: this used to construct successfully."""
     with pytest.raises(ValidationError):
-        build_config(environment="production")
+        build_config(mode="rest", environment="production")
 
 
 def test_production_rejects_explicit_default_jwt_secret() -> None:
@@ -78,14 +95,53 @@ def test_properly_configured_production_config_is_accepted() -> None:
     assert config.api_cors_origins == ["https://sophie.example"]
 
 
-@pytest.mark.parametrize("environment", ["development", "staging", "production-beta", "production-stable"])
+@pytest.mark.parametrize("environment", ["production", "production-beta", "production-stable", "production-foo"])
+def test_every_production_environment_is_guarded_in_rest_mode(environment: str) -> None:
+    """Any production-* flavour serving the API is guarded, not just the exact string "production"."""
+    with pytest.raises(ValidationError, match="api_jwt_secret must be changed in production"):
+        build_config(**PRODUCTION_SAFE | {"environment": environment, "api_jwt_secret": "change_me_in_production"})
+
+
+@pytest.mark.parametrize("environment", ["development", "staging", "staging-beta", "staging-stable"])
 def test_non_production_environments_keep_insecure_defaults(environment: str) -> None:
-    """Only `environment == "production"` is guarded; every other deployment keeps working as before."""
-    config = build_config(environment=environment)
+    config = build_config(mode="rest", environment=environment)
 
     assert config.api_jwt_secret == "change_me_in_production"
-    assert config.api_operator_token == "test"
-    assert config.api_cors_origins == ["*"]
+
+
+@pytest.mark.parametrize("service", sorted(PRODUCTION_DEPLOYS))
+def test_real_production_deploy_templates_boot(service: str) -> None:
+    """beta/stable/scheduler provision no API_* vars, so the guard must not fail their boot.
+
+    rest.env.j2 does provision all three, so it is checked with the values that template supplies.
+    """
+    overrides: dict[str, Any] = dict(PRODUCTION_DEPLOYS[service])
+    if service == "rest":
+        overrides |= {
+            "api_jwt_secret": "a-real-generated-secret",
+            "api_operator_token": "a-real-operator-token",
+            "api_cors_origins": ["https://sophie.example"],
+        }
+
+    config = build_config(**overrides)
+
+    assert config.is_production is True
+
+
+@pytest.mark.parametrize("service", sorted(STAGING_DEPLOYS))
+def test_real_staging_deploy_templates_are_not_production(service: str) -> None:
+    config = build_config(**STAGING_DEPLOYS[service])
+
+    assert config.is_production is False
+
+
+def test_only_rest_mode_is_guarded_against_insecure_api_defaults() -> None:
+    """A production bot/scheduler never reads these settings and never sets them; it must still boot."""
+    for mode in ("bot", "scheduler", "nostart"):
+        config = build_config(mode=mode, environment="production")
+
+        assert config.api_jwt_secret == "change_me_in_production"
+        assert config.serves_rest_api is False
 
 
 def test_default_environment_is_not_production() -> None:
