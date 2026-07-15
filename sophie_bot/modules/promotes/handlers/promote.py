@@ -20,7 +20,7 @@ from sophie_bot.modules.utils_.admin import get_admins_rights
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
-from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN
+from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN, USER_NOT_ADMIN
 from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
@@ -37,6 +37,20 @@ PROMOTE_PERMISSIONS = (
     "can_pin_messages",
     "can_delete_stories",
 )
+
+
+def tolerated_title_errors(granted_permissions: dict[str, bool]) -> tuple[str, ...]:
+    """Errors from set_chat_administrator_custom_title that must not fail the command.
+
+    USER_NOT_ADMIN means the promotion did not take effect. That is a benign race only when rights
+    were actually granted -- Telegram has not committed them yet, so only the title is lost. When no
+    rights were granted the promotion is a no-op and the failure is real, so it must surface rather
+    than let the handler report a successful promotion.
+    """
+    tolerated = (RIGHT_FORBIDDEN, NOT_ENOUGH_RIGHTS)
+    if any(granted_permissions.values()):
+        return (*tolerated, USER_NOT_ADMIN)
+    return tolerated
 
 
 @flags.help(description=l_("Promotes the user to admins."))
@@ -126,7 +140,7 @@ class PromoteUserHandler(SophieMessageHandler):
                     chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
                 )
             except TelegramBadRequest as err:
-                if RIGHT_FORBIDDEN in err.message or NOT_ENOUGH_RIGHTS in err.message:
+                if any(known in err.message for known in tolerated_title_errors(granted_permissions)):
                     log.debug("PromoteUser: Can't set admin title, ignoring", error=str(err))
                 else:
                     raise

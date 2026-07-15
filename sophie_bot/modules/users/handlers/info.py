@@ -9,6 +9,7 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.utils import flags
 from sophie_bot.utils.federation_ban_check import get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -34,7 +35,7 @@ class UserInfoHandler(SophieMessageHandler):
                 target_user = await ChatModel.upsert_user(user)
 
         if not target_user:
-            await self.event.reply(_("Could not identify user."))
+            await reply_or_answer(self.event, _("Could not identify user."))
             return
 
         chat_tid = self.connection.tid
@@ -87,4 +88,4 @@ class UserInfoHandler(SophieMessageHandler):
 
         doc += KeyValue(_("Shared Chats"), shared_chats_count)
 
-        await self.event.reply(str(doc))
+        await reply_or_answer(self.event, doc)

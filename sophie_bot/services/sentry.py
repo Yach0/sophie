@@ -30,12 +30,15 @@ from sentry_sdk.integrations.redis import RedisIntegration
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modes import SOPHIE_MODE
-from sophie_bot.modules.error.utils.ignored import IGNORED_EXCEPTIONS
+from sophie_bot.modules.error.utils.ignored import SENTRY_IGNORED_EXCEPTIONS
 from sophie_bot.utils.logger import log
-from sophie_bot.versions import SOPHIE_VERSION
+from sophie_bot.versions import SOPHIE_COMMIT, SOPHIE_VERSION
 
 
 _BOT_TOKEN_RE = re.compile(r"(/bot)\d+:[A-Za-z0-9_-]+(/)")
+
+# Placeholders written by versions.py (local runs) and build/runtime/Dockerfile (builds without a commit arg).
+_UNKNOWN_COMMITS = frozenset({"No commit", "unknown"})
 
 
 def _scrub_bot_token(url: str) -> str:
@@ -56,6 +59,17 @@ def _before_send_transaction(event: Event, hint: dict[str, Any]) -> Event | None
     return event
 
 
+def build_release() -> str:
+    """Build a per-build Sentry release identifier.
+
+    The version alone is not unique per build: it only changes on a version bump, so every commit
+    in between reports as the same release and Sentry cannot tell builds apart.
+    """
+    if SOPHIE_COMMIT in _UNKNOWN_COMMITS:
+        return SOPHIE_VERSION
+    return f"{SOPHIE_VERSION}+{SOPHIE_COMMIT}"
+
+
 def init_sentry() -> None:
     log.info("Starting sentry.io integraion...")
 
@@ -73,8 +87,8 @@ def init_sentry() -> None:
         str(CONFIG.sentry_url),
         integrations=integrations,
         environment=f"{CONFIG.environment}_{SOPHIE_MODE}",
-        release=SOPHIE_VERSION,
-        ignore_errors=IGNORED_EXCEPTIONS,
+        release=build_release(),
+        ignore_errors=SENTRY_IGNORED_EXCEPTIONS,
         default_integrations=False,
         enable_logs=CONFIG.sentry_enable_logs,
         traces_sample_rate=CONFIG.sentry_traces_sample_rate,

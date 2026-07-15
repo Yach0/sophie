@@ -159,9 +159,10 @@ class ServiceRegistry:
         from aiogram.client.telegram import PRODUCTION, TelegramAPIServer
 
         from sophie_bot.utils.logger import log
+        from sophie_bot.utils.update_sanitizer import sanitizing_json_loads
 
         bot_api = TelegramAPIServer.from_base(str(CONFIG.botapi_server)) if CONFIG.botapi_server else PRODUCTION
-        session = AiohttpSession(api=bot_api)
+        session = AiohttpSession(api=bot_api, json_loads=sanitizing_json_loads)
         log.info(f"Using BotAPI server: {bot_api}")
 
         return Bot(

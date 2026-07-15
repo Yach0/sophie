@@ -319,5 +319,51 @@ def test_convert_filters_legacy_skips_modern_filters() -> None:
     )
 
 
+def _relink_int64_note_users_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260715_151842_relink_legacy_int64_note_users")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_relink_legacy_note_users_matches_int64_ids() -> None:
+    """The 20260214 migration used `$type: "int"`, which never matches BSON `long`.
+
+    Telegram IDs above 2^31-1 (most modern accounts) are stored as `long`, so those rows were
+    silently skipped and still break note reads (SOPHIE-285). Drive the real query against the
+    database so a regression to `$type: "int"` fails this test.
+    """
+    from bson import DBRef, ObjectId
+
+    from sophie_bot.db.models.chat import ChatModel
+    from sophie_bot.db.models.notes import NoteModel
+
+    migration = _relink_int64_note_users_migration()
+    notes = NoteModel.get_pymongo_collection()
+    chats = ChatModel.get_pymongo_collection()
+
+    # 5126697778 is the real SOPHIE-285 value: above 2^31-1, so stored as a BSON long.
+    known_user_oid = ObjectId()
+    await chats.insert_one({"_id": known_user_oid, "tid": 5126697778, "type": "private"})
+
+    chat_ref = DBRef("chats", ObjectId())
+    resolvable = (
+        await notes.insert_one({"chat": chat_ref, "chat_id": -1, "names": ["a"], "created_user": 5126697778})
+    ).inserted_id
+    unknown = (
+        await notes.insert_one({"chat": chat_ref, "chat_id": -1, "names": ["b"], "created_user": 9999999999})
+    ).inserted_id
+
+    # The Int64 rows must be selected at all -- this is the whole bug. `$type: "int"` matches none.
+    assert await notes.count_documents({"created_user": {"$type": "int"}}) == 0
+    assert await notes.count_documents(migration.legacy_id_query("created_user")) == 2
+
+    relinked, cleared = await migration.relink_legacy_note_users(notes, chats)
+
+    assert (relinked, cleared) == (1, 1)
+    # Attribution preserved where the user is known, dropped (never misattributed) where it is not.
+    assert (await notes.find_one({"_id": resolvable}))["created_user"] == DBRef("chats", known_user_oid)
+    assert "created_user" not in await notes.find_one({"_id": unknown})
+    assert await notes.count_documents(migration.legacy_id_query("created_user")) == 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -80,6 +80,11 @@ class Config(BaseSettings):
     api_jwt_expire_minutes: int = 720  # 12 hours
     api_cors_origins: List[str] = ["*"]
 
+    # Kill switch for the MessageOrigin discriminator workaround (see utils/update_sanitizer.py).
+    # Lives here rather than in feature_flags because it runs inside the synchronous JSON hook,
+    # where the async Redis-backed flag API cannot be awaited.
+    updates_sanitize_message_origin: bool = True
+
     commands_prefix: str = "/!"
     commands_ignore_case: bool = True
     commands_ignore_mention: bool = False
