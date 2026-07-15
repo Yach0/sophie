@@ -13,6 +13,7 @@ from stfu_tg import Doc, KeyValue, Title
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
+from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -34,8 +35,8 @@ class ProcessFederationExports:
         for task in tasks:
             try:
                 await self._process_task(task)
-            except Exception as e:
-                log.error("Error processing federation export task", task_id=str(task.id), error=str(e))
+            except Exception as err:  # noqa: BLE001 - keep one bad task from blocking the rest
+                log.error("Error processing federation export task", task_id=str(task.id), exc_info=err)
 
     async def _process_task(self, task: FederationTask) -> None:
         """Process a single export task."""
@@ -59,9 +60,10 @@ class ProcessFederationExports:
                 task.file_id = message.document.file_id
             await self._update_task_status(task, TaskStatus.COMPLETED)
 
-        except Exception as e:
-            log.error("Failed to complete export", task_id=str(task.id), error=str(e))
-            await self._update_task_status(task, TaskStatus.FAILED, str(e))
+        except Exception as err:
+            log.error("Failed to complete export", task_id=str(task.id), exc_info=err)
+            await self._update_task_status(task, TaskStatus.FAILED, str(err))
+            await notify_task_failed(task, str(err))
             raise
 
     async def _generate_banlist_csv(self, fed_id: str) -> tuple[bytes, int]:

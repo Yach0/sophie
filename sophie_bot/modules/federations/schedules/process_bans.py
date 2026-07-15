@@ -12,12 +12,13 @@ from sophie_bot.modules.federations.utils.ban_docs import (
     build_ban_log_doc,
     build_ban_reply_doc,
     build_ban_superseded_doc,
-    build_task_failed_doc,
     build_unban_log_text,
     build_unban_reply_doc,
 )
+from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
@@ -39,8 +40,8 @@ class ProcessFederationBans:
         for task in tasks:
             try:
                 await self._process_task(task)
-            except Exception as e:  # noqa: BLE001 - keep one bad task from blocking the rest
-                log.error("Error processing federation ban task", task_id=str(task.id), error=str(e))
+            except Exception as err:  # noqa: BLE001 - keep one bad task from blocking the rest
+                log.error("Error processing federation ban task", task_id=str(task.id), exc_info=err)
 
     async def _process_task(self, task: FederationTask) -> None:
         await self._update_status(task, TaskStatus.PROCESSING)
@@ -56,18 +57,19 @@ class ProcessFederationBans:
                 await self._process_unban(task, federation)
 
             await self._update_status(task, TaskStatus.COMPLETED)
-        except Exception as e:
-            await self._update_status(task, TaskStatus.FAILED, error_message=str(e))
-            # Surface the failure to the user instead of leaving the reply on "Propagating…".
-            await self._edit_reply(task, build_task_failed_doc(str(e)).to_html())
+        except Exception as err:
+            # Mark FAILED and surface it instead of leaving the reply on "Propagating…".
+            # FAILED tasks are kept indefinitely so the cause can be found and the task re-done.
+            await self._update_status(task, TaskStatus.FAILED, error_message=str(err))
+            await notify_task_failed(task, str(err))
             raise
 
     async def _process_ban(self, task: FederationTask, federation: Federation) -> None:
         if task.target_user_id is None:
             raise ValueError("Ban task is missing the target user ID")
 
-        by_user = await task.user.fetch()
-        banner_name = by_user.first_name if by_user else ""
+        by_user = await self._require_user(task)
+        banner_name = by_user.first_name_or_title or _("Unknown")
 
         ban = await FederationBan.get(task.ban_id) if task.ban_id else None
         if not ban:
@@ -87,7 +89,7 @@ class ProcessFederationBans:
         lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
             federation,
             task.target_user_id,
-            by_user.iid if by_user else ban.by.ref.id,
+            by_user.iid,
             task.reason,
             task.original_message_text,
         )
@@ -96,31 +98,30 @@ class ProcessFederationBans:
         task.banned_count = banned_count
         task.lazy_ban_count = lazy_ban_count
 
-        user = await ChatModel.get_by_tid(task.target_user_id)
-        if user and by_user:
-            reply_doc = build_ban_reply_doc(
-                federation,
-                user,
-                by_user.tid,
-                banner_name,
-                task.reason,
-                task.silent,
-                banned_count=banned_count,
-                lazy_ban_count=lazy_ban_count,
-            )
-            await self._edit_reply(task, reply_doc.to_html())
+        user = await self._resolve_target(task.target_user_id)
+        reply_doc = build_ban_reply_doc(
+            federation,
+            user,
+            by_user.tid,
+            banner_name,
+            task.reason,
+            task.silent,
+            banned_count=banned_count,
+            lazy_ban_count=lazy_ban_count,
+        )
+        await self._edit_reply(task, reply_doc.to_html())
 
-            total_chats = len(federation.chats) if federation.chats else 0
-            log_doc = build_ban_log_doc(
-                federation,
-                user,
-                banner_name,
-                banned_count,
-                total_chats,
-                task.reason,
-                task.original_message_text,
-            )
-            await FederationManageService.post_federation_log(federation, log_doc.to_html(), bot)
+        total_chats = len(federation.chats) if federation.chats else 0
+        log_doc = build_ban_log_doc(
+            federation,
+            user,
+            banner_name,
+            banned_count,
+            total_chats,
+            task.reason,
+            task.original_message_text,
+        )
+        await FederationManageService.post_federation_log(federation, log_doc.to_html(), bot)
 
     async def _process_unban(self, task: FederationTask, federation: Federation) -> None:
         if task.target_user_id is None:
@@ -133,20 +134,46 @@ class ProcessFederationBans:
         )
         task.unbanned_count = unbanned_count
 
-        by_user = await task.user.fetch()
-        user = await ChatModel.get_by_tid(task.target_user_id)
-        if user and by_user:
-            reply_doc = build_unban_reply_doc(
-                federation,
-                user,
-                by_user.tid,
-                by_user.first_name,
-                unbanned_count=unbanned_count,
-            )
-            await self._edit_reply(task, reply_doc.to_html())
+        by_user = await self._require_user(task)
+        unbanner_name = by_user.first_name_or_title or _("Unknown")
 
-            log_text = build_unban_log_text(user, by_user.tid, by_user.first_name)
-            await FederationManageService.post_federation_log(federation, log_text, bot)
+        user = await self._resolve_target(task.target_user_id)
+        reply_doc = build_unban_reply_doc(
+            federation,
+            user,
+            by_user.tid,
+            unbanner_name,
+            unbanned_count=unbanned_count,
+        )
+        await self._edit_reply(task, reply_doc.to_html())
+
+        log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
+        await FederationManageService.post_federation_log(federation, log_text, bot)
+
+    @staticmethod
+    async def _require_user(task: FederationTask) -> ChatModel:
+        """Resolve the user who issued the task, raising if that record is gone.
+
+        Beanie hands back the ``Link`` itself rather than raising when the referenced
+        document no longer exists, and a Link is truthy - so a plain falsy check would let
+        it through and fail later on attribute access. The handler refuses to enqueue
+        without a saved banner, so an unresolvable one is genuinely exceptional: raising
+        routes it to the FAILED path, which still reports a terminal state to the user.
+        """
+        by_user = await task.user.fetch()
+        if not isinstance(by_user, ChatModel):
+            raise ValueError("The user who issued the task could not be resolved")
+        return by_user
+
+    @staticmethod
+    async def _resolve_target(target_user_id: int) -> ChatModel:
+        """Resolve the (un)banned user, falling back to an ID-only stand-in.
+
+        A target Sophie has never seen has no ChatModel - e.g. /fban by raw ID. That must
+        not stop the reply from reaching a result, so fall back rather than return None:
+        gating the edit on this is what left replies stuck on "Propagating…" forever.
+        """
+        return await ChatModel.get_by_tid(target_user_id) or ChatModel.user_from_id(target_user_id)
 
     @staticmethod
     async def _edit_reply(task: FederationTask, text: str) -> None:

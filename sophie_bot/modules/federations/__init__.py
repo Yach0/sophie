@@ -47,7 +47,9 @@ async def post_setup(_modules: dict[str, ModuleType]) -> None:
         scheduler.add_job(ProcessFederationBans().handle, "interval", seconds=10, jobstore="ram")
         scheduler.add_job(ProcessFederationImports().handle, "interval", seconds=30, jobstore="ram")
         scheduler.add_job(ProcessFederationExports().handle, "interval", seconds=30, jobstore="ram")
-        scheduler.add_job(CleanupOldTasks().handle, "interval", hours=6, jobstore="ram")
+        # Every 5 minutes rather than hourly: this job also reaps orphaned tasks, and a user
+        # staring at a stuck "Propagating…" reply shouldn't wait hours to be told it failed.
+        scheduler.add_job(CleanupOldTasks().handle, "interval", minutes=5, jobstore="ram")
 
 
 module_manifest = ModuleManifest(

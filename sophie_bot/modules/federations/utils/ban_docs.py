@@ -120,23 +120,6 @@ def build_unban_reply_doc(
     return doc
 
 
-def build_task_failed_doc(error_message: str | None) -> Doc:
-    """Format the reply shown when propagating a (un)ban across the federation fails.
-
-    The action was already applied to the DB record and the current chat synchronously,
-    so this reports a partial failure of the federation-wide propagation rather than a
-    total failure — the error is surfaced instead of being swallowed.
-    """
-    doc = Doc(
-        Title(_("⚠️ Federation Propagation Failed")),
-        _("The action was applied in this chat, but propagating it across the federation didn't complete."),
-    )
-    if error_message:
-        doc += KeyValue(_("Error"), error_message)
-    doc += _("Please run the command again to retry.")
-    return doc
-
-
 def build_ban_superseded_doc() -> Doc:
     """Format the reply shown when the ban record is gone before propagation ran.
 

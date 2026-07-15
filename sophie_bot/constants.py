@@ -103,7 +103,12 @@ MAX_IMPORT_FILE_SIZE_CSV: Final[int] = 50_000_000  # 50MB
 # Federation export limits
 MAX_BANLIST_EXPORT_SIZE: Final[int] = 500000  # Maximum bans to export
 MAX_FCHECK_INLINE_ITEMS: Final[int] = 50  # Maximum inline items before exporting /fcheck results
-FEDERATION_EXPORT_TTL_DAYS: Final[int] = 7  # Clean up old export tasks after 7 days
+FEDERATION_EXPORT_TTL_DAYS: Final[int] = 7  # Clean up COMPLETED tasks after 7 days. FAILED are kept indefinitely.
+
+# A task still PROCESSING after this long lost its worker (e.g. the scheduler container was
+# restarted mid-task) and will never finish on its own. Generous enough that a legitimately slow
+# import/export over a large federation is never mistaken for an orphan.
+FEDERATION_TASK_STALE_AFTER_MINUTES: Final[int] = 15
 
 # Welcomesecurity ban timeout (in hours)
 WELCOMESECURITY_BAN_TIMEOUT_HOURS: Final[int] = 48

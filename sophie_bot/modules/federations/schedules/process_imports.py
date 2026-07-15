@@ -16,6 +16,7 @@ from sophie_bot.metrics.federation import track_federation_import_completed
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
+from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -188,16 +189,16 @@ class ProcessFederationImports:
             try:
                 await self._process_task(task)
             except CSVValidationError as validation_error:
-                # Expected user-input error (wrong CSV format/headers). The task is already
-                # marked FAILED with the error message in _process_task, so the user gets
-                # feedback. Log at warning to avoid Sentry noise for malformed uploads.
+                # Expected user-input error (wrong CSV format/headers). _process_task already
+                # marked the task FAILED and notified the user, so only log here - at warning,
+                # to avoid Sentry noise for malformed uploads.
                 log.warning(
                     "Federation import task rejected: invalid CSV format",
                     task_id=str(task.id),
                     error=str(validation_error),
                 )
-            except Exception as e:
-                log.error("Error processing federation import task", task_id=str(task.id), error=str(e))
+            except Exception as err:  # noqa: BLE001 - keep one bad task from blocking the rest
+                log.error("Error processing federation import task", task_id=str(task.id), exc_info=err)
 
     async def _process_task(self, task: FederationTask) -> None:
         """Process a single import task."""
@@ -215,9 +216,10 @@ class ProcessFederationImports:
             track_federation_import_completed(items_imported=imported_count, items_failed=failed_count)
             await _send_import_result(task, federation)
 
-        except Exception as e:
-            error_message = str(e)
+        except Exception as err:
+            error_message = str(err)
             await self._update_task_status(task, TaskStatus.FAILED, error_message)
+            await notify_task_failed(task, error_message)
             raise
 
     @staticmethod
