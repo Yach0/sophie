@@ -9,6 +9,7 @@ from pydantic import (
     ValidationInfo,
     computed_field,
     field_validator,
+    model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -111,7 +112,10 @@ class Config(BaseSettings):
 
     default_locale: str = "en_US"
 
-    environment: str = "production"
+    # Deploy templates always set ENVIRONMENT explicitly (deploy/templates/*.env.j2), so this default is
+    # only ever used by local checkouts and CI. It must not be "production", or the production safety
+    # checks below would reject every unconfigured dev run.
+    environment: str = "development"
 
     proxy_enable: bool = False
     proxy_stable_instance_url: str = "http://host.container.internal:8071"
@@ -169,26 +173,23 @@ class Config(BaseSettings):
             v.append(owner_id)
         return v
 
-    @field_validator("api_jwt_secret")
-    @classmethod
-    def validate_jwt_secret(cls, v: str, info: ValidationInfo) -> str:
-        if info.data.get("environment") == "production" and v == "change_me_in_production":
+    # Runs as a model validator rather than per-field validators: `environment` is declared after the
+    # fields it guards, and a field_validator's ValidationInfo.data only holds fields validated before it.
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> "Config":
+        if self.environment != "production":
+            return self
+
+        if self.api_jwt_secret == "change_me_in_production":
             raise ValueError("api_jwt_secret must be changed in production")
-        return v
 
-    @field_validator("api_operator_token")
-    @classmethod
-    def validate_operator_token(cls, v: str | None, info: ValidationInfo) -> str | None:
-        if info.data.get("environment") == "production" and v == "test":
+        if self.api_operator_token == "test":
             raise ValueError("api_operator_token must be changed in production")
-        return v
 
-    @field_validator("api_cors_origins")
-    @classmethod
-    def validate_cors_origins(cls, v: List[str], info: ValidationInfo) -> List[str]:
-        if info.data.get("environment") == "production" and "*" in v:
+        if "*" in self.api_cors_origins:
             raise ValueError("api_cors_origins must not contain '*' in production")
-        return v
+
+        return self
 
     @field_validator("webhooks_allowed_networks")
     @classmethod
