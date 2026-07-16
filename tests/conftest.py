@@ -87,8 +87,15 @@ mistralai.client.sdk.close_clients = _safe_close_clients
 
 @pytest.fixture(scope="session", autouse=True)
 def i18n_context() -> Any:
-    """Provide i18n context for all tests."""
-    i18n = I18nNew(path="locales")
+    """Provide i18n context for all tests.
+
+    Built with the same domain and default locale as the production instance in
+    sophie_bot/services/i18n.py. Without `domain="sophie"` this falls back to aiogram's
+    default domain ("messages"), matches none of Sophie's catalogs, and silently yields an
+    i18n with zero available locales -- so any code under test that checks
+    `available_locales` sees an empty tuple and rejects every locale.
+    """
+    i18n = I18nNew(path="locales", domain="sophie", default_locale=CONFIG.default_locale)
     from ass_tg.i18n import gettext_ctx
 
     token = gettext_ctx.set(i18n)

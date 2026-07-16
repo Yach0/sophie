@@ -36,18 +36,18 @@ class CleanService(BaseModel):
     enabled: bool = False
 
 
-WELCOMEMUTE_DEFAULT_VALUE = "48h"
-WELCOMESECURITY_EXPIRE_DEFAULT_VALUE = "48h"
+WELCOMEMUTE_DEFAULT_TIME = timedelta(hours=48)
+WELCOMESECURITY_EXPIRE_DEFAULT_TIME = timedelta(hours=48)
 
 
 class WelcomeMute(BaseModel):
     enabled: bool = False
-    time: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = timedelta(hours=48)
+    time: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = WELCOMEMUTE_DEFAULT_TIME
 
 
 class WelcomeSecurity(BaseModel):
     enabled: bool = False
-    expire: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = timedelta(hours=48)
+    expire: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = WELCOMESECURITY_EXPIRE_DEFAULT_TIME
 
 
 class GreetingsModel(Document):

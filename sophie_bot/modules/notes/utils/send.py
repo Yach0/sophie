@@ -1,22 +1,9 @@
-from typing import Optional, Type
+from typing import Final, Optional, Type
 
 from aiogram.enums import ContentType
 from aiogram.methods import (
-    SendAnimation,
-    SendAudio,
-    SendContact,
-    SendDice,
-    SendDocument,
-    SendGame,
-    SendLocation,
     SendMediaGroup,
     SendMessage,
-    SendPhoto,
-    SendPoll,
-    SendSticker,
-    SendVenue,
-    SendVideo,
-    SendVoice,
     TelegramMethod,
 )
 from aiogram.types import (
@@ -37,36 +24,15 @@ from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
-from sophie_bot.modules.notes.utils.parse import (
-    PARSABLE_CONTENT_TYPES,
-    SUPPORTS_CAPTION,
-)
+from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
 from sophie_bot.modules.notes.utils._random_parser import parse_random_text
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
-SEND_METHOD: dict[ContentType, Type[TelegramMethod[Message]]] = {
-    ContentType.TEXT: SendMessage,
-    ContentType.AUDIO: SendAudio,
-    ContentType.ANIMATION: SendAnimation,
-    ContentType.DOCUMENT: SendDocument,
-    ContentType.GAME: SendGame,
-    ContentType.PHOTO: SendPhoto,
-    ContentType.STICKER: SendSticker,
-    ContentType.VIDEO: SendVideo,
-    ContentType.VIDEO_NOTE: SendVideo,
-    ContentType.VOICE: SendVoice,
-    ContentType.CONTACT: SendContact,
-    ContentType.VENUE: SendVenue,
-    ContentType.LOCATION: SendLocation,
-    ContentType.POLL: SendPoll,
-    ContentType.DICE: SendDice,
-}
-
-# Telegram caps media-group captions at 1024 characters.
-MEDIA_CAPTION_LIMIT = 1024
+# Kept below Telegram's 4096 so the rendered title and fillings cannot push the send over.
+TEXT_LENGTH_LIMIT: Final[int] = 4090
 
 
 def _build_input_media(note_file: NoteFile, caption: Optional[str]) -> MediaUnion:
@@ -98,7 +64,7 @@ async def _send_media_group(
     and/or overflowing text are delivered in a follow-up message under the album.
     """
     has_buttons = bool(inline_markup.inline_keyboard)
-    put_caption_on_album = bool(text) and len(text) <= MEDIA_CAPTION_LIMIT and not has_buttons
+    put_caption_on_album = bool(text) and len(text) <= MEDIA_CAPTION_LENGTH_LIMIT and not has_buttons
 
     media: list[MediaUnion] = [
         _build_input_media(note_file, text if index == 0 and put_caption_on_album else None)
@@ -153,6 +119,11 @@ async def send_saveable(
 ) -> Message | None:
     text = saveable.text or ""
 
+    # An album moves overflowing text into a follow-up message, so only a single caption-bearing
+    # media file subjects the note text to the caption limit.
+    is_album = len(saveable.files) > 1
+    single_file = None if is_album else (saveable.file or (saveable.files[0] if saveable.files else None))
+
     # Note - the order of those operations are actually more important than whatd you think
     # We want to extract the buttons as the very first, since laterly, the markdown convertor would convert them to the normal URLs, which we don't want!
     # And we want to process the fillings the last, as they produce formatting HTML formatting that would be escaped.
@@ -177,13 +148,18 @@ async def send_saveable(
     if text:
         text = parse_random_text(text)
 
-    if len(text) > 4090:
+    text_limit = (
+        MEDIA_CAPTION_LENGTH_LIMIT
+        if single_file and MEDIA_SPECS[single_file.type].supports_caption
+        else TEXT_LENGTH_LIMIT
+    )
+    if len(text) > text_limit:
         raise SophieException(_("The text is too long"))
 
     # Media group (album): more than one stored file → send via sendMediaGroup
     # (Telegram requires 2-10 items). A degenerate single-item album falls through
     # to the single-media path below.
-    if saveable.files and len(saveable.files) > 1:
+    if is_album:
         return await _send_media_group(
             send_to=send_to,
             files=saveable.files,
@@ -195,26 +171,20 @@ async def send_saveable(
 
     # TODO: Multi messages
 
-    single_file = saveable.file or (saveable.files[0] if saveable.files else None)
-    content_type = single_file.type if single_file else ContentType.TEXT
+    method: Type[TelegramMethod[Message]]
+    kwargs: dict[str, object] = {"chat_id": send_to, "reply_markup": inline_markup}
 
-    kwargs: dict[str, object] = {"chat_id": send_to}
-
-    if content_type == ContentType.TEXT:
+    if single_file:
+        media_spec = MEDIA_SPECS[single_file.type]
+        method = media_spec.method
+        kwargs[media_spec.file_field] = single_file.id
+        if media_spec.supports_caption:
+            kwargs["caption"] = text
+    else:
+        method = SendMessage
         kwargs["text"] = text
-        kwargs["reply_markup"] = inline_markup
         # TODO: Settings?
         kwargs["link_preview_options"] = LinkPreviewOptions(is_disabled=True)
-    else:
-        if not single_file:
-            raise ValueError(f"Unsupported content type: {content_type}")
-        # The media file id is keyed by the content-type name (e.g. photo=<id>).
-        if content_type in PARSABLE_CONTENT_TYPES:
-            kwargs[content_type] = single_file.id
-        # Caption-supporting media carry the note text as a caption plus the buttons.
-        if content_type in SUPPORTS_CAPTION:
-            kwargs["caption"] = text
-            kwargs["reply_markup"] = inline_markup
 
     if reply_to:
         kwargs["reply_parameters"] = ReplyParameters(message_id=reply_to)
@@ -222,7 +192,7 @@ async def send_saveable(
         kwargs["message_thread_id"] = message_thread_id
 
     def to_try(**cb_kwargs: object) -> COROUTINE_TYPE:
-        return SEND_METHOD[content_type](**cb_kwargs).emit(bot)
+        return method(**cb_kwargs).emit(bot)
 
     async def reply_not_found() -> Message | None:
         if "reply_parameters" in kwargs:

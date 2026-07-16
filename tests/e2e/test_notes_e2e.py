@@ -504,3 +504,47 @@ async def test_delnote_not_found(
         f"Response should indicate note not found, got: {response_text}"
     )
 
+# ---------------------------------------------------------------------------
+# test_save_note_stores_names_lowercased
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_save_note_stores_names_lowercased(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/save Rules` must store "rules".
+
+    Lowercase-on-write is the invariant the case-insensitive retrieval in `get_by_notenames` relies
+    on (see tests/test_notes_name_normalization.py), so it is pinned at the handler level too.
+    """
+    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
+
+    user_wrapper, group_chat, chat_model = await _setup_group_and_user(
+        test_client,
+        chat_id=-1002800000020,
+        user_id=928000020,
+        group_title="Notes Case Group",
+        first_name="AdminCase",
+        username="admin_case",
+    )
+
+    with (
+        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
+        patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
+    ):
+        requests = await test_client.send_command(
+            command="save",
+            from_user=user_wrapper.user,
+            chat=group_chat,
+            args="Rules Please follow the group rules!",
+        )
+
+    saved_note = await NoteModel.find_one(NoteModel.chat_tid == chat_model.tid)
+    assert saved_note is not None
+    assert saved_note.names == ("rules",), f"/save Rules should store 'rules', got: {saved_note.names}"
+
+    # The confirmation must advertise the name that actually works, not the casing the user typed.
+    response_text = requests[-1].text or ""
+    assert "#rules" in response_text, f"Confirmation should point at #rules, got: {response_text}"

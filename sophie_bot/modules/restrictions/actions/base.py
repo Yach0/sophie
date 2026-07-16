@@ -24,12 +24,10 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
 )
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.restrictions.utils import is_user_admin
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
-from sophie_bot.utils.logger import log
 
 ACTION_DATA = TypeVar("ACTION_DATA", bound=BaseModel)
 
@@ -75,6 +73,8 @@ def make_duration_setup_message(prompt_text: str) -> Any:
 
 
 class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_DATA]):
+    skip_for_admins = True
+
     action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
     auto_banned_text: ClassVar[str | LazyProxy]
@@ -123,7 +123,6 @@ class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_D
             return
 
         chat_id = message.chat.id
-        user_id = message.from_user.id
         locale: str = data["i18n"].current_locale
         reason: Optional[str] = None
 
@@ -131,10 +130,6 @@ class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_D
         if chat_db:
             message_text = message.text or message.caption or None
             reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
-
-        if await is_user_admin(chat_id, user_id):
-            log.debug("%s: user is admin, skipping...", type(self).__name__)
-            return
 
         duration = self.get_duration(filter_data)
 

@@ -69,13 +69,7 @@ async def extract_audio_from_video(video: Video | VideoNote) -> Optional[bytes]:
 
         input_container = _av_module.open(input_buffer, mode="r")
 
-        # Find audio stream
-        audio_stream = None
-        for stream in input_container.streams:
-            if stream.type == "audio":
-                audio_stream = stream
-                break
-
+        audio_stream = next((stream for stream in input_container.streams if stream.type == "audio"), None)
         if audio_stream is None:
             log.debug("No audio stream found in video")
             return None

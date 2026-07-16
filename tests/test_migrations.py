@@ -1,13 +1,16 @@
 """Test suite for database migrations."""
 
 import importlib
+from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 
 import pytest
 from bson import DBRef, ObjectId
 
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.disabling import DisablingModel
+from sophie_bot.db.models.notes import NoteModel
 
 
 def _legacy_notes_migration() -> ModuleType:
@@ -326,6 +329,43 @@ def _relink_int64_note_users_migration() -> ModuleType:
     return importlib.import_module("sophie_bot.db.migrations.20260715_151842_relink_legacy_int64_note_users")
 
 
+async def _seed_legacy_user_chat(tid: int) -> ObjectId:
+    """Insert a user chat the way production has it: through Beanie, so `tid` lands under `chat_id`.
+
+    Seeding via raw pymongo would write a `tid` key that production never has, which is exactly
+    what hid the alias bug this test now covers.
+
+    Returns `chat.id`, not `chat.iid`: on a locally built instance `iid` holds its own
+    `default_factory` ObjectId while Beanie writes `Document.id` to `_id`. The two only agree once
+    the document is read back from the database.
+    """
+    chat = ChatModel(
+        tid=tid,
+        type=ChatType.private,
+        first_name_or_title="Legacy",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(timezone.utc),
+    )
+    await chat.insert()
+
+    return chat.id
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_chat_model_persists_tid_under_chat_id_alias() -> None:
+    """`ChatModel.tid` is declared `alias="chat_id"`, and Beanie persists by alias.
+
+    Migrations must therefore resolve chats through Beanie (or the alias), never a raw
+    `{"tid": ...}` query -- that matches nothing and silently degrades to the not-found branch.
+    """
+    chat_iid = await _seed_legacy_user_chat(6001234567)
+    stored = await ChatModel.get_pymongo_collection().find_one({"_id": chat_iid})
+
+    assert stored["chat_id"] == 6001234567
+    assert "tid" not in stored
+
+
 @pytest.mark.usefixtures("db_init")
 async def test_relink_legacy_note_users_matches_int64_ids() -> None:
     """The 20260214 migration used `$type: "int"`, which never matches BSON `long`.
@@ -334,18 +374,11 @@ async def test_relink_legacy_note_users_matches_int64_ids() -> None:
     silently skipped and still break note reads (SOPHIE-285). Drive the real query against the
     database so a regression to `$type: "int"` fails this test.
     """
-    from bson import DBRef, ObjectId
-
-    from sophie_bot.db.models.chat import ChatModel
-    from sophie_bot.db.models.notes import NoteModel
-
     migration = _relink_int64_note_users_migration()
     notes = NoteModel.get_pymongo_collection()
-    chats = ChatModel.get_pymongo_collection()
 
     # 5126697778 is the real SOPHIE-285 value: above 2^31-1, so stored as a BSON long.
-    known_user_oid = ObjectId()
-    await chats.insert_one({"_id": known_user_oid, "tid": 5126697778, "type": "private"})
+    known_user_oid = await _seed_legacy_user_chat(5126697778)
 
     chat_ref = DBRef("chats", ObjectId())
     resolvable = (
@@ -359,7 +392,7 @@ async def test_relink_legacy_note_users_matches_int64_ids() -> None:
     assert await notes.count_documents({"created_user": {"$type": "int"}}) == 0
     assert await notes.count_documents(migration.legacy_id_query("created_user")) == 2
 
-    relinked, cleared = await migration.relink_legacy_note_users(notes, chats)
+    relinked, cleared = await migration.relink_legacy_note_users(notes)
 
     assert (relinked, cleared) == (1, 1)
     # Attribution preserved where the user is known, dropped (never misattributed) where it is not.
@@ -394,6 +427,25 @@ async def test_rename_legacy_disabled_cmd_keys_round_trips() -> None:
 
     assert (await disabled.find_one({"_id": legacy_id}))["cmds"] == ["aitranslate", "rules", "enableantiflood"]
     assert (await disabled.find_one({"_id": untouched_id}))["cmds"] == ["rules"]
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_relink_legacy_note_users_relinks_edited_user() -> None:
+    """`edited_user` is in _USER_FIELDS too, and regressed identically to `created_user`."""
+    migration = _relink_int64_note_users_migration()
+    notes = NoteModel.get_pymongo_collection()
+
+    known_user_oid = await _seed_legacy_user_chat(7126697778)
+
+    chat_ref = DBRef("chats", ObjectId())
+    edited = (
+        await notes.insert_one({"chat": chat_ref, "chat_id": -2, "names": ["c"], "edited_user": 7126697778})
+    ).inserted_id
+
+    relinked, cleared = await migration.relink_legacy_note_users(notes)
+
+    assert (relinked, cleared) == (1, 0)
+    assert (await notes.find_one({"_id": edited}))["edited_user"] == DBRef("chats", known_user_oid)
 
 
 if __name__ == "__main__":

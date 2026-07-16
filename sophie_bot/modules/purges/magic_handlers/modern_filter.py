@@ -8,11 +8,9 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
 )
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.utils.logger import log
 
 
 class DelMsgModern(ModernActionABC[None]):
@@ -23,6 +21,7 @@ class DelMsgModern(ModernActionABC[None]):
 
     default_data = None
     allow_warns = True
+    skip_for_admins = True
 
     @staticmethod
     def description(data: None) -> Element | str:
@@ -31,12 +30,8 @@ class DelMsgModern(ModernActionABC[None]):
     def settings(self, data: None) -> dict[str, ModernActionSetting]:
         return {}
 
-    async def handle(self, message: Message, data: dict, filter_data: None):
+    async def handle(self, message: Message, data: dict, filter_data: None) -> None:
         if not message.from_user:
-            return
-
-        if await is_user_admin(message.chat.id, message.from_user.id):
-            log.debug("DelMsgModern: user is admin, skipping!")
             return
 
         await common_try(message.delete())

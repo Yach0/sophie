@@ -6,16 +6,13 @@ from stfu_tg import Bold, Doc, Italic, KeyValue, Template, Title
 
 from sophie_bot.db.models import GreetingsModel, RulesModel
 from sophie_bot.db.models.greetings import (
-    WELCOMEMUTE_DEFAULT_VALUE,
-    WELCOMESECURITY_EXPIRE_DEFAULT_VALUE,
+    WELCOMEMUTE_DEFAULT_TIME,
+    WELCOMESECURITY_EXPIRE_DEFAULT_TIME,
 )
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.greetings.default_welcome import get_default_security_message
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
-    convert_timedelta_or_str,
-)
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -45,10 +42,8 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
                     Template(
                         l_("Enabled, expires in {time}"),
                         time=format_timedelta(
-                            convert_timedelta_or_str(
-                                (db_item.welcome_security.expire if db_item.welcome_security else None)
-                                or WELCOMESECURITY_EXPIRE_DEFAULT_VALUE
-                            ),
+                            (db_item.welcome_security.expire if db_item.welcome_security else None)
+                            or WELCOMESECURITY_EXPIRE_DEFAULT_TIME,
                             locale=self.current_locale,
                         ),
                     )
@@ -63,10 +58,7 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
                     Template(
                         l_("Enabled, on {time}"),
                         time=format_timedelta(
-                            convert_timedelta_or_str(
-                                (db_item.welcome_mute.time if db_item.welcome_mute else None)
-                                or WELCOMEMUTE_DEFAULT_VALUE
-                            ),
+                            (db_item.welcome_mute.time if db_item.welcome_mute else None) or WELCOMEMUTE_DEFAULT_TIME,
                             locale=self.current_locale,
                         ),
                     )

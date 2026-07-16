@@ -49,7 +49,7 @@ async def set_connected_chat(user_tid: int, chat_tid: Optional[int]):
     if conn:
         conn.chat = chat
         conn.expires_at = expires_at
-        if chat.iid not in [h.to_ref() for h in conn.history]:
+        if chat.iid not in [history_chat.to_ref().id for history_chat in conn.history]:
             conn.history.append(chat)
         await conn.save()
     else:

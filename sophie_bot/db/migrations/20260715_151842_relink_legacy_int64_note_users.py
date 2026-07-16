@@ -53,20 +53,24 @@ def legacy_id_query(field: str) -> dict[str, Any]:
     return {"$or": [{field: {"$type": bson_type}} for bson_type in _LEGACY_ID_TYPES]}
 
 
-async def relink_legacy_note_users(notes: Any, chats: Any, session: Any = None) -> tuple[int, int]:
+async def relink_legacy_note_users(notes: Any, session: Any = None) -> tuple[int, int]:
     """Relink legacy integer note users, unsetting them when the user is unknown.
 
     Returns (relinked, cleared). Kept as a plain function so it can be driven directly by tests.
+
+    Notes are read through the raw collection because the legacy rows fail NoteModel validation,
+    but chats are resolved through Beanie: `ChatModel.tid` is stored under its `chat_id` alias, so
+    a raw `{"tid": ...}` query silently matches nothing and clears every note's attribution.
     """
     relinked = 0
     cleared = 0
 
     for field in _USER_FIELDS:
         async for note in notes.find(legacy_id_query(field), session=session):
-            chat = await chats.find_one({"tid": note[field]}, session=session)
+            chat = await ChatModel.find_one(ChatModel.tid == note[field], session=session)
 
             if chat:
-                update = {"$set": {field: DBRef("chats", chat["_id"])}}
+                update = {"$set": {field: DBRef("chats", chat.iid)}}
                 relinked += 1
             else:
                 update = {"$unset": {field: ""}}
@@ -85,11 +89,7 @@ class Forward:
 
     @free_fall_migration(document_models=[NoteModel, ChatModel])
     async def relink(self, session) -> None:
-        await relink_legacy_note_users(
-            NoteModel.get_pymongo_collection(),
-            ChatModel.get_pymongo_collection(),
-            session=session,
-        )
+        await relink_legacy_note_users(NoteModel.get_pymongo_collection(), session=session)
 
 
 class Backward:

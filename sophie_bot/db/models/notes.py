@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional, Sequence
+from typing import Annotated, Any, Iterable, Optional, Sequence
 
 from aiogram.enums import ContentType
 from beanie import Document, Indexed, PydanticObjectId
@@ -45,6 +45,11 @@ class Saveable(BaseModel):
     version: Optional[int] = 1
 
 
+def normalize_notenames(notenames: Iterable[str]) -> tuple[str, ...]:
+    """Note names are case-insensitive; they are stored and queried lowercased."""
+    return tuple(name.lower() for name in notenames)
+
+
 class NoteModel(Saveable, Document):
     # Old ID
     chat_tid: Annotated[int, Indexed()] = Field(..., alias="chat_id")
@@ -65,6 +70,11 @@ class NoteModel(Saveable, Document):
     created_user: Optional[Link[ChatModel]] = None
     edited_date: Optional[datetime] = None
     edited_user: Optional[Link[ChatModel]] = None
+
+    @field_validator("names", mode="after")
+    @classmethod
+    def _normalize_names(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return normalize_notenames(value)
 
     @field_validator("created_user", "edited_user", mode="before")
     @classmethod
@@ -88,7 +98,9 @@ class NoteModel(Saveable, Document):
 
     @staticmethod
     async def get_by_notenames(chat_iid: PydanticObjectId, notenames: Sequence[str]) -> Optional["NoteModel"]:
-        return await NoteModel.find_one(NoteModel.chat.id == chat_iid, In(NoteModel.names, notenames))
+        return await NoteModel.find_one(
+            NoteModel.chat.id == chat_iid, In(NoteModel.names, normalize_notenames(notenames))
+        )
 
     @staticmethod
     async def delete_all_notes(chat_iid: PydanticObjectId) -> DeleteResult | None:
