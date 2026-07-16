@@ -82,7 +82,7 @@ async def test_lock_muted_users_skips_enforcement_when_captcha_flag_disabled(
     handler = AsyncMock(return_value="ok")
     event = SimpleNamespace(
         from_user=SimpleNamespace(id=123),
-        chat=SimpleNamespace(type="private"),
+        chat=SimpleNamespace(type="supergroup"),
     )
 
     monkeypatch.setattr(

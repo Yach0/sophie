@@ -36,10 +36,10 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         callback_data: Optional[PMHelpModules] = self.data.get("callback_data", None)
 
         # Sort item by the module title
-        modules = {k: v for k, v in sorted(HELP_MODULES.items(), key=lambda item: str(item[1].name)) if k != "ai"}
-        # Put the featured module to the bottom
-        if CONFIG.help_featured_module in HELP_MODULES:
-            modules[CONFIG.help_featured_module] = HELP_MODULES[CONFIG.help_featured_module]
+        modules = dict(sorted(HELP_MODULES.items(), key=lambda item: str(item[1].name)))
+        # Put the featured module to the bottom; re-assigning an existing key would not move it
+        if (featured_module := modules.pop(CONFIG.help_featured_module, None)) is not None:
+            modules[CONFIG.help_featured_module] = featured_module
 
         buttons = InlineKeyboardBuilder()
 
@@ -87,7 +87,7 @@ class PMModuleHelp(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback_data: PMHelpModule = self.data["callback_data"]
         module_name = callback_data.module_name
-        module = HELP_MODULES[module_name]
+        module = HELP_MODULES.get(module_name)
 
         if not module:
             await self.event.answer(_("Module not found"))

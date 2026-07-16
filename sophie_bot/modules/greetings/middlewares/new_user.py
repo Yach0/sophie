@@ -1,10 +1,11 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InlineKeyboardButton, Message, TelegramObject
+from aiogram.types import InlineKeyboardButton, Message, TelegramObject, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Doc
 
@@ -87,13 +88,14 @@ class NewUserMiddleware(BaseMiddleware):
             InlineKeyboardButton(text=_("Documentation"), url=CONFIG.wiki_link),
             InlineKeyboardButton(text=_("Support Chat"), url=CONFIG.support_link),
         )
+        markup = buttons.as_markup()
 
         try:
-            return await message.reply(str(doc))
+            return await message.reply(str(doc), reply_markup=markup)
         except TelegramBadRequest as err:
             if REPLY_MESSAGE_INVALID in err.message:
                 log.debug("NewUserMiddleware: Reply message invalid on self_welcome, falling back to answer")
-                return await message.answer(str(doc))
+                return await message.answer(str(doc), reply_markup=markup)
             raise
 
     @staticmethod
@@ -110,6 +112,7 @@ class NewUserMiddleware(BaseMiddleware):
         db_item: GreetingsModel,
         chat_db: ChatModel,
         new_users: list[ChatModel],
+        new_member: User,
         cleanservice_enabled: bool,
         chat_rules: Optional[RulesModel],
     ) -> Optional[Message]:
@@ -127,6 +130,7 @@ class NewUserMiddleware(BaseMiddleware):
             ws_saveable,
             cleanservice_enabled,
             chat_rules,
+            user=new_member,
             additional_keyboard=security_keyboard.as_markup(),
         )
         # Save sent message to cleanup it later
@@ -147,7 +151,7 @@ class NewUserMiddleware(BaseMiddleware):
             if not event.from_user:
                 raise ValueError("NewUserMiddleware: 'event.from_user' is None!")
 
-            user_id = event.from_user.id
+            adder_id = event.from_user.id
             chat_id: int = event.chat.id
             chat_db: ChatModel = data["chat_db"]
             new_users: list[ChatModel] = data["new_users"]
@@ -157,8 +161,11 @@ class NewUserMiddleware(BaseMiddleware):
                 await self.self_welcome(event)
                 return await handler(event, data)
 
+            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
+
             # Check if any of the new users was from a join request
-            # Join request users should skip the welcome captcha flow
+            # Join request users already got their greeting from the captcha flow, but their
+            # service message still has to be cleaned up like any other join.
             is_from_join_request = False
             for user in new_users:
                 if await self.is_join_request(chat_db, user):
@@ -166,19 +173,21 @@ class NewUserMiddleware(BaseMiddleware):
                     break
 
             if is_from_join_request:
+                await self.cleanup(db_item, event, None)
                 return await handler(event, data)
 
             # Sanity check
             if tuple(user.id for user in event.new_chat_members) != tuple(user.tid for user in new_users):
                 raise ValueError("NewUserMiddleware: unexpected / incorrect 'new_users' data from SaveChatsMiddleware!")
 
-            captcha_users = [new_user for new_user in new_users if not new_user.is_bot]
+            human_users = [new_user for new_user in new_users if not new_user.is_bot]
 
-            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
+            # The greeting is about whoever joined, not about whoever produced the service message.
+            new_member = event.new_chat_members[0]
 
             cleanservice_enabled = bool(db_item.clean_service and db_item.clean_service.enabled)
 
-            is_admin = await is_user_admin(chat_db.iid, user_id)
+            is_adder_admin = await is_user_admin(chat_db.iid, adder_id)
 
             sent_message: Optional[Message] = None
 
@@ -193,15 +202,20 @@ class NewUserMiddleware(BaseMiddleware):
             if not (
                 db_item.welcome_disabled
                 or (db_item.welcome_security and db_item.welcome_security.enabled and welcomecaptcha_enabled)
-            ) or (not db_item.welcome_disabled and is_admin):
+            ) or (not db_item.welcome_disabled and is_adder_admin):
                 welcome_saveable: Saveable = db_item.note or get_default_welcome_message(bool(chat_rules))
-                sent_message = await send_welcome(event, welcome_saveable, cleanservice_enabled, chat_rules)
+                sent_message = await send_welcome(
+                    event, welcome_saveable, cleanservice_enabled, chat_rules, user=new_member
+                )
 
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:
-                    await on_welcomemute(chat_id, user_id, db_item.welcome_mute.time)
+                    welcome_mute_time = db_item.welcome_mute.time
+                    await asyncio.gather(
+                        *(on_welcomemute(chat_id, new_user.tid, welcome_mute_time) for new_user in human_users)
+                    )
 
             elif (
-                not is_admin
+                not is_adder_admin
                 and db_item.welcome_security
                 and db_item.welcome_security.enabled
                 and welcomecaptcha_enabled
@@ -209,9 +223,9 @@ class NewUserMiddleware(BaseMiddleware):
             ):
                 # If group has join_by_request enabled, captcha is handled by join request handler
                 # Otherwise, use normal captcha
-                if captcha_users and not event.chat.join_by_request:
+                if human_users and not event.chat.join_by_request:
                     sent_message = await self.on_captcha(
-                        event, db_item, chat_db, captcha_users, cleanservice_enabled, chat_rules
+                        event, db_item, chat_db, human_users, new_member, cleanservice_enabled, chat_rules
                     )
 
             # Cleanup

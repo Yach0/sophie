@@ -33,7 +33,9 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
     try:
         async with aredis.pipeline() as pipe:
             pipe.incr(key)
-            pipe.expire(key, window)
+            # NX: only set the TTL when the counter has none, so a client that keeps
+            # sending cannot push the window's expiry back and lock itself out forever.
+            pipe.expire(key, window, nx=True)
             results = await pipe.execute()
     except Exception:
         # If Redis is unavailable, allow the request through rather than

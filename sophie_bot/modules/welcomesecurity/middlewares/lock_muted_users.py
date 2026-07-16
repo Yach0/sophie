@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -10,14 +10,39 @@ from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
+GROUP_CHAT_TYPES = ("group", "supergroup")
+
 
 class LockMutedUsers(BaseMiddleware):
-    @staticmethod
-    async def _lock_user(message: Message, chat_db: ChatModel, user_db: ChatModel):
-        # Delete the message
-        await common_try(message.delete())
+    """Deletes group messages of users who joined but have not passed the captcha yet.
 
-        # Mute user? Let others know why the message was deleted?
+    Telegram's own restriction is the primary gate; this is the backstop for when it
+    could not be applied (Sophie was not an admin at join time, the restriction was
+    lifted manually, and so on).
+    """
+
+    @staticmethod
+    async def _is_message_locked(message: Message, data: Dict[str, Any]) -> bool:
+        if not message.from_user or message.chat.type not in GROUP_CHAT_TYPES:
+            return False
+
+        chat_db: ChatModel = data["chat_db"]
+        user_db: Optional[ChatModel] = data.get("user_db")
+
+        # Absent for anonymous admins, who are exempt anyway
+        if not user_db:
+            return False
+
+        if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid):
+            return False
+
+        log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
+
+        if await is_user_admin(chat_db.tid, user_db.tid):
+            return False
+
+        ws_user = await WSUserModel.is_user(user_db.iid, chat_db.iid)
+        return ws_user is not None and not ws_user.passed
 
     async def __call__(
         self,
@@ -25,23 +50,8 @@ class LockMutedUsers(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        if isinstance(event, Message) and event.from_user and event.chat.type == "private":
-            chat_db: ChatModel = data["chat_db"]
-            user_db: ChatModel = data["user_db"]
-
-            if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid):
-                return await handler(event, data)
-
-            log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
-
-            if await is_user_admin(chat_db.tid, user_db.tid):
-                return await handler(event, data)
-
-            model = await WSUserModel.is_user(user_db.iid, chat_db.iid)
-            if model and not model.passed:
-                await self._lock_user(event, chat_db, user_db)
-
-                # Skip handler
-                raise SkipHandler
+        if isinstance(event, Message) and await self._is_message_locked(event, data):
+            await common_try(event.delete())
+            raise SkipHandler
 
         return await handler(event, data)

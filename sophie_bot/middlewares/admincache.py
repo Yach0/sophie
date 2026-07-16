@@ -11,7 +11,10 @@ from beanie import PydanticObjectId
 from sophie_bot.constants import CACHE_ADMIN_TTL_SECONDS
 from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.utils_.chat_member import update_chat_members
+from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
+
+REFRESH_MARKER_PREFIX = "admincache:refreshed:"
 
 
 class AdmincacheMiddleware(BaseMiddleware):
@@ -54,14 +57,30 @@ class AdmincacheMiddleware(BaseMiddleware):
             log.debug("AdmincacheMiddleware: Missing chat_iid, skipping")
             return
 
-        if await self._is_cache_stale(chat_iid):
-            log.debug("AdmincacheMiddleware: Refreshing admin cache", chat_id=chat_tid)
-            try:
-                await update_chat_members(chat_db)
-            except TelegramAPIError as e:
-                log.warning("AdmincacheMiddleware: Failed to refresh admin cache", chat_id=chat_tid, error=str(e))
-        else:
+        if not await self._is_cache_stale(chat_iid):
             log.debug("AdmincacheMiddleware: Admin cache is up to date", chat_id=chat_tid)
+            return
+
+        if not await self._claim_refresh(chat_iid):
+            log.debug("AdmincacheMiddleware: Admin cache refresh already claimed", chat_id=chat_tid)
+            return
+
+        log.debug("AdmincacheMiddleware: Refreshing admin cache", chat_id=chat_tid)
+        try:
+            await update_chat_members(chat_db)
+        except TelegramAPIError as e:
+            log.warning("AdmincacheMiddleware: Failed to refresh admin cache", chat_id=chat_tid, error=str(e))
+
+    @staticmethod
+    async def _claim_refresh(chat_iid: PydanticObjectId) -> bool:
+        """Claim the right to refresh this chat's admins, at most once per CACHE_ADMIN_TTL_SECONDS.
+
+        A refresh can legitimately persist nothing (update_chat_members skips admins that have no ChatModel),
+        which leaves the cache empty and the chat permanently stale. Without this claim every subsequent update
+        in such a chat would issue another getChatAdministrators call.
+        """
+        claimed = await aredis.set(f"{REFRESH_MARKER_PREFIX}{chat_iid}", "1", ex=CACHE_ADMIN_TTL_SECONDS, nx=True)
+        return bool(claimed)
 
     async def _is_cache_stale(self, chat_iid: PydanticObjectId) -> bool:
         """Check if the admin cache is missing or stale.

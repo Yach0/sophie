@@ -63,7 +63,7 @@ class DelNote(SophieMessageHandler):
                         HList(
                             *[format_notes_aliases(note.names) for note in deleted],
                         ),
-                        title="Deleted notes",
+                        title=_("Deleted notes"),
                     ),
                     Section(VList(*not_found), title=_("Not found")) if not_found else None,
                     title=_("Note was successfully deleted", "Notes were successfully deleted", len(deleted)),

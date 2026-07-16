@@ -55,7 +55,9 @@ class FilterConfirmHandler(SophieMessageCallbackQueryHandler):
                         HList(
                             filter_action.icon,
                             filter_action.description(
-                                filter_action.data_object(**filter_data) if filter_data else None
+                                filter_action.data_object(**filter_data)
+                                if filter_data and filter_action.data_object
+                                else None
                             ),
                         )
                         for filter_action, filter_data in filters

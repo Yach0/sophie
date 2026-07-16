@@ -78,6 +78,27 @@ async def test_use_chat_language_sets_and_resets_i18n_context(monkeypatch: pytes
     assert fake_i18n.reset_tokens == ["current-token"]
 
 
+@pytest.mark.asyncio
+async def test_use_chat_language_does_not_swallow_exceptions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failure inside the block must reach the caller, not vanish."""
+    chat_iid = PydanticObjectId()
+    fake_i18n = FakeI18n()
+
+    async def fake_get_chat_locale(requested_chat_iid: PydanticObjectId) -> str:
+        return "uk"
+
+    monkeypatch.setattr(chat_language, "get_chat_locale", fake_get_chat_locale)
+    monkeypatch.setattr(chat_language, "i18n", fake_i18n)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        async with UseChatLanguage(chat_iid):
+            raise RuntimeError("boom")
+
+    # The locale context is still restored on the way out
+    assert fake_i18n.ctx_locale.reset_tokens == ["ctx-token:uk"]
+    assert fake_i18n.reset_tokens == ["current-token"]
+
+
 class FakeChatModel:
     type = "chat_type"
     find_calls: list[tuple[object]] = []

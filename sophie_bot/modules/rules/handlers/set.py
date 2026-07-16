@@ -30,6 +30,13 @@ class SetRulesHandler(SophieMessageHandler):
 
         saveable = await parse_saveable(self.event, content)
 
+        # `content` is optional because the rules may come from a replied message instead,
+        # so emptiness can only be judged once both sources have been parsed.
+        if not saveable.text and not saveable.file and not saveable.files:
+            return await self.event.reply(
+                _("Please provide the rules text, or reply to the message you want to set as the rules.")
+            )
+
         await RulesModel.set_rules(connection.db_model.iid, saveable)
 
         await self.event.reply(

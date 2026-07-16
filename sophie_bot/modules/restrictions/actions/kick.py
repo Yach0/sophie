@@ -9,11 +9,10 @@ from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restrict
 from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.restrictions.utils import is_user_admin, kick_user
+from sophie_bot.modules.restrictions.utils import kick_user
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.utils.logger import log
 
 
 class KickModernAction(ModernActionABC[None]):
@@ -22,6 +21,7 @@ class KickModernAction(ModernActionABC[None]):
     title = l_("Kick")
     as_flood = True
     allow_warns = True
+    skip_for_admins = True
 
     @staticmethod
     def description(data: None) -> Element | str:
@@ -32,17 +32,12 @@ class KickModernAction(ModernActionABC[None]):
             return
 
         chat_id = message.chat.id
-        user_id = message.from_user.id
         reason: Optional[str] = None
 
         chat_db = data.get("chat_db")
         if chat_db:
             message_text = message.text or message.caption or None
             reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
-
-        if await is_user_admin(chat_id, user_id):
-            log.debug("KickModernAction: user is admin, skipping...")
-            return
 
         doc = Doc(
             Title(_("Filter action")),

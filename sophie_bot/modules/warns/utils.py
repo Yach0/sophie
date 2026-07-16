@@ -1,51 +1,20 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import Any, Optional
 
 from aiogram.types import Message
 from beanie import PydanticObjectId
-from pydantic import TypeAdapter, ValidationError
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.metrics.moderation import track_moderation_action, track_warn_threshold_reached
+from sophie_bot.modules.filters.utils_.action_duration import resolve_action_duration
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user, kick_user, mute_user
 from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
-
-
-def _action_duration_seconds(action_data: dict[str, Any]) -> Optional[float]:
-    raw_duration = action_data.get("duration")
-    if isinstance(raw_duration, (int, float)):
-        return float(raw_duration)
-
-    mute_duration = action_data.get("mute_duration")
-    if isinstance(mute_duration, (int, float)):
-        return float(mute_duration)
-    if isinstance(mute_duration, str):
-        try:
-            ta = TypeAdapter(timedelta)
-            td = ta.validate_python(mute_duration)
-            return td.total_seconds()
-        except (ValidationError, ValueError):
-            pass
-
-    ban_duration = action_data.get("ban_duration")
-    if isinstance(ban_duration, (int, float)):
-        return float(ban_duration)
-    if isinstance(ban_duration, str):
-        try:
-            ta = TypeAdapter(timedelta)
-            td = ta.validate_python(ban_duration)
-            return td.total_seconds()
-        except (ValidationError, ValueError):
-            pass
-
-    return None
 
 
 async def _execute_restriction_action(
@@ -54,8 +23,7 @@ async def _execute_restriction_action(
     chat_tid: int,
     user_tid: int,
 ) -> Optional[str]:
-    duration_seconds = _action_duration_seconds(action_data)
-    duration = timedelta(seconds=duration_seconds) if duration_seconds is not None else None
+    duration = resolve_action_duration(action_name, action_data)
 
     if action_name == "ban_user":
         if await ban_user(chat_tid, user_tid, until_date=duration):
@@ -118,7 +86,7 @@ async def _execute_warn_actions(
             runtime_data.setdefault("warn_reason", reason)
 
         filter_data = convert_action_data_to_model(action_item, action_data)
-        await action_item.handle(trigger_message, runtime_data, filter_data)
+        await action_item.execute(trigger_message, runtime_data, filter_data)
 
     return punishment
 

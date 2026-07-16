@@ -50,6 +50,29 @@ def dbref_traversal() -> Iterator[None]:
         mongomock.filtering.iter_key_candidates = original
 
 
+def _patch_dbref_traversal() -> None:
+    """Teach mongomock to resolve `field.$id` against a DBRef.
+
+    Beanie compiles every `Link` query (`Model.chat.id == chat_iid`) to `{"chat.$id": ...}`.
+    Real MongoDB traverses into the DBRef to match it. mongomock's key resolution bails out
+    on anything that is not a dict, so without this *no* Link query can ever match: every
+    such lookup silently returns nothing, and tests that depend on one assert nothing.
+    """
+    original = mongomock.filtering.iter_key_candidates
+
+    @wraps(original)
+    def iter_key_candidates(key: Any, doc: Any) -> Any:
+        if isinstance(doc, DBRef):
+            doc = {"$id": doc.id, "$ref": doc.collection, "$db": doc.database}
+        # The original recurses through this module global, so nested refs land here too.
+        return original(key, doc)
+
+    mongomock.filtering.iter_key_candidates = iter_key_candidates
+
+
+_patch_dbref_traversal()
+
+
 class AsyncMongoMockClient:
     """Mock AsyncMongoClient that emulates PyMongo's async interface.
 
