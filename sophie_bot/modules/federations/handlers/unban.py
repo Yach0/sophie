@@ -10,10 +10,10 @@ from babel.dates import format_date
 from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
+from sophie_bot.db.cache.locale import get_chat_locale
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.federations import FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType
-from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
@@ -156,7 +156,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             return
 
         # Format ban date
-        locale_name = await LanguageModel.get_locale(self.connection.db_model.iid)
+        locale_name = await get_chat_locale(self.connection.db_model.iid)
         ban_date = format_date(subscription_ban.time.date(), "short", locale=locale_name)
 
         # Get banner user info - by is now a Link
