@@ -132,16 +132,6 @@ async def test_cleanup_migration_repairs_dangling_connections(db_init: Any) -> N
     assert stale_chat_iid not in history_reference_ids
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "delete_chat() uses DeleteRules.DELETE_LINKS, which deletes the documents a document "
-        "links TO. ChatModel has no Link fields, so it cascades nothing and every row pointing "
-        "AT the chat survives -- connections included. Until mongomock could resolve Link "
-        "queries this test passed vacuously: get_by_user_tid() returned None either way. "
-        "Deleting a chat should clean up the rows referencing it; see the MR for scope."
-    ),
-)
 @pytest.mark.asyncio
 async def test_reconnecting_to_same_chat_does_not_duplicate_history(
     db_init: Any, monkeypatch: pytest.MonkeyPatch
@@ -184,6 +174,15 @@ async def test_reconnecting_to_same_chat_does_not_duplicate_history(
     assert history_iids == [first_group.iid, second_group.iid]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "delete_chat() uses DeleteRules.DELETE_LINKS, which deletes the documents a document "
+        "links TO. ChatModel has no Link fields, so it cascades nothing and every row pointing "
+        "AT the chat survives -- connections included. Deleting a chat should clean up the rows "
+        "referencing it; the fix lives in fix/chatmodel-delete-leaves-dangling-connections."
+    ),
+)
 @pytest.mark.asyncio
 async def test_delete_chat_removes_related_connection_records(db_init: Any) -> None:
     del db_init
