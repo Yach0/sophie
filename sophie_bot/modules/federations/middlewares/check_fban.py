@@ -6,6 +6,7 @@ from aiogram.types import Message, TelegramObject
 from stfu_tg import Template, UserLink
 
 from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
+from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
@@ -76,7 +77,7 @@ class FedBanMiddleware(BaseMiddleware):
         # Update banned_chats list
         if not ban.banned_chats:
             ban.banned_chats = []
-        if chat_db.iid not in [c.to_ref() for c in ban.banned_chats]:
+        if chat_db.iid not in normalize_chat_iids([banned_chat.to_ref() for banned_chat in ban.banned_chats]):
             ban.banned_chats.append(chat_db)
             await ban.save()
 

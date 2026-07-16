@@ -301,15 +301,15 @@ async def test_delete_federation_non_owner_rejected(test_client: TestClient) -> 
     with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
         owner_user, group, owner_model = await create_test_user_and_group(
             test_client,
-            user_id=2010,
+            user_id=2013,
             first_name="DeleteRealOwner",
             username="delete_real_owner",
-            chat_id=-1001000002010,
+            chat_id=-1001000002013,
             group_title="Delete Auth Group",
         )
 
         other_wrapper = test_client.create_user(
-            user_id=2011,
+            user_id=2014,
             first_name="DeleteIntruder",
             username="delete_intruder",
         )

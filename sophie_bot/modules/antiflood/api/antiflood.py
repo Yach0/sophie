@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from sophie_bot.constants import ANTIFOOD_MAX_ACTIONS
 from sophie_bot.db.models.antiflood import AntifloodModel
@@ -24,38 +24,39 @@ class ActionRequest(BaseModel):
         """Validate that action name exists and supports flood actions."""
         if v not in ALL_MODERN_ACTIONS:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Invalid action name: {v}. Valid actions: {', '.join(ALL_MODERN_ACTIONS.keys())}",
             )
         action = ALL_MODERN_ACTIONS[v]
         if not action.as_flood:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Action '{v}' cannot be used as an antiflood action",
             )
         return v
 
-    @field_validator("data")
-    @classmethod
-    def validate_action_data(cls, v: dict) -> dict:
-        """Validate action data based on the action type."""
-        action_name = v.get("name")
-        if not action_name:
-            return v
+    @model_validator(mode="after")
+    def validate_action_data(self) -> ActionRequest:
+        """Validate the data against the action's own model and canonicalize it for storage."""
+        action = ALL_MODERN_ACTIONS[self.name]
+        data_object = getattr(action, "data_object", None)
+        if data_object is None:
+            return self
 
-        action = ALL_MODERN_ACTIONS.get(action_name)
-        if not action or not action.data_object:
-            return v
+        if not self.data and action.default_data is not None:
+            self.data = action.default_data.model_dump(mode="json")
+            return self
 
-        # If action has a data model, validate it
         try:
-            action.data_object(**v)
-        except Exception as e:
+            validated_data = data_object(**self.data)
+        except ValidationError as exc:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Invalid action data for '{action_name}': {str(e)}",
-            )
-        return v
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"Invalid action data for '{self.name}': {exc}",
+            ) from exc
+
+        self.data = validated_data.model_dump(mode="json")
+        return self
 
 
 class AntifloodSettingsRequest(BaseModel):

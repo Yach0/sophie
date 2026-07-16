@@ -132,4 +132,5 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         # Initialize captcha
         self.data["ws_chat_iid"] = group_db.iid
+        self.data["ws_is_join_request"] = ws_user.is_join_request
         return await CaptchaGetHandler(self.event, **self.data).handle()

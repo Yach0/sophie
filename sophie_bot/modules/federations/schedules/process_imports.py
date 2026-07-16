@@ -321,13 +321,13 @@ class ProcessFederationImports:
             raise BanValidationError("Cannot ban the bot")
 
         creator = await federation.creator.fetch()
-        if creator and user_id == creator.tid:
+        if isinstance(creator, ChatModel) and user_id == creator.tid:
             raise BanValidationError("Cannot ban federation owner")
 
         if federation.admins:
             for admin_link in federation.admins:
                 admin = await admin_link.fetch()
-                if admin and user_id == admin.tid:
+                if isinstance(admin, ChatModel) and user_id == admin.tid:
                     raise BanValidationError("Cannot ban federation admin")
 
         if user_id == importer_user_tid:

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Iterator
 
 import pytest
+from fakeredis import FakeAsyncRedis
 from fastapi import APIRouter
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
@@ -132,7 +133,7 @@ class FakePipeline:
         self.current_count = current_count
         self.execute_error = execute_error
         self.incr_keys: list[str] = []
-        self.expire_calls: list[tuple[str, int]] = []
+        self.expire_calls: list[tuple[str, int, bool]] = []
 
     async def __aenter__(self) -> "FakePipeline":
         return self
@@ -143,8 +144,8 @@ class FakePipeline:
     def incr(self, key: str) -> None:
         self.incr_keys.append(key)
 
-    def expire(self, key: str, window: int) -> None:
-        self.expire_calls.append((key, window))
+    def expire(self, key: str, window: int, nx: bool = False) -> None:
+        self.expire_calls.append((key, window, nx))
 
     async def execute(self) -> list[int]:
         if self.execute_error:
@@ -191,7 +192,8 @@ async def test_global_rate_limit_records_allowed_request(monkeypatch: pytest.Mon
     expected_key = "global_rate_limit:203.0.113.55"
     assert response.status_code == 200
     assert pipeline.incr_keys == [expected_key]
-    assert pipeline.expire_calls == [(expected_key, GLOBAL_RATE_WINDOW)]
+    # nx=True: the TTL must only be set when the counter has none, never refreshed
+    assert pipeline.expire_calls == [(expected_key, GLOBAL_RATE_WINDOW, True)]
     assert fake_redis.ttl_keys == []
 
 
@@ -208,6 +210,42 @@ async def test_global_rate_limit_rejects_request_over_limit(monkeypatch: pytest.
     assert response.headers["Retry-After"] == "9"
     assert response.body == b'{"detail":"Too many requests"}'
     assert fake_redis.ttl_keys == ["global_rate_limit:203.0.113.55"]
+
+
+@pytest.mark.asyncio
+async def test_global_rate_limit_does_not_extend_window_on_subsequent_requests(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_redis = FakeAsyncRedis()
+    middleware = GlobalRateLimitMiddleware(dummy_app)
+    monkeypatch.setattr(rest, "aredis", fake_redis)
+    key = "global_rate_limit:203.0.113.55"
+
+    await middleware.dispatch(make_request(), ok_response)
+    # fakeredis has no advanceable clock; shrinking the TTL stands in for elapsed time.
+    await fake_redis.expire(key, 10)
+    await middleware.dispatch(make_request(), ok_response)
+
+    assert await fake_redis.ttl(key) <= 10
+    await fake_redis.aclose()
+
+
+@pytest.mark.asyncio
+async def test_global_rate_limit_rejected_request_does_not_extend_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_redis = FakeAsyncRedis()
+    middleware = GlobalRateLimitMiddleware(dummy_app)
+    monkeypatch.setattr(rest, "aredis", fake_redis)
+    key = "global_rate_limit:203.0.113.55"
+
+    await fake_redis.set(key, GLOBAL_RATE_LIMIT)
+    await fake_redis.expire(key, 10)
+
+    response = await middleware.dispatch(make_request(), ok_response)
+
+    assert response.status_code == 429
+    # A 429 must not push the window back, otherwise the client can never escape the lockout.
+    assert await fake_redis.ttl(key) <= 10
+    await fake_redis.aclose()
 
 
 @pytest.mark.asyncio
