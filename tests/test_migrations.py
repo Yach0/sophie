@@ -8,8 +8,15 @@ from types import ModuleType
 import pytest
 from bson import DBRef, ObjectId
 
+from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
+from sophie_bot.db.models.feature_flag import FeatureFlagOverride
+from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.db.models.warns import WarnSettingsModel
+from sophie_bot.services.redis import aredis
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _serialize_value
 
 
 def _legacy_notes_migration() -> ModuleType:
@@ -398,6 +405,204 @@ async def test_relink_legacy_note_users_matches_int64_ids() -> None:
     assert (await notes.find_one({"_id": resolvable}))["created_user"] == DBRef("chats", known_user_oid)
     assert "created_user" not in await notes.find_one({"_id": unknown})
     assert await notes.count_documents(migration.legacy_id_query("created_user")) == 0
+
+
+async def _seed_chat(chat_tid: int) -> ChatModel:
+    """Insert a chat through Beanie so `tid` is stored under its `chat_id` alias."""
+    chat = ChatModel(
+        tid=chat_tid,
+        type=ChatType.supergroup,
+        first_name_or_title="Rollback chat",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(timezone.utc),
+    )
+    await chat.insert()
+    return chat
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_populate_note_links_backward_keeps_links_it_did_not_create() -> None:
+    """Backward must not strip `chat` from notes created after the migration.
+
+    `NoteModel.chat` is required, and the previous Backward was an unfiltered
+    `update_many({}, {"$unset": {"chat": ""}})` -- it emptied the whole collection's links,
+    not the ones Forward populated. This test fails against that version: `chat` is gone.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260125_210014_populate_note_links")
+    chat = await _seed_chat(-1101)
+    notes = NoteModel.get_pymongo_collection()
+
+    note = NoteModel(chat_tid=chat.tid, chat=chat, names=("modern",), text="created after the migration")
+    await note.insert()
+
+    await migration.Backward.noop.run(None)
+
+    stored = await notes.find_one({"_id": note.id})
+    assert stored is not None
+    assert stored.get("chat") is not None
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_split_warn_actions_backward_only_unsets_what_forward_added() -> None:
+    """Backward must remove the scoped fields only where Forward copied legacy actions in.
+
+    The previous Backward iterated every document and unconditionally wrote
+    `actions = on_max_warn_actions or []` -- a field Forward never touches. Against that
+    version `native` gains a fabricated legacy `actions` and this test fails.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260304_120000_split_warn_actions_scopes")
+    chat = await _seed_chat(-1102)
+    collection = WarnSettingsModel.get_pymongo_collection()
+
+    legacy_actions = [{"name": "ban_user", "data": {}}]
+    legacy = await WarnSettingsModel(chat=chat).insert()
+    # `actions` is the pre-migration field; it no longer exists on WarnSettingsModel.
+    await collection.update_one({"_id": legacy.id}, {"$set": {"actions": legacy_actions}})
+
+    native = await WarnSettingsModel(chat=chat, on_max_warn_actions=[{"name": "kick_user", "data": {}}]).insert()
+
+    await migration.Forward.migrate.run(None)
+
+    migrated = await collection.find_one({"_id": legacy.id})
+    assert migrated["on_max_warn_actions"] == legacy_actions
+
+    await migration.Backward.rollback.run(None)
+
+    # Configured through the current API, never had a legacy `actions` -- must be untouched.
+    stored_native = await collection.find_one({"_id": native.id})
+    assert "actions" not in stored_native
+    assert stored_native["on_max_warn_actions"] == [{"name": "kick_user", "data": {}}]
+
+    # Forward's own document: the fields it added are gone, the legacy field it never wrote survives.
+    stored_legacy = await collection.find_one({"_id": legacy.id})
+    assert stored_legacy["actions"] == legacy_actions
+    assert "on_max_warn_actions" not in stored_legacy
+    assert "on_each_warn_actions" not in stored_legacy
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_convert_filters_backward_leaves_native_v2_filters_alone() -> None:
+    """Backward must not rewrite filters that were authored in the v2 format.
+
+    A converted filter and a native v2 filter are both `action: None, version: 2`, so the
+    previous Backward matched natives too and shredded them to `actions: {}`. This test fails
+    against that version.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260523_020000_convert_filters_legacy_actions")
+    chat = await _seed_chat(-1103)
+    collection = FiltersModel.get_pymongo_collection()
+
+    native_actions = {"reply": {"text": "authored in v2"}}
+    native = await FiltersModel(chat=chat, handler="hi", action=None, actions=native_actions, version=2).insert()
+
+    await migration.Backward.noop.run(None)
+
+    stored = await collection.find_one({"_id": native.id})
+    assert stored["actions"] == native_actions
+    assert stored["action"] is None
+    assert stored["version"] == 2
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_convert_antiflood_backward_keeps_actions_carrying_data() -> None:
+    """Backward must not truncate an action whose `data` the legacy field cannot express.
+
+    Forward only ever emitted `data: {}`, so an action with a payload was configured later and
+    is not Forward's. The previous Backward converted it anyway, dropping the payload -- against
+    that version `with_data` comes back as `action: "mute", actions: []` and this test fails.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260125_210014_convert_antiflood_legacy_actions")
+    chat = await _seed_chat(-1104)
+    collection = AntifloodModel.get_pymongo_collection()
+
+    with_data = await AntifloodModel(chat=chat, actions=[{"name": "mute_user", "data": {"time": "1h"}}]).insert()
+    forward_shaped = await AntifloodModel(chat=chat, actions=[{"name": "ban_user", "data": {}}]).insert()
+
+    await migration.Backward.rollback.run(None)
+
+    stored_with_data = await collection.find_one({"_id": with_data.id})
+    assert stored_with_data["actions"] == [{"name": "mute_user", "data": {"time": "1h"}}]
+    assert stored_with_data.get("action") is None
+
+    # Forward's own output shape is lossless in the legacy form, so it still converts.
+    stored_forward_shaped = await collection.find_one({"_id": forward_shaped.id})
+    assert stored_forward_shaped["action"] == "ban"
+    assert stored_forward_shaped["actions"] == []
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_link_orphaned_notes_backward_keeps_genuine_sophie_attribution() -> None:
+    """Backward must not fabricate user ID 0 over notes genuinely authored by Sophie.
+
+    Forward destroyed the original IDs, so nothing can be restored. The previous Backward wrote
+    the literal SOPHIE_SYSTEM_TID onto every note pointing at the Sophie chat, including notes
+    Forward never touched -- against that version `created_user` becomes 0 and this test fails.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260214_082800_link_orphaned_notes_to_sophie")
+    sophie = await _seed_chat(migration.SOPHIE_SYSTEM_TID)
+    chat = await _seed_chat(-1105)
+    notes = NoteModel.get_pymongo_collection()
+
+    sophie_ref = DBRef("chats", sophie.id)
+    note = NoteModel(chat_tid=chat.tid, chat=chat, names=("authored-by-sophie",), text="note")
+    await note.insert()
+    await notes.update_one({"_id": note.id}, {"$set": {"created_user": sophie_ref}})
+
+    await migration.Backward.noop.run(None)
+
+    stored = await notes.find_one({"_id": note.id})
+    assert stored["created_user"] == sophie_ref
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice() -> None:
+    """Backward must not unset a summary model the owner chose explicitly.
+
+    Forward only backfilled documents missing the field, but the previous Backward `$unset`
+    every document equal to "openai/gpt-5.4" -- against that version the field is gone and this
+    test fails.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260504_210000_add_ai_summary_model")
+    chat = await _seed_chat(-1106)
+    collection = AIProviderModel.get_pymongo_collection()
+
+    chosen = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.4").insert()
+
+    await migration.Backward.noop.run(None)
+
+    stored = await collection.find_one({"_id": chosen.id})
+    assert stored["summary_model"] == "openai/gpt-5.4"
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_feature_flags_backward_never_drops_an_override_it_did_not_restore() -> None:
+    """Backward must not delete overrides it declined to write back to Redis.
+
+    The previous Backward skipped any feature absent from FEATURE_FLAGS and then dropped the
+    whole collection, so an override for a retired flag was destroyed without ever reaching
+    Redis. Against that version `retired` is gone and this test fails.
+    """
+    migration = importlib.import_module("sophie_bot.db.migrations.20260507_000000_migrate_feature_flags_to_db")
+    collection = FeatureFlagOverride.get_pymongo_collection()
+
+    live_feature = next(iter(FEATURE_FLAGS))
+    retired = await FeatureFlagOverride(feature="retired_flag_no_longer_declared", chat_tid=None, value=True).insert()
+    live = await FeatureFlagOverride(feature=live_feature, chat_tid=None, value=True).insert()
+    unrestorable = await FeatureFlagOverride(feature="flag_with_null_value", chat_tid=None, value=None).insert()
+
+    await migration.Backward.rollback.run(None)
+
+    # Restored to Redis, so removing the row is safe.
+    assert await collection.find_one({"_id": live.id}) is None
+    assert await aredis.hget(migration._REDIS_KEY, live_feature) == _serialize_value(True).encode()
+
+    # A retired flag's override is still restored, and its row is only removed once it is.
+    assert await aredis.hget(migration._REDIS_KEY, "retired_flag_no_longer_declared") == _serialize_value(True).encode()
+    assert await collection.find_one({"_id": retired.id}) is None
+
+    # Nothing to write back, so the row is kept rather than destroyed.
+    assert await collection.find_one({"_id": unrestorable.id}) is not None
 
 
 @pytest.mark.usefixtures("db_init")

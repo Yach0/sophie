@@ -11,6 +11,20 @@ Affected Collections:
 Impact:
     - Low risk: additive field with deterministic backfill
     - Existing documents gain `summary_model = "openai/gpt-5.4"`
+    - Backward is a no-op; see below.
+
+Rollback:
+    Not possible. Forward backfills documents that lack `summary_model`, and afterwards a
+    backfilled document is indistinguishable from one that already held "openai/gpt-5.4"
+    because its owner chose it -- the model still offers gpt-5.4. Nothing records which
+    documents were missing the field.
+
+    The previous Backward `$unset` every document whose `summary_model` equalled
+    "openai/gpt-5.4", which silently erased those deliberate choices, dropping them back to
+    `AIProviderModel.summary_model`'s default. Forward never touched them.
+
+    Leaving the field populated is harmless for pre-migration code, which ignores it, so
+    Backward does nothing.
 """
 
 from beanie import free_fall_migration
@@ -34,13 +48,8 @@ class Forward:
 
 
 class Backward:
-    """Remove the dedicated summary model field."""
+    """No rollback: backfilled documents are indistinguishable from a deliberate gpt-5.4 choice."""
 
     @free_fall_migration(document_models=[AIProviderModel])
-    async def rollback(self, session):
-        collection = AIProviderModel.get_pymongo_collection()
-        await collection.update_many(
-            {"summary_model": SUMMARY_MODEL_NAME},
-            {"$unset": {"summary_model": ""}},
-            session=session,
-        )
+    async def noop(self, session) -> None:
+        del session
