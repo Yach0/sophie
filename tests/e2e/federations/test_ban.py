@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Optional
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiogram.exceptions import TelegramForbiddenError
+from aiogram.types import Message
 from beanie import PydanticObjectId
 from aiogram_test_framework import MessageFactory, TestClient, UpdateFactory
 from bson import DBRef
 
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
-from sophie_bot.db.models.federations import FederationBan
+from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
+from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services import FederationBanService, FederationChatService, FederationManageService
 from tests.e2e.federations.conftest import (
@@ -686,3 +690,177 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
 
     assert is_banned_a is None, "User should NOT be banned in Fed A (not present)"
     assert is_banned_b is not None, "User should be banned in Fed B"
+
+
+async def _create_subscribed_fed_pair(
+    test_client: TestClient,
+    *,
+    owner_a_tid: int,
+    owner_b_tid: int,
+    group_a_tid: int,
+    group_b_tid: int,
+    name_prefix: str,
+) -> tuple[Federation, Federation, ChatModel]:
+    """Create Fed A and Fed B (each with one chat) and subscribe Fed A to Fed B."""
+    admin_mock = AsyncMock(return_value=True)
+
+    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
+        user_a, group_a, model_a = await create_test_user_and_group(
+            test_client,
+            user_id=owner_a_tid,
+            first_name=f"{name_prefix}OwnerA",
+            username=f"{name_prefix.lower()}_owner_a",
+            chat_id=group_a_tid,
+            group_title=f"{name_prefix} Group A",
+        )
+        user_b, group_b, model_b = await create_test_user_and_group(
+            test_client,
+            user_id=owner_b_tid,
+            first_name=f"{name_prefix}OwnerB",
+            username=f"{name_prefix.lower()}_owner_b",
+            chat_id=group_b_tid,
+            group_title=f"{name_prefix} Group B",
+        )
+
+        fed_a = await create_federation_via_command(test_client, user_a, group_a, f"{name_prefix} Fed A", model_a)
+        fed_b = await create_federation_via_command(test_client, user_b, group_b, f"{name_prefix} Fed B", model_b)
+
+    subscribed = await FederationManageService.subscribe_to_federation(fed_a, fed_b.fed_id)
+    assert subscribed is True, "Fed A should subscribe to Fed B"
+
+    return fed_a, fed_b, model_b
+
+
+async def _insert_inherited_ban(
+    fed_id: str, origin_fed_id: str, user_tid: int, by_model: ChatModel
+) -> FederationBan:
+    """Insert the ban row shape that lazy_ban_in_subscribing_federations produces."""
+    ban = FederationBan(
+        fed_id=fed_id,
+        user_id=user_tid,
+        time=datetime.now(timezone.utc),
+        by=by_model,
+        reason="inherited ban",
+        origin_fed=origin_fed_id,
+    )
+    await ban.insert()
+    return ban
+
+
+@pytest.mark.asyncio
+async def test_unfban_blocked_while_origin_subscription_is_live(test_client: TestClient) -> None:
+    """An inherited ban stays in place while the subscription and the origin ban both exist."""
+    fed_a, fed_b, model_b = await _create_subscribed_fed_pair(
+        test_client,
+        owner_a_tid=4060,
+        owner_b_tid=4061,
+        group_a_tid=-1001000004060,
+        group_b_tid=-1001000004061,
+        name_prefix="LiveSub",
+    )
+
+    await FederationBanService.ban_user(fed_b, 4062, model_b.iid, reason="origin ban")
+    await _insert_inherited_ban(fed_a.fed_id, fed_b.fed_id, 4062, model_b)
+
+    success, blocking_ban = await FederationBanService.unban_user(fed_a.fed_id, 4062)
+    assert success is False, "Unban must be refused while the origin subscription still applies"
+    assert blocking_ban is not None
+    assert blocking_ban.origin_fed == fed_b.fed_id
+    assert await FederationBanService.is_user_banned(fed_a.fed_id, 4062) is not None
+
+
+@pytest.mark.asyncio
+async def test_unfban_allowed_after_unsubscribing_from_origin_federation(test_client: TestClient) -> None:
+    """The remedy the bot prints (/funsub the parent fed) makes the inherited ban removable."""
+    fed_a, fed_b, model_b = await _create_subscribed_fed_pair(
+        test_client,
+        owner_a_tid=4063,
+        owner_b_tid=4064,
+        group_a_tid=-1001000004063,
+        group_b_tid=-1001000004064,
+        name_prefix="Unsub",
+    )
+
+    await FederationBanService.ban_user(fed_b, 4065, model_b.iid, reason="origin ban")
+    await _insert_inherited_ban(fed_a.fed_id, fed_b.fed_id, 4065, model_b)
+
+    unsubscribed = await FederationManageService.unsubscribe_from_federation(fed_a, fed_b.fed_id)
+    assert unsubscribed is True
+
+    success, blocking_ban = await FederationBanService.unban_user(fed_a.fed_id, 4065)
+    assert success is True, "Unban must succeed once Fed A no longer subscribes to Fed B"
+    assert blocking_ban is None
+    assert await FederationBanService.is_user_banned(fed_a.fed_id, 4065) is None
+
+
+@pytest.mark.asyncio
+async def test_unfban_allowed_after_origin_ban_is_lifted(test_client: TestClient) -> None:
+    """An inherited ban is removable once the origin federation's own ban is gone."""
+    fed_a, fed_b, model_b = await _create_subscribed_fed_pair(
+        test_client,
+        owner_a_tid=4066,
+        owner_b_tid=4067,
+        group_a_tid=-1001000004066,
+        group_b_tid=-1001000004067,
+        name_prefix="OriginLifted",
+    )
+
+    await FederationBanService.ban_user(fed_b, 4068, model_b.iid, reason="origin ban")
+    await _insert_inherited_ban(fed_a.fed_id, fed_b.fed_id, 4068, model_b)
+
+    origin_unbanned, _blocking = await FederationBanService.unban_user(fed_b.fed_id, 4068)
+    assert origin_unbanned is True
+
+    success, blocking_ban = await FederationBanService.unban_user(fed_a.fed_id, 4068)
+    assert success is True, "Unban must succeed once the origin federation's ban no longer exists"
+    assert blocking_ban is None
+    assert await FederationBanService.is_user_banned(fed_a.fed_id, 4068) is None
+
+
+@pytest.mark.asyncio
+async def test_fban_queues_propagation_task_when_reply_cannot_be_sent(test_client: TestClient) -> None:
+    """Losing send rights must not cost the ban its propagation task."""
+    admin_mock = AsyncMock(return_value=True)
+
+    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
+        owner_user, group, owner_model = await create_test_user_and_group(
+            test_client,
+            user_id=4070,
+            first_name="NoReplyOwner",
+            username="no_reply_owner",
+            chat_id=-1001000004070,
+            group_title="No Reply Group",
+        )
+
+        target_wrapper = test_client.create_user(user_id=4071, first_name="NoReplyTarget", username="no_reply_target")
+        await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
+
+        federation = await create_federation_via_command(
+            test_client, owner_user, group, "No Reply Fed", owner_model
+        )
+        await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+        target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
+        command_message = MessageFactory.create_command(
+            command="fban",
+            from_user=owner_user,
+            chat=group,
+        ).model_copy(update={"reply_to_message": target_message})
+
+        forbidden = TelegramForbiddenError(method=None, message="Forbidden: bot is not a member of the group chat")  # type: ignore[arg-type]
+        with patch.object(Message, "reply", AsyncMock(side_effect=forbidden)):
+            await test_client.dispatcher.feed_update(
+                bot=test_client.bot,
+                update=UpdateFactory.create_message_update(command_message),
+            )
+
+    ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id, FederationBan.user_id == 4071)
+    assert ban is not None, "The ban record should still be written"
+
+    task = await FederationTask.find_one(
+        FederationTask.fed_id == federation.fed_id,
+        FederationTask.task_type == FederationTaskType.BAN,
+        FederationTask.target_user_id == 4071,
+    )
+    assert task is not None, "The propagation task must be queued even when the reply could not be sent"
+    assert task.reply_message_id is None
