@@ -71,12 +71,14 @@ class UserRestricting(Filter):
         connection: Optional[ChatConnection] = None,
         user_db: Optional[ChatModel] = None,
     ) -> Union[bool, dict[str, Any]]:
-        user_tid = await self.get_target_id(event)
         message = self.get_event_message(event)
         if message is None:
             return False
 
-        chat_tid = connection.tid if connection else message.chat.id
+        target = await self.get_target(event, user_db)
+        target_tid = target.tid if isinstance(target, ChatModel) else target
+        chat_ref: Union[int, ChatModel] = connection.db_model if connection else message.chat.id
+        chat_tid = chat_ref.tid if isinstance(chat_ref, ChatModel) else chat_ref
         is_connected = connection.is_connected if connection else False
         payload: dict[str, Any] = {}
 
@@ -91,7 +93,7 @@ class UserRestricting(Filter):
         anonymous_resolution = await self.resolve_anonymous_admin_permissions(
             event=event,
             chat_tid=chat_tid,
-            user_tid=user_tid,
+            user_tid=target_tid,
             connection=connection,
             user_db=user_db,
         )
@@ -101,7 +103,7 @@ class UserRestricting(Filter):
                     if self.user_owner:
                         await self.no_owner_msg(event)
                     else:
-                        await self.no_rights_msg(event, anonymous_resolution.permission_check)
+                        await self.no_rights_msg(event, anonymous_resolution.permission_check, target_tid)
                 raise SkipHandler
 
             if anonymous_resolution.resolved_user_db:
@@ -110,28 +112,16 @@ class UserRestricting(Filter):
             return payload or True
 
         if self.user_owner:
-            is_owner = await check_user_admin_permissions(
-                chat_tid,
-                user_tid,
-                require_creator=True,
-                chat_model=connection.db_model if connection else None,
-                user_model=user_db,
-            )
+            is_owner = await check_user_admin_permissions(chat_ref, target, require_creator=True)
             if is_owner is not True:
                 await self.no_owner_msg(event)
                 raise SkipHandler
             return True
 
-        check = await check_user_admin_permissions(
-            chat_tid,
-            user_tid,
-            self.required_permissions or None,
-            chat_model=connection.db_model if connection else None,
-            user_model=user_db,
-        )
+        check = await check_user_admin_permissions(chat_ref, target, self.required_permissions or None)
         if check is not True:
             # check = missing permission in this scope
-            await self.no_rights_msg(event, check)
+            await self.no_rights_msg(event, check, target_tid)
             raise SkipHandler
 
         return payload or True
@@ -228,12 +218,12 @@ class UserRestricting(Filter):
 
         return missing_permissions or True
 
-    @staticmethod
-    async def get_target_id(message: TelegramObject) -> int:
-        from_user = getattr(message, "from_user", None)
+    async def get_target(self, event: TelegramObject, user_db: Optional[ChatModel]) -> Union[int, ChatModel]:
+        """The entity whose admin rights this filter checks: the sender of the event."""
+        from_user = getattr(event, "from_user", None)
         if not from_user:
             raise ValueError("Event must expose a from_user")
-        return from_user.id
+        return user_db or from_user.id
 
     @staticmethod
     def _resolve_message(event: TelegramObject) -> Any:
@@ -277,8 +267,10 @@ class UserRestricting(Filter):
         elif hasattr(actual_message, "answer"):
             await answer()
 
-    async def no_rights_msg(self, event: TelegramObject, required_permissions: Union[bool, list[str]]) -> None:
-        is_bot = await self.get_target_id(event) == CONFIG.bot_id
+    async def no_rights_msg(
+        self, event: TelegramObject, required_permissions: Union[bool, list[str]], target_tid: int
+    ) -> None:
+        is_bot = target_tid == CONFIG.bot_id
 
         if not isinstance(required_permissions, bool):
             missing_perms = [p.replace("can_", "").replace("_", " ") for p in required_permissions]
@@ -341,5 +333,5 @@ class BotHasPermissions(UserRestricting):
     }
     PAYLOAD_ARGUMENT_NAME = "bot_member"
 
-    async def get_target_id(self, message: TelegramObject) -> int:
+    async def get_target(self, event: TelegramObject, user_db: Optional[ChatModel]) -> Union[int, ChatModel]:
         return CONFIG.bot_id
