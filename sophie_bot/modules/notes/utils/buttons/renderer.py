@@ -16,13 +16,12 @@ from sophie_bot.modules.notes.utils.buttons.payloads import (
 from sophie_bot.utils.logger import log
 
 
-def create_inline_button(
+def _inline_button(
     *, text: str, style: ButtonStyle | None = None, url: str | None = None, callback_data: str | None = None
 ) -> InlineKeyboardButton:
-    if style:
-        return InlineKeyboardButton(text=text, url=url, callback_data=callback_data, style=style)
-
-    return InlineKeyboardButton(text=text, url=url, callback_data=callback_data)
+    if style is None:
+        return InlineKeyboardButton(text=text, url=url, callback_data=callback_data)
+    return InlineKeyboardButton(text=text, url=url, callback_data=callback_data, style=style)
 
 
 def _is_valid_url(url: str) -> bool:
@@ -48,11 +47,11 @@ def render_button(button: Button, chat_tid: int) -> InlineKeyboardButton | None:
         if not data or not _is_valid_url(data):
             log.warning("render_button: skipping invalid URL button", button_text=text, url=data)
             return None
-        return create_inline_button(text=text, url=data, style=style)
+        return _inline_button(text=text, url=data, style=style)
 
     if action == ButtonAction.delmsg:
         payload = build_legacy_start_payload(LEGACY_DELETE_MESSAGE_BUTTON_PREFIX, chat_tid)
-        return create_inline_button(text=text, callback_data=payload, style=style)
+        return _inline_button(text=text, callback_data=payload, style=style)
 
     if action in {
         ButtonAction.sophiedm,
@@ -71,7 +70,7 @@ def render_button(button: Button, chat_tid: int) -> InlineKeyboardButton | None:
         payload_prefix = payload_prefixes[action]
         argument = data or "" if action == ButtonAction.note else ""
         payload = None if payload_prefix is None else build_legacy_start_payload(payload_prefix, chat_tid, argument)
-        return create_inline_button(text=text, url=_telegram_url(payload), style=style)
+        return _inline_button(text=text, url=_telegram_url(payload), style=style)
 
     return None
 

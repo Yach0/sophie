@@ -159,106 +159,183 @@ async def test_ws_user_model_basic_creation(db_init: Any) -> None:
 # ─── LockMutedUsers middleware tests ─────────────────────────────────────────
 
 
+async def _consume_common_try(coro: Any, *_args: Any, **_kwargs: Any) -> None:
+    """Stand-in for common_try that consumes the passed coroutine."""
+    await coro
+
+
+def _group_message(chat_tid: int, user_tid: int, chat_type: str = "supergroup") -> Any:
+    message = MagicMock(spec=Message)
+    message.from_user = SimpleNamespace(id=user_tid)
+    message.chat = SimpleNamespace(id=chat_tid, type=chat_type)
+    message.delete = AsyncMock()
+    return message
+
+
+@pytest.fixture
+def lock_middleware_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.is_enabled",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.common_try",
+        _consume_common_try,
+    )
+
+
 @pytest.mark.asyncio
-async def test_lock_muted_users_middleware_skips_passed_users(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_lock_muted_users_middleware_skips_passed_users(
+    monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+) -> None:
     """Users who have already passed captcha are not blocked by the middleware."""
     from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
 
-    user_iid = PydanticObjectId()
-    chat_iid = PydanticObjectId()
-
-    # Create a mock WSUserModel that has passed
-    passed_model = SimpleNamespace(passed=True)
-
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.WSUserModel.is_user",
-        AsyncMock(return_value=passed_model),
+        AsyncMock(return_value=SimpleNamespace(passed=True)),
     )
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.is_user_admin",
         AsyncMock(return_value=False),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.is_enabled",
-        AsyncMock(return_value=True),
-    )
 
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
-
-    # Create a mock message event (spec=Message so isinstance check passes)
-    message = MagicMock(spec=Message)
-    message.from_user = SimpleNamespace(id=12345)
-    message.chat = SimpleNamespace(id=-100123, type="private")
-    message.delete = AsyncMock()
-
-    # Mock data with chat_db and user_db
-    chat_db = SimpleNamespace(tid=-100123, iid=chat_iid)
-    user_db = SimpleNamespace(tid=12345, iid=user_iid)
-    data: dict[str, Any] = {"chat_db": chat_db, "user_db": user_db}
+    message = _group_message(-100123, 12345)
+    data: dict[str, Any] = {
+        "chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
+        "user_db": SimpleNamespace(tid=12345, iid=PydanticObjectId()),
+    }
 
     result = await middleware(handler, message, data)
 
-    # Handler should be called since the user passed
     assert result == "handler_result"
     handler.assert_awaited_once_with(message, data)
     message.delete.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_lock_muted_users_middleware_blocks_unpassed_users(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Users still in captcha (not passed) get their messages deleted and handler is skipped."""
+async def test_lock_muted_users_middleware_blocks_unpassed_users(
+    monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+) -> None:
+    """Users still in captcha (not passed) get their messages deleted and the handler is skipped."""
     from aiogram.dispatcher.event.bases import SkipHandler
 
     from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
 
-    user_iid = PydanticObjectId()
-    chat_iid = PydanticObjectId()
-
-    # Create a mock WSUserModel that has NOT passed
-    unpassed_model = SimpleNamespace(passed=False)
-
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.WSUserModel.is_user",
-        AsyncMock(return_value=unpassed_model),
+        AsyncMock(return_value=SimpleNamespace(passed=False)),
     )
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.is_user_admin",
         AsyncMock(return_value=False),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.is_enabled",
-        AsyncMock(return_value=True),
-    )
-
-    async def _consume_common_try(coro, *_args, **_kwargs):
-        """Mock common_try that properly consumes the passed coroutine."""
-        try:
-            await coro
-        except Exception:
-            pass
-
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.common_try",
-        _consume_common_try,
-    )
 
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
-
-    # Create a mock message event (spec=Message so isinstance check passes)
-    message = MagicMock(spec=Message)
-    message.from_user = SimpleNamespace(id=12345)
-    message.chat = SimpleNamespace(id=-100123, type="private")
-    message.delete = AsyncMock()
-
-    # Mock data with chat_db and user_db
-    chat_db = SimpleNamespace(tid=-100123, iid=chat_iid)
-    user_db = SimpleNamespace(tid=12345, iid=user_iid)
-    data: dict[str, Any] = {"chat_db": chat_db, "user_db": user_db}
+    message = _group_message(-100123, 12345)
+    data: dict[str, Any] = {
+        "chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
+        "user_db": SimpleNamespace(tid=12345, iid=PydanticObjectId()),
+    }
 
     with pytest.raises(SkipHandler):
         await middleware(handler, message, data)
 
-    # Handler should NOT have been called
     handler.assert_not_awaited()
+    message.delete.assert_awaited_once()
+
+
+async def _saved_chat(tid: int, chat_type: str, title: str) -> Any:
+    from sophie_bot.db.models import ChatModel
+
+    chat = ChatModel(
+        tid=tid,
+        type=chat_type,
+        first_name_or_title=title,
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(timezone.utc),
+    )
+    await chat.insert()
+    # Re-read so tid/iid match what SaveChatsMiddleware puts in the context
+    return await ChatModel.get_by_tid(tid)
+
+
+@pytest.mark.asyncio
+async def test_lock_muted_users_middleware_blocks_unpassed_users_with_real_admin_check(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+) -> None:
+    """Regression: the real is_user_admin must not exempt an ordinary group member.
+
+    ``is_user_admin`` is deliberately NOT mocked here — it is the call that used to
+    short-circuit the middleware on every path. Only ``WSUserModel.is_user`` is
+    stubbed, because its DBRef predicate cannot run under mongomock.
+    """
+    from aiogram.dispatcher.event.bases import SkipHandler
+
+    from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.WSUserModel.is_user",
+        AsyncMock(return_value=SimpleNamespace(passed=False)),
+    )
+
+    user_chat = await _saved_chat(44444, "private", "Unpassed User")
+    group_chat = await _saved_chat(-100444444, "supergroup", "Locked Group")
+
+    middleware = LockMutedUsers()
+    handler = AsyncMock(return_value="handler_result")
+    message = _group_message(group_chat.tid, user_chat.tid)
+    data: dict[str, Any] = {"chat_db": group_chat, "user_db": user_chat}
+
+    try:
+        with pytest.raises(SkipHandler):
+            await middleware(handler, message, data)
+
+        handler.assert_not_awaited()
+        message.delete.assert_awaited_once()
+    finally:
+        await user_chat.delete()
+        await group_chat.delete()
+
+
+@pytest.mark.asyncio
+async def test_lock_muted_users_middleware_ignores_private_messages(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+) -> None:
+    """In PMs SaveChatsMiddleware sets chat_db to the user itself; nothing may be locked."""
+    from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
+
+    is_user = AsyncMock(return_value=SimpleNamespace(passed=False))
+    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users.WSUserModel.is_user", is_user)
+
+    user_chat = await _saved_chat(55555, "private", "PM User")
+
+    middleware = LockMutedUsers()
+    handler = AsyncMock(return_value="handler_result")
+    message = _group_message(user_chat.tid, user_chat.tid, chat_type="private")
+    data: dict[str, Any] = {"chat_db": user_chat, "user_db": user_chat}
+
+    try:
+        assert await middleware(handler, message, data) == "handler_result"
+        message.delete.assert_not_awaited()
+        is_user.assert_not_awaited()
+    finally:
+        await user_chat.delete()
+
+
+@pytest.mark.asyncio
+async def test_lock_muted_users_middleware_ignores_anonymous_admins(lock_middleware_env: None) -> None:
+    """Anonymous admins have no user_db; the middleware must let them through."""
+    from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
+
+    middleware = LockMutedUsers()
+    handler = AsyncMock(return_value="handler_result")
+    message = _group_message(-100123, 12345)
+    data: dict[str, Any] = {"chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()), "user_db": None}
+
+    assert await middleware(handler, message, data) == "handler_result"
+    message.delete.assert_not_awaited()

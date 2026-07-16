@@ -31,7 +31,7 @@ class WarnsPMHandler(SophieMessageHandler):
         doc = Doc(Title(_("⚠️ Your warnings")))
 
         for warn in warns:
-            chat = await ChatModel.get_by_iid(warn.chat.iid)
+            chat = await ChatModel.get_by_iid(warn.chat.ref.id)
             chat_title = chat.first_name_or_title if chat else _("Unknown Chat")
 
             doc += KeyValue(chat_title, warn.reason or _("No reason provided"))

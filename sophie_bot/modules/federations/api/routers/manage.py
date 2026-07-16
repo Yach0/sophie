@@ -25,18 +25,18 @@ def _federation_summary(federation: Federation) -> FederationSummaryResponse:
     return FederationSummaryResponse(
         fed_id=federation.fed_id,
         fed_name=federation.fed_name,
-        creator_iid=federation.creator.id,
-        log_chat_iid=federation.log_chat.iid if federation.log_chat else None,
+        creator_iid=federation.creator.ref.id,
+        log_chat_iid=federation.log_chat.ref.id if federation.log_chat else None,
     )
 
 
 def _federation_detail(federation: Federation) -> FederationDetailResponse:
-    chat_iids = [c.iid for c in federation.chats] if federation.chats else []
+    chat_iids = [chat.ref.id for chat in federation.chats] if federation.chats else []
     return FederationDetailResponse(
         fed_id=federation.fed_id,
         fed_name=federation.fed_name,
-        creator_iid=federation.creator.id,
-        log_chat_iid=federation.log_chat.iid if federation.log_chat else None,
+        creator_iid=federation.creator.ref.id,
+        log_chat_iid=federation.log_chat.ref.id if federation.log_chat else None,
         chat_iids=chat_iids,
         subscribed_fed_ids=federation.subscribed or [],
     )
@@ -47,7 +47,10 @@ async def list_federations(
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> list[FederationSummaryResponse]:
     owned_federations = await Federation.find(Federation.creator.id == user.iid).to_list()
-    admin_federations = await Federation.find(Federation.admins == user.iid).to_list()
+    # `admins` holds DBRefs, so the filter must address `admins.$id`; comparing the field to a bare
+    # ObjectId renders `{"admins": ...}` and never matches. The `Link[T] = T` alias hides the
+    # class-level ExpressionField from the checker, which sees a plain list here.
+    admin_federations = await Federation.find(Federation.admins.id == user.iid).to_list()  # ty: ignore[unresolved-attribute]
 
     unique_federations: dict[str, Federation] = {federation.fed_id: federation for federation in owned_federations}
     for federation in admin_federations:

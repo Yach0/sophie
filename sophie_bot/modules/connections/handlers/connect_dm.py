@@ -44,12 +44,12 @@ class ConnectDMCmd(SophieMessageHandler):
     async def handle(self):
         if not self.event.from_user:
             return
-        user_iid = self.connection.db_model.iid
+        user_db: ChatModel = self.data["user_db"]
 
         # If chat arg is provided
         if chat_arg := self.data.get("chat"):
             chat_iid = chat_arg.iid
-            if not await check_connection_permissions(chat_iid, user_iid):
+            if not await check_connection_permissions(chat_iid, user_db.iid):
                 await self.event.reply(_("You are not allowed to connect to this chat."))
                 return
             await self.do_connect(self.event.from_user.id, chat_arg.tid)
@@ -93,7 +93,7 @@ class ConnectCallback(SophieCallbackQueryHandler):
         return (ConnectToChatCb.filter(),)
 
     async def handle(self):
-        user_iid = self.connection.db_model.iid
+        user_db: ChatModel = self.data["user_db"]
         chat_tid = self.data["callback_data"].chat_id
 
         chat = await ChatModel.get_by_tid(chat_tid)
@@ -102,7 +102,7 @@ class ConnectCallback(SophieCallbackQueryHandler):
             return
 
         # Check permissions
-        if not await check_connection_permissions(chat.iid, user_iid):
+        if not await check_connection_permissions(chat.iid, user_db.iid):
             await self.event.answer(_("You are not allowed to connect to this chat."), show_alert=True)
             return
 

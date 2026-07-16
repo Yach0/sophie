@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
@@ -10,25 +10,25 @@ from stfu_tg import Italic, Template
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models import GreetingsModel
+from sophie_bot.db.models.greetings import WELCOMEMUTE_DEFAULT_TIME
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.status_handler import StatusHandlerABC
-from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
-    convert_timedelta_or_str,
-)
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
+type WelcomeMuteStatus = timedelta | Literal[False]
 
 
 @flags.help(
     description=l_("Shows / changes the state of Welcome Restrict (Media restricting)."),
     args={"NewStatus": TextArg(l_("?New status or restrict time"))},
 )
-class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
+class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
     header_text = l_("Welcome Mute (Automatic new users media restricting)")
     change_command = "welcomerestrict"
-    change_args = "off / 12h / 2d / 1w"
+    change_args = "on / off / 12h / 2d / 1w"
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -38,45 +38,33 @@ class EnableWelcomeMute(StatusHandlerABC[timedelta | str | Literal[False]]):
     def filters() -> tuple[CallbackType, ...]:
         return CMDFilter("welcomerestrict"), UserRestricting(admin=True)
 
-    def status_text(self, status_data: timedelta | str | bool) -> Element | str:
-        locale = self.current_locale
-
-        # From db
-        if isinstance(status_data, str):
-            delta = convert_timedelta_or_str(status_data)
-        elif isinstance(status_data, bool) and not status_data:
+    def status_text(self, status_data: WelcomeMuteStatus) -> Element | str:
+        if status_data is False:
             return _("Disabled")
-        elif isinstance(status_data, timedelta):
-            delta = status_data
-        else:
-            raise ValueError("Invalid status data type")
 
         return Template(
-            _("Enabled, set to {time}"), time=Italic(format_timedelta(delta, locale=locale.replace("-", "_")))
+            _("Enabled, set to {time}"),
+            time=Italic(format_timedelta(status_data, locale=self.current_locale.replace("-", "_"))),
         )
 
-    async def get_status(self) -> timedelta | Literal[False]:
-        chat_iid = self.connection.db_model.iid
-        db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
+    async def get_status(self) -> WelcomeMuteStatus:
+        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
 
-        if not db_model or not db_model.welcome_mute or not db_model.welcome_mute.enabled:
+        if not db_model.welcome_mute or not db_model.welcome_mute.enabled or not db_model.welcome_mute.time:
             return False
 
-        if db_model.welcome_mute.time is None:
-            return False
-        return convert_timedelta_or_str(db_model.welcome_mute.time)
+        return db_model.welcome_mute.time
 
-    async def set_status(self, new_status: str | timedelta | Literal[False]):
-        chat_iid = self.connection.db_model.iid
+    async def set_status(self, new_status: WelcomeMuteStatus) -> None:
+        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
 
-        time: Optional[timedelta] = None
+        time: Optional[timedelta] = new_status if new_status is not False else None
+        await db_model.set_status_welcomemute(time is not None, time)
 
-        if isinstance(new_status, bool) and not new_status:
-            is_enabled = False
-        else:
-            is_enabled = True
-            time = convert_timedelta_or_str(new_status)
+    async def handle(self) -> Any:
+        new_status: timedelta | bool | None = self.data.get("new_status")
 
-        db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
+        if new_status is None:
+            return await self.display_current_status()
 
-        await db_model.set_status_welcomemute(is_enabled, time)
+        return await self.change_status(WELCOMEMUTE_DEFAULT_TIME if new_status is True else new_status)

@@ -6,6 +6,7 @@ from aiogram.types import Message, MessageEntity
 
 from sophie_bot.db.models.notes import NoteFile
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
+from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT
 from sophie_bot.modules.notes.utils.parse import (
     extract_file_info,
     parse_reply_message,
@@ -53,6 +54,39 @@ async def test_parse_saveable_exceeding_length_limit():
     with patch("sophie_bot.modules.notes.utils.parse.TELEGRAM_MESSAGE_LENGTH_LIMIT", 1000):
         with pytest.raises(SophieException):
             await parse_saveable(message, text=text)
+
+
+@pytest.mark.asyncio
+async def test_parse_saveable_rejects_caption_over_media_limit():
+    """Regression: a media note's text becomes a caption, capped at 1024, not 4096.
+
+    Saving was accepted at up to 4096, then Telegram answered MEDIA_CAPTION_TOO_LONG on
+    every retrieval, which `common_try` re-raises — the note was permanently unretrievable.
+    """
+    message = AsyncMock(spec=Message)
+    message.reply_to_message = None
+    message.content_type = ContentType.PHOTO
+
+    with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
+        mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.PHOTO)
+        with pytest.raises(SophieException):
+            await parse_saveable(message, text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), buttons=ButtonsList())
+
+
+@pytest.mark.asyncio
+async def test_parse_saveable_allows_caption_length_text_without_caption_support():
+    """A sticker note carries no caption, so its text keeps the plain message limit."""
+    message = AsyncMock(spec=Message)
+    message.reply_to_message = None
+    message.content_type = ContentType.STICKER
+
+    with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
+        mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.STICKER)
+        result = await parse_saveable(
+            message, text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), buttons=ButtonsList()
+        )
+
+    assert result.text == "A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1)
 
 
 @pytest.mark.asyncio

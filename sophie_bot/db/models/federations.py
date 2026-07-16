@@ -28,6 +28,7 @@ class Federation(Document):
             IndexModel([("fed_id", ASCENDING)]),
             IndexModel([("creator.$id", ASCENDING)]),
             IndexModel([("chats.$id", ASCENDING)]),
+            IndexModel([("admins.$id", ASCENDING)]),
             IndexModel([("creator.$id", ASCENDING), ("fed_name", ASCENDING)]),
         ]
 
