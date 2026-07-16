@@ -5,7 +5,6 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.enums import ContentType
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.filters.api.utils import build_filter_action_catalog
@@ -180,7 +179,7 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
 
             return emit_result()
 
-    monkeypatch.setitem(send_module.SEND_METHOD, ContentType.TEXT, FakeSendMessage)
+    monkeypatch.setattr(send_module, "SendMessage", FakeSendMessage)
     monkeypatch.setattr(
         "sophie_bot.modules.rules.magic_handlers.modern_filter.RulesModel.get_rules",
         AsyncMock(return_value=Saveable(text="Welcome {mention} to {chatname}", version=2)),
