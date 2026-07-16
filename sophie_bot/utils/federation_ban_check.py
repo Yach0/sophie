@@ -25,8 +25,16 @@ async def get_user_federation_ban_info(chat_iid: PydanticObjectId, user_tid: int
     if not federation:
         return None
 
+    current_ban = await FederationBan.find_one(
+        FederationBan.fed_id == federation.fed_id,
+        FederationBan.user_id == user_tid,
+    )
+    if current_ban:
+        return FederationBanInfo(scope="current", fed_name=federation.fed_name, fed_id=federation.fed_id)
+
     federation_chain_ids = await _get_subscription_chain(federation.fed_id)
-    federation_chain_ids.append(federation.fed_id)
+    if not federation_chain_ids:
+        return None
 
     existing_ban = await FederationBan.find(
         In(FederationBan.fed_id, federation_chain_ids),
@@ -34,9 +42,6 @@ async def get_user_federation_ban_info(chat_iid: PydanticObjectId, user_tid: int
     ).first_or_none()
     if not existing_ban:
         return None
-
-    if existing_ban.fed_id == federation.fed_id:
-        return FederationBanInfo(scope="current", fed_name=federation.fed_name, fed_id=federation.fed_id)
 
     banning_federation = await Federation.find_one(Federation.fed_id == existing_ban.fed_id)
     banning_fed_name = banning_federation.fed_name if banning_federation else existing_ban.fed_id

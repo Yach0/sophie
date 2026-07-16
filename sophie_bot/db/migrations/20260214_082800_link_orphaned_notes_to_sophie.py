@@ -7,6 +7,23 @@ Description:
 Affected Collections:
     - notes
     - chats (creates Sophie system entry if not exists)
+
+Impact:
+    - Backward is a no-op; see below.
+
+Rollback:
+    Not possible. Forward overwrites each orphaned user ID with a link to the Sophie system
+    chat, collapsing many distinct original IDs into one reference and preserving none of
+    them. Nothing records what any note's user ID was.
+
+    The previous Backward admitted this in a comment -- "We use SOPHIE_SYSTEM_TID as the
+    integer value since we don't have original" -- and wrote the literal 0 into every note
+    pointing at the Sophie chat. That did not restore anything: it replaced an honest
+    "attributed to Sophie" link with a fabricated ID, and it also rewrote notes genuinely
+    authored by Sophie, which Forward never touched.
+
+    Leaving the Sophie link in place at least keeps the attribution truthful, so Backward
+    does nothing.
 """
 
 from __future__ import annotations
@@ -55,20 +72,8 @@ class Forward:
 
 
 class Backward:
+    """No rollback: Forward overwrote the original user IDs without recording them."""
+
     @free_fall_migration(document_models=[NoteModel, ChatModel])
-    async def rollback(self, session):
-        # Find Sophie system chat
-        sophie_chat = await ChatModel.find_one(ChatModel.tid == SOPHIE_SYSTEM_TID)
-        if not sophie_chat:
-            return
-
-        col = NoteModel.get_pymongo_collection()
-        sophie_ref = DBRef("chats", sophie_chat.id)
-
-        # Convert notes linked to Sophie back to the integer value
-        # We use SOPHIE_SYSTEM_TID as the integer value since we don't have original
-        async for doc in col.find({"created_user": sophie_ref}):
-            await col.update_one({"_id": doc["_id"]}, {"$set": {"created_user": SOPHIE_SYSTEM_TID}}, session=session)
-
-        async for doc in col.find({"edited_user": sophie_ref}):
-            await col.update_one({"_id": doc["_id"]}, {"$set": {"edited_user": SOPHIE_SYSTEM_TID}}, session=session)
+    async def noop(self, session) -> None:
+        del session

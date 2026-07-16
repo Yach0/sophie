@@ -10,6 +10,22 @@ Affected Collections:
 Impact:
     - Medium risk: Migrates stored filter documents to version 2 format.
     - Required before removing legacy filter action runtime support.
+    - Backward is a no-op; see below.
+
+Rollback:
+    Not possible. Forward converts filters that carried a legacy `action` string, leaving them
+    with `action: None`, a populated `actions` dict and `version: 2` -- which is byte-identical
+    to a filter created natively in the v2 format (`FiltersModel.action` is None for modern
+    filters, and the modern constructor also writes `version: 2`). Forward records nothing that
+    separates the two, so its set cannot be recovered.
+
+    The previous Backward selected `{"action": None, "actions": {...}}`, which matches every
+    modern filter, and rewrote each to the legacy shape: `action: <legacy>`, `actions: {}`,
+    `version: 1`. For a filter authored natively in v2 -- one Forward never touched -- that
+    discarded its real action config and fabricated a legacy form it never had.
+
+    Reverting nothing is strictly better than shredding every modern filter, so Backward is an
+    explicit no-op.
 """
 
 from __future__ import annotations
@@ -93,33 +109,8 @@ class Forward:
 
 
 class Backward:
-    """Restore legacy action field from a single modern action (best-effort rollback)."""
-
-    MODERN_TO_LEGACY: dict[str, str] = {modern: legacy for legacy, modern in LEGACY_TO_MODERN.items()}
+    """No rollback: migrated filters are indistinguishable from filters authored in v2."""
 
     @free_fall_migration(document_models=[FiltersModel])
-    async def rollback(self, session):
-        collection = FiltersModel.get_pymongo_collection()
-        async for document in collection.find({"action": None, "actions": {"$exists": True, "$ne": {}}}):
-            actions = document.get("actions") or {}
-            if len(actions) != 1:
-                continue
-
-            modern_name, action_data = next(iter(actions.items()))
-            legacy_name = self.MODERN_TO_LEGACY.get(modern_name)
-            if legacy_name is None:
-                continue
-
-            set_fields: dict[str, Any] = {"action": legacy_name, "actions": {}, "version": 1}
-            if legacy_name == "reply_message" and isinstance(action_data, dict):
-                set_fields["reply_text"] = action_data
-            elif legacy_name == "get_note" and isinstance(action_data, dict):
-                notename = action_data.get("notename")
-                if isinstance(notename, str):
-                    set_fields["note_name"] = notename
-            elif legacy_name == "ai_text" and isinstance(action_data, dict):
-                prompt = action_data.get("prompt")
-                if isinstance(prompt, str):
-                    set_fields["prompt"] = prompt
-
-            await collection.update_one({"_id": document["_id"]}, {"$set": set_fields}, session=session)
+    async def noop(self, session) -> None:
+        del session

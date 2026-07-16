@@ -129,7 +129,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             chat=current_chat.iid,
             current_chat_iid=current_chat.iid if chat_part_of_federation else None,
             reply_chat_id=self.event.chat.id,
-            reply_message_id=reply_msg.message_id,
+            reply_message_id=reply_msg.message_id if reply_msg else None,
             unban_chat_iids=unban_chat_iids,
             created_at=datetime.now(timezone.utc),
         ).insert()

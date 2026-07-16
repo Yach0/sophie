@@ -9,7 +9,21 @@ Affected Collections:
 Impact:
     - Low risk: Normalizes action format.
     - Small collection: Antiflood settings are per-chat.
+
+Rollback:
+    The legacy `action` string can only encode a bare mute/kick/ban, so a document is
+    convertible back only if it holds exactly what Forward produced: a single known action
+    with no `data` payload. Backward is restricted to that shape
+    (`is_forward_migrated_antiflood_action`), which is lossless for those documents.
+
+    It previously converted any single legacy-named action regardless of `data`, on every
+    document rather than the ones Forward touched. An antiflood configured after the
+    migration with, say, a mute duration in `data` was rewritten to `action: "mute"`,
+    `actions: []` -- silently discarding the payload the legacy field cannot express.
+    Documents carrying `data` are now left in the modern shape instead of being truncated.
 """
+
+from typing import Any
 
 from beanie import free_fall_migration
 from sophie_bot.db.models.antiflood import AntifloodModel
@@ -18,6 +32,19 @@ from sophie_bot.utils.logger import log
 
 LEGACY_ACTIONS = {"mute", "kick", "ban"}
 LEGACY_ACTIONS_TO_MODERN = {"mute": "mute_user", "kick": "kick_user", "ban": "ban_user"}
+MODERN_TO_LEGACY_ACTIONS = {modern: legacy for legacy, modern in LEGACY_ACTIONS_TO_MODERN.items()}
+
+
+def is_forward_migrated_antiflood_action(actions: list[dict[str, Any]]) -> bool:
+    """Match Forward's output: one legacy-mappable action carrying no data.
+
+    A `data` payload has no representation in the legacy `action` string, so any action that
+    has one must be left alone rather than truncated.
+    """
+    if len(actions) != 1:
+        return False
+    action = actions[0]
+    return action.get("name") in MODERN_TO_LEGACY_ACTIONS and not action.get("data")
 
 
 class Forward:
@@ -65,10 +92,8 @@ class Backward:
     """Convert modern actions back to legacy action and restore chat_id."""
 
     @free_fall_migration(document_models=[AntifloodModel])
-    async def rollback(self, session):
+    async def rollback(self, session) -> None:
         collection = AntifloodModel.get_pymongo_collection()
-        # Inverse mapping
-        MODERN_TO_LEGACY = {v: k for k, v in LEGACY_ACTIONS_TO_MODERN.items()}
 
         async for doc in collection.find():
             if "chat" in doc:
@@ -81,12 +106,10 @@ class Backward:
                         session=session,
                     )
 
-            actions = doc.get("actions", [])
-            if actions and len(actions) == 1:
-                action_name = actions[0].get("name")
-                if action_name in MODERN_TO_LEGACY:
-                    await collection.update_one(
-                        {"_id": doc["_id"]},
-                        {"$set": {"action": MODERN_TO_LEGACY[action_name], "actions": []}},
-                        session=session,
-                    )
+            actions = doc.get("actions") or []
+            if is_forward_migrated_antiflood_action(actions):
+                await collection.update_one(
+                    {"_id": doc["_id"]},
+                    {"$set": {"action": MODERN_TO_LEGACY_ACTIONS[actions[0]["name"]], "actions": []}},
+                    session=session,
+                )
