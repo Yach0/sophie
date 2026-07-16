@@ -115,7 +115,9 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         try:
             async with aredis.pipeline() as pipe:
                 pipe.incr(key)
-                pipe.expire(key, GLOBAL_RATE_WINDOW)
+                # NX: only set the TTL when the counter has none, so a client that keeps
+                # sending cannot push the window's expiry back and lock itself out forever.
+                pipe.expire(key, GLOBAL_RATE_WINDOW, nx=True)
                 results = await pipe.execute()
 
             current_count = results[0]

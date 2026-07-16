@@ -120,14 +120,15 @@ async def login_operator(data: OperatorLoginRequest):
         raise HTTPException(status_code=500, detail="Owner ID not configured")
 
     hashed = hash_token(data.token)
-    api_token = await ApiTokenModel.get_by_hash(hashed)
-    if api_token:
-        user = api_token.user
-        security_log.info("auth.operator.login_success", user_tid=user.tid, method="api_token", label=api_token.label)
-        return await create_tokens(user, scopes=["operator"])
+    try:
+        api_token = await ApiTokenModel.get_by_hash(hashed)
+    except DBNotFoundException:
+        security_log.warning("auth.operator.login_failed")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    security_log.warning("auth.operator.login_failed")
-    raise HTTPException(status_code=401, detail="Invalid token")
+    user = api_token.user
+    security_log.info("auth.operator.login_success", user_tid=user.tid, method="api_token", label=api_token.label)
+    return await create_tokens(user, scopes=["operator"])
 
 
 @router.post("/refresh", response_model=Token, dependencies=[Depends(rate_limit)])
