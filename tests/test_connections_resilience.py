@@ -15,6 +15,7 @@ from bson.objectid import ObjectId
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
+from sophie_bot.modules.connections.utils.connection import set_connected_chat
 
 
 def build_private_event_chat(user_tid: int, first_name: str) -> Chat:
@@ -129,6 +130,48 @@ async def test_cleanup_migration_repairs_dangling_connections(db_init: Any) -> N
     history_references = raw_connection_document.get("history") or []
     history_reference_ids = [history_reference.id for history_reference in history_references]
     assert stale_chat_iid not in history_reference_ids
+
+
+@pytest.mark.asyncio
+async def test_reconnecting_to_same_chat_does_not_duplicate_history(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del db_init
+    await ChatConnectionModel.delete_all()
+    await ChatModel.delete_all()
+
+    user_tid = 333333333
+    first_group_tid = -100333333331
+    second_group_tid = -100333333332
+    await build_private_chat_model(user_tid=user_tid, title="History User")
+    await build_group_chat_model(chat_tid=first_group_tid, title="First Group")
+    await build_group_chat_model(chat_tid=second_group_tid, title="Second Group")
+
+    user_chat = await ChatModel.get_by_tid(user_tid)
+    first_group = await ChatModel.get_by_tid(first_group_tid)
+    second_group = await ChatModel.get_by_tid(second_group_tid)
+    assert user_chat and first_group and second_group
+
+    connection_model = ChatConnectionModel(user=user_chat, history=[])
+    await connection_model.insert()
+    connection_iid = connection_model.id
+
+    # mongomock cannot match the `user.$id` predicate against a stored DBRef, so the real
+    # get_by_user_iid lookup never resolves under the test DB.
+    async def fetch_connection(_user_iid: Any) -> ChatConnectionModel | None:
+        return await ChatConnectionModel.get(connection_iid)
+
+    monkeypatch.setattr(ChatConnectionModel, "get_by_user_iid", fetch_connection)
+
+    await set_connected_chat(user_tid, first_group_tid)
+    await set_connected_chat(user_tid, second_group_tid)
+    for _ in range(3):
+        await set_connected_chat(user_tid, first_group_tid)
+
+    stored_connection = await ChatConnectionModel.get(connection_iid)
+    assert stored_connection is not None
+    history_iids = [history_chat.to_ref().id for history_chat in stored_connection.history]
+    assert history_iids == [first_group.iid, second_group.iid]
 
 
 @pytest.mark.asyncio
