@@ -47,6 +47,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
     data_object = WarnActionDataModel
     default_data = WarnActionDataModel(reason=None)
     allow_warns = False
+    skip_for_admins = True
 
     @staticmethod
     def description(data: WarnActionDataModel) -> Element | str:

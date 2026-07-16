@@ -118,7 +118,7 @@ async def _execute_warn_actions(
             runtime_data.setdefault("warn_reason", reason)
 
         filter_data = convert_action_data_to_model(action_item, action_data)
-        await action_item.handle(trigger_message, runtime_data, filter_data)
+        await action_item.execute(trigger_message, runtime_data, filter_data)
 
     return punishment
 
