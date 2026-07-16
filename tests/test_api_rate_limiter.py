@@ -1,10 +1,15 @@
+import contextlib
 from types import SimpleNamespace
+from typing import AsyncIterator
 
 import pytest
+from fakeredis import FakeAsyncRedis
 from fastapi import HTTPException
 
 from sophie_bot.utils.api import rate_limiter
 from sophie_bot.utils.api.rate_limiter import get_client_ip, rate_limit
+
+RATE_LIMIT_KEY = "rate_limit:/api/test:203.0.113.10"
 
 
 class FakePipeline:
@@ -12,7 +17,7 @@ class FakePipeline:
         self.execute_result = execute_result or [1]
         self.execute_error = execute_error
         self.incr_keys: list[str] = []
-        self.expire_calls: list[tuple[str, int]] = []
+        self.expire_calls: list[tuple[str, int, bool]] = []
 
     async def __aenter__(self) -> "FakePipeline":
         return self
@@ -23,8 +28,8 @@ class FakePipeline:
     def incr(self, key: str) -> None:
         self.incr_keys.append(key)
 
-    def expire(self, key: str, window: int) -> None:
-        self.expire_calls.append((key, window))
+    def expire(self, key: str, window: int, nx: bool = False) -> None:
+        self.expire_calls.append((key, window, nx))
 
     async def execute(self) -> list[int]:
         if self.execute_error:
@@ -102,7 +107,8 @@ async def test_rate_limit_records_request_in_redis(monkeypatch: pytest.MonkeyPat
 
     expected_key = "rate_limit:/api/test:203.0.113.10"
     assert pipeline.incr_keys == [expected_key]
-    assert pipeline.expire_calls == [(expected_key, 45)]
+    # nx=True: the TTL must only be set when the counter has none, never refreshed
+    assert pipeline.expire_calls == [(expected_key, 45, True)]
     assert redis.ttl_keys == []
 
 
@@ -141,3 +147,51 @@ async def test_rate_limit_fails_open_when_ttl_lookup_errors(monkeypatch: pytest.
     await rate_limit(make_request(), limit=1, window=60)
 
     assert redis.ttl_keys == ["rate_limit:/api/test:203.0.113.10"]
+
+
+@pytest.fixture
+async def real_redis(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[FakeAsyncRedis]:
+    redis = FakeAsyncRedis()
+    monkeypatch.setattr(rate_limiter, "aredis", redis)
+    yield redis
+    await redis.aclose()
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_allowed_request_does_not_extend_window(real_redis: FakeAsyncRedis) -> None:
+    request = make_request()
+    await rate_limit(request, limit=3, window=60)
+
+    # fakeredis has no advanceable clock; shrinking the TTL stands in for elapsed time.
+    await real_redis.expire(RATE_LIMIT_KEY, 10)
+    await rate_limit(request, limit=3, window=60)
+
+    assert await real_redis.ttl(RATE_LIMIT_KEY) <= 10
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_rejected_request_does_not_extend_window(real_redis: FakeAsyncRedis) -> None:
+    request = make_request()
+    for _attempt in range(3):
+        await rate_limit(request, limit=3, window=60)
+
+    await real_redis.expire(RATE_LIMIT_KEY, 10)
+    with pytest.raises(HTTPException) as exc_info:
+        await rate_limit(request, limit=3, window=60)
+
+    assert exc_info.value.status_code == 429
+    # A 429 must not push the window back, otherwise the client can never escape the lockout.
+    assert await real_redis.ttl(RATE_LIMIT_KEY) <= 10
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_counter_resets_after_window_expires(real_redis: FakeAsyncRedis) -> None:
+    request = make_request()
+    for _attempt in range(4):
+        with contextlib.suppress(HTTPException):
+            await rate_limit(request, limit=3, window=60)
+
+    await real_redis.delete(RATE_LIMIT_KEY)
+
+    await rate_limit(request, limit=3, window=60)
+    assert await real_redis.ttl(RATE_LIMIT_KEY) == 60
