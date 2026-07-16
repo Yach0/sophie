@@ -32,7 +32,7 @@ class MetricsMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         # Extract update information
-        update_info = extract_update_info(event, data)
+        update_info = extract_update_info(event)
         command_name = extract_command_name(event)
 
         # Increment update counter

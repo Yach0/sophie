@@ -40,7 +40,7 @@ class SentryTracingMiddleware(BaseMiddleware):
         if not await is_enabled(TRACING_FLAG):
             return await handler(event, data)
 
-        update_info = extract_update_info(event, data)
+        update_info = extract_update_info(event)
         command_name = extract_command_name(event)
 
         transaction_name = f"command:{command_name}" if command_name else f"update:{update_info['update_type']}"

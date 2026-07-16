@@ -4,6 +4,7 @@ from beanie.odm.operators.update.general import Set
 from fastapi import APIRouter
 
 from sophie_bot.db.models.locks import LocksModel
+from sophie_bot.modules.locks.utils.cache import invalidate_locks_cache
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
 
@@ -24,4 +25,6 @@ async def set_locked_types(
         Set({LocksModel.locked_types: set(valid_locks)}),
         on_insert=LocksModel(chat=chat.iid, locked_types=set(valid_locks)),
     )
+    await invalidate_locks_cache(chat.tid)
+
     return LocksResponse(locked=sorted(valid_locks))
