@@ -59,12 +59,7 @@ async def create_federation_via_command(
     fed_name: str,
     owner_model: ChatModel,
 ) -> Federation:
-    """Create a federation via the /newfed command and return it.
-
-    Note: We look up by ``fed_name`` because mongomock does not support
-    ``$id`` sub-queries on DBRef fields, so ``get_federation_by_creator``
-    always returns ``None`` in the test environment.
-    """
+    """Create a federation via the /newfed command and return it."""
     await test_client.send_command(command="newfed", from_user=owner_user, args=fed_name, chat=group)
     federation = await Federation.find_one(Federation.fed_name == fed_name)
     assert federation is not None, f"Federation '{fed_name}' should be created"
