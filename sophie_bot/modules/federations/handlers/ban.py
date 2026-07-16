@@ -151,7 +151,7 @@ class FederationBanHandler(FederationCommandHandler):
         )
 
         # If silent mode, schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
-        if silent:
+        if silent and reply_msg:
             messages_to_delete = [self.event.message_id, reply_msg.message_id]
             if self.event.reply_to_message:
                 messages_to_delete.append(self.event.reply_to_message.message_id)
@@ -166,7 +166,7 @@ class FederationBanHandler(FederationCommandHandler):
             chat=current_chat.iid,
             current_chat_iid=current_chat.iid if chat_part_of_federation else None,
             reply_chat_id=self.event.chat.id,
-            reply_message_id=reply_msg.message_id,
+            reply_message_id=reply_msg.message_id if reply_msg else None,
             reason=reason,
             original_message_text=original_message_text,
             silent=silent,
