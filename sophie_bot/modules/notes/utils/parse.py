@@ -12,40 +12,13 @@ from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList, parse_message_buttons
 from sophie_bot.modules.notes.utils.buttons_processor.list_from_message import parse_buttons_list_from_message
 from sophie_bot.modules.notes.utils.convert_to_html import preserve_custom_emoji_inline_html, tg_emoji_workaround
+from sophie_bot.modules.notes.utils.media import (
+    MEDIA_CAPTION_LENGTH_LIMIT,
+    MEDIA_SPECS,
+    PARSABLE_CONTENT_TYPES,
+)
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
-
-PARSABLE_CONTENT_TYPES: tuple[ContentType, ...] = (
-    ContentType.AUDIO,
-    ContentType.ANIMATION,
-    ContentType.DOCUMENT,
-    ContentType.PHOTO,  # LIST??
-    ContentType.STICKER,
-    ContentType.VIDEO,
-    ContentType.VIDEO_NOTE,
-    ContentType.VOICE,
-    # ContentType.CONTACT,
-    # ContentType.LOCATION,
-    # ContentType.POLL,
-    # ContentType.DICE
-)
-CONTENT_TYPES_WITH_FILE_ID: tuple[ContentType, ...] = (
-    ContentType.AUDIO,
-    ContentType.ANIMATION,
-    ContentType.DOCUMENT,
-    ContentType.PHOTO,
-    ContentType.STICKER,
-    ContentType.VIDEO,
-    ContentType.VIDEO_NOTE,
-    ContentType.VOICE,
-)
-
-SUPPORTS_CAPTION: tuple[ContentType, ...] = (
-    ContentType.AUDIO,
-    ContentType.ANIMATION,
-    ContentType.DOCUMENT,
-    ContentType.PHOTO,
-)
 
 
 def extract_file_info(message: Message) -> Optional[NoteFile]:
@@ -139,13 +112,19 @@ async def parse_saveable(
 
     buttons.extend(replied_buttons)
 
+    # A caption-carrying media note is capped far lower than a plain message; rejecting it
+    # here keeps an over-long note from being saved and then failing on every retrieval.
+    text_limit = (
+        MEDIA_CAPTION_LENGTH_LIMIT
+        if file_data and MEDIA_SPECS[file_data.type].supports_caption
+        else TELEGRAM_MESSAGE_LENGTH_LIMIT
+    )
+
     # TODO: Length of the message with or without HTML entities??
-    if len(note_text or "") > TELEGRAM_MESSAGE_LENGTH_LIMIT:
+    if len(note_text or "") > text_limit:
         raise SophieException(
             Section(
-                Template(
-                    _("The maximum length of the note is {limit} characters."), limit=TELEGRAM_MESSAGE_LENGTH_LIMIT
-                ).to_html(),
+                Template(_("The maximum length of the note is {limit} characters."), limit=text_limit).to_html(),
                 _("Please try to reduce the length of note."),
                 title=_("Note is too long."),
             )
