@@ -156,22 +156,41 @@ async def test_get_user_federation_ban_info_returns_none_without_federation(monk
     assert await get_user_federation_ban_info(PydanticObjectId(), 42) is None
 
 
-@pytest.mark.asyncio
-async def test_get_user_federation_ban_info_returns_current_federation_ban(monkeypatch: pytest.MonkeyPatch) -> None:
-    federation = SimpleNamespace(fed_id="current", fed_name="Current Federation")
+def _patch_ban_lookups(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    current_fed_ban: SimpleNamespace | None,
+    chain_ban: SimpleNamespace | None,
+    chain_ids: list[str],
+) -> None:
+    """Wire the two distinct FederationBan lookups performed by get_user_federation_ban_info."""
 
     async def fake_get_federation_for_chat(chat_iid: PydanticObjectId) -> SimpleNamespace:
-        return federation
+        return SimpleNamespace(fed_id="current", fed_name="Current Federation")
 
     async def fake_get_subscription_chain(fed_id: str) -> list[str]:
-        return ["subscribed"]
+        return chain_ids
 
-    def fake_find(*conditions: object) -> FakeBanQuery:
-        return FakeBanQuery(SimpleNamespace(fed_id="current"))
+    async def fake_ban_find_one(*conditions: object) -> SimpleNamespace | None:
+        return current_fed_ban
+
+    def fake_ban_find(*conditions: object) -> FakeBanQuery:
+        return FakeBanQuery(chain_ban)
 
     monkeypatch.setattr(federation_ban_check, "_get_federation_for_chat", fake_get_federation_for_chat)
     monkeypatch.setattr(federation_ban_check, "_get_subscription_chain", fake_get_subscription_chain)
-    monkeypatch.setattr(federation_ban_check.FederationBan, "find", fake_find)
+    monkeypatch.setattr(federation_ban_check.FederationBan, "find_one", fake_ban_find_one)
+    monkeypatch.setattr(federation_ban_check.FederationBan, "find", fake_ban_find)
+
+
+@pytest.mark.asyncio
+async def test_get_user_federation_ban_info_returns_current_federation_ban(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_ban_lookups(
+        monkeypatch,
+        current_fed_ban=SimpleNamespace(fed_id="current"),
+        chain_ban=None,
+        chain_ids=["subscribed"],
+    )
 
     assert await get_user_federation_ban_info(PydanticObjectId(), 42) == FederationBanInfo(
         scope="current",
@@ -181,25 +200,50 @@ async def test_get_user_federation_ban_info_returns_current_federation_ban(monke
 
 
 @pytest.mark.asyncio
+async def test_get_user_federation_ban_info_prefers_current_federation_over_subscribed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A user banned in both the current and a subscribed federation is reported as banned here."""
+    _patch_ban_lookups(
+        monkeypatch,
+        current_fed_ban=SimpleNamespace(fed_id="current"),
+        chain_ban=SimpleNamespace(fed_id="subscribed"),
+        chain_ids=["subscribed"],
+    )
+
+    async def fake_find_one(condition: object) -> SimpleNamespace:
+        return SimpleNamespace(fed_id="subscribed", fed_name="Subscribed Federation")
+
+    monkeypatch.setattr(federation_ban_check.Federation, "find_one", fake_find_one)
+
+    assert await get_user_federation_ban_info(PydanticObjectId(), 42) == FederationBanInfo(
+        scope="current",
+        fed_name="Current Federation",
+        fed_id="current",
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_user_federation_ban_info_returns_none_without_any_ban(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_ban_lookups(monkeypatch, current_fed_ban=None, chain_ban=None, chain_ids=["subscribed"])
+
+    assert await get_user_federation_ban_info(PydanticObjectId(), 42) is None
+
+
+@pytest.mark.asyncio
 async def test_get_user_federation_ban_info_returns_subscribed_federation_ban(monkeypatch: pytest.MonkeyPatch) -> None:
-    federation = SimpleNamespace(fed_id="current", fed_name="Current Federation")
     banning_federation = SimpleNamespace(fed_id="subscribed", fed_name="Subscribed Federation")
 
-    async def fake_get_federation_for_chat(chat_iid: PydanticObjectId) -> SimpleNamespace:
-        return federation
-
-    async def fake_get_subscription_chain(fed_id: str) -> list[str]:
-        return ["subscribed"]
-
-    def fake_find(*conditions: object) -> FakeBanQuery:
-        return FakeBanQuery(SimpleNamespace(fed_id="subscribed"))
+    _patch_ban_lookups(
+        monkeypatch,
+        current_fed_ban=None,
+        chain_ban=SimpleNamespace(fed_id="subscribed"),
+        chain_ids=["subscribed"],
+    )
 
     async def fake_find_one(condition: object) -> SimpleNamespace:
         return banning_federation
 
-    monkeypatch.setattr(federation_ban_check, "_get_federation_for_chat", fake_get_federation_for_chat)
-    monkeypatch.setattr(federation_ban_check, "_get_subscription_chain", fake_get_subscription_chain)
-    monkeypatch.setattr(federation_ban_check.FederationBan, "find", fake_find)
     monkeypatch.setattr(federation_ban_check.Federation, "find_one", fake_find_one)
 
     assert await get_user_federation_ban_info(PydanticObjectId(), 42) == FederationBanInfo(
@@ -213,23 +257,16 @@ async def test_get_user_federation_ban_info_returns_subscribed_federation_ban(mo
 async def test_get_user_federation_ban_info_uses_fed_id_when_subscribed_federation_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    federation = SimpleNamespace(fed_id="current", fed_name="Current Federation")
-
-    async def fake_get_federation_for_chat(chat_iid: PydanticObjectId) -> SimpleNamespace:
-        return federation
-
-    async def fake_get_subscription_chain(fed_id: str) -> list[str]:
-        return ["missing"]
-
-    def fake_find(*conditions: object) -> FakeBanQuery:
-        return FakeBanQuery(SimpleNamespace(fed_id="missing"))
+    _patch_ban_lookups(
+        monkeypatch,
+        current_fed_ban=None,
+        chain_ban=SimpleNamespace(fed_id="missing"),
+        chain_ids=["missing"],
+    )
 
     async def fake_find_one(condition: object) -> None:
         return None
 
-    monkeypatch.setattr(federation_ban_check, "_get_federation_for_chat", fake_get_federation_for_chat)
-    monkeypatch.setattr(federation_ban_check, "_get_subscription_chain", fake_get_subscription_chain)
-    monkeypatch.setattr(federation_ban_check.FederationBan, "find", fake_find)
     monkeypatch.setattr(federation_ban_check.Federation, "find_one", fake_find_one)
 
     assert await get_user_federation_ban_info(PydanticObjectId(), 42) == FederationBanInfo(

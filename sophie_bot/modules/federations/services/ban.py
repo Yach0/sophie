@@ -186,7 +186,9 @@ class FederationBanService:
         if not result:
             return False, None
 
-        if hasattr(result, "origin_fed") and result.origin_fed:
+        if result.origin_fed and await FederationBanService._is_inherited_ban_enforced(
+            fed_id, result.origin_fed, user_tid
+        ):
             return False, result
 
         await result.delete()
@@ -194,6 +196,19 @@ class FederationBanService:
         await FederationBanService._invalidate_export_tasks(fed_id)
         await FederationCacheService.set_user_ban_status(fed_id, user_tid, False)
         return True, None
+
+    @staticmethod
+    async def _is_inherited_ban_enforced(fed_id: str, origin_fed_id: str, user_tid: int) -> bool:
+        """Whether the origin federation's ban still propagates into ``fed_id``.
+
+        ``origin_fed`` is a snapshot taken at lazy-ban time and is never rewritten when the
+        subscription is dropped or the origin ban is lifted, so it is resolved against live
+        state instead of being trusted on its own. Rows written before this check existed may
+        still carry a stale ``origin_fed``; resolving live makes them removable regardless.
+        """
+        if origin_fed_id not in await FederationManageService.get_subscription_chain(fed_id):
+            return False
+        return await FederationBanService.is_user_banned(origin_fed_id, user_tid) is not None
 
     @staticmethod
     async def unban_user_in_federation_chats(federation: Federation, user_tid: int) -> int:

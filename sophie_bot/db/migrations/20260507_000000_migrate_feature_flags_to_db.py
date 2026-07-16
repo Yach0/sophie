@@ -9,11 +9,22 @@ Affected Collections:
 
 Impact:
     - Low risk: Redis data is preserved and remains usable as warm cache.
+
+Rollback:
+    Restores every override to Redis and then removes exactly the rows it restored, so no
+    override is dropped without first being written back.
+
+    Backward previously skipped any override whose feature is no longer in FEATURE_FLAGS, or
+    whose value is None, and then unconditionally dropped the whole collection -- destroying
+    precisely the rows it had declined to restore. Overrides for a retired or renamed flag
+    were therefore lost on rollback. Rows that cannot be serialized back into Redis are now
+    left in place rather than deleted.
 """
 
 from __future__ import annotations
 
 from beanie import free_fall_migration
+from bson import ObjectId
 
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.services.redis import aredis
@@ -82,20 +93,23 @@ class Forward:
 
 
 class Backward:
-    """Restore feature flag overrides to Redis and remove the MongoDB collection."""
+    """Restore feature flag overrides to Redis and remove the rows that were restored."""
 
     @free_fall_migration(document_models=[FeatureFlagOverride])
     async def rollback(self, session: object) -> None:
         collection = FeatureFlagOverride.get_pymongo_collection()
+        restored_ids: list[ObjectId] = []
 
+        # Deliberately not filtered on FEATURE_FLAGS: an override for a retired flag is still
+        # the operator's data, and Redis stores it as an inert hash field either way.
         async for override in collection.find({}, session=session):
-            feature = override.get("feature")
             value = override.get("value")
-            chat_tid = override.get("chat_tid")
-            if feature not in FEATURE_FLAGS or value is None:
+            if value is None:
                 continue
 
+            chat_tid = override.get("chat_tid")
             redis_key = _REDIS_KEY if chat_tid is None else f"{_REDIS_CHAT_KEY_PREFIX}:{chat_tid}"
-            await aredis.hset(redis_key, feature, _serialize_value(value))
+            await aredis.hset(redis_key, override["feature"], _serialize_value(value))
+            restored_ids.append(override["_id"])
 
-        await collection.drop(session=session)
+        await collection.delete_many({"_id": {"$in": restored_ids}}, session=session)
