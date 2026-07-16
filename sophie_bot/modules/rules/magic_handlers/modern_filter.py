@@ -1,6 +1,6 @@
 from aiogram.types import Message
 from stfu_tg import Bold, HList, Section, Title
-from stfu_tg.doc import Doc, Element, PreformattedHTML
+from stfu_tg.doc import Element
 
 from sophie_bot.db.models import RulesModel
 from sophie_bot.middlewares.connections import ChatConnection
@@ -22,32 +22,26 @@ class SendRulesAction(ModernActionABC[None]):
     def description(data: None) -> Element | str:
         return _("Replies to the message with the chat rules")
 
-    async def handle(self, message: Message, data: dict, filter_data: None):
+    async def handle(self, message: Message, data: dict, filter_data: None) -> None:
         connection: ChatConnection = data["connection"]
 
         rules = await RulesModel.get_rules(connection.db_model.iid)
 
         if not rules:
-            return await message.reply(
-                Section(_("No rules are set for this chat."), title=_("Rules filter failed")).to_html()
-            )
+            await message.reply(Section(_("No rules are set for this chat."), title=_("Rules filter failed")).to_html())
+            return
 
         title = Bold(HList(Title(f"🪧 {_('Rules')}"), _("Filter action")))
 
-        if rules.buttons or rules.file:
-            # We have to send the note separately
-            return await common_try(
-                send_saveable(
-                    message,
-                    message.chat.id,
-                    rules,
-                    title=title,
-                    reply_to=message.message_id,
-                    connection=connection,
-                )
+        # The rules are always sent as their own message so that fillings, buttons and files
+        # get the same treatment as /rules; returning a Doc here would bypass send_saveable.
+        await common_try(
+            send_saveable(
+                message,
+                message.chat.id,
+                rules,
+                title=title,
+                reply_to=message.message_id,
+                connection=connection,
             )
-
-        return Doc(
-            title,
-            PreformattedHTML(rules.text),
         )
