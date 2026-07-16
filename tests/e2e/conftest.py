@@ -121,6 +121,8 @@ async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient,
     from aiogram_test_framework.mock_bot import MockBot
     from aiogram_test_framework.request_capture import RequestCapture
 
+    from sophie_bot.services.bot import get_bot_runtime
+
     # Create request capture
     capture = RequestCapture()
 
@@ -133,12 +135,23 @@ async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient,
         bot_first_name="Sophie",
     )
 
+    # Route the global `bot` singleton to the mock as well. Handlers reach the bot
+    # through `sophie_bot.services.bot.bot` (e.g. restriction helpers calling
+    # `bot.ban_chat_member`), not through the dispatcher's bot, so without this the
+    # global proxy would build a real AiohttpSession and attempt live Telegram calls
+    # — nondeterministic "Event loop is closed" failures under the session-scoped loop.
+    runtime = get_bot_runtime()
+    original_bot = runtime.bot
+    runtime.bot = mock_bot
+
     # Create test client
     client = TestClient(dispatcher=test_dispatcher, bot=mock_bot, capture=capture)
 
-    yield client
-
-    # Only reset captures/counters — do NOT call client.close() because it
-    # disconnects the session-scoped dispatcher's router tree and emits
-    # shutdown, which breaks all subsequent tests that reuse the dispatcher.
-    client.reset()
+    try:
+        yield client
+    finally:
+        runtime.bot = original_bot
+        # Only reset captures/counters — do NOT call client.close() because it
+        # disconnects the session-scoped dispatcher's router tree and emits
+        # shutdown, which breaks all subsequent tests that reuse the dispatcher.
+        client.reset()
