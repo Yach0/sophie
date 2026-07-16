@@ -164,21 +164,37 @@ class ChatModel(Document):
         return ChatModel(tid=chat.id, **ChatModel._get_group_data(chat))
 
     @staticmethod
+    def _with_settled_iid(chat: "ChatModel") -> "ChatModel":
+        """Make `iid` agree with the `_id` that was actually written.
+
+        `iid` and Beanie's `Document.id` both map to `_id`, but they are separate fields, so
+        nothing keeps them equal. When an upsert inserts, Beanie returns the `on_insert`
+        template itself rather than re-reading the document: it sets `.id` to the inserted
+        `_id` and leaves `.iid` holding the unrelated value its default_factory invented.
+        The returned `.iid` then matches no document at all.
+        """
+        if chat.id is not None:
+            chat.iid = chat.id
+        return chat
+
+    @staticmethod
     async def upsert_user(user: User) -> "ChatModel":
         async with upsert_user_lock:
             data = ChatModel._get_user_data(user)
-            return await ChatModel.find_one(ChatModel.tid == user.id).upsert(
+            chat = await ChatModel.find_one(ChatModel.tid == user.id).upsert(
                 Set(data), on_insert=ChatModel(tid=user.id, **data), response_type=UpdateResponse.NEW_DOCUMENT
             )
+            return ChatModel._with_settled_iid(chat)
 
     @staticmethod
     async def upsert_group(chat: Chat) -> "ChatModel":
         async with upsert_group_lock:
             data = ChatModel._get_group_data(chat)
 
-            return await ChatModel.find_one(ChatModel.tid == chat.id).upsert(
+            group = await ChatModel.find_one(ChatModel.tid == chat.id).upsert(
                 Set(data), on_insert=ChatModel(tid=chat.id, **data), response_type=UpdateResponse.NEW_DOCUMENT
             )
+            return ChatModel._with_settled_iid(group)
 
     @staticmethod
     async def do_chat_migrate(old_id: int, new_chat: Chat) -> Optional["ChatModel"]:
