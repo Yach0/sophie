@@ -2,11 +2,11 @@ from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
-from aiogram.dispatcher.flags import get_flag
 from aiogram.types import Message, TelegramObject
 
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.utils.flags import get_disableable_name
 from sophie_bot.utils.logger import log
 
 
@@ -24,14 +24,14 @@ class DisablingMiddleware(BaseMiddleware):
             data["disabled"] = disabled
             log.debug("DisablingMiddleware", chat_id=chat_db.tid, disabled=disabled)
 
-            if handler_disableable := get_flag(data, "disableable"):
+            if disableable_name := get_disableable_name(data):
                 if event.from_user:
                     user_id = event.from_user.id
                     is_admin = await is_user_admin(chat_db.iid, user_id)
                 else:
                     is_admin = False
 
-                if handler_disableable["name"] in disabled and not is_admin:
+                if disableable_name in disabled and not is_admin:
                     log.debug("DisablingMiddleware: disabled; Skipping handler!")
                     raise SkipHandler
                 if is_admin:

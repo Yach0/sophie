@@ -21,7 +21,7 @@ class ListDisableable(SophieMessageHandler):
 
     @staticmethod
     def get_disable_able_commands() -> list[HandlerHelp]:
-        return [x for x in DISABLEABLE_CMDS if x.disableable]
+        return list(DISABLEABLE_CMDS.values())
 
     async def handle(self) -> Any:
         await self.event.reply(

@@ -8,10 +8,7 @@ from stfu_tg import Code, Italic, KeyValue, Section, Template
 from sophie_bot.db.models import DisablingModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.disabling.utils.get_disabled import (
-    get_cmd_help_by_name,
-    get_disabled_handlers,
-)
+from sophie_bot.modules.disabling.utils.get_disabled import resolve_disableable_cmd
 from sophie_bot.modules.help.utils.format_help import format_cmd
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -34,17 +31,19 @@ class EnableHandler(SophieMessageHandler):
         connection = self.connection
         cmd_name: str = self.data["cmd"].lower().removeprefix("/").removeprefix("!")
 
-        handler = get_cmd_help_by_name(cmd_name)
+        resolved = resolve_disableable_cmd(cmd_name)
 
-        if not handler:
+        if not resolved:
             await self.event.reply(str(Template(_("Command {cmd} not found."), cmd=Code("/" + cmd_name))))
             return
 
-        if handler not in await get_disabled_handlers(connection.db_model.iid):
-            await self.event.reply(str(Template(_("Command {cmd} is already disabled."), cmd=Code("/" + cmd_name))))
+        cmd_key, handler = resolved
+
+        if cmd_key not in await DisablingModel.get_disabled(connection.db_model.iid):
+            await self.event.reply(str(Template(_("Command {cmd} is not disabled."), cmd=Code("/" + cmd_name))))
             return
 
-        await self.enable_cmd(connection.db_model.iid, handler.cmds[0])
+        await self.enable_cmd(connection.db_model.iid, cmd_key)
 
         await self.event.reply(
             str(
