@@ -11,6 +11,19 @@ Affected Collections:
 Impact:
     - Chats using zai provider will be migrated to auto
     - No data loss — auto provider picks best default model
+    - Backward is a no-op; see below.
+
+Rollback:
+    Not possible. Forward folds "zai" into "auto", which is also
+    AIProviderModel.provider's default, so after it runs the chats it touched are
+    indistinguishable from the many chats that were already on "auto". Nothing
+    records the pre-migration set, so a Backward cannot identify it.
+
+    The previous Backward reverted *every* chat on "auto" to "zai", i.e. the whole
+    default population rather than the handful Forward moved -- and to a provider
+    whose models this very migration removed (no `zai`/GLM handling remains in the
+    codebase). Reverting nothing is strictly better than corrupting every chat's
+    provider, so Backward is an explicit no-op.
 """
 
 from beanie import free_fall_migration
@@ -25,7 +38,7 @@ class Forward:
     """Migrate zai provider entries to auto."""
 
     @free_fall_migration(document_models=[AIProviderModel])
-    async def migrate(self, session):
+    async def migrate(self, session) -> None:
         collection = AIProviderModel.get_pymongo_collection()
         result = await collection.update_many(
             {"provider": OLD_PROVIDER},
@@ -36,13 +49,8 @@ class Forward:
 
 
 class Backward:
-    """Revert auto provider entries (originally zai) back to zai."""
+    """No rollback: chats moved to "auto" are indistinguishable from those already on it."""
 
     @free_fall_migration(document_models=[AIProviderModel])
-    async def rollback(self, session):
-        collection = AIProviderModel.get_pymongo_collection()
-        await collection.update_many(
-            {"provider": NEW_PROVIDER},
-            {"$set": {"provider": OLD_PROVIDER}},
-            session=session,
-        )
+    async def noop(self, session) -> None:
+        del session
