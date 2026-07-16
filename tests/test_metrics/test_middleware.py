@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiogram.types import Message, Update, User, Chat
 
+from sophie_bot.config import CONFIG
 from sophie_bot.metrics.middleware import MetricsMiddleware
 from sophie_bot.metrics.update_info import extract_command_name, extract_update_info, get_message_kind
 
@@ -111,7 +112,7 @@ class TestMetricsMiddleware:
 
     def test_extract_update_info_message(self, mock_update: Update):
         """Test update info extraction for messages"""
-        info = extract_update_info(mock_update, {})
+        info = extract_update_info(mock_update)
 
         assert info["update_type"] == "message"
         assert info["chat_type"] == "private"
@@ -131,7 +132,7 @@ class TestMetricsMiddleware:
         )
         update = Update(update_id=1, callback_query=callback_query)
 
-        info = extract_update_info(update, {})
+        info = extract_update_info(update)
 
         assert info["update_type"] == "callback_query"
         assert info["chat_type"] == "private"
@@ -239,11 +240,13 @@ class TestMetricsMiddleware:
         name = middleware._get_handler_name(test_handler, None)
         assert len(name) == 50
 
-    def test_webhook_transport_detection(self, mock_update: Update):
-        """Test webhook transport detection"""
-        data = {"webhook_info": True}
-        info = extract_update_info(mock_update, data)
-        assert info["transport"] == "webhook"
+    def test_webhook_transport_detection(self, mock_update: Update, monkeypatch: pytest.MonkeyPatch):
+        """Transport is reported from the configured dispatch mode."""
+        monkeypatch.setattr(CONFIG, "webhooks_enable", True)
+        assert extract_update_info(mock_update)["transport"] == "webhook"
+
+        monkeypatch.setattr(CONFIG, "webhooks_enable", False)
+        assert extract_update_info(mock_update)["transport"] == "polling"
 
     @pytest.mark.asyncio
     async def test_concurrent_handlers(self, middleware: MetricsMiddleware, mock_update: Update):
