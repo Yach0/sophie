@@ -9,6 +9,7 @@ from pydantic import (
     ValidationInfo,
     computed_field,
     field_validator,
+    model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -111,7 +112,10 @@ class Config(BaseSettings):
 
     default_locale: str = "en_US"
 
-    environment: str = "production"
+    # Deploy templates always set ENVIRONMENT explicitly (deploy/templates/*.env.j2), so this default is
+    # only ever used by local checkouts and CI. It must not be "production", or the production safety
+    # checks below would reject every unconfigured dev run.
+    environment: str = "development"
 
     proxy_enable: bool = False
     proxy_stable_instance_url: str = "http://host.container.internal:8071"
@@ -145,6 +149,19 @@ class Config(BaseSettings):
     def security_log_file(self) -> str:
         return f"data/security.{self.instance_name}.{self.bot_id}.log.txt"
 
+    # Production deploys set ENVIRONMENT to "production" (rest) or "production-<flavour>" (beta, stable,
+    # scheduler). Matching the prefix rather than the exact string keeps a future "production-<something>"
+    # guarded by default instead of silently unguarded. See deploy/templates/*.env.j2.
+    @property
+    def is_production(self) -> bool:
+        return self.environment.startswith("production")
+
+    # The REST API is the only thing that reads api_jwt_secret / api_operator_token / api_cors_origins,
+    # and it only runs in "rest" mode (see sophie_bot/__main__.py).
+    @property
+    def serves_rest_api(self) -> bool:
+        return self.mode == "rest"
+
     # Full runtime log file. Captures every log record so AI agents can trace
     # what happened during development. Truncated on every (re)start, including
     # dev hot-reloads, so it always reflects only the current run.
@@ -169,26 +186,26 @@ class Config(BaseSettings):
             v.append(owner_id)
         return v
 
-    @field_validator("api_jwt_secret")
-    @classmethod
-    def validate_jwt_secret(cls, v: str, info: ValidationInfo) -> str:
-        if info.data.get("environment") == "production" and v == "change_me_in_production":
+    # Runs as a model validator rather than per-field validators: `environment` is declared after the
+    # fields it guards, and a field_validator's ValidationInfo.data only holds fields validated before it.
+    # Scoped to REST deploys because only they read — and provision — these settings; the bot, scheduler
+    # and stable env files set no API_* vars, so enforcing there would fail their boot on defaults they
+    # never use.
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> "Config":
+        if not (self.is_production and self.serves_rest_api):
+            return self
+
+        if self.api_jwt_secret == "change_me_in_production":
             raise ValueError("api_jwt_secret must be changed in production")
-        return v
 
-    @field_validator("api_operator_token")
-    @classmethod
-    def validate_operator_token(cls, v: str | None, info: ValidationInfo) -> str | None:
-        if info.data.get("environment") == "production" and v == "test":
+        if self.api_operator_token == "test":
             raise ValueError("api_operator_token must be changed in production")
-        return v
 
-    @field_validator("api_cors_origins")
-    @classmethod
-    def validate_cors_origins(cls, v: List[str], info: ValidationInfo) -> List[str]:
-        if info.data.get("environment") == "production" and "*" in v:
+        if "*" in self.api_cors_origins:
             raise ValueError("api_cors_origins must not contain '*' in production")
-        return v
+
+        return self
 
     @field_validator("webhooks_allowed_networks")
     @classmethod
