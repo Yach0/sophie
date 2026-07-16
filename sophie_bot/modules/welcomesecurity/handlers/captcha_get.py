@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 from aiogram import Router
 from aiogram.types import BufferedInputFile, InlineKeyboardButton
@@ -21,6 +21,14 @@ from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
+class CaptchaTarget(NamedTuple):
+    """Which chat a captcha belongs to. Kept as a unit so the chat and its join-request
+    flag can never be taken from different sources."""
+
+    chat_iid: str
+    is_join_request: bool
+
+
 @flags.help(exclude=True)
 class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
     @classmethod
@@ -28,21 +36,32 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         router.message.register(cls, CMDFilter("captcha"), IsOP(True))
         router.callback_query.register(cls, WelcomeSecurityMoveCB.filter())
 
+    def _requested_target(self) -> Optional[CaptchaTarget]:
+        """The chat this event explicitly asks a captcha for, if any."""
+        if chat_iid := self.data.get("ws_chat_iid"):
+            return CaptchaTarget(str(chat_iid), bool(self.data.get("ws_is_join_request", False)))
+
+        cb_data = self.callback_data
+        if isinstance(cb_data, (WelcomeSecurityMoveCB, WelcomeSecurityConfirmCB)) and cb_data.chat_iid:
+            return CaptchaTarget(cb_data.chat_iid, cb_data.is_join_request)
+
+        return None
+
+    @staticmethod
+    def _state_target(state_data: dict[str, Any]) -> Optional[CaptchaTarget]:
+        """The chat of the captcha currently in progress, if any."""
+        if chat_iid := state_data.get("ws_chat_iid"):
+            return CaptchaTarget(str(chat_iid), bool(state_data.get("ws_is_join_request", False)))
+
+        return None
+
     async def handle(self) -> Any:
         state_data = await self.state.get_data()
 
-        # Try to get chat_iid from state, then from callback_data, then from data
-        chat_iid = state_data.get("ws_chat_iid") or self.data.get("ws_chat_iid")
-        if (
-            not chat_iid
-            and hasattr(self, "callback_data")
-            and self.callback_data
-            and hasattr(self.callback_data, "chat_iid")
-            and self.callback_data.chat_iid
-        ):
-            chat_iid = self.callback_data.chat_iid
+        state_target = self._state_target(state_data)
+        target = self._requested_target() or state_target
 
-        if not chat_iid:
+        if not target:
             await self.answer(
                 _(
                     (
@@ -54,7 +73,11 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
             await self.state.clear()
             return
 
-        chat_db = await ChatModel.get_by_iid(PydanticObjectId(chat_iid))
+        # An abandoned captcha for another chat must not be served for the requested one.
+        if state_target and state_target.chat_iid != target.chat_iid:
+            state_data = {}
+
+        chat_db = await ChatModel.get_by_iid(PydanticObjectId(target.chat_iid))
         if not chat_db:
             await self.answer(_("Chat not found in database"))
             await self.state.clear()
@@ -65,19 +88,16 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         # Restore from state or generate new
         captcha = EmojiCaptcha(data=state_data.get("captcha") if not shuffle else None)
 
-        cb_data: Optional[WelcomeSecurityMoveCB] = self.data.get("callback_data")
-        is_join_request: bool = bool(state_data.get("ws_is_join_request", False))
-        if cb_data:
-            is_join_request = cb_data.is_join_request
+        is_join_request = target.is_join_request
 
-        if not cb_data or not isinstance(cb_data, WelcomeSecurityMoveCB):
-            pass
-        elif cb_data.direction == "left":
-            captcha.data.move_to_left()
-        elif cb_data.direction == "right":
-            captcha.data.move_to_right()
-        else:
-            raise SophieException("Invalid direction")
+        cb_data = self.callback_data
+        if isinstance(cb_data, WelcomeSecurityMoveCB):
+            if cb_data.direction == "left":
+                captcha.data.move_to_left()
+            elif cb_data.direction == "right":
+                captcha.data.move_to_right()
+            else:
+                raise SophieException("Invalid direction")
 
         text = Template(
             _(
