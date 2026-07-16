@@ -19,6 +19,7 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules import get_module_manifest
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.flags import get_disableable_name
 from sophie_bot.utils.logger import log
 
 ARGS_DICT = dict[str, ArgFabric]
@@ -52,7 +53,9 @@ class ModuleHelp:
 
 
 HELP_MODULES: OrderedDict[str, ModuleHelp] = OrderedDict()
-DISABLEABLE_CMDS: list[HandlerHelp] = []
+
+# Keyed by the canonical disable-able name; the keys are the keyspace persisted in DisablingModel.cmds.
+DISABLEABLE_CMDS: dict[str, HandlerHelp] = {}
 
 
 def get_aliased_cmds(module_name) -> dict[str, list[HandlerHelp]]:
@@ -150,9 +153,7 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
         else:
             args = await gather_cmd_args(handler.flags.get("args"))
 
-        disableable = None
-        if disableable_flag := handler.flags.get("disableable"):
-            disableable = disableable_flag.name
+        disableable = get_disableable_name(handler)
 
         cmd = HandlerHelp(
             cmds=cmds,
@@ -168,7 +169,7 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
         helps.append(cmd)
 
         if disableable:
-            DISABLEABLE_CMDS.append(cmd)
+            DISABLEABLE_CMDS[disableable] = cmd
 
     log.debug(f"gather_cmds_help: {router.name}", cmds=list(chain.from_iterable(mhelp.cmds for mhelp in helps)))
     return helps

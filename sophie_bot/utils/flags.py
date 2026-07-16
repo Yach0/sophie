@@ -4,6 +4,8 @@ from collections.abc import Callable
 from typing import Any, TypeVar, overload
 
 from aiogram import flags as aiogram_flags
+from aiogram.dispatcher.event.handler import HandlerObject
+from aiogram.dispatcher.flags import get_flag
 
 _CallableT = TypeVar("_CallableT", bound=Callable[..., Any])
 _ClassT = TypeVar("_ClassT", bound=type[Any])
@@ -39,3 +41,13 @@ ai_chatbot_response = FlagDecorator(aiogram_flags.ai_chatbot_response)
 disableable = FlagDecorator(aiogram_flags.disableable)
 help = FlagDecorator(aiogram_flags.help)
 status = FlagDecorator(aiogram_flags.status)
+
+
+def get_disableable_name(source: HandlerObject | dict[str, Any]) -> str | None:
+    """Returns the canonical identity of a disable-able command.
+
+    This is the only key allowed to reach the database: everything that stores, lists, or enforces a
+    disabled command must derive it from here, otherwise the stored key and the enforced key diverge.
+    """
+    flag = get_flag(source, "disableable")
+    return flag.name if flag else None

@@ -3,17 +3,22 @@ from typing import Optional
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models import DisablingModel
-from sophie_bot.modules.help.utils.extract_info import HandlerHelp, get_all_cmds
+from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS, HandlerHelp
 
 
 async def get_disabled_handlers(chat_iid: PydanticObjectId) -> tuple[HandlerHelp, ...]:
     disabled_cmds: list[str] = await DisablingModel.get_disabled(chat_iid)
 
-    help_cmds: list[HandlerHelp] = list(filter(lambda cmd: cmd.disableable, get_all_cmds()))
-
-    return tuple(cmd for cmd in help_cmds if any(cmd_cmds in disabled_cmds for cmd_cmds in cmd.cmds))
+    return tuple(handler for name, handler in DISABLEABLE_CMDS.items() if name in disabled_cmds)
 
 
-def get_cmd_help_by_name(name: str) -> Optional[HandlerHelp]:
-    disable_able_cmds = [cmd for cmd in get_all_cmds() if cmd.disableable]
-    return next((handler for handler in disable_able_cmds if name in handler.cmds), None)
+def resolve_disableable_cmd(name: str) -> Optional[tuple[str, HandlerHelp]]:
+    """Resolves a user-supplied command name to its canonical disable-able name and its help entry.
+
+    Any of the handler's commands resolve to the same canonical name, so aliases cannot produce
+    a second, unenforceable key.
+    """
+    return next(
+        ((key, handler) for key, handler in DISABLEABLE_CMDS.items() if name == key or name in handler.cmds),
+        None,
+    )
