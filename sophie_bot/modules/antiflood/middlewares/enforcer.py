@@ -12,7 +12,6 @@ from stfu_tg import Doc, KeyValue, Title, UserLink
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.modules.antiflood.domain import (
-    DEFAULT_MUTE_DURATION,
     FLOOD_COUNT_KEY,
     FLOOD_STATE_KEY,
     FLOOD_WINDOW_SECONDS,
@@ -95,16 +94,16 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         user_id = message.from_user.id
 
         action_name = get_action_name(settings)
+        duration = get_action_duration(settings)
 
         log.info(f"Antiflood triggered: executing {action_name} on user {user_id} in chat {chat_id}")
 
         if action_name == "ban_user":
-            return await ban_user(chat_id, user_id)
+            return await ban_user(chat_id, user_id, until_date=duration)
         if action_name == "kick_user":
             return await kick_user(chat_id, user_id)
         if action_name == "mute_user":
-            mute_duration = get_action_duration(settings) or DEFAULT_MUTE_DURATION
-            return await mute_user(chat_id, user_id, until_date=mute_duration)
+            return await mute_user(chat_id, user_id, until_date=duration)
         log.warning(f"Unknown antiflood action: {action_name}")
         return False
 
