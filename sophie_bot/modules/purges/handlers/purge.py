@@ -33,23 +33,24 @@ class PurgeMessagesHandler(SophieMessageHandler):
         if not self.event.from_user:
             return
 
-        if not self.event.reply_to_message:
+        reply_to_message = self.event.reply_to_message
+        if not reply_to_message:
             return await self.event.reply(_("Reply to a message to start."))
 
-        if self.event.date <= datetime.now(tz=UTC) - timedelta(days=2):
+        if reply_to_message.date <= datetime.now(tz=UTC) - timedelta(days=2):
             return await self.event.reply(
                 _(
                     "Couldn't delete the messages older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
                 )
             )
 
-        first = self.event.reply_to_message.message_id
+        first = reply_to_message.message_id
         last = self.event.message_id
 
         chat_id = self.event.chat.id
 
         messages: list[int] = []
-        for message_id in range(first - 1, last + 1):
+        for message_id in range(first, last + 1):
             messages.append(message_id)
 
             if len(messages) == 100:
