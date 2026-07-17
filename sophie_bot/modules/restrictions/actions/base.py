@@ -43,12 +43,11 @@ def make_duration_setup_confirm(
         raw_text = event.text or ""
 
         if raw_text == "0":
-            return data_cls(
-                **{
-                    data_cls.model_fields[next(iter(data_cls.model_fields))].alias
-                    or next(iter(data_cls.model_fields)): None
-                }
-            )
+            try:
+                field_name = next(iter(data_cls.model_fields))
+            except StopIteration:
+                raise ValueError("data_cls must define at least one model field")
+            return data_cls(**{data_cls.model_fields[field_name].alias or field_name: None})
 
         try:
             gettext_ctx.set(i18n)
