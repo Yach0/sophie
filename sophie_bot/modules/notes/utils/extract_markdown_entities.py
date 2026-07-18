@@ -128,7 +128,6 @@ def _process_headings_surrogate(text: str) -> tuple[str, list[MessageEntity]]:
     offset = 0
 
     for line in text.splitlines(keepends=True):
-        # Preserve newline endings exactly
         if line.endswith("\r\n"):
             line_body = line[:-2]
             newline = "\r\n"
@@ -141,17 +140,15 @@ def _process_headings_surrogate(text: str) -> tuple[str, list[MessageEntity]]:
 
         m = re.match(r"^(#{1,6})[ \t]+(.+)$", line_body)
         if m:
-            content = m.group(2)
-            # Remove optional closing hashes (CommonMark): trailing spaces, hashes, optional spaces
-            content = re.sub(r"[ \t]+#{1,}\s*$", "", content)
-            content = content.strip()
+            content = re.sub(r"[ \t]+#{1,}\s*$", "", m.group(2)).strip()
             if content:
                 entities.append(MessageEntity(type="bold", offset=offset, length=len(content)))
             out_parts.append(content + newline)
             offset += len(content) + len(newline)
-        else:
-            out_parts.append(line)
-            offset += len(line)
+            continue
+
+        out_parts.append(line)
+        offset += len(line)
 
     return "".join(out_parts), entities
 
