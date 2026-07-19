@@ -107,7 +107,6 @@ class MetricsMiddleware(BaseMiddleware):
     def _get_handler_name(self, handler: Callable, event: TelegramObject | None) -> str:
         """Extract handler name for labeling"""
         handler_name: str = "unknown"
-        _ = event
 
         # Handle functools.partial objects (common with aiogram class-based handlers)
         if hasattr(handler, "func"):
