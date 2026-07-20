@@ -24,6 +24,7 @@ from .handlers.filter_del import FilterDeleteHandler
 from .handlers.filter_edit import FilterEditHandler
 from .handlers.filter_new import FilterNewHandler
 from .handlers.filter_save import FilterSaveHandler
+from .handlers.filter_toggle_silent import FilterToggleSilentHandler
 from .handlers.filters_list import FiltersListHandler
 from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
 
@@ -77,6 +78,7 @@ module_manifest = ModuleManifest(
         ActionRemoveHandler,
         FilterEditHandler,
         ActionChangeSettingConfirm,
+        FilterToggleSilentHandler,
     ),
     pre_setup=pre_setup,
     post_setup=post_setup,

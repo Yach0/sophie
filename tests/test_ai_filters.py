@@ -104,8 +104,8 @@ async def test_enforce_filters_evaluates_only_one_ai_filter_per_message(monkeypa
 
     chat_db = SimpleNamespace(iid="chat-iid")
     filters = [
-        SimpleNamespace(handler="ai:first prompt", effective_version=1),
-        SimpleNamespace(handler="ai:second prompt", effective_version=1),
+        SimpleNamespace(handler="ai:first prompt", effective_version=1, silent=False),
+        SimpleNamespace(handler="ai:second prompt", effective_version=1, silent=False),
     ]
 
     monkeypatch.setattr(
@@ -127,8 +127,8 @@ async def test_enforce_filters_skips_ai_when_deterministic_filter_matches(monkey
 
     chat_db = SimpleNamespace(iid="chat-iid")
     filters = [
-        SimpleNamespace(handler="ai:first prompt", effective_version=1),
-        SimpleNamespace(handler="exact:spam", effective_version=1),
+        SimpleNamespace(handler="ai:first prompt", effective_version=1, silent=False),
+        SimpleNamespace(handler="exact:spam", effective_version=1, silent=False),
     ]
 
     monkeypatch.setattr(

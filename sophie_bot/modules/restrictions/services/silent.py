@@ -28,8 +28,15 @@ def _task_done_callback(task: asyncio.Task) -> None:
         _log.error("Silent mode message deletion failed", exc_info=exc)
 
 
-def schedule_message_deletion(chat_tid: int, message_ids: list[int]) -> None:
-    task = asyncio.create_task(delete_messages_after_delay(chat_tid, message_ids))
+def schedule_message_deletion(
+    chat_tid: int,
+    message_ids: list[int],
+    delay_seconds: int = SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS,
+) -> None:
+    if not message_ids:
+        return
+
+    task = asyncio.create_task(delete_messages_after_delay(chat_tid, message_ids, delay_seconds=delay_seconds))
     _background_tasks.add(task)
     task.add_done_callback(_task_done_callback)
 

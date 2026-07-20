@@ -95,6 +95,7 @@ FEDERATION_BAN_TIMEOUT: Final[int] = 30  # seconds
 IMPORT_EXPORT_RATE_LIMIT: Final[int] = 600  # seconds
 FEDERATION_BANLIST_COOLDOWN_SECONDS: Final[int] = 60  # seconds
 SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS: Final[int] = 10  # seconds
+FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS: Final[int] = 30  # seconds
 
 # Federation file size limits
 MAX_IMPORT_FILE_SIZE_JSON: Final[int] = 1_000_000  # 1MB

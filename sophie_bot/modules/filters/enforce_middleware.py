@@ -6,23 +6,24 @@ from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Chat, Message, TelegramObject, User
 from stfu_tg import Doc
-from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.constants import FILTERS_MAX_TRIGGERS
+from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.filters.fsm import FilterEditFSM
 from sophie_bot.modules.filters.utils_.handle_action import (
     get_effective_filter_actions,
     handle_effective_filter_action,
 )
+from sophie_bot.modules.filters.types.modern_action_abc import ActionResult
 from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
+from sophie_bot.modules.restrictions.services.silent import schedule_message_deletion
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -67,7 +68,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
     @staticmethod
     async def _handle_filter_actions(
         filter_item: FiltersModel, triggered_actions: list[str], message: Message, data: dict[str, Any]
-    ) -> tuple[list[str], list[Element | str | LazyProxy]]:
+    ) -> tuple[list[str], list[ActionResult]]:
         log.debug("EnforceFiltersMiddleware: handling filter actions...")
 
         triggered: list[str] = []
@@ -91,23 +92,47 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return triggered, messages
 
     @staticmethod
-    async def _handle_action_messages(message: Message, messages: list[Element | str | LazyProxy]):
+    async def _handle_action_messages(message: Message, messages: list[ActionResult]) -> list[int]:
+        """Sends the aggregated filter text and returns the IDs of every message the bot produced.
+
+        Actions that deliver their own message(s) (notes/replies carrying buttons or files, rules)
+        return them instead of text, so they only contribute their IDs and stay out of the doc.
+        """
+        sent_message_ids: list[int] = []
         doc = Doc(
             # Title(_("Filters 🪄")),
         )
 
         for msg in messages:
+            if isinstance(msg, Message):
+                sent_message_ids.append(msg.message_id)
+                continue
+
+            if isinstance(msg, list):
+                sent_messages = [sent for sent in msg if isinstance(sent, Message)]
+                # stfu elements subclass list, so only a list of actual Messages counts as "already sent"
+                if len(sent_messages) == len(msg):
+                    sent_message_ids.extend(sent.message_id for sent in sent_messages)
+                    continue
+
             doc += " "
             doc += msg
+
+        if not len(doc):
+            return sent_message_ids
 
         async def send_message():
             return await bot.send_message(chat_id=message.chat.id, text=doc.to_html())
 
-        await common_try(message.reply(doc.to_html()), reply_not_found=send_message)
+        reply = await common_try(message.reply(doc.to_html()), reply_not_found=send_message)
+        if isinstance(reply, Message):
+            sent_message_ids.append(reply.message_id)
+
+        return sent_message_ids
 
     async def _process_filter(
         self, message: Message, data: dict[str, Any], matched_filter: FiltersModel, triggered_groups=None
-    ) -> tuple[list[str], list[Element | str | LazyProxy]]:
+    ) -> tuple[list[str], list[ActionResult]]:
         if triggered_groups is None:
             triggered_groups = []
         if get_effective_filter_actions(matched_filter):
@@ -158,6 +183,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
         all_messages = []
         triggered_groups: list[str] = []  # Handled action groups, to stop same actions from repeating
+        silent = False
 
         for idx, matched_filter in enumerate(matched_filters):
             if idx >= FILTERS_MAX_TRIGGERS:
@@ -169,9 +195,19 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             )
             all_messages.extend(messages)
             triggered_groups.extend((action for action in actions if action))
+            silent = silent or matched_filter.silent
 
+        sent_message_ids: list[int] = []
         if all_messages:
-            await self._handle_action_messages(message, all_messages)
+            sent_message_ids = await self._handle_action_messages(message, all_messages)
+
+        # A single reply aggregates every triggered filter, so one silent filter makes the whole exchange silent
+        if silent and await is_enabled("filters_silent_mode", chat_tid=message.chat.id):
+            schedule_message_deletion(
+                message.chat.id,
+                [message.message_id, *sent_message_ids],
+                delay_seconds=FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS,
+            )
 
         # If filter triggered - skip other handlers
         if matched_filters:
@@ -192,9 +228,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: dropping...")
             return await handler(event, data)
 
-        from sophie_bot.utils.feature_flags import is_enabled as _is_enabled
-
-        if not await _is_enabled("filters", chat_tid=event.chat.id):
+        if not await is_enabled("filters", chat_tid=event.chat.id):
             log.debug("EnforceFiltersMiddleware: filters feature disabled globally, skipping...")
             return await handler(event, data)
 

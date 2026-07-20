@@ -10,6 +10,7 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.modern_action_abc import (
+    ActionResult,
     ActionSetupMessage,
     ActionSetupTryAgainException,
     ModernActionABC,
@@ -73,24 +74,26 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: SendNoteActionDataModel):
+    async def handle(self, message: Message, data: dict, filter_data: SendNoteActionDataModel) -> ActionResult | None:
         connection: ChatConnection = data["connection"]
         notename = filter_data.notename
 
         note = await NoteModel.get_by_notenames(connection.db_model.iid, (notename,))
 
         if not note:
-            await message.reply(Template(_("#{name} note was not found."), name=Bold(notename)).to_html())
-            return
+            return await message.reply(Template(_("#{name} note was not found."), name=Bold(notename)).to_html())
 
         title = Bold(HList(Title(f"📗 #{notename}", bold=False), _("Filter action")))
 
-        return await common_try(
+        sent_messages: list[Message] = []
+        await common_try(
             send_saveable(
                 message,
                 message.chat.id,  # Current chat id
                 note,
                 title=title,
                 reply_to=message.message_id,
+                collect_sent=sent_messages,
             )
         )
+        return sent_messages

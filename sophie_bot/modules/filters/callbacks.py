@@ -27,5 +27,9 @@ class RemoveFilterActionCallback(CallbackData, prefix="remove_filter_action"):
     name: str
 
 
+class ToggleFilterSilentCallback(CallbackData, prefix="filter_toggle_silent"):
+    pass
+
+
 class SaveFilterCallback(CallbackData, prefix="save_filter"):
     pass

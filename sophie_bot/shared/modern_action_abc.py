@@ -21,6 +21,12 @@ from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
 
+# What a filter action may hand back to its dispatcher.
+# Text-ish results get aggregated into one reply by the caller; actions that deliver their own
+# message(s) return them instead, so the caller can track what the bot actually sent
+# (silent-mode filters need those IDs to clean them up afterwards).
+ActionResult = Element | str | LazyProxy | Message | list[Message]
+
 ACTION_DATA = TypeVar("ACTION_DATA", bound=BaseModel | None)
 
 
@@ -93,9 +99,7 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):
     def __init__(self) -> None:
         pass
 
-    async def execute(
-        self, message: Message, data: dict, filter_data: ACTION_DATA
-    ) -> Optional[Element | str | LazyProxy]:
+    async def execute(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Optional[ActionResult]:
         """Run the action against a message. This is the entry point for every dispatcher.
 
         Enforces `skip_for_admins` so punitive actions don't have to re-implement the
@@ -117,8 +121,6 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):
         raise NotImplementedError
 
     @abstractmethod
-    async def handle(
-        self, message: Message, data: dict, filter_data: ACTION_DATA
-    ) -> Optional[Element | str | LazyProxy]:
+    async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Optional[ActionResult]:
         """Handle the action, returns the text of the actions done."""
         raise NotImplementedError

@@ -1,14 +1,13 @@
 """Unit tests for the Bot API 10.2 community detection adapter.
 
-These prove the raw-field bridge works without native aiogram Community types
-(aiogram 3.29.x targets API 10.1), so the adapter can be swapped for native types later.
+These prove the adapter works with native aiogram Community types (aiogram 3.30+).
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from aiogram.types import Chat, Message, User
+from aiogram.types import Chat, Community, CommunityChatAdded, CommunityChatRemoved, Message, User
 
 from sophie_bot.utils.community_api import (
     CommunityChangeKind,
@@ -27,31 +26,19 @@ def _message(**extra: object) -> Message:
     )
 
 
-def test_extract_added_with_direct_fields() -> None:
-    change = extract_community_change(_message(community_chat_added={"id": 555, "name": "My Community"}))
+def test_extract_added_with_community() -> None:
+    change = extract_community_change(
+        _message(community_chat_added=CommunityChatAdded(community=Community(id=555, name="My Community")))
+    )
     assert change is not None
     assert change.kind is CommunityChangeKind.ADDED
     assert change.community == CommunityRef(id=555, name="My Community")
 
 
-def test_extract_added_with_wrapped_community() -> None:
-    change = extract_community_change(_message(community_chat_added={"community": {"id": 777, "title": "Wrapped"}}))
-    assert change is not None
-    assert change.kind is CommunityChangeKind.ADDED
-    assert change.community == CommunityRef(id=777, name="Wrapped")
-
-
 def test_extract_removed() -> None:
-    change = extract_community_change(_message(community_chat_removed={"id": 555}))
+    change = extract_community_change(_message(community_chat_removed=CommunityChatRemoved()))
     assert change is not None
     assert change.kind is CommunityChangeKind.REMOVED
-    assert change.community == CommunityRef(id=555, name=None)
-
-
-def test_extract_added_without_usable_id() -> None:
-    change = extract_community_change(_message(community_chat_added={"name": "no id here"}))
-    assert change is not None
-    assert change.kind is CommunityChangeKind.ADDED
     assert change.community is None
 
 

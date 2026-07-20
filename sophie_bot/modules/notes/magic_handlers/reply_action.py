@@ -14,6 +14,7 @@ from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.modern_action_abc import (
+    ActionResult,
     ActionSetupMessage,
     ModernActionABC,
     ModernActionSetting,
@@ -67,20 +68,24 @@ class ReplyModernAction(ModernActionABC[Saveable]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: Saveable) -> Optional[Element]:
+    async def handle(self, message: Message, data: dict, filter_data: Saveable) -> Optional[ActionResult]:
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
 
-        if filter_data.buttons or filter_data.file:
-            # We have to send the note separately
-            return await common_try(
+        if filter_data.buttons or filter_data.file or filter_data.files:
+            # We have to send the note separately; every sent message is returned so the
+            # caller knows what the bot produced (silent filters delete them afterwards).
+            sent_messages: list[Message] = []
+            await common_try(
                 send_saveable(
                     message,
                     message.chat.id,
                     filter_data,
                     title=title,
                     reply_to=message.message_id,
+                    collect_sent=sent_messages,
                 )
             )
+            return sent_messages
 
         return Doc(
             title,

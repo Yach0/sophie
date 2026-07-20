@@ -27,7 +27,7 @@ def _enable_communities_flag(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestSaveCommunity:
     @pytest.mark.asyncio
     async def test_community_chat_added_records_membership(self, middleware, mock_handler, base_data) -> None:
-        from aiogram.types import Chat, Message, Update, User
+        from aiogram.types import Chat, Community, CommunityChatAdded, Message, Update, User
 
         user = User(id=123456789, first_name="Test", is_bot=False)
         chat = Chat(id=-1001234567890, type="supergroup", title="Community Group")
@@ -37,7 +37,7 @@ class TestSaveCommunity:
             date=datetime.now(timezone.utc),
             chat=chat,
             from_user=user,
-            community_chat_added={"id": 555000, "name": "Cool Community"},
+            community_chat_added=CommunityChatAdded(community=Community(id=555000, name="Cool Community")),
         )
         update = Update(update_id=1, message=message)
         base_data["event_from_user"] = user
@@ -57,7 +57,7 @@ class TestSaveCommunity:
 
     @pytest.mark.asyncio
     async def test_community_chat_removed_clears_membership(self, middleware, mock_handler, base_data) -> None:
-        from aiogram.types import Chat, Message, Update, User
+        from aiogram.types import Chat, CommunityChatRemoved, Message, Update, User
 
         # Pre-create a group that already belongs to a community.
         group = ChatModel(
@@ -79,7 +79,7 @@ class TestSaveCommunity:
             date=datetime.now(timezone.utc),
             chat=chat,
             from_user=user,
-            community_chat_removed={"id": 999000},
+            community_chat_removed=CommunityChatRemoved(),
         )
         update = Update(update_id=1, message=message)
         base_data["event_from_user"] = user
@@ -94,7 +94,7 @@ class TestSaveCommunity:
 
     @pytest.mark.asyncio
     async def test_flag_disabled_is_inert(self, middleware, mock_handler, base_data, monkeypatch) -> None:
-        from aiogram.types import Chat, Message, Update, User
+        from aiogram.types import Chat, Community, CommunityChatAdded, Message, Update, User
 
         monkeypatch.setattr(
             "sophie_bot.middlewares.save_chats.is_enabled",
@@ -109,7 +109,7 @@ class TestSaveCommunity:
             date=datetime.now(timezone.utc),
             chat=chat,
             from_user=user,
-            community_chat_added={"id": 111000, "name": "Ignored"},
+            community_chat_added=CommunityChatAdded(community=Community(id=111000, name="Ignored")),
         )
         update = Update(update_id=1, message=message)
         base_data["event_from_user"] = user

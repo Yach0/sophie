@@ -263,6 +263,26 @@ However, limits exist.
 The maximum number of actions per filter is currently three, and Sophie will only trigger the first two of matching
 filters.
 
+## Silent mode
+
+Filters can be switched to **silent mode** from the filter setup screen of `/addfilter` and `/editfilter`.
+The 🔊 / 🔇 button toggles it, and the setting is saved together with the rest of the filter.
+
+When a silent filter triggers, Sophie cleans up after itself 30 seconds later by deleting:
+
+- the message that triggered the filter
+- every message Sophie sent in response to it
+
+This keeps the chat tidy for noisy filters, where the reply is only meant for the person who tripped it.
+It behaves like the silent restriction commands (`/sban`, `/smute`, and friends), which remove their own traces too.
+
+Remarks:
+
+- Sophie needs the *Delete messages* admin right, otherwise the cleanup is silently skipped
+- The deletion is scheduled in memory, so a bot restart within those 30 seconds cancels the pending cleanup
+- When several filters match one message, a single silent filter makes the whole exchange silent, because Sophie
+  aggregates all filter replies into one message
+
 # How the Filters Engine Works for Admins vs. Non-Admins
 
 To enable admins to manage the bot's settings, Sophie ignores filters for known commands (listed in /help) when they're

@@ -15,6 +15,7 @@ from sophie_bot.modules.filters.callbacks import (
     ListActionsToRemoveCallback,
     NewFilterActionCallback,
     SaveFilterCallback,
+    ToggleFilterSilentCallback,
 )
 from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
@@ -22,6 +23,7 @@ from sophie_bot.modules.filters.utils_.filter_handler_rules import describe_filt
 from sophie_bot.modules.troubleshooters.callbacks import CancelCallback
 from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
 
@@ -92,6 +94,14 @@ class FilterConfirmHandler(SophieMessageCallbackQueryHandler):
             )
         if manage_action_btn_row:
             buttons.row(*manage_action_btn_row)
+
+        if await is_enabled("filters_silent_mode", chat_tid=self.connection.tid):
+            buttons.row(
+                InlineKeyboardButton(
+                    text=_("🔇 Silent mode: on") if filter_item.silent else _("🔊 Silent mode: off"),
+                    callback_data=ToggleFilterSilentCallback().pack(),
+                )
+            )
 
         if not self.event.from_user:
             raise SophieException("No user in event")

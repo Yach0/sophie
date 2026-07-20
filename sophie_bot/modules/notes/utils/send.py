@@ -57,11 +57,15 @@ async def _send_media_group(
     inline_markup: InlineKeyboardMarkup,
     reply_to: Optional[int],
     message_thread_id: int | None,
+    collect_sent: list[Message] | None = None,
 ) -> Message | None:
     """Sends an album note via sendMediaGroup.
 
     sendMediaGroup accepts no reply_markup and caps captions at 1024 chars, so buttons
     and/or overflowing text are delivered in a follow-up message under the album.
+
+    Only the first album message is returned, so callers that must account for every
+    message the bot produced (silent-mode filters) pass `collect_sent` to receive them all.
     """
     has_buttons = bool(inline_markup.inline_keyboard)
     put_caption_on_album = bool(text) and len(text) <= MEDIA_CAPTION_LENGTH_LIMIT and not has_buttons
@@ -86,11 +90,13 @@ async def _send_media_group(
         reply_not_found=lambda: to_try(with_reply=False),
     )
     first_message = sent[0] if isinstance(sent, list) and sent else None
+    if collect_sent is not None and isinstance(sent, list):
+        collect_sent.extend(sent)
 
     need_followup = has_buttons or (bool(text) and not put_caption_on_album)
     if need_followup:
         # Invisible separator keeps a button-only follow-up (file album, no caption) non-empty.
-        await common_try(
+        followup = await common_try(
             to_try=SendMessage(
                 chat_id=send_to,
                 text=text or "⁣",
@@ -100,6 +106,8 @@ async def _send_media_group(
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
             ).emit(bot)
         )
+        if collect_sent is not None and isinstance(followup, Message):
+            collect_sent.append(followup)
 
     return first_message
 
@@ -116,7 +124,13 @@ async def send_saveable(
     connection: ChatConnection | None = None,
     user: Optional[User] = None,
     message_thread_id: int | None = None,
+    collect_sent: list[Message] | None = None,
 ) -> Message | None:
+    """Sends a saveable, returning its primary message.
+
+    An album produces several messages but only the first is returned; pass `collect_sent`
+    to receive every message that was actually sent.
+    """
     text = saveable.text or ""
 
     # An album moves overflowing text into a follow-up message, so only a single caption-bearing
@@ -167,6 +181,7 @@ async def send_saveable(
             inline_markup=inline_markup,
             reply_to=reply_to,
             message_thread_id=message_thread_id,
+            collect_sent=collect_sent,
         )
 
     # TODO: Multi messages
@@ -199,4 +214,8 @@ async def send_saveable(
             del kwargs["reply_parameters"]
         return await to_try(**kwargs)
 
-    return await common_try(to_try=to_try(**kwargs), reply_not_found=reply_not_found)
+    sent = await common_try(to_try=to_try(**kwargs), reply_not_found=reply_not_found)
+    if collect_sent is not None and isinstance(sent, Message):
+        collect_sent.append(sent)
+
+    return sent

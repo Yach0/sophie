@@ -190,7 +190,9 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
 
     result = await SendRulesAction().handle(message, {"connection": connection}, None)
 
-    assert result is None
+    # The rules are sent as their own message, so the action reports what it sent
+    # instead of returning text for the caller to aggregate.
+    assert isinstance(result, list)
     assert "{chatname}" not in captured_kwargs["text"]
     assert "{mention}" not in captured_kwargs["text"]
     assert "Sophie Chat" in captured_kwargs["text"]

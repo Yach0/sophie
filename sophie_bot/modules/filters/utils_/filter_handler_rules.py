@@ -57,8 +57,12 @@ async def _check_lock_conflict(event: Message | CallbackQuery, keyword: str, con
     return True
 
 
-async def _check_duplicate_filter(event: Message | CallbackQuery, keyword: str, connection: ChatConnection) -> bool:
-    if await FiltersModel.get_by_keyword(connection.db_model.iid, keyword):
+async def _check_duplicate_filter(
+    event: Message | CallbackQuery, keyword: str, connection: ChatConnection, editing_oid: str | None = None
+) -> bool:
+    existing = await FiltersModel.get_all_by_keyword(connection.db_model.iid, keyword)
+    # Re-saving the filter that is being edited is not a duplicate of itself
+    if any(str(found.id) != editing_oid for found in existing):
         await reply_or_edit(
             event,
             Doc(
@@ -156,7 +160,7 @@ async def validate_filter_handler(
 ) -> bool:
     if not await _check_lock_conflict(event, keyword, connection):
         return False
-    if not await _check_duplicate_filter(event, keyword, connection):
+    if not await _check_duplicate_filter(event, keyword, connection, editing_oid):
         return False
     if not await _check_ai_filter_rules(event, keyword, connection, editing_oid):
         return False

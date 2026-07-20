@@ -32,6 +32,9 @@ class FiltersModel(Document):
     action: Optional[str]  # None for modern filters
     actions: dict[str, ACTION_DATA_DUMPED] = Field(default_factory=dict)
 
+    # Silent mode: delete the triggering message and the filter's replies shortly after sending
+    silent: bool = False
+
     time: Optional[Any] = None
 
     model_config = ConfigDict(
@@ -84,6 +87,7 @@ class FiltersModel(Document):
                 {
                     "handler": filters_setup.handler.keyword,
                     "actions": filters_setup.actions,
+                    "silent": filters_setup.silent,
                 }
             )
         )
@@ -95,6 +99,7 @@ class FilterInSetupType(BaseModel):
     oid: Optional[str] = None  # Optional ObjectID of the FiltersModel object, if need to update, not save
     handler: FilterHandlerType
     actions: dict[str, ACTION_DATA_DUMPED]
+    silent: bool = False
 
     @staticmethod
     async def get_filter(state: FSMContext, data: Optional[dict[str, Any]] = None) -> "FilterInSetupType":
@@ -117,6 +122,7 @@ class FilterInSetupType(BaseModel):
             version=2,
             action=None,
             actions=self.actions,
+            silent=self.silent,
         )
 
     @staticmethod
@@ -125,4 +131,5 @@ class FilterInSetupType(BaseModel):
             oid=str(model.id),
             handler=FilterHandlerType(keyword=model.handler),
             actions=model.actions,
+            silent=model.silent,
         )
