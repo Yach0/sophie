@@ -4,6 +4,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
 from stfu_tg import Title
 
@@ -223,9 +226,18 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None
         patch("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(return_value="Base system prompt")),
         patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
         patch("sophie_bot.modules.ai.utils.chatbot_context.AIMemoryModel.get_lines", AsyncMock(return_value=[])),
+        patch(
+            "sophie_bot.modules.ai.utils.chatbot_context.resolve_chat_capabilities",
+            AsyncMock(return_value=get_capabilities(AIMode.support)),
+        ),
     ):
         instructions = await build_chatbot_instructions(
-            SimpleNamespace(chat_tid=-100123, chat_iid="chat-iid", user_text=None)
+            SimpleNamespace(
+                chat_tid=-100123,
+                chat_iid="chat-iid",
+                user_text=None,
+                connection=SimpleNamespace(db_model=SimpleNamespace()),
+            )
         )
 
     assert "research tool to research complicated topics instead of plain web search" in instructions
@@ -240,7 +252,7 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
     ):
-        tools = await get_chatbot_tools(-100123)
+        tools = await get_chatbot_tools(-100123, get_capabilities(AIMode.support))
 
     assert research_topic_tool in tools
 
@@ -248,7 +260,7 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
     ):
-        tools = await get_chatbot_tools(-100123)
+        tools = await get_chatbot_tools(-100123, get_capabilities(AIMode.support))
 
     assert research_topic_tool not in tools
 

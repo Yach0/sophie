@@ -50,9 +50,6 @@ FeatureType = Literal[
     "ai_system_prompt_summaries",
     "ai_notes_related_system_prompt",
     "ai_notes_related_system_prompt_full_content",
-    "ai_agent_save_notes",
-    "ai_memories_to_notes",
-    "ai_delete_notes",
     "notes_rag_embeddings",
     "notes_rag_list_search",
     "notes_media_groups",
@@ -89,8 +86,8 @@ FeatureType = Literal[
     "ussr_spam_detection",
     "ussr_spam_save_to_db",
     "sentry_update_tracing",
-    "ai_free_provider",
-    "ai_free_monthly_credits",
+    "ai_entertainment_boost",
+    "ai_entertainment_monthly_credits",
 ]
 
 
@@ -187,8 +184,8 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
-    "ai_summary_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
-    "ai_filter_handler_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
+    "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
+    "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
     "ai_filter_daily_user_limit": _feature(10),
     "ai_filter_new_user_message_limit": _feature(10),
@@ -233,9 +230,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_system_prompt_summaries": _feature(False),
     "ai_notes_related_system_prompt": _feature(False),
     "ai_notes_related_system_prompt_full_content": _feature(False),
-    "ai_agent_save_notes": _feature(False),
-    "ai_memories_to_notes": _feature(False),
-    "ai_delete_notes": _feature(False),
     "notes_rag_embeddings": _feature(False),
     "notes_rag_list_search": _feature(False),
     "notes_media_groups": _feature(False),
@@ -274,8 +268,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ussr_spam_detection": _feature(False),
     "ussr_spam_save_to_db": _feature(False),
     "sentry_update_tracing": _feature(False),
-    "ai_free_provider": _feature(False),
-    "ai_free_monthly_credits": _feature(200000),
+    "ai_entertainment_boost": _feature(False),
+    "ai_entertainment_monthly_credits": _feature(200000),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

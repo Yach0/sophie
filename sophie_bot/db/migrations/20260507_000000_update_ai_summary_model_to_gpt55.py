@@ -27,7 +27,7 @@ Rollback:
 
 from beanie import free_fall_migration
 
-from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.services.db import get_collection
 
 OLD_SUMMARY_MODEL_NAME = "openai/gpt-5.4"
 NEW_SUMMARY_MODEL_NAME = "openai/gpt-5.5"
@@ -36,9 +36,9 @@ NEW_SUMMARY_MODEL_NAME = "openai/gpt-5.5"
 class Forward:
     """Move provider documents from the old default summary model."""
 
-    @free_fall_migration(document_models=[AIProviderModel])
+    @free_fall_migration(document_models=[])
     async def migrate(self, session) -> None:
-        collection = AIProviderModel.get_pymongo_collection()
+        collection = get_collection("ai_provider")
         await collection.update_many(
             {"summary_model": OLD_SUMMARY_MODEL_NAME},
             {"$set": {"summary_model": NEW_SUMMARY_MODEL_NAME}},
@@ -49,6 +49,6 @@ class Forward:
 class Backward:
     """No rollback: documents moved to the new default are indistinguishable from those already on it."""
 
-    @free_fall_migration(document_models=[AIProviderModel])
+    @free_fall_migration(document_models=[])
     async def noop(self, session) -> None:
         del session

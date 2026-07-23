@@ -5,6 +5,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -15,7 +18,10 @@ from sophie_bot.utils.feature_flags import set_enabled
 
 def _apply_ai_research_patches(stack: ExitStack) -> None:
     stack.enter_context(
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True))
+        patch(
+            "sophie_bot.modules.ai.filters.ai_mode.resolve_chat_capabilities",
+            AsyncMock(return_value=get_capabilities(AIMode.support)),
+        )
     )
     stack.enter_context(
         patch("sophie_bot.modules.ai.filters.quota.check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))

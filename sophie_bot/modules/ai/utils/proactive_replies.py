@@ -17,7 +17,7 @@ from sophie_bot.metrics import (
     track_ai_proactive_event,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text

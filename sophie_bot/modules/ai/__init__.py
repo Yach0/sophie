@@ -8,16 +8,10 @@ from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
-from sophie_bot.modules.ai.handlers.ai_moderator_setting import AIModerator
-from sophie_bot.modules.ai.handlers.aiprovider import (
-    AIProviderSelectCallback,
-    AIProviderSetting,
-    AIProviderSettingAlt,
-)
+from sophie_bot.modules.ai.handlers.aimode import AIModeSelectCallback, AIModeSetting
 from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
 )
-from sophie_bot.modules.ai.handlers.enable_setting import EnableAI
 from sophie_bot.modules.ai.handlers.feature_setting import AIChatSummariesSetting, AINoteTitlesSetting
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -84,15 +78,12 @@ module_manifest = ModuleManifest(
     handlers=(
         OpAIStatsHandler,
         OpAIPricesHandler,
-        EnableAI,
-        AIModerator,
+        AIModeSetting,
+        AIModeSelectCallback,
         AIAutotrans,
         AIChatSummariesSetting,
         AINoteTitlesSetting,
         AIFilterAddHandler,
-        AIProviderSetting,
-        AIProviderSettingAlt,
-        AIProviderSelectCallback,
         AiPmInitialize,
         AIContextReset,
         ResearchCmd,

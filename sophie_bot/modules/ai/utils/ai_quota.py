@@ -8,10 +8,10 @@ from beanie import PydanticObjectId
 
 from sophie_bot.constants import AI_CREDITS_PER_TOKEN
 from sophie_bot.db.models import AIQuotaModel, AIUsageModel
-from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
-from sophie_bot.modules.ai.utils.ai_providers import AIProviders
+from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.utils.ai_features import AIFeature
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
@@ -90,17 +90,17 @@ async def get_or_create_quota_model(chat_iid: PydanticObjectId) -> AIQuotaModel 
     return await _ensure_period(quota)
 
 
-async def get_free_boost_credits(chat_iid: PydanticObjectId) -> int:
-    """Extra monthly credits granted while a chat is on the Free AI provider.
+async def get_entertainment_boost_credits(chat_iid: PydanticObjectId) -> int:
+    """Extra monthly credits granted while a chat is in entertainment mode.
 
-    Derived on every read instead of persisted, so turning ``ai_free_provider`` off or lowering
-    ``ai_free_monthly_credits`` takes effect immediately for chats that already opted in.
+    Derived on every read instead of persisted, so turning ``ai_entertainment_boost`` off or
+    lowering ``ai_entertainment_monthly_credits`` takes effect immediately for chats already in it.
     """
-    if not await is_enabled("ai_free_provider"):
+    if not await is_enabled("ai_entertainment_boost"):
         return 0
-    if await AIProviderModel.get_provider_name(chat_iid) != AIProviders.free.name:
+    if await get_chat_mode(chat_iid, AIMode.disabled) != AIMode.entertainment:
         return 0
-    return max(int(await get_value("ai_free_monthly_credits")), 0)
+    return max(int(await get_value("ai_entertainment_monthly_credits")), 0)
 
 
 async def get_quota_state(chat_iid: PydanticObjectId) -> AIQuotaState | None:
@@ -113,7 +113,7 @@ async def get_quota_state(chat_iid: PydanticObjectId) -> AIQuotaState | None:
         quota=quota,
         usage=usage,
         month_key=quota.period_start.strftime("%Y-%m"),
-        boost_credits=await get_free_boost_credits(chat_iid),
+        boost_credits=await get_entertainment_boost_credits(chat_iid),
     )
 
 

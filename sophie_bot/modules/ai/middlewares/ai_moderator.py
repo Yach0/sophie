@@ -9,6 +9,7 @@ from stfu_tg import Doc, KeyValue, Section, Title, UserLink, VList
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIModeratorModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities
 from sophie_bot.modules.ai.utils.ai_moderator import (
     MODERATION_CATEGORIES_TRANSLATES,
     check_moderator,
@@ -56,12 +57,14 @@ class AiModeratorMiddleware(BaseMiddleware):
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
         log.debug("AiModeratorMiddleware: checking moderator...")
 
-        if chat_db and chat_db.type != ChatType.private and data.get("ai_enabled") and isinstance(event, Message):
+        capabilities: Optional[ModeCapabilities] = data.get("ai_capabilities")
+
+        if chat_db and chat_db.type != ChatType.private and capabilities and capabilities.moderator:
+            if not isinstance(event, Message):
+                return await handler(event, data)
             if not await is_enabled("ai_moderation", chat_tid=chat_db.tid):
                 return await handler(event, data)
             settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
-            if not settings or not settings.enabled:
-                return await handler(event, data)
 
             if not (event.text or event.caption or event.photo or event.audio):
                 return await handler(event, data)

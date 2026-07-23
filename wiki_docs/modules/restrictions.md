@@ -27,9 +27,3 @@ icon: 🛑
 | `/unmute` | `<User>` `<Reason>` | Unmutes the user in the chat. |  |
 | `/unban` | `<User>` `<Reason>` | Unbans the user from the chat. |  |
 {.card-view-on-mobile}
-
-### Aliased commands from [✨ Sophie AI](ai)
-
-| Commands | Arguments | Description | Remarks |
-| --- | --- | --- | --- |
-| `/aimoderator` | `<?New status>` | Controls AI Moderator features |  |

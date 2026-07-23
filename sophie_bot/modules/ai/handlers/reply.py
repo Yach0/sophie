@@ -4,7 +4,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 
 from sophie_bot.config import CONFIG
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message, message_text
@@ -29,7 +29,11 @@ class AiReplyHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return AiReplyHandler.filter, AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_CHATBOT)
+        return (
+            AiReplyHandler.filter,
+            AICapabilityFilter(lambda capabilities: capabilities.trigger_on_reply, quiet=True),
+            AIQuotaFilter(AI_FEATURE_CHATBOT),
+        )
 
     async def handle(self) -> Any:
         self.data["ai_message_handled"] = True

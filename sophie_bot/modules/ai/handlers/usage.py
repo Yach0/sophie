@@ -7,7 +7,7 @@ from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template, Title,
 
 from sophie_bot.constants import AI_CREDIT_EMOJI, AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
 from sophie_bot.modules.ai.utils.ai_usage_service import get_chat_usage_view
 from sophie_bot.utils import flags
@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class AiUsage(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("aiusage"), AIEnabledFilter()
+        return CMDFilter("aiusage"), AICapabilityFilter()
 
     async def handle(self) -> Any:
         chat_db = self.connection.db_model

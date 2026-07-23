@@ -5,7 +5,8 @@ from aiogram.types import Message, TelegramObject
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities, resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message, message_text
@@ -21,19 +22,14 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
     ) -> Any:
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
 
-        if chat_db:
-            data["ai_enabled"] = await AIEnabledFilter.get_status(chat_db)
-        else:
-            data["ai_enabled"] = False
+        capabilities: ModeCapabilities = (
+            await resolve_chat_capabilities(chat_db) if chat_db else get_capabilities(AIMode.disabled)
+        )
+        data["ai_capabilities"] = capabilities
 
         result = await handler(event, data)
 
-        if (
-            isinstance(event, Message)
-            and chat_db
-            and event.from_user
-            and (data["ai_enabled"] or event.chat.type == "private")
-        ):
+        if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
             text = event.text or event.caption
             if not text:
                 return result
@@ -82,7 +78,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 has_ai_command=has_ai_command,
                 is_ai_filter_reply=bool(data.get("ai_filter_handled", False)),
             )
-            if eligible_for_proactive_ai:
+            if eligible_for_proactive_ai and capabilities.proactive_replies:
                 await maybe_run_proactive_reply(event, chat_db)
 
         return result

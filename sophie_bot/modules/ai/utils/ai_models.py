@@ -1,8 +1,6 @@
 from sophie_bot.modules.ai.utils.ai_model_factory import (
-    AI_MODELS,
     MODERATION_REASON_MODEL,
     get_ai_model,
-    get_filter_handler_model,
     get_proactive_replies_model,
 )
 from sophie_bot.modules.ai.utils.ai_model_pricing import (
@@ -13,31 +11,19 @@ from sophie_bot.modules.ai.utils.ai_model_pricing import (
     refresh_model_pricing_cache,
 )
 from sophie_bot.modules.ai.utils.ai_model_registry import (
-    AI_MODEL_REGISTRY,
-    AI_MODELS_BY_NAME,
-    AI_PROVIDER_TO_NAME,
-    PROVIDER_TO_MODELS,
+    MODE_MODELS,
     SophieAIModel,
-    get_default_model_name,
     get_default_summary_model_name,
-    get_provider_models,
+    get_model_name,
 )
-from sophie_bot.modules.ai.utils.ai_providers import AIProviders
 
 __all__ = [
-    "AIProviders",
     "SophieAIModel",
-    "AI_MODEL_REGISTRY",
-    "AI_MODELS_BY_NAME",
-    "AI_PROVIDER_TO_NAME",
-    "get_provider_models",
-    "get_default_model_name",
+    "MODE_MODELS",
+    "get_model_name",
     "get_default_summary_model_name",
-    "PROVIDER_TO_MODELS",
-    "AI_MODELS",
     "MODERATION_REASON_MODEL",
     "get_ai_model",
-    "get_filter_handler_model",
     "get_proactive_replies_model",
     "get_model_pricing",
     "estimate_model_credit_cost",

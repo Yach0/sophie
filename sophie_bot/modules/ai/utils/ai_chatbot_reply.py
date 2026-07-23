@@ -16,7 +16,7 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_agent import (

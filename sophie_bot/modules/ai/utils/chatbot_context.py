@@ -6,6 +6,7 @@ from aiogram.types import Message
 from stfu_tg import Doc, HList, Section, Template, VList
 
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
@@ -32,12 +33,10 @@ def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, 
 
 
 async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
-    memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=context.chat_tid)
+    capabilities = await resolve_chat_capabilities(context.connection.db_model)
     chat_name_enabled = await is_enabled("ai_chatbot_chat_name", chat_tid=context.chat_tid)
     context_doc = Doc(
-        _("You can also save important things to chat notes.")
-        if memories_to_notes
-        else _("You can also save important things to the memory."),
+        _("You can also save important things to the memory.") if capabilities.memory else None,
         _(
             "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
         ),
@@ -101,7 +100,7 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
                 )
             context_doc += Section(VList(*rendered_related_notes), title=section_title)
 
-    if not memories_to_notes and (memory_lines := await AIMemoryModel.get_lines(context.chat_iid)):
+    if capabilities.memory and (memory_lines := await AIMemoryModel.get_lines(context.chat_iid)):
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         context_doc += Section(
             VList(*indexed_memory_lines), title=_("You have the following information in your memory")

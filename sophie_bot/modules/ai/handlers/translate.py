@@ -17,12 +17,12 @@ from stfu_tg import (
 )
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_translations_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_translations_model
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_progress import (
     ai_progress_line,
@@ -134,7 +134,7 @@ async def text_or_reply(message: Message | None, _data: dict):
 class AiTranslate(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("aitranslate", "translate", "tr")), AIEnabledFilter(), AIQuotaFilter(AI_FEATURE_TRANSLATE)
+        return CMDFilter(("aitranslate", "translate", "tr")), AICapabilityFilter(), AIQuotaFilter(AI_FEATURE_TRANSLATE)
 
     @classmethod
     def register(cls, router: Router) -> None:

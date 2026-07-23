@@ -12,7 +12,7 @@ from stfu_tg import Template
 
 from sophie_bot.constants import AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.chat import UserInGroupModel
-from sophie_bot.modules.ai.utils.ai_models import get_filter_handler_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_filters_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
@@ -143,8 +143,8 @@ async def match_ai_handler(
     """
     Match a message against an AI-powered filter.
 
-    The model is resolved via ``get_filter_handler_model`` (the ai_filter_handler_model flag, or the
-    Free provider's vision model when the chat selected the Free provider).
+    The model is resolved via ``get_chat_filters_model``: the ai_filter_handler_model flag when set,
+    otherwise the model the chat's AI mode uses for filters.
 
     Supports text, photos, videos (thumbnail), and stickers.
 
@@ -225,7 +225,7 @@ async def match_ai_handler(
             )
 
         # Run AI evaluation
-        model = await get_filter_handler_model(chat_iid, chat_tid)
+        model = await get_chat_filters_model(chat_iid, chat_tid)
         service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=chat_tid)
 
         result = await run_structured_task(

@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, ValidationError
 
-from sophie_bot.db.models import AIEnabledModel, ChatModel, RulesModel
+from sophie_bot.db.models import ChatModel, RulesModel
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_models import MODERATION_REASON_MODEL
@@ -40,8 +41,8 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
     if not await is_enabled("ai_moderation_reasons", chat_tid=chat_db.tid):
         return False
 
-    # Check if AI is enabled for this chat
-    if not await AIEnabledModel.get_state(chat_db.iid):
+    capabilities = await resolve_chat_capabilities(chat_db)
+    if not capabilities.moderator:
         return False
 
     return True

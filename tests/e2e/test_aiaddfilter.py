@@ -4,6 +4,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -49,7 +52,10 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
 
     with (
         patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.ai.filters.ai_mode.resolve_chat_capabilities",
+            AsyncMock(return_value=get_capabilities(AIMode.support)),
+        ),
         patch(
             "sophie_bot.modules.ai.filters.quota.check_quota",
             AsyncMock(return_value=SimpleNamespace(allowed=True)),
@@ -90,7 +96,10 @@ async def test_aiaddfilter_returns_generic_error_when_ai_fails(test_client: Test
 
     with (
         patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.ai.filters.ai_mode.resolve_chat_capabilities",
+            AsyncMock(return_value=get_capabilities(AIMode.support)),
+        ),
         patch(
             "sophie_bot.modules.ai.filters.quota.check_quota",
             AsyncMock(return_value=SimpleNamespace(allowed=True)),

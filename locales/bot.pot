@@ -143,27 +143,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:110
+#: sophie_bot/modules/ai/__init__.py:101
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:112
+#: sophie_bot/modules/ai/__init__.py:103
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:115
+#: sophie_bot/modules/ai/__init__.py:106
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:116
+#: sophie_bot/modules/ai/__init__.py:107
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:119
+#: sophie_bot/modules/ai/__init__.py:110
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:120
+#: sophie_bot/modules/ai/__init__.py:111
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -276,17 +276,13 @@ msgstr ""
 msgid "No commands in this module."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/notes.py:107
-msgid "Note was successfully deleted."
+#: sophie_bot/modules/ai/filters/ai_mode.py:52
+msgid "The AI features are currently disabled for this chat."
 msgstr ""
 
-#: sophie_bot/modules/ai/filters/ai_enabled.py:33
-msgid "The AI Features are currently deactivated for this chat."
-msgstr ""
-
-#: sophie_bot/modules/ai/filters/ai_enabled.py:34
+#: sophie_bot/modules/ai/filters/ai_mode.py:53
 #, python-brace-format
-msgid "Please use \"{cmd}\" to activate them."
+msgid "Please use \"{cmd}\" to pick an AI mode."
 msgstr ""
 
 #: sophie_bot/modules/ai/fsm/pm.py:13
@@ -340,7 +336,6 @@ msgid "For example, {cmd}"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:20
-#: sophie_bot/modules/ai/handlers/mode.py:16
 msgid "Prompt"
 msgstr ""
 
@@ -348,106 +343,70 @@ msgstr ""
 msgid "Ask Sophie a question"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:38
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:42
 #: sophie_bot/modules/ai/handlers/research.py:104
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/ai_moderator_setting.py:14
-msgid "Controls AI Moderator features"
+#: sophie_bot/modules/ai/handlers/aimode.py:24
+msgid "🚫 Disabled"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:31
-msgid "🔃 Automatically choose the best provider"
+#: sophie_bot/modules/ai/handlers/aimode.py:25
+msgid "🎉 Entertainment"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:32
-msgid "⚡️ The fastest"
+#: sophie_bot/modules/ai/handlers/aimode.py:26
+msgid "🛡 Moderation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:33
-msgid "🔒 The most private"
+#: sophie_bot/modules/ai/handlers/aimode.py:27
+msgid "💬 Support"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:34
-msgid "🧠 The smartest"
+#: sophie_bot/modules/ai/handlers/aimode.py:31
+msgid "Every AI feature is off."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:35
-msgid "👨‍🏫 The most precise"
+#: sophie_bot/modules/ai/handlers/aimode.py:32
+msgid "Chats along, joins conversations on its own and remembers people. No privacy."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:36
-msgid "🆓 Increased AI limits in cost of privacy"
+#: sophie_bot/modules/ai/handlers/aimode.py:33
+msgid "Only moderates. No chatbot, and no message history is kept at all."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:64
-#: sophie_bot/modules/ai/handlers/aiprovider.py:129
-msgid "Select the AI Provider for this chat"
+#: sophie_bot/modules/ai/handlers/aimode.py:34
+msgid "Answers questions using the chat notes, and moderates."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:82
-msgid "Current provider"
+#: sophie_bot/modules/ai/handlers/aimode.py:40
+msgid "Mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:83
-msgid "AI Provider"
+#: sophie_bot/modules/ai/handlers/aimode.py:40
+msgid "What Sophie does"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:99
+#: sophie_bot/modules/ai/handlers/aimode.py:61
+msgid "AI Mode"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimode.py:78
+msgid "Select what the AI does in this chat"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimode.py:96
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:107
+#: sophie_bot/modules/ai/handlers/aimode.py:100
 msgid "You are not allowed to change this setting"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:113
-msgid "Unknown provider"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:119
-#: sophie_bot/modules/connections/handlers/connect_dm.py:38
-#: sophie_bot/modules/disabling/handlers/disable.py:56
-#: sophie_bot/modules/disabling/handlers/enable.py:51
-#: sophie_bot/modules/locks/handlers/base.py:58
-#: sophie_bot/modules/locks/handlers/locks_list.py:69
-#: sophie_bot/modules/locks/handlers/locksticker.py:52
-#: sophie_bot/modules/locks/handlers/locksticker.py:66
-#: sophie_bot/modules/notes/handlers/delete.py:56
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/op/handlers/SetMode.py:112
-#: sophie_bot/modules/op/handlers/SetMode.py:149
-#: sophie_bot/modules/promotes/handlers/demote.py:78
-#: sophie_bot/modules/promotes/handlers/promote.py:152
-#: sophie_bot/modules/restrictions/handlers/base.py:141
-#: sophie_bot/modules/restrictions/services/silent.py:83
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
-#: sophie_bot/modules/utils_/status_handler.py:47
-#: sophie_bot/modules/utils_/status_handler.py:70
-#: sophie_bot/modules/utils_/status_handler.py:124
-msgid "Chat"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:120
-msgid "New provider"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:121
-msgid "AI Provider was updated"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:125
-msgid "Provider updated"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
 msgid "Controls AI Auto translator"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/enable_setting.py:14
-msgid "Controls AI features"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/feature_setting.py:26
@@ -458,23 +417,15 @@ msgstr ""
 msgid "Controls AI note title generation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/mode.py:17
-msgid "Generates a new AI mode"
+#: sophie_bot/modules/ai/handlers/op_prices.py:37
+msgid " (provider not configured)"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:39
-msgid "default chat"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_prices.py:41
-msgid "default translate"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_prices.py:61
+#: sophie_bot/modules/ai/handlers/op_prices.py:44
 msgid "AI Prices"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:62
+#: sophie_bot/modules/ai/handlers/op_prices.py:45
 msgid "Prices are shown as approximate USD per 1M input/output tokens."
 msgstr ""
 
@@ -753,19 +704,19 @@ msgstr ""
 msgid "{ai_emoji} AI Response"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:34
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:35
 msgid "✋ AI Moderator"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:35
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:36
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:36
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:37
 msgid "Message author"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:45
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:46
 #: sophie_bot/modules/communities/utils/ban_docs.py:37
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:83
 #: sophie_bot/modules/federations/utils/ban_docs.py:36
@@ -784,17 +735,17 @@ msgid_plural "Reasons"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:109
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:110
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:124
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:125
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:177
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:178
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr ""
 
@@ -972,80 +923,76 @@ msgstr ""
 msgid "AI features are disabled till {date}."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:19
+#: sophie_bot/modules/ai/utils/chatbot_context.py:20
 msgid "Prefer to use tables when comparing items"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:22
+#: sophie_bot/modules/ai/utils/chatbot_context.py:23
 msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:28
+#: sophie_bot/modules/ai/utils/chatbot_context.py:29
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:29
+#: sophie_bot/modules/ai/utils/chatbot_context.py:30
 msgid "Today is "
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:30
+#: sophie_bot/modules/ai/utils/chatbot_context.py:31
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:38
-msgid "You can also save important things to chat notes."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:40
+#: sophie_bot/modules/ai/utils/chatbot_context.py:39
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:42
+#: sophie_bot/modules/ai/utils/chatbot_context.py:41
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:44
+#: sophie_bot/modules/ai/utils/chatbot_context.py:43
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:48
+#: sophie_bot/modules/ai/utils/chatbot_context.py:47
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:54
+#: sophie_bot/modules/ai/utils/chatbot_context.py:53
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:63
+#: sophie_bot/modules/ai/utils/chatbot_context.py:62
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:71
+#: sophie_bot/modules/ai/utils/chatbot_context.py:70
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:82
+#: sophie_bot/modules/ai/utils/chatbot_context.py:81
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:89
+#: sophie_bot/modules/ai/utils/chatbot_context.py:88
 msgid "Related chat notes with content."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:93
+#: sophie_bot/modules/ai/utils/chatbot_context.py:92
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:100
+#: sophie_bot/modules/ai/utils/chatbot_context.py:99
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:107
+#: sophie_bot/modules/ai/utils/chatbot_context.py:106
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -1685,6 +1632,28 @@ msgstr ""
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:34
 msgid "Connects to the chat."
+msgstr ""
+
+#: sophie_bot/modules/connections/handlers/connect_dm.py:38
+#: sophie_bot/modules/disabling/handlers/disable.py:56
+#: sophie_bot/modules/disabling/handlers/enable.py:51
+#: sophie_bot/modules/locks/handlers/base.py:58
+#: sophie_bot/modules/locks/handlers/locks_list.py:69
+#: sophie_bot/modules/locks/handlers/locksticker.py:52
+#: sophie_bot/modules/locks/handlers/locksticker.py:66
+#: sophie_bot/modules/notes/handlers/delete.py:56
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/op/handlers/SetMode.py:112
+#: sophie_bot/modules/op/handlers/SetMode.py:149
+#: sophie_bot/modules/promotes/handlers/demote.py:78
+#: sophie_bot/modules/promotes/handlers/promote.py:152
+#: sophie_bot/modules/restrictions/handlers/base.py:141
+#: sophie_bot/modules/restrictions/services/silent.py:83
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
+#: sophie_bot/modules/utils_/status_handler.py:47
+#: sophie_bot/modules/utils_/status_handler.py:70
+#: sophie_bot/modules/utils_/status_handler.py:124
+msgid "Chat"
 msgstr ""
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:53
@@ -4584,8 +4553,8 @@ msgstr ""
 msgid "⚠️ Only the first media of the album was saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:52
-#: sophie_bot/modules/notes/schedules/generate_ai_titles.py:24
+#: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:53
+#: sophie_bot/modules/notes/schedules/generate_ai_titles.py:25
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr ""
 

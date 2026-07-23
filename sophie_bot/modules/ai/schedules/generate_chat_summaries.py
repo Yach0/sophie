@@ -8,9 +8,10 @@ from babel.dates import format_date, format_time
 from beanie import PydanticObjectId
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 
-from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, AIEnabledModel, ChatModel
+from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatModel
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_summary_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -281,7 +282,7 @@ class GenerateChatSummaries:
             if not await is_enabled("ai_chat_summaries", chat_tid=chat.tid):
                 log.debug("generate_chat_summaries: feature flag disabled, skipping chat", chat=chat.tid)
                 continue
-            if not await AIEnabledModel.get_state(chat.iid):
+            if not (await resolve_chat_capabilities(chat)).message_cache:
                 log.debug("generate_chat_summaries: AI disabled for chat, skipping", chat=chat.tid)
                 continue
 

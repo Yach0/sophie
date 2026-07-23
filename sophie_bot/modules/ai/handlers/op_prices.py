@@ -9,10 +9,7 @@ from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_model_pricing import get_model_pricing
-from sophie_bot.modules.ai.utils.ai_model_registry import (
-    AI_PROVIDER_TO_NAME,
-    get_provider_models,
-)
+from sophie_bot.modules.ai.utils.ai_model_registry import MODE_MODELS, is_model_available
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
@@ -24,43 +21,29 @@ def _format_price(price: float | None) -> str:
 
 
 async def op_ai_prices_handler(message: Message) -> None:
-    provider_sections = []
+    mode_sections = []
 
-    for provider_name in AI_PROVIDER_TO_NAME:
-        provider_models = get_provider_models(provider_name)
-        if not provider_models:
-            continue
-
+    for mode, models_by_purpose in MODE_MODELS.items():
         model_lines = []
-        for model in provider_models:
-            input_price, output_price = await get_model_pricing(model.name)
-            markers = []
-            if model.default_for_chatbot:
-                markers.append(_("default chat"))
-            if model.default_for_translation:
-                markers.append(_("default translate"))
-
+        for purpose, model_name in models_by_purpose.items():
+            input_price, output_price = await get_model_pricing(model_name)
             model_lines.append(
                 Template(
-                    "{name}: in {input_price}, out {output_price}{markers}",
-                    name=Bold(model.name),
+                    "{purpose}: {name} — in {input_price}, out {output_price}{unavailable}",
+                    purpose=Bold(purpose),
+                    name=Code(model_name),
                     input_price=Code(_format_price(input_price)),
                     output_price=Code(_format_price(output_price)),
-                    markers=Code(f" ({', '.join(markers)})") if markers else "",
+                    unavailable="" if is_model_available(model_name) else Code(_(" (provider not configured)")),
                 )
             )
 
-        provider_sections.append(
-            Section(
-                VList(*model_lines),
-                title=AI_PROVIDER_TO_NAME[provider_name],
-            )
-        )
+        mode_sections.append(Section(VList(*model_lines), title=mode.value))
 
     doc = Doc(
         Title(f"{AI_EMOJI} {_('AI Prices')}"),
         Template(_("Prices are shown as approximate USD per 1M input/output tokens.")),
-        *provider_sections,
+        *mode_sections,
     )
     await message.reply(str(doc))
 

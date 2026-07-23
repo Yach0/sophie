@@ -101,4 +101,5 @@ async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch) -
     assert "AI Prices" in text
     assert "$0.15/1M" in text
     assert "$0.60/1M" in text
-    assert "default chat" in text
+    assert "chatbot" in text
+    assert "entertainment" in text

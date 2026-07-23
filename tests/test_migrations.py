@@ -8,7 +8,7 @@ from types import ModuleType
 import pytest
 from bson import DBRef, ObjectId
 
-from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.services.db import get_collection
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.disabling import DisablingModel
@@ -468,21 +468,21 @@ async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone() -> N
     version: `already_auto` comes back as "zai".
     """
     migration = _zai_provider_migration()
-    chat = await _seed_chat(-1001)
+    providers = get_collection("ai_provider")
 
-    migrated = await AIProviderModel(chat=chat, provider="zai").insert()
-    already_auto = await AIProviderModel(chat=chat, provider="auto").insert()
+    migrated_id = (await providers.insert_one({"provider": "zai"})).inserted_id
+    already_auto_id = (await providers.insert_one({"provider": "auto"})).inserted_id
 
     await migration.Forward.migrate.run(None)
 
-    assert (await AIProviderModel.get(migrated.id)).provider == "auto"
+    assert (await providers.find_one({"_id": migrated_id}))["provider"] == "auto"
 
     await migration.Backward.noop.run(None)
 
     # The whole bug: this chat was never "zai" and must never become "zai".
-    assert (await AIProviderModel.get(already_auto.id)).provider == "auto"
+    assert (await providers.find_one({"_id": already_auto_id}))["provider"] == "auto"
     # Forward's own set is not restorable either -- it is now indistinguishable from the above.
-    assert (await AIProviderModel.get(migrated.id)).provider == "auto"
+    assert (await providers.find_one({"_id": migrated_id}))["provider"] == "auto"
 
 
 @pytest.mark.usefixtures("db_init")
@@ -494,19 +494,19 @@ async def test_summary_model_gpt55_backward_leaves_pre_existing_new_model_alone(
     this test fails against that version.
     """
     migration = _summary_model_gpt55_migration()
-    chat = await _seed_chat(-1001)
+    providers = get_collection("ai_provider")
 
-    migrated = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.4").insert()
-    already_new = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.5").insert()
+    migrated_id = (await providers.insert_one({"summary_model": "openai/gpt-5.4"})).inserted_id
+    already_new_id = (await providers.insert_one({"summary_model": "openai/gpt-5.5"})).inserted_id
 
     await migration.Forward.migrate.run(None)
 
-    assert (await AIProviderModel.get(migrated.id)).summary_model == "openai/gpt-5.5"
+    assert (await providers.find_one({"_id": migrated_id}))["summary_model"] == "openai/gpt-5.5"
 
     await migration.Backward.noop.run(None)
 
-    assert (await AIProviderModel.get(already_new.id)).summary_model == "openai/gpt-5.5"
-    assert (await AIProviderModel.get(migrated.id)).summary_model == "openai/gpt-5.5"
+    assert (await providers.find_one({"_id": already_new_id}))["summary_model"] == "openai/gpt-5.5"
+    assert (await providers.find_one({"_id": migrated_id}))["summary_model"] == "openai/gpt-5.5"
 
 
 @pytest.mark.usefixtures("db_init")
@@ -652,14 +652,13 @@ async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice() -> 
     test fails.
     """
     migration = importlib.import_module("sophie_bot.db.migrations.20260504_210000_add_ai_summary_model")
-    chat = await _seed_chat(-1106)
-    collection = AIProviderModel.get_pymongo_collection()
+    collection = get_collection("ai_provider")
 
-    chosen = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.4").insert()
+    chosen_id = (await collection.insert_one({"summary_model": "openai/gpt-5.4"})).inserted_id
 
     await migration.Backward.noop.run(None)
 
-    stored = await collection.find_one({"_id": chosen.id})
+    stored = await collection.find_one({"_id": chosen_id})
     assert stored["summary_model"] == "openai/gpt-5.4"
 
 

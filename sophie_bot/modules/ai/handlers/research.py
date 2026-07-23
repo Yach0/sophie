@@ -11,7 +11,7 @@ from stfu_tg import Doc
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
@@ -89,7 +89,7 @@ class ResearchCmd(SophieMessageHandler):
         return (
             CMDFilter("research"),
             FeatureFlagFilter("ai_research"),
-            AIEnabledFilter(),
+            AICapabilityFilter(),
             AIQuotaFilter(AI_FEATURE_RESEARCH),
         )
 

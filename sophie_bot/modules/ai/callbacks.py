@@ -5,8 +5,8 @@ class AIResetContext(CallbackData, prefix="ai_reset_context"):
     pass
 
 
-class AIProviderCallback(CallbackData, prefix="ai_provider"):
-    provider: str  # 'openai' or 'google'
+class AIModeCallback(CallbackData, prefix="ai_mode"):
+    mode: str
 
 
 class AIChatCallback(CallbackData, prefix="ai_chat"):
