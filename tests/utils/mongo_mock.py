@@ -9,7 +9,6 @@ Based on the workaround from https://github.com/mongomock/mongomock/issues/916
 from __future__ import annotations
 
 import asyncio
-from contextlib import contextmanager
 from functools import partial, wraps
 from typing import TYPE_CHECKING, Any
 
@@ -18,36 +17,7 @@ from bson import DBRef
 from mongomock import MongoClient as SyncMongoClient
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Iterator
-
-
-@contextmanager
-def dbref_traversal() -> Iterator[None]:
-    """Teach mongomock to resolve `field.$id` against a DBRef for the duration of the block.
-
-    Beanie compiles every `Link` query (`Model.chat.id == chat_iid`) to `{"chat.$id": ...}`.
-    Real MongoDB traverses into the DBRef; mongomock's key resolution bails out on anything
-    that is not a dict, so by default *no* Link lookup can ever match here. Tests that depend
-    on a Link lookup actually resolving must opt in, or they assert nothing.
-
-    This is deliberately opt-in rather than applied globally: several existing tests and
-    helpers are written around the limitation (see tests/e2e/federations/conftest.py), and
-    enabling it for the whole suite changes their outcomes. Fixing that is its own change.
-    """
-    original = mongomock.filtering.iter_key_candidates
-
-    @wraps(original)
-    def iter_key_candidates(key: Any, doc: Any) -> Any:
-        if isinstance(doc, DBRef):
-            doc = {"$id": doc.id, "$ref": doc.collection, "$db": doc.database}
-        # The original recurses through the module global, so nested refs land here too.
-        return original(key, doc)
-
-    mongomock.filtering.iter_key_candidates = iter_key_candidates
-    try:
-        yield
-    finally:
-        mongomock.filtering.iter_key_candidates = original
+    from collections.abc import AsyncIterator
 
 
 def _patch_dbref_traversal() -> None:

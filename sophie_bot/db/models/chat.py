@@ -30,88 +30,6 @@ class ChatType(Enum):
     channel = "channel"
 
 
-class UserInGroupModel(Document):
-    user: Link["ChatModel"]
-    group: Link["ChatModel"]
-    first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_saw: datetime
-    ai_filter_seen_messages: int = 0
-
-    class Settings:
-        name = "users_in_groups"
-        indexes = [
-            IndexModel(
-                [
-                    ("user.$id", ASCENDING),
-                    ("group.$id", ASCENDING),
-                ],
-                unique=True,
-                name="user_group_dedup_key",
-            ),
-        ]
-
-    @staticmethod
-    async def ensure_user_in_group(user: "ChatModel", group: "ChatModel"):
-        current_timedate = datetime.now(timezone.utc)
-
-        return await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}).upsert(
-            Set({UserInGroupModel.last_saw: current_timedate}),
-            on_insert=UserInGroupModel(
-                user=user,
-                group=group,
-                last_saw=current_timedate,
-            ),
-            response_type=UpdateResponse.NEW_DOCUMENT,
-        )
-
-    @staticmethod
-    async def remove_user_in_chat(user_iid: PydanticObjectId, group_iid: PydanticObjectId):
-        user_in_chat = await UserInGroupModel.find_one({"user.$id": user_iid, "group.$id": group_iid})
-        if user_in_chat:
-            await user_in_chat.delete()
-        return user_in_chat
-
-    @staticmethod
-    async def ensure_delete(user: "ChatModel", group: "ChatModel") -> Optional["UserInGroupModel"]:
-        if user_in_chat := await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}):
-            await user_in_chat.delete()
-            return user_in_chat
-        return None
-
-    @staticmethod
-    async def get_user_in_group(
-        user_iid: PydanticObjectId, group_iid: PydanticObjectId
-    ) -> Optional["UserInGroupModel"]:
-        return await UserInGroupModel.find_one({"user.$id": user_iid, "group.$id": group_iid})
-
-
-class ChatTopicModel(Document):
-    group: Link["ChatModel"]
-    thread_id: int
-    name: Optional[str] = None
-    last_active: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-    class Settings:
-        name = "chat_topics"
-
-    @staticmethod
-    async def ensure_topic(group: "ChatModel", thread_id: int, topic_name: Optional[str]):
-        model: Optional[ChatTopicModel] = await ChatTopicModel.find_one(
-            ChatTopicModel.group.id == group.iid, ChatTopicModel.thread_id == thread_id
-        )
-
-        if not model:
-            model = ChatTopicModel(group=group, thread_id=thread_id, name=topic_name)
-            await model.save()
-            return model
-
-        if (topic_name and topic_name != model.name) or (topic_name and not model.name):
-            model.name = topic_name
-            await model.save()
-
-        return model
-
-
 class ChatModel(Document):
     iid: PydanticObjectId = Field(default_factory=PydanticObjectId, alias="_id")
     tid: Annotated[int, Indexed(unique=True)] = Field(..., alias="chat_id")
@@ -281,3 +199,85 @@ class ChatModel(Document):
     @staticmethod
     def export_dict(chat: "ChatModel") -> dict[str, Any]:
         return chat.model_dump(mode="json", exclude_none=True, exclude_unset=True, exclude_defaults=True)
+
+
+class UserInGroupModel(Document):
+    user: Link[ChatModel]
+    group: Link[ChatModel]
+    first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_saw: datetime
+    ai_filter_seen_messages: int = 0
+
+    class Settings:
+        name = "users_in_groups"
+        indexes = [
+            IndexModel(
+                [
+                    ("user.$id", ASCENDING),
+                    ("group.$id", ASCENDING),
+                ],
+                unique=True,
+                name="user_group_dedup_key",
+            ),
+        ]
+
+    @staticmethod
+    async def ensure_user_in_group(user: "ChatModel", group: "ChatModel"):
+        current_timedate = datetime.now(timezone.utc)
+
+        return await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}).upsert(
+            Set({UserInGroupModel.last_saw: current_timedate}),
+            on_insert=UserInGroupModel(
+                user=user,
+                group=group,
+                last_saw=current_timedate,
+            ),
+            response_type=UpdateResponse.NEW_DOCUMENT,
+        )
+
+    @staticmethod
+    async def remove_user_in_chat(user_iid: PydanticObjectId, group_iid: PydanticObjectId):
+        user_in_chat = await UserInGroupModel.find_one({"user.$id": user_iid, "group.$id": group_iid})
+        if user_in_chat:
+            await user_in_chat.delete()
+        return user_in_chat
+
+    @staticmethod
+    async def ensure_delete(user: "ChatModel", group: "ChatModel") -> Optional["UserInGroupModel"]:
+        if user_in_chat := await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}):
+            await user_in_chat.delete()
+            return user_in_chat
+        return None
+
+    @staticmethod
+    async def get_user_in_group(
+        user_iid: PydanticObjectId, group_iid: PydanticObjectId
+    ) -> Optional["UserInGroupModel"]:
+        return await UserInGroupModel.find_one({"user.$id": user_iid, "group.$id": group_iid})
+
+
+class ChatTopicModel(Document):
+    group: Link[ChatModel]
+    thread_id: int
+    name: Optional[str] = None
+    last_active: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Settings:
+        name = "chat_topics"
+
+    @staticmethod
+    async def ensure_topic(group: "ChatModel", thread_id: int, topic_name: Optional[str]):
+        model: Optional[ChatTopicModel] = await ChatTopicModel.find_one(
+            ChatTopicModel.group.id == group.iid, ChatTopicModel.thread_id == thread_id
+        )
+
+        if not model:
+            model = ChatTopicModel(group=group, thread_id=thread_id, name=topic_name)
+            await model.save()
+            return model
+
+        if (topic_name and topic_name != model.name) or (topic_name and not model.name):
+            model.name = topic_name
+            await model.save()
+
+        return model

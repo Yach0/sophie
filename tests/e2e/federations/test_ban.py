@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import Message
-from beanie import PydanticObjectId
 from aiogram_test_framework import MessageFactory, TestClient, UpdateFactory
-from bson import DBRef
 
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
@@ -22,86 +19,6 @@ from tests.e2e.federations.conftest import (
     create_federation_via_command,
     create_test_user_and_group,
 )
-
-
-def _extract_link_id(link_value: Any) -> Optional[PydanticObjectId]:
-    """Extract the PydanticObjectId from a Beanie Link / DBRef / ChatModel / raw ObjectId."""
-    if isinstance(link_value, DBRef):
-        return PydanticObjectId(link_value.id)
-    if isinstance(link_value, PydanticObjectId):
-        return link_value
-    # Beanie Document (e.g. ChatModel) — use its primary key
-    if hasattr(link_value, "iid"):
-        return PydanticObjectId(link_value.iid)
-    if hasattr(link_value, "ref"):
-        ref = link_value.ref
-        if isinstance(ref, DBRef):
-            return PydanticObjectId(ref.id)
-    if hasattr(link_value, "to_ref"):
-        ref = link_value.to_ref()
-        return _extract_link_id(ref)
-    if hasattr(link_value, "id"):
-        return PydanticObjectId(link_value.id)
-    return None
-
-
-class _FakeFirstOrNone:
-    """Wraps a list of UserInGroupModel and exposes ``first_or_none()``."""
-
-    def __init__(self, results: list[UserInGroupModel]) -> None:
-        self._results = results
-
-    async def first_or_none(self) -> Optional[UserInGroupModel]:
-        return self._results[0] if self._results else None
-
-    async def to_list(self) -> list[UserInGroupModel]:
-        return self._results
-
-
-def _make_uig_find_patch(inserted_entries: list[UserInGroupModel]):
-    """Return a replacement for ``UserInGroupModel.find`` that filters in Python.
-
-    mongomock cannot evaluate DBRef sub-field queries (``user.$id``, ``group.$id``).
-    This helper scans the pre-inserted *inserted_entries* list instead.
-    """
-
-    def _patched_find(*args: Any, **_kwargs: Any) -> _FakeFirstOrNone:
-        # Parse the Beanie expression arguments to extract user_iid and group_iids.
-        user_iid: Optional[PydanticObjectId] = None
-        group_iids: Optional[set[PydanticObjectId]] = None
-
-        for arg in args:
-            # Beanie comparison expressions have `field` and `value` or similar attrs.
-            # We inspect the dict representation instead for reliability.
-            if hasattr(arg, "query"):
-                query_dict = arg.query
-            elif isinstance(arg, dict):
-                query_dict = arg
-            else:
-                continue
-
-            for key, val in query_dict.items():
-                if "user" in key:
-                    user_iid = PydanticObjectId(val) if not isinstance(val, PydanticObjectId) else val
-                elif "group" in key:
-                    if isinstance(val, dict) and "$in" in val:
-                        group_iids = {PydanticObjectId(gid) for gid in val["$in"]}
-                    else:
-                        group_iids = {PydanticObjectId(val) if not isinstance(val, PydanticObjectId) else val}
-
-        matched: list[UserInGroupModel] = []
-        for entry in inserted_entries:
-            entry_user_iid = _extract_link_id(entry.user)
-            entry_group_iid = _extract_link_id(entry.group)
-
-            if user_iid is not None and entry_user_iid != user_iid:
-                continue
-            if group_iids is not None and entry_group_iid not in group_iids:
-                continue
-            matched.append(entry)
-        return _FakeFirstOrNone(matched)
-
-    return _patched_find
 
 
 @pytest.mark.asyncio
@@ -161,7 +78,9 @@ async def test_sfban_reply_records_banner_as_command_sender(test_client: TestCli
         target_model = await ChatModel.get_by_tid(4051)
         assert target_model is not None
 
-        federation = await create_federation_via_command(test_client, owner_user, group, "Reply Ban Test Fed", owner_model)
+        federation = await create_federation_via_command(
+            test_client, owner_user, group, "Reply Ban Test Fed", owner_model
+        )
         await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
 
         target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
@@ -177,8 +96,8 @@ async def test_sfban_reply_records_banner_as_command_sender(test_client: TestCli
 
     ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id, FederationBan.user_id == 4051)
     assert ban is not None
-    assert _extract_link_id(ban.by) == owner_model.iid
-    assert _extract_link_id(ban.by) != target_model.iid
+    assert ban.by.to_ref().id == owner_model.iid
+    assert ban.by.to_ref().id != target_model.iid
 
 
 @pytest.mark.asyncio
@@ -536,10 +455,6 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     await user_in_group_b.insert()
     await user_in_group_c.insert()
 
-    # Build a patched UserInGroupModel.find that filters in Python instead of
-    # relying on DBRef sub-field queries (which mongomock cannot handle).
-    uig_entries = [user_in_group_a, user_in_group_b, user_in_group_c]
-
     # Set up subscription chain: A → B → C
     # Fed A subscribes to Fed B
     success_a = await FederationManageService.subscribe_to_federation(fed_a, fed_b.fed_id)
@@ -566,14 +481,9 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     assert ban_c.fed_id == fed_c.fed_id
 
     # Trigger lazy-ban in subscribing federations.
-    # Patch UserInGroupModel.find to work around mongomock DBRef query limitation.
-    # Import the specific module where UserInGroupModel is used to ensure proper patching.
-    from sophie_bot.modules.federations.services import ban as ban_service_module
-
-    with patch.object(ban_service_module.UserInGroupModel, "find", _make_uig_find_patch(uig_entries)):
-        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-            fed_c, 4033, model_c.iid, reason="transitive lazy ban test"
-        )
+    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+        fed_c, 4033, model_c.iid, reason="transitive lazy ban test"
+    )
 
     # Should have banned in Fed B and Fed A (2 lazy bans)
     assert len(lazy_bans) == 2, f"Expected 2 lazy bans (B and A), got {len(lazy_bans)}"
@@ -672,13 +582,9 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
     assert ban_b is not None
 
     # Trigger lazy-ban
-    # Import the specific module where UserInGroupModel is used to ensure proper patching.
-    from sophie_bot.modules.federations.services import ban as ban_service_module
-
-    with patch.object(ban_service_module.UserInGroupModel, "find", _make_uig_find_patch([user_in_group_b])):
-        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-            fed_b, 4042, model_b.iid, reason="selective lazy ban test"
-        )
+    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+        fed_b, 4042, model_b.iid, reason="selective lazy ban test"
+    )
 
     # Should have banned ONLY in Fed A where user is NOT present
     # So actually 0 lazy bans since user isn't in Fed A's chats
@@ -731,9 +637,7 @@ async def _create_subscribed_fed_pair(
     return fed_a, fed_b, model_b
 
 
-async def _insert_inherited_ban(
-    fed_id: str, origin_fed_id: str, user_tid: int, by_model: ChatModel
-) -> FederationBan:
+async def _insert_inherited_ban(fed_id: str, origin_fed_id: str, user_tid: int, by_model: ChatModel) -> FederationBan:
     """Insert the ban row shape that lazy_ban_in_subscribing_federations produces."""
     ban = FederationBan(
         fed_id=fed_id,
@@ -835,9 +739,7 @@ async def test_fban_queues_propagation_task_when_reply_cannot_be_sent(test_clien
         target_wrapper = test_client.create_user(user_id=4071, first_name="NoReplyTarget", username="no_reply_target")
         await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
 
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "No Reply Fed", owner_model
-        )
+        federation = await create_federation_via_command(test_client, owner_user, group, "No Reply Fed", owner_model)
         await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
 
         target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
