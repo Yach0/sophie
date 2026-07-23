@@ -23,6 +23,7 @@ class AIModelPurpose(str, Enum):
     summary = "summary"
     moderation_reason = "moderation_reason"
     sophie_inspect = "sophie_inspect"
+    research = "research"
 
 
 class AIModelRole(BaseModel):

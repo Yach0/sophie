@@ -9,6 +9,7 @@ from pydantic_ai.models import Model
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.utils.ai_catalog import resolve_model_name
+from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
@@ -121,7 +122,7 @@ async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid
         return _("The daily limit for source inspection in this chat has been reached.")
 
     model_name = str(await get_value("ai_sophie_inspect_model", chat_tid=chat_tid)) or await resolve_model_name(
-        None, AIModelPurpose.sophie_inspect
+        await get_chat_mode(chat_iid), AIModelPurpose.sophie_inspect
     )
     usage_limits = UsageLimits(
         request_limit=await _feature_int("ai_sophie_inspect_request_limit", chat_tid),

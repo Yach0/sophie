@@ -39,7 +39,8 @@ from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabl
 async def test_research_feature_flags_have_safe_defaults(db_init: object) -> None:
     assert await is_enabled("ai_chatbot_research_quote") is True
     assert await is_enabled("ai_research") is False
-    assert await get_value("ai_research_model") == "openai/gpt-5.5"
+    # Empty by default now: research resolves from the catalog, the flag is only an override.
+    assert await get_value("ai_research_model") == ""
     assert await get_value("ai_research_max_rounds") == 3
     assert await get_value("ai_research_queries_per_round") == 5
     assert await get_value("ai_research_results_per_query") == 5
@@ -90,7 +91,7 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
     with (
         patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
         patch(
-            "sophie_bot.modules.ai.utils.research.get_research_model",
+            "sophie_bot.modules.ai.utils.research.get_chat_research_model",
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(

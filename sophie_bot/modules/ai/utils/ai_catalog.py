@@ -162,21 +162,38 @@ async def get_catalog() -> AICatalog:
     return _catalog
 
 
-async def resolve_model_name(mode: AIMode | None, purpose: AIModelPurpose) -> str:
-    """The model serving a purpose, falling back to the support tier when the mode has none."""
-    current = await get_catalog()
-    model_name = current.model_name_for(mode, purpose)
-    if model_name:
-        return model_name
+def resolve_from(catalog: AICatalog, mode: AIMode | None, purpose: AIModelPurpose) -> tuple[str | None, bool]:
+    """The model a (mode, purpose) resolves to, and whether it came from the support-tier fallback.
 
-    fallback_name = current.model_name_for(FALLBACK_MODE, purpose)
-    if not fallback_name:
+    Priority: the mode's own role, then an any-mode role (``mode=None``) set as a default for every
+    mode, then the support tier as a last resort. The middle tier is what makes an ``any:chatbot``
+    role apply to every mode rather than doing nothing.
+    """
+    direct = catalog.model_name_for(mode, purpose)
+    if direct is not None:
+        return direct, False
+
+    if mode is not None:
+        wildcard = catalog.model_name_for(None, purpose)
+        if wildcard is not None:
+            return wildcard, False
+
+    fallback = catalog.model_name_for(FALLBACK_MODE, purpose)
+    return fallback, fallback is not None
+
+
+async def resolve_model_name(mode: AIMode | None, purpose: AIModelPurpose) -> str:
+    """The model serving a purpose, falling back to an any-mode role then the support tier."""
+    current = await get_catalog()
+    model_name, is_fallback = resolve_from(current, mode, purpose)
+    if not model_name:
         raise ValueError(f"No AI model in the catalog serves {purpose.value}")
 
-    log.warning(
-        "AI model missing from the catalog, falling back",
-        fallback=fallback_name,
-        mode=mode.value if mode else None,
-        purpose=purpose.value,
-    )
-    return fallback_name
+    if is_fallback:
+        log.warning(
+            "AI model missing from the catalog, falling back to the support tier",
+            fallback=model_name,
+            mode=mode.value if mode else None,
+            purpose=purpose.value,
+        )
+    return model_name

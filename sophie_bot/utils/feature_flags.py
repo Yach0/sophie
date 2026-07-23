@@ -271,7 +271,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_proactive_replies_max_reactions": _feature(1),
     "ai_proactive_replies_min_messages": _feature(30),
     "ai_research": _feature(False),
-    "ai_research_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
+    "ai_research_model": _feature("", _AI_MODEL_FEATURE),
     # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
     "ai_sophie_inspect": _feature(False),
     "ai_sophie_inspect_model": _feature("", _AI_MODEL_FEATURE),

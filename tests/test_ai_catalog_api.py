@@ -189,11 +189,13 @@ async def test_resolution_shows_used_models_and_marks_fallbacks(_no_version_bump
         resolution = await catalog.get_resolution()
 
     assert "disabled" not in resolution.modes
+    assert "research" in resolution.purposes
     ent = resolution.per_mode["entertainment"]
     assert ent["chatbot"].model == "ent/chat" and ent["chatbot"].fallback is False
     # No entertainment filters model → the support one answers, marked as a fallback.
     assert ent["filters"].model == "support/filter" and ent["filters"].fallback is True
-    assert resolution.globals["summary"].model == "the/summary"
+    # summary is now per-mode too, resolved for every mode.
+    assert resolution.per_mode["support"]["summary"].model == "the/summary"
 
 
 async def test_export_round_trips_through_import(_no_version_bump) -> None:
@@ -240,3 +242,62 @@ async def test_replace_import_removes_models_absent_from_the_file(_no_version_bu
     assert result.deleted == 1
     names = {model.name async for model in AICatalogModelModel.find_all()}
     assert names == {"kept/model"}
+
+
+async def test_an_any_mode_role_serves_every_mode(_no_version_bump) -> None:
+    """A (None, chatbot) role is an any-mode default; it must resolve for every mode, not nowhere."""
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+    await catalog.create_model(
+        ModelCreate(
+            name="any/chat",
+            provider="openrouter",
+            roles=[AIModelRole(mode=None, purpose=AIModelPurpose.chatbot)],
+        )
+    )
+    # A mode with its own chatbot model must still win over the any-mode default.
+    await catalog.create_model(
+        ModelCreate(
+            name="support/chat",
+            provider="openrouter",
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
+        )
+    )
+    with patch.object(catalog, "get_catalog", catalog.load_catalog):
+        resolution = await catalog.get_resolution()
+
+    assert resolution.per_mode["entertainment"]["chatbot"].model == "any/chat"
+    assert resolution.per_mode["moderation"]["chatbot"].model == "any/chat"
+    # The specific role wins over the any-mode one.
+    assert resolution.per_mode["support"]["chatbot"].model == "support/chat"
+    # An any-mode default is a deliberate choice, not a support-tier fallback.
+    assert resolution.per_mode["entertainment"]["chatbot"].fallback is False
+
+
+async def test_provider_models_queries_an_openai_compatible_endpoint(_no_version_bump) -> None:
+    """A custom provider's models come from its own /models, with its own key."""
+    await _clear()
+    await catalog.create_provider(
+        ProviderCreate(
+            name="qwencloud",
+            kind="openai_compatible",
+            base_url="https://example.com/v1",
+            api_key="sk-custom",
+        )
+    )
+    payload = {"data": [{"id": "qwen3-vl-flash"}, {"id": "qwen-max"}]}
+    response = SimpleNamespace(json=lambda: payload, raise_for_status=lambda: None)
+    with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)) as get:
+        models = await catalog.list_provider_models("qwencloud")
+
+    assert [model.id for model in models] == ["qwen3-vl-flash", "qwen-max"]
+    called_url = get.await_args.args[0]
+    assert called_url == "https://example.com/v1/models"
+    assert get.await_args.kwargs["headers"]["Authorization"] == "Bearer sk-custom"
+
+
+async def test_provider_models_404s_for_an_unknown_provider(_no_version_bump) -> None:
+    await _clear()
+    with pytest.raises(HTTPException) as error:
+        await catalog.list_provider_models("nope")
+    assert error.value.status_code == 404

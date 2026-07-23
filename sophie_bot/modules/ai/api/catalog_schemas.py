@@ -119,14 +119,12 @@ class ImportResult(BaseModel):
 
 
 class CatalogResolution(BaseModel):
-    """What Sophie actually uses right now, mode by mode — the model each (mode, purpose) resolves to.
+    """What Sophie actually uses right now — the model each (mode, purpose) resolves to.
 
-    Mirrors the resolution in ai_chat_models: chatbot/translation/filters are per chat mode, while
-    summary/moderation_reason/sophie_inspect are the same for every chat.
+    Every purpose is per mode. A model with an any-mode role (``mode=None``) serves every mode that
+    has no model of its own for that purpose.
     """
 
     modes: list[str]
-    per_chat_purposes: list[str]
-    global_purposes: list[str]
+    purposes: list[str]
     per_mode: dict[str, dict[str, ResolvedModel]]
-    globals: dict[str, ResolvedModel]

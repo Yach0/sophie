@@ -11,12 +11,12 @@ from sophie_bot.db.models.ai.ai_catalog import (
 )
 from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
 from sophie_bot.modules.ai.utils.ai_catalog import (
-    FALLBACK_MODE,
     bump_version,
     get_catalog,
     load_catalog,
     load_documents,
     mask_api_key,
+    resolve_from,
 )
 from sophie_bot.modules.ai.utils.ai_model_pricing import ai_http_client, _openrouter_headers, _parse_price_per_million
 from sophie_bot.utils.api.auth import get_current_operator
@@ -95,10 +95,6 @@ async def get_status() -> CatalogStatus:
     )
 
 
-# How ai_chat_models resolves each purpose: the first group is chosen with the chat's mode, the
-# second is the same for every chat (resolved with mode=None).
-_PER_CHAT_PURPOSES = (AIModelPurpose.chatbot, AIModelPurpose.translation, AIModelPurpose.filters)
-_GLOBAL_PURPOSES = (AIModelPurpose.summary, AIModelPurpose.moderation_reason, AIModelPurpose.sophie_inspect)
 # Disabled runs no AI, so it never resolves a model.
 _RESOLVED_MODES = tuple(mode for mode in SELECTABLE_MODES if mode is not AIMode.disabled)
 
@@ -107,22 +103,18 @@ _RESOLVED_MODES = tuple(mode for mode in SELECTABLE_MODES if mode is not AIMode.
 async def get_resolution() -> CatalogResolution:
     current = await get_catalog()
 
-    def resolve(mode: AIMode | None, purpose: AIModelPurpose) -> ResolvedModel:
-        direct = current.model_name_for(mode, purpose)
-        if direct is not None:
-            return ResolvedModel(model=direct, fallback=False)
-        fallback = current.model_name_for(FALLBACK_MODE, purpose)
-        return ResolvedModel(model=fallback, fallback=fallback is not None)
+    def resolve(mode: AIMode, purpose: AIModelPurpose) -> ResolvedModel:
+        # Same resolution Sophie uses at runtime, so the table cannot drift from reality.
+        model_name, is_fallback = resolve_from(current, mode, purpose)
+        return ResolvedModel(model=model_name, fallback=is_fallback)
 
     return CatalogResolution(
         modes=[mode.value for mode in _RESOLVED_MODES],
-        per_chat_purposes=[purpose.value for purpose in _PER_CHAT_PURPOSES],
-        global_purposes=[purpose.value for purpose in _GLOBAL_PURPOSES],
+        purposes=[purpose.value for purpose in AIModelPurpose],
         per_mode={
-            mode.value: {purpose.value: resolve(mode, purpose) for purpose in _PER_CHAT_PURPOSES}
+            mode.value: {purpose.value: resolve(mode, purpose) for purpose in AIModelPurpose}
             for mode in _RESOLVED_MODES
         },
-        globals={purpose.value: resolve(None, purpose) for purpose in _GLOBAL_PURPOSES},
     )
 
 
@@ -284,20 +276,16 @@ async def import_catalog(data: CatalogExport, replace: bool = False) -> ImportRe
     return result
 
 
-# ── OpenRouter model picker ────────────────────────────────────────────────
+# ── Model picker ───────────────────────────────────────────────────────────
+
+_OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 
-@router.get("/openrouter/models", response_model=list[OpenRouterModelInfo])
-async def list_openrouter_models() -> list[OpenRouterModelInfo]:
-    """Proxy OpenRouter's model list so the panel can pick a model without an OpenRouter key of its own."""
-    try:
-        response = await ai_http_client.get("https://openrouter.ai/api/v1/models", headers=_openrouter_headers())
-        response.raise_for_status()
-    except HTTPError as err:
-        raise HTTPException(status_code=502, detail=f"Could not reach OpenRouter: {err}") from err
-
+def _parse_models(items: list[dict]) -> list[OpenRouterModelInfo]:
+    """Read the OpenAI-compatible ``/models`` shape. Only OpenRouter enriches it with pricing etc.;
+    a plain OpenAI-compatible endpoint returns little more than an id, which is all the picker needs."""
     models = []
-    for item in response.json().get("data", []):
+    for item in items:
         model_id = item.get("id")
         if not model_id:
             continue
@@ -315,3 +303,40 @@ async def list_openrouter_models() -> list[OpenRouterModelInfo]:
             )
         )
     return models
+
+
+async def _fetch_models(url: str, headers: dict[str, str]) -> list[OpenRouterModelInfo]:
+    try:
+        response = await ai_http_client.get(url, headers=headers)
+        response.raise_for_status()
+    except HTTPError as err:
+        raise HTTPException(status_code=502, detail=f"Could not reach {url}: {err}") from err
+    return _parse_models(response.json().get("data", []))
+
+
+@router.get("/openrouter/models", response_model=list[OpenRouterModelInfo])
+async def list_openrouter_models() -> list[OpenRouterModelInfo]:
+    """Proxy OpenRouter's model list so the panel can pick a model without an OpenRouter key of its own."""
+    return await _fetch_models(_OPENROUTER_MODELS_URL, _openrouter_headers())
+
+
+@router.get("/providers/{name:path}/models", response_model=list[OpenRouterModelInfo])
+async def list_provider_models(name: str) -> list[OpenRouterModelInfo]:
+    """List the models a configured provider offers, from its OpenAI-compatible ``/models`` endpoint.
+
+    OpenRouter providers go to OpenRouter; an OpenAI-compatible provider is queried at its own
+    ``base_url`` with its stored key, so the picker can offer that provider's models too.
+    """
+    provider = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == name)
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+
+    if provider.kind is AIProviderKind.openrouter:
+        headers = {"Authorization": f"Bearer {provider.api_key}"} if provider.api_key else _openrouter_headers()
+        return await _fetch_models(_OPENROUTER_MODELS_URL, headers)
+
+    if not provider.base_url:
+        raise HTTPException(status_code=400, detail="This provider has no base_url to query")
+    url = f"{provider.base_url.rstrip('/')}/models"
+    headers = {"Authorization": f"Bearer {provider.api_key}"} if provider.api_key else {}
+    return await _fetch_models(url, headers)

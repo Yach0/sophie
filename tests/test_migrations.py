@@ -877,3 +877,28 @@ async def test_rename_deep_help_role_converges_a_stale_catalog() -> None:
     assert {"mode": None, "purpose": "sophie_inspect"} in b["roles"]
     # A model without a deep_help role is not rewritten.
     assert c["roles"] == [{"mode": None, "purpose": "summary"}]
+
+
+def _seed_research_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_180000_seed_research_role")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_seed_research_role_adds_an_any_mode_research_role() -> None:
+    migration = _seed_research_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+    await models.insert_one(
+        {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [{"mode": None, "purpose": "summary"}]}
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert migration._ROLE in stored["roles"]
+    # The existing role is left alone.
+    assert {"mode": None, "purpose": "summary"} in stored["roles"]
+
+    await migration.Backward.migrate.run(None)
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert migration._ROLE not in stored["roles"]

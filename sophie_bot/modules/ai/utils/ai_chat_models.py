@@ -16,22 +16,19 @@ _OVERRIDE_FLAG_BY_PURPOSE: dict[AIModelPurpose, FeatureType] = {
     AIModelPurpose.translation: "ai_translation_model",
     AIModelPurpose.filters: "ai_filter_handler_model",
     AIModelPurpose.summary: "ai_summary_model",
+    AIModelPurpose.research: "ai_research_model",
 }
 
 
 async def _get_override(purpose: AIModelPurpose, chat_tid: int | None) -> Model | None:
-    override_name = str(await get_value(_OVERRIDE_FLAG_BY_PURPOSE[purpose], chat_tid=chat_tid))
+    flag = _OVERRIDE_FLAG_BY_PURPOSE.get(purpose)
+    if flag is None:
+        return None
+    override_name = str(await get_value(flag, chat_tid=chat_tid))
     if not override_name:
         return None
     log.debug(f"{purpose.value} model override: {override_name}")
     return get_ai_model(override_name)
-
-
-async def _get_global_model(purpose: AIModelPurpose, chat_tid: int | None = None) -> Model:
-    """Resolve a purpose that is the same for every chat regardless of its mode."""
-    if override := await _get_override(purpose, chat_tid):
-        return override
-    return get_ai_model(await resolve_model_name(None, purpose))
 
 
 async def _get_chat_model(
@@ -75,10 +72,12 @@ async def get_chat_filters_model(
 
 
 async def get_chat_summary_model(chat_iid: PydanticObjectId, chat_tid: int | None = None) -> Model:
-    """Summaries are not per-chat: every mode uses the same model unless an operator overrides it."""
-    del chat_iid
-    return await _get_global_model(AIModelPurpose.summary, chat_tid)
+    return await _get_chat_model(AIModelPurpose.summary, chat_iid, chat_tid)
 
 
-async def get_moderation_reason_model() -> Model:
-    return get_ai_model(await resolve_model_name(None, AIModelPurpose.moderation_reason))
+async def get_moderation_reason_model(chat_iid: PydanticObjectId | None, chat_tid: int | None = None) -> Model:
+    return await _get_chat_model(AIModelPurpose.moderation_reason, chat_iid, chat_tid)
+
+
+async def get_chat_research_model(chat_iid: PydanticObjectId | None, chat_tid: int | None = None) -> Model:
+    return await _get_chat_model(AIModelPurpose.research, chat_iid, chat_tid)

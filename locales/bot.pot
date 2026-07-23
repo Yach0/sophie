@@ -1386,15 +1386,15 @@ msgstr ""
 msgid "Research model"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/sophie_inspect.py:118
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:119
 msgid "Source inspection is not available."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/sophie_inspect.py:121
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:122
 msgid "The daily limit for source inspection in this chat has been reached."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/sophie_inspect.py:147
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:148
 msgid "I could not find the answer in my own sources within the allowed budget."
 msgstr ""
 

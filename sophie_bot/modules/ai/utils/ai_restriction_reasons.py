@@ -95,7 +95,7 @@ async def generate_restriction_reason(
     try:
         result = await run_structured_task(
             AIStructuredTask(output_type=AIReasonResponse),
-            await get_moderation_reason_model(),
+            await get_moderation_reason_model(chat_db.iid, chat_tid=chat_db.tid),
             history,
             chat_iid=chat_db.iid,
             chat_tid=chat_db.tid,
