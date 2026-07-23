@@ -38,6 +38,11 @@ def next_group_id() -> int:
     return next(_group_ids)
 
 
+def next_message_id() -> int:
+    """Allocate a message id unique within this process (also usable as an update id)."""
+    return next(_message_ids)
+
+
 async def create_test_user_and_group(
     test_client: TestClient,
     *,
