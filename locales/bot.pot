@@ -284,7 +284,7 @@ msgid "Module Information"
 msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:122
-#: sophie_bot/modules/help/utils/format_help.py:89
+#: sophie_bot/modules/help/utils/format_help.py:87
 #: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr ""
@@ -3917,11 +3917,11 @@ msgstr ""
 msgid "Disable-able"
 msgstr ""
 
-#: sophie_bot/modules/help/utils/format_help.py:91
+#: sophie_bot/modules/help/utils/format_help.py:89
 msgid "PM-only"
 msgstr ""
 
-#: sophie_bot/modules/help/utils/format_help.py:93
+#: sophie_bot/modules/help/utils/format_help.py:91
 msgid "Only admins"
 msgstr ""
 

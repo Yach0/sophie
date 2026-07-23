@@ -54,16 +54,14 @@ def format_handler_item(handler: HandlerHelp, **kwargs) -> Element:
     ``format_handler`` wraps the description in a Section, whose title becomes a heading in rich
     rendering — a heading per command inside a list reads as a broken outline.
     """
-    cmd_and_args = format_handler(handler, **kwargs)
+    cmd_and_args = HList(
+        HList(*(format_cmd(cmd) for cmd in handler.cmds)),
+        format_cmd_args(handler.args) if handler.args else None,
+    )
     if not handler.description:
         return cmd_and_args
 
-    return HList(
-        HList(*(format_cmd(cmd) for cmd in handler.cmds)),
-        format_cmd_args(handler.args) if handler.args else None,
-        Italic(handler.description),
-        divider=" — ",
-    )
+    return Template("{cmd_and_args}: {description}", cmd_and_args=cmd_and_args, description=handler.description)
 
 
 def group_handlers(handlers: Sequence[HandlerHelp]) -> list[tuple[LazyProxy, list[HandlerHelp]]]:
