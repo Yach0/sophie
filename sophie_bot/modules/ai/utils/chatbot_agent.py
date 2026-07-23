@@ -15,7 +15,8 @@ from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
 from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_notes_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
-from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, resolve_chat_capabilities
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
@@ -126,16 +127,14 @@ async def build_chatbot_run_config(
     session_id: str | None = None,
     service_tier: str | None = None,
     use_base_tools: bool = False,
+    mode: AIMode = AIMode.support,
 ) -> ChatbotRunConfig:
-    tools = (
-        CHATBOT_TOOLS
-        if use_base_tools
-        else await get_chatbot_tools(chat_tid, await resolve_chat_capabilities(connection.db_model))
-    )
+    tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(chat_tid, get_capabilities(mode))
     deps = SophieAIToolContext(
         connection=connection,
         chat_tid=chat_tid,
         chat_iid=connection.db_model.iid,
+        mode=mode,
         user_text=user_text,
         research_progress_callback=progress_callback,
         user_tid=user_tid,

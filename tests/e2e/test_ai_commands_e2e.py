@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -29,15 +28,23 @@ from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLAT
 # ---------------------------------------------------------------------------
 
 
+def _apply_ai_moderation_off(stack: ExitStack) -> None:
+    """Keep the AI moderator out of the way: it now runs whenever the chat's mode enables it."""
+    stack.enter_context(
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.is_enabled", AsyncMock(return_value=False))
+    )
+
+
 def _apply_ai_admin_patches(stack: ExitStack) -> None:
     """Enter patches that bypass admin, AI-enabled, and quota filters."""
+    _apply_ai_moderation_off(stack)
     stack.enter_context(
         patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True))
     )
     stack.enter_context(
         patch(
-            "sophie_bot.modules.ai.filters.ai_mode.resolve_chat_capabilities",
-            AsyncMock(return_value=get_capabilities(AIMode.support)),
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
         )
     )
     stack.enter_context(
@@ -48,10 +55,11 @@ def _apply_ai_admin_patches(stack: ExitStack) -> None:
 
 def _apply_ai_non_admin_patches(stack: ExitStack) -> None:
     """Enter patches that deny admin but pass AI-enabled and quota filters."""
+    _apply_ai_moderation_off(stack)
     stack.enter_context(
         patch(
-            "sophie_bot.modules.ai.filters.ai_mode.resolve_chat_capabilities",
-            AsyncMock(return_value=get_capabilities(AIMode.support)),
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
         )
     )
     stack.enter_context(

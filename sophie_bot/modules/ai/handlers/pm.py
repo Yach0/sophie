@@ -13,7 +13,7 @@ from sophie_bot.modules.ai.callbacks import AIChatCallback
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_NORMAL_MODE, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
-from sophie_bot.modules.ai.utils.ai_help_mode import activate_help_mode, deactivate_help_mode, is_help_mode
+from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode, set_help_mode
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler, SophieMessageHandler
@@ -39,10 +39,6 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
         # Reaching the AI through the /help button asks about Sophie itself, so that entry point
         # gets the Sophie-help assistant; /ai and /pm always mean the general one.
         help_mode = self.data.get("callback_data") is not None
-        if help_mode:
-            await activate_help_mode(self.message.chat.id)
-        else:
-            await deactivate_help_mode(self.message.chat.id)
 
         doc = Doc(
             Bold(
@@ -62,6 +58,7 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
 
         state = self.data["state"]
         await state.set_state(AiPMFSM.in_ai)
+        await set_help_mode(state, help_mode)
 
         await self.answer(str(doc), disable_web_page_preview=True)
 
@@ -79,7 +76,7 @@ class AiPmNormalMode(SophieMessageHandler):
         return F.text == AI_PM_NORMAL_MODE, ChatTypeFilter("private")
 
     async def handle(self) -> Any:
-        await deactivate_help_mode(self.event.chat.id)
+        await set_help_mode(self.data["state"], False)
         await self.event.reply(_("Switched to the normal AI mode."), reply_markup=_build_keyboard(help_mode=False))
 
 
@@ -89,8 +86,8 @@ class AiPmStop(SophieMessageHandler):
         return F.text == AI_PM_STOP_TEXT, ChatTypeFilter("private")
 
     async def handle(self) -> Any:
+        # Clearing the state drops the Sophie-help flag stored alongside it.
         await self.data["state"].clear()
-        await deactivate_help_mode(self.event.chat.id)
         await self.event.reply(_("The AI mode has been exited."), reply_markup=ReplyKeyboardRemove())
 
 
@@ -102,7 +99,7 @@ class AiPmHandle(SophieMessageHandler):
         return AiPMFSM.in_ai, ChatTypeFilter("private"), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
-        keyboard = _build_keyboard(await is_help_mode(self.event.chat.id))
+        keyboard = _build_keyboard(await is_help_mode(self.data["state"]))
 
         self.data["ai_msg_cache"] = True
-        return await ai_chatbot_reply(self.event, self.connection, reply_markup=keyboard)
+        return await ai_chatbot_reply(self.event, self.connection, mode=self.data["ai_mode"], reply_markup=keyboard)

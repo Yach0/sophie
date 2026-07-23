@@ -42,4 +42,4 @@ class AiCmd(SophieMessageHandler):
             await self.event.reply(_("You have been automatically disconnected from the chat to use AI."))
             self.data["connection"] = await ConnectionsMiddleware.get_current_chat_info(self.event.chat)
 
-        return await ai_chatbot_reply(self.event, self.connection, user_text)
+        return await ai_chatbot_reply(self.event, self.connection, user_text, mode=self.data["ai_mode"])

@@ -9,7 +9,7 @@ from stfu_tg import Doc, HList, Section, Template, VList
 from sophie_bot.db.models.ai.ai_mode import AIMode
 
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
-from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
@@ -118,7 +118,7 @@ _SYSTEM_PROMPT_FLAG_BY_MODE: Mapping[AIMode, FeatureType] = {AIMode.sophie_help:
 
 
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
-    mode = await resolve_chat_mode(context.connection.db_model)
+    mode = context.mode
     prompt_flag = _SYSTEM_PROMPT_FLAG_BY_MODE.get(mode, "ai_chatbot_system_prompt")
     system_prompt = str(await get_value(prompt_flag, chat_tid=context.chat_tid))
     tables_enabled = await is_enabled("ai_chatbot_tables", chat_tid=context.chat_tid)

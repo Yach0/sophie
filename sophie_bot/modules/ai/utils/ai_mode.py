@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
+from aiogram.fsm.context import FSMContext
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
@@ -108,19 +109,20 @@ async def get_chat_mode(chat_iid: PydanticObjectId, default: AIMode = AIMode.sup
     return await AIModeModel.get_mode(chat_iid) or default
 
 
-async def resolve_chat_mode(chat: ChatModel) -> AIMode:
+async def resolve_chat_mode(chat: ChatModel, state: FSMContext | None = None) -> AIMode:
     """The mode governing what the AI may do in a chat.
 
-    Private chats never store a mode: they are on the PM assistant, or temporarily on the
-    Sophie-help assistant after entering it from /help.
+    Private chats never store a mode: they are on the PM assistant, or on the Sophie-help assistant
+    for as long as the AI session entered from /help lasts. Without an FSM state — schedulers and
+    other background work — a private chat is on the plain PM assistant.
     """
     if chat.type == ChatType.private:
-        return AIMode.sophie_help if await is_help_mode(chat.tid) else AIMode.sophie_pm
+        return AIMode.sophie_help if await is_help_mode(state) else AIMode.sophie_pm
     return await get_chat_mode(chat.iid, AIMode.disabled)
 
 
-async def resolve_chat_capabilities(chat: ChatModel) -> ModeCapabilities:
-    return get_capabilities(await resolve_chat_mode(chat))
+async def resolve_chat_capabilities(chat: ChatModel, state: FSMContext | None = None) -> ModeCapabilities:
+    return get_capabilities(await resolve_chat_mode(chat, state))
 
 
 async def set_chat_mode(chat: ChatModel, mode: AIMode) -> None:

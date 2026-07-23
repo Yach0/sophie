@@ -32,12 +32,18 @@ class AICapabilityFilter(Filter):
         self.admins_bypass = admins_bypass
         self.quiet = quiet
 
-    async def __call__(self, message: Message, chat_db: Optional[ChatModel]) -> Union[bool, Dict[str, Any]]:
+    async def __call__(
+        self,
+        message: Message,
+        chat_db: Optional[ChatModel],
+        ai_capabilities: Optional[ModeCapabilities] = None,
+    ) -> Union[bool, Dict[str, Any]]:
         if not chat_db:
             log.error("AICapabilityFilter: Chat not found in database, skipping")
             raise SkipHandler
 
-        capabilities = await resolve_chat_capabilities(chat_db)
+        # CacheUserMessagesMiddleware resolves this once per message, with the FSM state in hand.
+        capabilities = ai_capabilities or await resolve_chat_capabilities(chat_db)
         if self.check(capabilities):
             return True
 

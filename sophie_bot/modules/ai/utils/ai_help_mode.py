@@ -1,25 +1,17 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from aiogram.fsm.context import FSMContext
 
-from sophie_bot.services.redis import aredis
-
-# Sophie-help is a temporary detour, not a setting: it lasts one conversation and expires on its
-# own, so a user who wandered in from /help days ago is back to the normal PM assistant.
-HELP_MODE_TTL = timedelta(hours=2)
+# Sophie-help is a detour inside one AI session, not a setting: it lives in the FSM state next to
+# AiPMFSM.in_ai, so leaving the AI mode leaves it behind with no separate expiry to reason about.
+_HELP_MODE_KEY = "ai_help_mode"
 
 
-def _key(chat_tid: int) -> str:
-    return f"ai_help_mode:{chat_tid}"
+async def set_help_mode(state: FSMContext, enabled: bool) -> None:
+    await state.update_data({_HELP_MODE_KEY: enabled})
 
 
-async def activate_help_mode(chat_tid: int) -> None:
-    await aredis.set(_key(chat_tid), b"1", ex=HELP_MODE_TTL)
-
-
-async def deactivate_help_mode(chat_tid: int) -> None:
-    await aredis.delete(_key(chat_tid))
-
-
-async def is_help_mode(chat_tid: int) -> bool:
-    return bool(await aredis.exists(_key(chat_tid)))
+async def is_help_mode(state: FSMContext | None) -> bool:
+    if state is None:
+        return False
+    return bool((await state.get_data()).get(_HELP_MODE_KEY, False))

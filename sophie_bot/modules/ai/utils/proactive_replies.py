@@ -18,6 +18,7 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_mode
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
@@ -301,6 +302,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         service_tier=service_tier or "none",
     )
     history = await _build_answer_history(chat_tid, target_message)
+    mode = await resolve_chat_mode(chat)
     run_config = await build_chatbot_run_config(
         chat_tid,
         connection,
@@ -311,6 +313,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
         service_tier=service_tier,
         use_base_tools=True,
+        mode=mode,
     )
     async with track_ai_conversation():
         set_conversation_id(f"{chat.iid}:proactive")

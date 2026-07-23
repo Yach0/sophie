@@ -14,6 +14,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
 )
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
+from sophie_bot.modules.ai.utils.ai_help_mode import set_help_mode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 
@@ -158,20 +159,51 @@ def test_no_mode_lets_the_agent_write_notes() -> None:
     assert {tool.name for tool in CHATBOT_TOOLS}.isdisjoint({"save_note", "delete_note"})
 
 
-async def test_private_chats_use_the_pm_assistant(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_mode.is_help_mode", AsyncMock(return_value=False))
+class _FakeState:
+    """Stands in for FSMContext: only get_data/update_data are used for the help-mode flag."""
 
-    chat = SimpleNamespace(type=ChatType.private, tid=1, iid=PydanticObjectId())
+    def __init__(self, data: dict | None = None) -> None:
+        self._data = data or {}
 
-    assert await resolve_chat_mode(chat) == AIMode.sophie_pm
+    async def get_data(self) -> dict:
+        return self._data
+
+    async def update_data(self, data: dict) -> dict:
+        self._data.update(data)
+        return self._data
 
 
-async def test_private_chats_switch_to_sophie_help_while_it_is_active(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_mode.is_help_mode", AsyncMock(return_value=True))
+def _private_chat() -> SimpleNamespace:
+    return SimpleNamespace(type=ChatType.private, tid=1, iid=PydanticObjectId())
 
-    chat = SimpleNamespace(type=ChatType.private, tid=1, iid=PydanticObjectId())
 
-    assert await resolve_chat_mode(chat) == AIMode.sophie_help
+async def test_private_chats_use_the_pm_assistant() -> None:
+    assert await resolve_chat_mode(_private_chat(), _FakeState()) == AIMode.sophie_pm
+
+
+async def test_private_chats_without_a_session_use_the_pm_assistant() -> None:
+    """Schedulers and other background work have no FSM state."""
+    assert await resolve_chat_mode(_private_chat(), None) == AIMode.sophie_pm
+
+
+async def test_sophie_help_lives_in_the_fsm_session() -> None:
+    state = _FakeState()
+
+    await set_help_mode(state, True)
+    assert await resolve_chat_mode(_private_chat(), state) == AIMode.sophie_help
+
+    await set_help_mode(state, False)
+    assert await resolve_chat_mode(_private_chat(), state) == AIMode.sophie_pm
+
+
+async def test_leaving_the_ai_mode_leaves_sophie_help_behind() -> None:
+    """AiPmStop clears the whole state, which is where the help flag lives."""
+    state = _FakeState()
+    await set_help_mode(state, True)
+
+    cleared = _FakeState()
+
+    assert await resolve_chat_mode(_private_chat(), cleared) == AIMode.sophie_pm
 
 
 def test_hidden_modes_are_not_offered_by_aimode() -> None:
@@ -193,14 +225,11 @@ async def test_sophie_help_uses_its_own_system_prompt(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(side_effect=fake_get_value))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(return_value=False))
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.chatbot_context.resolve_chat_mode",
-        AsyncMock(return_value=AIMode.sophie_help),
-    )
     context = SimpleNamespace(
         chat_tid=-100123,
         chat_iid=PydanticObjectId(),
         user_text=None,
+        mode=AIMode.sophie_help,
         connection=SimpleNamespace(db_model=SimpleNamespace()),
     )
 

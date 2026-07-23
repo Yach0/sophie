@@ -276,11 +276,11 @@ msgstr ""
 msgid "No commands in this module."
 msgstr ""
 
-#: sophie_bot/modules/ai/filters/ai_mode.py:52
+#: sophie_bot/modules/ai/filters/ai_mode.py:58
 msgid "The AI features are currently disabled for this chat."
 msgstr ""
 
-#: sophie_bot/modules/ai/filters/ai_mode.py:53
+#: sophie_bot/modules/ai/filters/ai_mode.py:59
 #, python-brace-format
 msgid "Please use \"{cmd}\" to pick an AI mode."
 msgstr ""
@@ -613,42 +613,42 @@ msgstr ""
 msgid "Start the AI ChatBot mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:50
+#: sophie_bot/modules/ai/handlers/pm.py:46
 #, python-brace-format
 msgid "{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:52
+#: sophie_bot/modules/ai/handlers/pm.py:48
 #, python-brace-format
 msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:57
+#: sophie_bot/modules/ai/handlers/pm.py:53
 #, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:58
+#: sophie_bot/modules/ai/handlers/pm.py:54
 msgid "privacy policy"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:60
+#: sophie_bot/modules/ai/handlers/pm.py:56
 msgid "Click on the button below to exit."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:69
+#: sophie_bot/modules/ai/handlers/pm.py:66
 msgid "Hello! What would you like to know about Sophie?"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:69
+#: sophie_bot/modules/ai/handlers/pm.py:66
 msgid "Hello! How can I help you?"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:83
+#: sophie_bot/modules/ai/handlers/pm.py:80
 msgid "Switched to the normal AI mode."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:94
+#: sophie_bot/modules/ai/handlers/pm.py:91
 msgid "The AI mode has been exited."
 msgstr ""
 
@@ -853,7 +853,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:319
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:325
 #: sophie_bot/modules/ai/utils/research.py:370
 #: sophie_bot/modules/ai/utils/research.py:500
 msgid "Research"
@@ -1228,7 +1228,7 @@ msgstr ""
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:272
+#: sophie_bot/modules/ai/utils/proactive_replies.py:273
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr ""
 

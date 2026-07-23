@@ -6,7 +6,7 @@ from aiogram.types import Message, TelegramObject
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities, resolve_chat_capabilities
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message, message_text
@@ -22,9 +22,9 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
     ) -> Any:
         chat_db: Optional[ChatModel] = data.get("chat_db", None)
 
-        capabilities: ModeCapabilities = (
-            await resolve_chat_capabilities(chat_db) if chat_db else get_capabilities(AIMode.disabled)
-        )
+        mode = await resolve_chat_mode(chat_db, data.get("state")) if chat_db else AIMode.disabled
+        capabilities = get_capabilities(mode)
+        data["ai_mode"] = mode
         data["ai_capabilities"] = capabilities
 
         result = await handler(event, data)

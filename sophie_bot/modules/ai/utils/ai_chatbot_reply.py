@@ -16,6 +16,7 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -62,10 +63,10 @@ async def _reply_debug_history(message: Message, history: AIMessageHistory) -> N
     )
 
 
-async def _resolve_model(connection: ChatConnection, model: Model | None) -> Model:
+async def _resolve_model(connection: ChatConnection, model: Model | None, mode: AIMode) -> Model:
     if model is not None:
         return model
-    return await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid)
+    return await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid, mode=mode)
 
 
 async def _build_chatbot_header(
@@ -155,6 +156,7 @@ async def _generate_chatbot_result(
     on_retry: AIRetryCallback | None = None,
     user_text: str | None = None,
     use_rich_draft: bool = False,
+    mode: AIMode = AIMode.support,
 ) -> AIAgentResult[str]:
     allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
     if allow_draft_streaming and use_rich_draft:
@@ -172,6 +174,7 @@ async def _generate_chatbot_result(
         progress_callback=on_research_progress,
         thread_id=message.message_thread_id,
         service_tier=service_tier,
+        mode=mode,
     )
 
     if on_text_stream is not None or allow_draft_streaming:
@@ -227,6 +230,7 @@ async def ai_chatbot_reply(
     user_text: str | None = None,
     debug_mode: bool = False,
     model: Model | None = None,
+    mode: AIMode = AIMode.support,
     **kwargs: Any,
 ) -> Any:
     """
@@ -241,12 +245,13 @@ async def ai_chatbot_reply(
     async with track_ai_conversation():
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
-        model = await _resolve_model(connection, model)
+        model = await _resolve_model(connection, model, mode)
         message_streamer = await build_message_streamer(message, connection, model, explicit_debug_mode)
         context = SophieAIToolContext(
             connection=connection,
             chat_tid=connection.tid,
             chat_iid=connection.db_model.iid,
+            mode=mode,
             user_text=user_text,
             user_tid=message.from_user.id if message.from_user else None,
         )
@@ -277,6 +282,7 @@ async def ai_chatbot_reply(
                 on_retry=message_streamer.update_retrying if message_streamer else None,
                 user_text=user_text,
                 use_rich_draft=use_rich_streaming,
+                mode=mode,
             )
         except AIRequestFailed as err:
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
