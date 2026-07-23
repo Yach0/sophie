@@ -119,6 +119,10 @@ async def test_meta_exposes_the_enums_the_panel_builds_pickers_from() -> None:
     # The two private-chat-only modes never carry a role, so they must not be offered.
     assert "sophie_pm" not in meta.modes
     assert "support" in meta.modes
+    # Every purpose maps to the flag whose per-chat override pins its model.
+    assert meta.model_override_flags["chatbot"] == "ai_chatbot_model"
+    assert meta.model_override_flags["moderation_reason"] == "ai_moderation_reason_model"
+    assert set(meta.model_override_flags) == set(meta.purposes)
 
 
 async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
@@ -196,6 +200,8 @@ async def test_resolution_shows_used_models_and_marks_fallbacks(_no_version_bump
     assert ent["filters"].model == "support/filter" and ent["filters"].fallback is True
     # summary is now per-mode too, resolved for every mode.
     assert resolution.per_mode["support"]["summary"].model == "the/summary"
+    # The all-modes row shows the any-mode default per purpose.
+    assert resolution.all_modes["summary"].model == "the/summary"
 
 
 async def test_export_round_trips_through_import(_no_version_bump) -> None:

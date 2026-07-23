@@ -11,17 +11,22 @@ from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.utils.feature_flags import FeatureType, get_value
 from sophie_bot.utils.logger import log
 
-_OVERRIDE_FLAG_BY_PURPOSE: dict[AIModelPurpose, FeatureType] = {
+# The per-chat/global feature-flag override for each purpose. Empty means "use the mode's model";
+# a value pins that purpose to a specific model. Also the canonical map the REST API exposes so the
+# panel can offer per-chat model overrides.
+MODEL_OVERRIDE_FLAG_BY_PURPOSE: dict[AIModelPurpose, FeatureType] = {
     AIModelPurpose.chatbot: "ai_chatbot_model",
     AIModelPurpose.translation: "ai_translation_model",
     AIModelPurpose.filters: "ai_filter_handler_model",
     AIModelPurpose.summary: "ai_summary_model",
     AIModelPurpose.research: "ai_research_model",
+    AIModelPurpose.moderation_reason: "ai_moderation_reason_model",
+    AIModelPurpose.sophie_inspect: "ai_sophie_inspect_model",
 }
 
 
 async def _get_override(purpose: AIModelPurpose, chat_tid: int | None) -> Model | None:
-    flag = _OVERRIDE_FLAG_BY_PURPOSE.get(purpose)
+    flag = MODEL_OVERRIDE_FLAG_BY_PURPOSE.get(purpose)
     if flag is None:
         return None
     override_name = str(await get_value(flag, chat_tid=chat_tid))

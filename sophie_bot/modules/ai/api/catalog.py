@@ -10,6 +10,7 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIProviderKind,
 )
 from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
+from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
 from sophie_bot.modules.ai.utils.ai_catalog import (
     bump_version,
     get_catalog,
@@ -81,6 +82,7 @@ async def get_meta() -> CatalogMeta:
         # Only the modes a chat can actually be in: the two private-chat-only ones are resolved per
         # message and never carry a catalog role.
         modes=[mode.value for mode in SELECTABLE_MODES],
+        model_override_flags={purpose.value: flag for purpose, flag in MODEL_OVERRIDE_FLAG_BY_PURPOSE.items()},
     )
 
 
@@ -103,7 +105,7 @@ _RESOLVED_MODES = tuple(mode for mode in SELECTABLE_MODES if mode is not AIMode.
 async def get_resolution() -> CatalogResolution:
     current = await get_catalog()
 
-    def resolve(mode: AIMode, purpose: AIModelPurpose) -> ResolvedModel:
+    def resolve(mode: AIMode | None, purpose: AIModelPurpose) -> ResolvedModel:
         # Same resolution Sophie uses at runtime, so the table cannot drift from reality.
         model_name, is_fallback = resolve_from(current, mode, purpose)
         return ResolvedModel(model=model_name, fallback=is_fallback)
@@ -115,6 +117,7 @@ async def get_resolution() -> CatalogResolution:
             mode.value: {purpose.value: resolve(mode, purpose) for purpose in AIModelPurpose}
             for mode in _RESOLVED_MODES
         },
+        all_modes={purpose.value: resolve(None, purpose) for purpose in AIModelPurpose},
     )
 
 

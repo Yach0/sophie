@@ -27,6 +27,7 @@ FeatureType = Literal[
     "ai_translate_system_prompt",
     "ai_chat_summaries_prompt",
     "ai_moderation_reason_prompt",
+    "ai_moderation_reason_model",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
     "ai_chatbot_admin_status",
@@ -215,6 +216,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_moderation_reason_prompt": _feature(
         "Generate a brief, professional moderation reason for restricting a user based on their message."
     ),
+    "ai_moderation_reason_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_suggestions_prompt": _feature(
         "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data."
     ),

@@ -76,6 +76,8 @@ class CatalogMeta(BaseModel):
     provider_kinds: list[str]
     purposes: list[str]
     modes: list[str]
+    # purpose -> the feature-flag whose per-chat override pins that purpose to a specific model.
+    model_override_flags: dict[str, str]
 
 
 class CatalogStatus(BaseModel):
@@ -128,3 +130,5 @@ class CatalogResolution(BaseModel):
     modes: list[str]
     purposes: list[str]
     per_mode: dict[str, dict[str, ResolvedModel]]
+    # The any-mode default (a mode=None role) per purpose — what serves a mode with no model of its own.
+    all_modes: dict[str, ResolvedModel]
