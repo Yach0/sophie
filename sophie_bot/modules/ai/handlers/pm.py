@@ -42,13 +42,13 @@ def _build_keyboard(help_mode: bool) -> ReplyKeyboardMarkup:
 class AiPmInitialize(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):
-        router.message.register(cls, CMDFilter(("ai", "pm")), ChatTypeFilter("private"))
+        router.message.register(cls, CMDFilter("ai"), ChatTypeFilter("private"))
         router.message.register(cls, AIHelpStartUrlCallback.filter(), ChatTypeFilter("private"))
         router.callback_query.register(cls, AIChatCallback.filter(), ChatTypeFilter("private"))
 
     async def handle(self) -> Any:
         # Reaching the AI through the /help button asks about Sophie itself, so that entry point
-        # gets the Sophie-help assistant; /ai and /pm always mean the general one.
+        # gets the Sophie-help assistant; /ai always means the general one.
         # Both the /help button and the deep link from a group mean "help me with Sophie".
         help_mode = self.data.get("callback_data") is not None or self.data.get("command_start") is not None
 
