@@ -421,86 +421,124 @@ msgstr ""
 msgid "Controls AI note title generation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:86
-#: sophie_bot/modules/ai/handlers/op_catalog.py:178
-msgid " (disabled)"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:76
+#, python-brace-format
+msgid "Kinds: {kinds}"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:77
+msgid "Only the given options change; the rest keep their current values."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:78
+msgid "A key can only be set in a private chat, and that message is deleted right away."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:80
+#: sophie_bot/modules/ai/handlers/op_catalog.py:106
+#: sophie_bot/modules/ai/handlers/usage.py:51
+msgid "Usage"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_catalog.py:91
-msgid "AI Providers"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_catalog.py:92
-msgid "No providers are configured."
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/op_catalog.py:92
-msgid "Providers"
+#, python-brace-format
+msgid "Roles: {modes} paired with {purposes}, e.g. {example}"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_catalog.py:97
+#, python-brace-format
+msgid "Drop the mode for purposes that are not per-chat, e.g. {example}"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:100
+msgid "A mode with no model for a purpose falls back to the support one."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:102
+#, python-brace-format
+msgid "The upstream name defaults to the model name; set {option} when they differ."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:125
+#: sophie_bot/modules/ai/handlers/op_catalog.py:218
+msgid " (disabled)"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:130
+msgid "AI Providers"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:131
+msgid "No providers are configured."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:131
+msgid "Providers"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:137
 msgid "Create or update an AI provider (private chat only)"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:116
+#: sophie_bot/modules/ai/handlers/op_catalog.py:156
 msgid "Provider name"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:129
+#: sophie_bot/modules/ai/handlers/op_catalog.py:169
 #, python-brace-format
 msgid "No provider named {name}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:132
+#: sophie_bot/modules/ai/handlers/op_catalog.py:172
 #, python-brace-format
 msgid "Provider {name} deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:150
+#: sophie_bot/modules/ai/handlers/op_catalog.py:190
 msgid "AI Provider saved"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:184
+#: sophie_bot/modules/ai/handlers/op_catalog.py:224
 msgid "AI Models"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:185
+#: sophie_bot/modules/ai/handlers/op_catalog.py:225
 msgid "No models are configured."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:185
+#: sophie_bot/modules/ai/handlers/op_catalog.py:225
 #: sophie_bot/modules/ai/handlers/op_prices.py:47
 msgid "Models"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:187
+#: sophie_bot/modules/ai/handlers/op_catalog.py:227
 #, python-brace-format
 msgid "Loaded: {models} models, {providers} providers"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:195
+#: sophie_bot/modules/ai/handlers/op_catalog.py:236
 msgid "Create or update an AI model"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:215
+#: sophie_bot/modules/ai/handlers/op_catalog.py:256
 msgid "Model name"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:225
+#: sophie_bot/modules/ai/handlers/op_catalog.py:266
 #, python-brace-format
 msgid "No model named {name}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:228
+#: sophie_bot/modules/ai/handlers/op_catalog.py:269
 #, python-brace-format
 msgid "Model {name} deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:274
 msgid "A new model needs ^provider=<name>."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:256
+#: sophie_bot/modules/ai/handlers/op_catalog.py:297
 msgid "AI Model saved"
 msgstr ""
 
@@ -732,10 +770,6 @@ msgstr ""
 
 #: sophie_bot/modules/ai/handlers/usage.py:49
 msgid "AI Usage"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/usage.py:51
-msgid "Usage"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/usage.py:53

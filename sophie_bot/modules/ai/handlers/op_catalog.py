@@ -68,6 +68,45 @@ def _format_role(role: AIModelRole) -> str:
     return f"{role.mode.value if role.mode else 'any'}:{role.purpose.value}"
 
 
+def _provider_usage() -> Section:
+    return Section(
+        VList(
+            Code("/op_aiprovider <name> ^kind=<kind> ^base_url=<url> ^key=<api key> ^enabled=<yes/no>"),
+            Code("/op_aiprovider <name> ^delete=yes"),
+            Template(_("Kinds: {kinds}"), kinds=Code(", ".join(kind.value for kind in AIProviderKind))),
+            _("Only the given options change; the rest keep their current values."),
+            _("A key can only be set in a private chat, and that message is deleted right away."),
+        ),
+        title=_("Usage"),
+    )
+
+
+def _model_usage() -> Section:
+    return Section(
+        VList(
+            Code("/op_aimodel <name> ^provider=<name> ^api_name=<upstream name> ^role=<role> ^enabled=<yes/no>"),
+            Code("/op_aimodel <name> ^unrole=<role> ^reasoning=<yes/no>"),
+            Code("/op_aimodel <name> ^delete=yes"),
+            Template(
+                _("Roles: {modes} paired with {purposes}, e.g. {example}"),
+                modes=Code(", ".join(mode.value for mode in AIMode if mode is not AIMode.disabled)),
+                purposes=Code(", ".join(purpose.value for purpose in AIModelPurpose)),
+                example=Code("^role=support:chatbot"),
+            ),
+            Template(
+                _("Drop the mode for purposes that are not per-chat, e.g. {example}"),
+                example=Code("^role=summary"),
+            ),
+            _("A mode with no model for a purpose falls back to the support one."),
+            Template(
+                _("The upstream name defaults to the model name; set {option} when they differ."),
+                option=Code("^api_name"),
+            ),
+        ),
+        title=_("Usage"),
+    )
+
+
 class OpAIProviders(SophieMessageHandler):
     """List the AI providers in the catalog, with masked keys."""
 
@@ -90,6 +129,7 @@ class OpAIProviders(SophieMessageHandler):
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Providers')}"),
             Section(VList(*lines) if lines else _("No providers are configured."), title=_("Providers")),
+            _provider_usage(),
         )
         await self.event.reply(str(doc))
 
@@ -188,6 +228,7 @@ class OpAIModels(SophieMessageHandler):
                 models=len(catalog.models),
                 providers=len(catalog.providers),
             ),
+            _model_usage(),
         )
         await self.event.reply(str(doc))
 
