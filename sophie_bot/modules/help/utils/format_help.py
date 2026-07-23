@@ -48,6 +48,24 @@ def format_handlers(all_cmds: Sequence[HandlerHelp], **kwargs):
     return VList(*(format_handler(handler, **kwargs) for handler in all_cmds))
 
 
+def format_handler_item(handler: HandlerHelp, **kwargs) -> Element:
+    """One command as a single line, for use inside a list.
+
+    ``format_handler`` wraps the description in a Section, whose title becomes a heading in rich
+    rendering — a heading per command inside a list reads as a broken outline.
+    """
+    cmd_and_args = format_handler(handler, **kwargs)
+    if not handler.description:
+        return cmd_and_args
+
+    return HList(
+        HList(*(format_cmd(cmd) for cmd in handler.cmds)),
+        format_cmd_args(handler.args) if handler.args else None,
+        Italic(handler.description),
+        divider=" — ",
+    )
+
+
 def group_handlers(handlers: Sequence[HandlerHelp]) -> list[tuple[LazyProxy, list[HandlerHelp]]]:
     cmds = []
     pm_cmds = []

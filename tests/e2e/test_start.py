@@ -57,16 +57,14 @@ async def test_help_command(test_client: TestClient) -> None:
     user = test_client.create_user(user_id=111222333, first_name="Test", username="testuser")
 
     # Send /help command
-    await user.send_command("help")
+    requests = await user.send_command("help")
 
-    # Get the last message
-    last_message = user.get_last_message()
-    assert last_message is not None, "Bot should respond to /help command"
+    # The help menu is sent as a rich message, so its text lives in the rich payload.
+    assert requests, "Bot should respond to /help command"
 
-    # Verify the response contains expected content
-    response_text = last_message.text or ""
-    # Help should mention modules or commands
-    assert len(response_text) > 0, "Help response should not be empty"
+    last_request = requests[-1]
+    rendered = str(last_request.params.get("rich_message") or last_request.text or "")
+    assert len(rendered) > 0, "Help response should not be empty"
 
 
 @pytest.mark.asyncio

@@ -31,7 +31,10 @@ AI_HEADER_SEPARATOR: Final[str] = " | "
 
 def ai_table_header(status: Element | str = "", battery: Element | str = "") -> RichTable:
     """The one-row header every AI message carries: who is speaking, what it did, what is left."""
-    return RichTable([RichTableCell(AI_HEADER_LABEL), RichTableCell(status), RichTableCell(battery)])
+    return RichTable(
+        [RichTableCell(AI_HEADER_LABEL), RichTableCell(status, align="center"), RichTableCell(battery, align="right")],
+        bordered=True,
+    )
 
 
 def ai_credit_header(percentage: int) -> Element:

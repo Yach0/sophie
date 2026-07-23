@@ -284,7 +284,7 @@ msgid "Module Information"
 msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:122
-#: sophie_bot/modules/help/utils/format_help.py:71
+#: sophie_bot/modules/help/utils/format_help.py:89
 #: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr ""
@@ -3812,37 +3812,45 @@ msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:69
-#: sophie_bot/modules/help/handlers/pm_modules.py:130
+#: sophie_bot/modules/help/handlers/pm_modules.py:127
 #: sophie_bot/modules/privacy/handlers/privacy.py:38
 msgid "⬅️ Back"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:73
-msgid "There are 2 help sources, you can read the detailed wiki or get a quick commands by modules overview."
+msgid "There are three ways to find your way around Sophie:"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:74
-msgid "📖 Wiki (detailed information)"
+#: sophie_bot/modules/help/handlers/pm_modules.py:75
+msgid "📖 The wiki"
+msgstr ""
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:75
+msgid "detailed information on every feature"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:76
-msgid "Alternatively you can now just chat with Sophie how to use herself!"
+msgid "🧩 The modules below — a quick overview of the commands in each one"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:93
+#: sophie_bot/modules/help/handlers/pm_modules.py:77
+msgid "💬 Sophie herself — ask her how to use her, in your own words"
+msgstr ""
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:95
 msgid "Module not found"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:117
+#: sophie_bot/modules/help/handlers/pm_modules.py:113
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:125
+#: sophie_bot/modules/help/handlers/pm_modules.py:121
 msgid "📖 Look the module's wiki page for more information"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:126
+#: sophie_bot/modules/help/handlers/pm_modules.py:123
 msgid "📖 Wiki page"
 msgstr ""
 
@@ -3909,11 +3917,11 @@ msgstr ""
 msgid "Disable-able"
 msgstr ""
 
-#: sophie_bot/modules/help/utils/format_help.py:73
+#: sophie_bot/modules/help/utils/format_help.py:91
 msgid "PM-only"
 msgstr ""
 
-#: sophie_bot/modules/help/utils/format_help.py:75
+#: sophie_bot/modules/help/utils/format_help.py:93
 msgid "Only admins"
 msgstr ""
 
@@ -6619,8 +6627,8 @@ msgid "Action configured successfully!"
 msgstr ""
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:14
-#: sophie_bot/utils/handlers.py:85 sophie_bot/utils/handlers.py:104
-#: sophie_bot/utils/handlers.py:113
+#: sophie_bot/utils/handlers.py:89 sophie_bot/utils/handlers.py:108
+#: sophie_bot/utils/handlers.py:117
 msgid "The message is inaccessible. Please write the command again"
 msgstr ""
 

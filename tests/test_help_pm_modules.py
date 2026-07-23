@@ -69,7 +69,7 @@ async def test_featured_module_is_rendered_last(monkeypatch: pytest.MonkeyPatch)
 
     handler = PMModulesList.__new__(PMModulesList)
     handler.data = {}
-    handler.answer = AsyncMock()
+    handler.answer_rich = AsyncMock()
 
     await handler.handle()
 
@@ -91,7 +91,7 @@ async def test_default_featured_module_is_rendered_last(monkeypatch: pytest.Monk
 
     handler = PMModulesList.__new__(PMModulesList)
     handler.data = {}
-    handler.answer = AsyncMock()
+    handler.answer_rich = AsyncMock()
 
     await handler.handle()
 
