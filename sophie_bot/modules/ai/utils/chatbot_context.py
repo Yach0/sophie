@@ -19,13 +19,8 @@ from sophie_bot.utils.i18n import gettext as _
 
 
 def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, *, tables_enabled: bool = False) -> Doc:
-    markdown_instruction = (
-        _("Prefer to use tables when comparing items")
-        if tables_enabled
-        else _(
-            "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
-        )
-    )
+    # Tables are the one element that does not survive the plain-HTML rendering path.
+    markdown_instruction = _("Prefer to use tables when comparing items") if tables_enabled else _("Do not use tables.")
     return Doc(
         system_prompt,
         markdown_instruction,

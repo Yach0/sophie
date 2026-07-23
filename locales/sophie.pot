@@ -1090,72 +1090,72 @@ msgstr ""
 msgid "Prefer to use tables when comparing items"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:26
-msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
+#: sophie_bot/modules/ai/utils/chatbot_context.py:23
+msgid "Do not use tables."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:32
+#: sophie_bot/modules/ai/utils/chatbot_context.py:27
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:33
+#: sophie_bot/modules/ai/utils/chatbot_context.py:28
 msgid "Today is "
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:34
+#: sophie_bot/modules/ai/utils/chatbot_context.py:29
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:42
+#: sophie_bot/modules/ai/utils/chatbot_context.py:37
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:44
+#: sophie_bot/modules/ai/utils/chatbot_context.py:39
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:46
+#: sophie_bot/modules/ai/utils/chatbot_context.py:41
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:50
+#: sophie_bot/modules/ai/utils/chatbot_context.py:45
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:56
+#: sophie_bot/modules/ai/utils/chatbot_context.py:51
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:65
+#: sophie_bot/modules/ai/utils/chatbot_context.py:60
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:73
+#: sophie_bot/modules/ai/utils/chatbot_context.py:68
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:84
+#: sophie_bot/modules/ai/utils/chatbot_context.py:79
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:91
+#: sophie_bot/modules/ai/utils/chatbot_context.py:86
 msgid "Related chat notes with content."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:95
+#: sophie_bot/modules/ai/utils/chatbot_context.py:90
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:102
+#: sophie_bot/modules/ai/utils/chatbot_context.py:97
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:109
+#: sophie_bot/modules/ai/utils/chatbot_context.py:104
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -1278,7 +1278,7 @@ msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/help_tip.py:38
-msgid "If you want more detailed help, use the special Sophie help mode."
+msgid "⚠️ If you want more detailed help, use the special Sophie help mode."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/help_tip.py:43

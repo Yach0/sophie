@@ -35,7 +35,7 @@ async def should_offer_help_mode(
 
 
 def build_help_mode_tip() -> Doc:
-    return Doc(Italic(_("If you want more detailed help, use the special Sophie help mode.")))
+    return Doc(Italic(_("⚠️ If you want more detailed help, use the special Sophie help mode.")))
 
 
 def build_help_mode_keyboard(message: Message) -> InlineKeyboardMarkup:

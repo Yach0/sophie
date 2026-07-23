@@ -106,8 +106,6 @@ async def build_reply_doc(
         reply_body: Element = ai_markdown_to_doc(output_text)
     else:
         reply_body = PreformattedHTML(ai_markdown_to_html(output_text, extract_headings=True))
-        if await is_enabled("ai_chatbot_blockquote", chat_tid=chat_tid):
-            reply_body = BlockQuote(reply_body)
 
     doc = Doc(header, reply_body)
     if explicit_debug_mode and model is not None and result is not None:
