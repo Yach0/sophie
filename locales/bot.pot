@@ -3748,7 +3748,7 @@ msgid "Welcome Message"
 msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
-#: sophie_bot/modules/greetings/utils/send_welcome.py:23
+#: sophie_bot/modules/greetings/utils/send_welcome.py:24
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:124
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:78
 msgid "No chat rules, have fun!"
@@ -4930,7 +4930,7 @@ msgstr ""
 msgid "Note is too long."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:171
+#: sophie_bot/modules/notes/utils/send.py:182
 msgid "The text is too long"
 msgstr ""
 

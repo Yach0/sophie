@@ -56,6 +56,17 @@ To deploy the beta environment (includes scheduler and REST API):
 ansible-playbook -i your_inventory deploy/beta.yml
 ```
 
+## Welcome security
+
+`welcomecaptcha_ephemeral` sends the captcha prompt as an ephemeral message to each new member
+instead of posting it in the chat. Only they see it, one prompt per member rather than one for the
+batch, and nothing is left behind to clean up — so the prompt is not deleted when the captcha is
+passed, because there is nothing there to delete.
+
+A prompt whose security note is an album is still posted to the chat: `sendMediaGroup` cannot
+address one member, and splitting the album into separate ephemeral messages is no way around it —
+Telegram accepts at most five ephemeral messages per user.
+
 ## AI models and providers
 
 Sophie's AI models, the endpoints they are served from and the API keys used to reach them live in

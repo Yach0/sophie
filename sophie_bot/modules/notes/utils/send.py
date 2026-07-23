@@ -112,6 +112,11 @@ async def _send_media_group(
     return first_message
 
 
+# Telegram accepts only this many ephemeral messages per user, so anything that needs more than one
+# message — an album — has to be posted to the chat instead.
+MAX_EPHEMERAL_MESSAGES_PER_USER = 5
+
+
 async def send_saveable(
     message: Optional[Message],
     send_to: int,
@@ -125,11 +130,17 @@ async def send_saveable(
     user: Optional[User] = None,
     message_thread_id: int | None = None,
     collect_sent: list[Message] | None = None,
+    receiver_user_id: int | None = None,
 ) -> Message | None:
     """Sends a saveable, returning its primary message.
 
     An album produces several messages but only the first is returned; pass `collect_sent`
     to receive every message that was actually sent.
+
+    ``receiver_user_id`` makes the message ephemeral: only that member sees it, and it is not part
+    of the chat history. Albums are always sent normally: sendMediaGroup takes no receiver, and
+    splitting one into separate ephemeral sends is no way around it, since a user can be sent at
+    most MAX_EPHEMERAL_MESSAGES_PER_USER of them.
     """
     text = saveable.text or ""
 
@@ -188,6 +199,8 @@ async def send_saveable(
 
     method: Type[TelegramMethod[Message]]
     kwargs: dict[str, object] = {"chat_id": send_to, "reply_markup": inline_markup}
+    if receiver_user_id is not None:
+        kwargs["receiver_user_id"] = receiver_user_id
 
     if single_file:
         media_spec = MEDIA_SPECS[single_file.type]

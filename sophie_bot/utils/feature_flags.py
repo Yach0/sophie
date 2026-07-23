@@ -59,6 +59,7 @@ FeatureType = Literal[
     "locks",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
+    "welcomecaptcha_ephemeral",
     "op_task",
     "communities",
     "ai_chatbot_service_tier",
@@ -247,6 +248,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "locks": _feature(True),
     "welcomecaptcha": _feature(True),
     "welcomecaptcha_autokick": _feature(True),
+    # Send the captcha prompt only to the new members, so it never becomes chat clutter to clean up.
+    "welcomecaptcha_ephemeral": _feature(False),
     "op_task": _feature(False),
     "communities": _feature(False),
     "ai_chatbot_service_tier": _feature("none", _SERVICE_TIER_FEATURE),

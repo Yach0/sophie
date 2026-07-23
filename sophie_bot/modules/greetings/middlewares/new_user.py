@@ -125,14 +125,24 @@ class NewUserMiddleware(BaseMiddleware):
         ws_saveable: Saveable = db_item.security_note or get_default_security_message()
         security_keyboard = NewUserMiddleware.build_welcomesecurity_keyboard(chat_db.tid)
 
-        sent_message = await send_welcome(
-            message,
-            ws_saveable,
-            cleanservice_enabled,
-            chat_rules,
-            user=new_member,
-            additional_keyboard=security_keyboard.as_markup(),
-        )
+        async def send_to(user: ChatModel | None) -> Optional[Message]:
+            return await send_welcome(
+                message,
+                ws_saveable,
+                cleanservice_enabled,
+                chat_rules,
+                user=new_member,
+                additional_keyboard=security_keyboard.as_markup(),
+                receiver_user_id=user.tid if user else None,
+            )
+
+        if await is_enabled("welcomecaptcha_ephemeral", chat_tid=chat_db.tid):
+            # One prompt per new member, visible only to them. Nothing is left in the chat, so
+            # nothing is recorded for the cleanup that deletes the prompt once the captcha passes.
+            sent = [await send_to(user) for user, muted in zip(new_users, muted_users) if muted]
+            return next((message for message in sent if message), None)
+
+        sent_message = await send_to(None)
         # Save sent message to cleanup it later
         if sent_message and len(muted_users) == 1:
             await aredis.set(f"chat_ws_message:{chat_db.iid}:{new_users[0].iid}", sent_message.message_id)
