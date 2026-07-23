@@ -22,6 +22,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY sophie_bot sophie_bot
 COPY locales locales
 COPY tools tools
+# Read at runtime by the AI help tool
+COPY wiki_docs wiki_docs
 COPY Makefile Makefile
 
 # Install the project itself
@@ -54,6 +56,7 @@ COPY --from=builder --chown=sophie:sophie /app/.venv /app/.venv
 COPY --from=builder --chown=sophie:sophie /app/sophie_bot /app/sophie_bot
 COPY --from=builder --chown=sophie:sophie /app/locales /app/locales
 COPY --from=builder --chown=sophie:sophie /app/tools /app/tools
+COPY --from=builder --chown=sophie:sophie /app/wiki_docs /app/wiki_docs
 
 # Place virtualenv at the front of PATH
 ENV PATH="/app/.venv/bin:$PATH"

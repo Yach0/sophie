@@ -21,13 +21,11 @@ TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
 CHATBOT_TOOLS_TITLES: dict[str, Element] = {
     "write_memory": cast(Element, l_("Memory 💾")),
     "forget_memory": cast(Element, l_("Forget 🗑")),
-    "cmds_help": cast(Element, l_("Commands 📋")),
+    "help": cast(Element, l_("Help 📖")),
     "tavily_search": cast(Element, l_("Search 🔍")),
     "kagi_search": cast(Element, l_("Search 🔍")),
     "get_notes": cast(Element, l_("Notes 🗒")),
     "get_note_content": cast(Element, l_("Note 🗒")),
-    "save_note": cast(Element, l_("Save note 🗒")),
-    "delete_note": cast(Element, l_("Delete note 🗑")),
     "research_topic": cast(Element, l_("Research 🔎")),
 }
 

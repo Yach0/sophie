@@ -11,7 +11,13 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIChatCallback
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.fsm.pm import AI_PM_NORMAL_MODE, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
+from sophie_bot.modules.ai.fsm.pm import (
+    AI_PM_NORMAL_MODE,
+    AI_PM_RESET,
+    AI_PM_STOP_HELP_TEXT,
+    AI_PM_STOP_TEXT,
+    AiPMFSM,
+)
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode, set_help_mode
 from sophie_bot.utils import flags
@@ -22,7 +28,8 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 def _build_keyboard(help_mode: bool) -> ReplyKeyboardMarkup:
-    rows = [[KeyboardButton(text=str(AI_PM_STOP_TEXT)), KeyboardButton(text=str(AI_PM_RESET))]]
+    exit_text = AI_PM_STOP_HELP_TEXT if help_mode else AI_PM_STOP_TEXT
+    rows = [[KeyboardButton(text=str(exit_text)), KeyboardButton(text=str(AI_PM_RESET))]]
     if help_mode:
         rows.append([KeyboardButton(text=str(AI_PM_NORMAL_MODE))])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
@@ -83,7 +90,8 @@ class AiPmNormalMode(SophieMessageHandler):
 class AiPmStop(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return F.text == AI_PM_STOP_TEXT, ChatTypeFilter("private")
+        # Sophie-help labels the same button differently, so both spellings must leave the AI mode.
+        return F.text.in_([AI_PM_STOP_TEXT, AI_PM_STOP_HELP_TEXT]), ChatTypeFilter("private")
 
     async def handle(self) -> Any:
         # Clearing the state drops the Sophie-help flag stored alongside it.

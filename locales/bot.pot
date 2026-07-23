@@ -167,15 +167,32 @@ msgstr ""
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:17
+#: sophie_bot/modules/ai/agent_tools/help.py:18
 msgid "Can be empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:30
+#: sophie_bot/modules/ai/agent_tools/help.py:26
+msgid "Call this tool again with one of these slugs as `page` to read it in full:"
+msgstr ""
+
+#: sophie_bot/modules/ai/agent_tools/help.py:28
+msgid "Wiki pages"
+msgstr ""
+
+#: sophie_bot/modules/ai/agent_tools/help.py:35
+msgid "none"
+msgstr ""
+
+#: sophie_bot/modules/ai/agent_tools/help.py:36
+#, python-brace-format
+msgid "No wiki page named {page}. Available pages: {available}"
+msgstr ""
+
+#: sophie_bot/modules/ai/agent_tools/help.py:52
 msgid "No modules found."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:34
+#: sophie_bot/modules/ai/agent_tools/help.py:56
 msgid ""
 "SOPHIE BOT HELP CONTEXT\n"
 "\n"
@@ -199,7 +216,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:60
+#: sophie_bot/modules/ai/agent_tools/help.py:82
 #: sophie_bot/modules/federations/handlers/info.py:63
 #: sophie_bot/modules/notes/handlers/delete.py:58
 #: sophie_bot/modules/op/handlers/StfuGallery.py:136
@@ -207,72 +224,72 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:61
+#: sophie_bot/modules/ai/agent_tools/help.py:83
 msgid "Icon"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:64
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:74
+#: sophie_bot/modules/ai/agent_tools/help.py:86
+#: sophie_bot/modules/ai/agent_tools/help.py:96
 #: sophie_bot/modules/notes/handlers/save.py:80
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:159
 msgid "Description"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:66
+#: sophie_bot/modules/ai/agent_tools/help.py:88
 msgid "Info"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:67
+#: sophie_bot/modules/ai/agent_tools/help.py:89
 msgid "Wiki page"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:77
+#: sophie_bot/modules/ai/agent_tools/help.py:99
 msgid "Arguments"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:80
+#: sophie_bot/modules/ai/agent_tools/help.py:102
 msgid "This command has no arguments."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:81
+#: sophie_bot/modules/ai/agent_tools/help.py:103
 msgid "Can be used only in private chats (PM / DM)"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:82
+#: sophie_bot/modules/ai/agent_tools/help.py:104
 msgid "Can be used only in groups / supergroups"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:83
+#: sophie_bot/modules/ai/agent_tools/help.py:105
 msgid "Can be used in both private chats and groups"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:86
+#: sophie_bot/modules/ai/agent_tools/help.py:108
 msgid "Can be used only by admins"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:87
+#: sophie_bot/modules/ai/agent_tools/help.py:109
 msgid "Can be used only by OP"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:88
+#: sophie_bot/modules/ai/agent_tools/help.py:110
 msgid "No special permissions required"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:91
+#: sophie_bot/modules/ai/agent_tools/help.py:113
 msgid "Disableable"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:97
+#: sophie_bot/modules/ai/agent_tools/help.py:119
 msgid "Module Information"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:100
+#: sophie_bot/modules/ai/agent_tools/help.py:122
 #: sophie_bot/modules/help/utils/format_help.py:71
 #: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:102
+#: sophie_bot/modules/ai/agent_tools/help.py:124
 msgid "No commands in this module."
 msgstr ""
 
@@ -290,10 +307,14 @@ msgid "🛑 Exit AI mode"
 msgstr ""
 
 #: sophie_bot/modules/ai/fsm/pm.py:14
-msgid "🔄 Reset AI context"
+msgid "🛑 Exit AI help"
 msgstr ""
 
 #: sophie_bot/modules/ai/fsm/pm.py:15
+msgid "🔄 Reset AI context"
+msgstr ""
+
+#: sophie_bot/modules/ai/fsm/pm.py:16
 msgid "💬 Switch to normal AI mode"
 msgstr ""
 
@@ -647,46 +668,46 @@ msgstr ""
 msgid "Top features this month"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:31
+#: sophie_bot/modules/ai/handlers/pm.py:38
 msgid "Start the AI ChatBot mode"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/pm.py:46
-#, python-brace-format
-msgid "{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie."
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/pm.py:48
-#, python-brace-format
-msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/pm.py:53
 #, python-brace-format
+msgid "{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/pm.py:55
+#, python-brace-format
+msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/pm.py:60
+#, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:54
+#: sophie_bot/modules/ai/handlers/pm.py:61
 msgid "privacy policy"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:56
+#: sophie_bot/modules/ai/handlers/pm.py:63
 msgid "Click on the button below to exit."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:66
+#: sophie_bot/modules/ai/handlers/pm.py:73
 msgid "Hello! What would you like to know about Sophie?"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:66
+#: sophie_bot/modules/ai/handlers/pm.py:73
 msgid "Hello! How can I help you?"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:80
+#: sophie_bot/modules/ai/handlers/pm.py:87
 msgid "Switched to the normal AI mode."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:91
+#: sophie_bot/modules/ai/handlers/pm.py:99
 msgid "The AI mode has been exited."
 msgstr ""
 
@@ -1082,7 +1103,7 @@ msgid "You can also save important things to the memory."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:44
-msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
+msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:46
@@ -1139,7 +1160,7 @@ msgid "Forget 🗑"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:24
-msgid "Commands 📋"
+msgid "Help 📖"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:25
@@ -1156,14 +1177,6 @@ msgid "Note 🗒"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:29
-msgid "Save note 🗒"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:30
-msgid "Delete note 🗑"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:31
 msgid "Research 🔎"
 msgstr ""
 
@@ -1200,11 +1213,11 @@ msgid "Forgetting..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
-msgid "Checking command help..."
+msgid "Checking the documentation..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
-msgid "Looking up commands..."
+msgid "Looking up how Sophie works..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:62

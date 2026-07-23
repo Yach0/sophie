@@ -17,6 +17,7 @@ from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, Cata
 from sophie_bot.modules.ai.utils.ai_help_mode import set_help_mode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
+from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
 
 
 ENTERTAINMENT_CHATBOT = "free/chatbot"
@@ -237,3 +238,16 @@ async def test_sophie_help_uses_its_own_system_prompt(monkeypatch: pytest.Monkey
 
     assert "sophie help prompt" in instructions
     assert "general prompt" not in instructions
+
+
+def test_help_tool_lists_wiki_pages() -> None:
+    """The tool advertises pages by slug, so the model can ask for one by name."""
+    pages = get_wiki_pages()
+
+    assert "saveables" in pages
+    # Contributor docs are excluded: they cannot help a user asking how to use the bot.
+    assert not any("Development" in path.parts for path in pages.values())
+
+
+def test_reading_an_unknown_wiki_page_returns_nothing() -> None:
+    assert read_wiki_page("does-not-exist") is None

@@ -54,9 +54,9 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
         _("Removing from memory..."),
         _("Forgetting..."),
     ),
-    "cmds_help": (
-        _("Checking command help..."),
-        _("Looking up commands..."),
+    "help": (
+        _("Checking the documentation..."),
+        _("Looking up how Sophie works..."),
     ),
     "get_notes": (
         _("Scanning notes..."),

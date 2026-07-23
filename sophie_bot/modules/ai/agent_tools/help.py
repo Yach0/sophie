@@ -9,6 +9,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.metrics import track_ai_tool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
+from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -17,15 +18,36 @@ def format_ass_arg_data(arg: ArgFabric) -> Section:
     return Section(_("Can be empty") if arg.can_be_empty else None, title=arg.description)
 
 
-async def cmds_help(ctx: RunContext[SophieAIToolContext]) -> str:
-    """Extract and format all command and module help information for AI assistant context.
+def _wiki_page_index() -> Element:
+    pages = get_wiki_pages()
+    if not pages:
+        return Doc()
+    return Section(
+        _("Call this tool again with one of these slugs as `page` to read it in full:"),
+        VList(*sorted(pages)),
+        title=_("Wiki pages"),
+    )
 
-    The returned string is intended for LLM consumption, not for direct user output.
-    It provides a structured, human-readable overview of all modules and their commands, with
-    clearly labelled sections and fields so the model can reliably reason about
-    available functionality and constraints.
+
+def _read_page(page: str) -> str:
+    text = read_wiki_page(page)
+    if text is None:
+        available = ", ".join(sorted(get_wiki_pages())) or _("none")
+        return _("No wiki page named {page}. Available pages: {available}").format(page=page, available=available)
+    return text
+
+
+async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = None) -> str:
+    """Get Sophie's documentation: every module and command, or the full text of one wiki page.
+
+    Args:
+        page: Slug of a wiki page to read in full, from the list this tool returns without it.
+              Leave empty to get the overview of all modules and commands first.
     """
-    async with track_ai_tool("cmds_help"):
+    if page:
+        return _read_page(page)
+
+    async with track_ai_tool("help"):
         if not HELP_MODULES:
             return _("No modules found.")
 
@@ -103,14 +125,20 @@ async def cmds_help(ctx: RunContext[SophieAIToolContext]) -> str:
 
             modules_sections.append(Section(*module_section_parts, title=f"{module_help.icon} {module_name}"))
 
-        md_text = VList(doc, *modules_sections).to_md()
-        log.debug("cmds_help: generated help text", text_length=len(md_text), chat_id=ctx.deps.chat_tid)
+        md_text = VList(doc, *modules_sections, _wiki_page_index()).to_md()
+        log.debug("help: generated help text", text_length=len(md_text), chat_id=ctx.deps.chat_tid)
         return md_text
 
 
-cmds_help_tool = Tool(
-    cmds_help,
-    name="cmds_help",
-    description="Get information about all available bot modules and commands. Run this before helping users using Sophie.",
+help_tool = Tool(
+    sophie_help,
+    name="help",
+    description=(
+        "Get Sophie's documentation. Call it with no arguments for every module and command, then "
+        "call it again with a page slug from the list it returns when a topic needs more detail. "
+        "Run this before helping users with Sophie, and never invent commands or arguments."
+    ),
     takes_ctx=True,
+    docstring_format="google",
+    require_parameter_descriptions=True,
 )

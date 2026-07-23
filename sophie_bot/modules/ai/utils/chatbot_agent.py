@@ -10,7 +10,7 @@ from pydantic_ai.models import Model
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.agent_tools.cmds_help import cmds_help_tool
+from sophie_bot.modules.ai.agent_tools.help import help_tool
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
 from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_notes_tool
@@ -25,7 +25,7 @@ from sophie_bot.utils.feature_flags import get_value, is_enabled
 CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
     forget_memory_tool,
-    cmds_help_tool,
+    help_tool,
     get_notes_tool,
     get_note_content_tool,
 ]
