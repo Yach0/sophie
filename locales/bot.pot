@@ -143,27 +143,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:116
+#: sophie_bot/modules/ai/__init__.py:110
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:118
+#: sophie_bot/modules/ai/__init__.py:112
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:121
+#: sophie_bot/modules/ai/__init__.py:115
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:122
+#: sophie_bot/modules/ai/__init__.py:116
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:125
+#: sophie_bot/modules/ai/__init__.py:119
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:126
+#: sophie_bot/modules/ai/__init__.py:120
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -377,36 +377,40 @@ msgstr ""
 msgid "👨‍🏫 The most precise"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:56
-#: sophie_bot/modules/ai/handlers/aiprovider.py:119
+#: sophie_bot/modules/ai/handlers/aiprovider.py:36
+msgid "🆓 Increased AI limits in cost of privacy"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aiprovider.py:64
+#: sophie_bot/modules/ai/handlers/aiprovider.py:129
 msgid "Select the AI Provider for this chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:73
+#: sophie_bot/modules/ai/handlers/aiprovider.py:82
 msgid "Current provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:74
+#: sophie_bot/modules/ai/handlers/aiprovider.py:83
 msgid "AI Provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:90
+#: sophie_bot/modules/ai/handlers/aiprovider.py:99
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:98
+#: sophie_bot/modules/ai/handlers/aiprovider.py:107
 msgid "You are not allowed to change this setting"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:103
+#: sophie_bot/modules/ai/handlers/aiprovider.py:113
 msgid "Unknown provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:109
+#: sophie_bot/modules/ai/handlers/aiprovider.py:119
 #: sophie_bot/modules/connections/handlers/connect_dm.py:38
-#: sophie_bot/modules/disabling/handlers/disable.py:57
-#: sophie_bot/modules/disabling/handlers/enable.py:52
+#: sophie_bot/modules/disabling/handlers/disable.py:56
+#: sophie_bot/modules/disabling/handlers/enable.py:51
 #: sophie_bot/modules/locks/handlers/base.py:58
 #: sophie_bot/modules/locks/handlers/locks_list.py:69
 #: sophie_bot/modules/locks/handlers/locksticker.py:52
@@ -426,15 +430,15 @@ msgstr ""
 msgid "Chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:110
+#: sophie_bot/modules/ai/handlers/aiprovider.py:120
 msgid "New provider"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:111
+#: sophie_bot/modules/ai/handlers/aiprovider.py:121
 msgid "AI Provider was updated"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:115
+#: sophie_bot/modules/ai/handlers/aiprovider.py:125
 msgid "Provider updated"
 msgstr ""
 
@@ -458,19 +462,19 @@ msgstr ""
 msgid "Generates a new AI mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:53
+#: sophie_bot/modules/ai/handlers/op_prices.py:39
 msgid "default chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:55
+#: sophie_bot/modules/ai/handlers/op_prices.py:41
 msgid "default translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:76
+#: sophie_bot/modules/ai/handlers/op_prices.py:61
 msgid "AI Prices"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:77
+#: sophie_bot/modules/ai/handlers/op_prices.py:62
 msgid "Prices are shown as approximate USD per 1M input/output tokens."
 msgstr ""
 
@@ -767,7 +771,7 @@ msgstr ""
 #: sophie_bot/modules/federations/utils/ban_docs.py:36
 #: sophie_bot/modules/federations/utils/ban_docs.py:85
 #: sophie_bot/modules/reports/handlers/report.py:94
-#: sophie_bot/modules/restrictions/actions/base.py:148
+#: sophie_bot/modules/restrictions/actions/base.py:147
 #: sophie_bot/modules/restrictions/actions/kick.py:48
 #: sophie_bot/modules/restrictions/handlers/base.py:82
 #: sophie_bot/modules/restrictions/handlers/base.py:145
@@ -821,7 +825,7 @@ msgstr ""
 msgid "Reference ID"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_header.py:35
+#: sophie_bot/modules/ai/utils/ai_header.py:29
 #, python-brace-format
 msgid "{ai_emoji} AI"
 msgstr ""
@@ -1045,40 +1049,40 @@ msgstr ""
 msgid "You have the following information in your memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:23
+#: sophie_bot/modules/ai/utils/chatbot_response.py:22
 msgid "Memory 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:24
+#: sophie_bot/modules/ai/utils/chatbot_response.py:23
 msgid "Forget 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:25
+#: sophie_bot/modules/ai/utils/chatbot_response.py:24
 msgid "Commands 📋"
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/chatbot_response.py:25
 #: sophie_bot/modules/ai/utils/chatbot_response.py:26
-#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:28
+#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:29
+#: sophie_bot/modules/ai/utils/chatbot_response.py:28
 msgid "Note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:30
+#: sophie_bot/modules/ai/utils/chatbot_response.py:29
 msgid "Save note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:31
+#: sophie_bot/modules/ai/utils/chatbot_response.py:30
 msgid "Delete note 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:32
+#: sophie_bot/modules/ai/utils/chatbot_response.py:31
 msgid "Research 🔎"
 msgstr ""
 
@@ -1781,36 +1785,35 @@ msgstr ""
 msgid "Useful for restricting bot functionality to only necessary commands."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:20
-#: sophie_bot/modules/disabling/handlers/disable.py:58
-#: sophie_bot/modules/disabling/handlers/enable.py:22
-#: sophie_bot/modules/disabling/handlers/enable.py:53
+#: sophie_bot/modules/disabling/handlers/disable.py:17
+#: sophie_bot/modules/disabling/handlers/disable.py:57
+#: sophie_bot/modules/disabling/handlers/enable.py:19
+#: sophie_bot/modules/disabling/handlers/enable.py:52
 msgid "Command"
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:21
+#: sophie_bot/modules/disabling/handlers/disable.py:18
 msgid "Disables the command."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:38
-#: sophie_bot/modules/disabling/handlers/enable.py:40
+#: sophie_bot/modules/disabling/handlers/disable.py:35
+#: sophie_bot/modules/disabling/handlers/enable.py:37
 #: sophie_bot/utils/errors.py:36
 #, python-brace-format
 msgid "Command {cmd} not found."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:45
-#: sophie_bot/modules/disabling/handlers/enable.py:44
+#: sophie_bot/modules/disabling/handlers/disable.py:44
 #, python-brace-format
 msgid "Command {cmd} is already disabled."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:46
-#: sophie_bot/modules/disabling/handlers/disable.py:60
+#: sophie_bot/modules/disabling/handlers/disable.py:45
+#: sophie_bot/modules/disabling/handlers/disable.py:59
 msgid "Disabled commands still work for chat administrators."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/disable.py:61
+#: sophie_bot/modules/disabling/handlers/disable.py:60
 msgid "Command disabled"
 msgstr ""
 
@@ -1834,11 +1837,16 @@ msgstr ""
 msgid "Disabled commands"
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/enable.py:23
+#: sophie_bot/modules/disabling/handlers/enable.py:20
 msgid "Enables previously disabled command."
 msgstr ""
 
-#: sophie_bot/modules/disabling/handlers/enable.py:55
+#: sophie_bot/modules/disabling/handlers/enable.py:43
+#, python-brace-format
+msgid "Command {cmd} is not disabled."
+msgstr ""
+
+#: sophie_bot/modules/disabling/handlers/enable.py:54
 msgid "Command enabled"
 msgstr ""
 
@@ -3394,11 +3402,11 @@ msgstr ""
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:196
+#: sophie_bot/modules/filters/utils_/match_handler.py:203
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:203
+#: sophie_bot/modules/filters/utils_/match_handler.py:210
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3406,7 +3414,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:205
+#: sophie_bot/modules/filters/utils_/match_handler.py:212
 msgid "(no text content)"
 msgstr ""
 
@@ -3762,29 +3770,29 @@ msgstr ""
 msgid "Allows users to set their preferred language for bot interactions."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:21
+#: sophie_bot/modules/language/handlers/language.py:22
 msgid "Change the language of the bot in the chat."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:34
+#: sophie_bot/modules/language/handlers/language.py:36
 msgid "Select the language you want to use in this chat."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:58
-#: sophie_bot/modules/language/handlers/language.py:115
+#: sophie_bot/modules/language/handlers/language.py:60
+#: sophie_bot/modules/language/handlers/language.py:116
 msgid "Help us translate!"
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:76
+#: sophie_bot/modules/language/handlers/language.py:78
 msgid "Language not found."
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:95
+#: sophie_bot/modules/language/handlers/language.py:96
 #, python-brace-format
 msgid "Language changed to {lang}"
 msgstr ""
 
-#: sophie_bot/modules/language/handlers/language.py:118
+#: sophie_bot/modules/language/handlers/language.py:119
 #, python-brace-format
 msgid "Language set to {lang}"
 msgstr ""
@@ -4634,7 +4642,7 @@ msgid "#{name} note was not found."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
-#: sophie_bot/modules/restrictions/actions/base.py:137
+#: sophie_bot/modules/restrictions/actions/base.py:136
 #: sophie_bot/modules/restrictions/actions/kick.py:43
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:122
@@ -5832,24 +5840,24 @@ msgstr ""
 msgid "Change ban duration"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:99
+#: sophie_bot/modules/restrictions/actions/base.py:98
 #, python-brace-format
 msgid "Restricts user for {time}"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:102
+#: sophie_bot/modules/restrictions/actions/base.py:101
 msgid "Restricts user indefinitely"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:111
+#: sophie_bot/modules/restrictions/actions/base.py:110
 msgid "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:116
+#: sophie_bot/modules/restrictions/actions/base.py:115
 msgid "Invalid duration, please try again."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:145
+#: sophie_bot/modules/restrictions/actions/base.py:144
 msgid "For"
 msgstr ""
 

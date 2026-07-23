@@ -89,6 +89,8 @@ FeatureType = Literal[
     "ussr_spam_detection",
     "ussr_spam_save_to_db",
     "sentry_update_tracing",
+    "ai_free_provider",
+    "ai_free_monthly_credits",
 ]
 
 
@@ -116,9 +118,9 @@ def get_value_kind(feature: FeatureType) -> FeatureValueKind:
 def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
     """Return the closed set of accepted string values, or None when unrestricted.
 
-    ``ai_model`` features accept any string: the runtime builds unregistered names
-    as custom OpenRouter models (see ``ai_model_factory._build_custom_model``), so
-    the curated registry is only a UI convenience, not a validation boundary.
+    ``ai_model`` features accept any string: the runtime sends unregistered names
+    to OpenRouter as-is (see ``ai_model_factory._build_model``), so the curated
+    registry is only a UI convenience, not a validation boundary.
     """
     value_kind = get_value_kind(feature)
     if value_kind == "service_tier":
@@ -272,6 +274,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ussr_spam_detection": _feature(False),
     "ussr_spam_save_to_db": _feature(False),
     "sentry_update_tracing": _feature(False),
+    "ai_free_provider": _feature(False),
+    "ai_free_monthly_credits": _feature(200000),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

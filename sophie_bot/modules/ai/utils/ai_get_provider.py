@@ -36,7 +36,7 @@ async def get_chat_translations_model(chat_id: PydanticObjectId, chat_tid: int |
 
     provider_name = await AIProviderModel.get_provider_name(chat_id)
     provider_key = provider_name or AIProviders.auto.name
-    default_model_name = get_default_model_name(provider_key, translation=True)
+    default_model_name = get_default_model_name(provider_key, "translation")
 
     log.debug(f"Default translation model for chat {chat_id}: {default_model_name}", provider_name=provider_name)
 

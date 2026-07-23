@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from aiogram.types import Message
+from beanie import PydanticObjectId
 from normality import normalize
 from pydantic_ai.messages import BinaryContent
 from pydantic_ai.models.openrouter import OpenRouterModelSettings
@@ -134,10 +135,16 @@ async def _is_within_new_user_message_limit(user_in_group: UserInGroupModel, cha
 
 
 async def match_ai_handler(
-    message: Message, prompt: str, user_in_group: UserInGroupModel | None = None, chat_iid: object | None = None
+    message: Message,
+    prompt: str,
+    user_in_group: UserInGroupModel | None = None,
+    chat_iid: PydanticObjectId | None = None,
 ) -> bool:
     """
-    Match a message against AI-powered filter using Mistral Pixtral model.
+    Match a message against an AI-powered filter.
+
+    The model is resolved via ``get_filter_handler_model`` (the ai_filter_handler_model flag, or the
+    Free provider's vision model when the chat selected the Free provider).
 
     Supports text, photos, videos (thumbnail), and stickers.
 
@@ -218,7 +225,7 @@ async def match_ai_handler(
             )
 
         # Run AI evaluation
-        model = await get_filter_handler_model(chat_tid)
+        model = await get_filter_handler_model(chat_iid, chat_tid)
         service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=chat_tid)
 
         result = await run_structured_task(
@@ -253,7 +260,7 @@ async def match_filter_handler(
     handler: str,
     user_in_group: UserInGroupModel | None = None,
     enable_lock_types: bool = True,
-    chat_iid: object | None = None,
+    chat_iid: PydanticObjectId | None = None,
 ) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler

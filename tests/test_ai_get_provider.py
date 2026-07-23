@@ -9,8 +9,6 @@ from sophie_bot.modules.ai.utils.ai_get_provider import (
     get_chat_summary_model,
     get_chat_translations_model,
 )
-from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header
-from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODEL_TO_SHORT_NAME
 
 
 class _ModelMap(dict):
@@ -20,9 +18,6 @@ class _ModelMap(dict):
         return super().__getitem__(model_name)
 
 
-class _NamedModel:
-    def __init__(self, model_name: str) -> None:
-        self.model_name = model_name
 
 
 @pytest.mark.asyncio
@@ -119,19 +114,6 @@ async def test_get_chat_translations_model_uses_openai_luna_by_default(monkeypat
     model = await get_chat_translations_model(chat_iid)
 
     assert model is luna_model
-
-
-def test_ai_chatbot_header_renders_unknown_model_name() -> None:
-    model_name = "custom/provider-model"
-    model = _NamedModel(model_name)
-
-    header = ai_chatbot_header(model)  # type: ignore[arg-type]
-
-    assert model_name in header.to_html()
-
-
-def test_xiaomi_mimo_model_has_display_name() -> None:
-    assert AI_MODEL_TO_SHORT_NAME["xiaomi/mimo-v2.5-pro"] == "Xiaomi Mimo V2.5 Pro"
 
 
 def test_ai_provider_summary_model_defaults_to_gpt_5_5() -> None:

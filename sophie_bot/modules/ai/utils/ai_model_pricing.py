@@ -7,7 +7,6 @@ from httpx import AsyncClient, HTTPError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
-from sophie_bot.modules.ai.utils.ai_model_registry import AI_MODELS_BY_NAME
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
@@ -85,19 +84,8 @@ async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, floa
 
 
 async def get_model_pricing(model_name: str) -> tuple[float | None, float | None]:
-    model_metadata = AI_MODELS_BY_NAME.get(model_name)
-    if model_metadata and model_metadata.input_price is not None and model_metadata.output_price is not None:
-        return model_metadata.input_price, model_metadata.output_price
-
     pricing_cache = await _load_openrouter_pricing_cache()
-    fallback_input_price, fallback_output_price = pricing_cache.get(model_name, (None, None))
-    if not model_metadata:
-        return fallback_input_price, fallback_output_price
-
-    return (
-        model_metadata.input_price if model_metadata.input_price is not None else fallback_input_price,
-        model_metadata.output_price if model_metadata.output_price is not None else fallback_output_price,
-    )
+    return pricing_cache.get(model_name, (None, None))
 
 
 async def estimate_model_credit_cost(

@@ -9,8 +9,7 @@ from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
-from sophie_bot.modules.ai.utils.ai_header import ai_chatbot_header, ai_credit_header
-from sophie_bot.modules.ai.utils.ai_models import AI_MODEL_TO_SHORT_NAME
+from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_short_title_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
@@ -66,14 +65,14 @@ async def build_chatbot_header(
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
         header_items.append(ai_credit_header(percentage))
-    return ai_chatbot_header(model, *header_items)
+    return ai_short_title_header(*header_items)
 
 
 def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
     return Section(
         BlockQuote(
             Doc(
-                KeyValue("Model", AI_MODEL_TO_SHORT_NAME.get(model.model_name, model.model_name)),
+                KeyValue("Model", model.model_name),
                 KeyValue("LLM Requests", result.usage.requests),
                 KeyValue("Retries", result.retries if result.retries is not None else "-"),
                 KeyValue("Request tokens", usage_input_tokens(result.usage) or 0),

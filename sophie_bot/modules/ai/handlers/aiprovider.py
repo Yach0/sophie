@@ -15,11 +15,11 @@ from sophie_bot.modules.ai.callbacks import AIProviderCallback
 from sophie_bot.modules.ai.fsm.pm import AI_PM_PROVIDER
 from sophie_bot.modules.ai.utils.ai_models import (
     AI_PROVIDER_TO_NAME,
-    AVAILABLE_PROVIDER_NAMES,
     AIProviders,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils import flags
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
@@ -33,13 +33,21 @@ PROVIDERS_KEY_FACTS: dict[AIProviders, Any] = {
     AIProviders.mistral: l_("🔒 The most private"),
     AIProviders.openai: l_("🧠 The smartest"),
     AIProviders.anthropic: l_("👨‍🏫 The most precise"),
+    AIProviders.free: l_("🆓 Increased AI limits in cost of privacy"),
 }
 
 
-def build_keyboard(selected: str) -> InlineKeyboardMarkup:
+async def _allowed_provider_names(chat_tid: int | None) -> tuple[str, ...]:
+    # The Free provider is gated behind the ai_free_provider flag so it can be rolled out gradually.
+    if await is_enabled("ai_free_provider", chat_tid=chat_tid):
+        return tuple(AI_PROVIDER_TO_NAME)
+    return tuple(name for name in AI_PROVIDER_TO_NAME if name != AIProviders.free.name)
+
+
+def build_keyboard(selected: str, allowed_names: tuple[str, ...]) -> InlineKeyboardMarkup:
     """Build keyboard with AI provider options, marking the selected one."""
     rows = []
-    for name in AVAILABLE_PROVIDER_NAMES:
+    for name in allowed_names:
         title = AI_PROVIDER_TO_NAME[name]
         mark = "✅ " if name == selected else ""
         rows.append(
@@ -66,7 +74,8 @@ class AIProviderSetting(SophieMessageHandler):
         current = await AIProviderModel.get_provider_name(chat.iid)
         current = current or AIProviders.auto.name
 
-        kb = build_keyboard(current)
+        allowed_names = await _allowed_provider_names(self.event.chat.id)
+        kb = build_keyboard(current, allowed_names)
 
         doc = Doc(
             Section(
@@ -99,7 +108,8 @@ class AIProviderSelectCallback(SophieCallbackQueryHandler):
 
         # validate provider
         provider_name = data.provider
-        if provider_name not in AVAILABLE_PROVIDER_NAMES:
+        allowed_names = await _allowed_provider_names(chat_id)
+        if provider_name not in allowed_names:
             return await self.event.answer(_("Unknown provider"))
 
         await AIProviderModel.set_provider(self.connection.db_model, provider_name)
