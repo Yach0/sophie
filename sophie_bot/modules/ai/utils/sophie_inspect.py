@@ -13,9 +13,9 @@ from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.deep_help_source import read_source, search_source
+from sophie_bot.modules.ai.utils.sophie_inspect_source import read_source, search_source
 from sophie_bot.services.redis import aredis
-from sophie_bot.utils.ai_features import AI_FEATURE_DEEP_HELP
+from sophie_bot.utils.ai_features import AI_FEATURE_SOPHIE_INSPECT
 from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -37,11 +37,11 @@ def _parse_chat_ids(raw_value: object) -> frozenset[int]:
         try:
             identifiers.add(int(entry))
         except ValueError:
-            log.warning("deep_help: ignoring an unparsable chat id", entry=entry)
+            log.warning("sophie_inspect: ignoring an unparsable chat id", entry=entry)
     return frozenset(identifiers)
 
 
-async def is_deep_help_chat(chat_tid: int | None) -> bool:
+async def is_sophie_inspect_chat(chat_tid: int | None) -> bool:
     """Whether a group is on the list allowed to use source inspection.
 
     Sophie-help gets it from its mode; this is the escape hatch for the chats where people ask how
@@ -49,11 +49,11 @@ async def is_deep_help_chat(chat_tid: int | None) -> bool:
     """
     if chat_tid is None:
         return False
-    return chat_tid in _parse_chat_ids(await get_value("ai_deep_help_chats", chat_tid=chat_tid))
+    return chat_tid in _parse_chat_ids(await get_value("ai_sophie_inspect_chats", chat_tid=chat_tid))
 
 
 def _daily_limit_key(chat_iid: PydanticObjectId, now: datetime) -> str:
-    return f"ai_deep_help_daily:{chat_iid}:{now.strftime('%Y%m%d')}"
+    return f"ai_sophie_inspect_daily:{chat_iid}:{now.strftime('%Y%m%d')}"
 
 
 def _seconds_until_next_utc_day(now: datetime) -> int:
@@ -71,7 +71,7 @@ async def _feature_int(feature: FeatureType, chat_tid: int | None, minimum: int 
 
 async def _consume_daily_quota(chat_iid: PydanticObjectId, chat_tid: int | None) -> bool:
     """Cap how often one chat can start a sub-agent per day, on top of the chat's credit quota."""
-    limit = await _feature_int("ai_deep_help_daily_chat_limit", chat_tid)
+    limit = await _feature_int("ai_sophie_inspect_daily_chat_limit", chat_tid)
     now = datetime.now(timezone.utc)
     key = _daily_limit_key(chat_iid, now)
 
@@ -108,28 +108,28 @@ def _build_agent(model: Model) -> Agent[None, str]:
     return agent
 
 
-async def run_deep_help(question: str, chat_iid: PydanticObjectId, chat_tid: int | None = None) -> str:
+async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid: int | None = None) -> str:
     """Answer a question about Sophie's behaviour by inspecting its own source.
 
     Experimental and off by default: it costs several model requests, so it is rate limited per
     chat per day and charged against the chat's AI quota like any other feature.
     """
-    if not await is_enabled("ai_deep_help", chat_tid=chat_tid):
+    if not await is_enabled("ai_sophie_inspect", chat_tid=chat_tid):
         return _("Source inspection is not available.")
 
     if not await _consume_daily_quota(chat_iid, chat_tid):
         return _("The daily limit for source inspection in this chat has been reached.")
 
-    model_name = str(await get_value("ai_deep_help_model", chat_tid=chat_tid)) or await resolve_model_name(
-        None, AIModelPurpose.deep_help
+    model_name = str(await get_value("ai_sophie_inspect_model", chat_tid=chat_tid)) or await resolve_model_name(
+        None, AIModelPurpose.sophie_inspect
     )
     usage_limits = UsageLimits(
-        request_limit=await _feature_int("ai_deep_help_request_limit", chat_tid),
-        tool_calls_limit=await _feature_int("ai_deep_help_tool_calls_limit", chat_tid),
-        output_tokens_limit=await _feature_int("ai_deep_help_output_tokens_limit", chat_tid),
+        request_limit=await _feature_int("ai_sophie_inspect_request_limit", chat_tid),
+        tool_calls_limit=await _feature_int("ai_sophie_inspect_tool_calls_limit", chat_tid),
+        output_tokens_limit=await _feature_int("ai_sophie_inspect_output_tokens_limit", chat_tid),
     )
 
-    log.debug("deep_help: started", question=question, chat_iid=str(chat_iid), model=model_name)
+    log.debug("sophie_inspect: started", question=question, chat_iid=str(chat_iid), model=model_name)
 
     model = get_ai_model(model_name)
     agent = _build_agent(model)
@@ -138,15 +138,15 @@ async def run_deep_help(question: str, chat_iid: PydanticObjectId, chat_tid: int
             agent,
             user_prompt=question,
             usage_limits=usage_limits,
-            request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:deep_help"),
+            request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:sophie_inspect"),
         )
     except (AIRequestFailed, UsageLimitExceeded) as error:
         # Running out of budget is a normal outcome for a bounded sub-agent, and must not take the
         # conversation down with it: the main agent gets a plain answer it can pass on.
-        log.info("deep_help: gave up", chat_iid=str(chat_iid), error=str(error))
+        log.info("sophie_inspect: gave up", chat_iid=str(chat_iid), error=str(error))
         return _("I could not find the answer in my own sources within the allowed budget.")
 
-    await charge_ai_usage(chat_iid, AI_FEATURE_DEEP_HELP, model, result.usage)
+    await charge_ai_usage(chat_iid, AI_FEATURE_SOPHIE_INSPECT, model, result.usage)
 
-    log.debug("deep_help: finished", chat_iid=str(chat_iid), tokens=result.usage.total_tokens)
+    log.debug("sophie_inspect: finished", chat_iid=str(chat_iid), tokens=result.usage.total_tokens)
     return result.output

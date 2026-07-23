@@ -22,7 +22,7 @@ class AIModelPurpose(str, Enum):
     filters = "filters"
     summary = "summary"
     moderation_reason = "moderation_reason"
-    deep_help = "deep_help"
+    sophie_inspect = "sophie_inspect"
 
 
 class AIModelRole(BaseModel):

@@ -1,18 +1,18 @@
 """Migration: add_deep_help_model
 
 Description:
-    Adds the model the experimental deep_help sub-agent uses to the AI catalog, so it can be
+    Adds the model the experimental sophie_inspect sub-agent uses to the AI catalog, so it can be
     swapped with /op_aimodel like every other model instead of living in a feature flag default.
 
 Affected Collections:
     - ai_catalog_model
 
 Impact:
-    - Low risk: one additive catalog entry. deep_help is off by default, and without this entry it
+    - Low risk: one additive catalog entry. sophie_inspect is off by default, and without this entry it
       reports that it could not answer rather than failing.
 
 Rollback:
-    Removes the deep_help role, leaving the model itself in place in case it serves another purpose.
+    Removes the sophie_inspect role, leaving the model itself in place in case it serves another purpose.
 """
 
 from beanie import free_fall_migration
@@ -20,7 +20,9 @@ from beanie import free_fall_migration
 from sophie_bot.services.db import get_collection
 
 _MODEL_NAME = "openai/gpt-5.6-luna"
-_ROLE = {"mode": None, "purpose": "deep_help"}
+_ROLE = {"mode": None, "purpose": "sophie_inspect"}
+# The purpose was called deep_help before the tool was renamed; drop it where the role already landed.
+_LEGACY_ROLE = {"mode": None, "purpose": "deep_help"}
 
 
 class Forward:
@@ -45,6 +47,7 @@ class Forward:
             upsert=True,
             session=session,
         )
+        await models.update_one({"name": _MODEL_NAME}, {"$pull": {"roles": _LEGACY_ROLE}}, session=session)
 
 
 class Backward:

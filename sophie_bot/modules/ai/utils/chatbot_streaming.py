@@ -53,11 +53,11 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
         _("Removing from memory..."),
         _("Forgetting..."),
     ),
-    "help": (
+    "sophie_help": (
         _("Checking the documentation..."),
         _("Looking up how Sophie works..."),
     ),
-    "deep_help": (
+    "sophie_inspect": (
         _("Digging through my own sources..."),
         _("Reading my own code..."),
     ),

@@ -167,32 +167,32 @@ msgstr ""
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:18
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:18
 msgid "Can be empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:26
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:26
 msgid "Call this tool again with one of these slugs as `page` to read it in full:"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:28
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:28
 msgid "Wiki pages"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:35
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:35
 msgid "none"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:36
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:36
 #, python-brace-format
 msgid "No wiki page named {page}. Available pages: {available}"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:52
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:52
 msgid "No modules found."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:56
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:56
 msgid ""
 "SOPHIE BOT HELP CONTEXT\n"
 "\n"
@@ -216,7 +216,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:82
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:82
 #: sophie_bot/modules/federations/handlers/info.py:63
 #: sophie_bot/modules/notes/handlers/delete.py:58
 #: sophie_bot/modules/op/handlers/StfuGallery.py:136
@@ -224,72 +224,72 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:83
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:83
 msgid "Icon"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:86
-#: sophie_bot/modules/ai/agent_tools/help.py:96
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:86
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:96
 #: sophie_bot/modules/notes/handlers/save.py:80
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:159
 msgid "Description"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:88
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:88
 msgid "Info"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:89
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:89
 msgid "Wiki page"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:99
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:99
 msgid "Arguments"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:102
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:102
 msgid "This command has no arguments."
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:103
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:103
 msgid "Can be used only in private chats (PM / DM)"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:104
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:104
 msgid "Can be used only in groups / supergroups"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:105
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:105
 msgid "Can be used in both private chats and groups"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:108
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:108
 msgid "Can be used only by admins"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:109
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:109
 msgid "Can be used only by OP"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:110
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:110
 msgid "No special permissions required"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:113
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:113
 msgid "Disableable"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:119
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:119
 msgid "Module Information"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:122
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:122
 #: sophie_bot/modules/help/utils/format_help.py:71
 #: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr ""
 
-#: sophie_bot/modules/ai/agent_tools/help.py:124
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:124
 msgid "No commands in this module."
 msgstr ""
 
@@ -1111,7 +1111,7 @@ msgid "You can also save important things to the memory."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:44
-msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `help` tool to obtain a help context, do not search internet for bot information."
+msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:46
@@ -1277,18 +1277,6 @@ msgstr ""
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/deep_help.py:118
-msgid "Source inspection is not available."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/deep_help.py:121
-msgid "The daily limit for source inspection in this chat has been reached."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/deep_help.py:147
-msgid "I could not find the answer in my own sources within the allowed budget."
-msgstr ""
-
 #: sophie_bot/modules/ai/utils/help_tip.py:38
 msgid "If you want more detailed help, use the special Sophie help mode."
 msgstr ""
@@ -1397,6 +1385,18 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/research.py:512
 msgid "Research model"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:118
+msgid "Source inspection is not available."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:121
+msgid "The daily limit for source inspection in this chat has been reached."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:147
+msgid "I could not find the answer in my own sources within the allowed budget."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/transform_video.py:62

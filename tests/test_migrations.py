@@ -805,13 +805,13 @@ async def test_seeded_catalog_covers_every_purpose_every_mode_falls_back_to() ->
     assert {"summary", "moderation_reason"} <= {purpose for mode, purpose in roles if mode is None}
 
 
-def _deep_help_model_migration() -> ModuleType:
+def _sophie_inspect_model_migration() -> ModuleType:
     return importlib.import_module("sophie_bot.db.migrations.20260723_160000_add_deep_help_model")
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_deep_help_model_role_is_added_without_disturbing_an_existing_entry() -> None:
-    migration = _deep_help_model_migration()
+async def test_sophie_inspect_model_role_is_added_without_disturbing_an_existing_entry() -> None:
+    migration = _sophie_inspect_model_migration()
     models = get_collection("ai_catalog_model")
     await _reset_collections("ai_catalog_model")
 
@@ -830,3 +830,18 @@ async def test_deep_help_model_role_is_added_without_disturbing_an_existing_entr
     stored = await models.find_one({"name": migration._MODEL_NAME})
     # Backward drops only its own role: the model may serve other purposes by now.
     assert stored["roles"] == [{"mode": "support", "purpose": "chatbot"}]
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_sophie_inspect_migration_replaces_the_role_it_used_to_write() -> None:
+    """It shipped once under the tool's old name; a database that ran it then must converge."""
+    migration = _sophie_inspect_model_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+
+    await models.insert_one({"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [migration._LEGACY_ROLE]})
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert stored["roles"] == [migration._ROLE]

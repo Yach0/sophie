@@ -88,7 +88,7 @@ effect — use the commands below instead.
 `kind` is `openrouter` or `openai_compatible`. A role is `<mode>:<purpose>` — for example
 `^role=support:chatbot` — or just `<purpose>` for the purposes that are not per-chat (`summary`,
 `moderation_reason`). Purposes are `chatbot`, `translation`, `filters`, `summary` and
-`moderation_reason`; modes are `entertainment`, `moderation`, `support`, `sophie_pm` and
+`moderation_reason`, `sophie_inspect`; modes are `entertainment`, `moderation`, `support`, `sophie_pm` and
 `sophie_help`.
 
 A mode with no model for a purpose falls back to the `support` tier, so you only need to define the
@@ -101,20 +101,20 @@ restart.
 
 ### Experimental: source inspection
 
-`ai_deep_help` lets the Sophie-help assistant start a sub-agent that reads Sophie's own source code
+`ai_sophie_inspect` lets the Sophie-help assistant start a sub-agent that reads Sophie's own source code
 when the documentation cannot answer a question. It is **off by default** because it costs several
 model requests per question.
 
-Groups do not get it from their AI mode. `ai_deep_help_chats` is a space or comma separated list of
+Groups do not get it from their AI mode. `ai_sophie_inspect_chats` is a space or comma separated list of
 group IDs allowed to use it anyway, for the chats where people ask how Sophie works.
 
-Every run is bounded: `ai_deep_help_request_limit`, `ai_deep_help_tool_calls_limit` and
-`ai_deep_help_output_tokens_limit` cap one run, `ai_deep_help_daily_chat_limit` caps how many runs
+Every run is bounded: `ai_sophie_inspect_request_limit`, `ai_sophie_inspect_tool_calls_limit` and
+`ai_sophie_inspect_output_tokens_limit` cap one run, `ai_sophie_inspect_daily_chat_limit` caps how many runs
 one chat may start per day, and the tokens are charged to that chat's AI quota like any other
 feature.
 
-The model it uses is the catalog model holding the `deep_help` role, so it is swapped like any
-other: `/op_aimodel <name> ^role=deep_help`. Prefer a cheap one — the daily cap is what bounds the
+The model it uses is the catalog model holding the `sophie_inspect` role, so it is swapped like
+any other: `/op_aimodel <name> ^role=sophie_inspect`. Prefer a cheap one — the daily cap is what bounds the
 damage, not the price per run.
 
 The sub-agent can only read `.py` files inside the `sophie_bot` package, and only through search and

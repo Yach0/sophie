@@ -41,7 +41,7 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
     context_doc = Doc(
         _("You can also save important things to the memory.") if capabilities.memory else None,
         _(
-            "If the user asks anything regarding using Sophie bot, make sure to execute the `help` tool to obtain a help context, do not search internet for bot information."
+            "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
         ),
         Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
     )

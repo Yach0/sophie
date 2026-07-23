@@ -47,7 +47,7 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
     if page:
         return _read_page(page)
 
-    async with track_ai_tool("help"):
+    async with track_ai_tool("sophie_help"):
         if not HELP_MODULES:
             return _("No modules found.")
 
@@ -130,13 +130,16 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
         return md_text
 
 
-help_tool = Tool(
+sophie_help_tool = Tool(
     sophie_help,
-    name="help",
+    name="sophie_help",
     description=(
-        "Get Sophie's documentation. Call it with no arguments for every module and command, then "
-        "call it again with a page slug from the list it returns when a topic needs more detail. "
-        "Run this before helping users with Sophie, and never invent commands or arguments."
+        "Read Sophie's own documentation: its modules, commands and wiki pages. Use it only for "
+        "questions about Sophie itself — how to use a command, configure a feature or fix a setup. "
+        "Never use it for general questions that merely contain the word help, or for anything the "
+        "user is asking about the world rather than about this bot. "
+        "Call it with no arguments for every module and command, then again with a page slug from "
+        "the list it returns when a topic needs more detail, and never invent commands or arguments."
     ),
     takes_ctx=True,
     docstring_format="google",

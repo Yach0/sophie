@@ -27,7 +27,7 @@ class ModeCapabilities:
     memory: bool
     moderator: bool
     message_cache: bool
-    deep_help: bool
+    sophie_inspect: bool
 
     @property
     def ai_enabled(self) -> bool:
@@ -42,7 +42,7 @@ _DISABLED = ModeCapabilities(
     memory=False,
     moderator=False,
     message_cache=False,
-    deep_help=False,
+    sophie_inspect=False,
 )
 
 _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
@@ -55,7 +55,7 @@ _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
         memory=True,
         moderator=False,
         message_cache=True,
-        deep_help=False,
+        sophie_inspect=False,
     ),
     # Moderation is the privacy mode: no message history is retained at all.
     AIMode.moderation: ModeCapabilities(
@@ -66,7 +66,7 @@ _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
         memory=False,
         moderator=True,
         message_cache=False,
-        deep_help=False,
+        sophie_inspect=False,
     ),
     AIMode.support: ModeCapabilities(
         chatbot_for_users=True,
@@ -76,7 +76,7 @@ _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
         memory=False,
         moderator=True,
         message_cache=True,
-        deep_help=False,
+        sophie_inspect=False,
     ),
     # Private chats have nothing to moderate and no chat notes of their own.
     AIMode.sophie_pm: ModeCapabilities(
@@ -87,7 +87,7 @@ _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
         memory=False,
         moderator=False,
         message_cache=True,
-        deep_help=False,
+        sophie_inspect=False,
     ),
     AIMode.sophie_help: ModeCapabilities(
         chatbot_for_users=True,
@@ -97,7 +97,7 @@ _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
         memory=False,
         moderator=False,
         message_cache=True,
-        deep_help=True,
+        sophie_inspect=True,
     ),
 }
 

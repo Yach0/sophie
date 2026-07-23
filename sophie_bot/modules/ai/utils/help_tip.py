@@ -7,10 +7,10 @@ from stfu_tg import Doc, Italic
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.callbacks import AIChatCallback, AIHelpStartUrlCallback
-from sophie_bot.modules.ai.utils.deep_help import is_deep_help_chat
+from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.i18n import gettext as _
 
-_HELP_TOOL_NAME = "help"
+_HELP_TOOL_NAME = "sophie_help"
 
 
 def _used_help_tool(message_history: list[ModelRequest | ModelResponse]) -> bool:
@@ -31,7 +31,7 @@ async def should_offer_help_mode(
     """
     if mode is AIMode.sophie_help or not _used_help_tool(message_history):
         return False
-    return not await is_deep_help_chat(message.chat.id)
+    return not await is_sophie_inspect_chat(message.chat.id)
 
 
 def build_help_mode_tip() -> Doc:
