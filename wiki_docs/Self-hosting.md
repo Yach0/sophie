@@ -40,6 +40,7 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `TOKEN`: Your Telegram Bot API token.
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
+- `OPENROUTER_API_KEY`: Seeds the AI catalog on first migration. See below.
 
 ### 2. Run the Playbook
 
@@ -54,6 +55,49 @@ To deploy the beta environment (includes scheduler and REST API):
 ```bash
 ansible-playbook -i your_inventory deploy/beta.yml
 ```
+
+## AI models and providers
+
+Sophie's AI models, the endpoints they are served from and the API keys used to reach them live in
+the database, not in the configuration file. They are managed at runtime with operator commands, so
+adding a model or rotating a key never needs a redeploy.
+
+### Seeding
+
+The `seed_ai_catalog` migration creates the initial catalog from your environment:
+
+- `OPENROUTER_API_KEY` becomes the `openrouter` provider.
+- `CUSTOM_PROVIDERS` becomes one provider per entry, for OpenAI-compatible endpoints:
+
+```
+CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://example.com/compatible-mode/v1","api_key":"sk-..."}]'
+```
+
+Both variables are read **only** by this migration. Once the catalog exists, changing them has no
+effect — use the commands below instead.
+
+### Managing the catalog
+
+| Command | Purpose |
+| --- | --- |
+| `/op_aiproviders` | List providers. API keys are always masked. |
+| `/op_aiprovider <name> ^kind= ^base_url= ^key= ^enabled=` | Create or update a provider. Private chat only; the command message is deleted immediately. |
+| `/op_aimodels` | List models and what each one is used for. |
+| `/op_aimodel <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^enabled=` | Create or update a model. |
+
+`kind` is `openrouter` or `openai_compatible`. A role is `<mode>:<purpose>` — for example
+`^role=support:chatbot` — or just `<purpose>` for the purposes that are not per-chat (`summary`,
+`moderation_reason`). Purposes are `chatbot`, `translation`, `filters`, `summary` and
+`moderation_reason`; modes are `entertainment`, `moderation`, `support`, `sophie_pm` and
+`sophie_help`.
+
+A mode with no model for a purpose falls back to the `support` tier, so you only need to define the
+roles you want to differ. Changes take effect on every process within a few seconds without a
+restart.
+
+> **Warning:** with an empty catalog no AI feature can resolve a model and every AI request fails.
+> Check `/op_aimodels` after deploying.
+> {.is-warning}
 
 ## Running with Podman (Manual)
 

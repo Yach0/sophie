@@ -67,17 +67,33 @@ However, deleting this information may prevent you from using Sophie in the futu
 
 ### AI
 
-AI features are disabled by default and can only be activated with the user's explicit consent.
+AI features are disabled by default and can only be activated with the user's explicit consent,
+by an administrator choosing an AI mode with the /aimode command.
 When these features are activated, you agree to:
 
 * [OpenRouter Privacy Policy](https://openrouter.ai/docs/features/privacy-and-logging)
 * [Mistral Privacy Policy](https://mistral.ai/terms#privacy-policy)
 * [Tavily Privacy Policy](https://www.tavily.com/privacy)
-* By using AI features with a specific AI provider (selected via /aiprovider command), you agree to the selected provider's privacy policy.
+* The privacy policy of whichever AI provider serves the model your chat's AI mode uses.
 
 While using some AI-enabled features such as AI Chatbot, AI Translator or AI Moderator,
 we may share the context of the conversation, which can
 include up to 40 of the most recent messages (including bot responses).
+
+### AI modes and message history
+
+What Sophie's AI does in a chat, and what it is given, depends on the mode chosen with /aimode:
+
+* **Disabled** — no AI feature runs, and no message history is kept. This is the default.
+* **Entertainment** — the chatbot may reply on its own initiative, and remembers information about
+  participants between conversations. Recent messages are cached to provide conversation context.
+* **Moderation** — only the AI moderator runs. **No message history is kept at all**: messages are
+  checked and discarded, never cached. Switching a chat into this mode deletes any history cached
+  by a previous mode.
+* **Support** — the chatbot answers questions using the chat's notes, and the AI moderator runs.
+  Recent messages are cached to provide conversation context.
+
+Cached message history is held for at most 48 hours and can be cleared at any time with /aireset.
 
 When using certain AI-assisted features, user-saved data (including notes, filters, and settings)
 may be shared with our AI service providers: OpenRouter, Tavily, and other selected AI Providers.
@@ -85,8 +101,9 @@ may be shared with our AI service providers: OpenRouter, Tavily, and other selec
 ### AI data routing
 
 When you use Sophie's AI features, your data is initially sent to OpenRouter, which acts as a routing service to direct
-requests to various AI providers based on your selected preferences and requirements. OpenRouter then forwards these
-requests to the appropriate AI provider (such as Mistral AI, OpenAI, or others). Additionally, if the AI model
+requests to various AI providers based on the model your chat's AI mode uses. OpenRouter then forwards these
+requests to the appropriate AI provider (such as Mistral AI, OpenAI, or others). Some models may instead be served
+by an AI provider Sophie's operators have configured directly, without OpenRouter in between. Additionally, if the AI model
 determines it needs to search the internet for up-to-date information, the relevant data may be sent to Tavily's search
 service to enhance response accuracy.
 
@@ -106,7 +123,7 @@ Sophie can use Pydantic's logfire feature to collect usage statistics and perfor
 the user experience and identify potential issues. The data collected includes information about the user's device,
 operating system, and usage patterns.
 This data is not shared with any third parties, except for Pydantic, and is only used internally by Sophie.
-You can withdraw your consent at any time by contacting us by disabling the AI feature by writing '/aienable no'.
+You can withdraw your consent at any time by contacting us, or by disabling the AI features with '/aimode' and choosing the Disabled mode.
 By using Sophie with AI-related activities, you agree to Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.
 
 # Changes to This Policy

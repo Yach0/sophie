@@ -335,18 +335,31 @@ doc = Doc(
 await message.reply(doc.to_html())
 ```
 
-### AI Provider Selection
+### AI Mode Selection
+
+Rich elements such as `RichTable` only render as tables when the message is sent with
+`send_rich_message`; `to_html()` degrades them to plain text, which is what the fallback relies on.
 
 ```python
-from stfu_tg import Doc, Section, KeyValue
+from stfu_tg import Doc, RichTable, RichTableCell, Title
 
 doc = Doc(
-    Section(
-        KeyValue(_("Current provider"), provider_name),
-        title=_("AI Provider")
-    )
+    Title(_("AI Mode")),
+    RichTable(
+        [RichTableCell(_("Mode"), is_header=True), RichTableCell(_("What Sophie does"), is_header=True)],
+        [RichTableCell(_("Moderation")), RichTableCell(_("Only moderates, keeps no history"))],
+        bordered=True,
+    ),
 )
-await self.event.reply(doc.to_html(), reply_markup=kb)
+
+try:
+    await message.bot.send_rich_message(
+        chat_id=message.chat.id,
+        rich_message=InputRichMessage(html=doc.to_rich()),
+        reply_markup=kb,
+    )
+except TelegramAPIError:
+    await message.reply(doc.to_html(), reply_markup=kb)
 ```
 
 ### Statistics Display
