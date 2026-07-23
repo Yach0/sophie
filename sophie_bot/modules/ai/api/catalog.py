@@ -9,16 +9,17 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIModelPurpose,
     AIProviderKind,
 )
-from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
 from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
 from sophie_bot.utils.feature_flags import _SERVICE_TIER_VALUES
 from sophie_bot.modules.ai.utils.ai_catalog import (
+    CATALOG_MODES,
+    MODE_PURPOSES,
     bump_version,
     get_catalog,
     load_catalog,
     load_documents,
     mask_api_key,
-    resolve_from,
+    mode_allows,
 )
 from sophie_bot.modules.ai.utils.ai_model_pricing import ai_http_client, _openrouter_headers, _parse_price_per_million
 from sophie_bot.utils.api.auth import get_current_operator
@@ -80,9 +81,12 @@ async def get_meta() -> CatalogMeta:
     return CatalogMeta(
         provider_kinds=[kind.value for kind in AIProviderKind],
         purposes=[purpose.value for purpose in AIModelPurpose],
-        # Only the modes a chat can actually be in: the two private-chat-only ones are resolved per
-        # message and never carry a catalog role.
-        modes=[mode.value for mode in SELECTABLE_MODES],
+        # Every mode that resolves a catalog model, including the two private-chat modes.
+        modes=[mode.value for mode in CATALOG_MODES],
+        mode_purposes={
+            mode.value: [purpose.value for purpose in AIModelPurpose if purpose in purposes]
+            for mode, purposes in MODE_PURPOSES.items()
+        },
         model_override_flags={purpose.value: flag for purpose, flag in MODEL_OVERRIDE_FLAG_BY_PURPOSE.items()},
         service_tiers=sorted(_SERVICE_TIER_VALUES),
         reasoning_efforts=["low", "medium", "high"],
@@ -100,27 +104,23 @@ async def get_status() -> CatalogStatus:
     )
 
 
-# Disabled runs no AI, so it never resolves a model.
-_RESOLVED_MODES = tuple(mode for mode in SELECTABLE_MODES if mode is not AIMode.disabled)
-
-
 @router.get("/resolution", response_model=CatalogResolution)
 async def get_resolution() -> CatalogResolution:
     current = await get_catalog()
 
-    def resolve(mode: AIMode | None, purpose: AIModelPurpose) -> ResolvedModel:
-        # Same resolution Sophie uses at runtime, so the table cannot drift from reality.
-        model_name, is_fallback = resolve_from(current, mode, purpose)
-        return ResolvedModel(model=model_name, fallback=is_fallback)
-
     return CatalogResolution(
-        modes=[mode.value for mode in _RESOLVED_MODES],
+        modes=[mode.value for mode in CATALOG_MODES],
         purposes=[purpose.value for purpose in AIModelPurpose],
+        # Only the purposes a mode can use — the same exact resolution Sophie runs, so the table
+        # cannot drift from reality. A purpose a mode never uses is simply absent (the panel shows "—").
         per_mode={
-            mode.value: {purpose.value: resolve(mode, purpose) for purpose in AIModelPurpose}
-            for mode in _RESOLVED_MODES
+            mode.value: {
+                purpose.value: ResolvedModel(model=current.model_name_for(mode, purpose))
+                for purpose in AIModelPurpose
+                if mode_allows(mode, purpose)
+            }
+            for mode in CATALOG_MODES
         },
-        all_modes={purpose.value: resolve(None, purpose) for purpose in AIModelPurpose},
     )
 
 

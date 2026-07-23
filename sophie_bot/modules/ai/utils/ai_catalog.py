@@ -21,8 +21,56 @@ from sophie_bot.utils.logger import log
 # built from, so an operator change reaches the bot, scheduler and API without a restart.
 _VERSION_KEY = "sophie:ai:catalog_version"
 
-# The tier every mode falls back to when it has no model for a purpose, or the model is unusable.
-FALLBACK_MODE = AIMode.support
+# Which purposes each mode can actually use — a group mode never needs a private-chat model, a
+# private-chat mode has no group to moderate or summarise, and only the help mode inspects Sophie's
+# own source. This is the single source of truth for both resolution and the operator panel: a
+# (mode, purpose) outside this map is not a real combination, so it is never resolved, never shown
+# as a table cell, and never offered as a role to assign.
+MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
+    AIMode.entertainment: frozenset(
+        {
+            AIModelPurpose.chatbot,
+            AIModelPurpose.translation,
+            AIModelPurpose.filters,
+            AIModelPurpose.summary,
+            AIModelPurpose.research,
+        }
+    ),
+    AIMode.moderation: frozenset(
+        {
+            AIModelPurpose.chatbot,
+            AIModelPurpose.translation,
+            AIModelPurpose.filters,
+            AIModelPurpose.moderation_reason,
+            AIModelPurpose.research,
+        }
+    ),
+    AIMode.support: frozenset(
+        {
+            AIModelPurpose.chatbot,
+            AIModelPurpose.translation,
+            AIModelPurpose.filters,
+            AIModelPurpose.summary,
+            AIModelPurpose.moderation_reason,
+            AIModelPurpose.research,
+        }
+    ),
+    AIMode.sophie_pm: frozenset(
+        {
+            AIModelPurpose.chatbot,
+            AIModelPurpose.translation,
+            AIModelPurpose.research,
+        }
+    ),
+    AIMode.sophie_help: frozenset({AIModelPurpose.chatbot, AIModelPurpose.sophie_inspect}),
+}
+
+# The modes that resolve catalog models, in display order. Excludes ``disabled`` (runs no AI).
+CATALOG_MODES: tuple[AIMode, ...] = tuple(MODE_PURPOSES)
+
+
+def mode_allows(mode: AIMode, purpose: AIModelPurpose) -> bool:
+    return purpose in MODE_PURPOSES.get(mode, frozenset())
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,13 +102,13 @@ class AICatalog:
     version: str = ""
     providers: Mapping[str, CatalogProvider] = field(default_factory=dict)
     models: Mapping[str, CatalogModel] = field(default_factory=dict)
-    # (mode, purpose) -> the role serving it. ``mode`` is None for purposes that are not per-chat.
-    roles: Mapping[tuple[AIMode | None, AIModelPurpose], ResolvedRole] = field(default_factory=dict)
+    # (mode, purpose) -> the role serving it.
+    roles: Mapping[tuple[AIMode, AIModelPurpose], ResolvedRole] = field(default_factory=dict)
 
-    def role_for(self, mode: AIMode | None, purpose: AIModelPurpose) -> ResolvedRole | None:
+    def role_for(self, mode: AIMode, purpose: AIModelPurpose) -> ResolvedRole | None:
         return self.roles.get((mode, purpose))
 
-    def model_name_for(self, mode: AIMode | None, purpose: AIModelPurpose) -> str | None:
+    def model_name_for(self, mode: AIMode, purpose: AIModelPurpose) -> str | None:
         role = self.roles.get((mode, purpose))
         return role.model_name if role else None
 
@@ -140,7 +188,7 @@ async def load_catalog() -> AICatalog:
     }
 
     models: dict[str, CatalogModel] = {}
-    roles: dict[tuple[AIMode | None, AIModelPurpose], ResolvedRole] = {}
+    roles: dict[tuple[AIMode, AIModelPurpose], ResolvedRole] = {}
     for stored_model in await load_documents(AICatalogModelModel, {"enabled": True}):
         provider = providers.get(stored_model.provider)
         if provider is None:
@@ -177,63 +225,19 @@ async def get_catalog() -> AICatalog:
     return _catalog
 
 
-def resolve_role_from(
-    catalog: AICatalog, mode: AIMode | None, purpose: AIModelPurpose
-) -> tuple[ResolvedRole | None, bool]:
-    """The role a (mode, purpose) resolves to, and whether it came from the support-tier fallback.
+async def resolve_role(mode: AIMode, purpose: AIModelPurpose) -> ResolvedRole:
+    """The role serving a (mode, purpose), or a crash.
 
-    Priority: the mode's own role, then an any-mode role (``mode=None``) set as a default for every
-    mode, then the support tier as a last resort. The middle tier is what makes an ``any:chatbot``
-    role apply to every mode rather than doing nothing.
+    Resolution is exact: the mode's own role or nothing. There is no any-mode wildcard and no
+    support-tier fallback — an unconfigured combination is an operator mistake, and failing loudly
+    beats silently serving a model the operator never chose for that mode.
     """
-    direct = catalog.role_for(mode, purpose)
-    if direct is not None:
-        return direct, False
-
-    if mode is not None:
-        wildcard = catalog.role_for(None, purpose)
-        if wildcard is not None:
-            return wildcard, False
-
-    fallback = catalog.role_for(FALLBACK_MODE, purpose)
-    return fallback, fallback is not None
-
-
-def resolve_from(catalog: AICatalog, mode: AIMode | None, purpose: AIModelPurpose) -> tuple[str | None, bool]:
-    """The model name a (mode, purpose) resolves to, and whether it is a support-tier fallback."""
-    role, is_fallback = resolve_role_from(catalog, mode, purpose)
-    return (role.model_name if role else None), is_fallback
-
-
-async def resolve_role(mode: AIMode | None, purpose: AIModelPurpose) -> ResolvedRole:
-    """The role serving a purpose, falling back to an any-mode role then the support tier."""
-    current = await get_catalog()
-    role, is_fallback = resolve_role_from(current, mode, purpose)
+    role = (await get_catalog()).role_for(mode, purpose)
     if role is None:
-        raise ValueError(f"No AI model in the catalog serves {purpose.value}")
-
-    if is_fallback:
-        log.warning(
-            "AI model missing from the catalog, falling back to the support tier",
-            fallback=role.model_name,
-            mode=mode.value if mode else None,
-            purpose=purpose.value,
-        )
+        raise ValueError(f"No AI model in the catalog serves {mode.value}:{purpose.value}")
     return role
 
 
-async def resolve_model_name(mode: AIMode | None, purpose: AIModelPurpose) -> str:
-    """The model name serving a purpose (see ``resolve_role`` for the per-role settings)."""
-    current = await get_catalog()
-    model_name, is_fallback = resolve_from(current, mode, purpose)
-    if not model_name:
-        raise ValueError(f"No AI model in the catalog serves {purpose.value}")
-
-    if is_fallback:
-        log.warning(
-            "AI model missing from the catalog, falling back to the support tier",
-            fallback=model_name,
-            mode=mode.value if mode else None,
-            purpose=purpose.value,
-        )
-    return model_name
+async def resolve_model_name(mode: AIMode, purpose: AIModelPurpose) -> str:
+    """The model name serving a (mode, purpose) (see ``resolve_role`` for the per-role settings)."""
+    return (await resolve_role(mode, purpose)).model_name

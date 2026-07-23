@@ -27,14 +27,16 @@ class AIModelPurpose(str, Enum):
 
 
 class AIModelRole(BaseModel):
-    """What a model is used for. ``mode`` is None for purposes that are not per-chat.
+    """What a model is used for: a specific chat mode paired with a purpose.
+
+    Resolution is exact — there is no any-mode wildcard — so ``mode`` is always a concrete mode.
 
     ``service_tier`` and ``reasoning_effort`` are per role, so one model can be flex-tier for
     research and normal for chatbot at once. When unset, the feature-flag service tier and the
     default reasoning effort apply, exactly as before.
     """
 
-    mode: AIMode | None = None
+    mode: AIMode
     purpose: AIModelPurpose
     service_tier: str | None = None
     reasoning_effort: str | None = None

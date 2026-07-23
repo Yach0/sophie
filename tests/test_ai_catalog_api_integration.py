@@ -81,7 +81,7 @@ async def test_the_panel_flow_works_through_the_real_app(monkeypatch: pytest.Mon
             json={
                 "name": "openai/gpt-5.5",
                 "provider": "openrouter",
-                "roles": [{"mode": None, "purpose": "summary"}],
+                "roles": [{"mode": "support", "purpose": "summary"}],
             },
         )
         assert model.status_code == 201, model.text

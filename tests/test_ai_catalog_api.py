@@ -83,7 +83,7 @@ async def test_updating_a_provider_with_an_empty_key_clears_it(_no_version_bump)
 
 async def test_creating_a_model_carries_its_roles(_no_version_bump) -> None:
     await _clear()
-    role = AIModelRole(mode=None, purpose=AIModelPurpose.summary)
+    role = AIModelRole(mode="support", purpose=AIModelPurpose.summary)
 
     result = await catalog.create_model(
         ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role])
@@ -116,8 +116,8 @@ async def test_meta_exposes_the_enums_the_panel_builds_pickers_from() -> None:
 
     assert "openrouter" in meta.provider_kinds
     assert "sophie_inspect" in meta.purposes
-    # The two private-chat-only modes never carry a role, so they must not be offered.
-    assert "sophie_pm" not in meta.modes
+    # The two private-chat modes carry their own roles now, so they are offered too.
+    assert "sophie_pm" in meta.modes
     assert "support" in meta.modes
     # Every purpose maps to the flag whose per-chat override pins its model.
     assert meta.model_override_flags["chatbot"] == "ai_chatbot_model"
@@ -162,18 +162,11 @@ async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
     assert error.value.status_code == 502
 
 
-async def test_resolution_shows_used_models_and_marks_fallbacks(_no_version_bump) -> None:
-    """The table must reflect what Sophie actually uses, including the support-tier fallback."""
+async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_version_bump) -> None:
+    """The table shows exactly what Sophie resolves: a mode's own role, or nothing, and only the
+    purposes that mode can actually use."""
     await _clear()
     await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
-    # support:filters exists; entertainment has no filters model, so it must fall back to support.
-    await catalog.create_model(
-        ModelCreate(
-            name="support/filter",
-            provider="openrouter",
-            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.filters)],
-        )
-    )
     await catalog.create_model(
         ModelCreate(
             name="ent/chat",
@@ -183,9 +176,9 @@ async def test_resolution_shows_used_models_and_marks_fallbacks(_no_version_bump
     )
     await catalog.create_model(
         ModelCreate(
-            name="the/summary",
+            name="support/summary",
             provider="openrouter",
-            roles=[AIModelRole(mode=None, purpose=AIModelPurpose.summary)],
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.summary)],
         )
     )
     # A fresh snapshot must be loaded so the just-created roles are visible.
@@ -193,15 +186,18 @@ async def test_resolution_shows_used_models_and_marks_fallbacks(_no_version_bump
         resolution = await catalog.get_resolution()
 
     assert "disabled" not in resolution.modes
-    assert "research" in resolution.purposes
+    assert {"sophie_pm", "sophie_help"} <= set(resolution.modes)
     ent = resolution.per_mode["entertainment"]
-    assert ent["chatbot"].model == "ent/chat" and ent["chatbot"].fallback is False
-    # No entertainment filters model → the support one answers, marked as a fallback.
-    assert ent["filters"].model == "support/filter" and ent["filters"].fallback is True
-    # summary is now per-mode too, resolved for every mode.
-    assert resolution.per_mode["support"]["summary"].model == "the/summary"
-    # The all-modes row shows the any-mode default per purpose.
-    assert resolution.all_modes["summary"].model == "the/summary"
+    assert ent["chatbot"].model == "ent/chat"
+    # No entertainment filters model and no fallback → the cell is present but empty.
+    assert ent["filters"].model is None
+    # A purpose the mode cannot use is absent entirely (the panel renders it as "—").
+    assert "moderation_reason" not in ent
+    assert "sophie_inspect" not in ent
+    assert resolution.per_mode["support"]["summary"].model == "support/summary"
+    # Only the help mode may inspect Sophie's source.
+    assert "sophie_inspect" in resolution.per_mode["sophie_help"]
+    assert "summary" not in resolution.per_mode["sophie_pm"]
 
 
 async def test_export_round_trips_through_import(_no_version_bump) -> None:
@@ -250,34 +246,15 @@ async def test_replace_import_removes_models_absent_from_the_file(_no_version_bu
     assert names == {"kept/model"}
 
 
-async def test_an_any_mode_role_serves_every_mode(_no_version_bump) -> None:
-    """A (None, chatbot) role is an any-mode default; it must resolve for every mode, not nowhere."""
-    await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
-    await catalog.create_model(
-        ModelCreate(
-            name="any/chat",
-            provider="openrouter",
-            roles=[AIModelRole(mode=None, purpose=AIModelPurpose.chatbot)],
-        )
-    )
-    # A mode with its own chatbot model must still win over the any-mode default.
-    await catalog.create_model(
-        ModelCreate(
-            name="support/chat",
-            provider="openrouter",
-            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
-        )
-    )
-    with patch.object(catalog, "get_catalog", catalog.load_catalog):
-        resolution = await catalog.get_resolution()
+async def test_meta_scopes_purposes_to_each_mode(_no_version_bump) -> None:
+    """meta.mode_purposes is what the panel greys the role picker and resolution table against."""
+    meta = await catalog.get_meta()
 
-    assert resolution.per_mode["entertainment"]["chatbot"].model == "any/chat"
-    assert resolution.per_mode["moderation"]["chatbot"].model == "any/chat"
-    # The specific role wins over the any-mode one.
-    assert resolution.per_mode["support"]["chatbot"].model == "support/chat"
-    # An any-mode default is a deliberate choice, not a support-tier fallback.
-    assert resolution.per_mode["entertainment"]["chatbot"].fallback is False
+    assert set(meta.modes) == set(meta.mode_purposes)
+    assert "summary" not in meta.mode_purposes["sophie_pm"]
+    assert "filters" not in meta.mode_purposes["sophie_pm"]
+    assert meta.mode_purposes["sophie_help"] == ["chatbot", "sophie_inspect"]
+    assert "sophie_inspect" not in meta.mode_purposes["support"]
 
 
 async def test_provider_models_queries_an_openai_compatible_endpoint(_no_version_bump) -> None:

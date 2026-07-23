@@ -5,7 +5,7 @@ from pydantic_ai.models import Model
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_catalog import get_catalog, resolve_role, resolve_role_from
+from sophie_bot.modules.ai.utils.ai_catalog import get_catalog, resolve_role
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value
@@ -80,7 +80,7 @@ async def resolve_chat_service_tier(
     if mode is None:
         mode = await get_chat_mode(chat_iid) if chat_iid else AIMode.support
     # Non-raising: a purpose with no catalog model still resolves a tier from its flag.
-    role, _ = resolve_role_from(await get_catalog(), mode, purpose)
+    role = (await get_catalog()).role_for(mode, purpose)
     if role is not None and role.service_tier is not None:
         return None if role.service_tier == "none" else role.service_tier
 

@@ -902,3 +902,41 @@ async def test_seed_research_role_adds_an_any_mode_research_role() -> None:
     await migration.Backward.migrate.run(None)
     stored = await models.find_one({"name": migration._MODEL_NAME})
     assert migration._ROLE not in stored["roles"]
+
+
+def _expand_wildcard_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_190000_expand_wildcard_roles")
+
+
+def test_expand_wildcard_roles_fans_a_global_role_across_allowed_modes() -> None:
+    expand = _expand_wildcard_migration()._expand_roles
+
+    roles = expand([{"mode": None, "purpose": "summary", "service_tier": "flex"}])
+    keys = {(role["mode"], role["purpose"]) for role in roles}
+
+    # summary reaches the modes that allow it, carrying its settings, and no others.
+    assert ("entertainment", "summary") in keys
+    assert ("support", "summary") in keys
+    assert ("moderation", "summary") not in keys
+    assert all(role["service_tier"] == "flex" for role in roles)
+
+
+def test_expand_wildcard_roles_mirrors_support_onto_the_private_modes() -> None:
+    expand = _expand_wildcard_migration()._expand_roles
+
+    keys = {(role["mode"], role["purpose"]) for role in expand([{"mode": "support", "purpose": "chatbot"}])}
+
+    # The private-chat modes borrow support's chatbot, since they had no role of their own.
+    assert ("sophie_pm", "chatbot") in keys
+    assert ("sophie_help", "chatbot") in keys
+
+
+def test_expand_wildcard_roles_is_idempotent() -> None:
+    expand = _expand_wildcard_migration()._expand_roles
+
+    once = expand([{"mode": None, "purpose": "sophie_inspect"}])
+    twice = expand(once)
+
+    assert {(role["mode"], role["purpose"]) for role in once} == {(role["mode"], role["purpose"]) for role in twice}
+    # Only the help mode may inspect, so the single global role lands on exactly one mode.
+    assert once == [{"mode": "sophie_help", "purpose": "sophie_inspect"}]

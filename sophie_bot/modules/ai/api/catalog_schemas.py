@@ -76,6 +76,9 @@ class CatalogMeta(BaseModel):
     provider_kinds: list[str]
     purposes: list[str]
     modes: list[str]
+    # mode -> the purposes it can use. A (mode, purpose) not listed here is not a real combination:
+    # the panel greys it out in the role picker and shows "—" for it in the resolution table.
+    mode_purposes: dict[str, list[str]]
     # purpose -> the feature-flag whose per-chat override pins that purpose to a specific model.
     model_override_flags: dict[str, str]
     service_tiers: list[str]
@@ -91,8 +94,6 @@ class CatalogStatus(BaseModel):
 
 class ResolvedModel(BaseModel):
     model: str | None
-    # True when the mode has no model of its own for this purpose and the support tier answered.
-    fallback: bool
 
 
 class ModelExport(BaseModel):
@@ -125,12 +126,10 @@ class ImportResult(BaseModel):
 class CatalogResolution(BaseModel):
     """What Sophie actually uses right now — the model each (mode, purpose) resolves to.
 
-    Every purpose is per mode. A model with an any-mode role (``mode=None``) serves every mode that
-    has no model of its own for that purpose.
+    ``per_mode`` only carries the purposes a mode can use (see ``CatalogMeta.mode_purposes``); a
+    purpose absent from a mode's map is one that mode never uses, which the panel renders as "—".
     """
 
     modes: list[str]
     purposes: list[str]
     per_mode: dict[str, dict[str, ResolvedModel]]
-    # The any-mode default (a mode=None role) per purpose — what serves a mode with no model of its own.
-    all_modes: dict[str, ResolvedModel]

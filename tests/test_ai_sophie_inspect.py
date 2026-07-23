@@ -245,8 +245,8 @@ async def test_a_stale_catalog_row_does_not_stop_the_bot() -> None:
     await models.insert_many(
         [
             # Written by an older version, under a purpose that has since been renamed.
-            {"name": "stale/model", "provider": "openrouter", "roles": [{"purpose": "deep_help"}], "enabled": True},
-            {"name": "good/model", "provider": "openrouter", "roles": [{"purpose": "chatbot"}], "enabled": True},
+            {"name": "stale/model", "provider": "openrouter", "roles": [{"mode": "support", "purpose": "deep_help"}], "enabled": True},
+            {"name": "good/model", "provider": "openrouter", "roles": [{"mode": "support", "purpose": "chatbot"}], "enabled": True},
         ]
     )
 

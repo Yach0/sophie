@@ -44,7 +44,7 @@ def _catalog() -> AICatalog:
                 (AIMode.moderation, AIModelPurpose.translation): MODERATION_TRANSLATION,
                 (AIMode.moderation, AIModelPurpose.filters): MODERATION_FILTERS,
                 (AIMode.support, AIModelPurpose.filters): SUPPORT_FILTERS,
-                (None, AIModelPurpose.summary): SUMMARY,
+                (AIMode.support, AIModelPurpose.summary): SUMMARY,
             }.items()
         },
     )
@@ -107,10 +107,9 @@ async def test_filters_model_without_a_chat_uses_the_support_tier(monkeypatch: p
     assert model is built[SUPPORT_FILTERS]
 
 
-async def test_summary_model_falls_back_to_the_default(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_summary_model_follows_the_chat_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     built = _patch_model_builder(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
-    # Summary is per-mode now; its any-mode (None) role serves whatever mode the chat is in.
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.support)
     )
@@ -120,14 +119,13 @@ async def test_summary_model_falls_back_to_the_default(monkeypatch: pytest.Monke
     assert model is built[SUMMARY]
 
 
-async def test_purpose_missing_for_a_mode_falls_back_to_the_support_tier(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Entertainment has no filters model in this catalog, so the support tier answers for it."""
-    built = _patch_model_builder(monkeypatch)
+async def test_a_mode_without_a_role_for_a_purpose_crashes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Resolution is strict: entertainment has no filters model here, so it must raise, not fall back."""
+    _patch_model_builder(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
 
-    model = await get_chat_filters_model(PydanticObjectId(), mode=AIMode.entertainment)
-
-    assert model is built[SUPPORT_FILTERS]
+    with pytest.raises(ValueError, match="entertainment:filters"):
+        await get_chat_filters_model(PydanticObjectId(), mode=AIMode.entertainment)
 
 
 def test_disabled_mode_grants_nothing() -> None:
