@@ -1,26 +1,26 @@
-#: sophie_bot/args/chats.py:22
+#: sophie_bot/args/chats.py:28
 msgid "Could not find the requested Chat ID in the database."
 msgstr ""
 
-#: sophie_bot/args/chats.py:36 sophie_bot/args/users.py:46
+#: sophie_bot/args/chats.py:42 sophie_bot/args/users.py:46
 msgid "Could not find the requested Username in the database."
 msgstr ""
 
-#: sophie_bot/args/chats.py:49
+#: sophie_bot/args/chats.py:55
 msgid "Chat: 'Chat ID (numeric) / Username (starts with @)'"
 msgstr ""
 
-#: sophie_bot/args/chats.py:50
+#: sophie_bot/args/chats.py:56
 msgid "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
 msgstr ""
 
-#: sophie_bot/args/chats.py:56
+#: sophie_bot/args/chats.py:62
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:42
 #: sophie_bot/modules/op/handlers/op_debug.py:374
 msgid "Chat ID"
 msgstr ""
 
-#: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:82
+#: sophie_bot/args/chats.py:63 sophie_bot/args/users.py:82
 #: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
 msgstr ""

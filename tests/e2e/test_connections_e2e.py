@@ -18,11 +18,7 @@ from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user
 
 
 async def _connectable_group(test_client: TestClient, *, username: str, title: str):
-    """A registered group with a username, so it can be reached via `/connect @username`.
-
-    `/connect <id>` can't be used for supergroups: the numeric-id arg rejects the leading
-    minus sign, so connecting by username is the only arg-driven path.
-    """
+    """A registered group with a username, so it can be reached via `/connect @username`."""
     admin, group, _user_model = await create_test_user_and_group(test_client, group_title=title)
     group_model = await ChatModel.get_by_tid(group.id)
     assert group_model is not None
@@ -40,11 +36,23 @@ async def _connected_chat_tid(user_tid: int) -> int | None:
 
 
 @pytest.mark.asyncio
-async def test_admin_connects_to_group(test_client: TestClient) -> None:
+async def test_admin_connects_to_group_by_username(test_client: TestClient) -> None:
     admin, group, _model = await _connectable_group(test_client, username="connectgroup", title="Connect Group")
     await grant_admin(group.id, admin.id)
 
     requests = await test_client.send_command(command="connect", from_user=admin, args="@connectgroup")
+
+    assert any("connected" in (request.text or "").lower() for request in requests)
+    assert await _connected_chat_tid(admin.id) == group.id
+
+
+@pytest.mark.asyncio
+async def test_admin_connects_to_group_by_numeric_id(test_client: TestClient) -> None:
+    # Regression: a supergroup's negative ID must be accepted by the /connect arg.
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="Connect By ID Group")
+    await grant_admin(group.id, admin.id)
+
+    requests = await test_client.send_command(command="connect", from_user=admin, args=str(group.id))
 
     assert any("connected" in (request.text or "").lower() for request in requests)
     assert await _connected_chat_tid(admin.id) == group.id

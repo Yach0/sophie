@@ -9,6 +9,12 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class SophieChatIDArg(UserIDArg):
+    async def check_type(self, text: str) -> bool:
+        # Unlike a user ID, a chat ID is negative for groups/supergroups/channels, so the
+        # inherited `isdigit()` check (which rejects the leading "-") can't be used here.
+        words = text.split()
+        return bool(words) and words[0].removeprefix("-").isdigit()
+
     async def value(self, text: str) -> ChatModel:
         chat_id: int = await super().value(text)
 
