@@ -5,15 +5,14 @@ from typing import Any, cast
 from beanie import PydanticObjectId
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models import Model
-from stfu_tg import BlockQuote, Doc, HList, KeyValue, PreformattedHTML, Section
+from stfu_tg import BlockQuote, Doc, HList, KeyValue, Section
+from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_short_title_header
+from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_table_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
@@ -54,17 +53,18 @@ async def build_chatbot_header(
     additional_header_items: list[Element] | None = None,
     skip_battery: bool = False,
 ) -> Element:
-    header_items = [
-        *(additional_header_items or []),
-        *retrieve_tools_titles(message_history),
-        HList(divider=", "),
-    ]
+    status_items = [*(additional_header_items or []), *retrieve_tools_titles(message_history)]
+    # Nothing to report means nothing was used: name the model instead of leaving the cell empty.
+    status: Element | str = HList(*status_items, divider=", ") if status_items else model.model_name
+
+    battery: Element | str = ""
     if not skip_battery and (quota_info := await get_quota_info(chat_iid)):
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
-        header_items.append(ai_credit_header(percentage))
-    return ai_short_title_header(*header_items)
+        battery = ai_credit_header(percentage)
+
+    return ai_table_header(status, battery)
 
 
 def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
@@ -100,14 +100,8 @@ async def build_reply_doc(
     explicit_debug_mode: bool,
     chat_tid: int | None,
 ) -> Doc:
-    if await is_enabled("ai_chatbot_rich_markdown", chat_tid=chat_tid):
-        from stfu_tg.ai_md import ai_markdown_to_doc
-
-        reply_body: Element = ai_markdown_to_doc(output_text)
-    else:
-        reply_body = PreformattedHTML(ai_markdown_to_html(output_text, extract_headings=True))
-
-    doc = Doc(header, reply_body)
+    del chat_tid
+    doc = Doc(header, ai_markdown_to_doc(output_text))
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "
         doc += build_debug_doc(model, result)

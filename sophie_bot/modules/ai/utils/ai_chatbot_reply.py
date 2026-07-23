@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message, ReplyParameters
+from aiogram.types import Message
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
@@ -14,6 +14,7 @@ from stfu_tg.doc import Element
 from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
     build_help_mode_tip,
@@ -254,7 +255,6 @@ async def ai_chatbot_reply(
         if explicit_debug_mode:
             await _reply_debug_history(message, history)
 
-        use_rich_streaming = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id)
         service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=message.chat.id)
         on_tool_call = (
             message_streamer.update_thinking_for_tool
@@ -308,19 +308,8 @@ async def ai_chatbot_reply(
 
         if message_streamer:
             final_message = await message_streamer.send_final(doc, **kwargs)
-        elif use_rich_streaming:
-            try:
-                final_message = await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
-                    chat_id=message.chat.id,
-                    rich_message=InputRichMessage(html=doc.to_rich()),
-                    reply_parameters=ReplyParameters(message_id=message.message_id),
-                    message_thread_id=message.message_thread_id,
-                    reply_markup=kwargs.get("reply_markup"),
-                )
-            except TelegramAPIError:
-                final_message = await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
         else:
-            final_message = await message.reply(doc.to_html(), disable_web_page_preview=True, **kwargs)
+            final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
 
         if research_response is not None:
             await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))

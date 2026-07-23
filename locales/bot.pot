@@ -916,7 +916,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:326
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:315
 #: sophie_bot/modules/ai/utils/research.py:370
 #: sophie_bot/modules/ai/utils/research.py:500
 msgid "Research"
@@ -939,9 +939,8 @@ msgstr ""
 msgid "Reference ID"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_header.py:29
-#, python-brace-format
-msgid "{ai_emoji} AI"
+#: sophie_bot/modules/ai/utils/ai_filter_texts.py:4
+msgid "Filter 🪄"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_moderator.py:19
@@ -1159,36 +1158,36 @@ msgstr ""
 msgid "You have the following information in your memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:22
+#: sophie_bot/modules/ai/utils/chatbot_response.py:21
 msgid "Memory 💾"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:23
+#: sophie_bot/modules/ai/utils/chatbot_response.py:22
 msgid "Forget 🗑"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:24
+#: sophie_bot/modules/ai/utils/chatbot_response.py:23
 msgid "Help 📖"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:25
+#: sophie_bot/modules/ai/utils/chatbot_response.py:24
 msgid "Sources 🧭"
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/chatbot_response.py:25
 #: sophie_bot/modules/ai/utils/chatbot_response.py:26
-#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:28
+#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:29
+#: sophie_bot/modules/ai/utils/chatbot_response.py:28
 msgid "Note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:30
+#: sophie_bot/modules/ai/utils/chatbot_response.py:29
 msgid "Research 🔎"
 msgstr ""
 

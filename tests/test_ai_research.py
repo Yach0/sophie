@@ -177,15 +177,14 @@ async def test_research_tool_forwards_chatbot_progress_callback() -> None:
 
 @pytest.mark.asyncio
 async def test_build_fitting_reply_doc_fits_rendered_html_limit() -> None:
-    with patch("sophie_bot.modules.ai.utils.chatbot_response.is_enabled", AsyncMock(return_value=True)):
-        doc = await _build_fitting_reply_doc(
-            Title("AI Chatbot"),
-            "Long answer " * 600,
-            model=None,
-            result=SimpleNamespace(),
-            explicit_debug_mode=False,
-            chat_tid=-100123,
-        )
+    doc = await _build_fitting_reply_doc(
+        Title("AI Chatbot"),
+        "Long answer " * 600,
+        model=None,
+        result=SimpleNamespace(),
+        explicit_debug_mode=False,
+        chat_tid=-100123,
+    )
 
     assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
 
