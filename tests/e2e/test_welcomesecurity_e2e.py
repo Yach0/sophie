@@ -18,27 +18,11 @@ from sophie_bot.modules.welcomesecurity.callbacks import (
 from sophie_bot.services.redis import aredis
 
 
-def _patch_welcomesecurity_bot_refs(
-    monkeypatch: pytest.MonkeyPatch,
-    test_client: TestClient,
-    test_dispatcher,
-) -> None:
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.handlers.legacy_button.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.initiate_captcha.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.initiate_captcha.dp", test_dispatcher)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.send_captcha.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.complete_captcha.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.utils.handlers.bot", test_client.bot)
-
-
 @pytest.mark.asyncio
 async def test_legacy_welcomesecurity_start_uses_live_membership_check(
     test_client: TestClient,
-    test_dispatcher,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_welcomesecurity_bot_refs(monkeypatch, test_client, test_dispatcher)
 
     user_wrapper = test_client.create_user(
         user_id=930001,
@@ -80,7 +64,6 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     test_dispatcher,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_welcomesecurity_bot_refs(monkeypatch, test_client, test_dispatcher)
 
     approve_join_request = AsyncMock(return_value=True)
     monkeypatch.setattr(test_client.bot, "approve_chat_join_request", approve_join_request)

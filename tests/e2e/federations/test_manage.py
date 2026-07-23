@@ -12,9 +12,9 @@ from aiogram_test_framework.factories import MessageFactory, UserFactory
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.modules.federations.handlers.delete import FederationDeleteCallback
 from sophie_bot.modules.federations.services import FederationManageService
+from tests.e2e.helpers import create_test_user_and_group
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
-    create_test_user_and_group,
 )
 
 

@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest_asyncio
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation
+from tests.e2e.helpers import create_test_user_and_group
 
 if TYPE_CHECKING:
     from aiogram.types import Chat, User
@@ -30,26 +30,6 @@ class FederationTestContext:
         self.owner_model = owner_model
         self.group = group
         self.admin_mock = admin_mock
-
-
-async def create_test_user_and_group(
-    test_client: TestClient,
-    user_id: int,
-    first_name: str,
-    username: str,
-    chat_id: int,
-    group_title: str,
-) -> tuple[User, Chat, ChatModel]:
-    """Create a test user and group, and trigger SaveChatsMiddleware for both."""
-    test_user_wrapper = test_client.create_user(user_id=user_id, first_name=first_name, username=username)
-    group = ChatFactory.create_group(chat_id=chat_id, title=group_title)
-    # Send a message to trigger SaveChatsMiddleware so ChatModel records exist
-    await test_client.send_message(text="init", from_user=test_user_wrapper.user, chat=group)
-
-    user_model = await ChatModel.get_by_tid(user_id)
-    assert user_model is not None, f"ChatModel for user {user_id} should exist after init message"
-
-    return test_user_wrapper.user, group, user_model
 
 
 async def create_federation_via_command(

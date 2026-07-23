@@ -44,9 +44,7 @@ async def test_silent_filter_schedules_deletion_of_trigger_and_reply(test_client
         patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])),
         patch("sophie_bot.modules.filters.enforce_middleware.schedule_message_deletion", schedule_mock),
     ):
-        requests = await test_client.send_message(
-            text="this is spam content", from_user=user_wrapper.user, chat=group
-        )
+        requests = await test_client.send_message(text="this is spam content", from_user=user_wrapper.user, chat=group)
 
     assert requests, "Silent filter should still send its reply"
     schedule_mock.assert_called_once()
@@ -88,9 +86,7 @@ async def test_editfilter_silent_toggle_persists_to_database(test_client: TestCl
         patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock),
         patch("sophie_bot.modules.filters.enforce_middleware.is_user_admin", admin_mock),
     ):
-        edit_requests = await test_client.send_message(
-            text="/editfilter spam", from_user=user_wrapper.user, chat=group
-        )
+        edit_requests = await test_client.send_message(text="/editfilter spam", from_user=user_wrapper.user, chat=group)
         assert edit_requests, "/editfilter should render the filter confirm screen"
 
         setup_message = MessageFactory.create(
@@ -109,9 +105,7 @@ async def test_editfilter_silent_toggle_persists_to_database(test_client: TestCl
         await test_client.send_callback(
             ToggleFilterSilentCallback().pack(), from_user=user_wrapper.user, message=setup_message
         )
-        await test_client.send_callback(
-            SaveFilterCallback().pack(), from_user=user_wrapper.user, message=setup_message
-        )
+        await test_client.send_callback(SaveFilterCallback().pack(), from_user=user_wrapper.user, message=setup_message)
 
     saved = await FiltersModel.get_by_id(filter_item.id)
     assert saved is not None

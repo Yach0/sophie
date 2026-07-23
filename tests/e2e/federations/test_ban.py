@@ -15,9 +15,9 @@ from sophie_bot.db.models.federations import Federation, FederationBan, Federati
 from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services import FederationBanService, FederationChatService, FederationManageService
+from tests.e2e.helpers import create_test_user_and_group
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
-    create_test_user_and_group,
 )
 
 

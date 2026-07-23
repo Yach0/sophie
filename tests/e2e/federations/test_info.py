@@ -14,9 +14,9 @@ from sophie_bot.modules.federations.services import (
     FederationBanService,
     FederationManageService,
 )
+from tests.e2e.helpers import create_test_user_and_group
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
-    create_test_user_and_group,
     join_chat_to_federation,
 )
 

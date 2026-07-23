@@ -10,9 +10,9 @@ from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.federations.services import FederationManageService
+from tests.e2e.helpers import create_test_user_and_group
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
-    create_test_user_and_group,
     join_chat_to_federation,
 )
 

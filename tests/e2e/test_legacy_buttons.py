@@ -62,9 +62,7 @@ async def _create_group_and_user(
 @pytest.mark.asyncio
 async def test_legacy_note_button_renders_migrated_button_rows(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     _user_db, group_db, user_wrapper, group = await _create_group_and_user(
         test_client,
@@ -151,9 +149,7 @@ async def test_legacy_note_button_renders_migrated_button_rows(
 @pytest.mark.asyncio
 async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     _user_db, group_db, user_wrapper, group = await _create_group_and_user(
         test_client,
@@ -190,9 +186,7 @@ async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
 @pytest.mark.asyncio
 async def test_legacy_note_button_rejects_users_outside_chat(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     _member_db, group_db, _member_wrapper, group = await _create_group_and_user(
         test_client,
@@ -231,9 +225,7 @@ async def test_legacy_note_button_rejects_users_outside_chat(
 @pytest.mark.asyncio
 async def test_legacy_rules_button_resolves_chat_link(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     _user_db, group_db, user_wrapper, group = await _create_group_and_user(
         test_client,
@@ -358,15 +350,8 @@ async def test_legacy_welcomesecurity_callback_redirects_to_deep_link(test_clien
 @pytest.mark.asyncio
 async def test_legacy_welcomesecurity_deep_link_still_starts_captcha(
     test_client: TestClient,
-    test_dispatcher,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.handlers.legacy_button.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.initiate_captcha.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.initiate_captcha.dp", test_dispatcher)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.send_captcha.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.utils.handlers.bot", test_client.bot)
 
     user_db, group_db, user_wrapper, group = await _create_group_and_user(
         test_client,

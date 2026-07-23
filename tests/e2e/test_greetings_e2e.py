@@ -18,12 +18,6 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 
-def _patch_bot_refs(monkeypatch: pytest.MonkeyPatch, test_client: TestClient) -> None:
-    """Patch module-level bot references so send_saveable and handlers use the test bot."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.utils.handlers.bot", test_client.bot)
-
-
 # ---------------------------------------------------------------------------
 # /welcome — view command (no admin required)
 # ---------------------------------------------------------------------------
@@ -32,11 +26,8 @@ def _patch_bot_refs(monkeypatch: pytest.MonkeyPatch, test_client: TestClient) ->
 @pytest.mark.asyncio
 async def test_welcome_shows_settings(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The /welcome command shows the welcome settings overview."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000001, title="Greetings E2E Group")
     user_wrapper = test_client.create_user(user_id=930000001, first_name="Viewer", username="viewer_user")
@@ -63,11 +54,8 @@ async def test_welcome_shows_settings(
 @pytest.mark.asyncio
 async def test_enablewelcome_requires_admin(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-admin user cannot use /enablewelcome."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000002, title="EnableWelcome NoAdmin")
     user_wrapper = test_client.create_user(user_id=930000002, first_name="Regular", username="regular_user")
@@ -88,11 +76,8 @@ async def test_enablewelcome_requires_admin(
 @pytest.mark.asyncio
 async def test_enablewelcome_shows_status(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin calling /enablewelcome without args sees the current status."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000003, title="EnableWelcome Status")
     admin_wrapper = test_client.create_user(user_id=930000003, first_name="Admin", username="admin_enable")
@@ -125,11 +110,8 @@ async def test_enablewelcome_shows_status(
 @pytest.mark.asyncio
 async def test_setwelcome_success(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin can set a custom welcome message with /setwelcome."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000004, title="SetWelcome Success")
     admin_wrapper = test_client.create_user(user_id=930000004, first_name="Admin", username="admin_setwelcome")
@@ -155,11 +137,8 @@ async def test_setwelcome_success(
 @pytest.mark.asyncio
 async def test_setwelcome_requires_admin(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-admin user cannot use /setwelcome."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000005, title="SetWelcome NoAdmin")
     user_wrapper = test_client.create_user(user_id=930000005, first_name="Regular", username="regular_setwelcome")
@@ -186,11 +165,8 @@ async def test_setwelcome_requires_admin(
 @pytest.mark.asyncio
 async def test_cleanservice_requires_admin(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-admin user cannot use /cleanservice."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000006, title="CleanService NoAdmin")
     user_wrapper = test_client.create_user(user_id=930000006, first_name="Regular", username="regular_cleanservice")
@@ -211,11 +187,8 @@ async def test_cleanservice_requires_admin(
 @pytest.mark.asyncio
 async def test_cleanservice_shows_status(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin calling /cleanservice without args sees the current status."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000007, title="CleanService Status")
     admin_wrapper = test_client.create_user(user_id=930000007, first_name="Admin", username="admin_cleanservice")
@@ -247,11 +220,8 @@ async def test_cleanservice_shows_status(
 @pytest.mark.asyncio
 async def test_cleanwelcome_shows_status(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin calling /cleanwelcome without args sees the current status."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000008, title="CleanWelcome Status")
     admin_wrapper = test_client.create_user(user_id=930000008, first_name="Admin", username="admin_cleanwelcome")
@@ -283,11 +253,8 @@ async def test_cleanwelcome_shows_status(
 @pytest.mark.asyncio
 async def test_deljoinrequest_no_message_set(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Deleting a join request message when none is set returns an appropriate error."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000009, title="DelJoinReq None")
     admin_wrapper = test_client.create_user(user_id=930000009, first_name="Admin", username="admin_deljoinreq")

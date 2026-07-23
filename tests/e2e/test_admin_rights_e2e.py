@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
 import pytest
-import pytest_asyncio
-from aiogram import Dispatcher, F, Router
+from aiogram import F, Router
 from aiogram.enums import ChatMemberStatus
 from aiogram.types import CallbackQuery, Chat, ChatMemberAdministrator, Message, Update, User
 from aiogram_test_framework import TestClient
@@ -55,6 +55,12 @@ class _FakeAdminsQuery:
 TEST_ROUTER = Router(name="admin_rights_e2e_router")
 
 
+@pytest.fixture(autouse=True)
+def _register_test_router(extra_router: Callable[[Router], Router]) -> None:
+    """Attach the handlers below for the duration of each test, then detach them."""
+    extra_router(TEST_ROUTER)
+
+
 @TEST_ROUTER.message(CMDFilter("e2e_admin_required"), UserRestricting(admin=True))
 async def e2e_admin_required_handler(message: Message) -> None:
     await message.reply("E2E_ADMIN_OK")
@@ -68,13 +74,6 @@ async def e2e_restrict_required_handler(message: Message) -> None:
 @TEST_ROUTER.callback_query(F.data == "e2e_admin_cb", UserRestricting(admin=True))
 async def e2e_admin_cb_handler(callback: CallbackQuery) -> None:
     await callback.answer("E2E_CB_OK")
-
-
-@pytest_asyncio.fixture
-async def register_admin_rights_router(test_dispatcher: Dispatcher) -> None:
-    if not getattr(test_dispatcher, "_admin_rights_e2e_router_registered", False):
-        test_dispatcher.include_router(TEST_ROUTER)
-        setattr(test_dispatcher, "_admin_rights_e2e_router_registered", True)
 
 
 def _build_admin_member(user: User, can_restrict_members: bool, title: str) -> ChatMemberAdministrator:
@@ -108,7 +107,6 @@ async def _new_requests_for_update(test_client: TestClient, update: Update) -> l
 @pytest.mark.asyncio
 async def test_admin_required_denies_non_admin(
     test_client: TestClient,
-    register_admin_rights_router: None,
 ) -> None:
     user_wrapper = test_client.create_user(user_id=910001, first_name="RegularUser", username="regular_user")
     group_chat = ChatFactory.create_group(chat_id=-1002000010001, title="Admin Rights E2E Group")
@@ -127,7 +125,6 @@ async def test_admin_required_denies_non_admin(
 @pytest.mark.asyncio
 async def test_admin_required_callback_denies_non_admin_via_alert(
     test_client: TestClient,
-    register_admin_rights_router: None,
 ) -> None:
     """A non-admin tapping an admin-only inline button must get a private alert
     popup, not a chat message that spams everyone. Regression for the /lang bug.
@@ -166,7 +163,6 @@ async def test_admin_required_callback_denies_non_admin_via_alert(
 @pytest.mark.asyncio
 async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
     test_client: TestClient,
-    register_admin_rights_router: None,
 ) -> None:
     group_chat = Chat(id=-1002000010002, type="supergroup", title="Forum Group", is_forum=True)
 
@@ -224,7 +220,6 @@ async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
 @pytest.mark.asyncio
 async def test_anonymous_admin_duplicate_title_all_permissions_allowed(
     test_client: TestClient,
-    register_admin_rights_router: None,
 ) -> None:
     group_chat = Chat(id=-1002000010003, type="supergroup", title="Forum Group OK", is_forum=True)
 

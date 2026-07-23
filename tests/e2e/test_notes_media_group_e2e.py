@@ -137,7 +137,6 @@ async def test_save_reply_to_album_saves_first_and_warns(
     test_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Replying to an album with /save stores the single replied item and warns the user."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     group_chat = ChatFactory.create_group(chat_id=CHAT_ID, title="Album Reply Group")
     user_wrapper = test_client.create_user(user_id=USER_ID, first_name="AdminReply", username="admin_reply")
@@ -189,7 +188,6 @@ def _album_saveable(text: str = "", buttons: list[list[Any]] | None = None) -> S
 @pytest.mark.asyncio
 async def test_send_saveable_sends_media_group(test_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """An album note is sent as a single sendMediaGroup with the caption on the first item."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     await send_saveable(message=None, send_to=CHAT_ID, saveable=_album_saveable(text="Album caption"))
 
@@ -207,7 +205,6 @@ async def test_send_saveable_sends_media_group(test_client: TestClient, monkeypa
 @pytest.mark.asyncio
 async def test_send_saveable_single_photo_note(test_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """A single-media (photo) note sends a sendPhoto with the file id and caption set."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     saveable = Saveable(text="A caption", file=NoteFile(id="single-photo", type=ContentType.PHOTO))
 
@@ -225,7 +222,6 @@ async def test_send_saveable_album_buttons_go_to_followup(
     test_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Album notes with buttons emit the album, then a follow-up message carrying the buttons."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     saveable = _album_saveable(
         text="With buttons",
