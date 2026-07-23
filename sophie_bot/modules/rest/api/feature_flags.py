@@ -5,6 +5,7 @@ from collections.abc import Collection
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.utils.api.auth import get_current_operator
 from sophie_bot.utils.feature_flags import (
     FEATURE_FLAGS,
@@ -77,6 +78,7 @@ class RolloutBump(BaseModel):
 
 class ChatOverride(BaseModel):
     chat_tid: int
+    chat_title: str | None
     feature: str
     value: FeatureValue
     source: str
@@ -220,9 +222,18 @@ async def delete_feature_rollout(feature: str) -> None:
 async def list_feature_chat_overrides(chat_tid: int | None = None) -> list[ChatOverride]:
     """Every manual/rollout per-chat override, or just one chat's when ``chat_tid`` is given."""
     details = await list_chat_override_details(chat_tid)
+
+    titles: dict[int, str | None] = {}
+    for detail in details:
+        tid = detail["chat_tid"]
+        if tid not in titles:
+            chat = await ChatModel.get_by_tid(tid)
+            titles[tid] = chat.first_name_or_title if chat else None
+
     return [
         ChatOverride(
             chat_tid=detail["chat_tid"],
+            chat_title=titles[detail["chat_tid"]],
             feature=detail["feature"],
             value=detail["value"],
             source=detail["source"],
@@ -236,7 +247,9 @@ async def set_feature_chat_override(feature: str, chat_tid: int, data: FeatureFl
     typed = _feature_or_404(feature)
     value = _validated(typed, data.value)
     await set_chat_override(typed, chat_tid, value)
-    return ChatOverride(chat_tid=chat_tid, feature=typed, value=value, source="manual")
+    chat = await ChatModel.get_by_tid(chat_tid)
+    title = chat.first_name_or_title if chat else None
+    return ChatOverride(chat_tid=chat_tid, chat_title=title, feature=typed, value=value, source="manual")
 
 
 @router.delete("/{feature}/chat/{chat_tid}", status_code=204)

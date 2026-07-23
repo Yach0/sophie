@@ -18,10 +18,12 @@ _cache_version = ""
 _DEFAULT_REASONING_EFFORT = "low"
 
 
-def _build_openrouter_settings(model: CatalogModel | None) -> OpenRouterModelSettings | None:
+def _build_openrouter_settings(
+    model: CatalogModel | None, reasoning_effort: str | None
+) -> OpenRouterModelSettings | None:
     extra_params: dict[str, object] = {}
     if model is None or model.supports_reasoning:
-        extra_params["openrouter_reasoning"] = {"effort": _DEFAULT_REASONING_EFFORT}
+        extra_params["openrouter_reasoning"] = {"effort": reasoning_effort or _DEFAULT_REASONING_EFFORT}
     if model and model.extra_params:
         extra_params.update(model.extra_params)
     return OpenRouterModelSettings(**extra_params) if extra_params else None
@@ -33,7 +35,7 @@ def _build_openai_settings(model: CatalogModel) -> ModelSettings | None:
     return ModelSettings(**model.extra_params) if model.extra_params else None
 
 
-def _build_model(model_name: str) -> Model:
+def _build_model(model_name: str, reasoning_effort: str | None) -> Model:
     """Build a model from the catalog.
 
     A name absent from the catalog — an ad-hoc value set through an ``ai_*_model`` flag — goes to
@@ -52,11 +54,11 @@ def _build_model(model_name: str) -> Model:
     return OpenRouterModel(
         model.api_name if model else model_name,
         provider=get_openrouter_provider(provider),
-        settings=_build_openrouter_settings(model),
+        settings=_build_openrouter_settings(model, reasoning_effort),
     )
 
 
-def get_ai_model(model_name: str) -> Model:
+def get_ai_model(model_name: str, reasoning_effort: str | None = None) -> Model:
     global _cache_version
 
     # A built model holds a provider client and its settings, both of which a catalog reload may
@@ -66,9 +68,12 @@ def get_ai_model(model_name: str) -> Model:
         _ai_models.clear()
         _cache_version = version
 
-    if model_name not in _ai_models:
-        _ai_models[model_name] = _build_model(model_name)
-    return _ai_models[model_name]
+    # The same model can serve several roles at different reasoning efforts, so the effort is part
+    # of the cache key.
+    key = f"{model_name}\x00{reasoning_effort or ''}"
+    if key not in _ai_models:
+        _ai_models[key] = _build_model(model_name, reasoning_effort)
+    return _ai_models[key]
 
 
 async def get_proactive_replies_model(chat_tid: int | None = None) -> Model:

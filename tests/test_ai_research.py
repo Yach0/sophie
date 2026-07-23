@@ -90,6 +90,7 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
 
     with (
         patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
+        patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
         patch(
             "sophie_bot.modules.ai.utils.research.get_chat_research_model",
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),

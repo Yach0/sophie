@@ -21,7 +21,9 @@ from sophie_bot.modules.ai.utils.help_tip import (
     should_offer_help_mode,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_chat_models import resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -40,7 +42,7 @@ from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 TextStreamCallback = Callable[[str], Awaitable[None]]
@@ -255,7 +257,9 @@ async def ai_chatbot_reply(
         if explicit_debug_mode:
             await _reply_debug_history(message, history)
 
-        service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=message.chat.id)
+        service_tier = await resolve_chat_service_tier(
+            AIModelPurpose.chatbot, connection.db_model.iid, message.chat.id, mode
+        )
         on_tool_call = (
             message_streamer.update_thinking_for_tool
             if message_streamer and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)

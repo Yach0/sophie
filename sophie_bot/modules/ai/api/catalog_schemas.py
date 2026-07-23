@@ -78,6 +78,8 @@ class CatalogMeta(BaseModel):
     modes: list[str]
     # purpose -> the feature-flag whose per-chat override pins that purpose to a specific model.
     model_override_flags: dict[str, str]
+    service_tiers: list[str]
+    reasoning_efforts: list[str]
 
 
 class CatalogStatus(BaseModel):

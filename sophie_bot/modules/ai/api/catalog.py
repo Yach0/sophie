@@ -11,6 +11,7 @@ from sophie_bot.db.models.ai.ai_catalog import (
 )
 from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
 from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
+from sophie_bot.utils.feature_flags import _SERVICE_TIER_VALUES
 from sophie_bot.modules.ai.utils.ai_catalog import (
     bump_version,
     get_catalog,
@@ -83,6 +84,8 @@ async def get_meta() -> CatalogMeta:
         # message and never carry a catalog role.
         modes=[mode.value for mode in SELECTABLE_MODES],
         model_override_flags={purpose.value: flag for purpose, flag in MODEL_OVERRIDE_FLAG_BY_PURPOSE.items()},
+        service_tiers=sorted(_SERVICE_TIER_VALUES),
+        reasoning_efforts=["low", "medium", "high"],
     )
 
 

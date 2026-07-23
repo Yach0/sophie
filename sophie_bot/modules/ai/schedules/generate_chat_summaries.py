@@ -10,7 +10,8 @@ from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 
 from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatModel
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
@@ -179,16 +180,14 @@ class GenerateChatSummaries:
         history.add_custom(_build_summary_prompt(messages, instructions), name="Transcript")
 
         model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
+        service_tier = await resolve_chat_service_tier(AIModelPurpose.summary, chat_iid, chat_tid)
         result = await run_structured_task(
-            AIStructuredTask(
-                output_type=AIChatSummaryGroups,
-                feature=AI_FEATURE_CHATBOT,
-                service_tier_feature_key="ai_chat_summaries_service_tier",
-            ),
+            AIStructuredTask(output_type=AIChatSummaryGroups, feature=AI_FEATURE_CHATBOT),
             model,
             history,
             chat_iid=chat_iid,
             chat_tid=chat_tid,
+            service_tier=service_tier,
         )
         return result.output
 

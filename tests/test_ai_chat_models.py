@@ -13,7 +13,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_translations_model,
 )
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
-from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
+from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider, ResolvedRole
 from sophie_bot.modules.ai.utils.ai_help_mode import set_help_mode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
@@ -38,11 +38,14 @@ def _catalog() -> AICatalog:
             for name in names
         },
         roles={
-            (AIMode.entertainment, AIModelPurpose.chatbot): ENTERTAINMENT_CHATBOT,
-            (AIMode.moderation, AIModelPurpose.translation): MODERATION_TRANSLATION,
-            (AIMode.moderation, AIModelPurpose.filters): MODERATION_FILTERS,
-            (AIMode.support, AIModelPurpose.filters): SUPPORT_FILTERS,
-            (None, AIModelPurpose.summary): SUMMARY,
+            key: ResolvedRole(model_name=name, service_tier=None, reasoning_effort=None)
+            for key, name in {
+                (AIMode.entertainment, AIModelPurpose.chatbot): ENTERTAINMENT_CHATBOT,
+                (AIMode.moderation, AIModelPurpose.translation): MODERATION_TRANSLATION,
+                (AIMode.moderation, AIModelPurpose.filters): MODERATION_FILTERS,
+                (AIMode.support, AIModelPurpose.filters): SUPPORT_FILTERS,
+                (None, AIModelPurpose.summary): SUMMARY,
+            }.items()
         },
     )
 
@@ -51,7 +54,7 @@ def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     """Make get_ai_model return a distinct sentinel per model name, without building a real client."""
     built: dict[str, object] = {}
 
-    def fake_get_ai_model(model_name: str) -> object:
+    def fake_get_ai_model(model_name: str, reasoning_effort: str | None = None) -> object:
         return built.setdefault(model_name, object())
 
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_ai_model", fake_get_ai_model)
@@ -107,6 +110,10 @@ async def test_filters_model_without_a_chat_uses_the_support_tier(monkeypatch: p
 async def test_summary_model_falls_back_to_the_default(monkeypatch: pytest.MonkeyPatch) -> None:
     built = _patch_model_builder(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
+    # Summary is per-mode now; its any-mode (None) role serves whatever mode the chat is in.
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.support)
+    )
 
     model = await get_chat_summary_model(PydanticObjectId())
 

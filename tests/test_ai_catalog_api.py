@@ -307,3 +307,35 @@ async def test_provider_models_404s_for_an_unknown_provider(_no_version_bump) ->
     with pytest.raises(HTTPException) as error:
         await catalog.list_provider_models("nope")
     assert error.value.status_code == 404
+
+
+async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bump) -> None:
+    """The same model can be flex for one role and normal for another."""
+    from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_role
+
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+    await catalog.create_model(
+        ModelCreate(
+            name="one/model",
+            provider="openrouter",
+            roles=[
+                AIModelRole(mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"),
+                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"),
+            ],
+        )
+    )
+    await load_catalog()
+
+    research = await resolve_role("support", AIModelPurpose.research)
+    chatbot = await resolve_role("support", AIModelPurpose.chatbot)
+
+    assert research.model_name == chatbot.model_name == "one/model"
+    assert research.service_tier == "flex" and research.reasoning_effort == "high"
+    assert chatbot.service_tier == "none" and chatbot.reasoning_effort == "low"
+
+
+async def test_meta_exposes_service_tiers_and_reasoning_efforts() -> None:
+    meta = await catalog.get_meta()
+    assert "flex" in meta.service_tiers
+    assert meta.reasoning_efforts == ["low", "medium", "high"]

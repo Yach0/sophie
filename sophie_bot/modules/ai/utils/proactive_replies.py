@@ -18,6 +18,8 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_chat_models import resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_mode
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
@@ -293,7 +295,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         db_model=chat,
     )
     model = await get_chat_default_model(chat.iid, chat_tid=chat_tid)
-    service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=chat_tid)
+    service_tier = await resolve_chat_service_tier(AIModelPurpose.chatbot, chat.iid, chat_tid)
     _log_proactive_info(
         "Proactive AI answer generation started",
         chat_id=chat_tid,
