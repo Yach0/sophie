@@ -2,25 +2,30 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from itertools import count
 from typing import TYPE_CHECKING
 
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, User
+from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message, Update, User
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_admin import ChatAdminModel
+from sophie_bot.utils import feature_flags
 
 if TYPE_CHECKING:
     from aiogram.types import Chat
     from aiogram_test_framework import TestClient
+    from aiogram_test_framework.types import CapturedRequest
 
 # Allocated from ranges no hand-written test literal uses, so a test that still pins its own
 # IDs cannot collide with a generated one.
 _user_ids = count(800_000_001)
 _group_ids = count(-1_009_000_000_001, -1)
+_message_ids = count(500_000)
+_update_ids = count(900_000)
 
 
 def next_user_id() -> int:
@@ -139,3 +144,64 @@ async def grant_bot_admin(chat_tid: int, **rights: bool) -> ChatAdminModel:
     """Give Sophie herself admin rights in a chat, for handlers behind BotHasPermissions."""
     await _ensure_chat_model(CONFIG.bot_id, first_name="Sophie", is_bot=True)
     return await grant_admin(chat_tid, CONFIG.bot_id, **rights)
+
+
+async def _feed(test_client: TestClient, message: Message) -> list[CapturedRequest]:
+    """Feed one message update through the dispatcher and return the requests it produced."""
+    start = len(test_client.capture)
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot,
+        update=Update(update_id=next(_update_ids), message=message),
+    )
+    return test_client.capture.all_requests[start:]
+
+
+async def join_group(
+    test_client: TestClient,
+    group: Chat,
+    *members: User,
+    added_by: User | None = None,
+    date: datetime | None = None,
+) -> list[CapturedRequest]:
+    """Simulate members joining `group`, driving SaveChatsMiddleware and NewUserMiddleware.
+
+    `added_by` is the service-message sender (whoever added them); it defaults to a fresh
+    non-admin so the "an admin added the user" branch stays opt-in. Pass an admin (see
+    `grant_admin`) to exercise it. `date` lets a test make the join look old for the
+    stale-join branch.
+    """
+    adder = added_by or User(id=next_user_id(), is_bot=False, first_name="Adder")
+    message = Message(
+        message_id=next(_message_ids),
+        date=date or datetime.now(timezone.utc),
+        chat=group,
+        from_user=adder,
+        new_chat_members=list(members),
+    )
+    return await _feed(test_client, message)
+
+
+async def leave_group(test_client: TestClient, group: Chat, member: User) -> list[CapturedRequest]:
+    """Simulate `member` leaving `group`, driving LeaveUserMiddleware."""
+    message = Message(
+        message_id=next(_message_ids),
+        date=datetime.now(timezone.utc),
+        chat=group,
+        from_user=member,
+        left_chat_member=member,
+    )
+    return await _feed(test_client, message)
+
+
+async def set_feature(feature: str, enabled: bool, *, chat_tid: int | None = None) -> None:
+    """Persist a real feature-flag override, instead of patching `is_enabled` at call sites.
+
+    A global override when `chat_tid` is None, otherwise a per-chat one. Both go through the
+    production setters so the Redis cache stays consistent. Cleared automatically between tests:
+    FeatureFlagOverride is a registered Beanie model that the autouse `clean_db` truncates, and
+    the cache lives on `aredis`, which `reset_redis` flushes.
+    """
+    if chat_tid is None:
+        await feature_flags.set_value(feature, enabled)
+    else:
+        await feature_flags.set_chat_override(feature, chat_tid, enabled)

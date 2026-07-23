@@ -16,7 +16,14 @@ import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.db.models import ChatModel, GreetingsModel
 from tests.e2e.helpers import grant_admin
+
+
+async def _greetings(chat_tid: int) -> GreetingsModel:
+    chat = await ChatModel.get_by_tid(chat_tid)
+    assert chat is not None
+    return await GreetingsModel.get_by_chat_iid(chat.iid)
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +107,21 @@ async def test_enablewelcome_shows_status(
     )
 
 
+@pytest.mark.asyncio
+async def test_enablewelcome_off_persists(test_client: TestClient) -> None:
+    """`/enablewelcome off` flips welcome_disabled in the database."""
+
+    group = ChatFactory.create_group(chat_id=-1003000000010, title="EnableWelcome Toggle")
+    admin_wrapper = test_client.create_user(user_id=930000010, first_name="Admin", username="admin_enable_toggle")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    await test_client.send_command(command="enablewelcome", from_user=admin_wrapper.user, args="off", chat=group)
+
+    assert (await _greetings(group.id)).welcome_disabled is True
+
+
 # ---------------------------------------------------------------------------
 # /setwelcome — admin-only set custom welcome
 # ---------------------------------------------------------------------------
@@ -127,6 +149,11 @@ async def test_setwelcome_success(
     assert requests, "Bot should respond to /setwelcome from admin"
     response_text = requests[-1].text or ""
     assert "successfully updated" in response_text.lower(), f"Response should confirm update, got: {response_text}"
+
+    stored = await _greetings(group.id)
+    assert stored.note is not None and "Hello new member!" in (stored.note.text or ""), (
+        "The custom welcome text should be persisted on GreetingsModel.note"
+    )
 
 
 @pytest.mark.asyncio
@@ -204,6 +231,22 @@ async def test_cleanservice_shows_status(
     )
 
 
+@pytest.mark.asyncio
+async def test_cleanservice_on_persists(test_client: TestClient) -> None:
+    """`/cleanservice on` enables clean_service in the database."""
+
+    group = ChatFactory.create_group(chat_id=-1003000000011, title="CleanService Toggle")
+    admin_wrapper = test_client.create_user(user_id=930000011, first_name="Admin", username="admin_cs_toggle")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    await test_client.send_command(command="cleanservice", from_user=admin_wrapper.user, args="on", chat=group)
+
+    stored = await _greetings(group.id)
+    assert stored.clean_service is not None and stored.clean_service.enabled is True
+
+
 # ---------------------------------------------------------------------------
 # /cleanwelcome — admin-only toggle
 # ---------------------------------------------------------------------------
@@ -232,6 +275,22 @@ async def test_cleanwelcome_shows_status(
     assert "Current state" in response_text or "Enabled" in response_text or "Disabled" in response_text, (
         f"Response should show current status, got: {response_text}"
     )
+
+
+@pytest.mark.asyncio
+async def test_cleanwelcome_on_persists(test_client: TestClient) -> None:
+    """`/cleanwelcome on` enables clean_welcome in the database."""
+
+    group = ChatFactory.create_group(chat_id=-1003000000012, title="CleanWelcome Toggle")
+    admin_wrapper = test_client.create_user(user_id=930000012, first_name="Admin", username="admin_cw_toggle")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    await test_client.send_command(command="cleanwelcome", from_user=admin_wrapper.user, args="on", chat=group)
+
+    stored = await _greetings(group.id)
+    assert stored.clean_welcome is not None and stored.clean_welcome.enabled is True
 
 
 # ---------------------------------------------------------------------------
