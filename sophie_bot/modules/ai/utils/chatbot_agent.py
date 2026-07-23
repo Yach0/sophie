@@ -19,6 +19,7 @@ from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
+from sophie_bot.modules.ai.utils.deep_help import is_deep_help_chat
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -81,7 +82,9 @@ async def get_chatbot_tools(chat_tid: int, capabilities: ModeCapabilities) -> li
         tools.append(search_tool)
     if await is_enabled("ai_research", chat_tid=chat_tid):
         tools.append(research_topic_tool)
-    if capabilities.deep_help and await is_enabled("ai_deep_help", chat_tid=chat_tid):
+    if (capabilities.deep_help or await is_deep_help_chat(chat_tid)) and await is_enabled(
+        "ai_deep_help", chat_tid=chat_tid
+    ):
         tools.append(deep_help_tool)
     return tools
 

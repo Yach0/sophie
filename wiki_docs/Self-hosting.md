@@ -105,6 +105,9 @@ restart.
 when the documentation cannot answer a question. It is **off by default** because it costs several
 model requests per question.
 
+Groups do not get it from their AI mode. `ai_deep_help_chats` is a space or comma separated list of
+group IDs allowed to use it anyway, for the chats where people ask how Sophie works.
+
 Every run is bounded: `ai_deep_help_request_limit`, `ai_deep_help_tool_calls_limit` and
 `ai_deep_help_output_tokens_limit` cap one run, `ai_deep_help_daily_chat_limit` caps how many runs
 one chat may start per day, and the tokens are charged to that chat's AI quota like any other

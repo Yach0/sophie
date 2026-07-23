@@ -79,6 +79,7 @@ FeatureType = Literal[
     "ai_research_model",
     "ai_deep_help",
     "ai_deep_help_model",
+    "ai_deep_help_chats",
     "ai_deep_help_daily_chat_limit",
     "ai_deep_help_request_limit",
     "ai_deep_help_tool_calls_limit",
@@ -271,6 +272,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
     "ai_deep_help": _feature(False),
     "ai_deep_help_model": _feature("", _AI_MODEL_FEATURE),
+    # Group chats allowed to use source inspection, beyond the Sophie-help assistant.
+    "ai_deep_help_chats": _feature("-1001202504432"),
     "ai_deep_help_daily_chat_limit": _feature(10),
     "ai_deep_help_request_limit": _feature(8),
     "ai_deep_help_tool_calls_limit": _feature(10),

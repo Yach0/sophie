@@ -31,6 +31,27 @@ _SYSTEM_PROMPT = (
 )
 
 
+def _parse_chat_ids(raw_value: object) -> frozenset[int]:
+    identifiers = set()
+    for entry in str(raw_value).replace(",", " ").split():
+        try:
+            identifiers.add(int(entry))
+        except ValueError:
+            log.warning("deep_help: ignoring an unparsable chat id", entry=entry)
+    return frozenset(identifiers)
+
+
+async def is_deep_help_chat(chat_tid: int | None) -> bool:
+    """Whether a group is on the list allowed to use source inspection.
+
+    Sophie-help gets it from its mode; this is the escape hatch for the chats where people ask how
+    Sophie works, without turning it on for every group.
+    """
+    if chat_tid is None:
+        return False
+    return chat_tid in _parse_chat_ids(await get_value("ai_deep_help_chats", chat_tid=chat_tid))
+
+
 def _daily_limit_key(chat_iid: PydanticObjectId, now: datetime) -> str:
     return f"ai_deep_help_daily:{chat_iid}:{now.strftime('%Y%m%d')}"
 

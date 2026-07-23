@@ -8,7 +8,7 @@ from pydantic_ai.exceptions import UsageLimitExceeded
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
-from sophie_bot.modules.ai.utils.deep_help import run_deep_help
+from sophie_bot.modules.ai.utils.deep_help import _parse_chat_ids, is_deep_help_chat, run_deep_help
 from sophie_bot.modules.ai.utils.deep_help_source import (
     MAX_READ_LINES,
     MAX_SEARCH_MATCHES,
@@ -151,3 +151,27 @@ async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch:
     answer = await run_deep_help("how do notes work", PydanticObjectId())
 
     assert "could not find the answer" in answer
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("-1001202504432", {-1001202504432}),
+        ("-100120, -100999  -100888", {-100120, -100999, -100888}),
+        ("", set()),
+        ("nonsense", set()),
+    ],
+)
+def test_allowed_chat_ids_are_parsed_leniently(raw_value: str, expected: set[int]) -> None:
+    """The flag is a plain string, so a stray separator must not disable the whole list."""
+    assert _parse_chat_ids(raw_value) == expected
+
+
+async def test_a_listed_group_may_use_source_inspection(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.get_value", AsyncMock(return_value="-1001202504432 -100777")
+    )
+
+    assert await is_deep_help_chat(-100777)
+    assert not await is_deep_help_chat(-100111)
+    assert not await is_deep_help_chat(None)
