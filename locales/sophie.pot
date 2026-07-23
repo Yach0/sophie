@@ -5970,19 +5970,19 @@ msgstr ""
 msgid "Reported by"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:21
+#: sophie_bot/modules/rest/__init__.py:22
 msgid "REST API"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:23
+#: sophie_bot/modules/rest/__init__.py:24
 msgid "REST API for external integrations"
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:26
+#: sophie_bot/modules/rest/__init__.py:27
 msgid "Provides a REST API for external integrations and third-party applications."
 msgstr ""
 
-#: sophie_bot/modules/rest/__init__.py:27
+#: sophie_bot/modules/rest/__init__.py:28
 msgid "Allows programmatic access to bot functionality and data."
 msgstr ""
 

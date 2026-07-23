@@ -9,7 +9,7 @@ from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.rest.api import auth
 from sophie_bot.utils.api import auth as auth_utils
 from sophie_bot.modules.ai.api import api_router as ai_api_router
-from sophie_bot.modules.rest.api import auth_router
+from sophie_bot.modules.rest.api import auth_router, feature_flags_router
 from sophie_bot.services.rest import create_app, init_api_routers
 
 pytestmark = pytest.mark.asyncio
@@ -17,7 +17,7 @@ pytestmark = pytest.mark.asyncio
 
 def _app():
     app = create_app()
-    init_api_routers(app, [auth_router, ai_api_router])
+    init_api_routers(app, [auth_router, feature_flags_router, ai_api_router])
     return app
 
 _OWNER_TID = -99001
@@ -111,6 +111,53 @@ async def test_the_catalog_is_closed_without_an_operator_token(monkeypatch: pyte
     client = AsyncClient(transport=ASGITransport(app=_app()), base_url="http://panel.test")
     try:
         response = await client.get("/op/ai/catalog/providers")
+        assert response.status_code in (401, 403)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_the_feature_flags_flow_works_through_the_real_app(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = await _operator_client(monkeypatch)
+    try:
+        listed = await client.get("/op/feature-flags")
+        assert listed.status_code == 200
+        assert any(flag["name"] == "ai_chatbot" for flag in listed.json())
+
+        # Override a boolean flag, see it marked overridden, then reset it back to its default.
+        updated = await client.put("/op/feature-flags/ai_chatbot", json={"value": False})
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["value"] is False and updated.json()["overridden"] is True
+
+        reset = await client.delete("/op/feature-flags/ai_chatbot")
+        assert reset.status_code == 200
+        assert reset.json()["overridden"] is False
+
+        # A bad value for a constrained flag is rejected, not stored.
+        bad = await client.put("/op/feature-flags/ai_chatbot_service_tier", json={"value": "turbo"})
+        assert bad.status_code == 422
+
+        # A rollout, then a per-chat override, each round-tripping through routing.
+        rollout = await client.put("/op/feature-flags/ai_research/rollout", json={"value": True, "percentage": 20})
+        assert rollout.status_code == 200 and rollout.json()["current_percentage"] == 20
+        assert any(r["feature"] == "ai_research" for r in (await client.get("/op/feature-flags/rollouts")).json())
+        assert (await client.delete("/op/feature-flags/ai_research/rollout")).status_code == 204
+
+        chat = await client.put("/op/feature-flags/ai_chatbot/chat/-100777", json={"value": False})
+        assert chat.status_code == 200 and chat.json()["value"] is False
+        listed_chat = await client.get("/op/feature-flags/chat-overrides?chat_tid=-100777")
+        assert [o["feature"] for o in listed_chat.json()] == ["ai_chatbot"]
+        assert (await client.delete("/op/feature-flags/ai_chatbot/chat/-100777")).status_code == 204
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_feature_flags_are_closed_without_an_operator_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth.CONFIG, "api_operator_token", _OPERATOR_TOKEN)
+    client = AsyncClient(transport=ASGITransport(app=_app()), base_url="http://panel.test")
+    try:
+        response = await client.get("/op/feature-flags")
         assert response.status_code in (401, 403)
     finally:
         await client.aclose()
