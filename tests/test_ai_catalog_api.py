@@ -1,0 +1,158 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from fastapi import HTTPException
+
+from sophie_bot.db.models.ai.ai_catalog import (
+    AICatalogModelModel,
+    AICatalogProviderModel,
+    AIModelPurpose,
+    AIModelRole,
+)
+from sophie_bot.modules.ai.api import catalog
+from sophie_bot.modules.ai.api.catalog_schemas import (
+    ModelCreate,
+    ModelUpdate,
+    ProviderCreate,
+    ProviderUpdate,
+)
+
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
+
+
+@pytest.fixture(autouse=True)
+def _no_version_bump():
+    # bump_version writes to Redis, which the DB fixture does not provide; the routes are covered
+    # for it by asserting the mock is awaited where it matters.
+    with patch.object(catalog, "bump_version", AsyncMock()) as bump:
+        yield bump
+
+
+async def _clear() -> None:
+    await AICatalogProviderModel.delete_all()
+    await AICatalogModelModel.delete_all()
+
+
+async def test_create_provider_refuses_a_duplicate_name(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-1234abcd"))
+
+    with pytest.raises(HTTPException) as error:
+        await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+
+    assert error.value.status_code == 409
+
+
+async def test_provider_list_masks_the_key_and_never_returns_it(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-abcdef1234"))
+
+    result = await catalog.list_providers()
+
+    assert result[0].has_key
+    assert result[0].api_key_masked == "sk-…1234"
+    # The plaintext key is not a field of the response model at all.
+    assert "api_key" not in result[0].model_dump()
+
+
+async def test_updating_a_provider_without_a_key_keeps_the_stored_one(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"))
+
+    await catalog.update_provider("openrouter", ProviderUpdate(enabled=False))
+
+    stored = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == "openrouter")
+    assert stored.api_key == "sk-original"
+    assert stored.enabled is False
+    # Every mutation must invalidate the running catalog, or the change never reaches Sophie.
+    assert _no_version_bump.await_count >= 1
+
+
+async def test_updating_a_provider_with_an_empty_key_clears_it(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"))
+
+    await catalog.update_provider("openrouter", ProviderUpdate(api_key=""))
+
+    stored = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == "openrouter")
+    assert stored.api_key == ""
+
+
+async def test_creating_a_model_carries_its_roles(_no_version_bump) -> None:
+    await _clear()
+    role = AIModelRole(mode=None, purpose=AIModelPurpose.summary)
+
+    result = await catalog.create_model(
+        ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role])
+    )
+
+    assert result.roles == [role]
+    stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5")
+    assert stored.provider == "openrouter"
+
+
+async def test_deleting_a_model_removes_it(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter"))
+
+    await catalog.delete_model("openai/gpt-5.5")
+
+    assert await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5") is None
+
+
+async def test_updating_a_missing_model_is_a_404(_no_version_bump) -> None:
+    await _clear()
+    with pytest.raises(HTTPException) as error:
+        await catalog.update_model("nope", ModelUpdate(enabled=False))
+
+    assert error.value.status_code == 404
+
+
+async def test_meta_exposes_the_enums_the_panel_builds_pickers_from() -> None:
+    meta = await catalog.get_meta()
+
+    assert "openrouter" in meta.provider_kinds
+    assert "sophie_inspect" in meta.purposes
+    # The two private-chat-only modes never carry a role, so they must not be offered.
+    assert "sophie_pm" not in meta.modes
+    assert "support" in meta.modes
+
+
+async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
+    payload = {
+        "data": [
+            {
+                "id": "openai/gpt-5.5",
+                "name": "GPT-5.5",
+                "description": "d",
+                "context_length": 400000,
+                "pricing": {"prompt": "0.0000015", "completion": "0.000006"},
+                "architecture": {"input_modalities": ["text", "image"]},
+            },
+            # An entry with no id cannot be stored by name, so it is dropped.
+            {"name": "no id"},
+        ]
+    }
+    response = SimpleNamespace(json=lambda: payload, raise_for_status=lambda: None)
+    with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)):
+        models = await catalog.list_openrouter_models()
+
+    assert len(models) == 1
+    model = models[0]
+    assert model.id == "openai/gpt-5.5"
+    assert model.prompt_price == 1.5
+    assert model.completion_price == 6.0
+    assert model.modalities == ["text", "image"]
+
+
+async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
+    from httpx import HTTPError
+
+    with patch.object(catalog.ai_http_client, "get", AsyncMock(side_effect=HTTPError("boom"))):
+        with pytest.raises(HTTPException) as error:
+            await catalog.list_openrouter_models()
+
+    assert error.value.status_code == 502

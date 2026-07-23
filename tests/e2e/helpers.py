@@ -186,6 +186,23 @@ async def join_group(
     return await _feed(test_client, message)
 
 
+async def send_reply_command(
+    test_client: TestClient,
+    *,
+    command: str,
+    from_user: User,
+    group: Chat,
+    replied: Message,
+    args: str | None = None,
+) -> list[CapturedRequest]:
+    """Feed a `/command` that replies to `replied` (send_command can't attach a reply)."""
+    from aiogram_test_framework.factories import MessageFactory
+
+    text = f"/{command} {args}" if args else f"/{command}"
+    message = MessageFactory.create(text=text, from_user=from_user, chat=group, reply_to_message=replied)
+    return await _feed(test_client, message)
+
+
 async def leave_group(test_client: TestClient, group: Chat, member: User) -> list[CapturedRequest]:
     """Simulate `member` leaving `group`, driving LeaveUserMiddleware."""
     message = Message(

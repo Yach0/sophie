@@ -62,6 +62,15 @@ def catalog() -> AICatalog:
     return _catalog
 
 
+def mask_api_key(api_key: str) -> str:
+    """Never render a key in full: an operator only needs to tell two keys apart."""
+    if not api_key:
+        return "unset"
+    if len(api_key) <= 8:
+        return "…"
+    return f"{api_key[:3]}…{api_key[-4:]}"
+
+
 async def _current_version() -> str:
     version = await aredis.get(_VERSION_KEY)
     if version is None:

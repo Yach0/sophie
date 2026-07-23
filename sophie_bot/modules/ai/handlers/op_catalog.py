@@ -20,7 +20,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.ai.utils.ai_catalog import bump_version, get_catalog
+from sophie_bot.modules.ai.utils.ai_catalog import bump_version, get_catalog, mask_api_key
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -37,15 +37,6 @@ _API_NAME_OPTION = "api_name"
 _REASONING_OPTION = "reasoning"
 _ROLE_OPTION = "role"
 _UNROLE_OPTION = "unrole"
-
-
-def mask_api_key(api_key: str) -> str:
-    """Never render a key in full: operators only need to tell two keys apart."""
-    if not api_key:
-        return "unset"
-    if len(api_key) <= 8:
-        return "…"
-    return f"{api_key[:3]}…{api_key[-4:]}"
 
 
 def _option(options: object, name: str) -> object | None:
