@@ -57,6 +57,7 @@ FeatureType = Literal[
     "filters_silent_mode",
     "antiflood",
     "locks",
+    "greetings_ephemeral",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
     "welcomecaptcha_ephemeral",
@@ -246,6 +247,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "filters_silent_mode": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
+    # Send the welcome only to the members it greets, so it never becomes chat clutter to clean up.
+    "greetings_ephemeral": _feature(False),
     "welcomecaptcha": _feature(True),
     "welcomecaptcha_autokick": _feature(True),
     # Send the captcha prompt only to the new members, so it never becomes chat clutter to clean up.

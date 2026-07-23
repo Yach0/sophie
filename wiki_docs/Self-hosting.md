@@ -56,7 +56,11 @@ To deploy the beta environment (includes scheduler and REST API):
 ansible-playbook -i your_inventory deploy/beta.yml
 ```
 
-## Welcome security
+## Greetings and welcome security
+
+`greetings_ephemeral` sends the welcome only to the members it greets, one message each, filled
+with their own name. Nothing is posted to the chat, so the clean-welcome cleanup has nothing to
+delete afterwards.
 
 `welcomecaptcha_ephemeral` sends the captcha prompt as an ephemeral message to each new member
 instead of posting it in the chat. Only they see it, one prompt per member rather than one for the
