@@ -11,8 +11,9 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIChatCallback
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.fsm.pm import AI_PM_PROVIDER, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
+from sophie_bot.modules.ai.fsm.pm import AI_PM_NORMAL_MODE, AI_PM_RESET, AI_PM_STOP_TEXT, AiPMFSM
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
+from sophie_bot.modules.ai.utils.ai_help_mode import activate_help_mode, deactivate_help_mode, is_help_mode
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler, SophieMessageHandler
@@ -20,18 +21,35 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
+def _build_keyboard(help_mode: bool) -> ReplyKeyboardMarkup:
+    rows = [[KeyboardButton(text=str(AI_PM_STOP_TEXT)), KeyboardButton(text=str(AI_PM_RESET))]]
+    if help_mode:
+        rows.append([KeyboardButton(text=str(AI_PM_NORMAL_MODE))])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+
+
 @flags.help(description=l_("Start the AI ChatBot mode"))
 class AiPmInitialize(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):
-        router.message.register(cls, CMDFilter("ai"), ChatTypeFilter("private"))
+        router.message.register(cls, CMDFilter(("ai", "pm")), ChatTypeFilter("private"))
         router.callback_query.register(cls, AIChatCallback.filter(), ChatTypeFilter("private"))
 
     async def handle(self) -> Any:
+        # Reaching the AI through the /help button asks about Sophie itself, so that entry point
+        # gets the Sophie-help assistant; /ai and /pm always mean the general one.
+        help_mode = self.data.get("callback_data") is not None
+        if help_mode:
+            await activate_help_mode(self.message.chat.id)
+        else:
+            await deactivate_help_mode(self.message.chat.id)
+
         doc = Doc(
             Bold(
                 Template(
-                    _("{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."),
+                    _("{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie.")
+                    if help_mode
+                    else _("{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."),
                     ai_emoji=AI_EMOJI,
                 )
             ),
@@ -47,15 +65,22 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
 
         await self.answer(str(doc), disable_web_page_preview=True)
 
-        initial_fake_ai_response = _("Hello! How can I help you?")
-        buttons = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text=str(AI_PM_STOP_TEXT)), KeyboardButton(text=str(AI_PM_RESET))],
-                [KeyboardButton(text=str(AI_PM_PROVIDER))],
-            ],
-            resize_keyboard=True,
+        initial_fake_ai_response = (
+            _("Hello! What would you like to know about Sophie?") if help_mode else _("Hello! How can I help you?")
         )
-        await self.message.answer(initial_fake_ai_response, reply_markup=buttons)
+        await self.message.answer(initial_fake_ai_response, reply_markup=_build_keyboard(help_mode))
+
+
+class AiPmNormalMode(SophieMessageHandler):
+    """Leave the Sophie-help assistant without leaving the AI mode."""
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return F.text == AI_PM_NORMAL_MODE, ChatTypeFilter("private")
+
+    async def handle(self) -> Any:
+        await deactivate_help_mode(self.event.chat.id)
+        await self.event.reply(_("Switched to the normal AI mode."), reply_markup=_build_keyboard(help_mode=False))
 
 
 class AiPmStop(SophieMessageHandler):
@@ -65,6 +90,7 @@ class AiPmStop(SophieMessageHandler):
 
     async def handle(self) -> Any:
         await self.data["state"].clear()
+        await deactivate_help_mode(self.event.chat.id)
         await self.event.reply(_("The AI mode has been exited."), reply_markup=ReplyKeyboardRemove())
 
 
@@ -76,13 +102,7 @@ class AiPmHandle(SophieMessageHandler):
         return AiPMFSM.in_ai, ChatTypeFilter("private"), AIQuotaFilter(AI_FEATURE_CHATBOT)
 
     async def handle(self) -> Any:
-        buttons = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text=str(AI_PM_STOP_TEXT)), KeyboardButton(text=str(AI_PM_RESET))],
-                [KeyboardButton(text=str(AI_PM_PROVIDER))],
-            ],
-            resize_keyboard=True,
-        )
+        keyboard = _build_keyboard(await is_help_mode(self.event.chat.id))
 
         self.data["ai_msg_cache"] = True
-        return await ai_chatbot_reply(self.event, self.connection, reply_markup=buttons)
+        return await ai_chatbot_reply(self.event, self.connection, reply_markup=keyboard)

@@ -9,12 +9,26 @@ from sophie_bot.db.models.chat import ChatModel
 
 
 class AIMode(str, Enum):
-    """What Sophie's AI is for in a chat. Every AI behaviour is derived from this one choice."""
+    """What Sophie's AI is for in a chat. Every AI behaviour is derived from this one choice.
+
+    The last two are private-chat only and never stored: they are resolved per message, so they
+    cannot be picked with /aimode and never appear in its keyboard.
+    """
 
     disabled = "disabled"
     entertainment = "entertainment"
     moderation = "moderation"
     support = "support"
+    sophie_pm = "sophie_pm"
+    sophie_help = "sophie_help"
+
+
+SELECTABLE_MODES: tuple[AIMode, ...] = (
+    AIMode.disabled,
+    AIMode.entertainment,
+    AIMode.moderation,
+    AIMode.support,
+)
 
 
 class AIModeModel(Document):

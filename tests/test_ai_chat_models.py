@@ -1,9 +1,11 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
 from beanie import PydanticObjectId
 
-from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
+from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_default_model,
     get_chat_filters_model,
@@ -12,7 +14,8 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
 )
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
-from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
+from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 
 
 ENTERTAINMENT_CHATBOT = "free/chatbot"
@@ -153,3 +156,55 @@ def test_no_mode_lets_the_agent_write_notes() -> None:
     from sophie_bot.modules.ai.utils.chatbot_agent import CHATBOT_TOOLS
 
     assert {tool.name for tool in CHATBOT_TOOLS}.isdisjoint({"save_note", "delete_note"})
+
+
+async def test_private_chats_use_the_pm_assistant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_mode.is_help_mode", AsyncMock(return_value=False))
+
+    chat = SimpleNamespace(type=ChatType.private, tid=1, iid=PydanticObjectId())
+
+    assert await resolve_chat_mode(chat) == AIMode.sophie_pm
+
+
+async def test_private_chats_switch_to_sophie_help_while_it_is_active(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_mode.is_help_mode", AsyncMock(return_value=True))
+
+    chat = SimpleNamespace(type=ChatType.private, tid=1, iid=PydanticObjectId())
+
+    assert await resolve_chat_mode(chat) == AIMode.sophie_help
+
+
+def test_hidden_modes_are_not_offered_by_aimode() -> None:
+    assert AIMode.sophie_pm not in SELECTABLE_MODES
+    assert AIMode.sophie_help not in SELECTABLE_MODES
+
+
+def test_every_mode_has_capabilities() -> None:
+    """A mode with no entry would raise a KeyError on the first message in that chat."""
+    for mode in AIMode:
+        assert get_capabilities(mode) is not None
+
+
+async def test_sophie_help_uses_its_own_system_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+    prompts = {"ai_chatbot_system_prompt": "general prompt", "ai_help_system_prompt": "sophie help prompt"}
+
+    async def fake_get_value(feature: str, chat_tid: int | None = None) -> object:
+        return prompts.get(feature, "")
+
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(side_effect=fake_get_value))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(return_value=False))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_context.resolve_chat_mode",
+        AsyncMock(return_value=AIMode.sophie_help),
+    )
+    context = SimpleNamespace(
+        chat_tid=-100123,
+        chat_iid=PydanticObjectId(),
+        user_text=None,
+        connection=SimpleNamespace(db_model=SimpleNamespace()),
+    )
+
+    instructions = await build_chatbot_instructions(context)
+
+    assert "sophie help prompt" in instructions
+    assert "general prompt" not in instructions

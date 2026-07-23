@@ -23,6 +23,7 @@ FeatureType = Literal[
     "ai_translation_model",
     "ai_search_provider",
     "ai_chatbot_system_prompt",
+    "ai_help_system_prompt",
     "ai_translate_system_prompt",
     "ai_chat_summaries_prompt",
     "ai_moderation_reason_prompt",
@@ -194,6 +195,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
     "ai_chatbot_system_prompt": _feature(
         "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet"
+    ),
+    "ai_help_system_prompt": _feature(
+        "You're Sophie, a Telegram group management bot, helping a user in a private chat.\nYour only job here is to help them use Sophie: explain features, walk through commands, and troubleshoot their setup.\nAlways call the `cmds_help` tool before describing any command, and never invent commands or arguments.\nSuggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\nIf they ask about something unrelated to Sophie, answer briefly and steer back to what you can help with."
     ),
     "ai_translate_system_prompt": _feature(
         "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."

@@ -12,6 +12,6 @@ class AiPMFSM(StatesGroup):
 
 AI_PM_STOP_TEXT = l_("🛑 Exit AI mode")
 AI_PM_RESET = l_("🔄 Reset AI context")
-AI_PM_PROVIDER = l_("⚙️ AI Provider")
+AI_PM_NORMAL_MODE = l_("💬 Switch to normal AI mode")
 
 AI_GENERATED_TEXT = l_(lambda: Template(_("{ai_emoji} Sophie AI"), ai_emoji=AI_EMOJI).to_html())

@@ -8,7 +8,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputRichM
 from stfu_tg import Doc, RichTable, RichTableCell, Title
 
 from sophie_bot.constants import AI_EMOJI
-from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIModeCallback
@@ -38,7 +38,10 @@ MODE_DESCRIPTIONS: Mapping[AIMode, LazyProxy] = {
 def _build_table() -> RichTable:
     return RichTable(
         [RichTableCell(_("Mode"), is_header=True), RichTableCell(_("What Sophie does"), is_header=True)],
-        *([RichTableCell(str(MODE_TITLES[mode])), RichTableCell(str(MODE_DESCRIPTIONS[mode]))] for mode in AIMode),
+        *(
+            [RichTableCell(str(MODE_TITLES[mode])), RichTableCell(str(MODE_DESCRIPTIONS[mode]))]
+            for mode in SELECTABLE_MODES
+        ),
         bordered=True,
     )
 
@@ -52,7 +55,7 @@ def _build_keyboard(selected: AIMode) -> InlineKeyboardMarkup:
                     callback_data=AIModeCallback(mode=mode.value).pack(),
                 )
             ]
-            for mode in AIMode
+            for mode in SELECTABLE_MODES
         ]
     )
 
@@ -100,6 +103,9 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
             return await self.event.answer(_("You are not allowed to change this setting"))
 
         mode = AIMode(self.callback_data.mode)
+        if mode not in SELECTABLE_MODES:
+            return await self.event.answer(_("Unknown mode"))
+
         await set_chat_mode(self.connection.db_model, mode)
 
         # The picker may have been sent as a rich message, which cannot be edited; only the keyboard

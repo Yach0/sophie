@@ -143,27 +143,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:109
+#: sophie_bot/modules/ai/__init__.py:110
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:111
+#: sophie_bot/modules/ai/__init__.py:112
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:114
+#: sophie_bot/modules/ai/__init__.py:115
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:115
+#: sophie_bot/modules/ai/__init__.py:116
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:118
+#: sophie_bot/modules/ai/__init__.py:119
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:119
+#: sophie_bot/modules/ai/__init__.py:120
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -294,7 +294,7 @@ msgid "🔄 Reset AI context"
 msgstr ""
 
 #: sophie_bot/modules/ai/fsm/pm.py:15
-msgid "⚙️ AI Provider"
+msgid "💬 Switch to normal AI mode"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:77
@@ -388,21 +388,25 @@ msgstr ""
 msgid "What Sophie does"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:61
+#: sophie_bot/modules/ai/handlers/aimode.py:64
 msgid "AI Mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:78
+#: sophie_bot/modules/ai/handlers/aimode.py:81
 msgid "Select what the AI does in this chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:96
+#: sophie_bot/modules/ai/handlers/aimode.py:99
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:100
+#: sophie_bot/modules/ai/handlers/aimode.py:103
 msgid "You are not allowed to change this setting"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimode.py:107
+msgid "Unknown mode"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
@@ -605,33 +609,46 @@ msgstr ""
 msgid "Top features this month"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:23
+#: sophie_bot/modules/ai/handlers/pm.py:31
 msgid "Start the AI ChatBot mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:34
+#: sophie_bot/modules/ai/handlers/pm.py:50
+#, python-brace-format
+msgid "{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/pm.py:52
 #, python-brace-format
 msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:39
+#: sophie_bot/modules/ai/handlers/pm.py:57
 #, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:40
+#: sophie_bot/modules/ai/handlers/pm.py:58
 msgid "privacy policy"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:42
+#: sophie_bot/modules/ai/handlers/pm.py:60
 msgid "Click on the button below to exit."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:50
+#: sophie_bot/modules/ai/handlers/pm.py:69
+msgid "Hello! What would you like to know about Sophie?"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/pm.py:69
 msgid "Hello! How can I help you?"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/pm.py:68
+#: sophie_bot/modules/ai/handlers/pm.py:83
+msgid "Switched to the normal AI mode."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/pm.py:94
 msgid "The AI mode has been exited."
 msgstr ""
 
@@ -1006,76 +1023,76 @@ msgstr ""
 msgid "AI features are disabled till {date}."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:20
+#: sophie_bot/modules/ai/utils/chatbot_context.py:23
 msgid "Prefer to use tables when comparing items"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:23
+#: sophie_bot/modules/ai/utils/chatbot_context.py:26
 msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:29
+#: sophie_bot/modules/ai/utils/chatbot_context.py:32
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:30
+#: sophie_bot/modules/ai/utils/chatbot_context.py:33
 msgid "Today is "
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:31
+#: sophie_bot/modules/ai/utils/chatbot_context.py:34
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:39
+#: sophie_bot/modules/ai/utils/chatbot_context.py:42
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:41
+#: sophie_bot/modules/ai/utils/chatbot_context.py:44
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:43
+#: sophie_bot/modules/ai/utils/chatbot_context.py:46
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:47
+#: sophie_bot/modules/ai/utils/chatbot_context.py:50
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:53
+#: sophie_bot/modules/ai/utils/chatbot_context.py:56
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:62
+#: sophie_bot/modules/ai/utils/chatbot_context.py:65
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:70
+#: sophie_bot/modules/ai/utils/chatbot_context.py:73
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:81
+#: sophie_bot/modules/ai/utils/chatbot_context.py:84
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:88
+#: sophie_bot/modules/ai/utils/chatbot_context.py:91
 msgid "Related chat notes with content."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:92
+#: sophie_bot/modules/ai/utils/chatbot_context.py:95
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:99
+#: sophie_bot/modules/ai/utils/chatbot_context.py:102
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:106
+#: sophie_bot/modules/ai/utils/chatbot_context.py:109
 msgid "You have the following information in your memory"
 msgstr ""
 

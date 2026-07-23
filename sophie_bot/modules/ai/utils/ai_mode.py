@@ -7,6 +7,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
+from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode
 from sophie_bot.modules.ai.utils.cache_messages import reset_messages
 
 
@@ -71,6 +72,25 @@ _CAPABILITIES: Mapping[AIMode, ModeCapabilities] = {
         moderator=True,
         message_cache=True,
     ),
+    # Private chats have nothing to moderate and no chat notes of their own.
+    AIMode.sophie_pm: ModeCapabilities(
+        chatbot_for_users=True,
+        trigger_on_reply=True,
+        proactive_replies=False,
+        notes_read=False,
+        memory=False,
+        moderator=False,
+        message_cache=True,
+    ),
+    AIMode.sophie_help: ModeCapabilities(
+        chatbot_for_users=True,
+        trigger_on_reply=True,
+        proactive_replies=False,
+        notes_read=False,
+        memory=False,
+        moderator=False,
+        message_cache=True,
+    ),
 }
 
 
@@ -89,9 +109,13 @@ async def get_chat_mode(chat_iid: PydanticObjectId, default: AIMode = AIMode.sup
 
 
 async def resolve_chat_mode(chat: ChatModel) -> AIMode:
-    """The mode governing what the AI may do in a chat. Private chats are always on the support tier."""
+    """The mode governing what the AI may do in a chat.
+
+    Private chats never store a mode: they are on the PM assistant, or temporarily on the
+    Sophie-help assistant after entering it from /help.
+    """
     if chat.type == ChatType.private:
-        return AIMode.support
+        return AIMode.sophie_help if await is_help_mode(chat.tid) else AIMode.sophie_pm
     return await get_chat_mode(chat.iid, AIMode.disabled)
 
 

@@ -227,8 +227,8 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None
         patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
         patch("sophie_bot.modules.ai.utils.chatbot_context.AIMemoryModel.get_lines", AsyncMock(return_value=[])),
         patch(
-            "sophie_bot.modules.ai.utils.chatbot_context.resolve_chat_capabilities",
-            AsyncMock(return_value=get_capabilities(AIMode.support)),
+            "sophie_bot.modules.ai.utils.chatbot_context.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
         ),
     ):
         instructions = await build_chatbot_instructions(
