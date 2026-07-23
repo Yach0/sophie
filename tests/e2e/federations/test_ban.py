@@ -9,13 +9,14 @@ import pytest
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import Message
 from aiogram_test_framework import MessageFactory, TestClient, UpdateFactory
+from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services import FederationBanService, FederationChatService, FederationManageService
-from tests.e2e.helpers import create_test_user_and_group, grant_admin
+from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
 )
@@ -736,3 +737,74 @@ async def test_fban_queues_propagation_task_when_reply_cannot_be_sent(test_clien
     )
     assert task is not None, "The propagation task must be queued even when the reply could not be sent"
     assert task.reply_message_id is None
+
+
+# ---------------------------------------------------------------------------
+# Command-flow coverage: /fban, /unfban, /fcheck through the dispatcher
+# ---------------------------------------------------------------------------
+
+async def _fed_with_joined_member(
+    test_client: TestClient, *, owner_tid: int, chat_tid: int, target_tid: int, fed_name: str
+):
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client, user_id=owner_tid, chat_id=chat_tid, first_name="BanOwner", group_title=fed_name
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
+    await grant_bot_admin(group.id)
+    target = test_client.create_user(user_id=target_tid, first_name="Spammer", username=f"spammer_{target_tid}")
+    await test_client.send_message(text="init", from_user=target.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, fed_name, owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+    return owner_user, group, federation, target.user
+
+
+@pytest.mark.asyncio
+async def test_fban_command_records_ban_and_bans_in_chat(test_client: TestClient) -> None:
+    owner_user, group, federation, target = await _fed_with_joined_member(
+        test_client, owner_tid=6040, chat_tid=-1001000006040, target_tid=6041, fed_name="Fban Cmd Fed"
+    )
+
+    requests = await test_client.send_command(
+        command="fban", from_user=owner_user, args=f"{target.id} spamming", chat=group
+    )
+
+    assert await FederationBanService.is_user_banned(federation.fed_id, target.id) is not None, (
+        "The federation ban record should exist"
+    )
+    bans = [
+        request
+        for request in requests
+        if request.request_type == RequestType.BAN_CHAT_MEMBER and request.params.get("user_id") == target.id
+    ]
+    assert bans, "The user should be banned in the current federation chat immediately"
+
+
+@pytest.mark.asyncio
+async def test_unfban_command_lifts_ban(test_client: TestClient) -> None:
+    owner_user, group, federation, target = await _fed_with_joined_member(
+        test_client, owner_tid=6042, chat_tid=-1001000006042, target_tid=6043, fed_name="Unfban Cmd Fed"
+    )
+    await test_client.send_command(command="fban", from_user=owner_user, args=str(target.id), chat=group)
+    assert await FederationBanService.is_user_banned(federation.fed_id, target.id) is not None
+
+    await test_client.send_command(command="unfban", from_user=owner_user, args=str(target.id), chat=group)
+
+    assert await FederationBanService.is_user_banned(federation.fed_id, target.id) is None, (
+        "The federation ban should be lifted after /unfban"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fcheck_group_reports_ban_status(test_client: TestClient) -> None:
+    owner_user, group, federation, target = await _fed_with_joined_member(
+        test_client, owner_tid=6044, chat_tid=-1001000006044, target_tid=6045, fed_name="Fcheck Cmd Fed"
+    )
+
+    before = await test_client.send_command(command="fcheck", from_user=owner_user, args=str(target.id), chat=group)
+    assert any("not banned" in (request.text or "").lower() for request in before)
+
+    await test_client.send_command(command="fban", from_user=owner_user, args=str(target.id), chat=group)
+
+    after = await test_client.send_command(command="fcheck", from_user=owner_user, args=str(target.id), chat=group)
+    assert any("Banned in current fed" in (request.text or "") for request in after)

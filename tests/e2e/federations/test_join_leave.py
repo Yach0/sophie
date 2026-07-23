@@ -198,3 +198,30 @@ async def test_multiple_chats_join_same_federation(test_client: TestClient) -> N
     updated_fed = await FederationManageService.get_federation_by_id(federation.fed_id)
     assert updated_fed is not None
     assert len(updated_fed.chats) == 2, "Both groups should be in the federation"
+
+
+@pytest.mark.asyncio
+async def test_leave_federation_rejects_non_chat_owner(test_client: TestClient) -> None:
+    """Only the chat owner may take the chat out of a federation."""
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=3009,
+        first_name="LeaveAuthOwner",
+        username="leave_auth_owner",
+        chat_id=-1001000003009,
+        group_title="Leave Auth Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Leave Auth Fed", owner_model)
+    await join_chat_to_federation(test_client, owner_user, group, federation.fed_id)
+
+    # A plain admin (not the chat owner) may not detach the chat.
+    admin = test_client.create_user(user_id=3010, first_name="JustAdmin", username="just_admin")
+    await test_client.send_message(text="init", from_user=admin.user, chat=group)
+    await grant_admin(group.id, admin.user.id)
+
+    await test_client.send_command(command="leavefed", from_user=admin.user, chat=group)
+
+    unchanged = await FederationManageService.get_federation_by_id(federation.fed_id)
+    assert unchanged is not None
+    assert len(unchanged.chats) == 1, "A non-owner must not be able to remove the chat from the federation"

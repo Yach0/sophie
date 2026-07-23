@@ -7,7 +7,7 @@ import pytest
 from aiogram_test_framework import TestClient
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.federations.services import FederationAdminService
+from sophie_bot.modules.federations.services import FederationAdminService, FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from tests.e2e.helpers import create_test_user_and_group, grant_admin
 from tests.e2e.federations.conftest import (
@@ -205,3 +205,71 @@ async def test_non_admin_has_no_permissions(test_client: TestClient) -> None:
 
     can_ban = await FederationPermissionService.can_ban_in_federation(federation, 6011)
     assert can_ban is False
+
+
+# ---------------------------------------------------------------------------
+# Command-flow coverage: /fpromote and /fdemote through the dispatcher
+# ---------------------------------------------------------------------------
+
+
+async def _fed_with_member(test_client: TestClient, *, owner_tid: int, chat_tid: int, member_tid: int, fed_name: str):
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=owner_tid,
+        chat_id=chat_tid,
+        first_name="FedOwner",
+        group_title=fed_name,
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
+    member = test_client.create_user(user_id=member_tid, first_name="Member", username=f"member_{member_tid}")
+    await test_client.send_message(text="init", from_user=member.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, fed_name, owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+    return owner_user, group, federation, member.user
+
+
+@pytest.mark.asyncio
+async def test_fpromote_command_adds_admin(test_client: TestClient) -> None:
+    owner_user, group, federation, member = await _fed_with_member(
+        test_client, owner_tid=6020, chat_tid=-1001000006020, member_tid=6021, fed_name="Promote Cmd Fed"
+    )
+
+    requests = await test_client.send_command(command="fpromote", from_user=owner_user, args=str(member.id), chat=group)
+
+    assert any("promoted" in (request.text or "").lower() for request in requests)
+    updated = await FederationManageService.get_federation_by_id(federation.fed_id)
+    assert updated is not None and await FederationAdminService.is_admin(updated, member.id) is True
+
+
+@pytest.mark.asyncio
+async def test_fdemote_command_removes_admin(test_client: TestClient) -> None:
+    owner_user, group, federation, member = await _fed_with_member(
+        test_client, owner_tid=6022, chat_tid=-1001000006022, member_tid=6023, fed_name="Demote Cmd Fed"
+    )
+    await test_client.send_command(command="fpromote", from_user=owner_user, args=str(member.id), chat=group)
+    promoted = await FederationManageService.get_federation_by_id(federation.fed_id)
+    assert promoted is not None and await FederationAdminService.is_admin(promoted, member.id) is True
+
+    requests = await test_client.send_command(command="fdemote", from_user=owner_user, args=str(member.id), chat=group)
+
+    assert any("demoted" in (request.text or "").lower() for request in requests)
+    demoted = await FederationManageService.get_federation_by_id(federation.fed_id)
+    assert demoted is not None and await FederationAdminService.is_admin(demoted, member.id) is False
+
+
+@pytest.mark.asyncio
+async def test_fpromote_command_rejects_non_owner(test_client: TestClient) -> None:
+    owner_user, group, federation, member = await _fed_with_member(
+        test_client, owner_tid=6024, chat_tid=-1001000006024, member_tid=6025, fed_name="Promote Auth Fed"
+    )
+    intruder = test_client.create_user(user_id=6026, first_name="Intruder", username="fed_intruder")
+    await test_client.send_message(text="init", from_user=intruder.user, chat=group)
+
+    requests = await test_client.send_command(
+        command="fpromote", from_user=intruder.user, args=str(member.id), chat=group
+    )
+
+    assert any("owner" in (request.text or "").lower() for request in requests)
+    unchanged = await FederationManageService.get_federation_by_id(federation.fed_id)
+    assert unchanged is not None and await FederationAdminService.is_admin(unchanged, member.id) is False
