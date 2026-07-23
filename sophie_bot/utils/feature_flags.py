@@ -270,7 +270,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_research_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
     # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
     "ai_deep_help": _feature(False),
-    "ai_deep_help_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
+    "ai_deep_help_model": _feature("", _AI_MODEL_FEATURE),
     "ai_deep_help_daily_chat_limit": _feature(10),
     "ai_deep_help_request_limit": _feature(8),
     "ai_deep_help_tool_calls_limit": _feature(10),

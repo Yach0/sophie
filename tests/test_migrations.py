@@ -803,3 +803,30 @@ async def test_seeded_catalog_covers_every_purpose_every_mode_falls_back_to() ->
 
     assert {"chatbot", "translation", "filters"} <= {purpose for mode, purpose in roles if mode == "support"}
     assert {"summary", "moderation_reason"} <= {purpose for mode, purpose in roles if mode is None}
+
+
+def _deep_help_model_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_160000_add_deep_help_model")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_deep_help_model_role_is_added_without_disturbing_an_existing_entry() -> None:
+    migration = _deep_help_model_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+
+    await models.insert_one(
+        {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [{"mode": "support", "purpose": "chatbot"}]}
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert {"mode": "support", "purpose": "chatbot"} in stored["roles"]
+    assert migration._ROLE in stored["roles"]
+
+    await migration.Backward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    # Backward drops only its own role: the model may serve other purposes by now.
+    assert stored["roles"] == [{"mode": "support", "purpose": "chatbot"}]

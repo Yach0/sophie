@@ -108,7 +108,11 @@ model requests per question.
 Every run is bounded: `ai_deep_help_request_limit`, `ai_deep_help_tool_calls_limit` and
 `ai_deep_help_output_tokens_limit` cap one run, `ai_deep_help_daily_chat_limit` caps how many runs
 one chat may start per day, and the tokens are charged to that chat's AI quota like any other
-feature. `ai_deep_help_model` should stay on a cheap model.
+feature.
+
+The model it uses is the catalog model holding the `deep_help` role, so it is swapped like any
+other: `/op_aimodel <name> ^role=deep_help`. Prefer a cheap one — the daily cap is what bounds the
+damage, not the price per run.
 
 The sub-agent can only read `.py` files inside the `sophie_bot` package, and only through search and
 bounded reads — it never executes anything and never sees configuration or data.

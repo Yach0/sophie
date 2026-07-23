@@ -5,6 +5,7 @@ import pytest
 from beanie import PydanticObjectId
 from pydantic_ai.exceptions import UsageLimitExceeded
 
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.deep_help import run_deep_help
@@ -103,6 +104,31 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch) -> 
     assert charge.await_args.args[0] == chat_iid
     assert charge.await_args.args[1] == "deep_help"
     assert charge.await_args.args[2].model_name == "cheap/model"
+
+
+async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The flag is only an override; without it the deep_help role decides the model."""
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help.is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help._consume_daily_quota", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.get_value",
+        AsyncMock(side_effect=lambda feature, chat_tid=None: 8 if "limit" in feature else ""),
+    )
+    resolve = AsyncMock(return_value="catalog/model")
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help.resolve_model_name", resolve)
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.get_ai_model", lambda name: SimpleNamespace(model_name=name)
+    )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help._build_agent", lambda model: SimpleNamespace())
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.run_ai_text",
+        AsyncMock(return_value=SimpleNamespace(output="answer", usage=SimpleNamespace(total_tokens=5))),
+    )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help.charge_ai_usage", AsyncMock())
+
+    await run_deep_help("how do notes work", PydanticObjectId())
+
+    assert resolve.await_args.args[1] == AIModelPurpose.deep_help
 
 
 async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch: pytest.MonkeyPatch) -> None:

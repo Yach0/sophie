@@ -7,6 +7,8 @@ from pydantic_ai import Agent, UsageLimits
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.models import Model
 
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_catalog import resolve_model_name
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
@@ -97,7 +99,9 @@ async def run_deep_help(question: str, chat_iid: PydanticObjectId, chat_tid: int
     if not await _consume_daily_quota(chat_iid, chat_tid):
         return _("The daily limit for source inspection in this chat has been reached.")
 
-    model_name = str(await get_value("ai_deep_help_model", chat_tid=chat_tid))
+    model_name = str(await get_value("ai_deep_help_model", chat_tid=chat_tid)) or await resolve_model_name(
+        None, AIModelPurpose.deep_help
+    )
     usage_limits = UsageLimits(
         request_limit=await _feature_int("ai_deep_help_request_limit", chat_tid),
         tool_calls_limit=await _feature_int("ai_deep_help_tool_calls_limit", chat_tid),
