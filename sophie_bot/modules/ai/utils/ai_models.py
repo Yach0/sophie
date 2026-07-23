@@ -1,5 +1,5 @@
+from sophie_bot.modules.ai.utils.ai_catalog import get_catalog, load_catalog, resolve_model_name
 from sophie_bot.modules.ai.utils.ai_model_factory import (
-    MODERATION_REASON_MODEL,
     get_ai_model,
     get_proactive_replies_model,
 )
@@ -10,19 +10,11 @@ from sophie_bot.modules.ai.utils.ai_model_pricing import (
     get_model_pricing,
     refresh_model_pricing_cache,
 )
-from sophie_bot.modules.ai.utils.ai_model_registry import (
-    MODE_MODELS,
-    SophieAIModel,
-    get_default_summary_model_name,
-    get_model_name,
-)
 
 __all__ = [
-    "SophieAIModel",
-    "MODE_MODELS",
-    "get_model_name",
-    "get_default_summary_model_name",
-    "MODERATION_REASON_MODEL",
+    "get_catalog",
+    "load_catalog",
+    "resolve_model_name",
     "get_ai_model",
     "get_proactive_replies_model",
     "get_model_pricing",

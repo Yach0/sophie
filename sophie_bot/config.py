@@ -16,11 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class CustomProviderConfig(BaseModel):
-    """An OpenAI-compatible AI provider configured at runtime via the CUSTOM_PROVIDERS env var.
-
-    Models are referenced as ``<name>/<model>`` (e.g. ``qwencloud/qwen3-vl-flash``); the ``<name>/``
-    prefix selects this provider and is stripped before the request reaches ``base_url``.
-    """
+    """An OpenAI-compatible AI provider used to seed the AI catalog on first migration."""
 
     name: str
     base_url: str
@@ -140,7 +136,8 @@ class Config(BaseSettings):
     kagi_api_key: str = ""
     mistral_api_key: str | None = None
 
-    # Extra OpenAI-compatible AI providers, e.g.
+    # Seed values for the AI provider catalog, read only by the seed_ai_catalog migration. Once the
+    # catalog exists, providers and keys are managed with /op_aiprovider; changing these does nothing.
     # CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://dashscope-intl.aliyuncs.com/compatible-mode/v1","api_key":"sk-..."}]'
     custom_providers: List[CustomProviderConfig] = []
 
@@ -160,10 +157,6 @@ class Config(BaseSettings):
     @property
     def bot_id(self) -> int:
         return int(self.token.split(":")[0])
-
-    @property
-    def custom_providers_by_name(self) -> dict[str, CustomProviderConfig]:
-        return {provider.name: provider for provider in self.custom_providers}
 
     @computed_field
     @property

@@ -6,6 +6,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
+
 from sophie_bot.modules.ai.handlers.op_prices import op_ai_prices_handler
 from sophie_bot.modules.ai.handlers.usage import AiUsage
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
@@ -94,6 +98,20 @@ async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch) -
         "sophie_bot.modules.ai.handlers.op_prices.get_model_pricing",
         AsyncMock(return_value=(0.15, 0.60)),
     )
+    provider = CatalogProvider(name="openrouter", kind="openrouter", base_url=None, api_key="k")
+    catalog = AICatalog(
+        version="1",
+        providers={provider.name: provider},
+        models={
+            "some/model": CatalogModel(
+                name="some/model", provider=provider, api_name="some/model", supports_reasoning=True, extra_params=None
+            )
+        },
+        roles={(AIMode.entertainment, AIModelPurpose.chatbot): "some/model"},
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.handlers.op_prices.get_catalog", AsyncMock(return_value=catalog)
+    )
 
     await op_ai_prices_handler(message)
 
@@ -101,5 +119,5 @@ async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch) -
     assert "AI Prices" in text
     assert "$0.15/1M" in text
     assert "$0.60/1M" in text
-    assert "chatbot" in text
-    assert "entertainment" in text
+    assert "some/model" in text
+    assert "entertainment:chatbot" in text

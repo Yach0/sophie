@@ -12,7 +12,7 @@ from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
-from sophie_bot.modules.ai.utils.ai_models import MODERATION_REASON_MODEL
+from sophie_bot.modules.ai.utils.ai_chat_models import get_moderation_reason_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -95,7 +95,7 @@ async def generate_restriction_reason(
     try:
         result = await run_structured_task(
             AIStructuredTask(output_type=AIReasonResponse),
-            MODERATION_REASON_MODEL(),
+            await get_moderation_reason_model(),
             history,
             chat_iid=chat_db.iid,
             chat_tid=chat_db.tid,

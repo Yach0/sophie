@@ -143,27 +143,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:101
+#: sophie_bot/modules/ai/__init__.py:109
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:103
+#: sophie_bot/modules/ai/__init__.py:111
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:106
+#: sophie_bot/modules/ai/__init__.py:114
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:107
+#: sophie_bot/modules/ai/__init__.py:115
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:110
+#: sophie_bot/modules/ai/__init__.py:118
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:111
+#: sophie_bot/modules/ai/__init__.py:119
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -417,16 +417,99 @@ msgstr ""
 msgid "Controls AI note title generation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:37
-msgid " (provider not configured)"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:86
+#: sophie_bot/modules/ai/handlers/op_catalog.py:178
+msgid " (disabled)"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:44
-msgid "AI Prices"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:91
+msgid "AI Providers"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:92
+msgid "No providers are configured."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:92
+msgid "Providers"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:97
+msgid "Create or update an AI provider (private chat only)"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:116
+msgid "Provider name"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:129
+#, python-brace-format
+msgid "No provider named {name}."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:132
+#, python-brace-format
+msgid "Provider {name} deleted."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:150
+msgid "AI Provider saved"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:184
+msgid "AI Models"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:185
+msgid "No models are configured."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:185
+#: sophie_bot/modules/ai/handlers/op_prices.py:47
+msgid "Models"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:187
+#, python-brace-format
+msgid "Loaded: {models} models, {providers} providers"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:195
+msgid "Create or update an AI model"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:215
+msgid "Model name"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:225
+#, python-brace-format
+msgid "No model named {name}."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:228
+#, python-brace-format
+msgid "Model {name} deleted."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+msgid "A new model needs ^provider=<name>."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:256
+msgid "AI Model saved"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_prices.py:45
+msgid "AI Prices"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:46
 msgid "Prices are shown as approximate USD per 1M input/output tokens."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:47
+msgid "The AI catalog is empty."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:21

@@ -10,8 +10,38 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_summary_model,
     get_chat_translations_model,
 )
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
-from sophie_bot.modules.ai.utils.ai_model_registry import MODE_MODELS, get_model_name
+
+
+ENTERTAINMENT_CHATBOT = "free/chatbot"
+MODERATION_TRANSLATION = "standard/translate"
+MODERATION_FILTERS = "standard/filter"
+SUPPORT_FILTERS = "quality/filter"
+SUMMARY = "quality/summary"
+
+
+def _catalog() -> AICatalog:
+    provider = CatalogProvider(name="openrouter", kind="openrouter", base_url=None, api_key="k")
+    names = [ENTERTAINMENT_CHATBOT, MODERATION_TRANSLATION, MODERATION_FILTERS, SUPPORT_FILTERS, SUMMARY]
+    return AICatalog(
+        version="1",
+        providers={provider.name: provider},
+        models={
+            name: CatalogModel(
+                name=name, provider=provider, api_name=name, supports_reasoning=True, extra_params=None
+            )
+            for name in names
+        },
+        roles={
+            (AIMode.entertainment, AIModelPurpose.chatbot): ENTERTAINMENT_CHATBOT,
+            (AIMode.moderation, AIModelPurpose.translation): MODERATION_TRANSLATION,
+            (AIMode.moderation, AIModelPurpose.filters): MODERATION_FILTERS,
+            (AIMode.support, AIModelPurpose.filters): SUPPORT_FILTERS,
+            (None, AIModelPurpose.summary): SUMMARY,
+        },
+    )
 
 
 def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
@@ -22,6 +52,7 @@ def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
         return built.setdefault(model_name, object())
 
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_ai_model", fake_get_ai_model)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_catalog.get_catalog", AsyncMock(return_value=_catalog()))
     return built
 
 
@@ -45,7 +76,7 @@ async def test_chatbot_model_follows_the_chat_mode(monkeypatch: pytest.MonkeyPat
 
     model = await get_chat_default_model(PydanticObjectId())
 
-    assert model is built[MODE_MODELS[AIMode.entertainment]["chatbot"]]
+    assert model is built[ENTERTAINMENT_CHATBOT]
 
 
 async def test_translations_and_filters_follow_the_chat_mode(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -59,8 +90,8 @@ async def test_translations_and_filters_follow_the_chat_mode(monkeypatch: pytest
     translations = await get_chat_translations_model(chat_iid)
     filters = await get_chat_filters_model(chat_iid)
 
-    assert translations is built[MODE_MODELS[AIMode.moderation]["translation"]]
-    assert filters is built[MODE_MODELS[AIMode.moderation]["filters"]]
+    assert translations is built[MODERATION_TRANSLATION]
+    assert filters is built[MODERATION_FILTERS]
 
 
 async def test_filters_model_without_a_chat_uses_the_support_tier(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,7 +100,7 @@ async def test_filters_model_without_a_chat_uses_the_support_tier(monkeypatch: p
 
     model = await get_chat_filters_model(None)
 
-    assert model is built[MODE_MODELS[AIMode.support]["filters"]]
+    assert model is built[SUPPORT_FILTERS]
 
 
 async def test_summary_model_falls_back_to_the_default(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -78,14 +109,17 @@ async def test_summary_model_falls_back_to_the_default(monkeypatch: pytest.Monke
 
     model = await get_chat_summary_model(PydanticObjectId())
 
-    assert model is built["openai/gpt-5.5"]
+    assert model is built[SUMMARY]
 
 
-def test_unavailable_model_falls_back_to_the_support_tier(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Entertainment's translation model lives on a custom provider that may not be configured."""
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_registry.CUSTOM_PROVIDER_NAMES", frozenset())
+async def test_purpose_missing_for_a_mode_falls_back_to_the_support_tier(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Entertainment has no filters model in this catalog, so the support tier answers for it."""
+    built = _patch_model_builder(monkeypatch)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
 
-    assert get_model_name(AIMode.entertainment, "translation") == MODE_MODELS[AIMode.support]["translation"]
+    model = await get_chat_filters_model(PydanticObjectId(), mode=AIMode.entertainment)
+
+    assert model is built[SUPPORT_FILTERS]
 
 
 def test_disabled_mode_grants_nothing() -> None:

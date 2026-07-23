@@ -1,5 +1,12 @@
 """AI-related database models."""
 
+from sophie_bot.db.models.ai.ai_catalog import (
+    AICatalogModelModel,
+    AICatalogProviderModel,
+    AIModelPurpose,
+    AIModelRole,
+    AIProviderKind,
+)
 from sophie_bot.db.models.ai.ai_autotranslate import AIAutotranslateModel
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine, AIChatSummaryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
@@ -15,6 +22,11 @@ from sophie_bot.utils.ai_features import (
 )
 
 __all__ = [
+    "AICatalogModelModel",
+    "AICatalogProviderModel",
+    "AIModelPurpose",
+    "AIModelRole",
+    "AIProviderKind",
     "AIAutotranslateModel",
     "AIChatSummaryLine",
     "AIChatSummaryModel",

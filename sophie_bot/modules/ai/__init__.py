@@ -13,6 +13,7 @@ from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
 )
 from sophie_bot.modules.ai.handlers.feature_setting import AIChatSummariesSetting, AINoteTitlesSetting
+from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
 from sophie_bot.modules.ai.handlers.op_stats import OpAIStatsHandler
@@ -35,6 +36,7 @@ from sophie_bot.modules.ai.middlewares.cache_user_messages import (
 )
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
 from sophie_bot.modules.ai.texts import AI_POLICY
+from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -51,6 +53,8 @@ router = Router(name="ai")
 
 
 async def pre_setup() -> None:
+    await load_catalog()
+
     router.message.outer_middleware(CacheUserMessagesMiddleware())
     router.message.middleware(CacheBotMessagesMiddleware())
     router.message.outer_middleware(AiModeratorMiddleware())
@@ -78,6 +82,10 @@ module_manifest = ModuleManifest(
     handlers=(
         OpAIStatsHandler,
         OpAIPricesHandler,
+        OpAIProviders,
+        OpAIProvider,
+        OpAIModels,
+        OpAIModel,
         AIModeSetting,
         AIModeSelectCallback,
         AIAutotrans,

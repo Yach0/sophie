@@ -3,6 +3,8 @@ from __future__ import annotations
 from beanie import Document
 
 from sophie_bot.db.models.ai import (
+    AICatalogModelModel,
+    AICatalogProviderModel,
     AIAutotranslateModel,
     AIChatSummaryLine as AIChatSummaryLine,
     AIChatSummaryModel,
@@ -66,6 +68,8 @@ models: list[type[Document]] = [
     BetaModeModel,
     GlobalSettings,
     AIModeModel,
+    AICatalogModelModel,
+    AICatalogProviderModel,
     AIUsageModel,
     AIAutotranslateModel,
     AIModeratorModel,
@@ -96,6 +100,8 @@ models: list[type[Document]] = [
 ]
 
 __all__ = [
+    "AICatalogModelModel",
+    "AICatalogProviderModel",
     "AIAutotranslateModel",
     "AIChatSummaryLine",
     "AIChatSummaryModel",
