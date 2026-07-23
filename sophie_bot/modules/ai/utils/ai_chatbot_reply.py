@@ -14,6 +14,11 @@ from stfu_tg.doc import Element
 from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.help_tip import (
+    build_help_mode_keyboard,
+    build_help_mode_tip,
+    should_offer_help_mode,
+)
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
@@ -294,6 +299,13 @@ async def ai_chatbot_reply(
             explicit_debug_mode,
             chat_tid=message.chat.id,
         )
+        if await should_offer_help_mode(message, mode, result.message_history):
+            doc += build_help_mode_tip()
+            # A private AI session already carries its own reply keyboard, and a message can only
+            # have one: there the tip is reachable from that keyboard instead.
+            if not kwargs.get("reply_markup"):
+                kwargs["reply_markup"] = build_help_mode_keyboard(message)
+
         if message_streamer:
             final_message = await message_streamer.send_final(doc, **kwargs)
         elif use_rich_streaming:

@@ -82,8 +82,9 @@ async def get_chatbot_tools(chat_tid: int, capabilities: ModeCapabilities) -> li
         tools.append(search_tool)
     if await is_enabled("ai_research", chat_tid=chat_tid):
         tools.append(research_topic_tool)
-    if (capabilities.deep_help or await is_deep_help_chat(chat_tid)) and await is_enabled(
-        "ai_deep_help", chat_tid=chat_tid
+    # The kill switch first: it is off by default, so the chat allowlist is usually never read.
+    if await is_enabled("ai_deep_help", chat_tid=chat_tid) and (
+        capabilities.deep_help or await is_deep_help_chat(chat_tid)
     ):
         tools.append(deep_help_tool)
     return tools

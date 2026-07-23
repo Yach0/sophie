@@ -9,9 +9,10 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.callbacks import AIChatCallback
+from sophie_bot.modules.ai.callbacks import AIChatCallback, AIHelpStartUrlCallback
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import (
+    AI_PM_HELP_MODE,
     AI_PM_NORMAL_MODE,
     AI_PM_RESET,
     AI_PM_STOP_HELP_TEXT,
@@ -29,9 +30,11 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 def _build_keyboard(help_mode: bool) -> ReplyKeyboardMarkup:
     exit_text = AI_PM_STOP_HELP_TEXT if help_mode else AI_PM_STOP_TEXT
-    rows = [[KeyboardButton(text=str(exit_text)), KeyboardButton(text=str(AI_PM_RESET))]]
-    if help_mode:
-        rows.append([KeyboardButton(text=str(AI_PM_NORMAL_MODE))])
+    switch_text = AI_PM_NORMAL_MODE if help_mode else AI_PM_HELP_MODE
+    rows = [
+        [KeyboardButton(text=str(exit_text)), KeyboardButton(text=str(AI_PM_RESET))],
+        [KeyboardButton(text=str(switch_text))],
+    ]
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
@@ -40,12 +43,14 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):
         router.message.register(cls, CMDFilter(("ai", "pm")), ChatTypeFilter("private"))
+        router.message.register(cls, AIHelpStartUrlCallback.filter(), ChatTypeFilter("private"))
         router.callback_query.register(cls, AIChatCallback.filter(), ChatTypeFilter("private"))
 
     async def handle(self) -> Any:
         # Reaching the AI through the /help button asks about Sophie itself, so that entry point
         # gets the Sophie-help assistant; /ai and /pm always mean the general one.
-        help_mode = self.data.get("callback_data") is not None
+        # Both the /help button and the deep link from a group mean "help me with Sophie".
+        help_mode = self.data.get("callback_data") is not None or self.data.get("command_start") is not None
 
         doc = Doc(
             Bold(
@@ -85,6 +90,21 @@ class AiPmNormalMode(SophieMessageHandler):
     async def handle(self) -> Any:
         await set_help_mode(self.data["state"], False)
         await self.event.reply(_("Switched to the normal AI mode."), reply_markup=_build_keyboard(help_mode=False))
+
+
+class AiPmHelpMode(SophieMessageHandler):
+    """Enter the Sophie-help assistant from an AI session already in progress."""
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return F.text == AI_PM_HELP_MODE, ChatTypeFilter("private")
+
+    async def handle(self) -> Any:
+        await set_help_mode(self.data["state"], True)
+        await self.event.reply(
+            _("Switched to the Sophie help mode, ask me anything about using Sophie."),
+            reply_markup=_build_keyboard(help_mode=True),
+        )
 
 
 class AiPmStop(SophieMessageHandler):

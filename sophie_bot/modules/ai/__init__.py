@@ -17,7 +17,13 @@ from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpA
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
 from sophie_bot.modules.ai.handlers.op_stats import OpAIStatsHandler
-from sophie_bot.modules.ai.handlers.pm import AiPmHandle, AiPmInitialize, AiPmNormalMode, AiPmStop
+from sophie_bot.modules.ai.handlers.pm import (
+    AiPmHandle,
+    AiPmHelpMode,
+    AiPmInitialize,
+    AiPmNormalMode,
+    AiPmStop,
+)
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.handlers.research import ResearchCmd
 from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
@@ -101,6 +107,7 @@ module_manifest = ModuleManifest(
         ResetQuota,
         AiReplyHandler,
         AiPmNormalMode,
+        AiPmHelpMode,
         AiPmStop,
         AiPmHandle,
         AiCmd,

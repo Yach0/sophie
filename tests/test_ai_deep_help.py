@@ -2,13 +2,16 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from aiogram.enums import ChatType
 from beanie import PydanticObjectId
+from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.exceptions import UsageLimitExceeded
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.deep_help import _parse_chat_ids, is_deep_help_chat, run_deep_help
+from sophie_bot.modules.ai.utils.help_tip import build_help_mode_keyboard, should_offer_help_mode
 from sophie_bot.modules.ai.utils.deep_help_source import (
     MAX_READ_LINES,
     MAX_SEARCH_MATCHES,
@@ -175,3 +178,40 @@ async def test_a_listed_group_may_use_source_inspection(monkeypatch: pytest.Monk
     assert await is_deep_help_chat(-100777)
     assert not await is_deep_help_chat(-100111)
     assert not await is_deep_help_chat(None)
+
+
+def _history_with_tool(tool_name: str) -> list:
+    return [SimpleNamespace(parts=[ToolCallPart(tool_name=tool_name, args={})])]
+
+
+async def test_the_help_mode_tip_follows_a_documentation_answer(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_deep_help_chat", AsyncMock(return_value=False))
+    message = SimpleNamespace(chat=SimpleNamespace(id=-100123, type="supergroup"))
+
+    assert await should_offer_help_mode(message, AIMode.support, _history_with_tool("help"))
+    # Nothing to upsell when the answer did not come from the documentation.
+    assert not await should_offer_help_mode(message, AIMode.support, _history_with_tool("get_notes"))
+
+
+async def test_no_tip_where_the_assistant_is_already_the_help_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_deep_help_chat", AsyncMock(return_value=False))
+    message = SimpleNamespace(chat=SimpleNamespace(id=1, type="private"))
+
+    assert not await should_offer_help_mode(message, AIMode.sophie_help, _history_with_tool("help"))
+
+
+async def test_no_tip_where_source_inspection_is_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    """That chat already answers more than the documentation, so the tip would be a downgrade."""
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_deep_help_chat", AsyncMock(return_value=True))
+    message = SimpleNamespace(chat=SimpleNamespace(id=-1001202504432, type="supergroup"))
+
+    assert not await should_offer_help_mode(message, AIMode.support, _history_with_tool("help"))
+
+
+def test_the_tip_button_leads_into_help_mode_from_both_places() -> None:
+    private = build_help_mode_keyboard(SimpleNamespace(chat=SimpleNamespace(id=1, type=ChatType.PRIVATE)))
+    group = build_help_mode_keyboard(SimpleNamespace(chat=SimpleNamespace(id=-100123, type=ChatType.SUPERGROUP)))
+
+    # A private chat can switch in place; a group has to send the user to the bot.
+    assert private.inline_keyboard[0][0].callback_data
+    assert group.inline_keyboard[0][0].url.startswith("https://t.me/")
