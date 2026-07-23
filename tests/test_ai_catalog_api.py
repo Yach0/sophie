@@ -156,3 +156,87 @@ async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
             await catalog.list_openrouter_models()
 
     assert error.value.status_code == 502
+
+
+async def test_resolution_shows_used_models_and_marks_fallbacks(_no_version_bump) -> None:
+    """The table must reflect what Sophie actually uses, including the support-tier fallback."""
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+    # support:filters exists; entertainment has no filters model, so it must fall back to support.
+    await catalog.create_model(
+        ModelCreate(
+            name="support/filter",
+            provider="openrouter",
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.filters)],
+        )
+    )
+    await catalog.create_model(
+        ModelCreate(
+            name="ent/chat",
+            provider="openrouter",
+            roles=[AIModelRole(mode="entertainment", purpose=AIModelPurpose.chatbot)],
+        )
+    )
+    await catalog.create_model(
+        ModelCreate(
+            name="the/summary",
+            provider="openrouter",
+            roles=[AIModelRole(mode=None, purpose=AIModelPurpose.summary)],
+        )
+    )
+    # A fresh snapshot must be loaded so the just-created roles are visible.
+    with patch.object(catalog, "get_catalog", catalog.load_catalog):
+        resolution = await catalog.get_resolution()
+
+    assert "disabled" not in resolution.modes
+    ent = resolution.per_mode["entertainment"]
+    assert ent["chatbot"].model == "ent/chat" and ent["chatbot"].fallback is False
+    # No entertainment filters model → the support one answers, marked as a fallback.
+    assert ent["filters"].model == "support/filter" and ent["filters"].fallback is True
+    assert resolution.globals["summary"].model == "the/summary"
+
+
+async def test_export_round_trips_through_import(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_model(
+        ModelCreate(
+            name="a/model",
+            provider="openrouter",
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
+        )
+    )
+
+    exported = await catalog.export_catalog()
+    assert [model.name for model in exported.models] == ["a/model"]
+
+    await _clear()
+    result = await catalog.import_catalog(exported)
+
+    assert result.models_created == 1
+    stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "a/model")
+    assert stored.roles[0].purpose == AIModelPurpose.chatbot
+
+
+async def test_merge_import_leaves_models_absent_from_the_file_alone(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_model(ModelCreate(name="kept/model", provider="openrouter"))
+
+    incoming = catalog.CatalogExport(models=[catalog.ModelExport(name="new/model", provider="openrouter")])
+    result = await catalog.import_catalog(incoming)
+
+    assert result.models_created == 1 and result.deleted == 0
+    names = {model.name async for model in AICatalogModelModel.find_all()}
+    assert names == {"kept/model", "new/model"}
+
+
+async def test_replace_import_removes_models_absent_from_the_file(_no_version_bump) -> None:
+    await _clear()
+    await catalog.create_model(ModelCreate(name="stale/model", provider="openrouter"))
+    await catalog.create_model(ModelCreate(name="kept/model", provider="openrouter"))
+
+    incoming = catalog.CatalogExport(models=[catalog.ModelExport(name="kept/model", provider="openrouter")])
+    result = await catalog.import_catalog(incoming, replace=True)
+
+    assert result.deleted == 1
+    names = {model.name async for model in AICatalogModelModel.find_all()}
+    assert names == {"kept/model"}

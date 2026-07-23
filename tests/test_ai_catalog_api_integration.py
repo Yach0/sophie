@@ -53,6 +53,12 @@ async def _operator_client(monkeypatch: pytest.MonkeyPatch) -> AsyncClient:
 
 @pytest.mark.usefixtures("db_init")
 async def test_the_panel_flow_works_through_the_real_app(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sophie_bot.db.models.ai.ai_catalog import AICatalogModelModel, AICatalogProviderModel
+
+    # The db fixture is session-scoped, so start from a clean catalog regardless of test order.
+    await AICatalogProviderModel.delete_all()
+    await AICatalogModelModel.delete_all()
+
     client = await _operator_client(monkeypatch)
     try:
         # The panel loads meta to build its pickers.
@@ -87,6 +93,13 @@ async def test_the_panel_flow_works_through_the_real_app(monkeypatch: pytest.Mon
         updated = await client.put("/op/ai/catalog/providers/openrouter", json={"enabled": False})
         assert updated.status_code == 200
         assert updated.json()["has_key"] is True
+
+        # Model names contain a slash, which a plain {name} path param would not match — deleting
+        # one must route to the right model, not 404.
+        deleted = await client.delete("/op/ai/catalog/models/openai/gpt-5.5")
+        assert deleted.status_code == 204, deleted.text
+        remaining = await client.get("/op/ai/catalog/models")
+        assert remaining.json() == []
     finally:
         await client.aclose()
 

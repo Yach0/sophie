@@ -83,3 +83,50 @@ class CatalogStatus(BaseModel):
     providers: int
     models: int
     roles: int
+
+
+class ResolvedModel(BaseModel):
+    model: str | None
+    # True when the mode has no model of its own for this purpose and the support tier answered.
+    fallback: bool
+
+
+class ModelExport(BaseModel):
+    name: str
+    provider: str
+    api_name: str | None = None
+    supports_reasoning: bool = True
+    extra_params: dict[str, object] | None = None
+    roles: list[AIModelRole] = Field(default_factory=list)
+    enabled: bool = True
+
+
+class CatalogExport(BaseModel):
+    """The catalog's models as one document, for moving them between instances.
+
+    Providers are deliberately left out: their API keys and endpoints are environment-specific, so
+    each instance keeps its own and only the model definitions travel.
+    """
+
+    schema_version: int = 1
+    models: list[ModelExport] = Field(default_factory=list)
+
+
+class ImportResult(BaseModel):
+    models_created: int
+    models_updated: int
+    deleted: int
+
+
+class CatalogResolution(BaseModel):
+    """What Sophie actually uses right now, mode by mode — the model each (mode, purpose) resolves to.
+
+    Mirrors the resolution in ai_chat_models: chatbot/translation/filters are per chat mode, while
+    summary/moderation_reason/sophie_inspect are the same for every chat.
+    """
+
+    modes: list[str]
+    per_chat_purposes: list[str]
+    global_purposes: list[str]
+    per_mode: dict[str, dict[str, ResolvedModel]]
+    globals: dict[str, ResolvedModel]

@@ -86,12 +86,12 @@ async def bump_version() -> None:
 DocumentT = TypeVar("DocumentT", bound=Document)
 
 
-async def _load_enabled(document_type: type[DocumentT]) -> list[DocumentT]:
-    """Parse enabled rows one by one, dropping any the current code cannot read.
+async def load_documents(document_type: type[DocumentT], query: dict | None = None) -> list[DocumentT]:
+    """Parse rows one by one, dropping any the current code cannot read.
 
     The catalog is edited at runtime and outlives the code that wrote it, so a row left behind by
     an older version — a purpose that has since been renamed, a provider kind that no longer
-    exists — must cost that one row, not the bot's ability to start.
+    exists — must cost that one row, not the bot's ability to start or the panel's ability to list.
     """
     parsed: list[DocumentT] = []
     try:
@@ -102,7 +102,7 @@ async def _load_enabled(document_type: type[DocumentT]) -> list[DocumentT]:
         log.warning("AI catalog is unavailable: the database is not initialised")
         return parsed
 
-    async for raw_document in collection.find({"enabled": True}):
+    async for raw_document in collection.find(query or {}):
         try:
             parsed.append(document_type.model_validate(raw_document))
         except ValidationError as error:
@@ -125,12 +125,12 @@ async def load_catalog() -> AICatalog:
             base_url=provider.base_url,
             api_key=provider.api_key,
         )
-        for provider in await _load_enabled(AICatalogProviderModel)
+        for provider in await load_documents(AICatalogProviderModel, {"enabled": True})
     }
 
     models: dict[str, CatalogModel] = {}
     roles: dict[tuple[AIMode | None, AIModelPurpose], str] = {}
-    for stored_model in await _load_enabled(AICatalogModelModel):
+    for stored_model in await load_documents(AICatalogModelModel, {"enabled": True}):
         provider = providers.get(stored_model.provider)
         if provider is None:
             log.warning(

@@ -841,3 +841,39 @@ async def test_sophie_inspect_migration_replaces_the_role_it_used_to_write() -> 
 
     stored = await models.find_one({"name": migration._MODEL_NAME})
     assert stored["roles"] == [migration._ROLE]
+
+
+def _rename_deep_help_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_170000_rename_deep_help_role")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_rename_deep_help_role_converges_a_stale_catalog() -> None:
+    """A database that ran the seed before the tool was renamed holds a role the enum now rejects."""
+    migration = _rename_deep_help_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+
+    await models.insert_many(
+        [
+            {"name": "a/model", "provider": "openrouter", "roles": [{"mode": None, "purpose": "deep_help"}]},
+            {
+                "name": "b/model",
+                "provider": "openrouter",
+                "roles": [{"mode": "support", "purpose": "chatbot"}, {"mode": None, "purpose": "deep_help"}],
+            },
+            {"name": "c/model", "provider": "openrouter", "roles": [{"mode": None, "purpose": "summary"}]},
+        ]
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    a = await models.find_one({"name": "a/model"})
+    b = await models.find_one({"name": "b/model"})
+    c = await models.find_one({"name": "c/model"})
+    assert a["roles"] == [{"mode": None, "purpose": "sophie_inspect"}]
+    # Only the deep_help role is touched; the other role on the same model is left alone.
+    assert {"mode": "support", "purpose": "chatbot"} in b["roles"]
+    assert {"mode": None, "purpose": "sophie_inspect"} in b["roles"]
+    # A model without a deep_help role is not rewritten.
+    assert c["roles"] == [{"mode": None, "purpose": "summary"}]
