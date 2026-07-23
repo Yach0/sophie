@@ -10,6 +10,7 @@ from pydantic_ai.models import Model
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.agent_tools.deep_help import deep_help_tool
 from sophie_bot.modules.ai.agent_tools.help import help_tool
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
@@ -80,6 +81,8 @@ async def get_chatbot_tools(chat_tid: int, capabilities: ModeCapabilities) -> li
         tools.append(search_tool)
     if await is_enabled("ai_research", chat_tid=chat_tid):
         tools.append(research_topic_tool)
+    if capabilities.deep_help and await is_enabled("ai_deep_help", chat_tid=chat_tid):
+        tools.append(deep_help_tool)
     return tools
 
 

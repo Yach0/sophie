@@ -77,6 +77,12 @@ FeatureType = Literal[
     "ai_proactive_replies_min_messages",
     "ai_research",
     "ai_research_model",
+    "ai_deep_help",
+    "ai_deep_help_model",
+    "ai_deep_help_daily_chat_limit",
+    "ai_deep_help_request_limit",
+    "ai_deep_help_tool_calls_limit",
+    "ai_deep_help_output_tokens_limit",
     "ai_research_max_rounds",
     "ai_research_queries_per_round",
     "ai_research_results_per_query",
@@ -197,7 +203,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
         "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet"
     ),
     "ai_help_system_prompt": _feature(
-        "You're Sophie, a Telegram group management bot, helping a user in a private chat.\nYour only job here is to help them use Sophie: explain features, walk through commands, and troubleshoot their setup.\nAlways call the `help` tool before describing any command, and read the relevant wiki page with it when a topic needs detail; never invent commands or arguments.\nSuggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\nIf they ask about something unrelated to Sophie, answer briefly and steer back to what you can help with."
+        "You're Sophie, a Telegram group management bot, helping a user in a private chat.\nYour only job here is to help them use Sophie: explain features, walk through commands, and troubleshoot their setup.\nAlways call the `help` tool before describing any command, and read the relevant wiki page with it when a topic needs detail; never invent commands or arguments.\nIf the documentation does not answer a question about how Sophie behaves, use the `deep_help` tool once and explain its answer in your own words.\nSuggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\nIf they ask about something unrelated to Sophie, answer briefly and steer back to what you can help with."
     ),
     "ai_translate_system_prompt": _feature(
         "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
@@ -262,6 +268,13 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_proactive_replies_min_messages": _feature(30),
     "ai_research": _feature(False),
     "ai_research_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
+    # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
+    "ai_deep_help": _feature(False),
+    "ai_deep_help_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
+    "ai_deep_help_daily_chat_limit": _feature(10),
+    "ai_deep_help_request_limit": _feature(6),
+    "ai_deep_help_tool_calls_limit": _feature(10),
+    "ai_deep_help_output_tokens_limit": _feature(700),
     "ai_research_max_rounds": _feature(3),
     "ai_research_queries_per_round": _feature(5),
     "ai_research_results_per_query": _feature(5),

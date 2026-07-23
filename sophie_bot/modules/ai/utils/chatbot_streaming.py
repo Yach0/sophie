@@ -58,6 +58,10 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
         _("Checking the documentation..."),
         _("Looking up how Sophie works..."),
     ),
+    "deep_help": (
+        _("Digging through my own sources..."),
+        _("Reading my own code..."),
+    ),
     "get_notes": (
         _("Scanning notes..."),
         _("Looking through notes..."),

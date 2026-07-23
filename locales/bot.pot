@@ -712,7 +712,7 @@ msgid "The AI mode has been exited."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/research.py:45
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:81
 msgid "Starting the research..."
 msgstr ""
 
@@ -1164,19 +1164,23 @@ msgid "Help 📖"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_response.py:25
+msgid "Sources 🧭"
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/chatbot_response.py:26
+#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Search 🔍"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:27
+#: sophie_bot/modules/ai/utils/chatbot_response.py:28
 msgid "Notes 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:28
+#: sophie_bot/modules/ai/utils/chatbot_response.py:29
 msgid "Note 🗒"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:29
+#: sophie_bot/modules/ai/utils/chatbot_response.py:30
 msgid "Research 🔎"
 msgstr ""
 
@@ -1221,40 +1225,56 @@ msgid "Looking up how Sophie works..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
-msgid "Scanning notes..."
+msgid "Digging through my own sources..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
-msgid "Looking through notes..."
+msgid "Reading my own code..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
-msgid "Reading note..."
+msgid "Scanning notes..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
-msgid "Fetching note content..."
+msgid "Looking through notes..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
-msgid "Saving note..."
+msgid "Reading note..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
-msgid "Writing to notes..."
+msgid "Fetching note content..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
-msgid "Deleting note..."
+msgid "Saving note..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
+msgid "Writing to notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:78
+msgid "Deleting note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:79
 msgid "Removing note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:183
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:187
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/deep_help.py:93
+msgid "Source inspection is not available."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/deep_help.py:96
+msgid "The daily limit for source inspection in this chat has been reached."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/message_history.py:106

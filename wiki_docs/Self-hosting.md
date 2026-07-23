@@ -99,6 +99,20 @@ restart.
 > Check `/op_aimodels` after deploying.
 > {.is-warning}
 
+### Experimental: source inspection
+
+`ai_deep_help` lets the Sophie-help assistant start a sub-agent that reads Sophie's own source code
+when the documentation cannot answer a question. It is **off by default** because it costs several
+model requests per question.
+
+Every run is bounded: `ai_deep_help_request_limit`, `ai_deep_help_tool_calls_limit` and
+`ai_deep_help_output_tokens_limit` cap one run, `ai_deep_help_daily_chat_limit` caps how many runs
+one chat may start per day, and the tokens are charged to that chat's AI quota like any other
+feature. `ai_deep_help_model` should stay on a cheap model.
+
+The sub-agent can only read `.py` files inside the `sophie_bot` package, and only through search and
+bounded reads — it never executes anything and never sees configuration or data.
+
 ## Running with Podman (Manual)
 
 If you prefer to run containers manually, you can use the following logic (based on the Quadlet templates):
