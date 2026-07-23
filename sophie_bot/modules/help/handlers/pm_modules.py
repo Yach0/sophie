@@ -4,7 +4,7 @@ from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import Doc, Heading, ListItem, Paragraph, Template, UnorderedList, Url
+from stfu_tg import Doc, Heading, ListItem, Paragraph, RichBlockQuote, Template, UnorderedList, Url
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_EMOJI
@@ -99,7 +99,7 @@ class PMModuleHelp(SophieCallbackQueryHandler):
 
         doc = Doc(Heading(f"{module.icon} {module.name}"))
         if module.description:
-            doc += Paragraph(module.description)
+            doc += RichBlockQuote(module.description)
         if module.info:
             doc += Paragraph(module.info)
 
