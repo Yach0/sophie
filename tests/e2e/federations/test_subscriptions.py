@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework import TestClient
@@ -9,15 +8,15 @@ from aiogram_test_framework.factories import ChatFactory
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.modules.federations.services import FederationManageService
+from tests.e2e.helpers import grant_admin
 
 
 @pytest.mark.asyncio
 async def test_federation_subscribe_flow(test_client: TestClient) -> None:
     """Test full federation subscription flow.
 
-    Note: ``check_user_admin_permissions`` is mocked because mongomock does not
-    support ``$id`` sub-queries on DBRef fields (e.g. ``ChatAdminModel.chat.id``).
-    All other parts of the flow (handler logic, DB writes, service calls) are real.
+    Admin rights are real ChatAdminModel state (`grant_admin`); every handler, DB write, and
+    service call runs for real.
     """
     # Create mock users
     user_a = test_client.create_user(user_id=1001, first_name="User A", username="user_a")
@@ -36,39 +35,36 @@ async def test_federation_subscribe_flow(test_client: TestClient) -> None:
     assert user_a_model is not None
     assert user_b_model is not None
 
-    # Mock check_user_admin_permissions to always grant creator rights.
-    # mongomock cannot query DBRef sub-fields (chat.$id), so the real
-    # ChatAdminModel lookup always returns None in tests.
-    admin_mock = AsyncMock(return_value=True)
+    await grant_admin(group_a.id, user_a.user.id, creator=True)
+    await grant_admin(group_b.id, user_b.user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        # 1. User A creates Federation A
-        await test_client.send_command(command="newfed", from_user=user_a.user, args="Federation A", chat=group_a)
+    # 1. User A creates Federation A
+    await test_client.send_command(command="newfed", from_user=user_a.user, args="Federation A", chat=group_a)
 
-        # Get Fed A ID from DB (use fed_name lookup; mongomock can't query DBRef sub-fields)
-        fed_a = await Federation.find_one(Federation.fed_name == "Federation A")
-        assert fed_a is not None, "Federation A should be created"
+    # Get Fed A ID from DB by name
+    fed_a = await Federation.find_one(Federation.fed_name == "Federation A")
+    assert fed_a is not None, "Federation A should be created"
 
-        # User A joins Group A to Fed A
-        await test_client.send_command(command="joinfed", from_user=user_a.user, args=fed_a.fed_id, chat=group_a)
+    # User A joins Group A to Fed A
+    await test_client.send_command(command="joinfed", from_user=user_a.user, args=fed_a.fed_id, chat=group_a)
 
-        # Verify the chat was added to the federation
-        updated_fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
-        assert updated_fed_a is not None
-        assert len(updated_fed_a.chats) == 1, "Group A should be joined to Federation A"
+    # Verify the chat was added to the federation
+    updated_fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
+    assert updated_fed_a is not None
+    assert len(updated_fed_a.chats) == 1, "Group A should be joined to Federation A"
 
-        # 2. User B creates Federation B
-        await test_client.send_command(command="newfed", from_user=user_b.user, args="Federation B", chat=group_b)
+    # 2. User B creates Federation B
+    await test_client.send_command(command="newfed", from_user=user_b.user, args="Federation B", chat=group_b)
 
-        # Get Fed B ID from DB (use fed_name lookup; mongomock can't query DBRef sub-fields)
-        fed_b = await Federation.find_one(Federation.fed_name == "Federation B")
-        assert fed_b is not None, "Federation B should be created"
+    # Get Fed B ID from DB by name
+    fed_b = await Federation.find_one(Federation.fed_name == "Federation B")
+    assert fed_b is not None, "Federation B should be created"
 
-        # User B joins Group B to Fed B
-        await test_client.send_command(command="joinfed", from_user=user_b.user, args=fed_b.fed_id, chat=group_b)
+    # User B joins Group B to Fed B
+    await test_client.send_command(command="joinfed", from_user=user_b.user, args=fed_b.fed_id, chat=group_b)
 
-        # 3. User A subscribes Fed A to Fed B
-        await test_client.send_command(command="fsub", from_user=user_a.user, args=fed_b.fed_id, chat=group_a)
+    # 3. User A subscribes Fed A to Fed B
+    await test_client.send_command(command="fsub", from_user=user_a.user, args=fed_b.fed_id, chat=group_a)
 
     # Verify DB state
     updated_fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
@@ -76,12 +72,11 @@ async def test_federation_subscribe_flow(test_client: TestClient) -> None:
     assert updated_fed_a.subscribed is not None
     assert fed_b.fed_id in updated_fed_a.subscribed, "Fed A should be subscribed to Fed B"
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        # Test duplicate subscription
-        await test_client.send_command(command="fsub", from_user=user_a.user, args=fed_b.fed_id, chat=group_a)
+    # Test duplicate subscription
+    await test_client.send_command(command="fsub", from_user=user_a.user, args=fed_b.fed_id, chat=group_a)
 
-        # 4. Unsubscribe
-        await test_client.send_command(command="funsub", from_user=user_a.user, args=fed_b.fed_id, chat=group_a)
+    # 4. Unsubscribe
+    await test_client.send_command(command="funsub", from_user=user_a.user, args=fed_b.fed_id, chat=group_a)
 
     # Verify DB state
     updated_fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
@@ -101,22 +96,19 @@ async def test_federation_subscribe_to_self_is_rejected(test_client: TestClient)
 
     group_owner = ChatFactory.create_group(chat_id=-1001000001101, title="Self Sub Group")
     await test_client.send_message(text="hello", from_user=user_owner.user, chat=group_owner)
+    await grant_admin(group_owner.id, user_owner.user.id, creator=True)
 
-    admin_mock = AsyncMock(return_value=True)
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        await test_client.send_command(
-            command="newfed", from_user=user_owner.user, args="Self Subscribe Federation", chat=group_owner
-        )
+    await test_client.send_command(
+        command="newfed", from_user=user_owner.user, args="Self Subscribe Federation", chat=group_owner
+    )
 
-        federation = await Federation.find_one(Federation.fed_name == "Self Subscribe Federation")
-        assert federation is not None, "Federation should be created"
+    federation = await Federation.find_one(Federation.fed_name == "Self Subscribe Federation")
+    assert federation is not None, "Federation should be created"
 
-        await test_client.send_command(
-            command="joinfed", from_user=user_owner.user, args=federation.fed_id, chat=group_owner
-        )
-        await test_client.send_command(
-            command="fsub", from_user=user_owner.user, args=federation.fed_id, chat=group_owner
-        )
+    await test_client.send_command(
+        command="joinfed", from_user=user_owner.user, args=federation.fed_id, chat=group_owner
+    )
+    await test_client.send_command(command="fsub", from_user=user_owner.user, args=federation.fed_id, chat=group_owner)
 
     updated_federation = await FederationManageService.get_federation_by_id(federation.fed_id)
     assert updated_federation is not None
@@ -139,31 +131,31 @@ async def test_federation_unsubscribe_without_subscription_keeps_state(test_clie
 
     await test_client.send_message(text="hello", from_user=user_source.user, chat=group_source)
     await test_client.send_message(text="hello", from_user=user_target.user, chat=group_target)
+    await grant_admin(group_source.id, user_source.user.id, creator=True)
+    await grant_admin(group_target.id, user_target.user.id, creator=True)
 
-    admin_mock = AsyncMock(return_value=True)
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        await test_client.send_command(
-            command="newfed", from_user=user_source.user, args="Funsub Source Federation", chat=group_source
-        )
-        await test_client.send_command(
-            command="newfed", from_user=user_target.user, args="Funsub Target Federation", chat=group_target
-        )
+    await test_client.send_command(
+        command="newfed", from_user=user_source.user, args="Funsub Source Federation", chat=group_source
+    )
+    await test_client.send_command(
+        command="newfed", from_user=user_target.user, args="Funsub Target Federation", chat=group_target
+    )
 
-        source_federation = await Federation.find_one(Federation.fed_name == "Funsub Source Federation")
-        target_federation = await Federation.find_one(Federation.fed_name == "Funsub Target Federation")
-        assert source_federation is not None
-        assert target_federation is not None
+    source_federation = await Federation.find_one(Federation.fed_name == "Funsub Source Federation")
+    target_federation = await Federation.find_one(Federation.fed_name == "Funsub Target Federation")
+    assert source_federation is not None
+    assert target_federation is not None
 
-        await test_client.send_command(
-            command="joinfed", from_user=user_source.user, args=source_federation.fed_id, chat=group_source
-        )
-        await test_client.send_command(
-            command="joinfed", from_user=user_target.user, args=target_federation.fed_id, chat=group_target
-        )
+    await test_client.send_command(
+        command="joinfed", from_user=user_source.user, args=source_federation.fed_id, chat=group_source
+    )
+    await test_client.send_command(
+        command="joinfed", from_user=user_target.user, args=target_federation.fed_id, chat=group_target
+    )
 
-        await test_client.send_command(
-            command="funsub", from_user=user_source.user, args=target_federation.fed_id, chat=group_source
-        )
+    await test_client.send_command(
+        command="funsub", from_user=user_source.user, args=target_federation.fed_id, chat=group_source
+    )
 
     updated_source_federation = await FederationManageService.get_federation_by_id(source_federation.fed_id)
     assert updated_source_federation is not None

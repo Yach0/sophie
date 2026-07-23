@@ -1,16 +1,20 @@
-"""Shared building blocks for e2e tests: ID allocation and chat registration."""
+"""Shared building blocks for e2e tests: ID allocation, chat registration, admin rights."""
 
 from __future__ import annotations
 
 from itertools import count
 from typing import TYPE_CHECKING
 
+from aiogram.enums import ChatMemberStatus
+from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, User
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 
 if TYPE_CHECKING:
-    from aiogram.types import Chat, User
+    from aiogram.types import Chat
     from aiogram_test_framework import TestClient
 
 # Allocated from ranges no hand-written test literal uses, so a test that still pins its own
@@ -60,3 +64,78 @@ async def create_test_user_and_group(
     assert user_model is not None, f"ChatModel for user {user_id} should exist after init message"
 
     return user_wrapper.user, group, user_model
+
+
+_ADMIN_RIGHTS = (
+    "can_manage_chat",
+    "can_delete_messages",
+    "can_manage_video_chats",
+    "can_restrict_members",
+    "can_promote_members",
+    "can_change_info",
+    "can_invite_users",
+    "can_post_stories",
+    "can_edit_stories",
+    "can_delete_stories",
+    "can_pin_messages",
+    "can_manage_topics",
+)
+
+
+async def _ensure_chat_model(tid: int, *, first_name: str, is_bot: bool) -> ChatModel:
+    chat = await ChatModel.get_by_tid(tid)
+    if chat is not None:
+        return chat
+
+    await ChatModel.upsert_user(User(id=tid, is_bot=is_bot, first_name=first_name))
+    chat = await ChatModel.get_by_tid(tid)
+    assert chat is not None
+    return chat
+
+
+async def grant_admin(
+    chat_tid: int,
+    user_tid: int,
+    *,
+    creator: bool = False,
+    is_anonymous: bool = False,
+    custom_title: str | None = None,
+    **rights: bool,
+) -> ChatAdminModel:
+    """Make a user an admin of a chat, the way Sophie itself records it.
+
+    Admin checks read ChatAdminModel rather than calling Telegram, so tests express admin
+    rights as state instead of patching `check_user_admin_permissions`. Every right defaults
+    to granted; pass `can_restrict_members=False` to withhold one.
+    """
+    chat = await ChatModel.get_by_tid(chat_tid)
+    assert chat is not None, f"Chat {chat_tid} must be registered before granting admin rights"
+    user = await _ensure_chat_model(user_tid, first_name=f"User {user_tid}", is_bot=False)
+
+    member_user = User(id=user_tid, is_bot=False, first_name=user.first_name_or_title)
+    if creator:
+        member: ChatMemberOwner | ChatMemberAdministrator = ChatMemberOwner(
+            status=ChatMemberStatus.CREATOR,
+            user=member_user,
+            is_anonymous=is_anonymous,
+            custom_title=custom_title,
+        )
+    else:
+        unknown = set(rights) - set(_ADMIN_RIGHTS)
+        assert not unknown, f"Unknown administrator rights: {sorted(unknown)}"
+        member = ChatMemberAdministrator(
+            status=ChatMemberStatus.ADMINISTRATOR,
+            user=member_user,
+            can_be_edited=False,
+            is_anonymous=is_anonymous,
+            custom_title=custom_title,
+            **{right: rights.get(right, True) for right in _ADMIN_RIGHTS},
+        )
+
+    return await ChatAdminModel.upsert_admin(chat.iid, user.iid, member)
+
+
+async def grant_bot_admin(chat_tid: int, **rights: bool) -> ChatAdminModel:
+    """Give Sophie herself admin rights in a chat, for handlers behind BotHasPermissions."""
+    await _ensure_chat_model(CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    return await grant_admin(chat_tid, CONFIG.bot_id, **rights)

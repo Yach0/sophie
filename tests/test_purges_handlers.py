@@ -21,9 +21,7 @@ def _make_event(
 ) -> SimpleNamespace:
     now = datetime.now(tz=UTC)
     reply_to_message = (
-        None
-        if reply_message_id is None
-        else SimpleNamespace(message_id=reply_message_id, date=now - reply_age)
+        None if reply_message_id is None else SimpleNamespace(message_id=reply_message_id, date=now - reply_age)
     )
     return SimpleNamespace(
         chat=SimpleNamespace(id=CHAT_TID),

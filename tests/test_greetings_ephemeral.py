@@ -23,9 +23,7 @@ async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[Si
             "sophie_bot.modules.greetings.middlewares.new_user.ws_on_new_users_mute",
             AsyncMock(return_value=muted),
         ),
-        patch(
-            "sophie_bot.modules.greetings.middlewares.new_user.is_enabled", AsyncMock(return_value=ephemeral)
-        ),
+        patch("sophie_bot.modules.greetings.middlewares.new_user.is_enabled", AsyncMock(return_value=ephemeral)),
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.send_welcome",
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
@@ -118,9 +116,7 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
             "sophie_bot.modules.greetings.middlewares.new_user.NewUserMiddleware.is_join_request",
             AsyncMock(return_value=False),
         ),
-        patch(
-            "sophie_bot.modules.greetings.middlewares.new_user.NewUserMiddleware.cleanup", AsyncMock()
-        ) as cleanup,
+        patch("sophie_bot.modules.greetings.middlewares.new_user.NewUserMiddleware.cleanup", AsyncMock()) as cleanup,
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.send_welcome",
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
@@ -134,7 +130,9 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
 
 @pytest.mark.asyncio
 async def test_ephemeral_welcome_greets_every_human_member_separately() -> None:
-    send_welcome, cleanup = await _run_welcome(ephemeral=True, members=[_member(1), _member(2), _member(3, is_bot=True)])
+    send_welcome, cleanup = await _run_welcome(
+        ephemeral=True, members=[_member(1), _member(2), _member(3, is_bot=True)]
+    )
 
     calls = send_welcome.await_args_list
     assert [call.kwargs["receiver_user_id"] for call in calls] == [1, 2]

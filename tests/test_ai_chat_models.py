@@ -34,9 +34,7 @@ def _catalog() -> AICatalog:
         version="1",
         providers={provider.name: provider},
         models={
-            name: CatalogModel(
-                name=name, provider=provider, api_name=name, supports_reasoning=True, extra_params=None
-            )
+            name: CatalogModel(name=name, provider=provider, api_name=name, supports_reasoning=True, extra_params=None)
             for name in names
         },
         roles={
@@ -63,9 +61,7 @@ def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
 
 async def test_override_flag_wins_over_the_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     built = _patch_model_builder(monkeypatch)
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value="custom/model")
-    )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value="custom/model"))
 
     model = await get_chat_default_model(PydanticObjectId(), chat_tid=-100123)
 

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
-_ADMIN_PERMS_PATCH = "sophie_bot.filters.admin_rights.check_user_admin_permissions"
+from tests.e2e.helpers import grant_admin
 
 
 @pytest.mark.asyncio
@@ -36,13 +34,13 @@ async def test_disabled_lists_empty_for_admin(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=928000002, first_name="Admin", username="admin_user")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
-    with patch(_ADMIN_PERMS_PATCH, new=AsyncMock(return_value=True)):
-        requests = await test_client.send_command(
-            command="disabled",
-            from_user=admin_wrapper.user,
-            chat=group_chat,
-        )
+    requests = await test_client.send_command(
+        command="disabled",
+        from_user=admin_wrapper.user,
+        chat=group_chat,
+    )
 
     assert requests, "Bot should respond to /disabled"
     assert any("No disabled commands" in (response.text or "") for response in requests)

@@ -103,9 +103,7 @@ async def test_legacy_button_request_beats_stale_state(db_init: Any, monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_legacy_button_does_not_reuse_other_chats_captcha(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_legacy_button_does_not_reuse_other_chats_captcha(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     """The abandoned chat's captcha progress must not be carried into the requested chat."""
     del db_init
     group_a, group_b = await _build_groups()

@@ -17,8 +17,12 @@ import pytest
 from aiogram.enums import ContentType
 from aiogram.types import Chat, Message, PhotoSize, Update, User
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory, MessageFactory, UpdateFactory
+from aiogram_test_framework.factories import ChatFactory
+
+from aiogram_test_framework.factories import MessageFactory, UpdateFactory
 from aiogram_test_framework.types import RequestType
+
+from tests.e2e.helpers import grant_admin
 
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import NoteFile, Saveable
@@ -141,6 +145,7 @@ async def test_save_reply_to_album_saves_first_and_warns(
     group_chat = ChatFactory.create_group(chat_id=CHAT_ID, title="Album Reply Group")
     user_wrapper = test_client.create_user(user_id=USER_ID, first_name="AdminReply", username="admin_reply")
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     replied_photo = _photo_message(500, media_group_id="reply-album")
     command_message = MessageFactory.create(
@@ -152,7 +157,6 @@ async def test_save_reply_to_album_saves_first_and_warns(
     update = UpdateFactory.create_message_update(command_message)
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
     ):
         start = len(test_client.capture)

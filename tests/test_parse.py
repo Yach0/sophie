@@ -82,9 +82,7 @@ async def test_parse_saveable_allows_caption_length_text_without_caption_support
 
     with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
         mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.STICKER)
-        result = await parse_saveable(
-            message, text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), buttons=ButtonsList()
-        )
+        result = await parse_saveable(message, text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), buttons=ButtonsList())
 
     assert result.text == "A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1)
 

@@ -1,56 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 from aiogram import F, Router
-from aiogram.enums import ChatMemberStatus
-from aiogram.types import CallbackQuery, Chat, ChatMemberAdministrator, Message, Update, User
+from aiogram.types import CallbackQuery, Chat, Message, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 from aiogram_test_framework.types import RequestType
 
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
-from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-
-
-@dataclass
-class _FakeUserLink:
-    """Mimics a Beanie Link[ChatModel] with an async fetch() method."""
-
-    user_model: Any
-
-    async def fetch(self) -> Any:
-        return self.user_model
-
-
-@dataclass
-class _FakeAdminEntry:
-    """Mimics a ChatAdminModel document returned by ChatAdminModel.find()."""
-
-    member: Any
-    user: _FakeUserLink
-
-
-class _FakeAdminsQuery:
-    """Mimics the Beanie FindMany query object returned by ChatAdminModel.find().
-
-    mongomock cannot handle DBRef sub-field queries (e.g. ``chat.$id``), so this
-    stand-in is used to return pre-built admin entries in e2e tests.
-    """
-
-    def __init__(self, admin_entries: list[_FakeAdminEntry]) -> None:
-        self._entries = admin_entries
-
-    async def to_list(self) -> list[_FakeAdminEntry]:
-        return self._entries
-
+from tests.e2e.helpers import grant_admin
 
 TEST_ROUTER = Router(name="admin_rights_e2e_router")
 
@@ -76,25 +40,22 @@ async def e2e_admin_cb_handler(callback: CallbackQuery) -> None:
     await callback.answer("E2E_CB_OK")
 
 
-def _build_admin_member(user: User, can_restrict_members: bool, title: str) -> ChatMemberAdministrator:
-    return ChatMemberAdministrator(
-        status=ChatMemberStatus.ADMINISTRATOR,
-        user=user,
-        can_be_edited=False,
-        is_anonymous=True,
-        can_manage_chat=True,
-        can_delete_messages=True,
-        can_manage_video_chats=True,
-        can_restrict_members=can_restrict_members,
-        can_promote_members=False,
-        can_change_info=False,
-        can_invite_users=True,
-        can_post_stories=False,
-        can_edit_stories=False,
-        can_delete_stories=False,
-        can_pin_messages=False,
-        can_manage_topics=False,
-        custom_title=title,
+def _anonymous_message(chat: Chat, *, message_id: int, title: str, thread_id: int) -> Message:
+    return Message(
+        message_id=message_id,
+        date=datetime.now(timezone.utc),
+        chat=chat,
+        from_user=User(
+            id=TELEGRAM_ANONYMOUS_ADMIN_BOT_ID,
+            is_bot=True,
+            first_name="GroupAnonymousBot",
+            username="GroupAnonymousBot",
+        ),
+        sender_chat=chat,
+        author_signature=title,
+        is_topic_message=True,
+        message_thread_id=thread_id,
+        text="/e2e_restrict_required",
     )
 
 
@@ -172,46 +133,15 @@ async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
     await test_client.send_message(text="init", from_user=first_admin.user, chat=group_chat)
     await test_client.send_message(text="init", from_user=second_admin.user, chat=group_chat)
 
-    chat_model = await ChatModel.get_by_tid(group_chat.id)
-    first_admin_model = await ChatModel.get_by_tid(first_admin.user.id)
-    second_admin_model = await ChatModel.get_by_tid(second_admin.user.id)
-    assert chat_model is not None
-    assert first_admin_model is not None
-    assert second_admin_model is not None
-
-    member_one = _build_admin_member(first_admin.user, can_restrict_members=True, title="Moderator")
-    member_two = _build_admin_member(second_admin.user, can_restrict_members=False, title="Moderator")
-
-    # Build fake admin entries to work around mongomock's inability to query
-    # DBRef sub-fields (``chat.$id``) used by ChatAdminModel.find().
-    fake_admins = [
-        _FakeAdminEntry(member=member_one, user=_FakeUserLink(first_admin_model)),
-        _FakeAdminEntry(member=member_two, user=_FakeUserLink(second_admin_model)),
-    ]
-
-    anonymous_message = Message(
-        message_id=5551,
-        date=datetime.now(timezone.utc),
-        chat=group_chat,
-        from_user=User(
-            id=TELEGRAM_ANONYMOUS_ADMIN_BOT_ID,
-            is_bot=True,
-            first_name="GroupAnonymousBot",
-            username="GroupAnonymousBot",
-        ),
-        sender_chat=group_chat,
-        author_signature="Moderator",
-        is_topic_message=True,
-        message_thread_id=77,
-        text="/e2e_restrict_required",
+    # Two anonymous admins share a title but disagree on can_restrict_members, so the identity
+    # behind the signature is ambiguous and the action must be refused.
+    await grant_admin(group_chat.id, first_admin.user.id, is_anonymous=True, custom_title="Moderator")
+    await grant_admin(
+        group_chat.id, second_admin.user.id, is_anonymous=True, custom_title="Moderator", can_restrict_members=False
     )
 
-    # Patch needs to target where the object is looked up, not where it's defined.
-    # This ensures the patch works correctly in parallel test execution.
-    from sophie_bot.filters import admin_rights as admin_rights_module
-
-    with patch.object(admin_rights_module.ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
-        requests = await _new_requests_for_update(test_client, Update(update_id=88001, message=anonymous_message))
+    anonymous_message = _anonymous_message(group_chat, message_id=5551, title="Moderator", thread_id=77)
+    requests = await _new_requests_for_update(test_client, Update(update_id=88001, message=anonymous_message))
 
     assert requests, "Bot should respond to ambiguous anonymous admin identity."
     assert any("Multiple anonymous admins share this title" in (request.text or "") for request in requests)
@@ -229,44 +159,13 @@ async def test_anonymous_admin_duplicate_title_all_permissions_allowed(
     await test_client.send_message(text="init", from_user=first_admin.user, chat=group_chat)
     await test_client.send_message(text="init", from_user=second_admin.user, chat=group_chat)
 
-    chat_model = await ChatModel.get_by_tid(group_chat.id)
-    first_admin_model = await ChatModel.get_by_tid(first_admin.user.id)
-    second_admin_model = await ChatModel.get_by_tid(second_admin.user.id)
-    assert chat_model is not None
-    assert first_admin_model is not None
-    assert second_admin_model is not None
+    # Both anonymous admins share the title and both may restrict, so the signature is
+    # unambiguous with respect to the required permission and the action is allowed.
+    await grant_admin(group_chat.id, first_admin.user.id, is_anonymous=True, custom_title="Guardian")
+    await grant_admin(group_chat.id, second_admin.user.id, is_anonymous=True, custom_title="Guardian")
 
-    member_three = _build_admin_member(first_admin.user, can_restrict_members=True, title="Guardian")
-    member_four = _build_admin_member(second_admin.user, can_restrict_members=True, title="Guardian")
-
-    # Build fake admin entries to work around mongomock DBRef query limitation.
-    fake_admins = [
-        _FakeAdminEntry(member=member_three, user=_FakeUserLink(first_admin_model)),
-        _FakeAdminEntry(member=member_four, user=_FakeUserLink(second_admin_model)),
-    ]
-
-    anonymous_message = Message(
-        message_id=5552,
-        date=datetime.now(timezone.utc),
-        chat=group_chat,
-        from_user=User(
-            id=TELEGRAM_ANONYMOUS_ADMIN_BOT_ID,
-            is_bot=True,
-            first_name="GroupAnonymousBot",
-            username="GroupAnonymousBot",
-        ),
-        sender_chat=group_chat,
-        author_signature="Guardian",
-        is_topic_message=True,
-        message_thread_id=91,
-        text="/e2e_restrict_required",
-    )
-
-    # Patch needs to target where the object is looked up, not where it's defined.
-    from sophie_bot.filters import admin_rights as admin_rights_module
-
-    with patch.object(admin_rights_module.ChatAdminModel, "find", lambda *_a, **_kw: _FakeAdminsQuery(fake_admins)):
-        requests = await _new_requests_for_update(test_client, Update(update_id=88002, message=anonymous_message))
+    anonymous_message = _anonymous_message(group_chat, message_id=5552, title="Guardian", thread_id=91)
+    requests = await _new_requests_for_update(test_client, Update(update_id=88002, message=anonymous_message))
 
     assert requests, "Bot should respond when anonymous admin permissions are valid."
     assert any((request.text or "") == "E2E_RESTRICT_OK" for request in requests)

@@ -94,9 +94,7 @@ async def test_warn_filter_action_still_warns_non_admins(monkeypatch: pytest.Mon
     target_db = SimpleNamespace(tid=777, iid="user_iid")
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
-    monkeypatch.setattr(
-        "sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=False)
-    )
+    monkeypatch.setattr("sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=False))
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
         AsyncMock(return_value=bot_db),
@@ -137,9 +135,7 @@ async def test_warn_action_data_survives_the_admin_gate(monkeypatch: pytest.Monk
         return 1, 3, None, SimpleNamespace(id="warn_iid")
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", fake_warn_user)
-    monkeypatch.setattr(
-        "sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=False)
-    )
+    monkeypatch.setattr("sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=False))
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
         AsyncMock(return_value=SimpleNamespace(tid=1234, iid="bot_iid")),

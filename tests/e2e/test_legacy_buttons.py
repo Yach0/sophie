@@ -365,10 +365,8 @@ async def test_legacy_welcomesecurity_deep_link_still_starts_captcha(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.is_user",
         AsyncMock(return_value=SimpleNamespace(is_join_request=True)),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.is_user_admin",
-        AsyncMock(return_value=False),
-    )
+    # is_user_admin reads ChatAdminModel state; the captcha user was never granted admin, so the
+    # real lookup already returns False.
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.FederationManageService.get_federation_for_chat",
         AsyncMock(return_value=None),

@@ -11,11 +11,12 @@ Tests cover:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
+
+from tests.e2e.helpers import grant_admin
 
 
 # ---------------------------------------------------------------------------
@@ -83,16 +84,13 @@ async def test_enablewelcome_shows_status(
     admin_wrapper = test_client.create_user(user_id=930000003, first_name="Admin", username="admin_enable")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="enablewelcome",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="enablewelcome",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /enablewelcome from admin"
     response_text = requests[-1].text or ""
@@ -117,17 +115,14 @@ async def test_setwelcome_success(
     admin_wrapper = test_client.create_user(user_id=930000004, first_name="Admin", username="admin_setwelcome")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="setwelcome",
-            from_user=admin_wrapper.user,
-            chat=group,
-            args="Hello new member!",
-        )
+    requests = await test_client.send_command(
+        command="setwelcome",
+        from_user=admin_wrapper.user,
+        chat=group,
+        args="Hello new member!",
+    )
 
     assert requests, "Bot should respond to /setwelcome from admin"
     response_text = requests[-1].text or ""
@@ -194,16 +189,13 @@ async def test_cleanservice_shows_status(
     admin_wrapper = test_client.create_user(user_id=930000007, first_name="Admin", username="admin_cleanservice")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="cleanservice",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="cleanservice",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /cleanservice from admin"
     response_text = requests[-1].text or ""
@@ -227,16 +219,13 @@ async def test_cleanwelcome_shows_status(
     admin_wrapper = test_client.create_user(user_id=930000008, first_name="Admin", username="admin_cleanwelcome")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="cleanwelcome",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="cleanwelcome",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /cleanwelcome from admin"
     response_text = requests[-1].text or ""
@@ -260,16 +249,13 @@ async def test_deljoinrequest_no_message_set(
     admin_wrapper = test_client.create_user(user_id=930000009, first_name="Admin", username="admin_deljoinreq")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="deljoinrequest",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="deljoinrequest",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /deljoinrequest from admin"
     response_text = requests[-1].text or ""

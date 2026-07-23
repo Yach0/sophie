@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from tests.e2e.helpers import grant_admin
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -36,11 +37,11 @@ def _apply_ai_moderation_off(stack: ExitStack) -> None:
 
 
 def _apply_ai_admin_patches(stack: ExitStack) -> None:
-    """Enter patches that bypass admin, AI-enabled, and quota filters."""
+    """Enter patches that bypass the AI-enabled and quota filters.
+
+    Admin rights are real ChatAdminModel state -- see `grant_admin`.
+    """
     _apply_ai_moderation_off(stack)
-    stack.enter_context(
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True))
-    )
     stack.enter_context(
         patch(
             "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
@@ -80,6 +81,7 @@ async def test_ai_summaries_shows_status(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000041, first_name="AdminSummaries", username="admin_summaries")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -103,6 +105,7 @@ async def test_ai_note_titles_shows_status(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000042, first_name="AdminTitles", username="admin_titles")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -181,6 +184,7 @@ async def test_aiusage_not_available(test_client: TestClient) -> None:
     user_wrapper = test_client.create_user(user_id=929000006, first_name="NoDataUser", username="nodata_user")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -213,6 +217,7 @@ async def test_aireset_success(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000007, first_name="AdminReset", username="admin_reset")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     mock_reset_messages = AsyncMock()
     mock_clear = AsyncMock()
@@ -271,6 +276,7 @@ async def test_aimode_shows_mode_picker(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000009, first_name="AdminMode", username="admin_mode")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -350,6 +356,7 @@ async def test_translate_empty_text_error(test_client: TestClient) -> None:
     user_wrapper = test_client.create_user(user_id=929000011, first_name="EmptyTransUser", username="empty_trans")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -379,6 +386,7 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
     user_wrapper = test_client.create_user(user_id=929000012, first_name="FailTransUser", username="fail_trans")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)

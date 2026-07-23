@@ -109,9 +109,7 @@ async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch) -
         },
         roles={(AIMode.entertainment, AIModelPurpose.chatbot): "some/model"},
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.handlers.op_prices.get_catalog", AsyncMock(return_value=catalog)
-    )
+    monkeypatch.setattr("sophie_bot.modules.ai.handlers.op_prices.get_catalog", AsyncMock(return_value=catalog))
 
     await op_ai_prices_handler(message)
 

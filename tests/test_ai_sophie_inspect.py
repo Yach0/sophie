@@ -63,7 +63,9 @@ async def test_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def test_daily_limit_stops_further_runs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=False))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=False)
+    )
     started = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", started)
 
@@ -91,7 +93,9 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch) -> 
         lambda model_name: SimpleNamespace(model_name=model_name),
     )
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
-    run = AsyncMock(return_value=SimpleNamespace(output="Notes are saved with /save.", usage=SimpleNamespace(total_tokens=10)))
+    run = AsyncMock(
+        return_value=SimpleNamespace(output="Notes are saved with /save.", usage=SimpleNamespace(total_tokens=10))
+    )
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", run)
     charge = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.charge_ai_usage", charge)

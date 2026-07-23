@@ -14,6 +14,7 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
+from tests.e2e.helpers import grant_admin
 from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
 from sophie_bot.modules.notes.handlers.save import SaveNote
 
@@ -26,6 +27,7 @@ async def _setup_group_and_user(
     group_title: str,
     first_name: str,
     username: str,
+    admin: bool = False,
 ) -> tuple[Any, Any, ChatModel]:
     """Create a group and user, send init to register both in DB."""
     group_chat = ChatFactory.create_group(chat_id=chat_id, title=group_title)
@@ -35,6 +37,9 @@ async def _setup_group_and_user(
 
     chat_model = await ChatModel.get_by_tid(chat_id)
     assert chat_model is not None, f"ChatModel for group {chat_id} should exist after init"
+
+    if admin:
+        await grant_admin(chat_id, user_id)
 
     return user_wrapper, group_chat, chat_model
 
@@ -70,10 +75,10 @@ async def test_save_note_success(
         group_title="Notes Save Group",
         first_name="AdminSave",
         username="admin_save",
+        admin=True,
     )
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
     ):
         requests = await test_client.send_command(
@@ -384,6 +389,7 @@ async def test_delnote_success(
         group_title="Notes Delete Group",
         first_name="AdminDeleter",
         username="admin_deleter",
+        admin=True,
     )
 
     note = await _save_note_directly(chat_model, ("obsolete",), "This note is outdated")
@@ -391,7 +397,6 @@ async def test_delnote_success(
     get_note_mock = AsyncMock(return_value=note)
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
         patch.object(NoteModel, "get_by_notenames", get_note_mock),
     ):
@@ -461,11 +466,11 @@ async def test_delnote_not_found(
         group_title="Notes DelNotFound Group",
         first_name="DelFinder",
         username="del_finder",
+        admin=True,
     )
 
     get_note_mock = AsyncMock(return_value=None)
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch.object(NoteModel, "get_by_notenames", get_note_mock),
     ):
         requests = await test_client.send_command(
@@ -504,10 +509,10 @@ async def test_save_note_stores_names_lowercased(
         group_title="Notes Case Group",
         first_name="AdminCase",
         username="admin_case",
+        admin=True,
     )
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
     ):
         requests = await test_client.send_command(

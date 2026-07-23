@@ -6,9 +6,7 @@ from sophie_bot.services import sentry
 
 
 @pytest.mark.parametrize("placeholder", ["No commit", "unknown"])
-def test_release_is_bare_version_for_placeholder_commits(
-    monkeypatch: pytest.MonkeyPatch, placeholder: str
-) -> None:
+def test_release_is_bare_version_for_placeholder_commits(monkeypatch: pytest.MonkeyPatch, placeholder: str) -> None:
     monkeypatch.setattr(sentry, "SOPHIE_COMMIT", placeholder)
     monkeypatch.setattr(sentry, "SOPHIE_VERSION", "4.4.1")
 

@@ -742,9 +742,7 @@ async def test_ai_settings_to_mode_derives_one_mode_per_chat() -> None:
     plain_chat, moderated_chat, off_chat = ObjectId(), ObjectId(), ObjectId()
 
     await enabled.insert_many([{"chat": plain_chat}, {"chat": moderated_chat}])
-    await moderator.insert_many(
-        [{"chat": moderated_chat, "enabled": True}, {"chat": off_chat, "enabled": True}]
-    )
+    await moderator.insert_many([{"chat": moderated_chat, "enabled": True}, {"chat": off_chat, "enabled": True}])
 
     await migration.Forward.migrate.run(None)
 
@@ -761,9 +759,7 @@ async def test_ai_settings_to_mode_backward_restores_only_enabled_chats() -> Non
     await _reset_collections("ai_enabled", "ai_mode")
     support_chat, disabled_chat = ObjectId(), ObjectId()
 
-    await modes.insert_many(
-        [{"chat": support_chat, "mode": "support"}, {"chat": disabled_chat, "mode": "disabled"}]
-    )
+    await modes.insert_many([{"chat": support_chat, "mode": "support"}, {"chat": disabled_chat, "mode": "disabled"}])
 
     await migration.Backward.migrate.run(None)
 
@@ -797,9 +793,7 @@ async def test_seeded_catalog_covers_every_purpose_every_mode_falls_back_to() ->
     """The support tier answers for any mode with no model of its own, so it must be complete."""
     migration = _ai_catalog_migration()
 
-    roles = {
-        (role["mode"], role["purpose"]) for model in migration._MODELS for role in model["roles"]
-    }
+    roles = {(role["mode"], role["purpose"]) for model in migration._MODELS for role in model["roles"]}
 
     assert {"chatbot", "translation", "filters"} <= {purpose for mode, purpose in roles if mode == "support"}
     assert {"summary", "moderation_reason"} <= {purpose for mode, purpose in roles if mode is None}
@@ -839,7 +833,9 @@ async def test_sophie_inspect_migration_replaces_the_role_it_used_to_write() -> 
     models = get_collection("ai_catalog_model")
     await _reset_collections("ai_catalog_model")
 
-    await models.insert_one({"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [migration._LEGACY_ROLE]})
+    await models.insert_one(
+        {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [migration._LEGACY_ROLE]}
+    )
 
     await migration.Forward.migrate.run(None)
 

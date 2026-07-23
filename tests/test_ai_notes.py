@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 
-
-
-
 class _FakeNote:
     last_get_by_notenames: tuple[object, tuple[str, ...]] | None = None
 
@@ -18,5 +15,3 @@ class _FakeNote:
 
     async def insert(self) -> None:
         return None
-
-
