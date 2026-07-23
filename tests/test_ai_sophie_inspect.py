@@ -226,3 +226,27 @@ def test_help_mode_prompt_refuses_off_topic_and_names_the_way_out() -> None:
     assert "Refuse anything that is not about Sophie" in prompt
     assert "Exit AI help" in prompt
     assert str(AI_PM_STOP_HELP_TEXT).endswith("Exit AI help")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_a_stale_catalog_row_does_not_stop_the_bot() -> None:
+    """The catalog outlives the code that wrote it: an unreadable row costs that row, nothing more."""
+    from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
+    from sophie_bot.services.db import get_collection
+
+    providers, models = get_collection("ai_catalog_provider"), get_collection("ai_catalog_model")
+    await providers.delete_many({})
+    await models.delete_many({})
+    await providers.insert_one({"name": "openrouter", "kind": "openrouter", "api_key": "k", "enabled": True})
+    await models.insert_many(
+        [
+            # Written by an older version, under a purpose that has since been renamed.
+            {"name": "stale/model", "provider": "openrouter", "roles": [{"purpose": "deep_help"}], "enabled": True},
+            {"name": "good/model", "provider": "openrouter", "roles": [{"purpose": "chatbot"}], "enabled": True},
+        ]
+    )
+
+    catalog = await load_catalog()
+
+    assert "good/model" in catalog.models
+    assert "stale/model" not in catalog.models

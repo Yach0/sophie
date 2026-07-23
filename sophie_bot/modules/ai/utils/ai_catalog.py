@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Mapping, TypeVar
+
+from beanie import Document
+from pydantic import ValidationError
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
@@ -70,6 +73,30 @@ async def bump_version() -> None:
     await aredis.incr(_VERSION_KEY)  # ty: ignore[invalid-await]
 
 
+DocumentT = TypeVar("DocumentT", bound=Document)
+
+
+async def _load_enabled(document_type: type[DocumentT]) -> list[DocumentT]:
+    """Parse enabled rows one by one, dropping any the current code cannot read.
+
+    The catalog is edited at runtime and outlives the code that wrote it, so a row left behind by
+    an older version — a purpose that has since been renamed, a provider kind that no longer
+    exists — must cost that one row, not the bot's ability to start.
+    """
+    parsed: list[DocumentT] = []
+    async for raw_document in document_type.get_pymongo_collection().find({"enabled": True}):
+        try:
+            parsed.append(document_type.model_validate(raw_document))
+        except ValidationError as error:
+            log.warning(
+                "AI catalog row skipped: it does not match the current schema",
+                collection=document_type.get_collection_name(),
+                name=raw_document.get("name"),
+                error=str(error),
+            )
+    return parsed
+
+
 async def load_catalog() -> AICatalog:
     global _catalog
 
@@ -80,12 +107,12 @@ async def load_catalog() -> AICatalog:
             base_url=provider.base_url,
             api_key=provider.api_key,
         )
-        async for provider in AICatalogProviderModel.find(AICatalogProviderModel.enabled == True)  # noqa: E712
+        for provider in await _load_enabled(AICatalogProviderModel)
     }
 
     models: dict[str, CatalogModel] = {}
     roles: dict[tuple[AIMode | None, AIModelPurpose], str] = {}
-    async for stored_model in AICatalogModelModel.find(AICatalogModelModel.enabled == True):  # noqa: E712
+    for stored_model in await _load_enabled(AICatalogModelModel):
         provider = providers.get(stored_model.provider)
         if provider is None:
             log.warning(
