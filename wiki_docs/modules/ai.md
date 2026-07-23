@@ -27,7 +27,7 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/ai` | - | Start the AI ChatBot mode |  |
+| `/ai` `/pm` | - | Start the AI ChatBot mode |  |
 {.card-view-on-mobile}
 
 ### Only admins

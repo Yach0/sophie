@@ -15,9 +15,9 @@ def format_cmd(cmd: str) -> Element:
 
 
 def format_cmd_args(arguments: dict[str, ArgFabric], as_code: bool = False) -> HList:
-    formatted_descriptions = (
-        Code(f"<{arg.description}>") if as_code else f"<{arg.description}>" for arg in arguments.values()
-    )
+    # An argument with no description has nothing to show: rendering it anyway printed "<None>".
+    described = [arg for arg in arguments.values() if arg.description]
+    formatted_descriptions = (Code(f"<{arg.description}>") if as_code else f"<{arg.description}>" for arg in described)
     return HList(*formatted_descriptions)
 
 

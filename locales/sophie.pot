@@ -3806,15 +3806,15 @@ msgstr ""
 msgid "Shows help overview for all modules"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:48
-#, python-brace-format
-msgid "💬{ai_emoji} Chat with Sophie for help"
-msgstr ""
-
-#: sophie_bot/modules/help/handlers/pm_modules.py:69
+#: sophie_bot/modules/help/handlers/pm_modules.py:61
 #: sophie_bot/modules/help/handlers/pm_modules.py:127
 #: sophie_bot/modules/privacy/handlers/privacy.py:38
 msgid "⬅️ Back"
+msgstr ""
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:65
+#, python-brace-format
+msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:73
@@ -5742,7 +5742,15 @@ msgid "Also provides the ability to unpin messages when needed."
 msgstr ""
 
 #: sophie_bot/modules/pins/handlers/pin.py:17
-msgid "Pins replied message"
+msgid "Pins the replied message, silently unless loud or notify is given"
+msgstr ""
+
+#: sophie_bot/modules/pins/handlers/pin.py:30
+msgid "loud"
+msgstr ""
+
+#: sophie_bot/modules/pins/handlers/pin.py:31
+msgid "notify"
 msgstr ""
 
 #: sophie_bot/modules/pins/handlers/pin.py:37
@@ -5754,7 +5762,11 @@ msgid "I don't have enough rights to pin messages in this chat."
 msgstr ""
 
 #: sophie_bot/modules/pins/handlers/unpin.py:14
-msgid "Unpins message"
+msgid "Unpins the replied message, or every pinned message with all"
+msgstr ""
+
+#: sophie_bot/modules/pins/handlers/unpin.py:27
+msgid "all"
 msgstr ""
 
 #: sophie_bot/modules/privacy/__init__.py:33

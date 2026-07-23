@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Mapping, TypeVar
 
 from beanie import Document
+from beanie.exceptions import CollectionWasNotInitialized
 from pydantic import ValidationError
 
 from sophie_bot.db.models.ai.ai_catalog import (
@@ -84,7 +85,15 @@ async def _load_enabled(document_type: type[DocumentT]) -> list[DocumentT]:
     exists — must cost that one row, not the bot's ability to start.
     """
     parsed: list[DocumentT] = []
-    async for raw_document in document_type.get_pymongo_collection().find({"enabled": True}):
+    try:
+        collection = document_type.get_pymongo_collection()
+    except CollectionWasNotInitialized:
+        # Tools that load the modules without a database, such as the wiki generator, get an empty
+        # catalog rather than a crash.
+        log.warning("AI catalog is unavailable: the database is not initialised")
+        return parsed
+
+    async for raw_document in collection.find({"enabled": True}):
         try:
             parsed.append(document_type.model_validate(raw_document))
         except ValidationError as error:

@@ -44,14 +44,6 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         buttons = InlineKeyboardBuilder()
 
         buttons.row(
-            InlineKeyboardButton(
-                text=str(Template(_("💬{ai_emoji} Chat with Sophie for help"), ai_emoji=AI_EMOJI)),
-                callback_data=AIChatCallback().pack(),
-                style="primary",
-            )
-        )
-
-        buttons.row(
             *(
                 InlineKeyboardButton(
                     text=f"{module.icon} {module.name}",
@@ -67,6 +59,14 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
 
         if callback_data and callback_data.back_to_start:
             buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start", style="primary"))
+
+        buttons.row(
+            InlineKeyboardButton(
+                text=str(Template(_("💬{ai_emoji} Chat with Sophie for help"), ai_emoji=AI_EMOJI)),
+                callback_data=AIChatCallback().pack(),
+                style="primary",
+            )
+        )
 
         doc = Doc(
             Heading(_("Help")),

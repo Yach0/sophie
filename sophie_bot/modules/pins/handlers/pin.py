@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Pins replied message"))
+@flags.help(description=l_("Pins the replied message, silently unless loud or notify is given"))
 class PinHandler(SophieMessageHandler):
     @staticmethod
     def filters():
@@ -27,8 +27,8 @@ class PinHandler(SophieMessageHandler):
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict):
         return {
-            "loud": OptionalArg(EqualsArg("loud")),
-            "notify": OptionalArg(EqualsArg("notify")),
+            "loud": OptionalArg(EqualsArg("loud", l_("loud"))),
+            "notify": OptionalArg(EqualsArg("notify", l_("notify"))),
         }
 
     async def handle(self):
