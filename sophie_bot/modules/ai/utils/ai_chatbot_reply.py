@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InputRichMessage, Message, ReplyParameters
 from pydantic_ai.messages import ModelRequest, ModelResponse
@@ -32,7 +31,6 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
-from sophie_bot.modules.ai.utils.draft_stream import MessageDraftStreamer, RichMessageDraftStreamer
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
@@ -155,16 +153,8 @@ async def _generate_chatbot_result(
     on_research_progress: ResearchProgressCallback | None = None,
     on_retry: AIRetryCallback | None = None,
     user_text: str | None = None,
-    use_rich_draft: bool = False,
     mode: AIMode = AIMode.support,
 ) -> AIAgentResult[str]:
-    allow_draft_streaming = message.chat.type == ChatType.PRIVATE and not explicit_debug_mode and on_text_stream is None
-    if allow_draft_streaming and use_rich_draft:
-        draft_streamer: MessageDraftStreamer | RichMessageDraftStreamer = RichMessageDraftStreamer(
-            message=message, enabled=True
-        )
-    else:
-        draft_streamer = MessageDraftStreamer(message=message, enabled=allow_draft_streaming)
     run_config = await build_chatbot_run_config(
         connection.tid,
         connection,
@@ -177,12 +167,12 @@ async def _generate_chatbot_result(
         mode=mode,
     )
 
-    if on_text_stream is not None or allow_draft_streaming:
+    if on_text_stream is not None:
         return await run_ai_stream(
             run_config.agent,
             user_prompt=history.prompt,
             message_history=history.message_history,
-            on_text_stream=on_text_stream or draft_streamer.stream,
+            on_text_stream=on_text_stream,
             deps=run_config.deps,
             usage_limits=run_config.usage_limits,
             request_options=run_config.request_options,
@@ -281,7 +271,6 @@ async def ai_chatbot_reply(
                 on_research_progress=message_streamer.update_research_progress if message_streamer else None,
                 on_retry=message_streamer.update_retrying if message_streamer else None,
                 user_text=user_text,
-                use_rich_draft=use_rich_streaming,
                 mode=mode,
             )
         except AIRequestFailed as err:
