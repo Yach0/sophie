@@ -713,3 +713,93 @@ async def test_relink_legacy_note_users_relinks_edited_user() -> None:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+async def _reset_collections(*names: str) -> None:
+    """db_init is session-scoped, so collections carry over between tests."""
+    for name in names:
+        await get_collection(name).delete_many({})
+
+
+def _ai_mode_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_140000_migrate_ai_settings_to_mode")
+
+
+def _ai_catalog_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_150000_seed_ai_catalog")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_ai_settings_to_mode_derives_one_mode_per_chat() -> None:
+    """A chat's old enabled/moderator pair decides its mode; chats with neither stay disabled."""
+    migration = _ai_mode_migration()
+    enabled, moderator, modes = (
+        get_collection("ai_enabled"),
+        get_collection("ai_moderator"),
+        get_collection("ai_mode"),
+    )
+    await _reset_collections("ai_enabled", "ai_moderator", "ai_mode")
+    plain_chat, moderated_chat, off_chat = ObjectId(), ObjectId(), ObjectId()
+
+    await enabled.insert_many([{"chat": plain_chat}, {"chat": moderated_chat}])
+    await moderator.insert_many(
+        [{"chat": moderated_chat, "enabled": True}, {"chat": off_chat, "enabled": True}]
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    stored = {document["chat"]: document["mode"] async for document in modes.find({})}
+    assert stored == {plain_chat: "support", moderated_chat: "moderation"}
+    # A chat that had the moderator configured but AI switched off must not gain AI features.
+    assert off_chat not in stored
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_ai_settings_to_mode_backward_restores_only_enabled_chats() -> None:
+    migration = _ai_mode_migration()
+    modes, enabled = get_collection("ai_mode"), get_collection("ai_enabled")
+    await _reset_collections("ai_enabled", "ai_mode")
+    support_chat, disabled_chat = ObjectId(), ObjectId()
+
+    await modes.insert_many(
+        [{"chat": support_chat, "mode": "support"}, {"chat": disabled_chat, "mode": "disabled"}]
+    )
+
+    await migration.Backward.migrate.run(None)
+
+    restored = [document["chat"] async for document in enabled.find({})]
+    assert restored == [support_chat]
+    assert await modes.count_documents({}) == 0
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_seed_ai_catalog_is_idempotent_and_keeps_operator_edits() -> None:
+    """Re-running the seed must not duplicate entries nor overwrite a rotated key."""
+    migration = _ai_catalog_migration()
+    providers, models = get_collection("ai_catalog_provider"), get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_provider", "ai_catalog_model")
+
+    await migration.Forward.migrate.run(None)
+
+    seeded_models = await models.count_documents({})
+    assert seeded_models == len(migration._MODELS)
+    assert await providers.count_documents({"name": "openrouter"}) == 1
+
+    await providers.update_one({"name": "openrouter"}, {"$set": {"api_key": "rotated-by-operator"}})
+    await migration.Forward.migrate.run(None)
+
+    assert await models.count_documents({}) == seeded_models
+    assert (await providers.find_one({"name": "openrouter"}))["api_key"] == "rotated-by-operator"
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_seeded_catalog_covers_every_purpose_every_mode_falls_back_to() -> None:
+    """The support tier answers for any mode with no model of its own, so it must be complete."""
+    migration = _ai_catalog_migration()
+
+    roles = {
+        (role["mode"], role["purpose"]) for model in migration._MODELS for role in model["roles"]
+    }
+
+    assert {"chatbot", "translation", "filters"} <= {purpose for mode, purpose in roles if mode == "support"}
+    assert {"summary", "moderation_reason"} <= {purpose for mode, purpose in roles if mode is None}
