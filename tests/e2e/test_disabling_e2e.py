@@ -6,7 +6,27 @@ import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.disabling import DisablingModel
 from tests.e2e.helpers import grant_admin
+
+
+@pytest.mark.asyncio
+async def test_disable_command_persists(test_client: TestClient) -> None:
+    """`/disable <cmd>` records the command in DisablingModel."""
+
+    group = ChatFactory.create_group(chat_id=-1002800000020, title="Disable Persist Group")
+    admin_wrapper = test_client.create_user(user_id=928000020, first_name="Admin", username="disable_admin")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    requests = await test_client.send_command(command="disable", from_user=admin_wrapper.user, args="rules", chat=group)
+
+    assert any("disabled" in (request.text or "").lower() for request in requests)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    assert "rules" in await DisablingModel.get_disabled(chat.iid), "The disabled command should be persisted"
 
 
 @pytest.mark.asyncio
