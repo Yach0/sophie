@@ -29,8 +29,10 @@ MODE_TITLES: Mapping[AIMode, LazyProxy] = {
 
 MODE_DESCRIPTIONS: Mapping[AIMode, LazyProxy] = {
     AIMode.disabled: l_("Every AI feature is off."),
-    AIMode.entertainment: l_("Chats along, joins conversations on its own and remembers people. No privacy."),
-    AIMode.moderation: l_("Only moderates. No chatbot, and no message history is kept at all."),
+    AIMode.entertainment: l_("Chats along, joins conversations on its own and remembers people. Reduced privacy."),
+    AIMode.moderation: l_(
+        "Only moderates. No chatbot, and no message history is kept at all. Best in class privacy protection."
+    ),
     AIMode.support: l_("Answers questions using the chat notes, and moderates."),
 }
 
@@ -51,7 +53,7 @@ def _build_keyboard(selected: AIMode) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"{'✅ ' if mode == selected else ''}{MODE_TITLES[mode]}",
+                    text=f"{MODE_TITLES[mode]}{' ✅' if mode == selected else ''}",
                     callback_data=AIModeCallback(mode=mode.value).pack(),
                 )
             ]

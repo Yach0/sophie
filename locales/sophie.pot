@@ -369,43 +369,43 @@ msgid "Every AI feature is off."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimode.py:32
-msgid "Chats along, joins conversations on its own and remembers people. No privacy."
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aimode.py:33
-msgid "Only moderates. No chatbot, and no message history is kept at all."
+msgid "Chats along, joins conversations on its own and remembers people. Reduced privacy."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimode.py:34
+msgid "Only moderates. No chatbot, and no message history is kept at all. Best in class privacy protection."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimode.py:36
 msgid "Answers questions using the chat notes, and moderates."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:40
+#: sophie_bot/modules/ai/handlers/aimode.py:42
 msgid "Mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:40
+#: sophie_bot/modules/ai/handlers/aimode.py:42
 msgid "What Sophie does"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:64
+#: sophie_bot/modules/ai/handlers/aimode.py:66
 msgid "AI Mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:81
+#: sophie_bot/modules/ai/handlers/aimode.py:83
 msgid "Select what the AI does in this chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:99
+#: sophie_bot/modules/ai/handlers/aimode.py:101
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:103
+#: sophie_bot/modules/ai/handlers/aimode.py:105
 msgid "You are not allowed to change this setting"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:107
+#: sophie_bot/modules/ai/handlers/aimode.py:109
 msgid "Unknown mode"
 msgstr ""
 
