@@ -272,9 +272,11 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_deep_help": _feature(False),
     "ai_deep_help_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_deep_help_daily_chat_limit": _feature(10),
-    "ai_deep_help_request_limit": _feature(6),
+    "ai_deep_help_request_limit": _feature(8),
     "ai_deep_help_tool_calls_limit": _feature(10),
-    "ai_deep_help_output_tokens_limit": _feature(700),
+    # Cumulative across the run, and reasoning tokens count towards it, so this is a runaway
+    # backstop rather than the cost control: the daily cap and the cheap model are.
+    "ai_deep_help_output_tokens_limit": _feature(8000),
     "ai_research_max_rounds": _feature(3),
     "ai_research_queries_per_round": _feature(5),
     "ai_research_results_per_query": _feature(5),

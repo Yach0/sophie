@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from beanie import PydanticObjectId
+from pydantic_ai.exceptions import UsageLimitExceeded
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
@@ -102,3 +103,25 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch) -> 
     assert charge.await_args.args[0] == chat_iid
     assert charge.await_args.args[1] == "deep_help"
     assert charge.await_args.args[2].model_name == "cheap/model"
+
+
+async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A bounded sub-agent hitting its limit is expected; the user must still get an answer."""
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help.is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help._consume_daily_quota", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.get_value",
+        AsyncMock(side_effect=lambda feature, chat_tid=None: 8 if "limit" in feature else "cheap/model"),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.get_ai_model", lambda name: SimpleNamespace(model_name=name)
+    )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.deep_help._build_agent", lambda model: SimpleNamespace())
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.deep_help.run_ai_text",
+        AsyncMock(side_effect=UsageLimitExceeded("Exceeded the output_tokens_limit")),
+    )
+
+    answer = await run_deep_help("how do notes work", PydanticObjectId())
+
+    assert "could not find the answer" in answer

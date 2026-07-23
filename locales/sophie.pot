@@ -1269,12 +1269,16 @@ msgstr ""
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/deep_help.py:93
+#: sophie_bot/modules/ai/utils/deep_help.py:95
 msgid "Source inspection is not available."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/deep_help.py:96
+#: sophie_bot/modules/ai/utils/deep_help.py:98
 msgid "The daily limit for source inspection in this chat has been reached."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/deep_help.py:122
+msgid "I could not find the answer in my own sources within the allowed budget."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/message_history.py:106

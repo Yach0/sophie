@@ -4,9 +4,11 @@ from datetime import datetime, timedelta, timezone
 
 from beanie import PydanticObjectId
 from pydantic_ai import Agent, UsageLimits
+from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.models import Model
 
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.deep_help_source import read_source, search_source
@@ -106,12 +108,18 @@ async def run_deep_help(question: str, chat_iid: PydanticObjectId, chat_tid: int
 
     model = get_ai_model(model_name)
     agent = _build_agent(model)
-    result = await run_ai_text(
-        agent,
-        user_prompt=question,
-        usage_limits=usage_limits,
-        request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:deep_help"),
-    )
+    try:
+        result = await run_ai_text(
+            agent,
+            user_prompt=question,
+            usage_limits=usage_limits,
+            request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:deep_help"),
+        )
+    except (AIRequestFailed, UsageLimitExceeded) as error:
+        # Running out of budget is a normal outcome for a bounded sub-agent, and must not take the
+        # conversation down with it: the main agent gets a plain answer it can pass on.
+        log.info("deep_help: gave up", chat_iid=str(chat_iid), error=str(error))
+        return _("I could not find the answer in my own sources within the allowed budget.")
 
     await charge_ai_usage(chat_iid, AI_FEATURE_DEEP_HELP, model, result.usage)
 
