@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -8,7 +7,6 @@ from fastapi import FastAPI
 
 from sophie_bot.config import CONFIG
 from sophie_bot.runtime import build_rest_runtime
-from sophie_bot.services.health import heartbeat_loop
 from sophie_bot.services.rest import init_api_routers
 from sophie_bot.startup import initialize_rest_mode
 from sophie_bot.utils.logger import log
@@ -25,11 +23,7 @@ def create_rest_app() -> FastAPI:
         await initialize_rest_mode(runtime)
         init_api_routers(active_app, runtime.loaded_modules.api_routers)
 
-        heartbeat_task = asyncio.create_task(heartbeat_loop(CONFIG.mode))
-
         yield
-
-        heartbeat_task.cancel()
         log.info("Shutting down Sophie API...")
 
     app.router.lifespan_context = lifespan

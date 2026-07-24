@@ -9,6 +9,7 @@ heartbeat written by `sophie_bot.services.health`. Exit code 0 means healthy,
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import sys
 
 import httpx
@@ -28,8 +29,17 @@ def _rest_probe_host() -> str:
     return _LOOPBACK_HOST if CONFIG.api_listen in _WILDCARD_BINDS else CONFIG.api_listen
 
 
+def _format_host(host: str) -> str:
+    # IPv6 literals must be wrapped in brackets to form a valid URL authority.
+    try:
+        is_ipv6 = ipaddress.ip_address(host).version == 6
+    except ValueError:
+        is_ipv6 = False
+    return f"[{host}]" if is_ipv6 else host
+
+
 async def _check_rest() -> tuple[bool, str]:
-    url = f"http://{_rest_probe_host()}:{CONFIG.api_port}/health"
+    url = f"http://{_format_host(_rest_probe_host())}:{CONFIG.api_port}/health"
     try:
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
             response = await client.get(url)

@@ -1,10 +1,12 @@
 """Redis-backed liveness heartbeats for long-running Sophie modes.
 
-Each runtime-image mode (bot, scheduler, rest) periodically writes a
-`sophie:health:{component}` key holding the last-beat unix timestamp with a
-short TTL. The healthcheck CLI reads it back to decide whether the process is
-still alive. Heartbeat writes must never take a mode down, so redis failures are
-logged and swallowed.
+Each runtime-image mode (bot, scheduler) periodically writes a
+`sophie:health:{instance_name}:{component}` key holding the last-beat unix
+timestamp with a short TTL. The healthcheck CLI reads it back to decide whether
+the process is still alive. The key is namespaced by `CONFIG.instance_name` so
+co-hosted instances that share one redis and run the same mode (beta and stable
+both run `MODE=bot`) cannot mask each other's liveness. Heartbeat writes must
+never take a mode down, so redis failures are logged and swallowed.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ import time
 
 from redis.exceptions import RedisError
 
+from sophie_bot.config import CONFIG
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
@@ -24,7 +27,7 @@ _KEY_PREFIX = "sophie:health:"
 
 
 def _heartbeat_key(component: str) -> str:
-    return f"{_KEY_PREFIX}{component}"
+    return f"{_KEY_PREFIX}{CONFIG.instance_name}:{component}"
 
 
 async def write_heartbeat(component: str) -> None:

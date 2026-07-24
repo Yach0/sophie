@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sophie_bot.config import CONFIG
 from sophie_bot.runtime import build_scheduler_runtime
@@ -21,7 +21,7 @@ async def _scheduler_main() -> None:
         seconds=HEARTBEAT_INTERVAL_SECONDS,
         args=[CONFIG.mode],
         jobstore="ram",
-        next_run_time=datetime.now(),
+        next_run_time=datetime.now(UTC),
     )
     runtime.scheduler.start()
 
