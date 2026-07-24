@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgTypeError
@@ -6,13 +6,13 @@ from ass_tg.types import OrArg
 from ass_tg.types.base_abc import ArgFabric
 from babel.support import LazyProxy
 
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.registry import ALL_BUTTONS
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class ButtonArg(OrArg):
-    def __init__(self, description: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, description: str | None = None, **kwargs: Any) -> None:
         super().__init__(
             *ALL_BUTTONS,
             description=description,
@@ -24,7 +24,7 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
     know_the_end = True
     know_the_start = True
 
-    def __init__(self, description: Optional[str | LazyProxy] = None, **kwargs: Any) -> None:
+    def __init__(self, description: str | LazyProxy | None = None, **kwargs: Any) -> None:
         super().__init__(description=description)
         self.child = ButtonArg()
 
@@ -59,7 +59,7 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
                         offset += end + 1
                         matched = True
                         break
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S112  # button candidate parse failed; try next candidate
                         continue
 
             if not matched:

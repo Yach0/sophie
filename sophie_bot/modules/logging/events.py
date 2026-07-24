@@ -1,4 +1,5 @@
 from enum import Enum
+
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 

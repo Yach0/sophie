@@ -12,14 +12,14 @@ from sophie_bot.modules.ai.utils.ai_model_pricing import (
 )
 
 __all__ = [
-    "get_catalog",
-    "load_catalog",
-    "resolve_model_name",
-    "get_ai_model",
-    "get_proactive_replies_model",
-    "get_model_pricing",
-    "estimate_model_credit_cost",
     "clear_model_pricing_cache",
-    "refresh_model_pricing_cache",
     "close_model_pricing_client",
+    "estimate_model_credit_cost",
+    "get_ai_model",
+    "get_catalog",
+    "get_model_pricing",
+    "get_proactive_replies_model",
+    "load_catalog",
+    "refresh_model_pricing_cache",
+    "resolve_model_name",
 ]

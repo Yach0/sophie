@@ -4,14 +4,14 @@ from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import BufferedInputFile, Message
-from ass_tg.types import TextArg, WordArg, OptionalArg, OneOf
+from ass_tg.types import OneOf, OptionalArg, TextArg, WordArg
 from ass_tg.types.base_abc import ArgFabric
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.emoji_banner import EmojiBanner
+from sophie_bot.utils.handlers import SophieMessageHandler
 
 
 class OpBannerHandler(SophieMessageHandler):

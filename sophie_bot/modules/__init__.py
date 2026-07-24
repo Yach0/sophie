@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from asyncio import gather
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator, Sequence
 from collections.abc import Sequence as SequenceABC
 from dataclasses import dataclass, field
 from importlib import import_module
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Iterator, Protocol, Sequence, Type, Union
+from typing import TYPE_CHECKING, Any, Protocol
 
 from aiogram import Dispatcher, Router
 
@@ -35,19 +35,19 @@ PostSetupHook = Callable[[dict[str, ModuleType]], Awaitable[None]]
 @dataclass(slots=True)
 class LoadedModuleRegistry:
     modules: dict[str, ModuleType] = field(default_factory=dict)
-    api_routers: list["APIRouter"] = field(default_factory=list)
+    api_routers: list[APIRouter] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
 class ModuleManifest:
     name: str
-    title: "LazyProxy | str | None" = None
+    title: LazyProxy | str | None = None
     emoji: str | None = None
-    description: "LazyProxy | str | Doc | None" = None
-    info: "LazyProxy | str | Doc | None" = None
+    description: LazyProxy | str | Doc | None = None
+    info: LazyProxy | str | Doc | None = None
     bot_router: Router | None = None
-    api_router: "APIRouter | None" = None
-    handlers: Sequence[Type["SophieBaseHandler"]] = ()
+    api_router: APIRouter | None = None
+    handlers: Sequence[type[SophieBaseHandler]] = ()
     pre_setup: PreSetupHook | None = None
     post_setup: PostSetupHook | None = None
     scheduler_jobs: Sequence[object] = ()
@@ -103,16 +103,16 @@ class LoadedModulesProxy:
 
 
 class LoadedApiRoutersProxy:
-    def _api_routers(self) -> list["APIRouter"]:
+    def _api_routers(self) -> list[APIRouter]:
         return get_loaded_module_registry().api_routers
 
-    def __getitem__(self, index: int) -> "APIRouter":
+    def __getitem__(self, index: int) -> APIRouter:
         return self._api_routers()[index]
 
     def __len__(self) -> int:
         return len(self._api_routers())
 
-    def __iter__(self) -> Iterator["APIRouter"]:
+    def __iter__(self) -> Iterator[APIRouter]:
         return iter(self._api_routers())
 
 
@@ -169,7 +169,7 @@ def get_loaded_module_manifest(module_name: str, module: ModuleType) -> ModuleMa
 
 
 async def load_modules(
-    dp: Union[Dispatcher, Router],
+    dp: Dispatcher | Router,
     to_load: Sequence[str],
     to_not_load: Sequence[str] = (),
     register_handlers: bool = True,

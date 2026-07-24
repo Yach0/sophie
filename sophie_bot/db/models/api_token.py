@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from beanie import Document, Indexed
@@ -13,7 +13,7 @@ class ApiTokenModel(Document):
     token_hash: Annotated[str, Indexed(unique=True)] = Field(..., description="Hashed token")
     label: str
     user: Link[ChatModel]
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "api_tokens"

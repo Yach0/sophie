@@ -4,18 +4,16 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
-from sophie_bot.db.models.ai.ai_mode import AIMode
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
-from tests.e2e.helpers import grant_admin
-
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestion,
     AIFilterSuggestionsResponse,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from tests.e2e.helpers import grant_admin
 
 
 @pytest.mark.asyncio

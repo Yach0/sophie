@@ -6,7 +6,7 @@ including user tracking and group metadata updates.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -31,7 +31,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -76,7 +76,7 @@ class TestGroupMessageHandling:
             first_name_or_title="Old Group Name",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await existing_group.save()
 
@@ -85,7 +85,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-1001234567890, type="supergroup", title="New Group Name")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -117,7 +117,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-123456789, type="group", title="Regular Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -149,7 +149,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             sender_chat=sender_chat,
         )
@@ -178,7 +178,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             sender_chat=chat,  # Same as chat
         )
@@ -207,7 +207,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-1001234567890, type="supergroup", title="Public Group", username="publicgroup")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -238,7 +238,7 @@ class TestGroupMessageHandling:
         chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
         message1 = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user1,
         )
@@ -251,7 +251,7 @@ class TestGroupMessageHandling:
         user2 = User(id=222222, first_name="User2", is_bot=False)
         message2 = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user2,
         )

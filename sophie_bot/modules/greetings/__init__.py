@@ -2,15 +2,15 @@ from aiogram import Router
 
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.greetings.handlers.enablewelcome import EnableWelcomeHandlerABC
+from sophie_bot.modules.greetings.handlers.set_join_request import (
+    DelJoinRequestMessageHandler,
+    SetJoinRequestMessageHandler,
+)
 from sophie_bot.modules.greetings.handlers.status_cleanservice import (
     CleanServiceHandlerABC,
 )
 from sophie_bot.modules.greetings.handlers.status_cleanwelcome import (
     CleanWelcomeHandlerABC,
-)
-from sophie_bot.modules.greetings.handlers.set_join_request import (
-    DelJoinRequestMessageHandler,
-    SetJoinRequestMessageHandler,
 )
 from sophie_bot.modules.greetings.handlers.status_greetings import (
     SetWelcomeMessageHandler,
@@ -21,7 +21,6 @@ from sophie_bot.modules.greetings.handlers.status_overall import (
 from sophie_bot.modules.greetings.middlewares.leave_user import LeaveUserMiddleware
 from sophie_bot.modules.greetings.middlewares.new_user import NewUserMiddleware
 from sophie_bot.utils.i18n import lazy_gettext as l_
-
 
 router = Router(name="greetings")
 

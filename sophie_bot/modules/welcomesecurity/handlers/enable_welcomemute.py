@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
@@ -58,7 +58,7 @@ class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
     async def set_status(self, new_status: WelcomeMuteStatus) -> None:
         db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
 
-        time: Optional[timedelta] = new_status if new_status is not False else None
+        time: timedelta | None = new_status if new_status is not False else None
         await db_model.set_status_welcomemute(time is not None, time)
 
     async def handle(self) -> Any:

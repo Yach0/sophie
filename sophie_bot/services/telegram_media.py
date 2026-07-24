@@ -126,7 +126,7 @@ class TelegramMediaService:
 
             try:
                 return ResolvedMedia.model_validate(ujson.loads(data))
-            except Exception:
+            except Exception:  # noqa: BLE001  # boundary: corrupt cache entry is non-fatal, treat as miss
                 log.warning("Failed to deserialize cached media metadata", identifier=identifier)
         return None
 
@@ -184,7 +184,7 @@ class TelegramMediaService:
                         if emoji_id not in fetched_ids:
                             log.warning("Custom emoji not found in Telegram response", emoji_id=emoji_id)
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, skip this batch
                     log.error("Failed to fetch custom emoji batch", batch_size=len(batch), error=str(e))
 
         unresolved = [eid for eid in unique_ids if eid not in resolved]
@@ -221,7 +221,7 @@ class TelegramMediaService:
                 else MediaFormat.WEBP,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, resolution unavailable
             log.error("Failed to resolve sticker file", file_id=file_id, error=str(e))
             return None
 
@@ -249,7 +249,7 @@ class TelegramMediaService:
             if file_info.file_path:
                 await TelegramMediaService._cache_file_path(file_id, file_info.file_path)
                 return file_info.file_path
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, resolution unavailable
             log.error("Failed to get file path", file_id=file_id, error=str(e))
 
         return None
@@ -260,7 +260,7 @@ class TelegramMediaService:
             content = await bot.download_file(file_path)
             if content:
                 return content.read()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, download unavailable
             log.error("Failed to download file", file_path=file_path, error=str(e))
 
         return None
@@ -336,6 +336,6 @@ class TelegramMediaService:
                 "thumbnail_file_id": thumbnail_file_id,
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, resolution unavailable
             log.error("Failed to resolve sticker set", set_name=set_name, error=str(e))
             return {}

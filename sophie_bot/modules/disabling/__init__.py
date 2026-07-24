@@ -13,6 +13,7 @@ from sophie_bot.modules.disabling.handlers.enable_all import (
 )
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
+
 from .api import api_router
 
 __all__ = ("api_router",)

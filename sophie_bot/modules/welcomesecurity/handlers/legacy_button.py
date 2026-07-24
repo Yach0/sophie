@@ -14,12 +14,12 @@ from sophie_bot.db.models import (
     WSUserModel,
 )
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_WELCOME_SECURITY_BUTTON_PATTERN,
     LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
     LEGACY_WELCOME_SECURITY_STABLE_PREFIX,
 )
-from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.handlers import (

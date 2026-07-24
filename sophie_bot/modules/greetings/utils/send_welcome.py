@@ -1,5 +1,3 @@
-from typing import Optional
-
 from aiogram.types import InlineKeyboardMarkup, Message, User
 
 from sophie_bot.db.models import RulesModel
@@ -11,11 +9,11 @@ from sophie_bot.utils.i18n import gettext as _
 
 async def send_welcome(
     message: Message,
-    saveable: Optional[Saveable],
+    saveable: Saveable | None,
     cleanservice_enabled: bool,
-    chat_rules: Optional[RulesModel],
-    user: Optional[User] = None,
-    send_to_chat_id: Optional[int] = None,
+    chat_rules: RulesModel | None,
+    user: User | None = None,
+    send_to_chat_id: int | None = None,
     additional_keyboard: InlineKeyboardMarkup | None = None,
     receiver_user_id: int | None = None,
 ) -> Message | None:

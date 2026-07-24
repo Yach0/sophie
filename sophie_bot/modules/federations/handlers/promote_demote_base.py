@@ -58,7 +58,7 @@ class FederationPromoteDemoteHandler(FederationCommandHandler):
     async def _resolve_user(self) -> ChatModel | None:
         try:
             user_input = get_arg_or_reply_user(self.event, self.data)
-        except Exception:
+        except Exception:  # noqa: BLE001  # arg parsing may raise various errors; reply and abort
             await self.event.reply(str(self.user_not_specified_text))
             return None
 

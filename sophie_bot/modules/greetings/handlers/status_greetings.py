@@ -7,8 +7,8 @@ from stfu_tg import Doc, Italic, Template
 from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_buttons_arg import TextWithButtonsArg
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.utils import flags

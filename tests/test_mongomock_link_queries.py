@@ -8,7 +8,7 @@ go quietly vacuous rather than failing -- so pin it here.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sophie_bot.db.models.chat import ChatModel, ChatType, UserInGroupModel
@@ -21,7 +21,7 @@ async def _chat(chat_tid: int, chat_type: ChatType) -> ChatModel:
         first_name_or_title="Link probe",
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     ).insert()
 
     chat = await ChatModel.get_by_tid(chat_tid)

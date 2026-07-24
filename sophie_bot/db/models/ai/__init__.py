@@ -1,5 +1,6 @@
 """AI-related database models."""
 
+from sophie_bot.db.models.ai.ai_autotranslate import AIAutotranslateModel
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
     AICatalogProviderModel,
@@ -7,10 +8,9 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIModelRole,
     AIProviderKind,
 )
-from sophie_bot.db.models.ai.ai_autotranslate import AIAutotranslateModel
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine, AIChatSummaryModel
-from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
+from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
 from sophie_bot.db.models.ai.ai_quota import AIQuotaModel
 from sophie_bot.db.models.ai.ai_usage import AIUsageModel
@@ -22,23 +22,23 @@ from sophie_bot.utils.ai_features import (
 )
 
 __all__ = [
+    "AI_FEATURE_AUTO_TRANSLATE",
+    "AI_FEATURE_CHATBOT",
+    "AI_FEATURE_FILTER",
+    "AI_FEATURE_TRANSLATE",
+    "AIAutotranslateModel",
     "AICatalogModelModel",
     "AICatalogProviderModel",
-    "AIModelPurpose",
-    "AIModelRole",
-    "AIProviderKind",
-    "AIAutotranslateModel",
     "AIChatSummaryLine",
     "AIChatSummaryModel",
+    "AIMemoryModel",
     "AIMode",
     "AIModeModel",
-    "AIMemoryModel",
+    "AIModelPurpose",
+    "AIModelRole",
     "AIModeratorModel",
+    "AIProviderKind",
     "AIQuotaModel",
     "AIUsageModel",
     "DetectionLevel",
-    "AI_FEATURE_CHATBOT",
-    "AI_FEATURE_TRANSLATE",
-    "AI_FEATURE_AUTO_TRANSLATE",
-    "AI_FEATURE_FILTER",
 ]

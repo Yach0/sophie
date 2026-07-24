@@ -13,7 +13,6 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
@@ -23,6 +22,7 @@ from sophie_bot.modules.ai.utils.research import (
     research_progress_suffix,
     run_research_workflow,
 )
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.exception import SophieException
@@ -39,7 +39,7 @@ class ResearchProgressMessage:
         self.bot = bot
 
     @classmethod
-    async def send(cls, source_message: Message) -> "ResearchProgressMessage":
+    async def send(cls, source_message: Message) -> ResearchProgressMessage:
         emoji_id = random_ai_progress_custom_emoji_id()
         message = await source_message.reply(
             Doc(ai_progress_line(_("Starting the research..."), emoji_id, "🧑‍🔬")).to_html(),

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from aiogram.types import Message
 from ass_tg.types import BooleanArg, IntArg, OptionalArg
@@ -15,12 +15,14 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 T = TypeVar("T")
 
 
-class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):
+# PEP695 form appends implicit Generic after ABC, which breaks the MRO; keep the explicit
+# Generic[T] ahead of ABC.
+class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, PYI059
     """Implements an abstract handler for the status change handlers (enabled/disabled)"""
 
     header_text: LazyProxy
     status_texts: dict[T, LazyProxy]
-    change_command: Optional[str] = None
+    change_command: str | None = None
     change_args: str | LazyProxy = "on / off"
 
     @classmethod
@@ -73,7 +75,7 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):
         await self.event.reply(str(doc))
 
     async def handle(self) -> Any:
-        new_status: Optional[bool] = self.data.get("new_status", None)
+        new_status: bool | None = self.data.get("new_status", None)
 
         if new_status is None:
             return await self.display_current_status()
@@ -82,7 +84,9 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):
 
 
 class StatusBoolHandlerABC(StatusHandlerABC[bool], ABC):
-    status_texts: dict[bool, LazyProxy] = {True: l_("Enabled"), False: l_("Disabled")}
+    # Base generic declares status_texts as an instance var (ClassVar cannot hold the TypeVar T);
+    # this concrete mapping is read-only, so the mutable-default warning does not apply.
+    status_texts: dict[bool, LazyProxy] = {True: l_("Enabled"), False: l_("Disabled")}  # noqa: RUF012
 
 
 class StatusIntHandlerABC(StatusHandlerABC[int], ABC):

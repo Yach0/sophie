@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -43,7 +43,7 @@ async def e2e_admin_cb_handler(callback: CallbackQuery) -> None:
 def _anonymous_message(chat: Chat, *, message_id: int, title: str, thread_id: int) -> Message:
     return Message(
         message_id=message_id,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=chat,
         from_user=User(
             id=TELEGRAM_ANONYMOUS_ADMIN_BOT_ID,
@@ -97,7 +97,7 @@ async def test_admin_required_callback_denies_non_admin_via_alert(
 
     button_message = Message(
         message_id=6001,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=group_chat,
         from_user=User(id=123456, is_bot=True, first_name="TestBot"),
         text="Button message",

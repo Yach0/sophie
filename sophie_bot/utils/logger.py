@@ -2,8 +2,8 @@ import logging.config
 import os
 
 import structlog
-from aiohttp.log import access_logger
 from aiogram.loggers import event
+from aiohttp.log import access_logger
 from structlog.dev import plain_traceback
 from structlog.typing import EventDict
 

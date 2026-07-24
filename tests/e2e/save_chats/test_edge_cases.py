@@ -5,7 +5,7 @@ This module tests various edge cases, error conditions, and boundary scenarios.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -29,7 +29,7 @@ class TestEdgeCases:
         chat = Chat(id=-1001234567890, type="channel", title="Test Channel")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             # No from_user
         )
@@ -92,7 +92,7 @@ class TestEdgeCases:
 
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             forum_topic_created=forum_topic_created,
@@ -100,7 +100,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             reply_to_message=reply_message,
@@ -134,7 +134,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -173,7 +173,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -212,7 +212,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -244,7 +244,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -275,7 +275,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -308,7 +308,7 @@ class TestEdgeCases:
         for i in range(5):
             message = Message(
                 message_id=i,
-                date=datetime.now(timezone.utc),
+                date=datetime.now(UTC),
                 chat=chat,
                 from_user=user,
             )
@@ -337,7 +337,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -375,7 +375,7 @@ class TestEdgeCases:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -411,7 +411,7 @@ class TestEdgeCases:
             chat = Chat(id=-1001234567890, type="supergroup", title="Test Group")
             message = Message(
                 message_id=message_id,
-                date=datetime.now(timezone.utc),
+                date=datetime.now(UTC),
                 chat=chat,
                 from_user=user,
             )
@@ -452,7 +452,7 @@ class TestEdgeCases:
             user = User(id=1000 + i, first_name=f"User{i}", is_bot=False)
             message = Message(
                 message_id=i,
-                date=datetime.now(timezone.utc),
+                date=datetime.now(UTC),
                 chat=chat,
                 from_user=user,
             )

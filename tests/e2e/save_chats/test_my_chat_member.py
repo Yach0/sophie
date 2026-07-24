@@ -6,7 +6,7 @@ for the bot itself.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from aiogram.types import (
@@ -33,7 +33,7 @@ def _save_chat_model(chat_tid: int, chat_type: ChatType, title: str) -> ChatMode
         first_name_or_title=title,
         is_bot=False,
         username=None,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
 
 
@@ -79,7 +79,7 @@ class TestMyChatMember:
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
             user=bot_user,
-            until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
+            until_date=datetime.now(UTC),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
         update = _my_chat_member_update(chat, user, old_member, new_member)
@@ -198,7 +198,7 @@ class TestMyChatMember:
             can_invite_users=False,
             can_pin_messages=False,
             can_manage_topics=False,
-            until_date=datetime.now(timezone.utc),
+            until_date=datetime.now(UTC),
         )
 
         update = _my_chat_member_update(chat, user, old_member, new_member)
@@ -227,7 +227,7 @@ class TestMyChatMember:
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
             user=bot_user,
-            until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
+            until_date=datetime.now(UTC),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
         update = _my_chat_member_update(chat, user, old_member, new_member)
@@ -282,7 +282,7 @@ class TestMyChatMember:
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
             user=bot_user,
-            until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
+            until_date=datetime.now(UTC),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
         update = _my_chat_member_update(chat, user, old_member, new_member)
@@ -319,7 +319,7 @@ class TestMyChatMember:
         old_member = ChatMemberMember(user=bot_user)
         new_member = ChatMemberBanned(
             user=bot_user,
-            until_date=datetime.now(timezone.utc),  # Required field for ChatMemberBanned
+            until_date=datetime.now(UTC),  # Required field for ChatMemberBanned
         )  # Use ChatMemberBanned for kicked status
 
         update = _my_chat_member_update(chat, user, old_member, new_member)

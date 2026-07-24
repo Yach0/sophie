@@ -37,7 +37,6 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.utils.logger import log
 
-
 _USER_FIELDS = ("created_user", "edited_user")
 
 # "int" alone matches only 32-bit ints; modern Telegram IDs are stored as "long".

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from aiogram.types import Message
 from beanie import PydanticObjectId
@@ -11,8 +11,8 @@ from regex import regex
 from stfu_tg import Template
 
 from sophie_bot.constants import AI_FILTER_NEW_USER_MAX_AGE_HOURS
-from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_filters_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -92,7 +92,7 @@ async def _feature_int(feature: FeatureType, chat_tid: int | None) -> int:
 
 
 async def consume_ai_filter_daily_quota(chat_tid: int, user_tid: int | None = None) -> bool:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     chat_rate_limit_key = _get_ai_filter_daily_chat_limit_key(chat_tid, now)
     daily_ttl = _seconds_until_next_utc_day(now)
     chat_limit = await _feature_int("ai_filter_daily_chat_limit", chat_tid)
@@ -169,10 +169,10 @@ async def match_ai_handler(
         log.debug("match_ai_handler: no user-in-group model, skipping AI evaluation")
         return False
 
-    joined_after_threshold = datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
+    joined_after_threshold = datetime.now(UTC) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS)
     first_saw = user_in_group.first_saw
     if first_saw.tzinfo is None:
-        first_saw = first_saw.replace(tzinfo=timezone.utc)
+        first_saw = first_saw.replace(tzinfo=UTC)
     if first_saw < joined_after_threshold:
         log.debug(
             "match_ai_handler: user joined before AI threshold, skipping AI evaluation",
@@ -250,7 +250,7 @@ async def match_ai_handler(
 
         return result.output.matches
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # AI evaluation boundary; fail safe without triggering filter
         log.warning("match_ai_handler: AI filter evaluation failed", error=str(e))
         # On error, don't trigger the filter to avoid false positives
         return False

@@ -1,6 +1,7 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Iterator
+from typing import ClassVar, Self
 
 import pytest
 from fakeredis import FakeAsyncRedis
@@ -100,7 +101,7 @@ async def test_security_headers_middleware_adds_hardening_headers() -> None:
 
 
 class FakeI18n:
-    available_locales = {"en", "uk"}
+    available_locales: ClassVar = {"en", "uk"}
 
     def __init__(self) -> None:
         self.used_locales: list[str] = []
@@ -135,7 +136,7 @@ class FakePipeline:
         self.incr_keys: list[str] = []
         self.expire_calls: list[tuple[str, int, bool]] = []
 
-    async def __aenter__(self) -> "FakePipeline":
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, exc_type: object, exc_value: object, traceback: object) -> None:

@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from re import compile
-from typing import Any, Callable, Optional, cast
+from typing import Any, ClassVar, cast
 
 from aiogram.utils.i18n import I18n
 from babel.core import Locale
@@ -29,8 +30,8 @@ class LocaleStats:
 
 
 class I18nNew(I18n):
-    babels: dict[str, Locale] = {}
-    stats: dict[str, Optional[LocaleStats]] = {}
+    babels: ClassVar[dict[str, Locale]] = {}
+    stats: ClassVar[dict[str, LocaleStats | None]] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,7 +47,7 @@ class I18nNew(I18n):
         # add en
         self.babels["en"] = self.babel("en_US")
 
-    def parse_stats(self, locale_code: str) -> Optional[LocaleStats]:
+    def parse_stats(self, locale_code: str) -> LocaleStats | None:
         # Load a file
         path = Path(f"{self.path}/{locale_code}/stats.txt")
         if not path.exists():
@@ -83,10 +84,10 @@ class I18nNew(I18n):
     def current_locale_display(self) -> str:
         return self.locale_display(self.current_locale_babel)
 
-    def get_locale_stats(self, locale_code: str) -> Optional[LocaleStats]:
+    def get_locale_stats(self, locale_code: str) -> LocaleStats | None:
         return self.stats[locale_code]
 
-    def get_current_locale_stats(self) -> Optional[LocaleStats]:
+    def get_current_locale_stats(self) -> LocaleStats | None:
         return self.get_locale_stats(self.ctx_locale.get())
 
     def is_current_locale_default(self) -> bool:

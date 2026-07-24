@@ -14,7 +14,6 @@ from sophie_bot.modules.utils_.legacy_buttons import (
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 register_legacy_button_actions(LegacyButtonAction("delmsg", LEGACY_DELETE_MESSAGE_BUTTON_PREFIX))
 
 router = Router(name="purges")

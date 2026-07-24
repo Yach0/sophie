@@ -13,15 +13,15 @@ from sophie_bot.modules.restrictions.handlers.unmute import UnmuteUserHandler
 
 __all__ = [
     "BanUserHandler",
-    "TempBanUserHandler",
     "KickUserHandler",
     "MuteUserHandler",
+    "SilentBanUserHandler",
+    "SilentKickUserHandler",
+    "SilentMuteUserHandler",
+    "SilentTempBanUserHandler",
+    "SilentTempMuteUserHandler",
+    "TempBanUserHandler",
     "TempMuteUserHandler",
     "UnbanUserHandler",
     "UnmuteUserHandler",
-    "SilentKickUserHandler",
-    "SilentBanUserHandler",
-    "SilentTempBanUserHandler",
-    "SilentMuteUserHandler",
-    "SilentTempMuteUserHandler",
 ]

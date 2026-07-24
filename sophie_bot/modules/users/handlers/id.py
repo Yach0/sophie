@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
@@ -25,7 +25,7 @@ async def optional_user(message: Message | None, _data: dict):
 class ShowIDHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("id")),)
+        return (CMDFilter("id"),)
 
     @classmethod
     def register(cls, router: Router):
@@ -33,7 +33,7 @@ class ShowIDHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         chat: ChatConnection = self.data["connection"]
-        user: Optional[ChatModel] = self.data.get("user", None)
+        user: ChatModel | None = self.data.get("user", None)
 
         doc = Doc()
 

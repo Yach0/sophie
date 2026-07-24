@@ -9,19 +9,19 @@ from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.models import Model
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.agent_tools.sophie_inspect import sophie_inspect_tool
-from sophie_bot.modules.ai.agent_tools.sophie_help import sophie_help_tool
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
 from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_notes_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
-from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.agent_tools.sophie_help import sophie_help_tool
+from sophie_bot.modules.ai.agent_tools.sophie_inspect import sophie_inspect_tool
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
-from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
+from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 CHATBOT_TOOLS: list[Any] = [

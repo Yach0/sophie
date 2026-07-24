@@ -8,10 +8,10 @@ Affected Collections:
     - connections
 """
 
+from beanie import free_fall_migration
 from bson import DBRef
 from pymongo.errors import OperationFailure
 
-from beanie import free_fall_migration
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.utils.logger import log

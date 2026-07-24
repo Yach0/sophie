@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-
 import pytest
 from aiogram_test_framework import TestClient
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.federations.services import FederationAdminService, FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
-from tests.e2e.helpers import create_test_user_and_group, grant_admin
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
 )
+from tests.e2e.helpers import create_test_user_and_group, grant_admin
 
 
 @pytest.mark.asyncio
@@ -260,7 +259,7 @@ async def test_fdemote_command_removes_admin(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_fpromote_command_rejects_non_owner(test_client: TestClient) -> None:
-    owner_user, group, federation, member = await _fed_with_member(
+    _owner_user, group, federation, member = await _fed_with_member(
         test_client, owner_tid=6024, chat_tid=-1001000006024, member_tid=6025, fed_name="Promote Auth Fed"
     )
     intruder = test_client.create_user(user_id=6026, first_name="Intruder", username="fed_intruder")

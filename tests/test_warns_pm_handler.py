@@ -8,7 +8,7 @@ instances that `WarnModel(...)` keeps in memory.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -29,7 +29,7 @@ async def _create_chat(chat_tid: int, title: str) -> ChatModel:
         username=None,
         language_code=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat.save()
     return chat
@@ -49,7 +49,7 @@ async def test_warns_pm_lists_warns_with_chat_titles(db_init: object) -> None:
     first_chat = await _create_chat(-100501, "First group")
     second_chat = await _create_chat(-100502, "Second group")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     warns = [
         await _create_warn(first_chat, user, "spamming", now - timedelta(days=1)),
         await _create_warn(second_chat, user, "flooding", now),

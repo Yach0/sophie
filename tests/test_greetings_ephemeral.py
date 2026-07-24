@@ -1,9 +1,8 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from datetime import datetime, timezone
-
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import Message
 
@@ -87,7 +86,7 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
         message_thread_id=None,
         from_user=SimpleNamespace(id=999),
         new_chat_members=members,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
     )
     greetings = SimpleNamespace(
         note=None,
@@ -120,10 +119,9 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.send_welcome",
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
-        ) as send_welcome,
+        ) as send_welcome,pytest.raises(SkipHandler)
     ):
-        with pytest.raises(SkipHandler):
-            await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
+        await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
 
     return send_welcome, cleanup
 

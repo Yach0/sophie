@@ -13,18 +13,17 @@ Affected Collections:
 
 from __future__ import annotations
 
+from beanie import free_fall_migration
 from bson import DBRef
 
-from beanie import free_fall_migration
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import (
     Federation,
     FederationBan,
-    FederationImportTask,
     FederationExportTask,
+    FederationImportTask,
 )
 from sophie_bot.utils.logger import log
-
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -94,15 +93,15 @@ async def _convert_federation_doc(doc: dict, session) -> None:
             await col.delete_one({"_id": doc["_id"]}, session=session)
             return
 
-    if "chats" in doc and doc["chats"]:
+    if doc.get("chats"):
         new_chats = await _tid_list_to_dbref_list(doc["chats"])
         updates["chats"] = new_chats
 
-    if "admins" in doc and doc["admins"]:
+    if doc.get("admins"):
         new_admins = await _tid_list_to_dbref_list(doc["admins"])
         updates["admins"] = new_admins
 
-    if "log_chat_id" in doc and doc["log_chat_id"]:
+    if doc.get("log_chat_id"):
         c = await ChatModel.find_one(ChatModel.tid == doc["log_chat_id"])
         if c:
             updates["log_chat"] = DBRef("chats", c.id)
@@ -210,7 +209,7 @@ async def _rollback_federation_doc(doc: dict, session) -> None:
         if c:
             updates["creator"] = c.tid
 
-    if "chats" in doc and doc["chats"]:
+    if doc.get("chats"):
         new_chats = []
         for chat_ref in doc["chats"]:
             chat_id = chat_ref.id if isinstance(chat_ref, DBRef) else chat_ref
@@ -219,7 +218,7 @@ async def _rollback_federation_doc(doc: dict, session) -> None:
                 new_chats.append(c.tid)
         updates["chats"] = new_chats
 
-    if "admins" in doc and doc["admins"]:
+    if doc.get("admins"):
         new_admins = []
         for admin_ref in doc["admins"]:
             admin_id = admin_ref.id if isinstance(admin_ref, DBRef) else admin_ref
@@ -246,7 +245,7 @@ async def _rollback_federation_ban_doc(doc: dict, session) -> None:
     unsets: dict = {}
 
     # Convert by Link back to int
-    if "by" in doc and doc["by"]:
+    if doc.get("by"):
         by_ref = doc["by"]
         if isinstance(by_ref, DBRef):
             by_iid = by_ref.id
@@ -258,7 +257,7 @@ async def _rollback_federation_ban_doc(doc: dict, session) -> None:
             updates["by"] = c.tid
 
     # Convert banned_chats Links back to list of int
-    if "banned_chats" in doc and doc["banned_chats"]:
+    if doc.get("banned_chats"):
         new_chats = []
         for chat_ref in doc["banned_chats"]:
             if isinstance(chat_ref, DBRef):

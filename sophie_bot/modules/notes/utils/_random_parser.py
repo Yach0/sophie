@@ -10,8 +10,7 @@ def _pick(options: list[str]) -> str:
 
 
 def _normalize_token(token: str) -> str:
-    if token.startswith("\n"):
-        token = token[1:]
+    token = token.removeprefix("\n")
     return token[:-1] if token.endswith("\n") and token != "\n" else token
 
 
@@ -73,8 +72,7 @@ def parse_random_text(text: str) -> str:
 
             trailing = text[trailing_start:d3]
             if trailing.strip() == "":
-                if trailing.startswith("\n"):
-                    trailing = trailing[1:]
+                trailing = trailing.removeprefix("\n")
                 options.append(token)
                 result.append(_pick(options))
                 result.append(trailing)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -19,7 +19,7 @@ GROUP_CHAT_ID = -1001234567890
 def _pm_message() -> Message:
     return Message(
         message_id=1,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=Chat(id=PRIVATE_CHAT_ID, type="private"),
         text="/lock url",
     )

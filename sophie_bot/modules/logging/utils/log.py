@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.log import LogModel
@@ -6,10 +6,10 @@ from sophie_bot.modules.logging.events import LogEvent
 
 
 async def log_event(
-    chat: Union[ChatModel, int],
-    user: Union[ChatModel, int],
+    chat: ChatModel | int,
+    user: ChatModel | int,
     event: LogEvent,
-    details: Optional[dict[str, Any]] = None,
+    details: dict[str, Any] | None = None,
 ):
     if isinstance(chat, int):
         chat_model = await ChatModel.get_by_tid(chat)

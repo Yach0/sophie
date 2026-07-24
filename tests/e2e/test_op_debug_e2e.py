@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -82,7 +82,7 @@ async def test_op_debug_includes_chat_history(test_client: TestClient) -> None:
     chat = await ChatModel.get_by_tid(private_chat.id)
     assert chat is not None
 
-    created_at = datetime.now(timezone.utc) - timedelta(minutes=10)
+    created_at = datetime.now(UTC) - timedelta(minutes=10)
     await cache_message("hello", private_chat.id, 123, 1, created_at, "user_123")
     await cache_message("hi there", private_chat.id, CONFIG.bot_id, 2, created_at + timedelta(minutes=1), "sophie")
     await cache_message("how are you", private_chat.id, 123, 3, created_at + timedelta(minutes=2), "user_123")

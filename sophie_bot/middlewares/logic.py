@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
@@ -21,7 +22,7 @@ class OrMiddleware(BaseMiddleware):
         for middleware in self.middlewares:
             try:
                 return await middleware(handler, event, data)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001  # boundary: try next middleware, last error re-raised below
                 log.warning("OrMiddleware: middleware failed, trying next", exc=exc, middleware=middleware)
                 last_exception = exc
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -28,7 +28,7 @@ async def greetings(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
         first_name_or_title="Restrict Group",
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat.insert()
     chat = await ChatModel.get_by_tid(chat.tid)

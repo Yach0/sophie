@@ -1,6 +1,7 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable, Callable, Dict, Optional
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -49,11 +50,11 @@ class NewUserMiddleware(BaseMiddleware):
         """Check if the join message is older than the timeout threshold."""
         if not message.date:
             return False
-        time_diff = datetime.now(timezone.utc) - message.date
+        time_diff = datetime.now(UTC) - message.date
         return time_diff > timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES)
 
     @staticmethod
-    async def cleanup(db_item: GreetingsModel, message: Message, sent_message: Optional[Message]) -> GreetingsModel:
+    async def cleanup(db_item: GreetingsModel, message: Message, sent_message: Message | None) -> GreetingsModel:
         to_delete: list[int] = []
 
         # Clean service
@@ -114,8 +115,8 @@ class NewUserMiddleware(BaseMiddleware):
         new_users: list[ChatModel],
         new_member: User,
         cleanservice_enabled: bool,
-        chat_rules: Optional[RulesModel],
-    ) -> Optional[Message]:
+        chat_rules: RulesModel | None,
+    ) -> Message | None:
         muted_users = await ws_on_new_users_mute(new_users, chat_db)
 
         # If no users were welcomesecurity muted, fall back to the normal welcome flow.
@@ -125,7 +126,7 @@ class NewUserMiddleware(BaseMiddleware):
         ws_saveable: Saveable = db_item.security_note or get_default_security_message()
         security_keyboard = NewUserMiddleware.build_welcomesecurity_keyboard(chat_db.tid)
 
-        async def send_to(user: ChatModel | None) -> Optional[Message]:
+        async def send_to(user: ChatModel | None) -> Message | None:
             return await send_welcome(
                 message,
                 ws_saveable,
@@ -151,9 +152,9 @@ class NewUserMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         # TODO: Handle multiple users add
 
@@ -199,7 +200,7 @@ class NewUserMiddleware(BaseMiddleware):
 
             is_adder_admin = await is_user_admin(chat_db.iid, adder_id)
 
-            sent_message: Optional[Message] = None
+            sent_message: Message | None = None
 
             chat_rules = await RulesModel.get_rules(chat_db.iid)
             welcomecaptcha_enabled = await is_enabled("welcomecaptcha", chat_tid=chat_db.tid)

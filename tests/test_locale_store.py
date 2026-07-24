@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import ModuleType, SimpleNamespace
 from typing import Any
 
@@ -68,7 +68,7 @@ class _ChatFactory:
             username=None,
             is_bot=False,
             language_code=language_code,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         ).insert()
 
         chat = await ChatModel.get_by_tid(chat_tid)
@@ -90,7 +90,7 @@ class _ChatFactory:
 
 
 @pytest.fixture
-async def chats(db_init: Any) -> AsyncGenerator[_ChatFactory, None]:
+async def chats(db_init: Any) -> AsyncGenerator[_ChatFactory]:
     factory = _ChatFactory()
 
     yield factory

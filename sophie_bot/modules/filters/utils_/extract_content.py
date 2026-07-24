@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 from aiogram.types import Message
 
 from sophie_bot.services.bot import bot
 
 
-async def extract_message_content(message: Message) -> tuple[str, Optional[bytes]]:
+async def extract_message_content(message: Message) -> tuple[str, bytes | None]:
     """
     Extract text and image content from a message for AI processing.
 
@@ -24,12 +24,12 @@ async def extract_message_content(message: Message) -> tuple[str, Optional[bytes
     text_content = message.text or message.caption or ""
 
     # Extract image content
-    image_data: Optional[bytes] = None
+    image_data: bytes | None = None
 
     if message.photo:
         # Use the largest photo size
         image_file_id = message.photo[-1].file_id
-        downloaded_image: Optional[BinaryIO] = await bot.download(image_file_id)
+        downloaded_image: BinaryIO | None = await bot.download(image_file_id)
         if downloaded_image:
             image_data = downloaded_image.read()
 

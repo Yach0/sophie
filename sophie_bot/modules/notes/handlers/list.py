@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg, TextArg
@@ -37,7 +37,7 @@ class NotesList(SophieMessageHandler):
         return await common_try(self.event.reply(text), reply_not_found=send_message)
 
     async def handle(self) -> Any:
-        to_search: Optional[str] = self.data.get("search")
+        to_search: str | None = self.data.get("search")
         connection = self.connection
 
         rag_search_allowed = (

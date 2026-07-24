@@ -9,7 +9,7 @@ Covers the three moving parts of the feature:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -17,12 +17,8 @@ import pytest
 from aiogram.enums import ContentType
 from aiogram.types import Chat, Message, PhotoSize, Update, User
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
-
-from aiogram_test_framework.factories import MessageFactory, UpdateFactory
+from aiogram_test_framework.factories import ChatFactory, MessageFactory, UpdateFactory
 from aiogram_test_framework.types import RequestType
-
-from tests.e2e.helpers import grant_admin
 
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import NoteFile, Saveable
@@ -31,6 +27,7 @@ from sophie_bot.middlewares.media_group import MediaGroupAggregatorMiddleware, M
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
+from tests.e2e.helpers import grant_admin
 
 CHAT_ID = -1002900000001
 USER_ID = 929000001
@@ -39,7 +36,7 @@ USER_ID = 929000001
 def _photo_message(message_id: int, media_group_id: str, caption: str | None = None) -> Message:
     return Message(
         message_id=message_id,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=Chat(id=CHAT_ID, type="supergroup", title="Album Group"),
         from_user=User(id=USER_ID, is_bot=False, first_name="AlbumUser"),
         media_group_id=media_group_id,

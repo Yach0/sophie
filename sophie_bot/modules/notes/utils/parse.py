@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from aiogram.enums import ContentType
 from aiogram.types import Message
 from stfu_tg import Section, Template
@@ -21,7 +19,7 @@ from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
 
-def extract_file_info(message: Message) -> Optional[NoteFile]:
+def extract_file_info(message: Message) -> NoteFile | None:
     if message.content_type not in PARSABLE_CONTENT_TYPES:
         return None
 
@@ -35,11 +33,11 @@ def extract_file_info(message: Message) -> Optional[NoteFile]:
     if isinstance(attr, list):
         attr = attr[-1]
 
-    file_id: Optional[str] = getattr(attr, "file_id", None)
+    file_id: str | None = getattr(attr, "file_id", None)
     return NoteFile(id=file_id, type=ContentType(message.content_type)) if file_id else None
 
 
-def parse_reply_message(message: Message) -> tuple[str, Optional[NoteFile], list[list[Button]]]:
+def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[list[Button]]]:
     if message.content_type not in (*PARSABLE_CONTENT_TYPES, ContentType.TEXT):
         raise SophieException(
             Section(
@@ -58,7 +56,7 @@ def parse_reply_message(message: Message) -> tuple[str, Optional[NoteFile], list
 
 async def parse_saveable(
     message: Message,
-    text: Optional[str],
+    text: str | None,
     allow_reply_message=True,
     buttons: ButtonsList | None = None,
     offset: int = 0,

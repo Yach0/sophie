@@ -1,5 +1,5 @@
 from io import BufferedReader, BytesIO
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 from aiogram.types import Voice
 
@@ -8,7 +8,7 @@ from sophie_bot.services.bot import bot
 
 
 async def transform_voice_to_text(voice: Voice) -> str:
-    downloaded_audio: Optional[BinaryIO] = await bot.download(voice.file_id)
+    downloaded_audio: BinaryIO | None = await bot.download(voice.file_id)
 
     if downloaded_audio is None:
         raise ValueError("Failed to download voice file")

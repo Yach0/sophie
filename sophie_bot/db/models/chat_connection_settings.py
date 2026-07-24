@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import ClassVar, Optional
 
 from beanie import Document, PydanticObjectId
 from pymongo import ASCENDING, IndexModel
@@ -13,7 +13,7 @@ class ChatConnectionSettingsModel(Document):
 
     class Settings:
         name = "chat_connection_settings"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel(
                 [("chat.$id", ASCENDING)],
                 unique=True,

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import io
-from io import BufferedReader, BytesIO
 import types as typing_types
-from typing import TYPE_CHECKING, BinaryIO, Optional
+from io import BufferedReader, BytesIO
+from typing import TYPE_CHECKING, BinaryIO
 
 from aiogram.types import Video, VideoNote
 
@@ -27,7 +27,7 @@ except ImportError:
     _av_module: typing_types.ModuleType = None  # ty: ignore[invalid-assignment]
 
 
-async def extract_audio_from_video(video: Video | VideoNote) -> Optional[bytes]:
+async def extract_audio_from_video(video: Video | VideoNote) -> bytes | None:
     """Extract audio from video file using PyAV.
 
     Downloads the video file from Telegram, extracts audio using PyAV,
@@ -56,7 +56,7 @@ async def extract_audio_from_video(video: Video | VideoNote) -> Optional[bytes]:
         )
         return None
 
-    downloaded_video: Optional[BinaryIO] = await bot.download(video.file_id)
+    downloaded_video: BinaryIO | None = await bot.download(video.file_id)
 
     if not downloaded_video:
         raise SophieException(_("Failed to download video file"))
@@ -112,12 +112,12 @@ async def extract_audio_from_video(video: Video | VideoNote) -> Optional[bytes]:
 
         return audio_bytes
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # media decode boundary: any PyAV/codec failure degrades to no-audio
         log.error("Audio extraction failed", error=str(e))
         return None
 
 
-async def transform_video_to_text(video: Video | VideoNote) -> Optional[str]:
+async def transform_video_to_text(video: Video | VideoNote) -> str | None:
     """Transcribe video audio to text using Mistral AI.
 
     Downloads the video, extracts audio, and transcribes it using

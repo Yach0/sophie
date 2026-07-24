@@ -9,10 +9,10 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, ValidationError
 
 from sophie_bot.db.models import ChatModel, RulesModel
-from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.db.models.notes import Saveable
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_chat_models import get_moderation_reason_model
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -42,10 +42,7 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
         return False
 
     capabilities = await resolve_chat_capabilities(chat_db)
-    if not capabilities.moderator:
-        return False
-
-    return True
+    return capabilities.moderator
 
 
 async def generate_restriction_reason(
@@ -140,7 +137,7 @@ def extract_rules_text(rules_model: RulesModel) -> str:
         # Try to get text from the saveable content
         try:
             content = rules_model.model_dump()
-            if "text" in content and content["text"]:
+            if content.get("text"):
                 return str(content["text"])
         except (AttributeError, TypeError, ValueError, ValidationError) as err:
             log.warning("Failed to extract text from Saveable rules model")

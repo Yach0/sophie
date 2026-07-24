@@ -1,6 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import ClassVar
+
 from beanie import Document
-from pydantic import Field, ConfigDict
+from pydantic import ConfigDict, Field
 
 
 class MigrationState(Document):
@@ -8,12 +10,10 @@ class MigrationState(Document):
 
     class Settings:
         name = "migration_states"
-        indexes = ["name"]
+        indexes: ClassVar = ["name"]
 
     name: str = Field(..., description="Migration filename without extension")
-    applied_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="When migration was applied"
-    )
+    applied_at: datetime = Field(default_factory=lambda: datetime.now(UTC), description="When migration was applied")
     version: str = Field(default="1.0", description="Migration format version")
     batch_size: int | None = Field(default=None, description="Number of documents migrated (for large collections)")
     duration_ms: int | None = Field(default=None, description="Migration duration in milliseconds")

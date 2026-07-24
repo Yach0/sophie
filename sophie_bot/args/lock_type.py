@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgStrictError
 from ass_tg.types import WordArg
@@ -14,7 +12,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class LockTypeArg(WordArg):
     """Argument type for lock types, supporting standard locks, stickerpack:PACK_ID and language:LANG_CODE formats."""
 
-    def __init__(self, description: Optional[LazyProxy | str] = None):
+    def __init__(self, description: LazyProxy | str | None = None):
         super().__init__(description=description or l_("Lock type"))
 
     def check(self, text: str, entities: ArgEntities) -> bool:
@@ -43,7 +41,7 @@ class LockTypeArg(WordArg):
         return l_("Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"), l_("Lock types")
 
     @property
-    def examples(self) -> dict[str, Optional[LazyProxy]] | None:
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         return {
             "sticker": l_("Block stickers"),
             "url": l_("Block URLs"),

@@ -5,10 +5,11 @@ from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from .handlers.crash_handler import crash_handler
-from .handlers.error import SophieErrorHandler
+
 from ...filters.cmd import CMDFilter
 from ...middlewares import try_localization_middleware
+from .handlers.crash_handler import crash_handler
+from .handlers.error import SophieErrorHandler
 
 router = Router(name="error")
 

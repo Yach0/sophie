@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -22,7 +22,7 @@ async def build_chat_model(tid: int, title: str, chat_type: ChatType) -> ChatMod
         first_name_or_title=title,
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat_model.insert()
     reloaded_chat = await ChatModel.get_by_tid(tid)
@@ -60,7 +60,7 @@ async def test_repeated_messages_from_fbanned_user_do_not_duplicate_banned_chats
     ban = FederationBan(
         fed_id=federation.fed_id,
         user_id=user_tid,
-        time=datetime.now(timezone.utc),
+        time=datetime.now(UTC),
         by=fed_creator,
         reason="Spam",
     )

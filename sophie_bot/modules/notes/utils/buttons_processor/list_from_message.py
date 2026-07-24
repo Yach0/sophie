@@ -5,9 +5,9 @@ from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgError
 from stfu_tg import Section
 
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.buttons.storage import buttons_from_ass
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_buttons_arg import TextWithButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 

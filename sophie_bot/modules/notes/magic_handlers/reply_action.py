@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.types import (
     CallbackQuery,
@@ -25,7 +25,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -> Saveable:
     if isinstance(event, CallbackQuery):
-        raise ValueError("This handlers setup_confirm can only be used with messages")
+        raise TypeError("This handlers setup_confirm can only be used with messages")
 
     return await parse_saveable(event, event.html_text)
 
@@ -68,7 +68,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: Saveable) -> Optional[ActionResult]:
+    async def handle(self, message: Message, data: dict, filter_data: Saveable) -> ActionResult | None:
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
 
         if filter_data.buttons or filter_data.file or filter_data.files:

@@ -22,18 +22,17 @@ from typing import Any, cast
 
 import sentry_sdk
 from sentry_sdk.integrations import Integration
-from sentry_sdk.types import Event
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.types import Event
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.error.utils.ignored import SENTRY_IGNORED_EXCEPTIONS
 from sophie_bot.utils.logger import log
 from sophie_bot.versions import SOPHIE_COMMIT, SOPHIE_VERSION
-
 
 _BOT_TOKEN_RE = re.compile(r"(/bot)\d+:[A-Za-z0-9_-]+(/)")
 

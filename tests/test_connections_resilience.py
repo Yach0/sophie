@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import importlib
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -29,7 +29,7 @@ async def build_private_chat_model(user_tid: int, title: str, username: str | No
         first_name_or_title=title,
         username=username,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat_model.insert()
     return chat_model
@@ -42,7 +42,7 @@ async def build_group_chat_model(chat_tid: int, title: str) -> ChatModel:
         first_name_or_title=title,
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await group_model.insert()
     return group_model
@@ -59,7 +59,7 @@ async def test_connections_middleware_disconnects_dangling_chat_link(db_init: An
     stale_chat_link = BeanieLink(DBRef("chats", stale_chat_iid), ChatModel)
     fake_connection_model = SimpleNamespace(
         chat=stale_chat_link,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
+        expires_at=datetime.now(UTC) + timedelta(hours=48),
         save=AsyncMock(),
     )
 
@@ -101,7 +101,7 @@ async def test_cleanup_migration_repairs_dangling_connections(db_init: Any) -> N
     connection_model = ChatConnectionModel(
         user=user_chat,
         chat=valid_chat,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=8),
+        expires_at=datetime.now(UTC) + timedelta(hours=8),
         history=[valid_chat],
     )
     await connection_model.insert()
@@ -195,7 +195,7 @@ async def test_delete_chat_removes_related_connection_records(db_init: Any) -> N
     connection_model = ChatConnectionModel(
         user=user_chat,
         chat=removable_group,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=12),
+        expires_at=datetime.now(UTC) + timedelta(hours=12),
         history=[removable_group],
     )
     await connection_model.insert()

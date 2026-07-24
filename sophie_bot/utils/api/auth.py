@@ -2,8 +2,8 @@ import hashlib
 import hmac
 import secrets
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 from urllib.parse import parse_qsl
 
 import jwt
@@ -27,12 +27,12 @@ oauth2_scheme = HTTPBearer()
 logger = structlog.get_logger(__name__)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        expire = datetime.now(UTC) + timedelta(minutes=15)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, CONFIG.api_jwt_secret, algorithm="HS256")

@@ -27,7 +27,7 @@ class SendNoteActionDataModel(BaseModel):
 async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> SendNoteActionDataModel:
     """Checks given notename and saves it"""
     if isinstance(event, CallbackQuery):
-        raise ValueError("This handlers setup_confirm can only be used with messages")
+        raise TypeError("This handlers setup_confirm can only be used with messages")
 
     connection: ChatConnection = data["connection"]
     notename = (event.text or "").split(" ", 1)[0].lower().removeprefix("#")

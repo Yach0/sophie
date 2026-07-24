@@ -1,6 +1,4 @@
-from typing import Optional
-
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.notes.utils.buttons.models import ButtonLayout
@@ -13,7 +11,7 @@ from sophie_bot.modules.notes.utils.buttons.storage import (
     buttons_from_ass,
     buttons_from_markup,
 )
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 
 __all__ = (
     "Button",
@@ -42,7 +40,7 @@ class ButtonsList(ButtonLayout):
         return render_buttons(self, chat_id)
 
 
-def parse_message_button(button: InlineKeyboardButton) -> Optional[Button]:
+def parse_message_button(button: InlineKeyboardButton) -> Button | None:
     return button_from_markup(button)
 
 

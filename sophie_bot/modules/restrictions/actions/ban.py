@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class BanActionDataModel(BaseModel):
-    ban_duration: Optional[timedelta]
+    ban_duration: timedelta | None
 
 
 class BanModernAction(BaseRestrictionModernAction[BanActionDataModel]):
@@ -32,9 +32,9 @@ class BanModernAction(BaseRestrictionModernAction[BanActionDataModel]):
     settings_title = l_("Change ban duration")
 
     @staticmethod
-    def get_duration(data: BanActionDataModel) -> Optional[timedelta]:
+    def get_duration(data: BanActionDataModel) -> timedelta | None:
         return data.ban_duration
 
     @staticmethod
-    def restriction_func(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> Any:
+    def restriction_func(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> Any:
         return ban_user(chat_tid, user_tid, until_date=until_date)

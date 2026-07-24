@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -66,7 +66,7 @@ class FederationImportHandler(FederationCommandHandler):
             user=user_iid,
             file_id=document.file_id,
             status=TaskStatus.PENDING,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         await import_task.insert()
 

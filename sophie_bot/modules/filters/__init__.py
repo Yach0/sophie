@@ -29,11 +29,11 @@ from .handlers.filters_list import FiltersListHandler
 from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
 
 __all__ = (
-    "api_router",
-    "router",
-    "pre_setup",
-    "post_setup",
     "LOADED_MODULES",
+    "api_router",
+    "post_setup",
+    "pre_setup",
+    "router",
 )
 
 

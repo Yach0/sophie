@@ -9,7 +9,7 @@ against mongomock), so nothing between the callback and the DB is mocked.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from aiogram.types import Message, User
@@ -205,7 +205,7 @@ async def test_autokick_bans_stale_unpassed_user(test_client: TestClient) -> Non
     stale_model = await ChatModel.get_by_tid(stale.id)
     assert stale_model is not None
     pending = await WSUserModel.ensure_user(stale_model, chat, is_join_request=False)
-    pending.added_at = datetime.now(timezone.utc) - timedelta(hours=WELCOMESECURITY_BAN_TIMEOUT_HOURS + 1)
+    pending.added_at = datetime.now(UTC) - timedelta(hours=WELCOMESECURITY_BAN_TIMEOUT_HOURS + 1)
     await pending.save()
 
     start = len(test_client.capture)

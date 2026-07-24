@@ -6,7 +6,7 @@ including updating the replied-to user and handling forwarded content.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -35,14 +35,14 @@ class TestReplyMessageHandling:
 
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=replied_user,
         )
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             reply_to_message=reply_message,
@@ -78,14 +78,14 @@ class TestReplyMessageHandling:
 
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             sender_chat=sender_chat,
         )
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             reply_to_message=reply_message,
@@ -120,14 +120,14 @@ class TestReplyMessageHandling:
 
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             sender_chat=replied_channel,
         )
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             reply_to_message=reply_message,
@@ -166,7 +166,7 @@ class TestReplyMessageHandling:
         # The replied message is itself a forwarded message
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=original_user,
             forward_from=forwarded_user,
@@ -174,7 +174,7 @@ class TestReplyMessageHandling:
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             reply_to_message=reply_message,
@@ -209,14 +209,14 @@ class TestReplyMessageHandling:
 
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=bot_user,
         )
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             reply_to_message=reply_message,
@@ -248,14 +248,14 @@ class TestReplyMessageHandling:
 
         reply_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
 
         message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             reply_to_message=reply_message,

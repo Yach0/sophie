@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from itertools import chain
 
 from babel.dates import format_date, format_time
@@ -9,8 +9,8 @@ from beanie import PydanticObjectId
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 
 from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatModel
-from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -32,8 +32,8 @@ SOURCE_EXCERPT_MAX_LENGTH = 160
 
 
 def _build_summary_window(now: datetime) -> tuple[datetime, datetime]:
-    window_end = now.astimezone(timezone.utc)
-    window_start = datetime.combine(window_end.date(), time.min, tzinfo=timezone.utc)
+    window_end = now.astimezone(UTC)
+    window_start = datetime.combine(window_end.date(), time.min, tzinfo=UTC)
     return window_start, window_end
 
 
@@ -83,12 +83,12 @@ def _derive_summary_line(group: AIChatSummaryGroup, messages_by_id: dict[int, Me
     first_message = min(
         grouped_messages,
         key=lambda message: (
-            message.created_at or datetime.min.replace(tzinfo=timezone.utc),
+            message.created_at or datetime.min.replace(tzinfo=UTC),
             message.message_id,
         ),
     )
     usernames = list(OrderedDict.fromkeys(message.username for message in grouped_messages if message.username))
-    first_message_at = first_message.created_at or datetime.min.replace(tzinfo=timezone.utc)
+    first_message_at = first_message.created_at or datetime.min.replace(tzinfo=UTC)
     return AIChatSummaryLine(
         emoji=group.emoji,
         title=group.title,
@@ -109,7 +109,7 @@ def _build_summary_line_doc(chat_tid: int, line: AIChatSummaryLine, current_loca
 
     return Template(
         _("{time} - {emoji} {title}, {users}"),
-        time=format_time(line.first_message_at.astimezone(timezone.utc), format="short", locale=current_locale),
+        time=format_time(line.first_message_at.astimezone(UTC), format="short", locale=current_locale),
         emoji=line.emoji,
         title=Url(Italic(line.title), message_url),
         users=HList(*line.usernames, divider=", ") if line.usernames else "-",
@@ -213,7 +213,7 @@ class GenerateChatSummaries:
             )
             return
 
-        current_time = now or datetime.now(timezone.utc)
+        current_time = now or datetime.now(UTC)
         window_start, window_end = _build_summary_window(current_time)
         cached_messages = await get_cached_messages_between(chat.tid, window_start, window_end)
         if len(cached_messages) < 3:
@@ -275,7 +275,7 @@ class GenerateChatSummaries:
         )
 
     async def handle(self) -> None:
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(UTC)
         summary_date = current_time.date()
         async for chat in ForChats():
             if not await is_enabled("ai_chat_summaries", chat_tid=chat.tid):

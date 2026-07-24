@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -17,10 +17,10 @@ from sophie_bot.db.models.federations import Federation, FederationBan, Federati
 from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services import FederationBanService, FederationChatService, FederationManageService
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, set_feature
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
 )
+from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, set_feature
 
 
 async def _send_anonymous_fban(
@@ -641,7 +641,7 @@ async def _insert_inherited_ban(fed_id: str, origin_fed_id: str, user_tid: int, 
     ban = FederationBan(
         fed_id=fed_id,
         user_id=user_tid,
-        time=datetime.now(timezone.utc),
+        time=datetime.now(UTC),
         by=by_model,
         reason="inherited ban",
         origin_fed=origin_fed_id,
@@ -824,7 +824,7 @@ async def test_unfban_command_lifts_ban(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_fcheck_group_reports_ban_status(test_client: TestClient) -> None:
-    owner_user, group, federation, target = await _fed_with_joined_member(
+    owner_user, group, _federation, target = await _fed_with_joined_member(
         test_client, owner_tid=6044, chat_tid=-1001000006044, target_tid=6045, fed_name="Fcheck Cmd Fed"
     )
 

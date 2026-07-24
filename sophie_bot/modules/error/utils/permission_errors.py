@@ -57,7 +57,7 @@ async def handle_no_rights_error(
     try:
         await bot.leave_chat(chat_tid)
         log.info("Successfully left chat due to permission restrictions", chat_id=chat_tid)
-    except Exception as leave_error:
+    except Exception as leave_error:  # noqa: BLE001  # best-effort leave; log and continue
         log.error("Failed to leave chat", chat_id=chat_tid, error=str(leave_error))
 
     # Get the chat model and log the leave event

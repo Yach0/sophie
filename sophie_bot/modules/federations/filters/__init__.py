@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Union
+from typing import Any
 
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.filters import Filter
 from aiogram.types import Message
+from stfu_tg import Template
 
 from sophie_bot.constants import FEDERATION_BANLIST_COOLDOWN_SECONDS
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
-from stfu_tg import Template
 
 
 class BanlistCooldownFilter(Filter):
-    async def __call__(self, message: Message) -> Union[bool, Dict[str, Any]]:
+    async def __call__(self, message: Message) -> bool | dict[str, Any]:
         if not message.from_user:
             raise SkipHandler
 

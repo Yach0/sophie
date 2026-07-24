@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Annotated, Optional
+from typing import Annotated
 
 from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, BeforeValidator
@@ -29,7 +29,7 @@ def _coerce_timedelta(value: object) -> object:
 
 class CleanWelcome(BaseModel):
     enabled: bool = False
-    last_msg: Optional[int] = None
+    last_msg: int | None = None
 
 
 class CleanService(BaseModel):
@@ -42,28 +42,28 @@ WELCOMESECURITY_EXPIRE_DEFAULT_TIME = timedelta(hours=48)
 
 class WelcomeMute(BaseModel):
     enabled: bool = False
-    time: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = WELCOMEMUTE_DEFAULT_TIME
+    time: Annotated[timedelta | None, BeforeValidator(_coerce_timedelta)] = WELCOMEMUTE_DEFAULT_TIME
 
 
 class WelcomeSecurity(BaseModel):
     enabled: bool = False
-    expire: Annotated[Optional[timedelta], BeforeValidator(_coerce_timedelta)] = WELCOMESECURITY_EXPIRE_DEFAULT_TIME
+    expire: Annotated[timedelta | None, BeforeValidator(_coerce_timedelta)] = WELCOMESECURITY_EXPIRE_DEFAULT_TIME
 
 
 class GreetingsModel(Document):
     chat: Link[ChatModel]
 
-    welcome_disabled: Optional[bool] = False
+    welcome_disabled: bool | None = False
 
-    note: Optional[Saveable] = None
-    security_note: Optional[Saveable] = None
-    join_request_message: Optional[Saveable] = None
+    note: Saveable | None = None
+    security_note: Saveable | None = None
+    join_request_message: Saveable | None = None
 
-    clean_welcome: Optional[CleanWelcome] = CleanWelcome()
-    clean_service: Optional[CleanService] = CleanService()
+    clean_welcome: CleanWelcome | None = CleanWelcome()
+    clean_service: CleanService | None = CleanService()
 
-    welcome_mute: Optional[WelcomeMute] = WelcomeMute()
-    welcome_security: Optional[WelcomeSecurity] = WelcomeSecurity()
+    welcome_mute: WelcomeMute | None = WelcomeMute()
+    welcome_security: WelcomeSecurity | None = WelcomeSecurity()
 
     class Settings:
         name = "greetings"
@@ -118,7 +118,7 @@ class GreetingsModel(Document):
             self.welcome_security.enabled = new_state
         return await self.save()
 
-    async def set_status_welcomemute(self, new_state: bool, time: Optional[timedelta]) -> "GreetingsModel":
+    async def set_status_welcomemute(self, new_state: bool, time: timedelta | None) -> "GreetingsModel":
         if not self.welcome_mute:
             self.welcome_mute = WelcomeMute(enabled=new_state, time=time)
         else:

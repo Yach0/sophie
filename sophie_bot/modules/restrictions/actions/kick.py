@@ -1,5 +1,3 @@
-from typing import Optional
-
 from aiogram.types import Message
 from stfu_tg import KeyValue, Template, Title, UserLink
 from stfu_tg.doc import Doc, Element
@@ -27,12 +25,12 @@ class KickModernAction(ModernActionABC[None]):
     def description(data: None) -> Element | str:
         return _("Kicks a user")
 
-    async def handle(self, message: Message, data: dict, filter_data: None) -> Optional[Element]:
+    async def handle(self, message: Message, data: dict, filter_data: None) -> Element | None:
         if not message.from_user:
             return
 
         chat_id = message.chat.id
-        reason: Optional[str] = None
+        reason: str | None = None
 
         chat_db = data.get("chat_db")
         if chat_db:

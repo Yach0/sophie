@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, status
 
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
+from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 from .schemas import NoteCreate, NoteResponse
 
@@ -39,7 +39,7 @@ async def create_note(
         description=note_data.description,
         ai_description=note_data.ai_description,
         note_group=note_data.note_group,
-        created_date=datetime.now(timezone.utc),
+        created_date=datetime.now(UTC),
         created_user=user,
     )
     await note.insert()

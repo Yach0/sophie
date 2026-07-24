@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramBadRequest
@@ -26,10 +26,10 @@ AdminPermission = Literal[
 ]
 
 # A chat or user identified by Telegram ID, DB ID, or an already-resolved model.
-ChatRef = Union[int, PydanticObjectId, ChatModel]
+ChatRef = int | PydanticObjectId | ChatModel
 
 
-async def _resolve_model(ref: ChatRef) -> Optional[ChatModel]:
+async def _resolve_model(ref: ChatRef) -> ChatModel | None:
     if isinstance(ref, ChatModel):
         return ref
     if isinstance(ref, int):
@@ -49,9 +49,9 @@ def _is_auto_admin(chat_tid: int, user_tid: int) -> bool:
 async def check_user_admin_permissions(
     chat: ChatRef,
     user: ChatRef,
-    required_permissions: Optional[list[str]] = None,
+    required_permissions: list[str] | None = None,
     require_creator: bool = False,
-) -> Union[bool, list[str]]:
+) -> bool | list[str]:
     """
     Check if a user is an admin in the specified chat and has the required permissions.
 
@@ -70,9 +70,8 @@ async def check_user_admin_permissions(
 
     # Must precede resolution: auto-admins (operators, own PM) are granted even
     # when either side has no chat document to resolve.
-    if isinstance(chat, int) and isinstance(user, int) and not require_creator:
-        if _is_auto_admin(chat, user):
-            return True
+    if isinstance(chat, int) and isinstance(user, int) and not require_creator and _is_auto_admin(chat, user):
+        return True
 
     chat_model = await _resolve_model(chat)
     if not chat_model:

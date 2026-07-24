@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS
-from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
+from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 from .schemas import DisabledPayload, DisabledResponse
 

@@ -7,9 +7,9 @@ from stfu_tg import Bold, Code, Doc, KeyValue, Section, Template, UserLink
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_CREDIT_EMOJI
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
 from sophie_bot.modules.ai.utils.ai_usage_service import OperatorAIStats, get_operator_ai_stats
 from sophie_bot.utils.handlers import SophieMessageHandler

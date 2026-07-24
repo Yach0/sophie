@@ -28,5 +28,5 @@ class RulesModel(Saveable, Document):
         )
 
     @staticmethod
-    async def del_rules(chat_iid: PydanticObjectId) -> Optional[DeleteResult]:
+    async def del_rules(chat_iid: PydanticObjectId) -> DeleteResult | None:
         return await RulesModel.find(RulesModel.chat.id == chat_iid).delete()

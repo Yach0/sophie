@@ -8,6 +8,12 @@ import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramUnauthorizedError
 from aiogram.types import ChatPermissions
 
+from sophie_bot.modules.restrictions.services.silent import (
+    build_silent_action_doc,
+    collect_message_ids_for_cleanup,
+    delete_messages_after_delay,
+    log_silent_action,
+)
 from sophie_bot.modules.restrictions.utils.restrictions import (
     ban_user,
     kick_user,
@@ -15,12 +21,6 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
     restrict_user,
     unban_user,
     unmute_user,
-)
-from sophie_bot.modules.restrictions.services.silent import (
-    build_silent_action_doc,
-    collect_message_ids_for_cleanup,
-    delete_messages_after_delay,
-    log_silent_action,
 )
 
 

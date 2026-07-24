@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,7 +13,7 @@ from sophie_bot.middlewares.sentry_tracing import SentryTracingMiddleware
 def mock_update() -> Update:
     user = User(id=123, is_bot=False, first_name="Test")
     chat = Chat(id=456, type="private")
-    message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="/start")
+    message = Message(message_id=1, date=datetime.now(UTC), chat=chat, from_user=user, text="/start")
     return Update(update_id=1, message=message)
 
 

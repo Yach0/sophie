@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple
 
 from aiogram import Router
 from aiogram.types import BufferedInputFile, InlineKeyboardButton
@@ -36,7 +36,7 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         router.message.register(cls, CMDFilter("captcha"), IsOP(True))
         router.callback_query.register(cls, WelcomeSecurityMoveCB.filter())
 
-    def _requested_target(self) -> Optional[CaptchaTarget]:
+    def _requested_target(self) -> CaptchaTarget | None:
         """The chat this event explicitly asks a captcha for, if any."""
         if chat_iid := self.data.get("ws_chat_iid"):
             return CaptchaTarget(str(chat_iid), bool(self.data.get("ws_is_join_request", False)))
@@ -48,7 +48,7 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         return None
 
     @staticmethod
-    def _state_target(state_data: dict[str, Any]) -> Optional[CaptchaTarget]:
+    def _state_target(state_data: dict[str, Any]) -> CaptchaTarget | None:
         """The chat of the captcha currently in progress, if any."""
         if chat_iid := state_data.get("ws_chat_iid"):
             return CaptchaTarget(str(chat_iid), bool(state_data.get("ws_is_join_request", False)))
@@ -64,10 +64,8 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         if not target:
             await self.answer(
                 _(
-                    (
-                        "The chat initiated the Welcome Security procedure were not found! "
-                        "Try clicking on the authentication button in the group again."
-                    )
+                    "The chat initiated the Welcome Security procedure were not found! "
+                    "Try clicking on the authentication button in the group again."
                 )
             )
             await self.state.clear()

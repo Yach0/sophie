@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional
+from typing import Any
 
 from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
@@ -77,7 +77,7 @@ class HashtagGetNote(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (F.text.regexp(HashtagGetNote.hashtag_filter_pattern),)
 
-    async def _fine_note(self, note_name: str) -> Optional[NoteModel]:
+    async def _fine_note(self, note_name: str) -> NoteModel | None:
         chat: ChatConnection = self.data["connection"]
         return await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
 

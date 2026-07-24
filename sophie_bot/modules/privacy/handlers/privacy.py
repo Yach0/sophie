@@ -1,13 +1,13 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram import Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from babel.messages import Message
 
+from sophie_bot.config import CONFIG
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.config import CONFIG
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -24,7 +24,7 @@ class PrivacyMenu(SophieBaseHandler[Message | CallbackQuery]):
         router.callback_query.register(cls, PrivacyMenuCallback.filter())
 
     async def handle(self) -> Any:
-        callback_data: Optional[PrivacyMenuCallback] = self.data.get("callback_data", None)
+        callback_data: PrivacyMenuCallback | None = self.data.get("callback_data", None)
 
         text = _("The privacy policy of the bot is available on our wiki page.")
         buttons = InlineKeyboardBuilder().add(

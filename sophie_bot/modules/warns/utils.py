@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.types import Message
 from beanie import PydanticObjectId
@@ -22,7 +22,7 @@ async def _execute_restriction_action(
     action_data: dict[str, Any],
     chat_tid: int,
     user_tid: int,
-) -> Optional[str]:
+) -> str | None:
     duration = resolve_action_duration(action_name, action_data)
 
     if action_name == "ban_user":
@@ -49,11 +49,11 @@ async def _execute_warn_actions(
     user: ChatModel,
     admin: ChatModel,
     *,
-    reason: Optional[str],
-    trigger_message: Optional[Message],
-    action_context: Optional[dict[str, Any]],
-) -> Optional[str]:
-    punishment: Optional[str] = None
+    reason: str | None,
+    trigger_message: Message | None,
+    action_context: dict[str, Any] | None,
+) -> str | None:
+    punishment: str | None = None
 
     for action in actions:
         action_data = action.data if isinstance(action.data, dict) else {}
@@ -95,11 +95,11 @@ async def warn_user(
     chat: ChatModel,
     user: ChatModel,
     admin: ChatModel,
-    reason: Optional[str] = None,
+    reason: str | None = None,
     *,
-    trigger_message: Optional[Message] = None,
-    action_context: Optional[dict[str, Any]] = None,
-) -> tuple[int, int, Optional[str], Optional[WarnModel]]:
+    trigger_message: Message | None = None,
+    action_context: dict[str, Any] | None = None,
+) -> tuple[int, int, str | None, WarnModel | None]:
     """
     Warns a user in a chat.
     Returns: (current_warns, max_warns, punishment_action_if_any, warn_model)

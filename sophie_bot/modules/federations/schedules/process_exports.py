@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import csv
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 from typing import Final
 
@@ -144,7 +144,7 @@ class ProcessFederationExports:
             Title(_("🏛 Federation Ban List Export")),
             KeyValue(_("Federation"), task.fed_name),
             KeyValue(_("Total bans"), ban_count),
-            KeyValue(_("Exported at"), task.completed_at or datetime.now(timezone.utc).isoformat()),
+            KeyValue(_("Exported at"), task.completed_at or datetime.now(UTC).isoformat()),
         )
         return doc.to_html()
 
@@ -160,8 +160,8 @@ class ProcessFederationExports:
             task.error_message = error_message
 
         if status == TaskStatus.PROCESSING:
-            task.started_at = datetime.now(timezone.utc)
+            task.started_at = datetime.now(UTC)
         elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = datetime.now(UTC)
 
         await task.save()

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from aiogram.filters.callback_data import CallbackData
 
 
@@ -16,7 +14,7 @@ class ACWCoreCallback(CallbackData, prefix="acw"):
 
     mod: str
     op: str
-    name: Optional[str] = None
+    name: str | None = None
 
 
 class ACWSettingCallback(CallbackData, prefix="acw_setting"):

@@ -14,9 +14,9 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
-from tests.e2e.helpers import grant_admin
 from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
 from sophie_bot.modules.notes.handlers.save import SaveNote
+from tests.e2e.helpers import grant_admin
 
 
 async def _setup_group_and_user(

@@ -87,9 +87,9 @@ async def test_create_filter_rejects_non_filter_action() -> None:
         patch("sophie_bot.modules.filters.api.utils.ChatModel.get_by_iid", new=AsyncMock(return_value=chat)),
         patch("sophie_bot.modules.filters.api.utils.FiltersModel.get_by_keyword", new=AsyncMock(return_value=None)),
         patch("sophie_bot.modules.filters.api.utils.ALL_MODERN_ACTIONS", {"not_filter": NotFilterAction()}),
+        pytest.raises(HTTPException) as exc_info,
     ):
-        with pytest.raises(HTTPException) as exc_info:
-            await create_filter(chat_iid, payload, user)
+        await create_filter(chat_iid, payload, user)
 
     assert exc_info.value.status_code == 422
 

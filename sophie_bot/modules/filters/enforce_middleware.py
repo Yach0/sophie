@@ -1,5 +1,6 @@
+from collections.abc import Awaitable, Callable
 from functools import lru_cache
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -10,20 +11,20 @@ from stfu_tg import Doc
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
+from sophie_bot.modules.ai.utils.ai_filter_texts import AI_FILTER_STATUS
+from sophie_bot.modules.ai.utils.ai_header import ai_table_header
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.filters.fsm import FilterEditFSM
+from sophie_bot.modules.filters.types.modern_action_abc import ActionResult
 from sophie_bot.modules.filters.utils_.handle_action import (
     get_effective_filter_actions,
     handle_effective_filter_action,
 )
-from sophie_bot.modules.filters.types.modern_action_abc import ActionResult
 from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.restrictions.services.silent import schedule_message_deletion
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.ai.utils.ai_header import ai_table_header
-from sophie_bot.modules.ai.utils.ai_filter_texts import AI_FILTER_STATUS
-from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
@@ -32,12 +33,12 @@ from sophie_bot.utils.logger import log
 
 class EnforceFiltersMiddleware(BaseMiddleware):
     @staticmethod
-    @lru_cache()
+    @lru_cache
     def _get_all_cmds() -> tuple[str, ...]:
         return get_all_cmds_raw()
 
-    async def _is_to_drop(self, message: Message, state: Optional[FSMContext]) -> bool:
-        sender: Optional[User | Chat] = message.sender_chat or message.from_user
+    async def _is_to_drop(self, message: Message, state: FSMContext | None) -> bool:
+        sender: User | Chat | None = message.sender_chat or message.from_user
 
         if not sender:
             log.debug("EnforceFiltersMiddleware: no sender, dropping...")
@@ -204,7 +205,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 message, data, matched_filter, triggered_groups=triggered_groups
             )
             all_messages.extend(messages)
-            triggered_groups.extend((action for action in actions if action))
+            triggered_groups.extend(action for action in actions if action)
             silent = silent or matched_filter.silent
 
         sent_message_ids: list[int] = []
@@ -227,9 +228,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         log.debug("EnforceFiltersMiddleware: checking filters...")
 

@@ -6,7 +6,7 @@ registry from ``community_chat_added`` / ``community_chat_removed`` service mess
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -34,7 +34,7 @@ class TestSaveCommunity:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             community_chat_added=CommunityChatAdded(community=Community(id=555000, name="Cool Community")),
@@ -67,7 +67,7 @@ class TestSaveCommunity:
             is_bot=False,
             username=None,
             community_tid=999000,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group.save()
 
@@ -76,7 +76,7 @@ class TestSaveCommunity:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             community_chat_removed=CommunityChatRemoved(),
@@ -106,7 +106,7 @@ class TestSaveCommunity:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             community_chat_added=CommunityChatAdded(community=Community(id=111000, name="Ignored")),

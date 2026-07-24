@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory

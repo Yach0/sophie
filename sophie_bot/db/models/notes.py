@@ -1,6 +1,7 @@
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Iterable, Optional, Sequence
+from typing import Annotated, Any, Optional
 
 from aiogram.enums import ContentType
 from beanie import Document, Indexed, PydanticObjectId
@@ -31,18 +32,18 @@ CURRENT_SAVEABLE_VERSION = 2
 
 
 class Saveable(BaseModel):
-    text: Annotated[Optional[str], Indexed(index_type=TEXT)] = ""
+    text: Annotated[str | None, Indexed(index_type=TEXT)] = ""
 
-    file: Optional[NoteFile] = None
+    file: NoteFile | None = None
     # Album (media group) items. When set (len > 1) the note is sent via sendMediaGroup
     # and `file` stays None. Single-media notes keep using `file` with `files` empty.
     files: list[NoteFile] = Field(default_factory=list)
     buttons: list[list[Button]] = Field(default_factory=list)
 
-    parse_mode: Optional[SaveableParseMode] = SaveableParseMode.html
-    preview: Optional[bool] = False
+    parse_mode: SaveableParseMode | None = SaveableParseMode.html
+    preview: bool | None = False
 
-    version: Optional[int] = 1
+    version: int | None = 1
 
 
 def normalize_notenames(notenames: Iterable[str]) -> tuple[str, ...]:
@@ -58,18 +59,18 @@ class NoteModel(Saveable, Document):
     chat: Annotated[Link[ChatModel], Indexed()]
 
     names: tuple[str, ...]
-    note_group: Optional[str] = None
+    note_group: str | None = None
 
-    description: Optional[str] = None
+    description: str | None = None
     ai_description: bool = False
-    embedding: Optional[list[float]] = None
-    embedding_text: Optional[str] = None
-    embedding_model: Optional[str] = None
+    embedding: list[float] | None = None
+    embedding_text: str | None = None
+    embedding_model: str | None = None
 
-    created_date: Optional[datetime] = None
-    created_user: Optional[Link[ChatModel]] = None
-    edited_date: Optional[datetime] = None
-    edited_user: Optional[Link[ChatModel]] = None
+    created_date: datetime | None = None
+    created_user: Link[ChatModel] | None = None
+    edited_date: datetime | None = None
+    edited_user: Link[ChatModel] | None = None
 
     @field_validator("names", mode="after")
     @classmethod

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models import DisablingModel
@@ -12,7 +10,7 @@ async def get_disabled_handlers(chat_iid: PydanticObjectId) -> tuple[HandlerHelp
     return tuple(handler for name, handler in DISABLEABLE_CMDS.items() if name in disabled_cmds)
 
 
-def resolve_disableable_cmd(name: str) -> Optional[tuple[str, HandlerHelp]]:
+def resolve_disableable_cmd(name: str) -> tuple[str, HandlerHelp] | None:
     """Resolves a user-supplied command name to its canonical disable-able name and its help entry.
 
     Any of the handler's commands resolve to the same canonical name, so aliases cannot produce

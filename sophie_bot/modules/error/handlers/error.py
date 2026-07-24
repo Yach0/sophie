@@ -1,13 +1,13 @@
 import sys
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.handlers import ErrorHandler
 from aiogram.types import Chat, Update
 
-from sophie_bot.modules.error.utils.capture import capture_sentry
-from sophie_bot.modules.error.utils.ignored import QUIET_EXCEPTIONS
-from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.modules.error.utils.backoff import compute_error_signature, should_notify
+from sophie_bot.modules.error.utils.capture import capture_sentry
+from sophie_bot.modules.error.utils.error_message import generic_error_message
+from sophie_bot.modules.error.utils.ignored import QUIET_EXCEPTIONS
 from sophie_bot.modules.error.utils.permission_errors import (
     handle_no_rights_error,
     is_no_rights_error,
@@ -51,7 +51,7 @@ class SophieErrorHandler(ErrorHandler):
         # Try to reset state
         try:
             await self.data["state"].clear()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001  # best-effort state reset in top-level error handler
             log.warning("Failed to clear state", err=err)
 
         if update.inline_query:
@@ -81,7 +81,7 @@ class SophieErrorHandler(ErrorHandler):
             log.warning("Additional error data", **kwargs)
 
     @staticmethod
-    def capture_sentry(exception: Exception) -> Optional[str]:
+    def capture_sentry(exception: Exception) -> str | None:
         # Prefer capturing the active system exception to preserve full traceback
         sys_exc = sys.exception()
         if isinstance(sys_exc, Exception):

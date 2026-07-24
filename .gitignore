@@ -48,3 +48,7 @@ libs/
 
 # Local agent worktree metadata
 .claude/worktrees/
+
+# Worktree-local symlinks created by `make setup_worktree` (never commit these)
+/libs
+/data

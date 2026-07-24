@@ -5,11 +5,10 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
-from sophie_bot.db.models.ai.ai_mode import AIMode
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.json_schemas.research import ResearchFinalResponse, ResearchSource
 from sophie_bot.modules.ai.utils.research import ResearchWorkflowResult
 from sophie_bot.utils.feature_flags import set_enabled

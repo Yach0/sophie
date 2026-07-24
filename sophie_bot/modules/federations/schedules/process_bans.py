@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from beanie.odm.operators.find.comparison import In
 
@@ -163,7 +163,7 @@ class ProcessFederationBans:
         """
         by_user = await task.user.fetch()
         if not isinstance(by_user, ChatModel):
-            raise ValueError("The user who issued the task could not be resolved")
+            raise TypeError("The user who issued the task could not be resolved")
         return by_user
 
     @staticmethod
@@ -193,7 +193,7 @@ class ProcessFederationBans:
         if error_message:
             task.error_message = error_message
         if status == TaskStatus.PROCESSING:
-            task.started_at = datetime.now(timezone.utc)
+            task.started_at = datetime.now(UTC)
         elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = datetime.now(UTC)
         await task.save()

@@ -2,6 +2,8 @@ from aiogram.types import InlineKeyboardMarkup
 
 from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_buttons
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
+
+
 def legacy_button_parser(chat_tid: int, texts: str, pm: bool = False) -> tuple[str, InlineKeyboardMarkup]:
     text, buttons = parse_legacy_text_buttons(texts)
     markup = render_buttons(buttons, chat_tid)

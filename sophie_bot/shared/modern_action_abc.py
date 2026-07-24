@@ -7,8 +7,9 @@ notes ↔ filters circular dependency.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
@@ -45,7 +46,7 @@ class FilterActionSetupHandlerABC(SophieMessageCallbackQueryHandler, ABC):
 @dataclass
 class ActionSetupMessage:
     text: str
-    reply_markup: Optional[InlineKeyboardMarkup] = None
+    reply_markup: InlineKeyboardMarkup | None = None
 
 
 class ActionSetupTryAgainException(Exception):
@@ -53,7 +54,7 @@ class ActionSetupTryAgainException(Exception):
 
 
 @dataclass
-class ModernActionSetting(Generic[ACTION_DATA]):
+class ModernActionSetting[ACTION_DATA: BaseModel | None]:
     """Setting descriptor for a modern action.
 
     setup_confirm can return ActionSetupTryAgainException that will not switch
@@ -62,31 +63,34 @@ class ModernActionSetting(Generic[ACTION_DATA]):
 
     title: LazyProxy
 
-    setup_confirm: Optional[
-        Callable[[Message | CallbackQuery, dict[str, Any]], Awaitable[ACTION_DATA]]
-    ]  # Returns filter data
-    setup_message: Optional[Callable[[Message | CallbackQuery, dict[str, Any]], Awaitable[ActionSetupMessage]]] = None
+    setup_confirm: (
+        Callable[[Message | CallbackQuery, dict[str, Any]], Awaitable[ACTION_DATA]] | None
+    )  # Returns filter data
+    setup_message: Callable[[Message | CallbackQuery, dict[str, Any]], Awaitable[ActionSetupMessage]] | None = None
 
     # Can use defaults for initial_setup
     name_id: str = "setup"
     icon: str = ""
 
 
-class ModernActionABC(ABC, Generic[ACTION_DATA]):
+# Kept as Generic[...] instead of PEP 695 syntax: a subclass in
+# restrictions/actions/base.py mixes this with an explicit Generic[ACTION_DATA],
+# and PEP 695 type params here break that subclass's MRO.
+class ModernActionABC(ABC, Generic[ACTION_DATA]):  # noqa: UP046
     """Abstract base class for Sophie's modern actions.
 
     The modern approach is to make actions global and independent for the usage;
     thus they can be used both as Filter actions, Saveables buttons, warn actions, etc.
     """
 
-    data_object: Optional[type[ACTION_DATA]] = None  # Data model of the action, None when it takes no data
+    data_object: type[ACTION_DATA] | None = None  # Data model of the action, None when it takes no data
     name: str  # ID name would be a key-word of the action
 
     icon: str  # Emoji icon of the filter action
     title: LazyProxy  # Translate-able title of the filter
 
-    interactive_setup: Optional[ModernActionSetting] = None  # Interactive setup of action
-    default_data: Optional[ACTION_DATA] = None  # Default data
+    interactive_setup: ModernActionSetting | None = None  # Interactive setup of action
+    default_data: ACTION_DATA | None = None  # Default data
 
     as_filter: bool = True  # Can be used as a filter
     as_button: bool = False  # Can be used as a button
@@ -94,12 +98,12 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):
     allow_warns: bool = True  # Can be used as a warns action
     skip_for_admins: bool = False  # Don't run the action when the message sender is a chat admin
 
-    button_allowed_prefixes: Optional[tuple[str, ...]] = None  # Allowed prefixes for buttons
+    button_allowed_prefixes: tuple[str, ...] | None = None  # Allowed prefixes for buttons
 
     def __init__(self) -> None:
         pass
 
-    async def execute(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Optional[ActionResult]:
+    async def execute(self, message: Message, data: dict, filter_data: ACTION_DATA) -> ActionResult | None:
         """Run the action against a message. This is the entry point for every dispatcher.
 
         Enforces `skip_for_admins` so punitive actions don't have to re-implement the
@@ -121,6 +125,6 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):
         raise NotImplementedError
 
     @abstractmethod
-    async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Optional[ActionResult]:
+    async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> ActionResult | None:
         """Handle the action, returns the text of the actions done."""
         raise NotImplementedError

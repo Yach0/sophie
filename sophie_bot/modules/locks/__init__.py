@@ -19,7 +19,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 from .api import api_router
 
-
 router = Router(name="locks")
 
 

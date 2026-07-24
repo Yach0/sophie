@@ -25,7 +25,6 @@ from stfu_tg import Code, Template
 
 from sophie_bot.utils.i18n import gettext as _
 
-
 # =============================================================================
 # Command/Handler Errors
 # =============================================================================

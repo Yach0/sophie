@@ -3,9 +3,9 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from beanie import PydanticObjectId
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
+from beanie import PydanticObjectId
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.restrictions.actions.base import BaseRestrictionModernAction
 from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
 
 
-def resolve_action_duration(action_name: str, action_data: Optional[dict[str, Any]]) -> Optional[timedelta]:
+def resolve_action_duration(action_name: str, action_data: dict[str, Any] | None) -> timedelta | None:
     """Resolve the restriction duration an action was configured with.
 
     Action data is persisted as ``model_dump(mode="json")`` of the action's own data model,

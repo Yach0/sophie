@@ -50,9 +50,9 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from .api import api_router
 
 __all__ = [
-    "router",
     "api_router",
     "pre_setup",
+    "router",
 ]
 
 router = Router(name="ai")

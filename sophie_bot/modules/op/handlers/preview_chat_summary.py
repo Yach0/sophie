@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 def _current_summary_date() -> date:
-    return datetime.now(timezone.utc).date()
+    return datetime.now(UTC).date()
 
 
 @flags.help(description=l_("Force-regenerate today's chat summary for the current chat"))

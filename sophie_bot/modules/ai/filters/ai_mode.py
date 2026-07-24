@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.filters import Filter
@@ -35,9 +36,9 @@ class AICapabilityFilter(Filter):
     async def __call__(
         self,
         message: Message,
-        chat_db: Optional[ChatModel],
-        ai_capabilities: Optional[ModeCapabilities] = None,
-    ) -> Union[bool, Dict[str, Any]]:
+        chat_db: ChatModel | None,
+        ai_capabilities: ModeCapabilities | None = None,
+    ) -> bool | dict[str, Any]:
         if not chat_db:
             log.error("AICapabilityFilter: Chat not found in database, skipping")
             raise SkipHandler
@@ -47,9 +48,13 @@ class AICapabilityFilter(Filter):
         if self.check(capabilities):
             return True
 
-        if self.admins_bypass and capabilities.ai_enabled and message.from_user:
-            if await is_user_admin(chat_db.tid, message.from_user.id):
-                return True
+        if (
+            self.admins_bypass
+            and capabilities.ai_enabled
+            and message.from_user
+            and await is_user_admin(chat_db.tid, message.from_user.id)
+        ):
+            return True
 
         if not capabilities.ai_enabled and not self.quiet:
             await message.reply(

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.filters import Filter
 
@@ -8,7 +8,7 @@ from sophie_bot.middlewares.connections import ChatConnection
 
 class PMNotesFilter(Filter):
     async def __call__(self, *args: Any, **kwargs: Any) -> bool:
-        connection: Optional[ChatConnection] = kwargs.get("connection")
+        connection: ChatConnection | None = kwargs.get("connection")
         if not connection:
             raise ValueError("Missing connection argument in PMNotesFilter.__call__ method")
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramAPIError
@@ -94,7 +95,7 @@ class AdmincacheMiddleware(BaseMiddleware):
         if not oldest_admin:
             return True
 
-        cache_age = (datetime.now(timezone.utc) - self._ensure_utc_datetime(oldest_admin.last_updated)).total_seconds()
+        cache_age = (datetime.now(UTC) - self._ensure_utc_datetime(oldest_admin.last_updated)).total_seconds()
         return cache_age > CACHE_ADMIN_TTL_SECONDS
 
     async def _get_oldest_admin(self, chat_iid: PydanticObjectId) -> ChatAdminModel | None:
@@ -106,5 +107,5 @@ class AdmincacheMiddleware(BaseMiddleware):
     @staticmethod
     def _ensure_utc_datetime(value: datetime) -> datetime:
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
+            return value.replace(tzinfo=UTC)
         return value
