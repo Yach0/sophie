@@ -24,8 +24,10 @@ data/*.yaml
 .*.md
 .codex
 
-# JetBrains Junie
-.junie/
+# Note: .junie/ is intentionally NOT ignored. The JetBrains junie-gitlab-wrapper
+# runs `git add -A ':!.junie'` in CI; git aborts (exit 1) if `.junie` is gitignored,
+# even with that exclude pathspec, which crashes the run. The wrapper excludes
+# `.junie` itself, so it is never committed regardless.
 
 # Localization
 sophie.mo
