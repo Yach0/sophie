@@ -59,3 +59,94 @@ async def test_legacy_ws_button_allows_join_request_user_without_group_membershi
 
     assert get_user_in_group.await_count == 0
     assert captcha_handle.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_legacy_ws_button_unmutes_admin_user(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reply = AsyncMock(return_value=None)
+    message = SimpleNamespace(text="/start btnwelcomesecuritystart_-100123", reply=reply)
+    user_db = SimpleNamespace(iid="user_iid", tid=123)
+    group_db = SimpleNamespace(iid="group_iid", tid=-100123)
+    ws_user = SimpleNamespace(is_join_request=True)
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.ChatModel.get_by_tid",
+        AsyncMock(return_value=group_db),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.is_user",
+        AsyncMock(return_value=ws_user),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.is_user_admin",
+        AsyncMock(return_value=True),
+    )
+    remove_user = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.remove_user",
+        remove_user,
+    )
+    unmute_user = AsyncMock(return_value=True)
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.unmute_user",
+        unmute_user,
+    )
+    captcha_handle = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.CaptchaGetHandler.handle",
+        captcha_handle,
+    )
+
+    handler = LegacyWSButtonHandler(message, user_db=user_db, state=SimpleNamespace())
+
+    await handler.handle()
+
+    remove_user.assert_awaited_once_with(user_db.iid, group_db.iid)
+    unmute_user.assert_awaited_once_with(chat_tid=group_db.tid, user_tid=user_db.tid)
+    assert captcha_handle.await_count == 0
+    assert reply.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_legacy_ws_button_keeps_ws_record_when_admin_unmute_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reply = AsyncMock(return_value=None)
+    message = SimpleNamespace(text="/start btnwelcomesecuritystart_-100123", reply=reply)
+    user_db = SimpleNamespace(iid="user_iid", tid=123)
+    group_db = SimpleNamespace(iid="group_iid", tid=-100123)
+    ws_user = SimpleNamespace(is_join_request=True)
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.ChatModel.get_by_tid",
+        AsyncMock(return_value=group_db),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.is_user",
+        AsyncMock(return_value=ws_user),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.is_user_admin",
+        AsyncMock(return_value=True),
+    )
+    remove_user = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.remove_user",
+        remove_user,
+    )
+    unmute_user = AsyncMock(return_value=False)
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.unmute_user",
+        unmute_user,
+    )
+
+    handler = LegacyWSButtonHandler(message, user_db=user_db, state=SimpleNamespace())
+
+    await handler.handle()
+
+    # Unmute failed, so the WS record must survive to allow a retry.
+    unmute_user.assert_awaited_once_with(chat_tid=group_db.tid, user_tid=user_db.tid)
+    assert remove_user.await_count == 0
+    assert reply.await_count == 1
