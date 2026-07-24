@@ -132,6 +132,36 @@ async def test_ban_task_edits_reply_with_banner_name(db_init: Any, monkeypatch: 
 
 
 @pytest.mark.asyncio
+async def test_anonymous_banner_is_hidden_in_reply_but_kept_in_log(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An anonymous admin's identity is hidden in the public reply but preserved in the fed log.
+
+    The scheduler rebuilds and edits the public reply, so the anonymisation must survive that
+    edit; the fed-channel log must still name the real admin for accountability.
+    """
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2)
+    task.banner_anonymous = True
+    await task.save()
+
+    post_log = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
+        post_log,
+    )
+
+    await ProcessFederationBans().handle()
+
+    reply_text = _edited_text(edit_message)
+    assert "Anonymous admin" in reply_text, "the public reply must anonymise the banner"
+    assert "yachu" not in reply_text, "the real admin name must not leak into the public reply"
+
+    assert post_log.await_count == 1, "the fed log must still be posted"
+    log_text = post_log.await_args.args[1]
+    assert "yachu" in log_text, "the fed log must keep the real banner name for accountability"
+
+
+@pytest.mark.asyncio
 async def test_ban_task_for_unknown_target_still_reaches_a_result(
     db_init: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:

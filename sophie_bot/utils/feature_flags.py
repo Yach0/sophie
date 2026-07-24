@@ -97,6 +97,7 @@ FeatureType = Literal[
     "sentry_update_tracing",
     "ai_entertainment_boost",
     "ai_entertainment_monthly_credits",
+    "fban_anonymous_admin",
 ]
 
 
@@ -296,6 +297,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "sentry_update_tracing": _feature(False),
     "ai_entertainment_boost": _feature(False),
     "ai_entertainment_monthly_credits": _feature(200000),
+    "fban_anonymous_admin": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

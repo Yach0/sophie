@@ -7,19 +7,45 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.exceptions import TelegramForbiddenError
-from aiogram.types import Message
+from aiogram.types import Chat, Message, User
 from aiogram_test_framework import MessageFactory, TestClient, UpdateFactory
-from aiogram_test_framework.types import RequestType
+from aiogram_test_framework.types import CapturedRequest, RequestType
 
+from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services import FederationBanService, FederationChatService, FederationManageService
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin
+from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, set_feature
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
 )
+
+
+async def _send_anonymous_fban(
+    test_client: TestClient,
+    group: Chat,
+    *,
+    args: str,
+    title: str | None,
+) -> list[CapturedRequest]:
+    """Feed an /fban issued by an anonymous admin (anon-bot sender + author signature)."""
+    anon_user = User(
+        id=TELEGRAM_ANONYMOUS_ADMIN_BOT_ID,
+        is_bot=True,
+        first_name="GroupAnonymousBot",
+        username="GroupAnonymousBot",
+    )
+    message = MessageFactory.create(text=f"/fban {args}", from_user=anon_user, chat=group).model_copy(
+        update={"sender_chat": group, "author_signature": title}
+    )
+    start = len(test_client.capture)
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot,
+        update=UpdateFactory.create_message_update(message),
+    )
+    return test_client.capture.all_requests[start:]
 
 
 @pytest.mark.asyncio
@@ -743,6 +769,7 @@ async def test_fban_queues_propagation_task_when_reply_cannot_be_sent(test_clien
 # Command-flow coverage: /fban, /unfban, /fcheck through the dispatcher
 # ---------------------------------------------------------------------------
 
+
 async def _fed_with_joined_member(
     test_client: TestClient, *, owner_tid: int, chat_tid: int, target_tid: int, fed_name: str
 ):
@@ -808,3 +835,163 @@ async def test_fcheck_group_reports_ban_status(test_client: TestClient) -> None:
 
     after = await test_client.send_command(command="fcheck", from_user=owner_user, args=str(target.id), chat=group)
     assert any("Banned in current fed" in (request.text or "") for request in after)
+
+
+# ---------------------------------------------------------------------------
+# Anonymous admin /fban (feature-flagged)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fban_anonymous_admin_resolves_real_banner_and_anonymizes_reply(test_client: TestClient) -> None:
+    """Flag ON: an anonymous fed admin can /fban; the real admin is recorded and the reply is anonymised."""
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=6080,
+        first_name="AnonBoss",
+        username="anon_boss",
+        chat_id=-1001000006080,
+        group_title="Anon Fban Fed",
+    )
+    # The fed owner runs the command as an anonymous chat admin with the "Boss" title.
+    await grant_admin(group.id, owner_user.id, creator=True, is_anonymous=True, custom_title="Boss")
+    await grant_bot_admin(group.id)
+
+    target = test_client.create_user(user_id=6081, first_name="AnonTarget", username="anon_target")
+    await test_client.send_message(text="spam", from_user=target.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, "Anon Fban Fed", owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+    await set_feature("fban_anonymous_admin", True)
+
+    requests = await _send_anonymous_fban(test_client, group, args=f"{target.user.id} spamming", title="Boss")
+
+    ban = await FederationBan.find_one(
+        FederationBan.fed_id == federation.fed_id, FederationBan.user_id == target.user.id
+    )
+    assert ban is not None, "the anonymous fed admin should be permitted to ban"
+    assert ban.by.to_ref().id == owner_model.iid, "the ban must record the real admin behind the anonymous sender"
+
+    assert any("Anonymous admin" in (request.text or "") for request in requests), (
+        "the public reply must anonymise the banner"
+    )
+    assert not any("AnonBoss" in (request.text or "") for request in requests), (
+        "the real admin name must not leak into the public reply"
+    )
+
+    task = await FederationTask.find_one(
+        FederationTask.fed_id == federation.fed_id,
+        FederationTask.task_type == FederationTaskType.BAN,
+        FederationTask.target_user_id == target.user.id,
+    )
+    assert task is not None
+    assert task.banner_anonymous is True, "the propagation task must carry the anonymisation flag"
+    assert task.user.to_ref().id == owner_model.iid, "the task must record the real admin as the banner"
+
+
+@pytest.mark.asyncio
+async def test_fban_anonymous_admin_denied_when_flag_disabled(test_client: TestClient) -> None:
+    """Flag OFF: an anonymous admin gets today's behaviour - resolved to the anon-bot id, no ban."""
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=6082,
+        first_name="AnonBossOff",
+        username="anon_boss_off",
+        chat_id=-1001000006082,
+        group_title="Anon Fban Off Fed",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True, is_anonymous=True, custom_title="Boss")
+    await grant_bot_admin(group.id)
+
+    target = test_client.create_user(user_id=6083, first_name="AnonTargetOff", username="anon_target_off")
+    await test_client.send_message(text="spam", from_user=target.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, "Anon Fban Off Fed", owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+    # Flag defaults to False; assert explicitly rather than relying on the default.
+    await set_feature("fban_anonymous_admin", False)
+
+    requests = await _send_anonymous_fban(test_client, group, args=f"{target.user.id} spamming", title="Boss")
+
+    ban = await FederationBan.find_one(
+        FederationBan.fed_id == federation.fed_id, FederationBan.user_id == target.user.id
+    )
+    assert ban is None, "with the flag off the anonymous admin must not be able to ban"
+    assert not any("Anonymous admin" in (request.text or "") for request in requests), (
+        "no anonymisation path should run when the flag is off"
+    )
+    assert any(
+        "permission" in (request.text or "").lower() or "could not resolve" in (request.text or "").lower()
+        for request in requests
+    ), "the anonymous admin must hit a denial/unresolved path when the flag is off"
+
+
+@pytest.mark.asyncio
+async def test_fban_anonymous_admin_ambiguous_title_reports_error(test_client: TestClient) -> None:
+    """Flag ON: two anonymous admins share the signature title, so the identity is ambiguous - refuse."""
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=6084,
+        first_name="AmbiguousOwner",
+        username="ambiguous_owner",
+        chat_id=-1001000006084,
+        group_title="Ambiguous Fban Fed",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
+    await grant_bot_admin(group.id)
+
+    twin_one = test_client.create_user(user_id=6085, first_name="TwinOne", username="twin_one")
+    twin_two = test_client.create_user(user_id=6086, first_name="TwinTwo", username="twin_two")
+    await test_client.send_message(text="init", from_user=twin_one.user, chat=group)
+    await test_client.send_message(text="init", from_user=twin_two.user, chat=group)
+    await grant_admin(group.id, twin_one.user.id, is_anonymous=True, custom_title="Twin")
+    await grant_admin(group.id, twin_two.user.id, is_anonymous=True, custom_title="Twin")
+
+    target = test_client.create_user(user_id=6087, first_name="AmbiguousTarget", username="ambiguous_target")
+    await test_client.send_message(text="spam", from_user=target.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, "Ambiguous Fban Fed", owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+    await set_feature("fban_anonymous_admin", True)
+
+    requests = await _send_anonymous_fban(test_client, group, args=f"{target.user.id} spamming", title="Twin")
+
+    ban = await FederationBan.find_one(
+        FederationBan.fed_id == federation.fed_id, FederationBan.user_id == target.user.id
+    )
+    assert ban is None, "an ambiguous anonymous identity must not result in a ban"
+    assert any("Multiple anonymous admins share this title" in (request.text or "") for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_fban_anonymous_admin_missing_title_reports_error(test_client: TestClient) -> None:
+    """Flag ON: an anonymous admin with no custom title cannot be resolved - refuse with a clear message."""
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=6088,
+        first_name="NoTitleOwner",
+        username="no_title_owner",
+        chat_id=-1001000006088,
+        group_title="No Title Fban Fed",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True, is_anonymous=True)
+    await grant_bot_admin(group.id)
+
+    target = test_client.create_user(user_id=6089, first_name="NoTitleTarget", username="no_title_target")
+    await test_client.send_message(text="spam", from_user=target.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, "No Title Fban Fed", owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+    await set_feature("fban_anonymous_admin", True)
+
+    requests = await _send_anonymous_fban(test_client, group, args=f"{target.user.id} spamming", title=None)
+
+    ban = await FederationBan.find_one(
+        FederationBan.fed_id == federation.fed_id, FederationBan.user_id == target.user.id
+    )
+    assert ban is None, "an anonymous admin with no title must not result in a ban"
+    assert any("custom admin title" in (request.text or "") for request in requests)

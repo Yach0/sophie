@@ -19,18 +19,24 @@ def build_ban_reply_doc(
     lazy_ban_count: int = 0,
     propagating: bool = False,
     immediate_chat_banned: bool = False,
+    banner_anonymous: bool = False,
 ) -> Doc:
     """Format the user-facing ban response document.
 
     When ``propagating`` is True the document reflects the in-progress state shown
     right after the command (before the scheduler finishes); otherwise it shows the
     final per-chat counts.
+
+    When ``banner_anonymous`` is True the banner is shown as plain "Anonymous admin"
+    with no user link, so an anonymous admin's identity stays hidden in the public
+    reply (the fed-channel log keeps the real identity for accountability).
     """
+    banned_by = _("Anonymous admin") if banner_anonymous else UserLink(banner_tid, banner_name)
     doc = Doc(
         Title(_("🏛 User Banned from Federation")),
         KeyValue(_("Federation"), federation.fed_name),
         KeyValue(_("User"), UserLink(user.tid, user.first_name_or_title or _("Unknown"))),
-        KeyValue(_("Banned by"), UserLink(banner_tid, banner_name)),
+        KeyValue(_("Banned by"), banned_by),
     )
     if reason:
         doc += KeyValue(_("Reason"), reason)
