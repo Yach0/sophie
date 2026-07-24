@@ -10,7 +10,7 @@
   "prHourlyLimit": 2,
 
   // Run on default branch only
-  "baseBranchPatterns": ["beta"],
+  "baseBranchPatterns": ["main"],
 
   // Group updates for cleaner MRs
   "packageRules": [

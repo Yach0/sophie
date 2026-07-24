@@ -19,7 +19,7 @@ deploy_prod_beta:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
       when: manual
 
 
@@ -40,7 +40,7 @@ deploy_prod_stable:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_COMMIT_BRANCH == "stable" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
       when: manual
 
 # ── Rollback / Promote ────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ list_beta_deployments:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
       when: manual
 
 rollback_prod_beta:
@@ -93,7 +93,7 @@ rollback_prod_beta:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
       when: manual
 
 rollback_prod_stable:
@@ -118,7 +118,7 @@ rollback_prod_stable:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "stable" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
       when: manual
 
 promote_beta_to_stable:
@@ -146,5 +146,5 @@ promote_beta_to_stable:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test_ci" || $CI_COMMIT_BRANCH == "test-ci"
       when: manual
