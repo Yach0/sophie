@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sophie_bot.config import CONFIG
 from sophie_bot.runtime import build_scheduler_runtime
-from sophie_bot.services.health import HEARTBEAT_INTERVAL_SECONDS, write_heartbeat
+from sophie_bot.services.health import HEARTBEAT_INTERVAL_SECONDS, write_heartbeat_guarded
 from sophie_bot.startup import initialize_scheduler_mode
 
 
@@ -16,7 +16,7 @@ async def _scheduler_main() -> None:
     await initialize_scheduler_mode(runtime)
 
     runtime.scheduler.add_job(
-        write_heartbeat,
+        write_heartbeat_guarded,
         "interval",
         seconds=HEARTBEAT_INTERVAL_SECONDS,
         args=[CONFIG.mode],

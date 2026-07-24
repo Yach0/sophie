@@ -32,13 +32,22 @@ async def write_heartbeat(component: str) -> None:
     await aredis.set(_heartbeat_key(component), int(time.time()), ex=HEARTBEAT_TTL_SECONDS)
 
 
+async def write_heartbeat_guarded(component: str) -> None:
+    """Write a heartbeat, logging and swallowing redis errors so callers never fail.
+
+    Used both by the background loop and by the scheduler job, so a redis outage
+    surfaces as a warning rather than a crashed task or a recurring job exception.
+    """
+    try:
+        await write_heartbeat(component)
+    except RedisError as error:
+        log.warning("Heartbeat write failed", component=component, error=str(error))
+
+
 async def heartbeat_loop(component: str) -> None:
     """Write the heartbeat every interval forever; never crash on redis errors."""
     while True:
-        try:
-            await write_heartbeat(component)
-        except RedisError as error:
-            log.warning("Heartbeat write failed", component=component, error=str(error))
+        await write_heartbeat_guarded(component)
         await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
 

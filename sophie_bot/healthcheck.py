@@ -18,9 +18,18 @@ from sophie_bot.services.health import HEARTBEAT_TTL_SECONDS, check_heartbeat
 
 HTTP_TIMEOUT_SECONDS = 5.0
 
+# api_listen is a bind address; the probe runs inside the same container and must
+# connect over loopback. A wildcard bind (0.0.0.0 / ::) is not a valid connect target.
+_WILDCARD_BINDS = {"0.0.0.0", "::", ""}
+_LOOPBACK_HOST = "127.0.0.1"
+
+
+def _rest_probe_host() -> str:
+    return _LOOPBACK_HOST if CONFIG.api_listen in _WILDCARD_BINDS else CONFIG.api_listen
+
 
 async def _check_rest() -> tuple[bool, str]:
-    url = f"http://{CONFIG.api_listen}:{CONFIG.api_port}/health"
+    url = f"http://{_rest_probe_host()}:{CONFIG.api_port}/health"
     try:
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
             response = await client.get(url)

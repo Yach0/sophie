@@ -106,3 +106,13 @@ async def test_cli_rest_check_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert healthy is True
     assert status == "rest: ok"
+
+
+def test_rest_probe_host_maps_wildcard_bind_to_loopback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(healthcheck.CONFIG, "api_listen", "0.0.0.0")
+    assert healthcheck._rest_probe_host() == "127.0.0.1"
+
+
+def test_rest_probe_host_keeps_explicit_bind(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(healthcheck.CONFIG, "api_listen", "10.0.0.5")
+    assert healthcheck._rest_probe_host() == "10.0.0.5"
