@@ -12,9 +12,9 @@ from stfu_tg import Doc, Section, VList
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.utils_.admin import check_user_admin_permissions
+from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title, resolve_anonymous_admin_candidates
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -126,13 +126,6 @@ class UserRestricting(Filter):
 
         return payload or True
 
-    @staticmethod
-    def _normalize_admin_title(title: Optional[str]) -> Optional[str]:
-        if title is None:
-            return None
-        normalized_title = " ".join(title.split()).strip()
-        return normalized_title.casefold() if normalized_title else None
-
     async def resolve_anonymous_admin_permissions(
         self,
         event: TelegramObject,
@@ -152,7 +145,7 @@ class UserRestricting(Filter):
         if not sender_chat or sender_chat.id != chat_tid:
             return None
 
-        title = self._normalize_admin_title(getattr(message, "author_signature", None))
+        title = normalize_admin_title(getattr(message, "author_signature", None))
         if not title:
             await self.no_anon_title_msg(event)
             return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=True)
@@ -161,13 +154,7 @@ class UserRestricting(Filter):
         if not chat_model:
             return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=False)
 
-        admins = await ChatAdminModel.find(ChatAdminModel.chat.id == chat_model.iid).to_list()
-        matched_admins = []
-        for admin in admins:
-            member_is_anonymous = bool(getattr(admin.member, "is_anonymous", False))
-            member_custom_title = self._normalize_admin_title(getattr(admin.member, "custom_title", None))
-            if member_is_anonymous and member_custom_title == title:
-                matched_admins.append(admin)
+        matched_admins = await resolve_anonymous_admin_candidates(chat_model.iid, title)
 
         if not matched_admins:
             await self.no_anon_title_match_msg(event)

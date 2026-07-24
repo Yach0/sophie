@@ -108,6 +108,7 @@ class ProcessFederationBans:
             task.silent,
             banned_count=banned_count,
             lazy_ban_count=lazy_ban_count,
+            banner_anonymous=task.banner_anonymous,
         )
         await self._edit_reply(task, reply_doc.to_html())
 

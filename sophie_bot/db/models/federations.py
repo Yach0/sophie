@@ -90,6 +90,7 @@ class FederationTask(Document):
     reason: Optional[str] = None
     original_message_text: Optional[str] = None
     silent: bool = False
+    banner_anonymous: bool = False  # BAN: hide the banner in the public reply (anonymous admin)
     ban_id: Optional[BeanieObjectId] = None  # BAN: the FederationBan record to update
     unban_chat_iids: list[BeanieObjectId] = Field(default_factory=list)  # UNBAN: chats to clear
     banned_count: int = 0
