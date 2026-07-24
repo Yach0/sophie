@@ -5,7 +5,7 @@ This module tests how the middleware handles private messages between users and 
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -30,7 +30,7 @@ class TestPrivateMessageHandling:
         chat = Chat(id=123456789, type="private", first_name="Test", username="testuser")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -72,7 +72,7 @@ class TestPrivateMessageHandling:
             first_name_or_title="OldName",
             username="oldusername",
             is_bot=False,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await existing_user.save()
 
@@ -81,7 +81,7 @@ class TestPrivateMessageHandling:
         chat = Chat(id=123456789, type="private", first_name="NewName", username="newusername")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -113,7 +113,7 @@ class TestPrivateMessageHandling:
         chat = Chat(id=123456789, type="private", first_name="Bot")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=bot_user,
         )
@@ -145,7 +145,7 @@ class TestPrivateMessageHandling:
         chat = Chat(id=123456789, type="private", first_name="Test")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )
@@ -177,7 +177,7 @@ class TestPrivateMessageHandling:
         chat = Chat(id=123456789, type="private", first_name="John")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
         )

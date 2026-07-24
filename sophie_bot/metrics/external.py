@@ -3,8 +3,9 @@ from __future__ import annotations
 import functools
 import inspect
 import time
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.sentry_metrics import count_metric, distribution_metric
@@ -90,7 +91,7 @@ def _record_external_metrics(
 
 
 @asynccontextmanager
-async def time_external_service(service_name: str) -> AsyncGenerator[None, None]:
+async def time_external_service(service_name: str) -> AsyncGenerator[None]:
     """Context manager for timing external service calls"""
     if not CONFIG.metrics_enable:
         yield
@@ -219,13 +220,13 @@ class ExternalServiceTracker:
 
     def __init__(self, service_name: str) -> None:
         self.service_name = service_name
-        self.start_time: Optional[float] = None
+        self.start_time: float | None = None
 
     def start(self) -> None:
         """Start timing an external service call"""
         self.start_time = time.perf_counter()
 
-    def finish(self, exception: Optional[Exception] = None) -> None:
+    def finish(self, exception: Exception | None = None) -> None:
         """Finish timing an external service call"""
         if not CONFIG.metrics_enable or self.start_time is None:
             return

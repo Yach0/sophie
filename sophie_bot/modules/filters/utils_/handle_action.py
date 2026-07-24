@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.types import Message
 
@@ -27,7 +27,7 @@ def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFil
 
 async def _handle_modern_filter_action(
     message: Message, action_name: str, data: dict[str, Any], filter_data: ACTION_DATA_DUMPED
-) -> Optional[ActionResult]:
+) -> ActionResult | None:
     action_item: ModernActionABC = ALL_MODERN_ACTIONS[action_name]
 
     if filter_data and action_item.data_object:
@@ -38,6 +38,6 @@ async def _handle_modern_filter_action(
 
 async def handle_effective_filter_action(
     message: Message, action: EffectiveFilterAction, data: dict[str, Any], matched_filter: FiltersModel
-) -> Optional[ActionResult]:
+) -> ActionResult | None:
     _ = matched_filter
     return await _handle_modern_filter_action(message, action.name, data, action.data)

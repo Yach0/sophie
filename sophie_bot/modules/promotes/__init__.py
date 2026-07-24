@@ -7,7 +7,6 @@ from sophie_bot.modules.promotes.handlers.promote import PromoteUserHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 router = Router(name="promotes")
 
 

@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable, Dict, Optional
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -22,12 +23,12 @@ class LockMutedUsers(BaseMiddleware):
     """
 
     @staticmethod
-    async def _is_message_locked(message: Message, data: Dict[str, Any]) -> bool:
+    async def _is_message_locked(message: Message, data: dict[str, Any]) -> bool:
         if not message.from_user or message.chat.type not in GROUP_CHAT_TYPES:
             return False
 
         chat_db: ChatModel = data["chat_db"]
-        user_db: Optional[ChatModel] = data.get("user_db")
+        user_db: ChatModel | None = data.get("user_db")
 
         # Absent for anonymous admins, who are exempt anyway
         if not user_db:
@@ -46,9 +47,9 @@ class LockMutedUsers(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         if isinstance(event, Message) and await self._is_message_locked(event, data):
             await common_try(event.delete())

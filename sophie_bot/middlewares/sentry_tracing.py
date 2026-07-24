@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Final
+from collections.abc import Awaitable, Callable
+from typing import Any, Final, override
 
 import sentry_sdk
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
-from typing_extensions import override
 
 from sophie_bot.metrics.update_info import extract_command_name, extract_update_info
 from sophie_bot.utils.feature_flags import FeatureType, is_enabled

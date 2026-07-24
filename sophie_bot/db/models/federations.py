@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar
 
 from beanie import BeanieObjectId, Document
 from pydantic import Field
@@ -20,11 +20,11 @@ class Federation(Document):
     chats: list[Link[ChatModel]] = Field(default_factory=list)
     subscribed: list[str] = Field(default_factory=list)
     admins: list[Link[ChatModel]] = Field(default_factory=list)
-    log_chat: Optional[Link[ChatModel]] = None
+    log_chat: Link[ChatModel] | None = None
 
     class Settings:
         name = "feds"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("fed_id", ASCENDING)]),
             IndexModel([("creator.$id", ASCENDING)]),
             IndexModel([("chats.$id", ASCENDING)]),
@@ -41,14 +41,14 @@ class FederationBan(Document):
     banned_chats: list[Link[ChatModel]] = Field(default_factory=list)  # Chats where user was banned
     time: datetime
     by: Link[ChatModel]  # User who performed the ban
-    reason: Optional[str] = None
-    original_message_text: Optional[str] = None
-    origin_fed: Optional[str] = None  # For subscribed federation bans
-    fimport_id: Optional[BeanieObjectId] = None
+    reason: str | None = None
+    original_message_text: str | None = None
+    origin_fed: str | None = None  # For subscribed federation bans
+    fimport_id: BeanieObjectId | None = None
 
     class Settings:
         name = "fed_bans"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("fed_id", ASCENDING), ("user_id", ASCENDING)]),
             IndexModel([("user_id", ASCENDING)]),
             IndexModel([("fed_id", ASCENDING)]),
@@ -69,29 +69,29 @@ class FederationTask(Document):
     status: TaskStatus = TaskStatus.PENDING
     chat: Link[ChatModel]  # Chat where the command was issued
     user: Link[ChatModel]  # User who initiated the task (importer / exporter / banner)
-    error_message: Optional[str] = None
+    error_message: str | None = None
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
 
     # IMPORT / EXPORT
-    file_id: Optional[str] = None  # Telegram file ID (uploaded CSV for import, generated CSV for export)
-    fed_name: Optional[str] = None  # EXPORT: snapshot of the federation name for the caption
+    file_id: str | None = None  # Telegram file ID (uploaded CSV for import, generated CSV for export)
+    fed_name: str | None = None  # EXPORT: snapshot of the federation name for the caption
     imported_count: int = 0
     failed_count: int = 0
     ban_count: int = 0
-    file_size_bytes: Optional[int] = None
+    file_size_bytes: int | None = None
 
     # BAN / UNBAN
-    target_user_id: Optional[int] = None  # Telegram user ID of the (un)banned user
-    current_chat_iid: Optional[BeanieObjectId] = None  # Set when the issuing chat is part of the fed
-    reply_chat_id: Optional[int] = None  # Chat/message of the reply to edit with the final result
-    reply_message_id: Optional[int] = None
-    reason: Optional[str] = None
-    original_message_text: Optional[str] = None
+    target_user_id: int | None = None  # Telegram user ID of the (un)banned user
+    current_chat_iid: BeanieObjectId | None = None  # Set when the issuing chat is part of the fed
+    reply_chat_id: int | None = None  # Chat/message of the reply to edit with the final result
+    reply_message_id: int | None = None
+    reason: str | None = None
+    original_message_text: str | None = None
     silent: bool = False
     banner_anonymous: bool = False  # BAN: hide the banner in the public reply (anonymous admin)
-    ban_id: Optional[BeanieObjectId] = None  # BAN: the FederationBan record to update
+    ban_id: BeanieObjectId | None = None  # BAN: the FederationBan record to update
     unban_chat_iids: list[BeanieObjectId] = Field(default_factory=list)  # UNBAN: chats to clear
     banned_count: int = 0
     lazy_ban_count: int = 0
@@ -99,7 +99,7 @@ class FederationTask(Document):
 
     class Settings:
         name = "fed_tasks"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("fed_id", ASCENDING)]),
             IndexModel([("task_type", ASCENDING), ("status", ASCENDING)]),
             IndexModel([("user.$id", ASCENDING)]),

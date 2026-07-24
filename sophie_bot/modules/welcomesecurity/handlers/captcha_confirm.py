@@ -6,16 +6,16 @@ from aiogram.types import Message
 from beanie import PydanticObjectId
 
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
-from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityRulesAgreeCB,
 )
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
-from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
 from sophie_bot.modules.welcomesecurity.utils_.captcha_rules import captcha_send_rules
+from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 

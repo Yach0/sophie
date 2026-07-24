@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from aiogram.enums import MessageEntityType
@@ -14,7 +14,7 @@ from sophie_bot.shared.lock_constants import ENTITY_TYPES, LOCK_TYPE_DESCRIPTION
 def _message(**kwargs: object) -> Message:
     return Message(
         message_id=1,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         chat=Chat(id=-1001234567890, type="supergroup"),
         from_user=User(id=42, is_bot=False, first_name="User"),
         **kwargs,

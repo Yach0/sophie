@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -176,7 +176,7 @@ class FederationBanHandler(FederationCommandHandler):
             silent=silent,
             banner_anonymous=banner_is_anonymous,
             ban_id=ban.id,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         ).insert()
 
     async def _resolve_banner(self, current_chat: ChatModel) -> tuple[ChatModel, bool] | None:

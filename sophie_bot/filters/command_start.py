@@ -1,7 +1,7 @@
 from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
-from typing import Any, ClassVar, Optional, Type, TypeVar, Union
+from typing import Any, ClassVar, Self, TypeVar
 from uuid import UUID
 
 from aiogram import Bot
@@ -21,17 +21,17 @@ class CmdStartFilter(Filter):
     def __init__(
         self,
         *,
-        cmd_start: Type["CmdStart"],
+        cmd_start: type["CmdStart"],
     ):
         self.start_filter = CMDFilter("start")
 
         self.cmd_start = cmd_start
 
-    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> Union[bool, dict[str, Any]]:
+    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, Any]:
         command_data: dict[str, CommandObject] | bool = await self.start_filter(
             message=message, bot=bot, event_chat=event_chat
         )
-        command: Optional[CommandObject] = command_data.get("command") if isinstance(command_data, dict) else None
+        command: CommandObject | None = command_data.get("command") if isinstance(command_data, dict) else None
 
         if not command:
             return False
@@ -94,7 +94,7 @@ class CmdStart(BaseModel):
         return data
 
     @classmethod
-    def unpack(cls: Type[T], value: str) -> T:
+    def unpack(cls, value: str) -> Self:
         prefix, *parts = value.split(cls.__separator__)
         names = cls.model_fields.keys()
         if len(parts) != len(names):
@@ -103,9 +103,8 @@ class CmdStart(BaseModel):
             raise ValueError(f"Bad prefix ({prefix!r} != {cls.__prefix__!r})")
         payload = {}
         for k, v in zip(names, parts):  # type: str, Optional[str]
-            if field := cls.model_fields.get(k):
-                if v == "" and _check_field_is_nullable(field):
-                    v = None
+            if (field := cls.model_fields.get(k)) and v == "" and _check_field_is_nullable(field):
+                v = None
             payload[k] = v
         return cls(**payload)
 

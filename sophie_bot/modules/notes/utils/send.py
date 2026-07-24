@@ -1,4 +1,4 @@
-from typing import Final, Optional, Type
+from typing import Final
 
 from aiogram.enums import ContentType
 from aiogram.methods import (
@@ -22,10 +22,10 @@ from stfu_tg.doc import Element
 
 from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.notes.utils._random_parser import parse_random_text
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
-from sophie_bot.modules.notes.utils._random_parser import parse_random_text
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
@@ -35,7 +35,7 @@ from sophie_bot.utils.i18n import gettext as _
 TEXT_LENGTH_LIMIT: Final[int] = 4090
 
 
-def _build_input_media(note_file: NoteFile, caption: Optional[str]) -> MediaUnion:
+def _build_input_media(note_file: NoteFile, caption: str | None) -> MediaUnion:
     """Builds a sendMediaGroup item from a stored note file.
 
     Only photo/video/document/audio are groupable; albums never contain other types.
@@ -55,7 +55,7 @@ async def _send_media_group(
     files: list[NoteFile],
     text: str,
     inline_markup: InlineKeyboardMarkup,
-    reply_to: Optional[int],
+    reply_to: int | None,
     message_thread_id: int | None,
     collect_sent: list[Message] | None = None,
 ) -> Message | None:
@@ -118,16 +118,16 @@ MAX_EPHEMERAL_MESSAGES_PER_USER = 5
 
 
 async def send_saveable(
-    message: Optional[Message],
+    message: Message | None,
     send_to: int,
     saveable: Saveable,
-    reply_to: Optional[int] = None,
-    title: Optional[Element] = None,
-    raw: Optional[bool] = False,
+    reply_to: int | None = None,
+    title: Element | None = None,
+    raw: bool | None = False,
     additional_keyboard: InlineKeyboardMarkup | None = None,
-    additional_fillings: Optional[dict[str, str]] = None,
+    additional_fillings: dict[str, str] | None = None,
     connection: ChatConnection | None = None,
-    user: Optional[User] = None,
+    user: User | None = None,
     message_thread_id: int | None = None,
     collect_sent: list[Message] | None = None,
     receiver_user_id: int | None = None,
@@ -197,7 +197,7 @@ async def send_saveable(
 
     # TODO: Multi messages
 
-    method: Type[TelegramMethod[Message]]
+    method: type[TelegramMethod[Message]]
     kwargs: dict[str, object] = {"chat_id": send_to, "reply_markup": inline_markup}
     if receiver_user_id is not None:
         kwargs["receiver_user_id"] = receiver_user_id
@@ -223,8 +223,7 @@ async def send_saveable(
         return method(**cb_kwargs).emit(bot)
 
     async def reply_not_found() -> Message | None:
-        if "reply_parameters" in kwargs:
-            del kwargs["reply_parameters"]
+        kwargs.pop("reply_parameters", None)
         return await to_try(**kwargs)
 
     sent = await common_try(to_try=to_try(**kwargs), reply_not_found=reply_not_found)

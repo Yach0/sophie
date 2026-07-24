@@ -1,7 +1,7 @@
 from ass_tg.types.base_abc import ParsedArg
 
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 from sophie_bot.modules.utils_.text_with_buttons import parse_text_with_buttons
 
 

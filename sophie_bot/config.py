@@ -1,5 +1,5 @@
 from ipaddress import IPv4Network
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Literal
 
 from aiogram.webhook.security import DEFAULT_TELEGRAM_NETWORKS
 from pydantic import (
@@ -29,7 +29,7 @@ class Config(BaseSettings):
     username: str | None = None
 
     owner_id: int | None = None
-    operators: List[int] = []
+    operators: list[int] = []
 
     mode: Literal["bot", "scheduler", "nostart", "rest"] = "bot"
     instance_name: str = "development"
@@ -52,43 +52,43 @@ class Config(BaseSettings):
 
     redis_host: str = "localhost"
     redis_port: int = 6379
-    redis_username: Optional[str] = None
-    redis_password: Optional[str] = None
+    redis_username: str | None = None
+    redis_password: str | None = None
     redis_db_fsm: int = 1
     redis_db_states: int = 2
     redis_db_schedule: int = 3
 
-    botapi_server: Optional[AnyHttpUrl] = None
+    botapi_server: AnyHttpUrl | None = None
 
     # Debugging
     # off = no debug, normal = debug logging, high = debug + mongo logs + debug middlewares
     debug_mode: Literal["off", "normal", "high"] = "off"
     memory_debug: bool = False  # Memory leaks debugging
 
-    modules_load: List[str] = ["*"]
-    modules_not_load: List[str] = []
-    legacy_modules_not_load: List[str] = []
+    modules_load: list[str] = ["*"]
+    modules_not_load: list[str] = []
+    legacy_modules_not_load: list[str] = []
 
     webhooks_enable: bool = False
     webhooks_listen: str = "127.0.0.1"
     webhooks_port: int = 8080
     webhooks_path: str = "/"
-    webhooks_https_certificate: Optional[FilePath] = None
-    webhooks_https_certificate_key: Optional[FilePath] = None
+    webhooks_https_certificate: FilePath | None = None
+    webhooks_https_certificate_key: FilePath | None = None
     webhooks_filter_ips: bool = False
-    webhooks_allowed_networks: Annotated[List[IPv4Network], Field(validate_default=True)] = [IPv4Network("127.0.0.0/8")]
-    webhooks_secret_token: Optional[str] = None
+    webhooks_allowed_networks: Annotated[list[IPv4Network], Field(validate_default=True)] = [IPv4Network("127.0.0.0/8")]
+    webhooks_secret_token: str | None = None
     webhooks_handle_in_background: bool = True
 
     # IPs of trusted reverse proxies; only these may set X-Real-IP / X-Forwarded-For
-    trusted_proxies: List[str] = ["127.0.0.1"]
+    trusted_proxies: list[str] = ["127.0.0.1"]
 
     api_listen: str = "127.0.0.1"
     api_port: int = 8075
     api_jwt_secret: str = "change_me_in_production"
-    api_operator_token: Optional[str] = "test"
+    api_operator_token: str | None = "test"
     api_jwt_expire_minutes: int = 720  # 12 hours
-    api_cors_origins: List[str] = ["*"]
+    api_cors_origins: list[str] = ["*"]
 
     # Kill switch for the MessageOrigin discriminator workaround (see utils/update_sanitizer.py).
     # Lives here rather than in feature_flags because it runs inside the synchronous JSON hook,
@@ -101,13 +101,13 @@ class Config(BaseSettings):
     commands_ignore_forwarded: bool = True
     commands_ignore_code: bool = True
 
-    sentry_url: Optional[AnyHttpUrl] = None
+    sentry_url: AnyHttpUrl | None = None
     sentry_enable_logs: bool = True
     sentry_enable_metrics: bool = True
     sentry_traces_sample_rate: float | None = None
     sentry_profile_session_sample_rate: float | None = 0.2
 
-    devs_managed_languages: List[str] = ["en_US"]
+    devs_managed_languages: list[str] = ["en_US"]
     # A list of languages that are managed by developers; Will disable
     # showing percent of it and won't suggest to help to translate it on crowdin.
     translation_url: str = "https://crowdin.com/project/sophiebot"
@@ -139,7 +139,7 @@ class Config(BaseSettings):
     # Seed values for the AI provider catalog, read only by the seed_ai_catalog migration. Once the
     # catalog exists, providers and keys are managed with /op_aiprovider; changing these does nothing.
     # CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://dashscope-intl.aliyuncs.com/compatible-mode/v1","api_key":"sk-..."}]'
-    custom_providers: List[CustomProviderConfig] = []
+    custom_providers: list[CustomProviderConfig] = []
 
     gitlab_token: str | None = None
     gitlab_project_id: str | None = None  # GitLab project ID or URL-encoded path
@@ -190,7 +190,7 @@ class Config(BaseSettings):
 
     @field_validator("operators", mode="before")
     @classmethod
-    def validate_operators(cls, v: List[int] | None, info: ValidationInfo) -> List[int]:
+    def validate_operators(cls, v: list[int] | None, info: ValidationInfo) -> list[int]:
         owner_id = info.data.get("owner_id")
 
         if not v:
@@ -223,7 +223,7 @@ class Config(BaseSettings):
 
     @field_validator("webhooks_allowed_networks")
     @classmethod
-    def add_telegram_networks(cls, v: List[IPv4Network]) -> List[IPv4Network]:
+    def add_telegram_networks(cls, v: list[IPv4Network]) -> list[IPv4Network]:
         v.extend(DEFAULT_TELEGRAM_NETWORKS)
         return v
 

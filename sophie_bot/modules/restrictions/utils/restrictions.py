@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
-from typing import Optional
 
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramUnauthorizedError
 from aiogram.types import ChatPermissions
@@ -27,7 +26,7 @@ async def _execute_restriction(
         return False
 
 
-async def ban_user(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> bool:
+async def ban_user(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> bool:
     return await _execute_restriction(
         chat_tid, user_tid, "ban", lambda: bot.ban_chat_member(chat_tid, user_tid, until_date=until_date)
     )
@@ -37,7 +36,7 @@ async def kick_user(chat_tid: int, user_tid: int) -> bool:
     return await _execute_restriction(chat_tid, user_tid, "kick", lambda: bot.unban_chat_member(chat_tid, user_tid))
 
 
-async def mute_user(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> bool:
+async def mute_user(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> bool:
     return await _execute_restriction(
         chat_tid,
         user_tid,
@@ -84,7 +83,7 @@ async def unban_user(chat_tid: int, user_tid: int) -> bool:
     )
 
 
-async def restrict_user(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> bool:
+async def restrict_user(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> bool:
     return await _execute_restriction(
         chat_tid,
         user_tid,

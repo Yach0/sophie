@@ -1,5 +1,5 @@
 import asyncio
-from typing import Sequence
+from collections.abc import Sequence
 
 from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.modules.restrictions.utils.restrictions import mute_user
@@ -21,11 +21,8 @@ async def ws_on_new_user(new_user: ChatModel, chat: ChatModel, is_join_request: 
 
     # Add user to the welcomesecurity database
     ws_user_db = await WSUserModel.ensure_user(new_user, chat, is_join_request)
-    if ws_user_db.passed:
-        # The user already passed the verification in this chat - skipping
-        return False
-
-    return True
+    # False when the user already passed verification in this chat
+    return not ws_user_db.passed
 
 
 async def ws_on_new_user_mute(new_user: ChatModel, chat: ChatModel):

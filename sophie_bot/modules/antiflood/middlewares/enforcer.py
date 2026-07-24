@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Optional, cast
+from collections.abc import Awaitable, Callable
+from typing import Any, cast
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -41,9 +42,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             return False
         if message.chat.type == ChatType.PRIVATE:
             return False
-        if not message.from_user:
-            return False
-        return True
+        return message.from_user is not None
 
     @staticmethod
     def _get_count_key(chat_id: int, user_id: int) -> str:
@@ -75,7 +74,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         key = self._get_count_key(chat_id, user_id)
         await aredis.delete(key)
 
-    async def _get_last_user(self, chat_id: int) -> Optional[int]:
+    async def _get_last_user(self, chat_id: int) -> int | None:
         """Get ID of last user who sent a message in the chat."""
         key = self._get_state_key(chat_id)
         user_id = await aredis.get(key)
@@ -128,7 +127,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         # Try to delete the flooding message
         try:
             await message.delete()
-        except Exception:
+        except Exception:  # noqa: BLE001  # best-effort delete of flooding message
             log.debug("Failed to delete flooding message")
 
         # Execute action
@@ -198,7 +197,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         # Get chat from database
-        chat_db: Optional[ChatModel] = data.get("chat_db")
+        chat_db: ChatModel | None = data.get("chat_db")
         if not chat_db:
             chat_db = await ChatModel.get_by_tid(message.chat.id)
             if not chat_db:

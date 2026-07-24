@@ -23,7 +23,8 @@ import inspect
 import math
 import random
 import time
-from typing import Any, Awaitable, Callable, Generic, ParamSpec, TypeVar, cast
+from collections.abc import Awaitable, Callable
+from typing import Any, ParamSpec, TypeVar, cast
 
 import ujson
 
@@ -48,7 +49,7 @@ def _spawn(coro: Awaitable[Any]) -> None:
     task.add_done_callback(_background_tasks.discard)
 
 
-async def set_value(key: str, value: Any, ttl: int | float | None) -> None:
+async def set_value(key: str, value: Any, ttl: float | None) -> None:
     """Serialize and store a value in Redis with optional TTL."""
     expiry_timestamp = time.time() + ttl if ttl else None
     wrapped = {
@@ -156,7 +157,7 @@ class _LockRegistry:
 _lock_registry = _LockRegistry()
 
 
-class CachedFunction(Generic[P, T]):
+class CachedFunction[**P, T]:
     """An async function whose results are cached in Redis.
 
     Created by the `cached` decorator; see its docstring for usage.
@@ -165,7 +166,7 @@ class CachedFunction(Generic[P, T]):
     def __init__(
         self,
         func: Callable[P, Awaitable[T]],
-        ttl: int | float | None,
+        ttl: float | None,
         key: str | None,
         no_self: bool,
         stampede_protection: bool,
@@ -238,7 +239,7 @@ class CachedFunction(Generic[P, T]):
             result = await self.func(*args, **kwargs)
             await set_value(key, result, ttl=self.ttl)
             log.debug("Cached: PER background refresh complete", key=key)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001  # boundary: background refresh errors are logged and swallowed
             log.warning(
                 "Cached: PER background refresh failed",
                 key=key,
@@ -284,7 +285,7 @@ class CachedFunction(Generic[P, T]):
         return await aredis.delete(key)
 
 
-class cached:  # noqa: N801
+class cached:
     """Async caching decorator using Redis with JSON serialization.
 
     Supports cache stampede protection via per-key async locks and
@@ -306,7 +307,7 @@ class cached:  # noqa: N801
 
     def __init__(
         self,
-        ttl: int | float | None = None,
+        ttl: float | None = None,
         key: str | None = None,
         no_self: bool = False,
         stampede_protection: bool = True,

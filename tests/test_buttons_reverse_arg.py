@@ -1,11 +1,11 @@
 import pytest
 from ass_tg.entities import ArgEntities
 from ass_tg.i18n import gettext_ctx
-from ass_tg.types import TextArg, ReverseArg
+from ass_tg.types import ReverseArg, TextArg
 
 import sophie_bot.utils.i18n
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.parse_arg import ButtonsArg
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.TextWithButtonsArg import TextWithButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_buttons_arg import TextWithButtonsArg
 
 
 class MockI18n:
@@ -60,7 +60,7 @@ async def test_reverse_arg_multiple_buttons():
     entities = ArgEntities([])
 
     assert arg.check(text, entities)
-    length, result = await arg.parse(text, 0, entities)
+    _length, result = await arg.parse(text, 0, entities)
 
     text_res = result["text"].value
     buttons_res = result["buttons"].value
@@ -95,7 +95,7 @@ async def test_reverse_arg_buttons_with_newlines():
     entities = ArgEntities([])
 
     assert arg.check(text, entities)
-    length, result = await arg.parse(text, 0, entities)
+    _length, result = await arg.parse(text, 0, entities)
 
     text_res = result["text"].value
     # TextArg should capture everything before the button

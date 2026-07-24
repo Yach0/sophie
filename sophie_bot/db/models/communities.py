@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
+from typing import ClassVar
 
 from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set
@@ -23,19 +23,19 @@ class CommunityModel(Document):
     """
 
     community_tid: int
-    name: Optional[str] = None
-    first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str | None = None
+    first_saw: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    last_saw: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "communities"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("community_tid", ASCENDING)], unique=True),
         ]
 
     @staticmethod
-    async def ensure_community(community_tid: int, name: Optional[str]) -> "CommunityModel":
-        now = datetime.now(timezone.utc)
+    async def ensure_community(community_tid: int, name: str | None) -> CommunityModel:
+        now = datetime.now(UTC)
         set_data: dict = {CommunityModel.last_saw: now}
         if name is not None:
             set_data[CommunityModel.name] = name
@@ -58,12 +58,12 @@ class CommunityBanModel(Document):
     banned_chats: list[Link[ChatModel]] = Field(default_factory=list)
     time: datetime
     by: Link[ChatModel]  # User who performed the ban
-    reason: Optional[str] = None
-    original_message_text: Optional[str] = None
+    reason: str | None = None
+    original_message_text: str | None = None
 
     class Settings:
         name = "community_bans"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("community_tid", ASCENDING), ("user_id", ASCENDING)], unique=True),
             IndexModel([("user_id", ASCENDING)]),
             IndexModel([("community_tid", ASCENDING)]),
@@ -83,26 +83,26 @@ class CommunityTask(Document):
     status: TaskStatus = TaskStatus.PENDING
     chat: Link[ChatModel]  # Chat where the command was issued
     user: Link[ChatModel]  # User who initiated the task (banner)
-    error_message: Optional[str] = None
+    error_message: str | None = None
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
 
-    target_user_id: Optional[int] = None  # Telegram user ID of the (un)banned user
-    current_chat_iid: Optional[PydanticObjectId] = None  # Set when the issuing chat is part of the community
-    reply_chat_id: Optional[int] = None  # Chat/message of the reply to edit with the final result
-    reply_message_id: Optional[int] = None
-    reason: Optional[str] = None
-    original_message_text: Optional[str] = None
+    target_user_id: int | None = None  # Telegram user ID of the (un)banned user
+    current_chat_iid: PydanticObjectId | None = None  # Set when the issuing chat is part of the community
+    reply_chat_id: int | None = None  # Chat/message of the reply to edit with the final result
+    reply_message_id: int | None = None
+    reason: str | None = None
+    original_message_text: str | None = None
     silent: bool = False
-    ban_id: Optional[PydanticObjectId] = None  # BAN: the CommunityBanModel record to update
+    ban_id: PydanticObjectId | None = None  # BAN: the CommunityBanModel record to update
     unban_chat_iids: list[PydanticObjectId] = Field(default_factory=list)  # UNBAN: chats to clear
     banned_count: int = 0
     unbanned_count: int = 0
 
     class Settings:
         name = "community_tasks"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("community_tid", ASCENDING)]),
             IndexModel([("task_type", ASCENDING), ("status", ASCENDING)]),
             IndexModel([("status", ASCENDING)]),

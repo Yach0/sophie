@@ -1,9 +1,10 @@
 import inspect
 from collections import OrderedDict
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from itertools import chain
 from types import ModuleType
-from typing import Any, Callable, Coroutine, Dict, Optional, cast
+from typing import Any, cast
 
 from aiogram import Router
 from aiogram.filters.logic import _InvertFilter
@@ -24,21 +25,21 @@ from sophie_bot.utils.logger import log
 
 ARGS_DICT = dict[str, ArgFabric]
 ARGS_COROUTINE = Callable[
-    [Optional[Message], Dict[str, Any]], Coroutine[Any, Any, ARGS_DICT]  # Args it takes  # What function returns
+    [Message | None, dict[str, Any]], Coroutine[Any, Any, ARGS_DICT]  # Args it takes  # What function returns
 ]
 
 
 @dataclass
 class HandlerHelp:
     cmds: tuple[str, ...]
-    args: Optional[ARGS_DICT]
-    description: Optional[LazyProxy | str]
+    args: ARGS_DICT | None
+    description: LazyProxy | str | None
     only_admin: bool
     only_op: bool
     only_pm: bool
     only_chats: bool
     alias_to_modules: list[str]
-    disableable: Optional[str]
+    disableable: str | None
 
 
 @dataclass
@@ -75,7 +76,7 @@ def get_all_cmds_raw() -> tuple[str, ...]:
     return tuple(cmd for cmds in get_all_cmds() for cmd in cmds.cmds)
 
 
-async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> Optional[ARGS_DICT]:
+async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> ARGS_DICT | None:
     if not args:
         return None
     if isinstance(args, dict):
@@ -175,7 +176,7 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
     return helps
 
 
-async def gather_module_help(module: ModuleType) -> Optional[ModuleHelp]:
+async def gather_module_help(module: ModuleType) -> ModuleHelp | None:
     manifest = get_module_manifest(module)
     if manifest.bot_router is None:
         return None

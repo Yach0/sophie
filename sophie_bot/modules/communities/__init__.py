@@ -13,7 +13,6 @@ from sophie_bot.modules.communities.schedules.process_bans import ProcessCommuni
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 router = Router(name="communities")
 
 

@@ -5,7 +5,7 @@ These prove the adapter works with native aiogram Community types (aiogram 3.30+
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiogram.types import Chat, Community, CommunityChatAdded, CommunityChatRemoved, Message, User
 
@@ -19,7 +19,7 @@ from sophie_bot.utils.community_api import (
 def _message(**extra: object) -> Message:
     return Message(
         message_id=1,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=Chat(id=-1001234567890, type="supergroup", title="Test"),
         from_user=User(id=123, first_name="Test", is_bot=False),
         **extra,

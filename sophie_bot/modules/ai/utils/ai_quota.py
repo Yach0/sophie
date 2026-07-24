@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 
 from beanie import PydanticObjectId
 
@@ -10,8 +10,8 @@ from sophie_bot.constants import AI_CREDITS_PER_TOKEN
 from sophie_bot.db.models import AIQuotaModel, AIUsageModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
+from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
 from sophie_bot.utils.ai_features import AIFeature
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
@@ -54,7 +54,7 @@ class AIQuotaState:
 
 
 def _current_period_start() -> date:
-    return date.today().replace(day=1)
+    return datetime.now(UTC).date().replace(day=1)
 
 
 def _get_period_end(period_start: date) -> date:

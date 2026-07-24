@@ -41,11 +41,10 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
         # If Redis is unavailable, allow the request through rather than
         # returning 500 errors. Consistent with global rate limiter fail-open
         # design: availability over strict rate enforcement.
-        log.error(
+        log.exception(
             "Per-endpoint rate limiter Redis error, allowing request through",
             path=request.url.path,
             client_ip=client_ip,
-            exc_info=True,
         )
         return
 
@@ -54,11 +53,10 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
         try:
             ttl = await aredis.ttl(key)
         except Exception:
-            log.error(
+            log.exception(
                 "Per-endpoint rate limiter Redis error while reading TTL, allowing request through",
                 path=request.url.path,
                 client_ip=client_ip,
-                exc_info=True,
             )
             return
         raise HTTPException(

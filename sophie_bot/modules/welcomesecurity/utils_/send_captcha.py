@@ -1,5 +1,3 @@
-from typing import Optional
-
 from aiogram.types import (
     BufferedInputFile,
     InlineKeyboardMarkup,
@@ -12,7 +10,7 @@ from sophie_bot.services.bot import bot
 
 
 async def send_captcha_message(
-    message: Message, captcha: EmojiCaptcha, caption: str, reply_markup: Optional[InlineKeyboardMarkup] = None
+    message: Message, captcha: EmojiCaptcha, caption: str, reply_markup: InlineKeyboardMarkup | None = None
 ):
     return await bot.edit_message_media(
         media=InputMediaPhoto(media=BufferedInputFile(captcha.image, "captcha.jpeg"), caption=caption),

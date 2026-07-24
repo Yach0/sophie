@@ -131,7 +131,7 @@ def _process_headings_surrogate(text: str) -> tuple[str, list[MessageEntity]]:
         if line.endswith("\r\n"):
             line_body = line[:-2]
             newline = "\r\n"
-        elif line.endswith("\n") or line.endswith("\r"):
+        elif line.endswith(("\n", "\r")):
             newline = line[-1]
             line_body = line[:-1]
         else:
@@ -157,7 +157,7 @@ def _build_delimiter_regex(delimiters: dict) -> re.Pattern:
     # Build a regex to efficiently test all delimiters at once.
     # Note that the largest delimiter should go first, we don't
     # want ``` to be interpreted as a single back-tick in a code block.
-    return re.compile("|".join("({})".format(re.escape(str(k))) for k in sorted(delimiters, key=len, reverse=True)))
+    return re.compile("|".join(f"({re.escape(str(k))})" for k in sorted(delimiters, key=len, reverse=True)))
 
 
 def _process_delimiter_match(

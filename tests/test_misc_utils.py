@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pytest
 from aiogram.enums import ChatType
@@ -101,7 +102,7 @@ async def test_use_chat_language_does_not_swallow_exceptions(monkeypatch: pytest
 
 class FakeChatModel:
     type = "chat_type"
-    find_calls: list[tuple[object]] = []
+    find_calls: ClassVar[list[tuple[object]]] = []
 
     @classmethod
     def find(cls, condition: object) -> "FakeChatQuery":

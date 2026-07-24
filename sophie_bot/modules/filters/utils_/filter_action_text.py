@@ -1,5 +1,3 @@
-from typing import Optional
-
 from stfu_tg import Section, VList
 from stfu_tg.doc import Element as StfuElement
 
@@ -12,7 +10,7 @@ def get_modern_action_text(action: ModernActionABC) -> str:
     return f"{action.icon} {action.title}"
 
 
-def filter_action_text(_action: Optional[str], actions: Optional[list[str]]) -> StfuElement | LazyProxy | str:
+def filter_action_text(_action: str | None, actions: list[str] | None) -> StfuElement | LazyProxy | str:
     if not actions:
         raise TypeError("No action provided for filter_action_text")
 

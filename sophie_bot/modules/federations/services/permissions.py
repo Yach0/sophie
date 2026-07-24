@@ -17,9 +17,7 @@ class FederationPermissionService:
     @staticmethod
     async def is_federation_owner(federation: Federation, user_tid: int) -> bool:
         creator = await FederationPermissionService._resolve_link(federation.creator)
-        if creator and creator.tid == user_tid:
-            return True
-        return False
+        return bool(creator and creator.tid == user_tid)
 
     @staticmethod
     async def is_federation_admin(federation: Federation, user_tid: int) -> bool:

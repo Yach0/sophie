@@ -31,11 +31,11 @@ from sophie_bot.utils.feature_flags import (
     get_default_value,
     get_rollout,
     get_rollout_percentage,
-    get_value_kind,
     get_service_tier,
     get_value,
-    is_valid_value_type,
+    get_value_kind,
     is_enabled,
+    is_valid_value_type,
     list_all,
     list_chat_override_details,
     list_chat_overrides,
@@ -70,7 +70,7 @@ def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
 
 
 @pytest.fixture(autouse=True)
-async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None, None]:
+async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None]:
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
     yield
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})

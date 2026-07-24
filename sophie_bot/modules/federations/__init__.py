@@ -33,7 +33,6 @@ from sophie_bot.modules.federations.schedules.process_imports import ProcessFede
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 api_router = federations_api_router
 router = Router(name="federations")
 

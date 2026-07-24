@@ -114,7 +114,7 @@ async def test_editfilter_silent_toggle_persists_to_database(test_client: TestCl
 @pytest.mark.asyncio
 async def test_editfilter_save_does_not_report_filter_as_its_own_duplicate(test_client: TestClient) -> None:
     """Re-saving an edited filter must not trip the duplicate-handler check."""
-    group, user_wrapper, filter_item = await _create_filter(
+    group, user_wrapper, _filter_item = await _create_filter(
         test_client, group_tid=-1002700000004, user_tid=927000004, silent=False, admin=True
     )
 

@@ -1,24 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, ClassVar, Literal
 
 from beanie import Document, UpdateResponse
 from beanie.odm.operators.update.general import Set
 from pymongo import ASCENDING, IndexModel
-
 
 FeatureFlagOverrideSource = Literal["manual", "rollout"]
 
 
 class FeatureFlagOverride(Document):
     feature: str
-    chat_tid: Optional[int] = None
+    chat_tid: int | None = None
     value: Any
     source: FeatureFlagOverrideSource = "manual"
 
     class Settings:
         name = "feature_flag_overrides"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel([("feature", ASCENDING), ("chat_tid", ASCENDING)], unique=True),
         ]
 

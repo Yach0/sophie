@@ -1,6 +1,7 @@
 import tracemalloc
+from collections.abc import Awaitable, Callable
 from random import randint
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject

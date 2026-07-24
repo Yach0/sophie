@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 LEGACY_NOTE_BUTTON_PREFIX = "btnnotesm"
 LEGACY_RULES_BUTTON_PREFIX = "btn_rules"
 LEGACY_WELCOME_SECURITY_BUTTON_PREFIX = "btnwelcomesecuritystart"

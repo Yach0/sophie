@@ -1,5 +1,4 @@
 import html
-from typing import Optional
 
 from aiogram.types import Message, User
 from stfu_tg import EscapedStr, HList, UserLink
@@ -7,7 +6,7 @@ from stfu_tg import EscapedStr, HList, UserLink
 from sophie_bot.utils.i18n import gettext as _
 
 
-def chat_fillings(text: str, message: Optional[Message]) -> str:
+def chat_fillings(text: str, message: Message | None) -> str:
     if not message:
         return text
     chat_id = message.chat.id
@@ -20,7 +19,7 @@ def chat_fillings(text: str, message: Optional[Message]) -> str:
     )
 
 
-def user_fillings(text: str, message: Optional[Message], user: Optional[User]) -> str:
+def user_fillings(text: str, message: Message | None, user: User | None) -> str:
     if not user:
         return text
 
@@ -42,7 +41,7 @@ def user_fillings(text: str, message: Optional[Message], user: Optional[User]) -
     )
 
 
-def custom_fillings(text: str, additional_fillings: Optional[dict[str, str]]):
+def custom_fillings(text: str, additional_fillings: dict[str, str] | None):
     if not additional_fillings:
         return text
 
@@ -53,7 +52,7 @@ def custom_fillings(text: str, additional_fillings: Optional[dict[str, str]]):
 
 
 def process_fillings(
-    text: str, message: Optional[Message], user: Optional[User], additional_fillings: Optional[dict[str, str]] = None
+    text: str, message: Message | None, user: User | None, additional_fillings: dict[str, str] | None = None
 ) -> str:
     if not text:
         return text

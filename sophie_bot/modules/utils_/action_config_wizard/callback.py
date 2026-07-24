@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, cast
 
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.dispatcher.event.handler import CallbackType
@@ -151,12 +151,8 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
         if wizard_state is not None:
             chat_iid, action_name, action_data = await wizard_state.get_staged()
             if chat_iid is not None and action_name:
-                if (
-                    action_data is not None
-                    and hasattr(action_data, "model_dump")
-                    and callable(getattr(action_data, "model_dump", None))
-                ):
-                    action_data = getattr(action_data, "model_dump")(mode="json")
+                if action_data is not None and hasattr(action_data, "model_dump"):
+                    action_data = cast("Any", action_data).model_dump(mode="json")
                 await self.cfg.add_action_func(chat_iid, action_name, action_data or {})
 
             await wizard_state.clear()
@@ -187,7 +183,7 @@ class _ACWCallbackHandler(SophieCallbackQueryHandler):
         )
         await msg.edit_text(text=html, reply_markup=markup)
 
-    async def _fetch_action_data(self, chat_iid: PydanticObjectId, action_name: str) -> Optional[dict[str, Any]]:
+    async def _fetch_action_data(self, chat_iid: PydanticObjectId, action_name: str) -> dict[str, Any] | None:
         try:
             model = await self.cfg.get_model_func(chat_iid)
             actions = await self.cfg.get_actions_func(model)

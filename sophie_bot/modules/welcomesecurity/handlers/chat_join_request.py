@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -69,12 +69,12 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
                 if CHANNELS_TOO_MUCH in err.message or USER_CHANNELS_TOO_MUCH in err.message:
                     await self.event.decline()
-                    return None
+                    return
                 if CHAT_ADMIN_REQUIRED in err.message:
-                    return None
+                    return
                 if HIDE_REQUESTER_MISSING in err.message:
-                    return None
-                raise err
+                    return
+                raise
 
         # Check if user is admin
         if await is_user_admin(chat_tid, user_tid):
@@ -93,7 +93,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         # Check if join request is too old (bot was down/lagging)
         # If too old, skip captcha enforcement and approve immediately
         if self.event.date:
-            time_diff = datetime.now(timezone.utc) - self.event.date
+            time_diff = datetime.now(UTC) - self.event.date
             if time_diff > timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES):
                 await _approve_request()
                 return

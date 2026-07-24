@@ -19,7 +19,7 @@ router = APIRouter(
 
 @router.get("", response_model=FilterActionsCatalogResponse)
 async def list_filter_actions(
-    user: ChatModel = Depends(get_current_user),
+    user: ChatModel = Depends(get_current_user),  # noqa: B008  # FastAPI dependency
 ) -> FilterActionsCatalogResponse:
     _ = user
     return FilterActionsCatalogResponse(

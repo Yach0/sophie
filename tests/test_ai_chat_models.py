@@ -4,21 +4,20 @@ from unittest.mock import AsyncMock
 import pytest
 from beanie import PydanticObjectId
 
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider, ResolvedRole
 from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_default_model,
     get_chat_filters_model,
     get_chat_summary_model,
     get_chat_translations_model,
 )
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
-from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider, ResolvedRole
 from sophie_bot.modules.ai.utils.ai_help_mode import set_help_mode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
-
 
 ENTERTAINMENT_CHATBOT = "free/chatbot"
 MODERATION_TRANSLATION = "standard/translate"

@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable, Dict, Optional
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
@@ -16,11 +17,11 @@ from sophie_bot.utils.logger import log
 class CacheUserMessagesMiddleware(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
-        chat_db: Optional[ChatModel] = data.get("chat_db", None)
+        chat_db: ChatModel | None = data.get("chat_db", None)
 
         mode = await resolve_chat_mode(chat_db, data.get("state")) if chat_db else AIMode.disabled
         capabilities = get_capabilities(mode)

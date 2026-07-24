@@ -1,10 +1,8 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
-from stfu_tg import Doc, Section, Template, Title
-
 from beanie import PydanticObjectId
+from stfu_tg import Doc, Section, Template, Title
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
@@ -17,7 +15,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def set_connected_chat(user_tid: int, chat_tid: Optional[int]):
+async def set_connected_chat(user_tid: int, chat_tid: int | None):
     """
     Connects user to a chat.
     If chat_tid is None, disconnects.
@@ -43,7 +41,7 @@ async def set_connected_chat(user_tid: int, chat_tid: Optional[int]):
         log.error("set_connected_chat: chat not found", chat_tid=chat_tid)
         return
 
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=48)
+    expires_at = datetime.now(UTC) + timedelta(hours=48)
 
     conn = await ChatConnectionModel.get_by_user_iid(user.iid)
     if conn:
@@ -69,10 +67,7 @@ async def check_connection_permissions(chat_iid: PydanticObjectId, user_iid: Pyd
 
     # Check settings
     settings = await ChatConnectionSettingsModel.get_by_chat_iid(chat_iid)
-    if settings and not settings.allow_users_connect:
-        return False
-
-    return True
+    return not settings or settings.allow_users_connect
 
 
 async def get_connection_text(chat_id: int) -> Doc:

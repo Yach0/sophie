@@ -1,4 +1,5 @@
-from typing import Any, Callable, Coroutine, Optional
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from aiogram.exceptions import (
     TelegramAPIError,
@@ -27,7 +28,7 @@ CALLBACK_COROUTINE_TYPE = Callable[[], COROUTINE_TYPE]
 IGNORED_EXCEPTIONS = (TelegramNotFound, TelegramForbiddenError, TelegramMigrateToChat)
 
 
-async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_COROUTINE_TYPE] = None) -> Any:
+async def common_try(to_try: COROUTINE_TYPE, reply_not_found: CALLBACK_COROUTINE_TYPE | None = None) -> Any:
     """
     Catches common Telegram exceptions
     """
@@ -66,7 +67,7 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
             log.debug("common_try: Chat write forbidden, ignoring")
             return None
         log.warning("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
-        raise err
+        raise
     except IGNORED_EXCEPTIONS as err:
         log.warning("common_try: Caught ignored exception", error=str(err))
         return None
@@ -76,4 +77,4 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: Optional[CALLBACK_
             log.warning("common_try: Telegram API timeout", error=str(err))
             raise
         log.warning("common_try: Other unhandled Telegram API error", error=str(err))
-        raise err
+        raise

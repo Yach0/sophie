@@ -31,7 +31,7 @@ class WarnsGroupHandler(SophieMessageHandler):
         if message.reply_to_message and message.reply_to_message.from_user:
             target_user_tid = message.reply_to_message.from_user.id
             target_user_name = message.reply_to_message.from_user.first_name
-        elif "user" in self.data and self.data["user"]:
+        elif self.data.get("user"):
             target_user: ChatModel = self.data["user"]
             target_user_tid = target_user.tid
             target_user_name = target_user.first_name_or_title

@@ -5,7 +5,7 @@ This module tests how the middleware handles forwarded messages from users and c
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -34,7 +34,7 @@ class TestForwardedMessageHandling:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             forward_from=forwarded_user,
@@ -70,7 +70,7 @@ class TestForwardedMessageHandling:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             forward_from_chat=forwarded_chat,
@@ -105,7 +105,7 @@ class TestForwardedMessageHandling:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             forward_from_chat=same_chat,
@@ -139,7 +139,7 @@ class TestForwardedMessageHandling:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             forward_from=bot_user,
@@ -175,7 +175,7 @@ class TestForwardedMessageHandling:
         # This shouldn't happen in real Telegram, but test it
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             forward_from=forwarded_user,
@@ -211,7 +211,7 @@ class TestForwardedMessageHandling:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             forward_from=forwarded_user,
@@ -246,7 +246,7 @@ class TestForwardedMessageHandling:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=main_user,
             forward_from_chat=forwarded_chat,

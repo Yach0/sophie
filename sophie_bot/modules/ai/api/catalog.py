@@ -9,8 +9,6 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIModelPurpose,
     AIProviderKind,
 )
-from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
-from sophie_bot.utils.feature_flags import _SERVICE_TIER_VALUES
 from sophie_bot.modules.ai.utils.ai_catalog import (
     CATALOG_MODES,
     MODE_PURPOSES,
@@ -21,12 +19,14 @@ from sophie_bot.modules.ai.utils.ai_catalog import (
     mask_api_key,
     mode_allows,
 )
-from sophie_bot.modules.ai.utils.ai_model_pricing import ai_http_client, _openrouter_headers, _parse_price_per_million
+from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
+from sophie_bot.modules.ai.utils.ai_model_pricing import _openrouter_headers, _parse_price_per_million, ai_http_client
 from sophie_bot.utils.api.auth import get_current_operator
+from sophie_bot.utils.feature_flags import _SERVICE_TIER_VALUES
 
 from .catalog_schemas import (
-    CatalogMeta,
     CatalogExport,
+    CatalogMeta,
     CatalogResolution,
     CatalogStatus,
     ImportResult,

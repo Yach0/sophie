@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Code, HList, Italic, Section, Template, VList

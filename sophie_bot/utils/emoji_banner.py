@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from io import BytesIO
-from typing import ClassVar, Sequence
+from typing import ClassVar
 
 from PIL import ImageColor, ImageDraw
-from PIL.Image import Image as PILImage, new
+from PIL.Image import Image as PILImage
+from PIL.Image import new
 from PIL.ImageFont import FreeTypeFont, truetype
 
 

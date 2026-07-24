@@ -23,7 +23,8 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, cast
+from collections.abc import Awaitable, Callable
+from typing import Any, cast
 
 from aiogram import BaseMiddleware, Bot
 from aiogram.fsm.storage.base import StorageKey
@@ -217,7 +218,7 @@ class MediaGroupAggregatorMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         if not isinstance(event, Update):
-            raise RuntimeError("MediaGroupAggregatorMiddleware got an unexpected event type!")
+            raise TypeError("MediaGroupAggregatorMiddleware got an unexpected event type!")
 
         message = event.event
         if not isinstance(message, Message) or not message.media_group_id:

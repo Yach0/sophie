@@ -16,9 +16,8 @@ Impact:
 
 from __future__ import annotations
 
-from bson import DBRef
-
 from beanie import free_fall_migration
+from bson import DBRef
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel

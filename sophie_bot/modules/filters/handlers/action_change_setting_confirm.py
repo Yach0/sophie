@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram import Router
 from aiogram.fsm.storage.base import DEFAULT_DESTINY
@@ -17,8 +17,8 @@ from sophie_bot.modules.filters.types.modern_action_data_types import (
     ACTION_DATA_DUMPED,
 )
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -33,8 +33,8 @@ class ActionChangeSettingConfirm(SophieMessageCallbackQueryHandler):
         )
 
     async def handle(self) -> Any:
-        action_name: Optional[str] = await self.state.get_value("action_name")
-        action_setting: Optional[str] = await self.state.get_value("action_setting")
+        action_name: str | None = await self.state.get_value("action_name")
+        action_setting: str | None = await self.state.get_value("action_setting")
 
         if not action_name or not action_setting:
             raise SophieException("No action name or setting in state/data")

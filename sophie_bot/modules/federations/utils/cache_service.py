@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from beanie import PydanticObjectId
 
 from sophie_bot.services.redis import aredis
@@ -19,7 +17,7 @@ class FederationCacheService:
     STATS_TTL = 3600  # 1 hour
 
     @staticmethod
-    async def get_fed_id_for_chat(chat_iid: PydanticObjectId) -> Optional[str]:
+    async def get_fed_id_for_chat(chat_iid: PydanticObjectId) -> str | None:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}chat_fed_id:{chat_iid}"
         cached = await aredis.get(cache_key)
         return _decode_redis_value(cached) if cached else None
@@ -35,7 +33,7 @@ class FederationCacheService:
         await aredis.delete(cache_key)
 
     @staticmethod
-    async def get_user_ban_status(fed_id: str, user_tid: int) -> Optional[bool]:
+    async def get_user_ban_status(fed_id: str, user_tid: int) -> bool | None:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}ban_status:{fed_id}:{user_tid}"
         cached = await aredis.get(cache_key)
         if cached:
@@ -49,7 +47,7 @@ class FederationCacheService:
 
     # NEW: Stats Caching
     @staticmethod
-    async def get_ban_count(fed_id: str) -> Optional[int]:
+    async def get_ban_count(fed_id: str) -> int | None:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}ban_count:{fed_id}"
         cached = await aredis.get(cache_key)
         return int(cached) if cached else None
@@ -66,7 +64,7 @@ class FederationCacheService:
             await aredis.incrby(cache_key, amount)
 
     @staticmethod
-    async def get_chat_count(fed_id: str) -> Optional[int]:
+    async def get_chat_count(fed_id: str) -> int | None:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}chat_count:{fed_id}"
         cached = await aredis.get(cache_key)
         return int(cached) if cached else None

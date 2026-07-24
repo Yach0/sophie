@@ -2,8 +2,8 @@ import pytest
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgTypeError
 
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.parse_arg import ButtonArg, ButtonsArg
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 
 
 @pytest.mark.asyncio

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Optional, cast
+from typing import cast
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes_buttons import Button, ButtonStyle
 from sophie_bot.modules.notes.utils.buttons.models import ButtonLayout
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.registry import ASS_MAPPING
 
 
@@ -42,7 +42,7 @@ class UnknownMessageButtonTypeError(Exception):
     pass
 
 
-def button_from_markup(button: InlineKeyboardButton) -> Optional[Button]:
+def button_from_markup(button: InlineKeyboardButton) -> Button | None:
     if button.url:
         action = ButtonAction.url
         data = button.url

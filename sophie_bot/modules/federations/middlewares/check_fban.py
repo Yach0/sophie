@@ -1,11 +1,12 @@
 import html
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 from stfu_tg import Template, UserLink
 
-from sophie_bot.modules.federations.services import FederationManageService, FederationBanService
+from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -15,7 +16,7 @@ from sophie_bot.utils.logger import log
 
 
 class FedBanMiddleware(BaseMiddleware):
-    async def is_fbanned(self, message: Message, data: Dict[str, Any]) -> bool:
+    async def is_fbanned(self, message: Message, data: dict[str, Any]) -> bool:
         if message.sender_chat:
             return False
         if message.chat.type not in {"group", "supergroup"}:
@@ -32,7 +33,7 @@ class FedBanMiddleware(BaseMiddleware):
         user_name = message.from_user.first_name
         chat_id = chat_db.tid
 
-        log.debug("Enforcing fban check on {} in {}".format(user_id, chat_id))
+        log.debug(f"Enforcing fban check on {user_id} in {chat_id}")
 
         # Get federation for this chat
         federation = await FederationManageService.get_federation_for_chat(chat_db.iid)
@@ -85,9 +86,9 @@ class FedBanMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         if isinstance(event, Message) and await self.is_fbanned(event, data):
             return

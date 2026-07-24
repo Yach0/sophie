@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
+from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 router = APIRouter()
 

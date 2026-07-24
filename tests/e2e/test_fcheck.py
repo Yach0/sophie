@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from aiogram_test_framework import TestClient
@@ -14,7 +14,7 @@ async def test_fcheck_pm_full_option(test_client: TestClient) -> None:
     user_id = 123456789
     creator_id = 987654321
     group_id = -1001234567890
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     user = test_client.create_user(user_id=user_id, first_name="Test", username="testuser")
 

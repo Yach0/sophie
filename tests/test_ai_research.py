@@ -4,12 +4,10 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
-from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
 from stfu_tg import Title
 
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.agent_tools.research import research_topic, research_topic_tool
 from sophie_bot.modules.ai.json_schemas.research import (
     ResearchDecision,
@@ -19,6 +17,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_usage_limits, get_chatbot_tools
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT

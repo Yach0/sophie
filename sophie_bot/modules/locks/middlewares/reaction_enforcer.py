@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware, Bot
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -14,16 +15,15 @@ from sophie_bot.modules.locks.utils.lock_types import LockType
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
-
 OUTSIDER_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
 
 
 class ReactionLocksEnforcerMiddleware(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         if not isinstance(event, MessageReactionUpdated):
             return await handler(event, data)

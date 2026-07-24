@@ -13,7 +13,7 @@ from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 
 
 @pytest.fixture(autouse=True)
-async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None, None]:
+async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None]:
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
     yield
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})

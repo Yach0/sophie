@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
@@ -42,11 +41,11 @@ class FederationManageService:
         return federation
 
     @staticmethod
-    async def get_federation_by_id(fed_id: str) -> Optional[Federation]:
+    async def get_federation_by_id(fed_id: str) -> Federation | None:
         return await Federation.find_one(Federation.fed_id == fed_id)
 
     @staticmethod
-    async def get_federation_by_creator(creator_iid: PydanticObjectId) -> Optional[Federation]:
+    async def get_federation_by_creator(creator_iid: PydanticObjectId) -> Federation | None:
         return await Federation.find_one(Federation.creator.id == creator_iid)
 
     @staticmethod
@@ -54,7 +53,7 @@ class FederationManageService:
         return await Federation.find(Federation.creator.id == creator_iid).to_list()
 
     @staticmethod
-    async def get_federation_for_chat(chat_iid: PydanticObjectId) -> Optional[Federation]:
+    async def get_federation_for_chat(chat_iid: PydanticObjectId) -> Federation | None:
         fed_id = await FederationCacheService.get_fed_id_for_chat(chat_iid)
         if fed_id:
             return await FederationManageService.get_federation_by_id(fed_id)
@@ -178,7 +177,7 @@ class FederationManageService:
         return True
 
     @staticmethod
-    async def get_subscription_chain(fed_id: str) -> List[str]:
+    async def get_subscription_chain(fed_id: str) -> list[str]:
         chain = []
         to_visit = [fed_id]
         visited = set()
@@ -199,7 +198,7 @@ class FederationManageService:
         return chain
 
     @staticmethod
-    async def get_subscribing_federations(fed_id: str) -> List[Federation]:
+    async def get_subscribing_federations(fed_id: str) -> list[Federation]:
         """Get federations that subscribe TO the given federation (reverse lookup).
 
         Returns federations where `subscribed` list contains the given fed_id.
@@ -207,7 +206,7 @@ class FederationManageService:
         return await Federation.find(Federation.subscribed == fed_id).to_list()
 
     @staticmethod
-    async def get_subscribed_by_chain(fed_id: str) -> List[Federation]:
+    async def get_subscribed_by_chain(fed_id: str) -> list[Federation]:
         """Get the full chain of federations that subscribe to the given federation.
 
         This is the reverse of get_subscription_chain - it finds all federations
@@ -218,7 +217,7 @@ class FederationManageService:
 
         Returns list of federations ordered by distance (closest first).
         """
-        chain: List[Federation] = []
+        chain: list[Federation] = []
         to_visit = [fed_id]
         visited = {fed_id}
 

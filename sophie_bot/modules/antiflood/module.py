@@ -5,7 +5,6 @@ from sophie_bot.modules.antiflood.api import api_router
 from sophie_bot.modules.antiflood.bot import handlers, router, setup_bot_transport
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 module_manifest = ModuleManifest(
     name="antiflood",
     bot_router=router,

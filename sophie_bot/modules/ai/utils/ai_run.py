@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Final, Generic, TypeVar, cast
+from typing import Any, Final, TypeVar, cast
 
 from pydantic import BaseModel
 from pydantic_ai import Agent, AgentStreamEvent, FunctionToolCallEvent, RunContext
@@ -29,10 +29,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.utils.logger import log
 
-DepsT = TypeVar("DepsT")
-OutputT = TypeVar("OutputT")
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
-FallbackOutputT = TypeVar("FallbackOutputT")
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
@@ -48,7 +45,7 @@ def _resolve_fallback_model(primary_model: Model) -> Model | None:
     return fallback_model
 
 
-async def _run_with_model_fallback(
+async def _run_with_model_fallback[FallbackOutputT](
     operation: Callable[[Model | None], Awaitable[FallbackOutputT]],
     primary_model: Model,
     on_retry: AIRetryCallback | None = None,
@@ -94,7 +91,7 @@ class AIRequestOptions:
         return self.user_tracking_id is not None or self.session_id is not None or self.service_tier is not None
 
 
-class AIAgentResult(BaseModel, Generic[OutputT]):
+class AIAgentResult[OutputT](BaseModel):
     output: OutputT
     steps: int | None = None
     retries: int | None = None
@@ -165,11 +162,11 @@ def _get_agent_model(agent: Agent[Any, Any]) -> Model:
     if model is None:
         raise ValueError("Agent model cannot be None for metrics tracking")
     if not isinstance(model, Model):
-        raise ValueError(f"Agent model must be a Model instance, got {type(model)}")
+        raise TypeError(f"Agent model must be a Model instance, got {type(model)}")
     return model
 
 
-async def _run_with_retries_and_metrics(
+async def _run_with_retries_and_metrics[DepsT, OutputT](
     agent: Agent[DepsT, OutputT],
     run_kwargs: Mapping[str, Any],
     on_retry: AIRetryCallback | None = None,
@@ -209,7 +206,7 @@ async def _run_with_retries_and_metrics(
     )
 
 
-def _build_agent_run_kwargs(
+def _build_agent_run_kwargs[DepsT](
     user_prompt: str | Sequence[UserContent],
     message_history: list[ModelRequest | ModelResponse] | None,
     deps: DepsT | None,
@@ -230,7 +227,7 @@ def _build_agent_run_kwargs(
     return run_kwargs
 
 
-async def run_ai_text(
+async def run_ai_text[DepsT](
     agent: Agent[DepsT, str],
     user_prompt: str | Sequence[UserContent],
     message_history: list[ModelRequest | ModelResponse] | None = None,
@@ -246,7 +243,7 @@ async def run_ai_text(
     return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry)
 
 
-async def run_ai_structured(
+async def run_ai_structured[DepsT, OutputT](
     agent: Agent[DepsT, OutputT],
     user_prompt: str | Sequence[UserContent],
     message_history: list[ModelRequest | ModelResponse] | None = None,
@@ -264,7 +261,7 @@ async def run_ai_structured(
     return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry)
 
 
-async def run_ai_stream(
+async def run_ai_stream[DepsT](
     agent: Agent[DepsT, str],
     user_prompt: str | Sequence[UserContent],
     on_text_stream: TextStreamCallback,

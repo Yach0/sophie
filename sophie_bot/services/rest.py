@@ -137,10 +137,9 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
             # Fail-open: allow the request through rather than blocking all
             # traffic. Track failure count for operator alerting.
             GlobalRateLimitMiddleware._redis_failure_count += 1
-            logger.error(
+            logger.exception(
                 "Global rate limiter Redis error, allowing request through",
                 redis_failure_count=GlobalRateLimitMiddleware._redis_failure_count,
-                exc_info=True,
             )
 
         return await call_next(request)

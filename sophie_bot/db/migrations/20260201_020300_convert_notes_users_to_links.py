@@ -7,9 +7,9 @@ Affected Collections:
     - notes
 """
 
+from beanie import free_fall_migration
 from bson import DBRef
 
-from beanie import free_fall_migration
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 

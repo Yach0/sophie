@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 from .button_action import ButtonAction
 
-
 type ButtonStyle = Literal["primary", "danger", "success"]
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -96,7 +96,7 @@ class FederationBanListHandler(FederationCommandHandler):
             chat=self.connection.db_model.iid,
             user=user_iid,
             status=TaskStatus.PENDING,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         await export_task.insert()
 

@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
-from sophie_bot.modules.rest.api import auth
-from sophie_bot.utils.api import auth as auth_utils
 from sophie_bot.modules.ai.api import api_router as ai_api_router
-from sophie_bot.modules.rest.api import auth_router, feature_flags_router
+from sophie_bot.modules.rest.api import auth, auth_router, feature_flags_router
 from sophie_bot.services.rest import create_app, init_api_routers
+from sophie_bot.utils.api import auth as auth_utils
 
 pytestmark = pytest.mark.asyncio
 
@@ -33,7 +32,7 @@ async def _seed_owner() -> None:
         first_name_or_title="Owner",
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     ).insert()
 
 

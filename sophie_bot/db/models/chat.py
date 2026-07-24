@@ -1,7 +1,7 @@
 from asyncio import Lock
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, ClassVar, Optional
 
 from aiogram.types import Chat, User
 from beanie import (
@@ -35,15 +35,15 @@ class ChatModel(Document):
     tid: Annotated[int, Indexed(unique=True)] = Field(..., alias="chat_id")
     type: ChatType = Field(..., description="Group type")
     first_name_or_title: str = Field(max_length=128)
-    last_name: Optional[str] = Field(max_length=64, default=None)
-    username: Annotated[Optional[str], Indexed()]
-    language_code: Optional[str] = None
+    last_name: str | None = Field(max_length=64, default=None)
+    username: Annotated[str | None, Indexed()]
+    language_code: str | None = None
     is_bot: bool
     # Telegram community this chat belongs to (Bot API 10.2). Maintained by
     # SaveChatsMiddleware; never touched by the upsert_group path so it survives updates.
-    community_tid: Annotated[Optional[int], Indexed()] = None
+    community_tid: Annotated[int | None, Indexed()] = None
 
-    first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    first_saw: datetime = Field(default_factory=lambda: datetime.now(UTC))
     last_saw: datetime
 
     class Settings:
@@ -58,7 +58,7 @@ class ChatModel(Document):
             "last_name": user.last_name,
             "username": user.username,
             "is_bot": user.is_bot,
-            "last_saw": datetime.now(timezone.utc),
+            "last_saw": datetime.now(UTC),
             "language_code": user.language_code,
         }
 
@@ -70,7 +70,7 @@ class ChatModel(Document):
             "last_name": None,
             "username": chat.username,
             "is_bot": False,
-            "last_saw": datetime.now(timezone.utc),
+            "last_saw": datetime.now(UTC),
         }
 
     @staticmethod
@@ -130,16 +130,16 @@ class ChatModel(Document):
     @staticmethod
     async def new_count_last_48h(chat_types: tuple[ChatType, ...]) -> int:
         return await ChatModel.find(
-            ChatModel.last_saw >= datetime.now(timezone.utc) - timedelta(hours=48),
-            ChatModel.first_saw >= datetime.now(timezone.utc) - timedelta(hours=48),
+            ChatModel.last_saw >= datetime.now(UTC) - timedelta(hours=48),
+            ChatModel.first_saw >= datetime.now(UTC) - timedelta(hours=48),
             In(ChatModel.type, chat_types),
         ).count()
 
     @staticmethod
     async def active_count_last_48h(chat_types: tuple[ChatType, ...]) -> int:
         return await ChatModel.find(
-            ChatModel.last_saw >= datetime.now(timezone.utc) - timedelta(hours=48),
-            ChatModel.first_saw <= datetime.now(timezone.utc) - timedelta(hours=48),
+            ChatModel.last_saw >= datetime.now(UTC) - timedelta(hours=48),
+            ChatModel.first_saw <= datetime.now(UTC) - timedelta(hours=48),
             In(ChatModel.type, chat_types),
         ).count()
 
@@ -193,7 +193,7 @@ class ChatModel(Document):
             is_bot=False,  # We don't know, but we can assume
             username=None,
             type=ChatType.private,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
 
     @staticmethod
@@ -204,13 +204,13 @@ class ChatModel(Document):
 class UserInGroupModel(Document):
     user: Link[ChatModel]
     group: Link[ChatModel]
-    first_saw: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    first_saw: datetime = Field(default_factory=lambda: datetime.now(UTC))
     last_saw: datetime
     ai_filter_seen_messages: int = 0
 
     class Settings:
         name = "users_in_groups"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel(
                 [
                     ("user.$id", ASCENDING),
@@ -223,7 +223,7 @@ class UserInGroupModel(Document):
 
     @staticmethod
     async def ensure_user_in_group(user: "ChatModel", group: "ChatModel"):
-        current_timedate = datetime.now(timezone.utc)
+        current_timedate = datetime.now(UTC)
 
         return await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}).upsert(
             Set({UserInGroupModel.last_saw: current_timedate}),
@@ -259,15 +259,15 @@ class UserInGroupModel(Document):
 class ChatTopicModel(Document):
     group: Link[ChatModel]
     thread_id: int
-    name: Optional[str] = None
-    last_active: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str | None = None
+    last_active: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "chat_topics"
 
     @staticmethod
-    async def ensure_topic(group: "ChatModel", thread_id: int, topic_name: Optional[str]):
-        model: Optional[ChatTopicModel] = await ChatTopicModel.find_one(
+    async def ensure_topic(group: "ChatModel", thread_id: int, topic_name: str | None):
+        model: ChatTopicModel | None = await ChatTopicModel.find_one(
             ChatTopicModel.group.id == group.iid, ChatTopicModel.thread_id == thread_id
         )
 

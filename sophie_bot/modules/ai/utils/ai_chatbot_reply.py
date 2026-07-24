@@ -11,20 +11,14 @@ from sentry_sdk.ai import set_conversation_id
 from stfu_tg import BlockQuote, Doc, Section
 from stfu_tg.doc import Element
 
-from sophie_bot.metrics import track_ai_conversation
-from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
-from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
-from sophie_bot.modules.ai.utils.help_tip import (
-    build_help_mode_keyboard,
-    build_help_mode_tip,
-    should_offer_help_mode,
-)
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_chat_models import resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.metrics import track_ai_conversation
+from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_agent import (
@@ -39,6 +33,11 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
+from sophie_bot.modules.ai.utils.help_tip import (
+    build_help_mode_keyboard,
+    build_help_mode_tip,
+    should_offer_help_mode,
+)
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT

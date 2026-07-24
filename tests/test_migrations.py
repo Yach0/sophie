@@ -1,14 +1,13 @@
 """Test suite for database migrations."""
 
 import importlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 
 import pytest
 from bson import DBRef, ObjectId
 
-from sophie_bot.services.db import get_collection
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.disabling import DisablingModel
@@ -16,6 +15,7 @@ from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.db.models.warns import WarnSettingsModel
+from sophie_bot.services.db import get_collection
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _serialize_value
 
@@ -236,8 +236,8 @@ async def test_migration_module_imports() -> None:
         try:
             importlib.import_module(f"sophie_bot.db.migrations.{migration_file.stem}")
             print(f"✓ {migration_file.name}")
-        except Exception as e:
-            pytest.fail(f"Failed to import {migration_file.name}: {e}")
+        except Exception as error:  # noqa: BLE001  # any import failure should fail the test
+            pytest.fail(f"Failed to import {migration_file.name}: {error}")
 
 
 @pytest.mark.asyncio
@@ -352,7 +352,7 @@ async def _seed_legacy_user_chat(tid: int) -> ObjectId:
         first_name_or_title="Legacy",
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat.insert()
 
@@ -452,7 +452,7 @@ async def _seed_chat(chat_tid: int) -> ChatModel:
         first_name_or_title="Rollback chat",
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat.insert()
     return chat

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from aiogram.exceptions import TelegramAPIError
 
@@ -54,8 +54,8 @@ class BanUnpassedUsers:
         added_at = ws_user.added_at or ws_user.id.generation_time
         # Ensure added_at is timezone-aware
         if added_at.tzinfo is None:
-            added_at = added_at.replace(tzinfo=timezone.utc)
-        is_old_entry = datetime.now(timezone.utc) - added_at > timedelta(hours=WELCOMESECURITY_BAN_TIMEOUT_HOURS)
+            added_at = added_at.replace(tzinfo=UTC)
+        is_old_entry = datetime.now(UTC) - added_at > timedelta(hours=WELCOMESECURITY_BAN_TIMEOUT_HOURS)
         if not is_old_entry:
             log.debug("ban_unpassed_users: skipping ws_user, too young", ws_user_tid=str(ws_user.id))
             return

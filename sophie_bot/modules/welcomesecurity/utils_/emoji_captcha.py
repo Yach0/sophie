@@ -1,6 +1,7 @@
 import random
+from collections.abc import Sequence
 from io import BytesIO
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 import numpy as np
 from PIL import ImageColor
@@ -8,7 +9,6 @@ from PIL.Image import Image, fromarray, new
 from PIL.ImageDraw import Draw
 from PIL.ImageFont import FreeTypeFont, truetype
 from pydantic import BaseModel
-from typing_extensions import Sequence
 
 from sophie_bot.utils.logger import log
 
@@ -135,7 +135,7 @@ class EmojiCaptcha(Image):
         # Paste image
         self.paste(fromarray(noisy_image_array.astype(np.uint8)))
 
-    def __init__(self, data: Optional[dict[str, Any]] = None):
+    def __init__(self, data: dict[str, Any] | None = None):
         super().__init__()
 
         new_image = new("RGB", (self.width, self.height))

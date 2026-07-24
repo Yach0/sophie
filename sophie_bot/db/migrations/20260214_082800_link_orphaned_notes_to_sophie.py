@@ -28,9 +28,11 @@ Rollback:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from bson import DBRef
+from datetime import UTC, datetime
+
 from beanie import free_fall_migration
+from bson import DBRef
+
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.notes import NoteModel
 
@@ -56,7 +58,7 @@ class Forward:
                 last_name=None,
                 username="sophie_bot",
                 is_bot=True,
-                last_saw=datetime.now(timezone.utc),
+                last_saw=datetime.now(UTC),
             )
             await sophie_chat.save(session=session)
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -90,7 +90,7 @@ class TestDataFactory:
         """Create a test message."""
         return Message(
             message_id=message_id,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=from_user,
             **kwargs,
@@ -120,7 +120,7 @@ class TestDataFactory:
             my_chat_member=ChatMemberUpdated(
                 chat=chat,
                 from_user=from_user,
-                date=datetime.now(timezone.utc),
+                date=datetime.now(UTC),
                 old_chat_member=old_member,
                 new_chat_member=new_member,
             ),

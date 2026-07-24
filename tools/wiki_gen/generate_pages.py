@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url
 from stfu_tg.doc import Element
@@ -28,8 +28,8 @@ human_pages = Path("./docs/modules")
 class ModuleWikiPage:
     # TODO: Use this for /help as well
     __slots__ = (
-        "name",
         "module",
+        "name",
     )
 
     def __init__(self, name: str, module: ModuleHelp):

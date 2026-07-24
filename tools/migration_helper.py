@@ -6,7 +6,7 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Add project root to path to allow importing sophie_bot
@@ -88,7 +88,7 @@ def create_migration(name: str, path: str = "sophie_bot/db/migrations") -> None:
         return
 
     # Generate timestamped filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     filename = f"{timestamp}_{name}.py"
     filepath = migrations_path / filename
 
@@ -159,9 +159,9 @@ def validate_migration(path: str) -> None:
     try:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-    except Exception as e:
+    except Exception as error:  # noqa: BLE001  # CLI boundary: report any load failure and abort
         print("✗ Migration has syntax or import errors:")
-        print(f"  {e}")
+        print(f"  {error}")
         return
 
     # Check for required classes
@@ -217,8 +217,8 @@ async def run_migrations_up() -> None:
         from sophie_bot.services.migrations import run_migrations
 
         await run_migrations()
-    except Exception as e:
-        print(f"Error running migrations: {e}")
+    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
+        print(f"Error running migrations: {error}")
         sys.exit(1)
 
 
@@ -236,8 +236,8 @@ async def run_single_migration(migration_name: str) -> None:
         from sophie_bot.services.migrations import _run_single_migration
 
         await _run_single_migration(migration_name)
-    except Exception as e:
-        print(f"Error running migration: {e}")
+    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
+        print(f"Error running migration: {error}")
         sys.exit(1)
 
 
@@ -255,8 +255,8 @@ async def run_migration_down(migration_name: str) -> None:
         from sophie_bot.services.migrations import run_migration_backward
 
         await run_migration_backward(migration_name)
-    except Exception as e:
-        print(f"Error rolling back migration: {e}")
+    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
+        print(f"Error rolling back migration: {error}")
         sys.exit(1)
 
 
@@ -271,8 +271,8 @@ async def run_all_migrations_down() -> None:
         from sophie_bot.services.migrations import run_all_migrations_backward
 
         await run_all_migrations_backward()
-    except Exception as e:
-        print(f"Error rolling back all migrations: {e}")
+    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
+        print(f"Error rolling back all migrations: {error}")
         sys.exit(1)
 
 
@@ -283,8 +283,8 @@ async def show_migration_status() -> None:
 
         status = await get_migration_status()
         print(json.dumps(status, indent=2))
-    except Exception as e:
-        print(f"Error getting migration status: {e}")
+    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
+        print(f"Error getting migration status: {error}")
         sys.exit(1)
 
 

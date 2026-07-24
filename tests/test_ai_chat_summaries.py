@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -21,7 +21,7 @@ from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_m
 
 @pytest.mark.asyncio
 async def test_get_cached_messages_filters_out_entries_older_than_48h(monkeypatch: pytest.MonkeyPatch) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     recent_message = MessageType(
         user_id=1,
         message_id=20,
@@ -50,7 +50,7 @@ async def test_get_cached_messages_filters_out_entries_older_than_48h(monkeypatc
 
 @pytest.mark.asyncio
 async def test_get_cached_messages_returns_only_last_n_messages(monkeypatch: pytest.MonkeyPatch) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cached_messages = [
         MessageType(
             user_id=index,
@@ -77,21 +77,21 @@ def test_derive_summary_line_uses_first_message_and_unique_usernames() -> None:
         user_id=1,
         message_id=100,
         text="hello",
-        created_at=datetime(2026, 5, 3, 10, 0, tzinfo=timezone.utc),
+        created_at=datetime(2026, 5, 3, 10, 0, tzinfo=UTC),
         username="alice",
     )
     later = MessageType(
         user_id=2,
         message_id=101,
         text="reply",
-        created_at=datetime(2026, 5, 3, 10, 5, tzinfo=timezone.utc),
+        created_at=datetime(2026, 5, 3, 10, 5, tzinfo=UTC),
         username="bob",
     )
     duplicate_user = MessageType(
         user_id=1,
         message_id=102,
         text="follow-up",
-        created_at=datetime(2026, 5, 3, 10, 7, tzinfo=timezone.utc),
+        created_at=datetime(2026, 5, 3, 10, 7, tzinfo=UTC),
         username="alice",
     )
 
@@ -104,7 +104,7 @@ def test_derive_summary_line_uses_first_message_and_unique_usernames() -> None:
         emoji="🛠",
         title="Moderation discussion",
         first_message_id=100,
-        first_message_at=datetime(2026, 5, 3, 10, 0, tzinfo=timezone.utc),
+        first_message_at=datetime(2026, 5, 3, 10, 0, tzinfo=UTC),
         usernames=["alice", "bob"],
         source_excerpt="follow-up",
     )
@@ -115,7 +115,7 @@ def test_derive_summary_line_skips_low_signal_single_participant_topic() -> None
         user_id=1,
         message_id=100,
         text="single message",
-        created_at=datetime(2026, 5, 3, 10, 0, tzinfo=timezone.utc),
+        created_at=datetime(2026, 5, 3, 10, 0, tzinfo=UTC),
         username="alice",
     )
 
@@ -136,21 +136,21 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
             user_id=1,
             message_id=100,
             text="first",
-            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
             username="alice",
         ),
         MessageType(
             user_id=2,
             message_id=101,
             text="second",
-            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=UTC),
             username="bob",
         ),
         MessageType(
             user_id=1,
             message_id=102,
             text="third",
-            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=UTC),
             username="alice",
         ),
     )
@@ -181,7 +181,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
     send_summary = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
-    current_time = datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc)
+    current_time = datetime(2026, 5, 3, 12, 0, tzinfo=UTC)
 
     await GenerateChatSummaries().process_chat(chat, summary_date, now=current_time)
 
@@ -197,7 +197,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
                 emoji="💡",
                 title="Topic",
                 first_message_id=100,
-                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
                 usernames=["alice", "bob"],
                 source_excerpt="first",
             )
@@ -212,7 +212,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
                 emoji="💡",
                 title="Topic",
                 first_message_id=100,
-                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
                 usernames=["alice", "bob"],
                 source_excerpt="first",
             )
@@ -229,21 +229,21 @@ async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPat
             user_id=1,
             message_id=100,
             text="first",
-            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
             username="alice",
         ),
         MessageType(
             user_id=2,
             message_id=101,
             text="second",
-            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=UTC),
             username="bob",
         ),
         MessageType(
             user_id=1,
             message_id=102,
             text="third",
-            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=UTC),
             username="alice",
         ),
     )
@@ -273,7 +273,7 @@ async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPat
     count_metric = Mock()
     monkeypatch.setattr("sophie_bot.modules.ai.schedules.generate_chat_summaries.count_metric", count_metric)
 
-    await GenerateChatSummaries().process_chat(chat, summary_date, now=datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc))
+    await GenerateChatSummaries().process_chat(chat, summary_date, now=datetime(2026, 5, 3, 12, 0, tzinfo=UTC))
 
     assert count_metric.call_count == 6
     assert count_metric.call_args_list[0].args == ("sophie.ai.chat_summaries.generated",)
@@ -295,21 +295,21 @@ async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkey
             user_id=1,
             message_id=100,
             text="first",
-            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
             username="alice",
         ),
         MessageType(
             user_id=2,
             message_id=101,
             text="second",
-            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=UTC),
             username="bob",
         ),
         MessageType(
             user_id=1,
             message_id=102,
             text="third",
-            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=UTC),
             username="alice",
         ),
     )
@@ -339,7 +339,7 @@ async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkey
     send_summary = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
-    await GenerateChatSummaries().process_chat(chat, summary_date, now=datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc))
+    await GenerateChatSummaries().process_chat(chat, summary_date, now=datetime(2026, 5, 3, 12, 0, tzinfo=UTC))
 
     upsert_for_date.assert_awaited_once_with(chat, summary_date, "General overview", [])
     send_summary.assert_not_awaited()
@@ -356,7 +356,7 @@ async def test_process_chat_skips_when_summary_already_exists(monkeypatch: pytes
                     emoji="💡",
                     title="Topic",
                     first_message_id=100,
-                    first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                    first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
                     usernames=["alice"],
                 )
             ]
@@ -391,7 +391,7 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
         emoji="\U0001f4a1",
         title="Old Topic",
         first_message_id=50,
-        first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+        first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
         usernames=["alice"],
     )
     monkeypatch.setattr(
@@ -403,7 +403,7 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
             user_id=user_id,
             message_id=msg_id,
             text=f"message {msg_id}",
-            created_at=datetime(2026, 5, 3, 10, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 3, 10, 0, tzinfo=UTC),
             username=f"user{user_id}",
         )
         for user_id, msg_id in enumerate((100, 101, 102), start=1)
@@ -431,7 +431,7 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
     await GenerateChatSummaries().process_chat(
-        chat, summary_date, force=True, now=datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc)
+        chat, summary_date, force=True, now=datetime(2026, 5, 3, 12, 0, tzinfo=UTC)
     )
 
     upsert_for_date.assert_awaited_once()
@@ -439,12 +439,12 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
 
 
 def test_build_summary_window_returns_current_day_to_now() -> None:
-    current_time = datetime(2026, 5, 4, 23, 30, 8, tzinfo=timezone.utc)
+    current_time = datetime(2026, 5, 4, 23, 30, 8, tzinfo=UTC)
 
     window_start, window_end = _build_summary_window(current_time)
 
     assert window_end == current_time
-    assert window_start == datetime(2026, 5, 4, 0, 0, tzinfo=timezone.utc)
+    assert window_start == datetime(2026, 5, 4, 0, 0, tzinfo=UTC)
 
 
 def test_build_summary_doc_renders_lines() -> None:
@@ -458,7 +458,7 @@ def test_build_summary_doc_renders_lines() -> None:
                 emoji="💡",
                 title="Topic",
                 first_message_id=100,
-                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
                 usernames=["alice", "bob"],
                 source_excerpt="first",
             )
@@ -467,7 +467,7 @@ def test_build_summary_doc_renders_lines() -> None:
 
     html = doc.to_html()
     expected_day = format_date(date(2026, 5, 3), format="long", locale=locale)
-    expected_time = format_time(datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc), format="short", locale=locale)
+    expected_time = format_time(datetime(2026, 5, 3, 8, 0, tzinfo=UTC), format="short", locale=locale)
 
     assert f"Chat history of {expected_day}" in html
     assert "General overview" in html
@@ -489,7 +489,7 @@ def test_build_summary_doc_orders_lines_by_first_message_time() -> None:
                 emoji="🌙",
                 title="Evening topic",
                 first_message_id=200,
-                first_message_at=datetime(2026, 5, 3, 20, 0, tzinfo=timezone.utc),
+                first_message_at=datetime(2026, 5, 3, 20, 0, tzinfo=UTC),
                 usernames=["bob"],
                 source_excerpt="later",
             ),
@@ -497,7 +497,7 @@ def test_build_summary_doc_orders_lines_by_first_message_time() -> None:
                 emoji="☀️",
                 title="Morning topic",
                 first_message_id=100,
-                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
                 usernames=["alice"],
                 source_excerpt="earlier",
             ),
@@ -525,7 +525,7 @@ def test_build_summary_doc_renders_lines_with_non_default_locale(monkeypatch: py
                 emoji="💡",
                 title="Topic",
                 first_message_id=100,
-                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc),
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
                 usernames=["alice", "bob"],
                 source_excerpt="first",
             )
@@ -534,7 +534,7 @@ def test_build_summary_doc_renders_lines_with_non_default_locale(monkeypatch: py
 
     html = doc.to_html()
     expected_day = format_date(date(2026, 5, 3), format="long", locale=locale)
-    expected_time = format_time(datetime(2026, 5, 3, 8, 0, tzinfo=timezone.utc), format="short", locale=locale)
+    expected_time = format_time(datetime(2026, 5, 3, 8, 0, tzinfo=UTC), format="short", locale=locale)
 
     assert f"Chat history of {expected_day}" in html
     assert expected_time in html

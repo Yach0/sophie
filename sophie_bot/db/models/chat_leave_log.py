@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from beanie import Document
 from pydantic import Field
@@ -13,7 +13,7 @@ class ChatLeaveLogModel(Document):
     chat: Link[ChatModel]
     reason: str
     error_message: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "chat_leave_logs"

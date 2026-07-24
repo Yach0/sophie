@@ -5,7 +5,7 @@ This module tests how the middleware handles users joining groups.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -33,7 +33,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             new_chat_members=[new_member],
@@ -75,7 +75,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             new_chat_members=[new_member1, new_member2],
@@ -109,7 +109,7 @@ class TestNewChatMembers:
             first_name_or_title="ExistingUser",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await existing_user.save()
 
@@ -120,7 +120,7 @@ class TestNewChatMembers:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group.save()
 
@@ -132,7 +132,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             new_chat_members=[new_member],
@@ -167,7 +167,7 @@ class TestNewChatMembers:
             first_name_or_title="ExistingUser",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await existing_user.save()
 
@@ -177,7 +177,7 @@ class TestNewChatMembers:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group.save()
 
@@ -189,7 +189,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             new_chat_members=[new_member],
@@ -217,6 +217,7 @@ class TestNewChatMembers:
     ) -> None:
         """Test that bot being added as member is handled."""
         from aiogram.types import Chat, Message, Update, User
+
         from sophie_bot.config import CONFIG
 
         # Arrange
@@ -227,7 +228,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             new_chat_members=[bot_user],
@@ -253,6 +254,7 @@ class TestNewChatMembers:
     ) -> None:
         """Test new member added by the bot itself."""
         from aiogram.types import Chat, Message, Update, User
+
         from sophie_bot.config import CONFIG
 
         # Arrange
@@ -263,7 +265,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=bot_user,
             new_chat_members=[new_member],
@@ -299,7 +301,7 @@ class TestNewChatMembers:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             new_chat_members=[new_member],

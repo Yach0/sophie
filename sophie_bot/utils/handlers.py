@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
@@ -109,10 +109,10 @@ class SophieMessageCallbackQueryHandler(SophieBaseHandler[Message | CallbackQuer
         return msg
 
     @property
-    def callback_data(self) -> Optional[Any]:
+    def callback_data(self) -> Any | None:
         return self.data.get("callback_data")
 
-    async def answer_media(self, f: InputFile, caption: Optional[str] = None, **kwargs) -> Message | bool:
+    async def answer_media(self, f: InputFile, caption: str | None = None, **kwargs) -> Message | bool:
         if isinstance(self.event, InaccessibleMessage):
             raise SophieException(_("The message is inaccessible. Please write the command again"))
         if isinstance(self.event, CallbackQuery) and self.event.message:

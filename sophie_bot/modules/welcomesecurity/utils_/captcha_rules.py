@@ -1,8 +1,7 @@
 from aiogram.types import InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import Doc, Title
-
 from beanie import PydanticObjectId
+from stfu_tg import Doc, Title
 
 from sophie_bot.db.models import RulesModel
 from sophie_bot.modules.notes.utils.send import send_saveable

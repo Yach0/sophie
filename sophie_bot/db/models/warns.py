@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from beanie import Document, PydanticObjectId
 from pydantic import Field, field_validator
 
 from sophie_bot.constants import WARN_MAX_ACTIONS
 from sophie_bot.db.models._link_type import Link
+
 from .chat import ChatModel
 from .filters import FilterActionType
 
@@ -22,7 +23,7 @@ class WarnSettingsModel(Document):
         name = "warn_settings"
 
     @staticmethod
-    async def _find_by_chat_iid(chat_iid: PydanticObjectId) -> Optional["WarnSettingsModel"]:
+    async def _find_by_chat_iid(chat_iid: PydanticObjectId) -> WarnSettingsModel | None:
         by_link_id = await WarnSettingsModel.find_one(WarnSettingsModel.chat.id == chat_iid)
         if by_link_id:
             return by_link_id
@@ -48,7 +49,7 @@ class WarnSettingsModel(Document):
 
     @staticmethod
     def _upsert_action(
-        actions: list[FilterActionType], action_name: str, action_data: Optional[dict] = None
+        actions: list[FilterActionType], action_name: str, action_data: dict | None = None
     ) -> list[FilterActionType]:
         action = FilterActionType(name=action_name, data=action_data or {})
         new_actions = list(actions)
@@ -66,7 +67,7 @@ class WarnSettingsModel(Document):
 
     @staticmethod
     async def add_on_each_warn_action(
-        chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
+        chat_iid: PydanticObjectId, action_name: str, action_data: dict | None = None
     ) -> WarnSettingsModel:
         model = await WarnSettingsModel.get_or_create(chat_iid)
         model.on_each_warn_actions = WarnSettingsModel._upsert_action(
@@ -84,7 +85,7 @@ class WarnSettingsModel(Document):
 
     @staticmethod
     async def add_on_max_warn_action(
-        chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
+        chat_iid: PydanticObjectId, action_name: str, action_data: dict | None = None
     ) -> WarnSettingsModel:
         model = await WarnSettingsModel.get_or_create(chat_iid)
         model.on_max_warn_actions = WarnSettingsModel._upsert_action(
@@ -104,9 +105,9 @@ class WarnSettingsModel(Document):
 class WarnModel(Document):
     chat: Link[ChatModel]
     user: Link[ChatModel]
-    admin: Optional[Link[ChatModel]] = None
-    reason: Optional[str] = None
-    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    admin: Link[ChatModel] | None = None
+    reason: str | None = None
+    date: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @field_validator("admin", mode="before")
     @classmethod

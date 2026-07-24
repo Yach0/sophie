@@ -16,14 +16,14 @@ from stfu_tg import (
     Title,
 )
 
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_translations_model, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_progress import (
     ai_progress_line,

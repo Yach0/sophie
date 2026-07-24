@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram import Router
 from aiogram.types import InlineKeyboardButton
@@ -31,7 +31,7 @@ class ActionsListHandler(SophieMessageCallbackQueryHandler):
         )
 
     async def handle(self) -> Any:
-        callback_data: Optional[NewFilterActionCallback] = self.callback_data
+        callback_data: NewFilterActionCallback | None = self.callback_data
         try:
             filter_item = await FilterInSetupType.get_filter(self.state, data=self.data)
         except ValueError:

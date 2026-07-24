@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 HOOK_TEMPLATE = """#!/bin/bash
 #
 # Git hook to sync dependencies when checking out a worktree

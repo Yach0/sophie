@@ -7,7 +7,6 @@ from bson import DBRef, ObjectId
 
 from sophie_bot.db.models.notes import NoteModel
 
-
 # Above 2^31-1, so MongoDB stores it as a BSON `long` rather than an `int`. This is the value from
 # the real Sentry event, and the reason the 20260214 `$type: "int"` cleanup never matched it.
 LEGACY_INT64_TID = 5126697778

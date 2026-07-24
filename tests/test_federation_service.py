@@ -455,7 +455,6 @@ async def test_get_federation_with_user_multiple_federations_raises() -> None:
             FederationManageService,
             "get_federations_by_creator",
             new=AsyncMock(return_value=[MagicMock(), MagicMock()]),
-        ),
+        ),pytest.raises(FederationContextError, match="multiple federations")
     ):
-        with pytest.raises(FederationContextError, match="multiple federations"):
-            await FederationManageService.get_federation(fed_id_arg=None, connection=None, user_id=user_id)
+        await FederationManageService.get_federation(fed_id_arg=None, connection=None, user_id=user_id)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from pydantic_ai import ModelRetry, RunContext, Tool
 
 from sophie_bot.metrics import track_ai_tool

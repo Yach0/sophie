@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.enums import ChatMemberStatus
@@ -77,7 +77,7 @@ class PromoteUserHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        admin_title: Optional[str] = self.data.get("admin_title")
+        admin_title: str | None = self.data.get("admin_title")
 
         if not self.event.from_user:
             raise SophieException("No from_user")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -37,8 +37,8 @@ class TestDbTimeConvert:
         assert result == timedelta(minutes=30)
 
     def test_db_time_convert_invalid(self) -> None:
-        """Invalid input (non-str, non-timedelta) raises ValueError."""
-        with pytest.raises(ValueError, match="Cannot convert"):
+        """Invalid input (non-str, non-timedelta) raises TypeError."""
+        with pytest.raises(TypeError, match="Cannot convert"):
             convert_timedelta_or_str(12345)  # type: ignore[arg-type]
 
     def test_db_time_convert_unknown_suffix_returns_zero(self) -> None:
@@ -126,7 +126,7 @@ async def test_ws_user_model_basic_creation(db_init: Any) -> None:
         first_name_or_title="TestUser",
         username="testuser",
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await user_chat.insert()
 
@@ -136,7 +136,7 @@ async def test_ws_user_model_basic_creation(db_init: Any) -> None:
         first_name_or_title="Test Group",
         username="testgroup",
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await group_chat.insert()
 
@@ -257,7 +257,7 @@ async def _saved_chat(tid: int, chat_type: str, title: str) -> Any:
         first_name_or_title=title,
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat.insert()
     # Re-read so tid/iid match what SaveChatsMiddleware puts in the context

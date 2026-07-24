@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -158,5 +158,5 @@ class CommunityBanHandler(SophieMessageHandler):
             original_message_text=original_message_text,
             silent=silent,
             ban_id=ban.id,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         ).insert()

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import time
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Literal
+from typing import Literal
 
 from pydantic_ai.messages import ModelRequest, ModelResponse, RetryPromptPart, ToolCallPart
 from pydantic_ai.models import Model
@@ -63,7 +64,7 @@ def get_model_name(model: Model) -> str:
 
 
 @asynccontextmanager
-async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenerator[None, None]:
+async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenerator[None]:
     """Context manager for tracking AI API requests"""
     if not CONFIG.metrics_enable:
         yield
@@ -232,7 +233,7 @@ def track_ai_proactive_action(action: ProactiveAIAction, attributes: MetricAttri
 
 
 @asynccontextmanager
-async def track_ai_tool(tool_name: str) -> AsyncGenerator[None, None]:
+async def track_ai_tool(tool_name: str) -> AsyncGenerator[None]:
     """Context manager for tracking AI tool calls"""
     if not CONFIG.metrics_enable:
         yield
@@ -262,7 +263,7 @@ def track_ai_quota_exceeded(*, feature: str, chat_type: str = "unknown") -> None
 
 
 @asynccontextmanager
-async def track_ai_conversation() -> AsyncGenerator[None, None]:
+async def track_ai_conversation() -> AsyncGenerator[None]:
     """Context manager for tracking active AI conversations."""
     if not CONFIG.metrics_enable:
         yield

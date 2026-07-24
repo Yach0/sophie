@@ -7,7 +7,7 @@ GreetingsModel state — the product behaviour the command-level greetings tests
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from aiogram.types import User
@@ -230,7 +230,7 @@ async def test_stale_join_skips_captcha_mute(test_client: TestClient) -> None:
     greetings = await _greetings(group.id)
     await greetings.set_status_welcomesecurity(True)
 
-    old_date = datetime.now(timezone.utc) - timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES + 5)
+    old_date = datetime.now(UTC) - timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES + 5)
     newbie = User(id=next_user_id(), is_bot=False, first_name="LateNewbie")
     requests = await join_group(test_client, group, newbie, date=old_date)
 

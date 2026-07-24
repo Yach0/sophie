@@ -1,6 +1,7 @@
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import Chat, TelegramObject
@@ -42,7 +43,7 @@ class ConnectionsMiddleware(BaseMiddleware):
                     last_name=chat.last_name,
                     username=chat.username,
                     is_bot=False,
-                    last_saw=datetime.now(timezone.utc),
+                    last_saw=datetime.now(UTC),
                 )
             else:
                 db_model = ChatModel(
@@ -50,14 +51,14 @@ class ConnectionsMiddleware(BaseMiddleware):
                     type=ChatType[chat.type],
                     first_name_or_title=chat.title or "Group",
                     is_bot=False,
-                    last_saw=datetime.now(timezone.utc),
+                    last_saw=datetime.now(UTC),
                     username=chat.username,
                 )
 
         return ChatConnection(is_connected=False, tid=chat.id, type=ChatType[chat.type], title=title, db_model=db_model)
 
     @staticmethod
-    async def get_chat_from_db(chat_id: int, is_connected: bool) -> Optional[ChatConnection]:
+    async def get_chat_from_db(chat_id: int, is_connected: bool) -> ChatConnection | None:
         chat = await ChatModel.get_by_tid(chat_id)
 
         if not chat:
@@ -92,9 +93,9 @@ class ConnectionsMiddleware(BaseMiddleware):
         if connection.expires_at:
             expires_at = connection.expires_at
             if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
+                expires_at = expires_at.replace(tzinfo=UTC)
 
-            if expires_at < datetime.now(timezone.utc):
+            if expires_at < datetime.now(UTC):
                 log.debug("ConnectionsMiddleware: Connection expired!")
                 connection.chat = None
                 connection.expires_at = None
@@ -168,9 +169,7 @@ class ConnectionsMiddleware(BaseMiddleware):
         if await is_user_admin(chat_iid, user_iid):
             return True
         settings = await ChatConnectionSettingsModel.get_by_chat_iid(chat_iid)
-        if settings and not settings.allow_users_connect:
-            return False
-        return True
+        return not (settings and not settings.allow_users_connect)
 
     @staticmethod
     def _permission_cache_key(user_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> str:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -19,7 +19,7 @@ from sophie_bot.services.redis import aredis
 async def test_match_ai_handler_skips_users_older_than_threshold() -> None:
     message = AsyncMock(spec=Message)
     user_in_group = SimpleNamespace(
-        first_saw=datetime.now(timezone.utc) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS + 1)
+        first_saw=datetime.now(UTC) - timedelta(hours=AI_FILTER_NEW_USER_MAX_AGE_HOURS + 1)
     )
 
     with (
@@ -73,7 +73,7 @@ async def test_match_ai_handler_skips_after_new_user_message_limit() -> None:
     message.chat = SimpleNamespace(id=-100123)
     message.from_user = SimpleNamespace(id=123)
     user_in_group = SimpleNamespace(
-        first_saw=datetime.now(timezone.utc),
+        first_saw=datetime.now(UTC),
         ai_filter_seen_messages=10,
         save=AsyncMock(),
     )

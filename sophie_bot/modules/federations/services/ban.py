@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
-from typing import List, Optional, TypeVar
+from datetime import UTC, datetime
+from typing import TypeVar
 
 from beanie import PydanticObjectId
 from beanie.odm.fields import Link as BeanieLink
@@ -11,9 +11,9 @@ from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
-from sophie_bot.metrics.federation import track_federation_ban
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
+from sophie_bot.metrics.federation import track_federation_ban
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.manage import FederationManageService
@@ -32,7 +32,7 @@ class FederationBanService:
         federation: Federation,
         user_tid: int,
         by_user_iid: PydanticObjectId,
-        reason: Optional[str] = None,
+        reason: str | None = None,
         original_message_text: str | None = None,
     ) -> FederationBan:
         existing_ban = await FederationBan.find_one(
@@ -53,7 +53,7 @@ class FederationBanService:
         ban = FederationBan(
             fed_id=federation.fed_id,
             user_id=user_tid,
-            time=datetime.now(timezone.utc),
+            time=datetime.now(UTC),
             by=by_user_iid,
             reason=reason,
             original_message_text=original_message_text,
@@ -71,7 +71,7 @@ class FederationBanService:
         origin_federation: Federation,
         user_tid: int,
         by_user_iid: PydanticObjectId,
-        reason: Optional[str] = None,
+        reason: str | None = None,
         original_message_text: str | None = None,
     ) -> list[tuple[Federation, FederationBan]]:
         """Ban a user in federations that subscribe to the origin federation.
@@ -122,7 +122,7 @@ class FederationBanService:
                 ban = FederationBan(
                     fed_id=sub_fed.fed_id,
                     user_id=user_tid,
-                    time=datetime.now(timezone.utc),
+                    time=datetime.now(UTC),
                     by=by_user_iid,
                     reason=reason,
                     original_message_text=original_message_text,
@@ -181,7 +181,7 @@ class FederationBanService:
         return len(banned_chat_iids)
 
     @staticmethod
-    async def unban_user(fed_id: str, user_tid: int) -> tuple[bool, Optional[FederationBan]]:
+    async def unban_user(fed_id: str, user_tid: int) -> tuple[bool, FederationBan | None]:
         result = await FederationBan.find_one(FederationBan.fed_id == fed_id, FederationBan.user_id == user_tid)
         if not result:
             return False, None
@@ -266,11 +266,11 @@ class FederationBanService:
         fed_id: str,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[FederationBan]:
+    ) -> list[FederationBan]:
         return await FederationBan.find(FederationBan.fed_id == fed_id).skip(offset).limit(limit).to_list()
 
     @staticmethod
-    async def is_user_banned(fed_id: str, user_tid: int) -> Optional[FederationBan]:
+    async def is_user_banned(fed_id: str, user_tid: int) -> FederationBan | None:
         return await FederationBan.find_one(FederationBan.fed_id == fed_id, FederationBan.user_id == user_tid)
 
     @staticmethod
@@ -301,13 +301,13 @@ class FederationBanService:
                 "$set": {
                     "status": TaskStatus.FAILED,
                     "error_message": "Ban list changed during export",
-                    "completed_at": datetime.now(timezone.utc),
+                    "completed_at": datetime.now(UTC),
                 }
             }
         )
 
     @staticmethod
-    async def is_user_banned_in_chain(fed_id: str, user_tid: int) -> Optional[tuple[FederationBan, Federation]]:
+    async def is_user_banned_in_chain(fed_id: str, user_tid: int) -> tuple[FederationBan, Federation] | None:
         cached_status = await FederationCacheService.get_user_ban_status(fed_id, user_tid)
         if cached_status is False:
             return None

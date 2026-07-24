@@ -1,5 +1,3 @@
-from typing import Optional
-
 from beanie import init_beanie
 from pymongo import AsyncMongoClient
 
@@ -20,7 +18,7 @@ def get_collection(name: str):
     return async_mongo[CONFIG.mongo_db][name]
 
 
-async def init_db(skip_indexes: Optional[bool] = None):
+async def init_db(skip_indexes: bool | None = None):
     """Initialize Beanie and register migration tracking."""
     if skip_indexes is None:
         skip_indexes = CONFIG.mongo_skip_indexes

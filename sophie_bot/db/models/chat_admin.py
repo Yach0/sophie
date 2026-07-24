@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiogram.types import ResultChatMemberUnion
 from beanie import Document
@@ -16,13 +16,13 @@ class ChatAdminModel(Document):
     user: Link[ChatModel]
 
     member: ResultChatMemberUnion
-    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @field_validator("last_updated", mode="after")
     @classmethod
     def _normalize_last_updated(cls, value: datetime) -> datetime:
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
+            return value.replace(tzinfo=UTC)
         return value
 
     class Settings:
@@ -38,6 +38,6 @@ class ChatAdminModel(Document):
             admin = ChatAdminModel(chat=chat_iid, user=user_iid, member=member)
         else:
             admin.member = member
-            admin.last_updated = datetime.now(timezone.utc)
+            admin.last_updated = datetime.now(UTC)
         await admin.save()
         return admin

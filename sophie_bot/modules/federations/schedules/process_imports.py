@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import csv
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 from typing import Final, TypedDict
 
@@ -12,9 +12,9 @@ from stfu_tg import Doc, KeyValue, Title
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.metrics.federation import track_federation_import_completed
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
+from sophie_bot.metrics.federation import track_federation_import_completed
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.services.bot import bot
@@ -298,16 +298,16 @@ class ProcessFederationImports:
     def _parse_ban_time(time_str: str) -> datetime:
         """Parse ban time from CSV row."""
         if not time_str:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
         try:
             timestamp = float(time_str)
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except (ValueError, OSError):
             pass
 
         try:
-            return datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+            return datetime.fromisoformat(time_str)
         except ValueError:
             raise BanValidationError(f"Invalid time format: {time_str}")
 
@@ -351,8 +351,8 @@ class ProcessFederationImports:
             task.failed_count = failed_count
 
         if status == TaskStatus.PROCESSING:
-            task.started_at = datetime.now(timezone.utc)
+            task.started_at = datetime.now(UTC)
         elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = datetime.now(UTC)
 
         await task.save()

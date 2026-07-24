@@ -6,6 +6,7 @@ from aiogram.utils.i18n import ConstI18nMiddleware
 from ass_tg.middleware import ArgsMiddleware
 
 from sophie_bot.config import CONFIG
+from sophie_bot.middlewares.admincache import AdmincacheMiddleware
 from sophie_bot.middlewares.beta import BetaMiddleware
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.middlewares.disabling import DisablingMiddleware
@@ -18,7 +19,6 @@ from sophie_bot.middlewares.media_group import (
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 from sophie_bot.middlewares.sentry_tracing import SentryTracingMiddleware
-from sophie_bot.middlewares.admincache import AdmincacheMiddleware
 from sophie_bot.middlewares.spam_detection import SpamDetectionMiddleware
 from sophie_bot.services.bot import get_bot_runtime, redis
 from sophie_bot.services.i18n import i18n

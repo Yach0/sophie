@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from beanie import Document, Indexed, PydanticObjectId
 from pydantic import BaseModel, Field
@@ -28,7 +28,7 @@ class AIChatSummaryModel(Document):
 
     class Settings:
         name = "ai_chat_summaries"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel(
                 [
                     ("chat.$id", ASCENDING),

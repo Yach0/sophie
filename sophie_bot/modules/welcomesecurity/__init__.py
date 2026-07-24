@@ -36,7 +36,6 @@ from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanU
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 router = Router(name="welcomesecurity")
 
 

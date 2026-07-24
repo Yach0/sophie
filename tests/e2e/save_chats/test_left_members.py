@@ -6,7 +6,7 @@ including the bot itself leaving.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -34,7 +34,7 @@ class TestLeftChatMember:
             first_name_or_title="LeavingUser",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await user_model.save()
 
@@ -44,7 +44,7 @@ class TestLeftChatMember:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group_model.save()
 
@@ -56,7 +56,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             left_chat_member=left_user,
@@ -94,7 +94,7 @@ class TestLeftChatMember:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group_model.save()
 
@@ -105,7 +105,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             left_chat_member=bot_user,
@@ -139,7 +139,7 @@ class TestLeftChatMember:
             first_name_or_title="NeverJoined",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await user_model.save()
 
@@ -149,7 +149,7 @@ class TestLeftChatMember:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group_model.save()
 
@@ -161,7 +161,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             left_chat_member=left_user,
@@ -194,7 +194,7 @@ class TestLeftChatMember:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group_model.save()
 
@@ -205,7 +205,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             left_chat_member=left_user,
@@ -239,7 +239,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             left_chat_member=left_user,
@@ -272,7 +272,7 @@ class TestLeftChatMember:
             first_name_or_title="KickedUser",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await user_model.save()
 
@@ -282,7 +282,7 @@ class TestLeftChatMember:
             first_name_or_title="Test Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group_model.save()
 
@@ -294,7 +294,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=bot_user,
             left_chat_member=kicked_user,
@@ -327,7 +327,7 @@ class TestLeftChatMember:
             first_name_or_title="LeavingUser",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await user_model.save()
 
@@ -338,7 +338,7 @@ class TestLeftChatMember:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=admin_user,
             left_chat_member=left_user,

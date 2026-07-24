@@ -41,7 +41,7 @@ class ActionsListToRemoveHandler(SophieCallbackQueryHandler):
         )
 
         buttons = InlineKeyboardBuilder()
-        for filter_action in filter_item.actions.keys():
+        for filter_action in filter_item.actions:
             action_title = get_modern_action_text(ALL_MODERN_ACTIONS[filter_action])
 
             buttons.row(

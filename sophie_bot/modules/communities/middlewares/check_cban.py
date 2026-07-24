@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
@@ -18,7 +19,7 @@ from sophie_bot.utils.logger import log
 class CommunityBanMiddleware(BaseMiddleware):
     """Enforce community bans on users who post in a community chat after being banned."""
 
-    async def is_cbanned(self, message: Message, data: Dict[str, Any]) -> bool:
+    async def is_cbanned(self, message: Message, data: dict[str, Any]) -> bool:
         if message.sender_chat:
             return False
         if message.chat.type not in {"group", "supergroup"}:
@@ -52,7 +53,7 @@ class CommunityBanMiddleware(BaseMiddleware):
         if not ban:
             return False
 
-        log.debug("Enforcing cban on {} in {}".format(user_id, chat_id))
+        log.debug(f"Enforcing cban on {user_id} in {chat_id}")
 
         if not await ban_user(chat_id, user_id):
             return True
@@ -75,9 +76,9 @@ class CommunityBanMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         if isinstance(event, Message) and await self.is_cbanned(event, data):
             return None

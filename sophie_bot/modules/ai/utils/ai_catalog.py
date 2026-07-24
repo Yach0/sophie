@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping, TypeVar
 
 from beanie import Document
 from beanie.exceptions import CollectionWasNotInitialized
@@ -142,10 +142,9 @@ async def bump_version() -> None:
     await aredis.incr(_VERSION_KEY)  # ty: ignore[invalid-await]
 
 
-DocumentT = TypeVar("DocumentT", bound=Document)
-
-
-async def load_documents(document_type: type[DocumentT], query: dict | None = None) -> list[DocumentT]:
+async def load_documents[DocumentT: Document](
+    document_type: type[DocumentT], query: dict | None = None
+) -> list[DocumentT]:
     """Parse rows one by one, dropping any the current code cannot read.
 
     The catalog is edited at runtime and outlives the code that wrote it, so a row left behind by

@@ -22,7 +22,6 @@ from sophie_bot.modules.restrictions.handlers import (
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 router = Router(name="restrictions")
 
 

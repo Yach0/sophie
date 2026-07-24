@@ -7,7 +7,7 @@ out of the scheduler either edits the reply with a result or reports the failure
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -63,7 +63,7 @@ async def _make_ban_task(
     federation = Federation(fed_name="OrangeFoxFed", fed_id="fed-1", creator=banner.iid, chats=[chat])
     await federation.insert()
 
-    ban = FederationBan(fed_id="fed-1", user_id=TARGET_TID, time=datetime.now(timezone.utc), by=banner.iid)
+    ban = FederationBan(fed_id="fed-1", user_id=TARGET_TID, time=datetime.now(UTC), by=banner.iid)
     await ban.insert()
 
     ban_in_chats = (
@@ -98,7 +98,7 @@ async def _make_ban_task(
         reply_message_id=REPLY_MESSAGE_ID,
         reason="cryptoscam",
         ban_id=ban.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     await task.insert()
     return task, edit_message
@@ -214,7 +214,7 @@ async def test_orphan_with_no_started_at_is_still_reaped(db_init: Any, monkeypat
     task, edit_message = await _make_ban_task(monkeypatch)
     task.status = TaskStatus.PROCESSING
     task.started_at = None
-    task.created_at = datetime.now(timezone.utc) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES + 1)
+    task.created_at = datetime.now(UTC) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES + 1)
     await task.save()
 
     await CleanupOldTasks().handle()
@@ -261,7 +261,7 @@ async def test_orphaned_processing_task_is_failed_and_reported(db_init: Any, mon
     """A task stranded in PROCESSING by a restarted scheduler must not hang forever."""
     task, edit_message = await _make_ban_task(monkeypatch)
     task.status = TaskStatus.PROCESSING
-    task.started_at = datetime.now(timezone.utc) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES + 1)
+    task.started_at = datetime.now(UTC) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES + 1)
     await task.save()
 
     await CleanupOldTasks().handle()
@@ -280,7 +280,7 @@ async def test_recently_started_processing_task_is_left_alone(db_init: Any, monk
     """A task that is merely slow must never be mistaken for an orphan."""
     task, edit_message = await _make_ban_task(monkeypatch)
     task.status = TaskStatus.PROCESSING
-    task.started_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    task.started_at = datetime.now(UTC) - timedelta(minutes=1)
     await task.save()
 
     await CleanupOldTasks().handle()
@@ -297,7 +297,7 @@ async def test_cleanup_expires_completed_but_keeps_failed_forever(
 ) -> None:
     """FAILED tasks are the record of work still needing a re-do, so they have no TTL."""
     task, _edit_message = await _make_ban_task(monkeypatch)
-    long_ago = datetime.now(timezone.utc) - timedelta(days=FEDERATION_EXPORT_TTL_DAYS + 1)
+    long_ago = datetime.now(UTC) - timedelta(days=FEDERATION_EXPORT_TTL_DAYS + 1)
 
     task.status = TaskStatus.COMPLETED
     task.completed_at = long_ago

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject, Update
 from ussr import predict_message
+
 from sophie_bot.db.models.spam_match import SpamMatchModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled
@@ -43,7 +45,7 @@ class SpamDetectionMiddleware(BaseMiddleware):
         try:
             if await is_user_admin(chat_db.iid, user_id):
                 return
-        except Exception:
+        except Exception:  # noqa: BLE001  # boundary: on admin-check failure skip spam scan, don't block message
             return
 
         text = message.text or message.caption
@@ -75,5 +77,5 @@ class SpamDetectionMiddleware(BaseMiddleware):
                     )
                     await match.insert()
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001  # boundary: spam detection is best-effort, never blocks delivery
             log.warning("Spam detection failed", error=str(exc))

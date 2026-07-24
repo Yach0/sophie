@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -17,7 +17,7 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
     event = SimpleNamespace(
         chat=SimpleNamespace(id=-100123),
         from_user=SimpleNamespace(id=123456),
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         approve=AsyncMock(),
     )
     connection = SimpleNamespace(db_model=SimpleNamespace(iid="connection_chat_iid"))

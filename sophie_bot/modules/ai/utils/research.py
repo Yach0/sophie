@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 from random import choice
-from typing import Final, Literal, TypeVar
+from typing import Final, Literal
 
 from aiogram.types import BufferedInputFile
 from babel.dates import format_date
@@ -31,6 +31,7 @@ from stfu_tg import (
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, search_kagi
 from sophie_bot.modules.ai.json_schemas.research import (
@@ -40,9 +41,8 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSearchQuery,
     ResearchSource,
 )
-from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
@@ -58,7 +58,6 @@ _RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
-ResearchStepT = TypeVar("ResearchStepT", bound=BaseModel)
 
 _RESEARCH_PROGRESS_SUFFIXES: Final[dict[ResearchProgressStage, str]] = {
     "planning": "🧑‍🔬",
@@ -179,7 +178,7 @@ def _queries_payload(queries: list[ResearchSearchQuery]) -> str:
     return json.dumps([query.model_dump() for query in queries], ensure_ascii=False, indent=2)
 
 
-async def run_research_structured_step(
+async def run_research_structured_step[ResearchStepT: BaseModel](
     history: AIMessageHistory,
     output_type: type[ResearchStepT],
     connection: ChatConnection,
@@ -208,12 +207,10 @@ async def _generate_initial_queries(
     settings: ResearchWorkflowSettings,
 ) -> ResearchQueryPlan:
     history = _build_history(
-        "\n".join(
-            (
-                "You plan web research for Sophie, a Telegram bot.",
-                "Generate precise, diverse search queries that help answer the user's request.",
-                "Do not answer the request yet. Return only the structured query plan.",
-            )
+        (
+            "You plan web research for Sophie, a Telegram bot.\n"
+            "Generate precise, diverse search queries that help answer the user's request.\n"
+            "Do not answer the request yet. Return only the structured query plan."
         ),
         "\n".join(
             (
@@ -244,13 +241,11 @@ async def _decide_next_step(
     settings: ResearchWorkflowSettings,
 ) -> ResearchDecision:
     history = _build_history(
-        "\n".join(
-            (
-                "You review web search results for a multistage research workflow.",
-                "Choose action='search' only when follow-up searches are needed because evidence is missing, weak, outdated, or contradictory.",
-                "Choose action='continue' when there is enough evidence to summarize.",
-                "When action='search', return focused follow-up queries and do not exceed the requested limit.",
-            )
+        (
+            "You review web search results for a multistage research workflow.\n"
+            "Choose action='search' only when follow-up searches are needed because evidence is missing, weak, outdated, or contradictory.\n"
+            "Choose action='continue' when there is enough evidence to summarize.\n"
+            "When action='search', return focused follow-up queries and do not exceed the requested limit."
         ),
         "\n".join(
             (
@@ -288,13 +283,11 @@ async def _summarize_research(
     settings: ResearchWorkflowSettings,
 ) -> AIAgentResult[ResearchFinalResponse]:
     history = _build_history(
-        "\n".join(
-            (
-                "You summarize multistage web research for Sophie, a Telegram bot.",
-                "Use only the provided search results as evidence.",
-                "Mention uncertainty when evidence is weak or sources disagree.",
-                "Return a concise final answer, a short research_title, and a sources list containing only sources used to support the answer.",
-            )
+        (
+            "You summarize multistage web research for Sophie, a Telegram bot.\n"
+            "Use only the provided search results as evidence.\n"
+            "Mention uncertainty when evidence is weak or sources disagree.\n"
+            "Return a concise final answer, a short research_title, and a sources list containing only sources used to support the answer."
         ),
         "\n".join(
             (
@@ -413,7 +406,7 @@ def _parse_source_date(value: str | None) -> date | None:
         return None
 
     try:
-        return datetime.fromisoformat(normalized_value.replace("Z", "+00:00")).date()
+        return datetime.fromisoformat(normalized_value).date()
     except ValueError:
         pass
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections import Counter
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, cast
 from urllib.parse import urlsplit, urlunsplit
 
@@ -31,13 +31,13 @@ _SOPHIE_KEY_PREFIX = "sophie:*"
 _SECTION_CHUNK_LIMIT = 3000
 
 
-def _decode_redis_value(value: bytes | str | int | float) -> str:
+def _decode_redis_value(value: bytes | str | float) -> str:
     if isinstance(value, bytes):
         return value.decode(errors="replace")
     return str(value)
 
 
-def _format_timestamp(timestamp: float | int | str | None) -> str:
+def _format_timestamp(timestamp: float | str | None) -> str:
     if timestamp is None:
         return str(l_("unknown"))
 
@@ -46,13 +46,13 @@ def _format_timestamp(timestamp: float | int | str | None) -> str:
     except ValueError:
         return str(timestamp)
 
-    return datetime.fromtimestamp(timestamp_value, tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(timestamp_value, tz=UTC).isoformat()
 
 
 def _format_cached_message_timestamp(created_at: datetime | None) -> str:
     if created_at is None:
         return str(l_("unknown"))
-    return created_at.astimezone(timezone.utc).isoformat()
+    return created_at.astimezone(UTC).isoformat()
 
 
 def _truncate_text(text: str) -> str:
@@ -324,7 +324,7 @@ async def _collect_redis_health() -> tuple[Section, dict[str, Any]]:
 
 
 def _collect_system_context() -> tuple[Section, dict[str, Any]]:
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     unix_time = int(time.time())
     context_data: dict[str, Any] = {
         "version": SOPHIE_VERSION,
@@ -422,6 +422,7 @@ class OpDebugHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:
         from aiogram.enums import ChatType
+
         from sophie_bot.filters.chat_status import ChatTypeFilter
 
         return (CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(ChatType.PRIVATE))

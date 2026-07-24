@@ -1,9 +1,9 @@
 from aiogram.fsm.state import State, StatesGroup
+from stfu_tg import Template
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from stfu_tg import Template
 
 
 class AiPMFSM(StatesGroup):

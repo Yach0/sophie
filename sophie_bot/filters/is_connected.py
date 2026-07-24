@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatType
@@ -17,8 +17,8 @@ class IsConnectedFilter(Filter):
         super().__init__()
 
     async def __call__(
-        self, message: Message, *args: Any, connection: Optional[ChatConnection] = None, **kwargs: Any
-    ) -> Union[bool, Dict[str, Any]]:
+        self, message: Message, *args: Any, connection: ChatConnection | None = None, **kwargs: Any
+    ) -> bool | dict[str, Any]:
         return bool(connection and connection.is_connected and message.from_user)
 
 
@@ -30,7 +30,7 @@ class GroupOrConnectedFilter(Filter):
 
     """Filters cases when it's a group or connected to a group in PM."""
 
-    async def __call__(self, message: Message, *args: Any, **kwargs: Any) -> Union[bool, Dict[str, Any]]:
+    async def __call__(self, message: Message, *args: Any, **kwargs: Any) -> bool | dict[str, Any]:
         if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP)(message, *args, **kwargs):
             return True
 

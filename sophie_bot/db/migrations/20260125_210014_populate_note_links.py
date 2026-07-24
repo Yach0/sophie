@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from beanie import free_fall_migration
 from bson import DBRef
+
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.utils.logger import log

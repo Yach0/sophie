@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class MuteActionDataModel(BaseModel):
-    mute_duration: Optional[timedelta]
+    mute_duration: timedelta | None
 
 
 class MuteModernAction(BaseRestrictionModernAction[MuteActionDataModel]):
@@ -32,9 +32,9 @@ class MuteModernAction(BaseRestrictionModernAction[MuteActionDataModel]):
     settings_title = l_("Change mute duration")
 
     @staticmethod
-    def get_duration(data: MuteActionDataModel) -> Optional[timedelta]:
+    def get_duration(data: MuteActionDataModel) -> timedelta | None:
         return data.mute_duration
 
     @staticmethod
-    def restriction_func(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> Any:
+    def restriction_func(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> Any:
         return mute_user(chat_tid, user_tid, until_date=until_date)

@@ -15,7 +15,7 @@ async def delete_warn(
 ) -> dict:
     try:
         warn_obj_id = PydanticObjectId(warn_iid)
-    except Exception:
+    except Exception:  # noqa: BLE001  # any parse failure is an invalid id -> 400
         raise HTTPException(status_code=400, detail="Invalid warn_iid")
 
     warn = await WarnModel.find_one(WarnModel.id == warn_obj_id, WarnModel.chat.id == chat.iid)

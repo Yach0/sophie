@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import sentry_sdk
@@ -48,7 +48,7 @@ def is_candidate(message: MessageType) -> bool:
 
 
 async def get_recent_candidates(chat_tid: int, settings: ProactiveReplySettings) -> tuple[MessageType, ...]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     messages = await get_cached_messages(chat_tid, now=now)
     min_created_at = now - timedelta(seconds=settings.window_seconds)
     candidates = tuple(
@@ -70,7 +70,7 @@ async def get_recent_candidates(chat_tid: int, settings: ProactiveReplySettings)
 
 async def track_eligible_message(chat_tid: int, message: Message, settings: ProactiveReplySettings) -> int:
     key = eligible_key(chat_tid)
-    cutoff_score = (datetime.now(timezone.utc) - timedelta(seconds=settings.window_seconds)).timestamp()
+    cutoff_score = (datetime.now(UTC) - timedelta(seconds=settings.window_seconds)).timestamp()
     async with aredis.pipeline(transaction=True) as pipe:
         await pipe.zadd(key, {str(message.message_id): message.date.timestamp()})  # type: ignore[misc]
         await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]

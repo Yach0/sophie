@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
@@ -61,7 +61,7 @@ def test_create_access_token_with_delta(mock_config):
     assert decoded["sub"] == "user_123"
 
     # Check expiration is roughly 1 hour from now
-    expected_exp = int((datetime.now(timezone.utc) + expires_delta).timestamp())
+    expected_exp = int((datetime.now(UTC) + expires_delta).timestamp())
     assert abs(decoded["exp"] - expected_exp) < 5
 
 
@@ -168,7 +168,7 @@ def test_verify_telegram_login_widget_with_none_values(mock_config):
 async def test_get_current_user_success(mock_config):
     user_id = "507f1f77bcf86cd799439011"
     token = jwt.encode(
-        {"sub": user_id, "exp": datetime.now(timezone.utc) + timedelta(minutes=15)}, mock_config.api_jwt_secret
+        {"sub": user_id, "exp": datetime.now(UTC) + timedelta(minutes=15)}, mock_config.api_jwt_secret
     )
     auth_creds = MagicMock()
     auth_creds.credentials = token
@@ -186,7 +186,7 @@ async def test_get_current_user_success(mock_config):
 async def test_get_current_user_expired(mock_config):
     user_id = "507f1f77bcf86cd799439011"
     token = jwt.encode(
-        {"sub": user_id, "exp": datetime.now(timezone.utc) - timedelta(minutes=15)}, mock_config.api_jwt_secret
+        {"sub": user_id, "exp": datetime.now(UTC) - timedelta(minutes=15)}, mock_config.api_jwt_secret
     )
     auth_creds = MagicMock()
     auth_creds.credentials = token
@@ -290,7 +290,7 @@ async def test_rest_require_admin_owner_bypasses_permission_check(mock_config):
 async def test_get_current_user_not_found(mock_config):
     user_id = "507f1f77bcf86cd799439011"
     token = jwt.encode(
-        {"sub": user_id, "exp": datetime.now(timezone.utc) + timedelta(minutes=15)}, mock_config.api_jwt_secret
+        {"sub": user_id, "exp": datetime.now(UTC) + timedelta(minutes=15)}, mock_config.api_jwt_secret
     )
     auth_creds = MagicMock()
     auth_creds.credentials = token
@@ -305,7 +305,7 @@ async def test_get_current_user_not_found(mock_config):
 
 @pytest.mark.asyncio
 async def test_get_current_user_no_sub(mock_config):
-    token = jwt.encode({"exp": datetime.now(timezone.utc) + timedelta(minutes=15)}, mock_config.api_jwt_secret)
+    token = jwt.encode({"exp": datetime.now(UTC) + timedelta(minutes=15)}, mock_config.api_jwt_secret)
     auth_creds = MagicMock()
     auth_creds.credentials = token
 
@@ -318,7 +318,7 @@ async def test_get_current_user_no_sub(mock_config):
 @pytest.mark.asyncio
 async def test_get_current_user_invalid_iid(mock_config):
     token = jwt.encode(
-        {"sub": "invalid_iid", "exp": datetime.now(timezone.utc) + timedelta(minutes=15)}, mock_config.api_jwt_secret
+        {"sub": "invalid_iid", "exp": datetime.now(UTC) + timedelta(minutes=15)}, mock_config.api_jwt_secret
     )
     auth_creds = MagicMock()
     auth_creds.credentials = token
@@ -333,7 +333,7 @@ async def test_get_current_user_invalid_iid(mock_config):
 async def test_get_current_user_db_error(mock_config):
     user_id = "507f1f77bcf86cd799439011"
     token = jwt.encode(
-        {"sub": user_id, "exp": datetime.now(timezone.utc) + timedelta(minutes=15)}, mock_config.api_jwt_secret
+        {"sub": user_id, "exp": datetime.now(UTC) + timedelta(minutes=15)}, mock_config.api_jwt_secret
     )
     auth_creds = MagicMock()
     auth_creds.credentials = token

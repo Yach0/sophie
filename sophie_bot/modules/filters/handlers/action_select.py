@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -14,8 +14,8 @@ from sophie_bot.modules.filters.handlers.action_setup_confirm import (
 from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.troubleshooters.callbacks import CancelCallback
-from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
@@ -33,7 +33,7 @@ class ActionSelectHandler(SophieCallbackQueryHandler):
         self,
         filter_title: LazyProxy,
         text: LazyProxy | str,
-        reply_markup: Optional[InlineKeyboardMarkup],
+        reply_markup: InlineKeyboardMarkup | None,
         back_to_confirm: bool = False,
     ):
         doc = Doc(Title(f"{filter_title} {_('setup')}"), text)

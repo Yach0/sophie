@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from enum import Enum
+
 from beanie import Document, PydanticObjectId
 
 from sophie_bot.db.models._link_type import Link
@@ -36,7 +38,7 @@ class AIModeratorModel(Document):
         return usage.enabled if usage else False
 
     @staticmethod
-    async def set_state(chat: "ChatModel", new_state: bool):
+    async def set_state(chat: ChatModel, new_state: bool):
         model = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat.iid)
         if model:
             model.enabled = new_state

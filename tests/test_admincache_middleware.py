@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -18,7 +18,7 @@ async def test_is_cache_stale_handles_naive_last_updated(monkeypatch: pytest.Mon
     middleware = AdmincacheMiddleware()
     chat_iid = PydanticObjectId()
     oldest_admin = SimpleNamespace(
-        last_updated=(datetime.now(timezone.utc) - timedelta(seconds=CACHE_ADMIN_TTL_SECONDS + 60)).replace(
+        last_updated=(datetime.now(UTC) - timedelta(seconds=CACHE_ADMIN_TTL_SECONDS + 60)).replace(
             tzinfo=None
         ),
     )
@@ -63,8 +63,8 @@ async def test_refresh_is_claimed_once_and_expires(monkeypatch: pytest.MonkeyPat
 
 
 def test_ensure_utc_datetime_adds_utc_to_naive_values() -> None:
-    naive_dt = datetime(2026, 5, 4, 20, 30)
+    naive_dt = datetime(2026, 5, 4, 20, 30)  # noqa: DTZ001  # intentionally naive to test UTC normalization
 
     normalized = AdmincacheMiddleware._ensure_utc_datetime(naive_dt)
 
-    assert normalized.tzinfo == timezone.utc
+    assert normalized.tzinfo == UTC
