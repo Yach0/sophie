@@ -4,7 +4,7 @@ from typing import Any
 
 from ass_tg.types.base_abc import ParsedArg
 
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 
 

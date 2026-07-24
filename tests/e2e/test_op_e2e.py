@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -20,7 +20,7 @@ async def test_op_regenerate_chat_summary_forces_generation(test_client: TestCli
     await test_client.send_message(text="init", from_user=operator_wrapper.user, chat=group_chat)
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
-    summary_date = datetime.now(timezone.utc).date()
+    summary_date = datetime.now(UTC).date()
 
     with (
         patch.object(CONFIG, "operators", [operator_wrapper.user.id]),

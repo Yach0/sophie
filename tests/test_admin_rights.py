@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -51,7 +51,7 @@ def build_group_model(tid: int = GROUP_TID) -> ChatModel:
         first_name_or_title="Forum Chat",
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
 
 
@@ -62,7 +62,7 @@ def build_user_model(tid: int, is_bot: bool = False) -> ChatModel:
         first_name_or_title=f"User {tid}",
         username=None,
         is_bot=is_bot,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
 
 

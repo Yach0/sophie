@@ -61,6 +61,5 @@ async def complete_captcha(
         await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
         await aredis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
 
-    if is_join_request:
-        if msg_id := await aredis.get(f"join_request_message:{group.iid}:{user.iid}"):
-            await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))
+    if is_join_request and (msg_id := await aredis.get(f"join_request_message:{group.iid}:{user.iid}")):
+        await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))

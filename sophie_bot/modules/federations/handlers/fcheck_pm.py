@@ -23,7 +23,6 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-
 TELEGRAM_SAFE_MESSAGE_TEXT_LENGTH = 4000
 
 

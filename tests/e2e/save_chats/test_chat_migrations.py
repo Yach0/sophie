@@ -5,7 +5,7 @@ This module tests how the middleware handles group to supergroup migrations.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -32,7 +32,7 @@ class TestChatMigration:
             first_name_or_title="Old Group",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await old_group.save()
 
@@ -41,7 +41,7 @@ class TestChatMigration:
         new_chat = Chat(id=-1001234567890, type="supergroup", title="Migrated Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=new_chat,
             from_user=user,
             migrate_from_chat_id=-123456789,
@@ -74,7 +74,7 @@ class TestChatMigration:
         old_chat = Chat(id=-123456789, type="group", title="Old Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=old_chat,
             from_user=user,
             migrate_to_chat_id=-1001234567890,
@@ -106,7 +106,7 @@ class TestChatMigration:
             first_name_or_title="My Awesome Group",
             username="awesomegroup",
             is_bot=False,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await old_group.save()
 
@@ -115,7 +115,7 @@ class TestChatMigration:
         new_chat = Chat(id=-1001234567890, type="supergroup", title="My Awesome Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=new_chat,
             from_user=user,
             migrate_from_chat_id=-123456789,
@@ -150,7 +150,7 @@ class TestChatMigration:
             first_name_or_title="Group With Users",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await old_group.save()
 
@@ -160,7 +160,7 @@ class TestChatMigration:
             first_name_or_title="ExistingUser",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await existing_user.save()
 
@@ -172,7 +172,7 @@ class TestChatMigration:
         new_chat = Chat(id=-1001234567890, type="supergroup", title="Group With Users")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=new_chat,
             from_user=user,
             migrate_from_chat_id=-123456789,
@@ -202,7 +202,7 @@ class TestChatMigration:
         new_chat = Chat(id=-1001234567890, type="supergroup", title="New Group")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=new_chat,
             from_user=user,
             migrate_from_chat_id=-999999999,  # Non-existent old group
@@ -234,7 +234,7 @@ class TestChatMigration:
         chat = Chat(id=-1001234567890, type="supergroup", title="Test")
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             migrate_from_chat_id=-111111111,

@@ -34,6 +34,6 @@ module_manifest = ModuleManifest(
 )
 
 __all__ = (
-    "router",
     "module_manifest",
+    "router",
 )

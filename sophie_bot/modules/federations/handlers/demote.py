@@ -9,8 +9,8 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.handlers.promote_demote_base import FederationPromoteDemoteHandler
 from sophie_bot.modules.federations.services import FederationAdminService
 from sophie_bot.utils import flags
-from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 

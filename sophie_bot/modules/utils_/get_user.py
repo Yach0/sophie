@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.types import Message, User
 from attr import dataclass
@@ -12,8 +12,8 @@ from sophie_bot.utils.exception import SophieException
 class UnionUser:
     chat_id: int
     first_name: str
-    last_name: Optional[str]
-    username: Optional[str]
+    last_name: str | None
+    username: str | None
 
 
 def get_arg_or_reply_user(message: Message, data: dict[str, Any]) -> User | ChatModel:

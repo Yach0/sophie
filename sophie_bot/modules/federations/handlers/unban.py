@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -131,7 +131,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             reply_chat_id=self.event.chat.id,
             reply_message_id=reply_msg.message_id if reply_msg else None,
             unban_chat_iids=unban_chat_iids,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         ).insert()
 
     async def _check_permissions(self, federation: Federation) -> bool:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -86,7 +86,7 @@ def _build_private_message(
 
     message = Message(
         message_id=message_id,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=user_chat,
         from_user=from_user,
         text=text,

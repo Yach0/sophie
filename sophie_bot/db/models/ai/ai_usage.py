@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
-from typing import Dict
+from datetime import UTC, date, datetime
 
 from beanie import Document, PydanticObjectId
 from pydantic import Field
@@ -16,8 +15,8 @@ from sophie_bot.utils.ai_features import (
 class AIUsageModel(Document):
     chat: Link[ChatModel]
     daily_requests: dict[date, int] = Field(default_factory=dict)
-    monthly_requests_by_feature: Dict[str, Dict[str, int]] = Field(default_factory=dict)
-    monthly_credits_by_feature: Dict[str, Dict[str, int]] = Field(default_factory=dict)
+    monthly_requests_by_feature: dict[str, dict[str, int]] = Field(default_factory=dict)
+    monthly_credits_by_feature: dict[str, dict[str, int]] = Field(default_factory=dict)
 
     class Settings:
         name = "ai_usage"
@@ -41,14 +40,14 @@ class AIUsageModel(Document):
         if not usage:
             return 0
 
-        return usage.daily_requests.get(date.today(), 0)
+        return usage.daily_requests.get(datetime.now(UTC).date(), 0)
 
     @staticmethod
     async def get_monthly_feature_requests(
         chat_iid: PydanticObjectId, month_key: str | None = None
-    ) -> Dict[AIFeature, int]:
+    ) -> dict[AIFeature, int]:
         if month_key is None:
-            month_key = date.today().strftime("%Y-%m")
+            month_key = datetime.now(UTC).date().strftime("%Y-%m")
 
         usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
         if not usage:
@@ -58,8 +57,8 @@ class AIUsageModel(Document):
 
     @staticmethod
     async def record_feature_consumption(chat_iid: PydanticObjectId, feature: AIFeature, credits: int) -> None:
-        month_key = date.today().strftime("%Y-%m")
-        date_today = date.today()
+        month_key = datetime.now(UTC).date().strftime("%Y-%m")
+        date_today = datetime.now(UTC).date()
 
         usage = await AIUsageModel.get_or_create_usage(chat_iid)
         if not usage:
@@ -82,9 +81,9 @@ class AIUsageModel(Document):
     @staticmethod
     async def get_monthly_feature_credits(
         chat_iid: PydanticObjectId, month_key: str | None = None
-    ) -> Dict[AIFeature, int]:
+    ) -> dict[AIFeature, int]:
         if month_key is None:
-            month_key = date.today().strftime("%Y-%m")
+            month_key = datetime.now(UTC).date().strftime("%Y-%m")
 
         usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
         if not usage:

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import OptionalArg, TextArg
@@ -35,7 +35,7 @@ class AiCmd(SophieMessageHandler):
 
     async def handle(self) -> Any:
         self.data["ai_message_handled"] = True
-        user_text: Optional[str] = self.data["text"]
+        user_text: str | None = self.data["text"]
 
         if self.event.chat.type == "private" and self.connection.is_connected and self.event.from_user:
             await set_connected_chat(self.event.from_user.id, None)

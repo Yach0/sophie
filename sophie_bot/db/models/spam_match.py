@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from beanie import Document
 from pydantic import Field
@@ -11,7 +11,7 @@ class SpamMatchModel(Document):
     spam_probability: float
     nsfw_probability: float
     chat_tid: int
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "spam_matches"

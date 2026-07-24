@@ -9,10 +9,6 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from typing import Any
 
-# Importing db_fixture patches pymongo.AsyncMongoClient. It must precede every sophie_bot
-# import below, because sophie_bot.services.db builds a client at module level.
-from tests.utils.db_fixture import MOCK_MONGO  # noqa: F401  # isort: split
-
 import pytest_asyncio
 from aiogram import Dispatcher, Router
 from aiogram.fsm.storage.base import DefaultKeyBuilder
@@ -34,11 +30,16 @@ from sophie_bot.middlewares import (
 from sophie_bot.modules import load_modules
 from sophie_bot.services.bot import get_bot_runtime
 from sophie_bot.services.i18n import i18n
-from tests.utils.db_fixture import cleanup_beanie
+
+# Importing db_fixture patches pymongo.AsyncMongoClient. It must precede every sophie_bot
+# import below, because sophie_bot.services.db builds a client at module level.
+from tests.utils.db_fixture import (
+    cleanup_beanie,
+)
 
 
 @pytest_asyncio.fixture(scope="session")
-async def test_dispatcher(db_init: Any) -> AsyncGenerator[Dispatcher, None]:
+async def test_dispatcher(db_init: Any) -> AsyncGenerator[Dispatcher]:
     """Create a test dispatcher with all modules loaded.
 
     This fixture creates a fresh Dispatcher and loads all Sophie modules
@@ -77,7 +78,7 @@ async def test_dispatcher(db_init: Any) -> AsyncGenerator[Dispatcher, None]:
 
 
 @pytest_asyncio.fixture
-async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient, None]:
+async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient]:
     """Create a test client for aiogram testing.
 
     This fixture provides a TestClient from aiogram-test-framework
@@ -126,7 +127,7 @@ async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient,
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def clean_db(db_init: Any) -> AsyncGenerator[None, None]:
+async def clean_db(db_init: Any) -> AsyncGenerator[None]:
     """Give every e2e test an empty database.
 
     Without this the whole session shares one database and tests have to invent globally
@@ -139,7 +140,7 @@ async def clean_db(db_init: Any) -> AsyncGenerator[None, None]:
 
 
 @pytest_asyncio.fixture
-async def extra_router(test_dispatcher: Dispatcher) -> AsyncGenerator[Any, None]:
+async def extra_router(test_dispatcher: Dispatcher) -> AsyncGenerator[Any]:
     """Attach a test-only router to the session dispatcher for one test.
 
     Returns a callable taking the router to include; the router is detached on teardown so

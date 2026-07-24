@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -87,7 +87,7 @@ def test_limit_actions_respects_answer_and_reaction_caps() -> None:
 @pytest.mark.asyncio
 async def test_get_recent_candidates_uses_window_batch_and_eligibility() -> None:
     chat_tid = -1001234567890
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     old_created_at = now - timedelta(minutes=20)
     recent_created_at = now - timedelta(minutes=3)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from beanie import Document, PydanticObjectId
 
@@ -40,7 +40,7 @@ class AIQuotaModel(Document):
         if quota:
             return quota
 
-        quota = AIQuotaModel(chat=chat, monthly_credits=None, period_start=date.today().replace(day=1))
+        quota = AIQuotaModel(chat=chat, monthly_credits=None, period_start=datetime.now(UTC).date().replace(day=1))
         return await quota.save()
 
     @staticmethod

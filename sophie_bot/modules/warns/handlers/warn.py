@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, Message, User
@@ -38,7 +38,7 @@ def _build_warn_reply_doc(
     admin_user_name: str,
     warn_count: int,
     max_warns: int,
-    reason: Optional[str],
+    reason: str | None,
     punishment: str | None,
 ) -> Doc:
     # Construct response
@@ -90,7 +90,7 @@ class WarnHandler(SophieMessageHandler):
         if not admin_user:
             return
 
-        reason: Optional[str] = self.data.get("reason")
+        reason: str | None = self.data.get("reason")
 
         # Get user from args or reply
         raw_user = get_arg_or_reply_user(message, self.data)

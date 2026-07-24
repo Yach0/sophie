@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from dataclasses import replace
-from typing import List, Optional, Pattern, Sequence, Union, cast
+from re import Pattern
+from typing import cast
 
 from aiogram import Bot
 from aiogram.filters import BaseFilter
@@ -9,7 +11,7 @@ from magic_filter import MagicFilter
 
 from sophie_bot.config import CONFIG
 
-CMD_TYPE = Union[str, Pattern]
+CMD_TYPE = str | Pattern
 
 
 class CMDFilter(BaseFilter):
@@ -17,14 +19,14 @@ class CMDFilter(BaseFilter):
 
     def __init__(
         self,
-        cmd: Union[Sequence[CMD_TYPE], CMD_TYPE],
+        cmd: Sequence[CMD_TYPE] | CMD_TYPE,
         prefix: str = CONFIG.commands_prefix,
         ignore_case: bool = CONFIG.commands_ignore_case,
         ignore_mention: bool = CONFIG.commands_ignore_mention,
         ignore_code: bool = CONFIG.commands_ignore_code,
         ignore_forwarded: bool = CONFIG.commands_ignore_forwarded,
         allow_caption: bool = False,
-        magic: Optional[MagicFilter] = None,
+        magic: MagicFilter | None = None,
     ):
         self.cmd = (cmd,) if type(cmd) is str else cmd
         self.prefix = prefix
@@ -95,10 +97,10 @@ class CMDFilter(BaseFilter):
         return command
 
     @staticmethod
-    def check_mono(entities: List[MessageEntity]) -> bool:
-        return any((ent for ent in entities if ent.offset == 0 and ent.type in {"code", "pre"}))
+    def check_mono(entities: list[MessageEntity]) -> bool:
+        return any(ent for ent in entities if ent.offset == 0 and ent.type in {"code", "pre"})
 
-    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> Union[bool, dict[str, CommandObject]]:
+    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, CommandObject]:
         if not (text := ((message.text or message.caption) if self.allow_caption else message.text)):
             return False
 

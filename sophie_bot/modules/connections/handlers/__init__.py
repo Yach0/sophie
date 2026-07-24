@@ -1,14 +1,14 @@
-from .connect_dm import ConnectDMCmd, ConnectCallback
+from .connect_dm import ConnectCallback, ConnectDMCmd
 from .connect_group import ConnectGroupCmd
-from .start_connect import StartConnectHandler
 from .disconnect import DisconnectCmd
 from .settings import AllowUsersConnectCmd
+from .start_connect import StartConnectHandler
 
 __all__ = [
+    "AllowUsersConnectCmd",
+    "ConnectCallback",
     "ConnectDMCmd",
     "ConnectGroupCmd",
-    "ConnectCallback",
-    "StartConnectHandler",
     "DisconnectCmd",
-    "AllowUsersConnectCmd",
+    "StartConnectHandler",
 ]

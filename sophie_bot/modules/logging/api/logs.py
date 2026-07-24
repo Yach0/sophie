@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, List
+from typing import Annotated
 
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,7 +26,7 @@ class LogResponse(BaseModel):
     details: dict
 
 
-@router.get("/{chat_iid}", response_model=List[LogResponse])
+@router.get("/{chat_iid}", response_model=list[LogResponse])
 async def get_chat_logs(
     chat_iid: PydanticObjectId,
     user: Annotated[ChatModel, Depends(get_current_user)],

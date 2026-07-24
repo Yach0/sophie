@@ -5,6 +5,11 @@ from fastapi import APIRouter
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
+from sophie_bot.modules.utils_.legacy_buttons import (
+    LEGACY_NOTE_BUTTON_PREFIX,
+    LegacyButtonAction,
+    register_legacy_button_actions,
+)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -27,11 +32,6 @@ from .magic_handlers.reply_action import ReplyModernAction
 from .magic_handlers.send_note_action import SendNoteAction
 from .schedules.generate_ai_titles import GenerateAITitles
 from .schedules.generate_embeddings import GenerateNoteEmbeddings
-from sophie_bot.modules.utils_.legacy_buttons import (
-    LEGACY_NOTE_BUTTON_PREFIX,
-    LegacyButtonAction,
-    register_legacy_button_actions,
-)
 
 api_router = APIRouter()
 api_router.include_router(notes_router)

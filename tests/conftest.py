@@ -35,6 +35,8 @@ from tests.utils.db_fixture import (
     stop_mongo_patch,
 )
 
+logger = logging.getLogger(__name__)
+
 # Set testing environment
 os.environ["TESTING"] = "1"
 
@@ -63,7 +65,7 @@ def _safe_close_clients(
             else:
                 asyncio.run_coroutine_threadsafe(async_client.aclose(), loop)
         except Exception:
-            pass
+            logger.debug("Failed to close async client during teardown", exc_info=True)
 
     owner.client = None
     owner.async_client = None
@@ -95,7 +97,7 @@ def i18n_context() -> Any:
 
 
 @pytest.fixture(scope="session")
-async def mock_mongo() -> AsyncGenerator[Any, None]:
+async def mock_mongo() -> AsyncGenerator[Any]:
     """Expose the process-wide mocked MongoDB client.
 
     ``pymongo.AsyncMongoClient`` is already patched to return it by importing
@@ -110,7 +112,7 @@ async def mock_mongo() -> AsyncGenerator[Any, None]:
 
 
 @pytest.fixture(scope="session")
-async def db_init(mock_mongo: Any) -> AsyncGenerator[Any, None]:
+async def db_init(mock_mongo: Any) -> AsyncGenerator[Any]:
     """Initialize Beanie with mocked MongoDB.
 
     This fixture sets up Beanie ODM with all models using the mocked MongoDB.
@@ -133,7 +135,7 @@ async def reset_redis() -> None:
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def close_redis_on_shutdown() -> AsyncGenerator[None, None]:
+async def close_redis_on_shutdown() -> AsyncGenerator[None]:
     """Close the global fakeredis client after all tests to avoid ResourceWarning."""
     yield
 

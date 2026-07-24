@@ -1,7 +1,8 @@
 import importlib
 import time
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
 from beanie import Document
 
 if TYPE_CHECKING:
@@ -93,7 +94,7 @@ async def _run_migration_action(module_name: str, direction: str = "forward") ->
         module_name: The migration module name (e.g., "20240125_120000_add_field")
         direction: "forward" (apply) or "backward" (rollback)
     """
-    from sophie_bot.services.db import init_db, db, async_mongo
+    from sophie_bot.services.db import async_mongo, db, init_db
 
     # Ensure DB is initialized (idempotent)
     await init_db(skip_indexes=True)
@@ -134,6 +135,7 @@ async def _run_migration_action(module_name: str, direction: str = "forward") ->
 
         if models_to_init:
             from beanie import init_beanie
+
             from sophie_bot.db.models import models
 
             # Re-init beanie with specific models for this migration + all existing models
@@ -146,9 +148,8 @@ async def _run_migration_action(module_name: str, direction: str = "forward") ->
 
         # Execute the migration
         if CONFIG.migration_use_transactions and CONFIG.mongo_use_replica_set:
-            async with async_mongo.start_session() as session:
-                async with await session.start_transaction():
-                    await migration_func.run(session=session)
+            async with async_mongo.start_session() as session, await session.start_transaction():
+                await migration_func.run(session=session)
         else:
             await migration_func.run(session=None)
 

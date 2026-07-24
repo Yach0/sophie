@@ -1,5 +1,5 @@
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from aiogram import Router
@@ -63,7 +63,7 @@ class TriggerExport(SophieBaseHandler[Message]):
             "general": {
                 "chat_name": connection.title,
                 "chat_id": connection.tid,
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
                 "version": VERSION,
             }
         }

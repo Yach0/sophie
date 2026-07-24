@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Callable
+from collections.abc import Callable
 
 from aiogram.enums import MessageEntityType
 from aiogram.types import Message, MessageEntity
@@ -164,7 +164,7 @@ def _check_language(message: Message, lang_code: str) -> bool:
         return False
     try:
         return is_text_language(text, lang_code_to_language(lang_code))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # language detection failure must not block message
         log.debug("Language detection error", error=str(e), lang_code=lang_code)
         return False
 
@@ -269,7 +269,7 @@ async def check_locks(message: Message, locked_types: set[str]) -> str | None:
             try:
                 if check_func(message):
                     return lock_type
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  # one lock check failure must not skip the rest
                 log.debug(f"Lock check error for {lock_type}: {e}")
                 continue
 

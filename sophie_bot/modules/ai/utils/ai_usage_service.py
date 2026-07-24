@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, timedelta
-from typing import Any, Iterable, Protocol, cast
+from datetime import UTC, date, datetime, timedelta
+from typing import Any, Protocol, cast
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
@@ -10,7 +11,7 @@ from beanie.odm.operators.find.comparison import In
 from sophie_bot.db.models import AIUsageModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_quota import consume_quota, get_period_end, get_quota_state
-from sophie_bot.utils.ai_features import AIFeature, AI_FEATURES_BY_KEY
+from sophie_bot.utils.ai_features import AI_FEATURES_BY_KEY, AIFeature
 
 
 class AIUsageLike(Protocol):
@@ -144,7 +145,7 @@ def _top_n(items: dict[str, int], count: int) -> list[tuple[str, int]]:
 
 
 async def get_operator_ai_stats() -> OperatorAIStats:
-    today = date.today()
+    today = datetime.now(UTC).date()
     start_week = today - timedelta(days=today.weekday())
     start_month = today.replace(day=1)
 

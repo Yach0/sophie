@@ -10,6 +10,7 @@ from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.metrics import (
     track_ai_conversation,
     track_ai_proactive_action,
@@ -17,9 +18,7 @@ from sophie_bot.metrics import (
     track_ai_proactive_event,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
-from sophie_bot.modules.ai.utils.ai_chat_models import resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_mode
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
@@ -34,11 +33,23 @@ from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUser
 from sophie_bot.modules.ai.utils.proactive_prompt import build_decision_history as _build_decision_history
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     acquire_lock as _acquire_lock,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     clear_tracked_messages as _clear_tracked_messages,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     get_recent_candidates as _get_recent_candidates,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     is_candidate as _tracking_is_candidate,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     log_proactive_info as _log_proactive_info,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     release_lock as _release_lock,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     track_eligible_message as _track_eligible_message,
 )
 from sophie_bot.services.bot import bot

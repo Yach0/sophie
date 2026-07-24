@@ -1,6 +1,6 @@
 import asyncio
 from enum import Enum
-from typing import Optional
+from typing import ClassVar, Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set, Unset
@@ -25,15 +25,15 @@ class CurrentMode(Enum):
 class BetaModeModel(Document):
     chat: Link[ChatModel]
     preferred_mode: PreferredMode = PreferredMode.auto
-    mode: Optional[CurrentMode] = None
+    mode: CurrentMode | None = None
 
     class Settings:
         name = "beta_mode"
-        indexes = ["chat.$id"]
+        indexes: ClassVar = ["chat.$id"]
 
     @staticmethod
     async def all_chats_reset_current_mode():
-        await BetaModeModel.find(BetaModeModel.mode != None).update(Set({BetaModeModel.mode: None}))  # noqa: E711
+        await BetaModeModel.find(BetaModeModel.mode != None).update(Set({BetaModeModel.mode: None}))
 
     @staticmethod
     async def beta_mode_chats_count():

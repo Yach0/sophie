@@ -6,8 +6,8 @@ from stfu_tg import HList, KeyValue, Section, Template, VList
 
 from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.admin_rights import UserRestricting
-from sophie_bot.metrics.notes import track_note_deleted
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.metrics.notes import track_note_deleted
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event

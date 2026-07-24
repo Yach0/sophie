@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -24,7 +24,7 @@ async def _insert_group(tid: int, title: str) -> ChatModel:
         first_name_or_title=title,
         username=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     ).insert()
 
     group = await ChatModel.get_by_tid(tid)

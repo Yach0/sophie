@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel
@@ -21,12 +21,12 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class WarnActionDataModel(BaseModel):
-    reason: Optional[str]
+    reason: str | None
 
 
 async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> WarnActionDataModel:
     if isinstance(event, CallbackQuery):
-        raise ValueError("This handlers setup_confirm can only be used with messages")
+        raise TypeError("This handlers setup_confirm can only be used with messages")
 
     reason = event.text or None
 
@@ -67,7 +67,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: WarnActionDataModel) -> Optional[Element]:
+    async def handle(self, message: Message, data: dict, filter_data: WarnActionDataModel) -> Element | None:
         if not message.from_user:
             return
 
@@ -94,7 +94,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
         if not text:
             text = _("No reason")
 
-        current, limit, punishment, warn = await warn_user(
+        current, limit, punishment, _warn = await warn_user(
             chat_db,
             target_db,
             admin_db,

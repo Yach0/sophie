@@ -11,18 +11,17 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
-from sophie_bot.db.models.ai.ai_mode import AIMode
-from tests.e2e.helpers import grant_admin
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageBreakdownItem,
     ChatUsageView,
 )
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
+from tests.e2e.helpers import grant_admin
 
 # ---------------------------------------------------------------------------
 # Helpers

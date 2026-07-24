@@ -4,7 +4,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from aiogram.types import Message, Update, User, Chat
+from aiogram.types import Chat, Message, Update, User
 
 from sophie_bot.config import CONFIG
 from sophie_bot.metrics.middleware import MetricsMiddleware
@@ -29,11 +29,11 @@ def middleware(mock_config):
 @pytest.fixture
 def mock_message():
     """Mock message for tests"""
-    from datetime import datetime
+    from datetime import UTC, datetime
 
     user = User(id=123, is_bot=False, first_name="Test")
     chat = Chat(id=456, type="private")
-    return Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="Hello world")
+    return Message(message_id=1, date=datetime.now(UTC), chat=chat, from_user=user, text="Hello world")
 
 
 @pytest.fixture
@@ -145,36 +145,37 @@ class TestMetricsMiddleware:
 
     def test_get_message_kind_photo(self):
         """Test message kind extraction for photo messages"""
+        from datetime import UTC, datetime
+
         from aiogram.types import PhotoSize
-        from datetime import datetime
 
         user = User(id=123, is_bot=False, first_name="Test")
         chat = Chat(id=456, type="private")
         photo = [PhotoSize(file_id="test", file_unique_id="test", width=100, height=100)]
 
-        message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, photo=photo)
+        message = Message(message_id=1, date=datetime.now(UTC), chat=chat, from_user=user, photo=photo)
 
         kind = get_message_kind(message)
         assert kind == "photo"
 
     def test_extract_command_name_with_alt_prefix(self):
         """Test command extraction with alternate configured prefix."""
-        from datetime import datetime
+        from datetime import UTC, datetime
 
         user = User(id=123, is_bot=False, first_name="Test")
         chat = Chat(id=456, type="private")
-        message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="!help test")
+        message = Message(message_id=1, date=datetime.now(UTC), chat=chat, from_user=user, text="!help test")
 
         command_name = extract_command_name(message)
         assert command_name == "help"
 
     def test_extract_command_name_with_mention(self):
         """Test command extraction when message contains bot mention."""
-        from datetime import datetime
+        from datetime import UTC, datetime
 
         user = User(id=123, is_bot=False, first_name="Test")
         chat = Chat(id=456, type="private")
-        message = Message(message_id=1, date=datetime.now(), chat=chat, from_user=user, text="/start@TestBot")
+        message = Message(message_id=1, date=datetime.now(UTC), chat=chat, from_user=user, text="/start@TestBot")
 
         command_name = extract_command_name(message)
         assert command_name == "start"
@@ -236,7 +237,7 @@ class TestMetricsMiddleware:
 
         # Test name length limit
         long_name = "a" * 60
-        setattr(test_handler, "__name__", long_name)
+        test_handler.__name__ = long_name
         name = middleware._get_handler_name(test_handler, None)
         assert len(name) == 50
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import ClassVar
 
 import pymongo
 from beanie import Document
@@ -51,7 +52,7 @@ class AICatalogProviderModel(Document):
 
     class Settings:
         name = "ai_catalog_provider"
-        indexes = [pymongo.IndexModel("name", unique=True)]
+        indexes: ClassVar = [pymongo.IndexModel("name", unique=True)]
 
 
 class AICatalogModelModel(Document):
@@ -67,4 +68,4 @@ class AICatalogModelModel(Document):
 
     class Settings:
         name = "ai_catalog_model"
-        indexes = [pymongo.IndexModel("name", unique=True)]
+        indexes: ClassVar = [pymongo.IndexModel("name", unique=True)]

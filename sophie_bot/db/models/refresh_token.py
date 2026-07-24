@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Annotated
+from datetime import UTC, datetime
+from typing import Annotated, ClassVar
 
 from beanie import Document, Indexed
 from pydantic import Field
@@ -14,11 +14,11 @@ class RefreshTokenModel(Document):
     token_hash: Annotated[str, Indexed(unique=True)]
     user: Link[ChatModel]
     expires_at: datetime
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "refresh_tokens"
-        indexes = [
+        indexes: ClassVar = [
             IndexModel("expires_at", expireAfterSeconds=0),
         ]
 

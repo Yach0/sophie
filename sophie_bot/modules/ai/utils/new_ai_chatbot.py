@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
@@ -22,11 +22,9 @@ from sophie_bot.modules.ai.utils.ai_run import (
 )
 
 # Temporary compatibility module; these private helpers are used only to preserve the old wrapper API.
-OutputT = TypeVar("OutputT")
-ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
 
-async def new_ai_generate(
+async def new_ai_generate[OutputT](
     history: Any,
     model: Model,
     agent_kwargs: Mapping[str, Any] | None = None,
@@ -82,7 +80,7 @@ async def new_ai_generate_stream(
     )
 
 
-async def new_ai_generate_schema(
+async def new_ai_generate_schema[ResponseT: BaseModel](
     history: Any,
     schema: type[ResponseT],
     model: Model,
@@ -107,7 +105,7 @@ async def new_ai_generate_schema(
     return result.output
 
 
-async def new_ai_generate_schema_with_result(
+async def new_ai_generate_schema_with_result[ResponseT: BaseModel](
     history: Any,
     schema: type[ResponseT],
     model: Model,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 from unittest.mock import patch
 
@@ -28,7 +28,7 @@ def test_document_to_row_extracts_training_fields() -> None:
     document = {
         "_id": "log-id",
         "event": "user_banned",
-        "timestamp": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        "timestamp": datetime(2026, 6, 1, tzinfo=UTC),
         "details": {
             "reason": "Spam links",
             "original_message_text": "  buy now  \nlimited offer  ",

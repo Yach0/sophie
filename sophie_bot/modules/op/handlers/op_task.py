@@ -9,8 +9,8 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -36,10 +36,9 @@ async def _create_gitlab_issue(
     data: dict[str, str] = {"title": title, "description": description}
     if labels:
         data["labels"] = ",".join(labels)
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, json=data) as resp:
-            resp.raise_for_status()
-            return await resp.json()
+    async with aiohttp.ClientSession() as session, session.post(url, headers=headers, json=data) as resp:
+        resp.raise_for_status()
+        return await resp.json()
 
 
 def _format_message(message: MessageType) -> str:

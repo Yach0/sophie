@@ -143,9 +143,12 @@ class AsyncDatabaseMock:
                 func = partial(attr, *args, **kwargs)
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(None, func)
-                if hasattr(result, "__class__") and "mongomock" in str(result.__class__):
-                    if "Collection" in str(result.__class__):
-                        return AsyncCollectionMock(result)
+                if (
+                    hasattr(result, "__class__")
+                    and "mongomock" in str(result.__class__)
+                    and "Collection" in str(result.__class__)
+                ):
+                    return AsyncCollectionMock(result)
                 return result
 
             return async_wrapper
@@ -181,31 +184,31 @@ class AsyncCollectionMock:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def update_one(self, filter: Any, update: Any, **kwargs: Any) -> Any:  # noqa: A002
+    async def update_one(self, filter: Any, update: Any, **kwargs: Any) -> Any:
         """Update one document."""
         func = partial(self._sync_collection.update_one, filter, update, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def update_many(self, filter: Any, update: Any, **kwargs: Any) -> Any:  # noqa: A002
+    async def update_many(self, filter: Any, update: Any, **kwargs: Any) -> Any:
         """Update many documents."""
         func = partial(self._sync_collection.update_many, filter, update, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def delete_one(self, filter: Any, **kwargs: Any) -> Any:  # noqa: A002
+    async def delete_one(self, filter: Any, **kwargs: Any) -> Any:
         """Delete one document."""
         func = partial(self._sync_collection.delete_one, filter, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def delete_many(self, filter: Any, **kwargs: Any) -> Any:  # noqa: A002
+    async def delete_many(self, filter: Any, **kwargs: Any) -> Any:
         """Delete many documents."""
         func = partial(self._sync_collection.delete_many, filter, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def count_documents(self, filter: Any, **kwargs: Any) -> int:  # noqa: A002
+    async def count_documents(self, filter: Any, **kwargs: Any) -> int:
         """Count documents."""
         func = partial(self._sync_collection.count_documents, filter, **kwargs)
         loop = asyncio.get_event_loop()
@@ -239,9 +242,12 @@ class AsyncCollectionMock:
                 func = partial(attr, *args, **kwargs)
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(None, func)
-                if hasattr(result, "__class__") and "mongomock" in str(result.__class__):
-                    if "Cursor" in str(result.__class__):
-                        return AsyncCursorMock(result)
+                if (
+                    hasattr(result, "__class__")
+                    and "mongomock" in str(result.__class__)
+                    and "Cursor" in str(result.__class__)
+                ):
+                    return AsyncCursorMock(result)
                 return result
 
             return async_wrapper
@@ -275,8 +281,8 @@ class AsyncCursorMock:
                 return next(self._sync_cursor)
             except StopIteration:
                 return None
-            except Exception as e:
-                return e
+            except Exception as error:  # noqa: BLE001  # captured to re-raise across the executor boundary
+                return error
 
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, get_next)

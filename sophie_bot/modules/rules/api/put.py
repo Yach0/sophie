@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.db.models.rules import RulesModel
-from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
+from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 from .schemas import RulesPayload, RulesResponse
 

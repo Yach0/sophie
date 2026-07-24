@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Tuple
+from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel
 
@@ -35,12 +34,12 @@ def get_message_cache_key(chat_id: int) -> str:
 
 
 def _build_cutoff(now: datetime | None = None) -> datetime:
-    current_time = now or datetime.now(timezone.utc)
+    current_time = now or datetime.now(UTC)
     return current_time - MESSAGE_CACHE_TTL
 
 
 async def cache_message(
-    text: Optional[str],
+    text: str | None,
     chat_id: int,
     user_id: int,
     message_id: int,
@@ -105,7 +104,7 @@ def _parse_cached_message(raw_message: object) -> MessageType | None:
     return MessageType.model_validate_json(raw_message)
 
 
-async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: datetime) -> Tuple[MessageType, ...]:
+async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: datetime) -> tuple[MessageType, ...]:
     """Retrieve cached messages in a given inclusive time window."""
     key = get_message_cache_key(chat_id)
     raw_messages = await aredis.zrangebyscore(  # type: ignore[misc]
@@ -123,13 +122,13 @@ async def get_cached_messages(
     now: datetime | None = None,
     limit: int | None = None,
     max_age: timedelta | None = None,
-) -> Tuple[MessageType, ...]:
+) -> tuple[MessageType, ...]:
     """Retrieves and parses cached messages for a given chat.
 
     ``max_age`` further restricts the window to messages newer than ``now - max_age`` (never
     older than the cache TTL cutoff), on top of the optional trailing-``limit`` count cap.
     """
-    current_time = now or datetime.now(timezone.utc)
+    current_time = now or datetime.now(UTC)
     start_at = _build_cutoff(current_time)
     if max_age is not None:
         start_at = max(start_at, current_time - max_age)

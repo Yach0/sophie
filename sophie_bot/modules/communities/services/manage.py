@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from sophie_bot.db.models import ChatModel, CommunityModel
 from sophie_bot.utils.community_api import fetch_chat_community
 
@@ -10,7 +8,7 @@ class CommunityManageService:
     """Resolution of the community a chat belongs to."""
 
     @staticmethod
-    async def get_community_for_chat(chat_db: ChatModel) -> Optional[CommunityModel]:
+    async def get_community_for_chat(chat_db: ChatModel) -> CommunityModel | None:
         """Return the community for a chat, backfilling lazily via getChat when unknown.
 
         Chats that joined a community before Sophie never emit a service message, so when

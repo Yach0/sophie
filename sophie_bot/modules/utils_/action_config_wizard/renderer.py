@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from aiogram.types import (
     CallbackQuery,
@@ -30,7 +30,7 @@ class WizardRenderer:
         chat_iid: PydanticObjectId,
         chat_title: str | None,
         wizard_state: WizardState | None,
-    ) -> Tuple[str, Any]:
+    ) -> tuple[str, Any]:
         """Build home page text and keyboard."""
         model = await cfg.get_model_func(chat_iid)
         actions = await cfg.get_actions_func(model)
@@ -107,8 +107,8 @@ class WizardRenderer:
         cfg: ActionWizardConfig,
         *,
         chat_tid: int,
-        default_action_name: Optional[str] = None,
-    ) -> Tuple[str, Any]:
+        default_action_name: str | None = None,
+    ) -> tuple[str, Any]:
         """Build the 'select an action to add' page."""
         del chat_tid
         builder = InlineKeyboardBuilder()
@@ -145,11 +145,11 @@ class WizardRenderer:
         action_name: str,
         callback_prefix: str,
         success_message: str | Any,
-        action_data: Optional[dict[str, Any]] = None,
+        action_data: dict[str, Any] | None = None,
         show_delete: bool = True,
         show_cancel: bool = True,
         show_done: bool = True,
-    ) -> Tuple[str, Any, str]:
+    ) -> tuple[str, Any, str]:
         """Build the 'action configured' screen."""
         action = ALL_MODERN_ACTIONS[action_name]
         action_model = convert_action_data_to_model(action, action_data)
@@ -210,7 +210,7 @@ class WizardRenderer:
         action_name: str,
         callback_prefix: str,
         success_message: str | Any,
-        action_data: Optional[dict[str, Any]] = None,
+        action_data: dict[str, Any] | None = None,
         show_delete: bool = True,
         show_cancel: bool = True,
         show_done: bool = True,

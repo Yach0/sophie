@@ -1,6 +1,7 @@
 import contextlib
+from collections.abc import AsyncIterator
 from types import SimpleNamespace
-from typing import AsyncIterator
+from typing import Self
 
 import pytest
 from fakeredis import FakeAsyncRedis
@@ -19,7 +20,7 @@ class FakePipeline:
         self.incr_keys: list[str] = []
         self.expire_calls: list[tuple[str, int, bool]] = []
 
-    async def __aenter__(self) -> "FakePipeline":
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, exc_type: object, exc_value: object, traceback: object) -> None:

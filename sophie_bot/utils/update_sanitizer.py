@@ -25,7 +25,6 @@ from aiogram.enums import MessageOriginType
 from sophie_bot.config import CONFIG
 from sophie_bot.utils.logger import log
 
-
 # Keys whose value is a MessageOrigin: Message.forward_origin and ExternalReplyInfo.origin.
 _ORIGIN_KEYS: Final[frozenset[str]] = frozenset({"forward_origin", "origin"})
 

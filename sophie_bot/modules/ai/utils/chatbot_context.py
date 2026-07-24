@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import datetime
-from typing import Mapping
+from collections.abc import Mapping
 
 from aiogram.types import Message
 from stfu_tg import Doc, HList, Section, Template, VList
 
-from sophie_bot.db.models.ai.ai_mode import AIMode
-
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
@@ -118,7 +117,7 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
     system_prompt = str(await get_value(prompt_flag, chat_tid=context.chat_tid))
     tables_enabled = await is_enabled("ai_chatbot_tables", chat_tid=context.chat_tid)
     instruction_doc = _base_chatbot_instruction_doc(
-        system_prompt, datetime.datetime.now(), tables_enabled=tables_enabled
+        system_prompt, datetime.datetime.now(datetime.UTC), tables_enabled=tables_enabled
     )
     instruction_doc += await _build_chatbot_runtime_context(context, mode)
     return instruction_doc.to_md()

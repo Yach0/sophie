@@ -5,8 +5,8 @@ from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import (
     UnknownMessageButtonTypeError,
     parse_message_button,
-    parse_message_buttons_row,
     parse_message_buttons,
+    parse_message_buttons_row,
 )
 
 

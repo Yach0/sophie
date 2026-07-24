@@ -1,13 +1,11 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
 class WarnResponse(BaseModel):
     id: str
     user_id: int
-    admin_id: Optional[int] = None
-    reason: Optional[str]
+    admin_id: int | None = None
+    reason: str | None
     date: str
 
 
@@ -19,4 +17,4 @@ class WarnSettingsResponse(BaseModel):
 
 
 class WarnSettingsUpdate(BaseModel):
-    max_warns: Optional[int] = Field(None, ge=2, le=10000)
+    max_warns: int | None = Field(None, ge=2, le=10000)

@@ -29,13 +29,13 @@ class FiltersModel(Document):
     handler: str  # old keyword handler
     version: int | None = None
 
-    action: Optional[str]  # None for modern filters
+    action: str | None  # None for modern filters
     actions: dict[str, ACTION_DATA_DUMPED] = Field(default_factory=dict)
 
     # Silent mode: delete the triggering message and the filter's replies shortly after sending
     silent: bool = False
 
-    time: Optional[Any] = None
+    time: Any | None = None
 
     model_config = ConfigDict(
         extra="ignore",
@@ -96,13 +96,13 @@ class FiltersModel(Document):
 class FilterInSetupType(BaseModel):
     """Information about the filter, while being in the setup mode."""
 
-    oid: Optional[str] = None  # Optional ObjectID of the FiltersModel object, if need to update, not save
+    oid: str | None = None  # Optional ObjectID of the FiltersModel object, if need to update, not save
     handler: FilterHandlerType
     actions: dict[str, ACTION_DATA_DUMPED]
     silent: bool = False
 
     @staticmethod
-    async def get_filter(state: FSMContext, data: Optional[dict[str, Any]] = None) -> "FilterInSetupType":
+    async def get_filter(state: FSMContext, data: dict[str, Any] | None = None) -> "FilterInSetupType":
         if data and "filter_in_setup" in data:
             return FilterInSetupType.model_validate(data["filter_in_setup"])
 

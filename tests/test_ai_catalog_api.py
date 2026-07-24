@@ -155,9 +155,11 @@ async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
 async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
     from httpx import HTTPError
 
-    with patch.object(catalog.ai_http_client, "get", AsyncMock(side_effect=HTTPError("boom"))):
-        with pytest.raises(HTTPException) as error:
-            await catalog.list_openrouter_models()
+    with (
+        patch.object(catalog.ai_http_client, "get", AsyncMock(side_effect=HTTPError("boom"))),
+        pytest.raises(HTTPException) as error,
+    ):
+        await catalog.list_openrouter_models()
 
     assert error.value.status_code == 502
 

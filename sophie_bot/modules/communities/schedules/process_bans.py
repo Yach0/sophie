@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from beanie.odm.operators.find.comparison import In
 
@@ -131,7 +131,7 @@ class ProcessCommunityBans:
         if error_message:
             task.error_message = error_message
         if status == TaskStatus.PROCESSING:
-            task.started_at = datetime.now(timezone.utc)
+            task.started_at = datetime.now(UTC)
         elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = datetime.now(UTC)
         await task.save()

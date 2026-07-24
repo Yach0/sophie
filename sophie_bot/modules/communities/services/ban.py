@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
-from typing import Optional, TypeVar
+from datetime import UTC, datetime
+from typing import TypeVar
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
@@ -27,8 +27,8 @@ class CommunityBanService:
         community_tid: int,
         user_tid: int,
         by_user_iid: PydanticObjectId,
-        reason: Optional[str] = None,
-        original_message_text: Optional[str] = None,
+        reason: str | None = None,
+        original_message_text: str | None = None,
     ) -> CommunityBanModel:
         existing_ban = await CommunityBanModel.find_one(
             CommunityBanModel.community_tid == community_tid, CommunityBanModel.user_id == user_tid
@@ -48,7 +48,7 @@ class CommunityBanService:
         ban = CommunityBanModel(
             community_tid=community_tid,
             user_id=user_tid,
-            time=datetime.now(timezone.utc),
+            time=datetime.now(UTC),
             by=by_user_iid,
             reason=reason,
             original_message_text=original_message_text,
@@ -106,7 +106,7 @@ class CommunityBanService:
         return len(banned_chat_iids)
 
     @staticmethod
-    async def unban_user(community_tid: int, user_tid: int) -> Optional[CommunityBanModel]:
+    async def unban_user(community_tid: int, user_tid: int) -> CommunityBanModel | None:
         """Remove the community ban record. Returns the deleted record (with banned_chats)."""
         ban = await CommunityBanModel.find_one(
             CommunityBanModel.community_tid == community_tid, CommunityBanModel.user_id == user_tid
@@ -129,7 +129,7 @@ class CommunityBanService:
         return sum(1 for result in results if result)
 
     @staticmethod
-    async def is_user_banned(community_tid: int, user_tid: int) -> Optional[CommunityBanModel]:
+    async def is_user_banned(community_tid: int, user_tid: int) -> CommunityBanModel | None:
         return await CommunityBanModel.find_one(
             CommunityBanModel.community_tid == community_tid, CommunityBanModel.user_id == user_tid
         )

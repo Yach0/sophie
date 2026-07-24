@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -19,7 +19,7 @@ def _reaction_event(**kwargs: Any) -> MessageReactionUpdated:
     return MessageReactionUpdated(
         chat=Chat(id=-1001234567890, type="supergroup"),
         message_id=12,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         old_reaction=[],
         new_reaction=[ReactionTypeEmoji(emoji="\N{THUMBS UP SIGN}")],
         user=User(id=42, is_bot=False, first_name="User"),

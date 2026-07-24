@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, HTTPException
 
 from sophie_bot.db.models.chat import ChatModel
@@ -11,12 +9,12 @@ from .schemas import WarnResponse
 router = APIRouter(prefix="/warns", tags=["warns"])
 
 
-@router.get("/{chat_iid}/{user_tid}", response_model=List[WarnResponse])
+@router.get("/{chat_iid}/{user_tid}", response_model=list[WarnResponse])
 async def get_user_warns(
     chat: ChatDep,
     user_tid: int,
     current_user: RestrictAdminDep,
-) -> List[WarnResponse]:
+) -> list[WarnResponse]:
     user = await ChatModel.get_by_tid(user_tid)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

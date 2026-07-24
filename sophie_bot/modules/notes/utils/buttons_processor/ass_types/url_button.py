@@ -1,12 +1,11 @@
-from typing import Optional
-
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgCustomError
 from babel.support import LazyProxy
 
 from sophie_bot.db.models.notes_buttons import ButtonStyle
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData, SophieButtonABC
-from sophie_bot.utils.i18n import lazy_gettext as l_, gettext as _
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData, SophieButtonABC
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class URLButton(SophieButtonABC):
@@ -19,7 +18,7 @@ class URLButton(SophieButtonABC):
     def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
         return l_("URL Button"), l_("URL Buttons")
 
-    def examples(self) -> Optional[dict[str, Optional[LazyProxy]]]:
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](btnurl:https://google.com)": None,
             "[Button name](buttonurl#success://example.com)": None,

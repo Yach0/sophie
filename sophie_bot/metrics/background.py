@@ -43,7 +43,7 @@ async def _monitor_event_loop_lag() -> None:
             elif lag > 0.1:
                 log.debug("Event loop lag detected", lag_seconds=lag)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # background metrics loop must keep running on any error
             log.error("Error in event loop lag monitoring", error=str(e))
             # Continue monitoring even if there's an error
             await asyncio.sleep(1.0)
@@ -65,7 +65,7 @@ def _report_cpu_metrics() -> None:
     try:
         cpu_percent = psutil.cpu_percent(interval=None)
         set_gauge_metric("sophie.system.cpu_percent", cpu_percent, unit="percent")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # metrics collection is best-effort, never fatal
         log.warning("Failed to collect CPU metrics", error=str(e))
 
 
@@ -76,7 +76,7 @@ def _report_load_metrics() -> None:
         set_gauge_metric("sophie.system.load_avg.1m", load_avg[0])
         set_gauge_metric("sophie.system.load_avg.5m", load_avg[1])
         set_gauge_metric("sophie.system.load_avg.15m", load_avg[2])
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # metrics collection is best-effort, never fatal
         log.warning("Failed to collect load average metrics", error=str(e))
 
 
@@ -88,7 +88,7 @@ def _report_memory_metrics() -> None:
         set_gauge_metric("sophie.system.memory.available", memory.available, unit="byte")
         set_gauge_metric("sophie.system.memory.used", memory.used, unit="byte")
         set_gauge_metric("sophie.system.memory.percent", memory.percent, unit="percent")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # metrics collection is best-effort, never fatal
         log.warning("Failed to collect memory metrics", error=str(e))
 
 
@@ -99,5 +99,5 @@ def _report_swap_metrics() -> None:
         set_gauge_metric("sophie.system.swap.total", swap.total, unit="byte")
         set_gauge_metric("sophie.system.swap.used", swap.used, unit="byte")
         set_gauge_metric("sophie.system.swap.percent", swap.percent, unit="percent")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # metrics collection is best-effort, never fatal
         log.warning("Failed to collect swap metrics", error=str(e))

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any, Final, TypeVar, cast
+from typing import Any, Final, cast
 
 from httpx import HTTPError, HTTPStatusError, RequestError, TimeoutException
 from openai import OpenAIError
@@ -28,7 +28,6 @@ AI_REQUEST_RETRY_ATTEMPTS: Final = 5
 AI_RETRYABLE_STATUS_CODES: Final = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 _OPENROUTER_PROVIDER_ERROR_STATUS_CODE: Final = 400
 _OPENROUTER_PROVIDER_ERROR_TEXT: Final = "provider returned error"
-RetryableAIOutputT = TypeVar("RetryableAIOutputT")
 AIRetryCallback = Callable[[int, int], Awaitable[None]]
 
 
@@ -109,7 +108,7 @@ def is_retryable_ai_provider_error(error: BaseException) -> bool:
     return status_code == _OPENROUTER_PROVIDER_ERROR_STATUS_CODE and _OPENROUTER_PROVIDER_ERROR_TEXT in error_message
 
 
-async def run_ai_request_with_retries(
+async def run_ai_request_with_retries[RetryableAIOutputT](
     operation: Callable[[], Awaitable[RetryableAIOutputT]],
     on_retry: AIRetryCallback | None = None,
 ) -> RetryableAIOutputT:
@@ -139,9 +138,12 @@ def ai_request_failed_from_error(error: Exception) -> AIRequestFailed:
     return AIRequestFailed(event_id)
 
 
+_DEFAULT_AI_FAILED_TITLE: Final = l_("🤖 AI request failed")
+
+
 def ai_request_failed_message(
     sentry_event_id: str | None,
-    title: str | LazyProxy | Element = l_("🤖 AI request failed"),
+    title: str | LazyProxy | Element = _DEFAULT_AI_FAILED_TITLE,
 ) -> dict[str, Any]:
     return {
         "text": str(

@@ -8,7 +8,7 @@ hacks like checking `"pytest" in sys.modules`.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict
+from typing import Any
 
 from sophie_bot.config import CONFIG
 
@@ -22,8 +22,8 @@ class ServiceRegistry:
     """
 
     def __init__(self) -> None:
-        self._instances: Dict[str, Any] = {}
-        self._overrides: Dict[str, Any] = {}
+        self._instances: dict[str, Any] = {}
+        self._overrides: dict[str, Any] = {}
 
     # ------------------------------------------------------------------
     # Override / reset API for tests

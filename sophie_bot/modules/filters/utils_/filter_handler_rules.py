@@ -15,8 +15,8 @@ from sophie_bot.modules.locks.handlers.lockable import get_lock_description
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
-from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
@@ -164,9 +164,7 @@ async def validate_filter_handler(
         return False
     if not await _check_ai_filter_rules(event, keyword, connection, editing_oid):
         return False
-    if not await _check_regex_validity(event, keyword):
-        return False
-    return True
+    return await _check_regex_validity(event, keyword)
 
 
 def describe_filter_handler(keyword: str) -> Element | str | LazyProxy | BabelLazyProxy:

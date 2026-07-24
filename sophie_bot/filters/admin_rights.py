@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any
 
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatMemberStatus
@@ -68,16 +68,16 @@ class UserRestricting(Filter):
     async def __call__(
         self,
         event: TelegramObject,
-        connection: Optional[ChatConnection] = None,
-        user_db: Optional[ChatModel] = None,
-    ) -> Union[bool, dict[str, Any]]:
+        connection: ChatConnection | None = None,
+        user_db: ChatModel | None = None,
+    ) -> bool | dict[str, Any]:
         message = self.get_event_message(event)
         if message is None:
             return False
 
         target = await self.get_target(event, user_db)
         target_tid = target.tid if isinstance(target, ChatModel) else target
-        chat_ref: Union[int, ChatModel] = connection.db_model if connection else message.chat.id
+        chat_ref: int | ChatModel = connection.db_model if connection else message.chat.id
         chat_tid = chat_ref.tid if isinstance(chat_ref, ChatModel) else chat_ref
         is_connected = connection.is_connected if connection else False
         payload: dict[str, Any] = {}
@@ -131,9 +131,9 @@ class UserRestricting(Filter):
         event: TelegramObject,
         chat_tid: int,
         user_tid: int,
-        connection: Optional[ChatConnection],
-        user_db: Optional[ChatModel],
-    ) -> Optional["AnonymousResolution"]:
+        connection: ChatConnection | None,
+        user_db: ChatModel | None,
+    ) -> AnonymousResolution | None:
         if user_tid != TELEGRAM_ANONYMOUS_ADMIN_BOT_ID:
             return None
 
@@ -187,7 +187,7 @@ class UserRestricting(Filter):
         self,
         member: Any,
         require_creator: bool = False,
-    ) -> Union[bool, list[str]]:
+    ) -> bool | list[str]:
         if require_creator:
             return getattr(member, "status", None) == ChatMemberStatus.CREATOR
 
@@ -205,7 +205,7 @@ class UserRestricting(Filter):
 
         return missing_permissions or True
 
-    async def get_target(self, event: TelegramObject, user_db: Optional[ChatModel]) -> Union[int, ChatModel]:
+    async def get_target(self, event: TelegramObject, user_db: ChatModel | None) -> int | ChatModel:
         """The entity whose admin rights this filter checks: the sender of the event."""
         from_user = getattr(event, "from_user", None)
         if not from_user:
@@ -218,7 +218,7 @@ class UserRestricting(Filter):
         return event.message if isinstance(event, CallbackQuery) else event
 
     @staticmethod
-    def get_event_message(event: TelegramObject) -> Optional[Any]:
+    def get_event_message(event: TelegramObject) -> Any | None:
         if isinstance(event, CallbackQuery):
             return event.message
         if isinstance(event, Message):
@@ -255,7 +255,7 @@ class UserRestricting(Filter):
             await answer()
 
     async def no_rights_msg(
-        self, event: TelegramObject, required_permissions: Union[bool, list[str]], target_tid: int
+        self, event: TelegramObject, required_permissions: bool | list[str], target_tid: int
     ) -> None:
         is_bot = target_tid == CONFIG.bot_id
 
@@ -301,13 +301,15 @@ class UserRestricting(Filter):
 
 @dataclass
 class AnonymousResolution:
-    permission_check: Union[bool, list[str]]
-    resolved_user_db: Optional[ChatModel]
+    permission_check: bool | list[str]
+    resolved_user_db: ChatModel | None
     already_notified: bool = False
 
 
 class BotHasPermissions(UserRestricting):
-    ARGUMENTS = {
+    # Read-only override of the base dataclass field on a non-dataclass subclass: ClassVar would
+    # clash with the base instance field and field() would break the plain-dict access below.
+    ARGUMENTS = {  # noqa: RUF012
         "bot_admin": "admin",
         "bot_can_post_messages": "can_post_messages",
         "bot_can_edit_messages": "can_edit_messages",
@@ -320,5 +322,5 @@ class BotHasPermissions(UserRestricting):
     }
     PAYLOAD_ARGUMENT_NAME = "bot_member"
 
-    async def get_target(self, event: TelegramObject, user_db: Optional[ChatModel]) -> Union[int, ChatModel]:
+    async def get_target(self, event: TelegramObject, user_db: ChatModel | None) -> int | ChatModel:
         return CONFIG.bot_id

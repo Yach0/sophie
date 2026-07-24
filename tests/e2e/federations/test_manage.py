@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 from aiogram.types import InlineKeyboardMarkup
 from aiogram_test_framework import TestClient
@@ -11,10 +10,10 @@ from aiogram_test_framework.factories import MessageFactory, UserFactory
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.modules.federations.handlers.delete import FederationDeleteCallback
 from sophie_bot.modules.federations.services import FederationManageService
-from tests.e2e.helpers import create_test_user_and_group, grant_admin
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
 )
+from tests.e2e.helpers import create_test_user_and_group, grant_admin
 
 
 async def _find_federation_by_name(fed_name: str) -> Federation | None:
@@ -30,7 +29,7 @@ async def test_create_federation(test_client: TestClient) -> None:
     2. A Federation document is created in the database
     3. The federation has the correct name and creator
     """
-    owner_user, group, owner_model = await create_test_user_and_group(
+    owner_user, group, _owner_model = await create_test_user_and_group(
         test_client,
         user_id=2001,
         first_name="Creator",
@@ -60,7 +59,7 @@ async def test_create_federation_duplicate_name(test_client: TestClient) -> None
     1. The first /newfed succeeds
     2. A second /newfed with the same name from a different user does not create a duplicate
     """
-    user_a, group_a, model_a = await create_test_user_and_group(
+    user_a, group_a, _model_a = await create_test_user_and_group(
         test_client,
         user_id=2010,
         first_name="UserDupA",
@@ -69,7 +68,7 @@ async def test_create_federation_duplicate_name(test_client: TestClient) -> None
         group_title="Dup Test Group A",
     )
     await grant_admin(group_a.id, user_a.id, creator=True)
-    user_b, group_b, model_b = await create_test_user_and_group(
+    user_b, group_b, _model_b = await create_test_user_and_group(
         test_client,
         user_id=2011,
         first_name="UserDupB",

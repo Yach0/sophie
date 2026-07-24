@@ -7,7 +7,7 @@ mocked away.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest
@@ -130,7 +130,7 @@ async def test_ban_shows_federation_notice(test_client: TestClient) -> None:
     await FederationBan(
         fed_id=federation.fed_id,
         user_id=target_id,
-        time=datetime.now(timezone.utc),
+        time=datetime.now(UTC),
         by=admin_model,
     ).insert()
 

@@ -39,7 +39,7 @@ class Forward:
                 await collection.drop_index(index_name)
                 log.info("Dropped old index", index_name=index_name)
             except Exception:  # noqa: BLE001
-                pass
+                log.debug("Old index not present, skipping", index_name=index_name)
 
         # Delete documents where user or group is null/missing.
         result = await collection.delete_many(

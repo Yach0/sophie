@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from beanie import PydanticObjectId
 from pydantic_ai import Agent, UsageLimits
@@ -10,8 +10,8 @@ from pydantic_ai.models import Model
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_catalog import resolve_model_name
-from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.sophie_inspect_source import read_source, search_source
@@ -73,7 +73,7 @@ async def _feature_int(feature: FeatureType, chat_tid: int | None, minimum: int 
 async def _consume_daily_quota(chat_iid: PydanticObjectId, chat_tid: int | None) -> bool:
     """Cap how often one chat can start a sub-agent per day, on top of the chat's credit quota."""
     limit = await _feature_int("ai_sophie_inspect_daily_chat_limit", chat_tid)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     key = _daily_limit_key(chat_iid, now)
 
     async with aredis.pipeline() as pipe:

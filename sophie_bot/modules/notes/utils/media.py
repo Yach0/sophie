@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Final, Mapping, Type
+from typing import Final
 
 from aiogram.enums import ContentType
 from aiogram.methods import (
@@ -31,7 +32,7 @@ class MediaSpec:
     send method, but no caption — the two capabilities are not interchangeable.
     """
 
-    method: Type[TelegramMethod[Message]]
+    method: type[TelegramMethod[Message]]
     file_field: str
     supports_caption: bool
 

@@ -4,22 +4,22 @@ from unittest.mock import AsyncMock
 import pytest
 from aiogram.enums import ChatType
 from beanie import PydanticObjectId
-from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.messages import ToolCallPart
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
-from sophie_bot.modules.ai.fsm.pm import AI_PM_STOP_HELP_TEXT
-from sophie_bot.utils.feature_flags import get_default_value
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.fsm.pm import AI_PM_STOP_HELP_TEXT
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
-from sophie_bot.modules.ai.utils.sophie_inspect import _parse_chat_ids, is_sophie_inspect_chat, run_sophie_inspect
 from sophie_bot.modules.ai.utils.help_tip import build_help_mode_keyboard, should_offer_help_mode
+from sophie_bot.modules.ai.utils.sophie_inspect import _parse_chat_ids, is_sophie_inspect_chat, run_sophie_inspect
 from sophie_bot.modules.ai.utils.sophie_inspect_source import (
     MAX_READ_LINES,
     MAX_SEARCH_MATCHES,
     read_source,
     search_source,
 )
+from sophie_bot.utils.feature_flags import get_default_value
 
 
 def test_search_is_capped() -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Generic, TypeVar, cast
+from typing import cast
 
 from beanie import PydanticObjectId
 from pydantic import BaseModel
@@ -13,21 +13,18 @@ from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, AIRequestOptions, 
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.ai_features import AIFeature
-from sophie_bot.utils.feature_flags import FeatureType
-from sophie_bot.utils.feature_flags import get_service_tier
-
-OutputT = TypeVar("OutputT", bound=BaseModel)
+from sophie_bot.utils.feature_flags import FeatureType, get_service_tier
 
 
 @dataclass(frozen=True, slots=True)
-class AIStructuredTask(Generic[OutputT]):
+class AIStructuredTask[OutputT: BaseModel]:
     output_type: type[OutputT]
     feature: AIFeature | None = None
     service_tier_feature_key: FeatureType | None = None
     model_settings: Mapping[str, object] | None = None
 
 
-async def run_structured_task(
+async def run_structured_task[OutputT: BaseModel](
     task: AIStructuredTask[OutputT],
     model: Model,
     history: AIMessageHistory,

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar
 
 from beanie import Document, PydanticObjectId
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from ._link_type import Link
 from .chat import ChatModel
@@ -12,15 +12,15 @@ from .filters import FilterActionType
 
 class AntifloodModel(Document):
     chat: Link[ChatModel]
-    enabled: Optional[bool] = True
+    enabled: bool | None = True
     message_count: int = Field(default=5, ge=1, le=100, alias="count")
     actions: list[FilterActionType] = Field(default_factory=list)
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
     class Settings:
         name = "antiflood"
-        bson_encoders = {}
+        bson_encoders: ClassVar = {}
 
     @field_validator("message_count", mode="before")
     @classmethod
@@ -49,7 +49,7 @@ class AntifloodModel(Document):
 
     @staticmethod
     async def add_antiflood_action(
-        chat_iid: PydanticObjectId, action_name: str, action_data: Optional[dict] = None
+        chat_iid: PydanticObjectId, action_name: str, action_data: dict | None = None
     ) -> AntifloodModel:
         """Add an action for antiflood violations using internal DB ID (chat_iid)."""
         action = FilterActionType(name=action_name, data=action_data or {})

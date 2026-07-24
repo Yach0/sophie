@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from aiogram.types import Message
 
@@ -17,7 +16,7 @@ _GETCHAT_COOLDOWN_SECONDS = 3600
 @dataclass(frozen=True)
 class CommunityRef:
     id: int
-    name: Optional[str]
+    name: str | None
 
 
 class CommunityChangeKind(str, Enum):
@@ -28,10 +27,10 @@ class CommunityChangeKind(str, Enum):
 @dataclass(frozen=True)
 class CommunityChange:
     kind: CommunityChangeKind
-    community: Optional[CommunityRef]
+    community: CommunityRef | None
 
 
-def extract_community_change(message: Message) -> Optional[CommunityChange]:
+def extract_community_change(message: Message) -> CommunityChange | None:
     """Detect a community add/remove service message from native aiogram types."""
     if message.community_chat_added is not None:
         community = message.community_chat_added.community
@@ -44,7 +43,7 @@ def extract_community_change(message: Message) -> Optional[CommunityChange]:
     return None
 
 
-async def fetch_chat_community(chat_tid: int) -> Optional[CommunityRef]:
+async def fetch_chat_community(chat_tid: int) -> CommunityRef | None:
     """Read the community of a chat via getChat, for chats that joined before Sophie.
 
     Guarded by a Redis cooldown so a chat whose community is unknown is only probed

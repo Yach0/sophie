@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.federations.services import FederationManageService
-from tests.e2e.helpers import create_test_user_and_group, grant_admin
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
     join_chat_to_federation,
 )
+from tests.e2e.helpers import create_test_user_and_group, grant_admin
 
 
 @pytest.mark.asyncio

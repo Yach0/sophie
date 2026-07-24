@@ -2,8 +2,8 @@ import pytest
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgCustomError
 
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import AssButtonData
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.URLButton import URLButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.url_button import URLButton
 
 
 @pytest.mark.asyncio
@@ -30,7 +30,7 @@ async def test_url_button_http():
 
     assert button.check(text, entities) is True
 
-    length, data = await button.parse(text, 0, entities)
+    _length, data = await button.parse(text, 0, entities)
     assert data.arguments == ("http://example.com",)
 
 
@@ -40,7 +40,7 @@ async def test_url_button_same_row_same():
     text = "[Google](btnurl:https://google.com:same)"
     entities = ArgEntities([])
 
-    length, data = await button.parse(text, 0, entities)
+    _length, data = await button.parse(text, 0, entities)
     assert data.arguments == ("https://google.com",)
     assert data.same_row is True
 
@@ -51,7 +51,7 @@ async def test_url_button_same_row_hat():
     text = "[Google](btnurl:https://google.com:^)"
     entities = ArgEntities([])
 
-    length, data = await button.parse(text, 0, entities)
+    _length, data = await button.parse(text, 0, entities)
     assert data.arguments == ("https://google.com",)
     assert data.same_row is True
 
@@ -103,7 +103,7 @@ async def test_url_button_button_prefix():
     entities = ArgEntities([])
 
     assert button.check(text, entities) is True
-    length, data = await button.parse(text, 0, entities)
+    _length, data = await button.parse(text, 0, entities)
     assert data.button_type == "url"
     assert data.arguments == ("https://google.com",)
 

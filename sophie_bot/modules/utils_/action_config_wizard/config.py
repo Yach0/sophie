@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import CallbackQuery
@@ -36,6 +37,6 @@ class ActionWizardConfig:
 
     # Options
     allow_multiple_actions: bool = True
-    default_action_name: Optional[str] = None
-    action_filter: Optional[Callable[[ModernActionABC], bool]] = None
-    on_back_render: Optional[Callable[[Any, CallbackQuery], Awaitable[None]]] = field(default=None)
+    default_action_name: str | None = None
+    action_filter: Callable[[ModernActionABC], bool] | None = None
+    on_back_render: Callable[[Any, CallbackQuery], Awaitable[None]] | None = field(default=None)

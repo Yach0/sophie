@@ -17,10 +17,10 @@ from sophie_bot.modules.filters.types.modern_action_abc import (
 from sophie_bot.modules.filters.types.modern_action_data_types import (
     ACTION_DATA_DUMPED,
 )
-from sophie_bot.shared.modern_action_abc import ACTION_DATA
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
+from sophie_bot.shared.modern_action_abc import ACTION_DATA
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 

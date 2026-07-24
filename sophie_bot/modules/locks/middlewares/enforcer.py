@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -17,9 +18,9 @@ from sophie_bot.utils.logger import log
 class LocksEnforcerMiddleware(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         if not isinstance(event, Message):
             return await handler(event, data)
@@ -53,7 +54,7 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             for locked_message in album:
                 try:
                     await locked_message.delete()
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001  # best-effort delete of locked album message
                     log.debug("Failed to delete locked message", error=str(exc))
             raise SkipHandler
         return await handler(event, data)

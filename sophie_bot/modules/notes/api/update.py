@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException
@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from sophie_bot.db.models.notes import NoteModel, normalize_notenames
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.utils.api.dependencies import ChatDep, ChangeInfoAdminDep
+from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 from .schemas import NoteResponse, NoteUpdate
 
@@ -41,7 +41,7 @@ async def update_note(
     for key, value in update_dict.items():
         setattr(note, key, value)
 
-    note.edited_date = datetime.now(timezone.utc)
+    note.edited_date = datetime.now(UTC)
     note.edited_user = user
     await note.save()
     await log_event(chat.tid, user.tid, LogEvent.NOTE_UPDATED, {"note_names": note.names})

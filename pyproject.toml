@@ -80,7 +80,7 @@ torchvision = [{ index = "pytorch-cpu" }]
 
 [tool.ty.src]
 include = ["sophie_bot/**"]
-exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/StfuGallery.py"]
+exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/stfu_gallery.py"]
 
 [tool.ty.environment]
 python-version = "3.14"

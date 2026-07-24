@@ -1,5 +1,5 @@
 import hmac
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -63,7 +63,7 @@ async def create_tokens(user: ChatModel, scopes: list[str] | None = None) -> dic
     token = RefreshTokenModel(
         token_hash=hash_token(refresh_token_str),
         user=user,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     await token.insert()
 
@@ -141,8 +141,8 @@ async def refresh_token(data: RefreshRequest):
         security_log.warning("auth.refresh.invalid_or_expired_token")
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
-    expires_at = token.expires_at.replace(tzinfo=timezone.utc)
-    if expires_at < datetime.now(timezone.utc):
+    expires_at = token.expires_at.replace(tzinfo=UTC)
+    if expires_at < datetime.now(UTC):
         security_log.warning("auth.refresh.token_expired", token_iid=token.iid)
         await token.delete()  # Clean up expired token
         raise HTTPException(status_code=401, detail="Refresh token expired")

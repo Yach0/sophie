@@ -3,21 +3,21 @@ from fastapi import APIRouter
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
-from sophie_bot.modules.op.handlers.Banner import OpBannerHandler
-from sophie_bot.modules.op.handlers.ButtonsTest import ButtonsTestHandler
-from sophie_bot.modules.op.handlers.Captcha import OpCaptchaHandler
+from sophie_bot.modules.op.handlers.banner import OpBannerHandler
+from sophie_bot.modules.op.handlers.buttons_test import ButtonsTestHandler
+from sophie_bot.modules.op.handlers.captcha import OpCaptchaHandler
 from sophie_bot.modules.op.handlers.event import EventHandler
-from sophie_bot.modules.op.handlers.FeatureFlags import FeatureFlagsHandler
-from sophie_bot.modules.op.handlers.ListJobs import ListJobsHandler
+from sophie_bot.modules.op.handlers.feature_flags import FeatureFlagsHandler
+from sophie_bot.modules.op.handlers.list_jobs import ListJobsHandler
 from sophie_bot.modules.op.handlers.op_debug import OpDebugHandler
 from sophie_bot.modules.op.handlers.op_task import OpTaskHandler
-from sophie_bot.modules.op.handlers.PreviewChatSummary import OpRegenerateChatSummaryHandler
-from sophie_bot.modules.op.handlers.SetMode import SetModeHandler
+from sophie_bot.modules.op.handlers.preview_chat_summary import OpRegenerateChatSummaryHandler
+from sophie_bot.modules.op.handlers.set_mode import SetModeHandler
 from sophie_bot.modules.op.handlers.stats import StatsHandler, get_system_stats
-from sophie_bot.modules.op.handlers.StopJobs import StopJobsHandler
+from sophie_bot.modules.op.handlers.stop_jobs import StopJobsHandler
 
 try:
-    from sophie_bot.modules.op.handlers.StfuGallery import StfuGalleryHandler as _StfuGalleryHandler
+    from sophie_bot.modules.op.handlers.stfu_gallery import StfuGalleryHandler as _StfuGalleryHandler
 
     _stfu_gallery_handlers: tuple = (_StfuGalleryHandler,)
 except ImportError:

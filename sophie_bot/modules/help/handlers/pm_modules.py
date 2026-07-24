@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
@@ -33,7 +33,7 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         router.callback_query.register(cls, PMHelpModules.filter())
 
     async def handle(self) -> Any:
-        callback_data: Optional[PMHelpModules] = self.data.get("callback_data", None)
+        callback_data: PMHelpModules | None = self.data.get("callback_data", None)
 
         # Sort item by the module title
         modules = dict(sorted(HELP_MODULES.items(), key=lambda item: str(item[1].name)))

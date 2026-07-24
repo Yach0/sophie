@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ssl
-from typing import Optional
 
 from aiogram.webhook.aiohttp_server import (
     SimpleRequestHandler,
@@ -17,7 +16,6 @@ from sophie_bot.middlewares import enable_middlewares, set_metrics_middleware
 from sophie_bot.runtime import BotModeRuntime, build_bot_runtime
 from sophie_bot.startup import initialize_bot_mode
 from sophie_bot.utils.logger import log
-
 
 ALLOWED_UPDATES = [
     "message",
@@ -102,7 +100,7 @@ def start_bot_mode() -> None:
 
         setup_application(app, dispatcher, bot=bot)
 
-        ssl_context: Optional[ssl.SSLContext]
+        ssl_context: ssl.SSLContext | None
         if CONFIG.webhooks_https_certificate:
             log.info("Using HTTPs!")
 

@@ -16,6 +16,7 @@ Impact:
 from __future__ import annotations
 
 from beanie import free_fall_migration
+
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.utils.logger import log
 

@@ -10,7 +10,7 @@ that unfetched-``Link`` attribute access fails the test the way it fails in prod
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -35,7 +35,7 @@ async def _create_chat(chat_tid: int, title: str) -> ChatModel:
         username=None,
         language_code=None,
         is_bot=False,
-        last_saw=datetime.now(timezone.utc),
+        last_saw=datetime.now(UTC),
     )
     await chat.save()
     return chat

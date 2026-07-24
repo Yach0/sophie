@@ -1,7 +1,7 @@
 from random import randint
+from typing import override
 
 from aiohttp import ClientError, ClientSession
-from typing_extensions import override
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import BetaModeModel, ChatModel, GlobalSettings
@@ -13,8 +13,9 @@ try:
 except ImportError:
     import json
 
+from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
@@ -22,7 +23,7 @@ from aiogram.types import TelegramObject
 
 class BetaMiddleware(BaseMiddleware):
     def __init__(self):
-        self.session: Optional[ClientSession] = None
+        self.session: ClientSession | None = None
 
     async def get_session(self) -> ClientSession:
         if not self.session:
@@ -36,7 +37,7 @@ class BetaMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        chat_db: Optional[ChatModel] = data.get("chat_db")
+        chat_db: ChatModel | None = data.get("chat_db")
 
         if chat_db and await self.is_beta(chat_db):
             json_request = self.get_data(event)

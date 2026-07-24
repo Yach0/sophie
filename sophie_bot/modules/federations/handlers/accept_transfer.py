@@ -11,8 +11,8 @@ from stfu_tg import Code, Doc, Template, Title
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.services import FederationManageService
-from sophie_bot.services.redis import aredis
 from sophie_bot.modules.utils_.acting_user import require_acting_user
+from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _

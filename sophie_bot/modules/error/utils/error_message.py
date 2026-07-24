@@ -1,14 +1,16 @@
 import random
-from typing import Optional, Any
+from typing import Any
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from stfu_tg import BlockQuote, Title, KeyValue, Code, Doc, Italic
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from stfu_tg import BlockQuote, Code, Doc, Italic, KeyValue, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.error.utils.haikus import HAIKUS
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.i18n import gettext as _, LazyProxy, lazy_gettext as l_
+from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 def get_error_message(exception: Exception) -> tuple[str | Element, ...]:
@@ -20,11 +22,14 @@ def get_error_message(exception: Exception) -> tuple[str | Element, ...]:
     return tuple(x if isinstance(x, Element) else Italic(str(x)) for x in exception.args)
 
 
+_DEFAULT_ERROR_TITLE = l_("😞 I've got an error trying to process this update")
+
+
 def generic_error_message(
     exception: Exception,
-    sentry_event_id: Optional[str],
+    sentry_event_id: str | None,
     hide_contact: bool = False,
-    title: str | LazyProxy | Element = l_("😞 I've got an error trying to process this update"),
+    title: str | LazyProxy | Element = _DEFAULT_ERROR_TITLE,
 ) -> dict[str, Any]:
     return {
         "text": str(

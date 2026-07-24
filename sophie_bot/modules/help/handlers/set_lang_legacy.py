@@ -3,9 +3,11 @@ from typing import Any
 from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+
 from sophie_bot.modules.language.handlers.language import SelectLangCb
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler
-from sophie_bot.utils.i18n import get_i18n, gettext as _
+from sophie_bot.utils.i18n import get_i18n
+from sophie_bot.utils.i18n import gettext as _
 
 
 class SetLangLegacyHandler(SophieCallbackQueryHandler):

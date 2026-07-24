@@ -1,9 +1,9 @@
-from typing import Any, Awaitable, Callable, Iterable, List, Optional
+from collections.abc import Awaitable, Callable, Iterable
+from typing import Any, override
 
 import structlog
 from aiogram import BaseMiddleware
 from aiogram.types import Chat, ChatJoinRequest, ChatMemberUpdated, Message, TelegramObject, Update, User
-from typing_extensions import override
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -42,7 +42,7 @@ class SaveChatsMiddleware(BaseMiddleware):
                 await ChatModel.upsert_group(chat)
 
     @staticmethod
-    async def handle_replied_message(reply_message: Message, chat_id: int) -> List[Chat | User]:
+    async def handle_replied_message(reply_message: Message, chat_id: int) -> list[Chat | User]:
         if reply_message.sender_chat and reply_message.sender_chat.id == chat_id:
             # Anonymous admin
             return []
@@ -70,7 +70,7 @@ class SaveChatsMiddleware(BaseMiddleware):
 
     @staticmethod
     async def save_topic(message: Message, group: ChatModel):
-        name: Optional[str]
+        name: str | None
         if message.forum_topic_created:
             name = message.forum_topic_created.name
         elif message.forum_topic_edited:
@@ -119,7 +119,7 @@ class SaveChatsMiddleware(BaseMiddleware):
     @staticmethod
     async def update_from_user(
         message: Message, current_group: ChatModel
-    ) -> tuple[Optional[ChatModel], Optional[UserInGroupModel]]:
+    ) -> tuple[ChatModel | None, UserInGroupModel | None]:
         if not message.from_user:
             return None, None
 
@@ -284,11 +284,8 @@ class SaveChatsMiddleware(BaseMiddleware):
             logger.debug("SaveChatsMiddleware: Bot was kicked from chat", chat_id=event.chat.id)
             await group.delete_chat()
             return False
-        if status == "member":
-            # Telegram will send a message event, so we'll handle it and save user later
-            return False
-
-        return True
+        # "member": Telegram will send a message event, so we'll handle it and save user later
+        return status != "member"
 
     @override
     async def __call__(

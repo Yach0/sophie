@@ -15,8 +15,8 @@ from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
+from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.filters.types.modern_action_abc import (
     ActionSetupMessage,
     ActionSetupTryAgainException,
@@ -35,7 +35,7 @@ class AIReplyActionDataModel(BaseModel):
 
 async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -> AIReplyActionDataModel:
     if isinstance(event, CallbackQuery):
-        raise ValueError("This handlers setup_confirm can only be used with messages")
+        raise TypeError("This handlers setup_confirm can only be used with messages")
 
     prompt = event.text
 

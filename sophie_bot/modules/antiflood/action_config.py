@@ -44,10 +44,10 @@ _antiflood_cfg = ActionWizardConfig(
 ) = create_action_config_system(_antiflood_cfg)
 
 __all__ = [
-    "AntifloodActionWizard",
     "AntifloodActionCallback",
-    "AntifloodActionSetup",
-    "AntifloodActionDone",
     "AntifloodActionCancel",
+    "AntifloodActionDone",
     "AntifloodActionSettings",
+    "AntifloodActionSetup",
+    "AntifloodActionWizard",
 ]

@@ -8,10 +8,9 @@ import pytest
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
-
 from sophie_bot.modules.ai.handlers.op_prices import op_ai_prices_handler
 from sophie_bot.modules.ai.handlers.usage import AiUsage
+from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_usage_service import ChatUsageBreakdownItem, ChatUsageView
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT

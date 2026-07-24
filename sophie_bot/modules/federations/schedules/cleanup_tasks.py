@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from beanie.odm.operators.find.comparison import LT, Eq
 from beanie.odm.operators.find.logical import And, Or
@@ -30,7 +30,7 @@ class CleanupOldTasks:
         scheduler would otherwise sit untouched forever with its reply stuck on
         "Propagating…". Marking it FAILED both tells the user and makes it visible for a re-do.
         """
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES)
+        cutoff = datetime.now(UTC) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES)
 
         # Mongo's $lt is type-bracketed, so it never matches a null started_at. Fall back to
         # created_at for those, otherwise a PROCESSING task that somehow never recorded a start
@@ -46,7 +46,7 @@ class CleanupOldTasks:
         for task in orphaned:
             task.status = TaskStatus.FAILED
             task.error_message = _ORPHANED_TASK_ERROR
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = datetime.now(UTC)
             await task.save()
             await notify_task_failed(task, _ORPHANED_TASK_ERROR)
 
@@ -60,7 +60,7 @@ class CleanupOldTasks:
         FAILED tasks are deliberately never deleted: they are the record of work that still
         needs investigating and re-doing, so they are kept indefinitely.
         """
-        cutoff = datetime.now(timezone.utc) - timedelta(days=FEDERATION_EXPORT_TTL_DAYS)
+        cutoff = datetime.now(UTC) - timedelta(days=FEDERATION_EXPORT_TTL_DAYS)
 
         result = await FederationTask.find(
             FederationTask.status == TaskStatus.COMPLETED,

@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.flags import get_flag
@@ -14,9 +15,9 @@ class AiTimeoutMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         status = get_flag(data, "status", default=None)
         if not status:
@@ -27,5 +28,5 @@ class AiTimeoutMiddleware(BaseMiddleware):
                 handler(event, data),
                 timeout=CONFIG.ai_timeout_seconds,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise SophieException("AI request timed out. Please try again.")

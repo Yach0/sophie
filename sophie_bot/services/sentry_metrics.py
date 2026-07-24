@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from threading import Lock
-from typing import Final, Mapping, TypeAlias
+from typing import Final
 
 import sentry_sdk
 
 from sophie_bot.config import CONFIG
 
-MetricAttributeValue: TypeAlias = str | bool | float | int
-MetricAttributes: TypeAlias = Mapping[str, MetricAttributeValue | None]
-GaugeKey: TypeAlias = tuple[str, tuple[tuple[str, MetricAttributeValue], ...]]
+type MetricAttributeValue = str | bool | float | int
+type MetricAttributes = Mapping[str, MetricAttributeValue | None]
+type GaugeKey = tuple[str, tuple[tuple[str, MetricAttributeValue], ...]]
 
 _GAUGE_VALUES: dict[GaugeKey, float] = {}
 _GAUGE_LOCK: Final[Lock] = Lock()

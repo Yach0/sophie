@@ -63,7 +63,7 @@ def run_with_reload(mode: Literal["bot", "scheduler"]) -> None:
         pass
 
 
-def _python_filter(change: "Change", path: str) -> bool:
+def _python_filter(change: Change, path: str) -> bool:
     """Filter to only watch Python files."""
     return path.endswith(".py")
 
@@ -81,6 +81,7 @@ def _run_mode_subprocess(mode: str) -> None:
             [sys.executable, "-m", "sophie_bot"],
             env=env,
             cwd=Path(__file__).parent.parent.parent,
+            check=False,
         )
         if result.returncode != 0:
             log.warning(f"Subprocess exited with code {result.returncode}")

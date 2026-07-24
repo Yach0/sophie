@@ -7,7 +7,7 @@ sleep is stubbed to keep the test fast.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from aiogram.types import Message, Update, User
@@ -88,7 +88,7 @@ async def test_purge_removes_the_range(test_client: TestClient, monkeypatch: pyt
     # The replied message must be older (smaller id) than the /purge command that follows it;
     # MessageFactory's auto-incrementing id guarantees that ordering.
     replied = MessageFactory.create(
-        text="start of purge", from_user=member, chat=group, date=datetime.now(timezone.utc)
+        text="start of purge", from_user=member, chat=group, date=datetime.now(UTC)
     )
 
     requests = await _send_reply_command(test_client, command="purge", from_user=admin, group=group, replied=replied)

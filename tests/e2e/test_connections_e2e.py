@@ -97,7 +97,7 @@ async def test_disconnect_without_connection(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_non_admin_cannot_connect_when_disabled(test_client: TestClient) -> None:
-    _admin, group, model = await _connectable_group(test_client, username="lockedgroup", title="Connect Locked Group")
+    _admin, _group, model = await _connectable_group(test_client, username="lockedgroup", title="Connect Locked Group")
     # Disable open connections; only admins may connect now.
     settings = await ChatConnectionSettingsModel.get_by_chat_iid(model.iid) or ChatConnectionSettingsModel(
         chat=model.iid

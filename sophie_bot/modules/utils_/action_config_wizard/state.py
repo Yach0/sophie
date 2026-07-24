@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from datetime import time as dt_time
 from enum import Enum
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -137,18 +137,18 @@ class WizardState:
         module_name: str,
         chat_iid: PydanticObjectId,
         action_name: str,
-        action_data: Optional[dict[str, Any]] = None,
+        action_data: dict[str, Any] | None = None,
     ) -> None:
         """Ensure session and stage the selected action without persisting."""
         await self.ensure_session(module_name, chat_iid)
         await self.set_action(action_name)
         await self.set_action_data(action_data or {})
 
-    async def get_staged(self) -> Tuple[Optional[PydanticObjectId], Optional[str], Optional[dict[str, Any]]]:
+    async def get_staged(self) -> tuple[PydanticObjectId | None, str | None, dict[str, Any] | None]:
         """Return (chat_iid, action_name, action_data) from staged session."""
         data = await self._state.get_data()
         chat_iid_raw = data.get(_K_CHAT_IID)
-        chat_iid: Optional[PydanticObjectId]
+        chat_iid: PydanticObjectId | None
         try:
             chat_iid = PydanticObjectId(chat_iid_raw) if chat_iid_raw else None
         except (InvalidId, TypeError):
@@ -181,7 +181,7 @@ class WizardState:
     # -- private helpers -----------------------------------------------------
 
     @staticmethod
-    def _expired(started_at: Optional[float]) -> bool:
+    def _expired(started_at: float | None) -> bool:
         if started_at is None:
             return True
         return (time.time() - started_at) > ACW_SESSION_TTL_SECONDS

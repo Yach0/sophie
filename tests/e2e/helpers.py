@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from itertools import count
 from typing import TYPE_CHECKING
 
@@ -178,7 +178,7 @@ async def join_group(
     adder = added_by or User(id=next_user_id(), is_bot=False, first_name="Adder")
     message = Message(
         message_id=next(_message_ids),
-        date=date or datetime.now(timezone.utc),
+        date=date or datetime.now(UTC),
         chat=group,
         from_user=adder,
         new_chat_members=list(members),
@@ -207,7 +207,7 @@ async def leave_group(test_client: TestClient, group: Chat, member: User) -> lis
     """Simulate `member` leaving `group`, driving LeaveUserMiddleware."""
     message = Message(
         message_id=next(_message_ids),
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=group,
         from_user=member,
         left_chat_member=member,

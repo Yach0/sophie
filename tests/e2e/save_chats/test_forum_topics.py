@@ -5,7 +5,7 @@ This module tests how the middleware handles forum topics in supergroups.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -34,7 +34,7 @@ class TestForumTopics:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=123,
@@ -70,7 +70,7 @@ class TestForumTopics:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=456,
@@ -109,7 +109,7 @@ class TestForumTopics:
             first_name_or_title="Test Forum",
             is_bot=False,
             username=None,
-            last_saw=datetime.now(timezone.utc),
+            last_saw=datetime.now(UTC),
         )
         await group.save()
 
@@ -121,7 +121,7 @@ class TestForumTopics:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=789,
@@ -157,7 +157,7 @@ class TestForumTopics:
         # Original topic message
         topic_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=100,
@@ -167,7 +167,7 @@ class TestForumTopics:
         # Reply to topic
         reply_message = Message(
             message_id=2,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=100,
@@ -205,7 +205,7 @@ class TestForumTopics:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=123,
@@ -241,7 +241,7 @@ class TestForumTopics:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             # No message_thread_id
@@ -275,7 +275,7 @@ class TestForumTopics:
 
         message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             message_thread_id=1,  # General topic

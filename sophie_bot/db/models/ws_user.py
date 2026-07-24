@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
@@ -14,7 +14,7 @@ class WSUserModel(Document):
     group: Link["ChatModel"]
     passed: bool = False
     is_join_request: bool = False
-    added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    added_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "ws_users"

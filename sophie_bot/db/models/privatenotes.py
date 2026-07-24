@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from beanie import Document, PydanticObjectId
-from ._link_type import Link
+
 from sophie_bot.db.models.chat import ChatModel
+
+from ._link_type import Link
 
 
 class PrivateNotesModel(Document):

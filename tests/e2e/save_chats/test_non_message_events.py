@@ -6,7 +6,7 @@ poll answers, and other non-message update types.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -161,7 +161,7 @@ class TestNonMessageEvents:
 
         edited_message = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             from_user=user,
             text="Edited text",
@@ -192,7 +192,7 @@ class TestNonMessageEvents:
 
         channel_post = Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=chat,
             # No from_user for channel posts
         )

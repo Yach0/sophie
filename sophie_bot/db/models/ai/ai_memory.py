@@ -1,4 +1,5 @@
 from beanie import Document, PydanticObjectId
+from pydantic import Field
 
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
@@ -6,7 +7,7 @@ from sophie_bot.db.models.chat import ChatModel
 
 class AIMemoryModel(Document):
     chat: Link[ChatModel]
-    lines: list[str] = []
+    lines: list[str] = Field(default_factory=list)
 
     class Settings:
         name = "ai_memory"

@@ -48,7 +48,7 @@ class TestRandomParser(unittest.TestCase):
     def test_leading_delimiter(self):
         """Test text with leading delimiter."""
         text = "%%%Hello%%%Hi%%% world"
-        self.assertEqual(parse_random_text(text).strip(), "Hello world" or "Hi world")
+        self.assertEqual(parse_random_text(text).strip(), "Hello world")
 
     @patch("sophie_bot.modules.notes.utils._random_parser.choice")
     def test_multiline_options(self, mock_choice):

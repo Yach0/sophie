@@ -1,23 +1,23 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple, Type
+from typing import TYPE_CHECKING, NamedTuple
 
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.CaptchaButton import CaptchaButton
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.ConnectButton import ConnectButton
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.DeleteButton import DeleteButton
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.NoteButton import NoteButton
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.RulesButton import RulesButton
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieDMButton import SophieDMButton
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.URLButton import URLButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.captcha_button import CaptchaButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.connect_button import ConnectButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.delete_button import DeleteButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.note_button import NoteButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.rules_button import RulesButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_dm_button import SophieDMButton
+from sophie_bot.modules.notes.utils.buttons_processor.ass_types.url_button import URLButton
 
 if TYPE_CHECKING:
-    from sophie_bot.modules.notes.utils.buttons_processor.ass_types.SophieButtonABC import SophieButtonABC
+    from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import SophieButtonABC
 
 
 class ButtonDefinition(NamedTuple):
     action: ButtonAction
-    button_class: Type[SophieButtonABC]
+    button_class: type[SophieButtonABC]
 
 
 BUTTON_DEFINITIONS = [

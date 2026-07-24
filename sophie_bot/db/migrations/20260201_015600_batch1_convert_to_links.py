@@ -14,17 +14,17 @@ Affected Collections:
     - warn_settings
 """
 
+from beanie import free_fall_migration
 from bson import DBRef
 from pymongo.errors import OperationFailure
 
-from beanie import free_fall_migration
+from sophie_bot.db.models.beta import BetaModeModel
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.language import LanguageModel
+from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.db.models.greetings import GreetingsModel
+from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.db.models.rules import RulesModel
-from sophie_bot.db.models.beta import BetaModeModel
-from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.utils.logger import log
 

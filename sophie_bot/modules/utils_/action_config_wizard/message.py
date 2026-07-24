@@ -15,8 +15,14 @@ from sophie_bot.utils.i18n import gettext as _
 from .config import ActionWizardConfig
 from .context import (
     get_active_setup_config as _get_active_setup_config,
+)
+from .context import (
     get_fsm_context as _get_fsm_context,
+)
+from .context import (
     get_interactive_setup_chat_iid_raw as _get_interactive_setup_chat_iid_raw,
+)
+from .context import (
     get_wizard_state as _get_wizard_state,
 )
 from .helpers import convert_action_data_to_model

@@ -12,6 +12,7 @@ Impact:
 """
 
 from beanie import free_fall_migration
+
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.utils.logger import log

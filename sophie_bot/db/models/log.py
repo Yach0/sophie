@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from beanie import Document
@@ -12,7 +12,7 @@ class LogModel(Document):
     chat: Link[ChatModel]
     user: Link[ChatModel]
     event: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     details: dict[str, Any] = Field(default_factory=dict)
 
     class Settings:

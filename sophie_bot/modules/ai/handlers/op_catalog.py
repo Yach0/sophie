@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import Message
 from ass_tg.types import BooleanArg, KeyValueArg, KeyValuesArg, OptionalArg, WordArg
 from ass_tg.types.base_abc import ArgFabric, ParsedArg
-from aiogram.types import Message
 from stfu_tg import Bold, Code, Doc, Section, Template, Title, VList
 
 from sophie_bot.constants import AI_EMOJI

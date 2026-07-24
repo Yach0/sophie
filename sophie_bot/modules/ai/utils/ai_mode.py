@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from aiogram.fsm.context import FSMContext
 from beanie import PydanticObjectId

@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable, Dict, Optional
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -37,10 +38,7 @@ class AiModeratorMiddleware(BaseMiddleware):
             KeyValue(_("Message author"), UserLink(message.from_user.id, message.from_user.first_name)),  # type: ignore
             Section(
                 VList(
-                    *(
-                        MODERATION_CATEGORIES_TRANSLATES[key] if key in MODERATION_CATEGORIES_TRANSLATES else key
-                        for key in triggered_categories.keys()
-                    ),
+                    *(MODERATION_CATEGORIES_TRANSLATES.get(key, key) for key in triggered_categories),
                     prefix="- " if len(triggered_categories) > 1 else "",
                 ),
                 title=pl_("Reason", "Reasons", len(triggered_categories)),
@@ -50,14 +48,14 @@ class AiModeratorMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
-        chat_db: Optional[ChatModel] = data.get("chat_db", None)
+        chat_db: ChatModel | None = data.get("chat_db", None)
         log.debug("AiModeratorMiddleware: checking moderator...")
 
-        capabilities: Optional[ModeCapabilities] = data.get("ai_capabilities")
+        capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
         if chat_db and chat_db.type != ChatType.private and capabilities and capabilities.moderator:
             if not isinstance(event, Message):

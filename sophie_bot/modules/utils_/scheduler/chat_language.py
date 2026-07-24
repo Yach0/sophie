@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import Optional
+from typing import Self
 
 from beanie import PydanticObjectId
 
@@ -15,7 +15,7 @@ class UseChatLanguage:
     def __init__(self, chat_iid: PydanticObjectId):
         self.chat_iid = chat_iid
 
-    async def __aenter__(self) -> "UseChatLanguage":
+    async def __aenter__(self) -> Self:
         chat_language = await get_chat_locale(self.chat_iid)
 
         self.ctx_token = i18n.ctx_locale.set(chat_language)
@@ -25,9 +25,9 @@ class UseChatLanguage:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         # Returning None (not True): restoring the locale must not decide whether the
         # caller's exception is worth seeing.

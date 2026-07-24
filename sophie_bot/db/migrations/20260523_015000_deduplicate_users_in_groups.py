@@ -36,8 +36,8 @@ def _reference_id(reference: Any) -> Any:
 
 def _deduplicate_sort_key(document: dict[str, Any]) -> tuple[datetime, datetime, Any]:
     return (
-        document.get("last_saw") or datetime.min,
-        document.get("first_saw") or datetime.min,
+        document.get("last_saw") or datetime.min,  # noqa: DTZ901  # sort sentinel compared against naive BSON datetimes
+        document.get("first_saw") or datetime.min,  # noqa: DTZ901  # sort sentinel compared against naive BSON datetimes
         document.get("_id"),
     )
 

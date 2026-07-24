@@ -1,7 +1,7 @@
-from typing import Any, Optional
+from typing import Any
 
 from ass_tg.entities import ArgEntities
-from ass_tg.exceptions import ArgStrictError, ArgSimpleTypeError
+from ass_tg.exceptions import ArgSimpleTypeError, ArgStrictError
 from ass_tg.types import TextArg
 from stfu_tg import Code, Template
 
@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class FedIdArg(TextArg):
     """Argument type for federation IDs with validation and lookup."""
 
-    def __init__(self, description: Optional[LazyProxy] = None):
+    def __init__(self, description: LazyProxy | None = None):
         super().__init__(description or l_("Federation ID"))
 
     def check(self, text: str, entities: ArgEntities) -> bool:
@@ -53,6 +53,6 @@ class FedIdArg(TextArg):
         return data.fed_id
 
     @property
-    def examples(self) -> Optional[dict[str, Optional[LazyProxy]]]:
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         example_id = "-".join(["x" * FEDERATION_ID_PART_LENGTH] * FEDERATION_ID_HYPHEN_COUNT)
         return {example_id: l_("Federation ID example")}

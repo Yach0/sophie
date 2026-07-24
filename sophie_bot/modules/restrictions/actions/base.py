@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, ClassVar, Generic, Optional, TypeVar
+from typing import Any, ClassVar
 
 from aiogram.types import CallbackQuery, Message
 from ass_tg.entities import ArgEntities
@@ -29,8 +29,6 @@ from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
-ACTION_DATA = TypeVar("ACTION_DATA", bound=BaseModel)
-
 
 def make_duration_setup_confirm(
     data_cls: type[Any],
@@ -38,7 +36,7 @@ def make_duration_setup_confirm(
 ) -> Any:
     async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> Any:
         if isinstance(event, CallbackQuery):
-            raise ValueError("This handlers setup_confirm can only be used with messages")
+            raise TypeError("This handlers setup_confirm can only be used with messages")
 
         raw_text = event.text or ""
 
@@ -71,7 +69,7 @@ def make_duration_setup_message(prompt_text: str) -> Any:
     return setup_message
 
 
-class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_DATA]):
+class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION_DATA]):
     skip_for_admins = True
 
     action_name: ClassVar[str | LazyProxy]
@@ -82,12 +80,12 @@ class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_D
 
     @staticmethod
     @abstractmethod
-    def get_duration(data: ACTION_DATA) -> Optional[timedelta]:
+    def get_duration(data: ACTION_DATA) -> timedelta | None:
         raise NotImplementedError
 
     @staticmethod
     @abstractmethod
-    def restriction_func(chat_tid: int, user_tid: int, until_date: Optional[timedelta] = None) -> Any:
+    def restriction_func(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> Any:
         raise NotImplementedError
 
     @classmethod
@@ -117,13 +115,13 @@ class BaseRestrictionModernAction(ModernActionABC[ACTION_DATA], Generic[ACTION_D
             ),
         }
 
-    async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Optional[Element]:
+    async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Element | None:
         if not message.from_user:
             return
 
         chat_id = message.chat.id
         locale: str = data["i18n"].current_locale
-        reason: Optional[str] = None
+        reason: str | None = None
 
         chat_db = data.get("chat_db")
         if chat_db:
