@@ -10,32 +10,28 @@ from pydantic_ai.models import Model
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.agent_tools.cmds_help import cmds_help_tool
+from sophie_bot.modules.ai.agent_tools.sophie_inspect import sophie_inspect_tool
+from sophie_bot.modules.ai.agent_tools.sophie_help import sophie_help_tool
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
-from sophie_bot.modules.ai.agent_tools.notes import (
-    delete_note_tool,
-    get_note_content_tool,
-    get_notes_tool,
-    save_note_tool,
-)
+from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_notes_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
+from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 
-BASE_CHATBOT_TOOLS: list[Any] = [
+CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
     forget_memory_tool,
-    cmds_help_tool,
+    sophie_help_tool,
     get_notes_tool,
     get_note_content_tool,
 ]
 
-OPTIONAL_CHATBOT_TOOLS: list[Any] = []
-
-CHATBOT_TOOLS: list[Any] = [*BASE_CHATBOT_TOOLS, *OPTIONAL_CHATBOT_TOOLS]
 _DEFAULT_CHATBOT_REQUEST_LIMIT = 4
 _DEFAULT_CHATBOT_TOOL_CALLS_LIMIT = 6
 
@@ -71,19 +67,26 @@ async def _get_search_tool(chat_tid: int) -> Any | None:
     return kagi_search_tool if CONFIG.kagi_api_key else None
 
 
-async def get_chatbot_tools(chat_tid: int) -> list[Any]:
-    memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=chat_tid)
+_MEMORY_TOOL_NAMES = frozenset({"write_memory", "forget_memory"})
+_NOTES_TOOL_NAMES = frozenset({"get_notes", "get_note_content"})
+
+
+async def get_chatbot_tools(chat_tid: int, capabilities: ModeCapabilities) -> list[Any]:
     tools = [
-        tool for tool in CHATBOT_TOOLS if not memories_to_notes or tool.name not in {"write_memory", "forget_memory"}
+        tool
+        for tool in CHATBOT_TOOLS
+        if (capabilities.memory or tool.name not in _MEMORY_TOOL_NAMES)
+        and (capabilities.notes_read or tool.name not in _NOTES_TOOL_NAMES)
     ]
     if search_tool := await _get_search_tool(chat_tid):
         tools.append(search_tool)
-    if memories_to_notes or await is_enabled("ai_agent_save_notes", chat_tid=chat_tid):
-        tools.append(save_note_tool)
-    if await is_enabled("ai_delete_notes", chat_tid=chat_tid):
-        tools.append(delete_note_tool)
     if await is_enabled("ai_research", chat_tid=chat_tid):
         tools.append(research_topic_tool)
+    # The kill switch first: it is off by default, so the chat allowlist is usually never read.
+    if await is_enabled("ai_sophie_inspect", chat_tid=chat_tid) and (
+        capabilities.sophie_inspect or await is_sophie_inspect_chat(chat_tid)
+    ):
+        tools.append(sophie_inspect_tool)
     return tools
 
 
@@ -131,12 +134,14 @@ async def build_chatbot_run_config(
     session_id: str | None = None,
     service_tier: str | None = None,
     use_base_tools: bool = False,
+    mode: AIMode = AIMode.support,
 ) -> ChatbotRunConfig:
-    tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(chat_tid)
+    tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(chat_tid, get_capabilities(mode))
     deps = SophieAIToolContext(
         connection=connection,
         chat_tid=chat_tid,
         chat_iid=connection.db_model.iid,
+        mode=mode,
         user_text=user_text,
         research_progress_callback=progress_callback,
         user_tid=user_tid,

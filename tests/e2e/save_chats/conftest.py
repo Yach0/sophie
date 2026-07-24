@@ -9,20 +9,7 @@ from unittest.mock import AsyncMock
 import pytest_asyncio
 from aiogram.types import Chat, ChatMember, ChatMemberUpdated, Message, Update, User
 
-from tests.utils.db_fixture import (
-    cleanup_beanie,
-    create_mock_mongo,
-    initialize_beanie,
-    patch_pymongo,
-)
-
-# Create mock client and patch pymongo BEFORE any Beanie/model imports
-_mock_mongo_client = create_mock_mongo()
-_save_chats_patcher = patch_pymongo(_mock_mongo_client)
-_save_chats_patcher.start()
-
-# Now import models after patching
-from sophie_bot.middlewares.save_chats import SaveChatsMiddleware  # noqa: E402
+from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 
 
 @pytest_asyncio.fixture
@@ -44,19 +31,6 @@ async def base_data() -> dict[str, Any]:
         "event_from_user": None,
         "event_chat": None,
     }
-
-
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def db_init():
-    """Initialize Beanie with mocked MongoDB for all tests in this directory."""
-    database = await initialize_beanie(_mock_mongo_client)
-
-    yield database
-
-    await cleanup_beanie()
-
-    # Cleanup: stop the pymongo mock
-    _save_chats_patcher.stop()
 
 
 class TestDataFactory:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from sophie_bot.db.models import AIEnabledModel, ChatModel, NoteModel
+from sophie_bot.db.models import ChatModel, NoteModel
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.notes.utils.semantic_search import update_note_embedding
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
@@ -23,7 +24,7 @@ class GenerateNoteEmbeddings:
         async for chat in ForChats():
             if not await is_enabled("notes_rag_embeddings", chat_tid=chat.tid):
                 continue
-            if not await AIEnabledModel.get_state(chat.id):
+            if not (await resolve_chat_capabilities(chat)).ai_enabled:
                 log.debug("notes_rag: AI features are not enabled, skipping", chat=chat.tid)
                 continue
             async with UseChatLanguage(chat.id):

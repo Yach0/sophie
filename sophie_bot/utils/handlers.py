@@ -17,7 +17,7 @@ from stfu_tg.doc import Element
 
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
+from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit, reply_or_edit_rich
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -26,6 +26,10 @@ T = TypeVar("T")
 
 
 class SophieBaseHandler(BaseHandler[T], BaseHandlerMixin[T], ABC):
+    async def answer_rich(self, doc: Element, **kwargs) -> Message | bool:
+        """Reply, or edit the message a button was pressed on, rendering the doc as a rich message."""
+        return await reply_or_edit_rich(cast(Message | CallbackQuery, self.event), doc, **kwargs)
+
     @property
     def connection(self) -> ChatConnection:
         return self.data["connection"]

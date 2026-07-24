@@ -1,27 +1,26 @@
 from __future__ import annotations
 
 import datetime
+from typing import Mapping
 
 from aiogram.types import Message
 from stfu_tg import Doc, HList, Section, Template, VList
 
+from sophie_bot.db.models.ai.ai_mode import AIMode
+
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 
 def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, *, tables_enabled: bool = False) -> Doc:
-    markdown_instruction = (
-        _("Prefer to use tables when comparing items")
-        if tables_enabled
-        else _(
-            "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
-        )
-    )
+    # Tables are the one element that does not survive the plain-HTML rendering path.
+    markdown_instruction = _("Prefer to use tables when comparing items") if tables_enabled else _("Do not use tables.")
     return Doc(
         system_prompt,
         markdown_instruction,
@@ -31,15 +30,13 @@ def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, 
     )
 
 
-async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
-    memories_to_notes = await is_enabled("ai_memories_to_notes", chat_tid=context.chat_tid)
+async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIMode) -> Doc:
+    capabilities = get_capabilities(mode)
     chat_name_enabled = await is_enabled("ai_chatbot_chat_name", chat_tid=context.chat_tid)
     context_doc = Doc(
-        _("You can also save important things to chat notes.")
-        if memories_to_notes
-        else _("You can also save important things to the memory."),
+        _("You can also save important things to the memory.") if capabilities.memory else None,
         _(
-            "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
+            "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
         ),
         Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
     )
@@ -101,7 +98,7 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
                 )
             context_doc += Section(VList(*rendered_related_notes), title=section_title)
 
-    if not memories_to_notes and (memory_lines := await AIMemoryModel.get_lines(context.chat_iid)):
+    if capabilities.memory and (memory_lines := await AIMemoryModel.get_lines(context.chat_iid)):
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         context_doc += Section(
             VList(*indexed_memory_lines), title=_("You have the following information in your memory")
@@ -110,13 +107,20 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext) -> Doc:
     return context_doc
 
 
+# Sophie-help exists to give the "chat with Sophie for help" button its own assistant, so it gets
+# its own system prompt instead of the general chatbot one.
+_SYSTEM_PROMPT_FLAG_BY_MODE: Mapping[AIMode, FeatureType] = {AIMode.sophie_help: "ai_help_system_prompt"}
+
+
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
-    system_prompt = str(await get_value("ai_chatbot_system_prompt", chat_tid=context.chat_tid))
+    mode = context.mode
+    prompt_flag = _SYSTEM_PROMPT_FLAG_BY_MODE.get(mode, "ai_chatbot_system_prompt")
+    system_prompt = str(await get_value(prompt_flag, chat_tid=context.chat_tid))
     tables_enabled = await is_enabled("ai_chatbot_tables", chat_tid=context.chat_tid)
     instruction_doc = _base_chatbot_instruction_doc(
         system_prompt, datetime.datetime.now(), tables_enabled=tables_enabled
     )
-    instruction_doc += await _build_chatbot_runtime_context(context)
+    instruction_doc += await _build_chatbot_runtime_context(context, mode)
     return instruction_doc.to_md()
 
 

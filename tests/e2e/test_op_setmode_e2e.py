@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from unittest.mock import patch
 
 import pytest
+from beanie import PydanticObjectId
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -12,22 +12,9 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.beta import BetaModeModel, PreferredMode
 
 
-@pytest.fixture(autouse=True)
-async def _reset_beta_modes(db_init: object) -> AsyncGenerator[None, None]:
-    await BetaModeModel.get_pymongo_collection().delete_many({})
-    yield
-    await BetaModeModel.get_pymongo_collection().delete_many({})
-
-
-async def _stored_preferred_mode(chat_iid: object) -> PreferredMode | None:
-    # Read the raw document rather than BetaModeModel.get_by_chat_iid: the mocked
-    # MongoDB (mongomock) stores the chat Link as a bson DBRef and cannot resolve
-    # the `chat.$id` subfield query that the helper relies on, even though it works
-    # against a real MongoDB.
-    raw = await BetaModeModel.get_pymongo_collection().find_one({})
-    if raw is None or raw["chat"].id != chat_iid:
-        return None
-    return PreferredMode(raw["preferred_mode"])
+async def _stored_preferred_mode(chat_iid: PydanticObjectId) -> PreferredMode | None:
+    stored = await BetaModeModel.get_by_chat_iid(chat_iid)
+    return stored.preferred_mode if stored else None
 
 
 async def _send_op_setmode(

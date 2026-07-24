@@ -3,13 +3,15 @@ from __future__ import annotations
 from beanie import Document
 
 from sophie_bot.db.models.ai import (
+    AICatalogModelModel,
+    AICatalogProviderModel,
     AIAutotranslateModel,
     AIChatSummaryLine as AIChatSummaryLine,
     AIChatSummaryModel,
-    AIEnabledModel,
     AIMemoryModel,
+    AIMode as AIMode,
+    AIModeModel,
     AIModeratorModel,
-    AIProviderModel,
     AIQuotaModel,
     AIUsageModel,
 )
@@ -65,7 +67,9 @@ models: list[type[Document]] = [
     NoteModel,
     BetaModeModel,
     GlobalSettings,
-    AIEnabledModel,
+    AIModeModel,
+    AICatalogModelModel,
+    AICatalogProviderModel,
     AIUsageModel,
     AIAutotranslateModel,
     AIModeratorModel,
@@ -80,7 +84,6 @@ models: list[type[Document]] = [
     WarnModel,
     FiltersModel,
     LocksModel,
-    AIProviderModel,
     AIQuotaModel,
     AntifloodModel,
     ApiTokenModel,
@@ -97,13 +100,15 @@ models: list[type[Document]] = [
 ]
 
 __all__ = [
+    "AICatalogModelModel",
+    "AICatalogProviderModel",
     "AIAutotranslateModel",
     "AIChatSummaryLine",
     "AIChatSummaryModel",
-    "AIEnabledModel",
     "AIMemoryModel",
+    "AIMode",
+    "AIModeModel",
     "AIModeratorModel",
-    "AIProviderModel",
     "AIQuotaModel",
     "AIUsageModel",
     "AntifloodModel",

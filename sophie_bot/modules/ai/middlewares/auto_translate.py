@@ -30,7 +30,8 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
             chat_db
             and chat_db.type != ChatType.private
             and await is_enabled("ai_translations", chat_tid=chat_db.tid)
-            and data.get("ai_enabled")
+            and (capabilities := data.get("ai_capabilities"))
+            and capabilities.ai_enabled
             and isinstance(event, Message)
             and await AIAutotranslateModel.get_state(chat_db.iid)
         ):

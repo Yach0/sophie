@@ -17,6 +17,7 @@ async def send_welcome(
     user: Optional[User] = None,
     send_to_chat_id: Optional[int] = None,
     additional_keyboard: InlineKeyboardMarkup | None = None,
+    receiver_user_id: int | None = None,
 ) -> Message | None:
     chat_id = send_to_chat_id or message.chat.id
 
@@ -34,4 +35,5 @@ async def send_welcome(
         additional_keyboard=additional_keyboard,
         user=user,
         message_thread_id=message.message_thread_id if send_to_chat_id is None else None,
+        receiver_user_id=receiver_user_id,
     )

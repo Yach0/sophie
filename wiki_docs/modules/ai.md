@@ -34,12 +34,10 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/enableai` `/aienable` | `<?New status>` | Controls AI features |  |
-| `/aimoderator` | `<?New status>` | Controls AI Moderator features |  |
+| `/aimode` | - | Select what the AI does in this chat |  |
 | `/aiautotranslate` `/autotranslate` | `<?New status>` | Controls AI Auto translator |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries |  |
 | `/ai_note_titles` | `<?New status>` | Controls AI note title generation |  |
 | `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
-| `/aiprovider` | - | Select the AI Provider for this chat |  |
 | `/aireset` | - | Reset the chat's AI context and AI memory |  |
 {.card-view-on-mobile}

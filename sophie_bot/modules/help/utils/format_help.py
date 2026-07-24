@@ -15,9 +15,9 @@ def format_cmd(cmd: str) -> Element:
 
 
 def format_cmd_args(arguments: dict[str, ArgFabric], as_code: bool = False) -> HList:
-    formatted_descriptions = (
-        Code(f"<{arg.description}>") if as_code else f"<{arg.description}>" for arg in arguments.values()
-    )
+    # An argument with no description has nothing to show: rendering it anyway printed "<None>".
+    described = [arg for arg in arguments.values() if arg.description]
+    formatted_descriptions = (Code(f"<{arg.description}>") if as_code else f"<{arg.description}>" for arg in described)
     return HList(*formatted_descriptions)
 
 
@@ -46,6 +46,22 @@ def format_handler(handler: HandlerHelp, show_only_in_groups: bool = True, show_
 
 def format_handlers(all_cmds: Sequence[HandlerHelp], **kwargs):
     return VList(*(format_handler(handler, **kwargs) for handler in all_cmds))
+
+
+def format_handler_item(handler: HandlerHelp, **kwargs) -> Element:
+    """One command as a single line, for use inside a list.
+
+    ``format_handler`` wraps the description in a Section, whose title becomes a heading in rich
+    rendering — a heading per command inside a list reads as a broken outline.
+    """
+    cmd_and_args = HList(
+        HList(*(format_cmd(cmd) for cmd in handler.cmds)),
+        format_cmd_args(handler.args) if handler.args else None,
+    )
+    if not handler.description:
+        return cmd_and_args
+
+    return Template("{cmd_and_args}: {description}", cmd_and_args=cmd_and_args, description=handler.description)
 
 
 def group_handlers(handlers: Sequence[HandlerHelp]) -> list[tuple[LazyProxy, list[HandlerHelp]]]:

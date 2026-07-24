@@ -28,7 +28,7 @@ Rollback:
 
 from beanie import free_fall_migration
 
-from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.services.db import get_collection
 
 OLD_PROVIDER = "zai"
 NEW_PROVIDER = "auto"
@@ -37,9 +37,9 @@ NEW_PROVIDER = "auto"
 class Forward:
     """Migrate zai provider entries to auto."""
 
-    @free_fall_migration(document_models=[AIProviderModel])
+    @free_fall_migration(document_models=[])
     async def migrate(self, session) -> None:
-        collection = AIProviderModel.get_pymongo_collection()
+        collection = get_collection("ai_provider")
         result = await collection.update_many(
             {"provider": OLD_PROVIDER},
             {"$set": {"provider": NEW_PROVIDER}},
@@ -51,6 +51,6 @@ class Forward:
 class Backward:
     """No rollback: chats moved to "auto" are indistinguishable from those already on it."""
 
-    @free_fall_migration(document_models=[AIProviderModel])
+    @free_fall_migration(document_models=[])
     async def noop(self, session) -> None:
         del session

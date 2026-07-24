@@ -8,9 +8,12 @@ from beanie import PydanticObjectId
 
 from sophie_bot.constants import AI_CREDITS_PER_TOKEN
 from sophie_bot.db.models import AIQuotaModel, AIUsageModel
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
+from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.utils.ai_features import AIFeature
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -35,6 +38,19 @@ class AIQuotaState:
     quota: AIQuotaModel
     usage: AIUsageModel | None
     month_key: str
+    boost_credits: int = 0
+
+    @property
+    def total_credits(self) -> int:
+        return self.quota.total_credits + self.boost_credits
+
+    @property
+    def used_credits(self) -> int:
+        return self.quota.used_credits_amount
+
+    @property
+    def remaining_credits(self) -> int:
+        return max(self.total_credits - self.used_credits, 0)
 
 
 def _current_period_start() -> date:
@@ -74,13 +90,31 @@ async def get_or_create_quota_model(chat_iid: PydanticObjectId) -> AIQuotaModel 
     return await _ensure_period(quota)
 
 
+async def get_entertainment_boost_credits(chat_iid: PydanticObjectId) -> int:
+    """Extra monthly credits granted while a chat is in entertainment mode.
+
+    Derived on every read instead of persisted, so turning ``ai_entertainment_boost`` off or
+    lowering ``ai_entertainment_monthly_credits`` takes effect immediately for chats already in it.
+    """
+    if not await is_enabled("ai_entertainment_boost"):
+        return 0
+    if await get_chat_mode(chat_iid, AIMode.disabled) != AIMode.entertainment:
+        return 0
+    return max(int(await get_value("ai_entertainment_monthly_credits")), 0)
+
+
 async def get_quota_state(chat_iid: PydanticObjectId) -> AIQuotaState | None:
     quota = await get_or_create_quota_model(chat_iid)
     if not quota:
         return None
 
     usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
-    return AIQuotaState(quota=quota, usage=usage, month_key=quota.period_start.strftime("%Y-%m"))
+    return AIQuotaState(
+        quota=quota,
+        usage=usage,
+        month_key=quota.period_start.strftime("%Y-%m"),
+        boost_credits=await get_entertainment_boost_credits(chat_iid),
+    )
 
 
 async def get_quota_info(chat_iid: PydanticObjectId) -> QuotaInfo | None:
@@ -89,21 +123,21 @@ async def get_quota_info(chat_iid: PydanticObjectId) -> QuotaInfo | None:
         return None
 
     return QuotaInfo(
-        total_credits=state.quota.total_credits,
-        used_credits=state.quota.used_credits_amount,
-        remaining_credits=state.quota.remaining_credits,
+        total_credits=state.total_credits,
+        used_credits=state.used_credits,
+        remaining_credits=state.remaining_credits,
         period_start=state.quota.period_start,
         period_end=_get_period_end(state.quota.period_start),
     )
 
 
 async def check_quota(chat_iid: PydanticObjectId) -> QuotaCheckResult:
-    quota = await get_or_create_quota_model(chat_iid)
-    if not quota:
+    state = await get_quota_state(chat_iid)
+    if not state:
         return QuotaCheckResult(allowed=False, remaining=0, exhausted=False)
 
-    if quota.remaining_credits > 0:
-        return QuotaCheckResult(allowed=True, remaining=quota.remaining_credits, exhausted=False)
+    if state.remaining_credits > 0:
+        return QuotaCheckResult(allowed=True, remaining=state.remaining_credits, exhausted=False)
 
     return QuotaCheckResult(allowed=False, remaining=0, exhausted=True)
 

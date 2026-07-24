@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-import pytest_asyncio
-from aiogram import Dispatcher, Router
+from aiogram import Router
 from aiogram.types import Chat, Message, MessageEntity, Update, User
 from aiogram.utils.text_decorations import HtmlDecoration
 from aiogram_test_framework import TestClient
@@ -17,6 +17,12 @@ from sophie_bot.modules.notes.utils.parse import parse_saveable
 E2E_PARSE_RAW_COMMAND = "e2e_parse_saveable_raw"
 E2E_PARSE_HTML_COMMAND = "e2e_parse_saveable_html"
 TEST_ROUTER = Router(name="parse_saveable_e2e_router")
+
+
+@pytest.fixture(autouse=True)
+def _register_test_router(extra_router: Callable[[Router], Router]) -> None:
+    """Attach the handlers below for the duration of each test, then detach them."""
+    extra_router(TEST_ROUTER)
 
 
 def _utf16_length(text: str) -> int:
@@ -141,17 +147,9 @@ async def e2e_parse_saveable_html_handler(message: Message) -> None:
     await message.reply(saveable.text or "<EMPTY>")
 
 
-@pytest_asyncio.fixture
-async def register_parse_saveable_router(test_dispatcher: Dispatcher) -> None:
-    if not getattr(test_dispatcher, "_parse_saveable_e2e_router_registered", False):
-        test_dispatcher.include_router(TEST_ROUTER)
-        setattr(test_dispatcher, "_parse_saveable_e2e_router_registered", True)
-
-
 @pytest.mark.asyncio
 async def test_parse_saveable_e2e_preserves_custom_emoji(
     test_client: TestClient,
-    register_parse_saveable_router: None,
 ) -> None:
     command_prefix = f"/{E2E_PARSE_RAW_COMMAND} "
     message_text = command_prefix + "Custom 🙂 emoji"
@@ -175,7 +173,6 @@ async def test_parse_saveable_e2e_preserves_custom_emoji(
 @pytest.mark.asyncio
 async def test_parse_saveable_e2e_preserves_html_bold_italic_and_link(
     test_client: TestClient,
-    register_parse_saveable_router: None,
 ) -> None:
     command_prefix = f"/{E2E_PARSE_HTML_COMMAND} "
     content_text = "Bold Italic Link"
@@ -211,7 +208,6 @@ async def test_parse_saveable_e2e_preserves_html_bold_italic_and_link(
 @pytest.mark.asyncio
 async def test_parse_saveable_e2e_preserves_combined_custom_emoji_and_html(
     test_client: TestClient,
-    register_parse_saveable_router: None,
 ) -> None:
     command_prefix = f"/{E2E_PARSE_HTML_COMMAND} "
     content_text = "Hi 🙂 bold"
@@ -244,7 +240,6 @@ async def test_parse_saveable_e2e_preserves_combined_custom_emoji_and_html(
 @pytest.mark.asyncio
 async def test_parse_saveable_e2e_plain_text_stays_plain(
     test_client: TestClient,
-    register_parse_saveable_router: None,
 ) -> None:
     command_prefix = f"/{E2E_PARSE_RAW_COMMAND} "
     content_text = "simple plain text"

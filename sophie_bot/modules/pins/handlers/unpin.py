@@ -11,7 +11,7 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Unpins message"))
+@flags.help(description=l_("Unpins the replied message, or every pinned message with all"))
 class UnpinHandler(SophieMessageHandler):
     @staticmethod
     def filters():
@@ -24,7 +24,7 @@ class UnpinHandler(SophieMessageHandler):
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict):
         return {
-            "all": OptionalArg(EqualsArg("all")),
+            "all": OptionalArg(EqualsArg("all", l_("all"))),
         }
 
     async def handle(self):

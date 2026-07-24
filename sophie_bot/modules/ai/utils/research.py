@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 from random import choice
@@ -41,7 +41,8 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
-from sophie_bot.modules.ai.utils.ai_model_factory import get_research_model
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
@@ -325,7 +326,9 @@ async def run_research_workflow(
 
     chat_tid = connection.tid
     settings = await get_research_settings(chat_tid)
-    model = await get_research_model(chat_tid)
+    service_tier = await resolve_chat_service_tier(AIModelPurpose.research, connection.db_model.iid, chat_tid)
+    settings = replace(settings, service_tier=service_tier)
+    model = await get_chat_research_model(connection.db_model.iid, chat_tid)
     if progress_callback is not None:
         await progress_callback("planning")
     query_plan = await _generate_initial_queries(prompt, connection, model, settings)

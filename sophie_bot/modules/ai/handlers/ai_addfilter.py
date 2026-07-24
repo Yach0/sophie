@@ -13,14 +13,14 @@ from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestion,
     AIFilterSuggestionsResponse,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.shared.lock_constants import (
@@ -187,7 +187,7 @@ class AIFilterAddHandler(SophieMessageHandler):
             FeatureFlagFilter("ai_filters"),
             ChatTypeFilter("group", "supergroup"),
             UserRestricting(admin=True),
-            AIEnabledFilter(),
+            AICapabilityFilter(),
             AIQuotaFilter(AI_FEATURE_FILTER),
         )
 

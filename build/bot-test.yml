@@ -61,7 +61,7 @@ test-unit:
 test-e2e:
   extends: .test-base
   script:
-    - uv run pytest tests/e2e -v --alluredir=allure_results/e2e
+    - uv run pytest tests/e2e -v -n auto --alluredir=allure_results/e2e
   artifacts:
     when: always
     paths:

@@ -4,11 +4,14 @@ This directory contains end-to-end tests for Sophie Bot using [aiogram-test-fram
 
 ## Overview
 
-These tests simulate real user interactions with the bot in a fully mocked environment:
+These tests drive real user interactions through the real handlers and middlewares. Only the
+world outside the bot is mocked:
 
-- **MongoDB**: Mocked using [mongomock](https://github.com/mongomock/mongomock) with a custom async wrapper
-- **Redis**: Mocked using [fakeredis](https://github.com/cunla/fakeredis)
-- **Telegram API**: Mocked using aiogram-test-framework's MockBot
+- **MongoDB**: [mongomock](https://github.com/mongomock/mongomock) behind a custom async wrapper
+- **Redis**: [fakeredis](https://github.com/cunla/fakeredis)
+- **Telegram API**: aiogram-test-framework's `MockBot`, which records every outgoing request
+
+The bot's own logic — permission checks, persistence, i18n, argument parsing — runs unmocked.
 
 ## Running Tests
 
@@ -22,71 +25,62 @@ TESTING=1 uv run pytest tests/ -v
 
 ## Architecture
 
-### Mock MongoDB (`tests/utils/mongo_mock.py`)
+### One database, reset per test
 
-Since mongomock doesn't natively support PyMongo's async interface (AsyncMongoClient), we use a workaround from [mongomock issue #916](https://github.com/mongomock/mongomock/issues/916):
+`pymongo.AsyncMongoClient` is patched to a single process-wide `AsyncMongoMockClient`
+(`tests/utils/mongo_mock.py`, wired up in `tests/utils/db_fixture.py`). Beanie is initialised
+once against it. The `clean_db` autouse fixture truncates every collection after each test, so
+tests start empty and never inherit each other's state — no hand-picked "globally unique" IDs.
 
-- `AsyncMongoMockClient`: Wraps mongomock's synchronous client
-- `AsyncDatabaseMock`: Async wrapper for database operations
-- `AsyncCollectionMock`: Async wrapper for collection operations
-- `AsyncCursorMock`: Async wrapper for cursor operations
+### Fixtures (`tests/e2e/conftest.py`)
 
-These wrappers run synchronous mongomock operations in an executor to provide async compatibility for Beanie 2.0.
+- `db_init` — Beanie initialised against the mock client (session scope)
+- `test_dispatcher` — a `Dispatcher` with all modules and middlewares loaded (session scope)
+- `test_client` — an aiogram-test-framework `TestClient`; its `capture` records outgoing requests
+- `clean_db` — autouse, empties the DB and FSM Redis after each test
+- `extra_router` — attach a test-only router for one test; it is detached on teardown
 
-### Test Fixtures (`tests/e2e/conftest.py`)
+Because handlers reach the bot and dispatcher through the `sophie_bot.services.bot` runtime
+proxies, and the `test_client` fixture points those proxies at the mock, tests never need to
+monkeypatch per-module `bot`/`dp` references.
 
-- `mock_mongo`: Provides the mocked MongoDB client
-- `db_init`: Initializes Beanie with all models using the mocked database
-- `test_dispatcher`: Creates a Dispatcher with all modules and middlewares loaded
-- `test_client`: Provides an aiogram-test-framework TestClient for simulating user interactions
+### Helpers (`tests/e2e/helpers.py`)
+
+- `create_test_user_and_group(...)` — allocate IDs, register a user + group, return the models
+- `next_user_id()` / `next_group_id()` — collision-free ID allocation
+- `grant_admin(chat_tid, user_tid, ...)` / `grant_bot_admin(chat_tid, ...)` — write real
+  `ChatAdminModel` state so admin-gated handlers pass without patching the permission check
+
+### What to assert on
+
+1. **Captured Telegram calls** — `test_client.capture.get_by_type(RequestType.BAN_CHAT_MEMBER)`
+   and friends. This is how the restriction tests verify the bot actually banned/muted someone,
+   instead of mocking the action helper.
+2. **Database state** — read back the Beanie model the handler should have written.
+3. **Reply text** — a secondary check; keep it, but don't rely on it alone.
 
 ### Example Test
 
 ```python
-@pytest.mark.asyncio
-async def test_start_command_creates_chat(test_client: TestClient) -> None:
-    # Create a mock user
-    user_id = 123456789
-    user = test_client.create_user(user_id=user_id, first_name="Test", username="testuser")
+async def test_ban_calls_telegram(test_client: TestClient) -> None:
+    admin, group, _ = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    await grant_bot_admin(group.id)
+    target = next_user_id()
 
-    # Send /start command
-    await user.send_command("start")
+    requests = await test_client.send_command(command="ban", from_user=admin, args=str(target), chat=group)
 
-    # Verify the bot responded
-    last_message = user.get_last_message()
-    assert last_message is not None
-    assert "Sophie" in last_message.text
-
-    # Verify database state
-    chat = await ChatModel.find_one(ChatModel.tid == user_id)
-    assert chat is not None
+    banned = test_client.capture.get_by_type(RequestType.BAN_CHAT_MEMBER)
+    assert banned and banned[0].params["user_id"] == target
 ```
 
 ## CI Integration
 
-E2E tests run in GitLab CI in a separate stage (`e2e`) that:
-- Runs in parallel with the build stage
-- Doesn't block deployment (uses `allow_failure: true`)
-- Runs on every commit and merge request
-
-See `.gitlab-ci.yml` and `build/e2e-test.yml` for configuration.
-
-## Limitations
-
-- **Group chats**: aiogram-test-framework primarily supports private chat testing. Group chat scenarios would require manual message construction.
-- **AI features**: Tests skip AI-related functionality as requested.
-- **External services**: Any external API calls need to be mocked separately.
+E2E tests run in GitLab CI in the `test-e2e` job (see `build/bot-test.yml`).
 
 ## Adding New Tests
 
-1. Create a new test file in `tests/e2e/`
-2. Use the `test_client` fixture to interact with the bot
-3. Use `test_client.create_user()` to create test users
-4. Use user methods like `send_command()`, `send_message()` to simulate interactions
-5. Assert on `user.get_last_message()` or check database state using Beanie models
-
-## Troubleshooting
-
-If you see `AttributeError: tid` or similar Beanie model errors, it means Beanie hasn't been initialized. Make sure:
-1. The `db_init` fixture runs before your test
-2. The test file imports from `tests.e2e.conftest` (pytest should handle this automatically)
+1. Create a file in `tests/e2e/`
+2. Build state with `create_test_user_and_group` and `grant_admin`, not raw literals
+3. Drive the flow with `send_command` / `send_message` / `send_callback`
+4. Assert on captured requests and DB state (see "What to assert on")

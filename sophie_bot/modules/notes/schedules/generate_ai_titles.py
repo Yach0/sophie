@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from beanie import PydanticObjectId
 
-from sophie_bot.db.models import AIEnabledModel, BetaModeModel, ChatModel, NoteModel
+from sophie_bot.db.models import BetaModeModel, ChatModel, NoteModel
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.db.models.beta import CurrentMode
 from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateNoteData
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
@@ -80,7 +81,7 @@ class GenerateAITitles:
                 log.debug("generate_ai_titles: feature flag disabled, skipping...", chat=chat.tid)
                 continue
 
-            if not await AIEnabledModel.get_state(chat.id):
+            if not (await resolve_chat_capabilities(chat)).ai_enabled:
                 log.debug("generate_ai_titles: AI features are not enabled, skipping...", chat=chat.tid)
                 continue
 

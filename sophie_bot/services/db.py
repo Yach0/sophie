@@ -10,6 +10,16 @@ async_mongo: AsyncMongoClient = AsyncMongoClient(CONFIG.mongo_host, CONFIG.mongo
 db = async_mongo[CONFIG.mongo_db]
 
 
+def get_collection(name: str):
+    """Collection handle resolved at call time.
+
+    Migrations that touch collections with no Document model use this: unlike the module-level
+    ``db``, it goes through whatever client ``async_mongo`` currently points at, which is what
+    tests patch.
+    """
+    return async_mongo[CONFIG.mongo_db][name]
+
+
 async def init_db(skip_indexes: Optional[bool] = None):
     """Initialize Beanie and register migration tracking."""
     if skip_indexes is None:

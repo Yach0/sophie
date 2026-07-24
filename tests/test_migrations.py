@@ -8,7 +8,7 @@ from types import ModuleType
 import pytest
 from bson import DBRef, ObjectId
 
-from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.services.db import get_collection
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.disabling import DisablingModel
@@ -468,21 +468,21 @@ async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone() -> N
     version: `already_auto` comes back as "zai".
     """
     migration = _zai_provider_migration()
-    chat = await _seed_chat(-1001)
+    providers = get_collection("ai_provider")
 
-    migrated = await AIProviderModel(chat=chat, provider="zai").insert()
-    already_auto = await AIProviderModel(chat=chat, provider="auto").insert()
+    migrated_id = (await providers.insert_one({"provider": "zai"})).inserted_id
+    already_auto_id = (await providers.insert_one({"provider": "auto"})).inserted_id
 
     await migration.Forward.migrate.run(None)
 
-    assert (await AIProviderModel.get(migrated.id)).provider == "auto"
+    assert (await providers.find_one({"_id": migrated_id}))["provider"] == "auto"
 
     await migration.Backward.noop.run(None)
 
     # The whole bug: this chat was never "zai" and must never become "zai".
-    assert (await AIProviderModel.get(already_auto.id)).provider == "auto"
+    assert (await providers.find_one({"_id": already_auto_id}))["provider"] == "auto"
     # Forward's own set is not restorable either -- it is now indistinguishable from the above.
-    assert (await AIProviderModel.get(migrated.id)).provider == "auto"
+    assert (await providers.find_one({"_id": migrated_id}))["provider"] == "auto"
 
 
 @pytest.mark.usefixtures("db_init")
@@ -494,19 +494,19 @@ async def test_summary_model_gpt55_backward_leaves_pre_existing_new_model_alone(
     this test fails against that version.
     """
     migration = _summary_model_gpt55_migration()
-    chat = await _seed_chat(-1001)
+    providers = get_collection("ai_provider")
 
-    migrated = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.4").insert()
-    already_new = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.5").insert()
+    migrated_id = (await providers.insert_one({"summary_model": "openai/gpt-5.4"})).inserted_id
+    already_new_id = (await providers.insert_one({"summary_model": "openai/gpt-5.5"})).inserted_id
 
     await migration.Forward.migrate.run(None)
 
-    assert (await AIProviderModel.get(migrated.id)).summary_model == "openai/gpt-5.5"
+    assert (await providers.find_one({"_id": migrated_id}))["summary_model"] == "openai/gpt-5.5"
 
     await migration.Backward.noop.run(None)
 
-    assert (await AIProviderModel.get(already_new.id)).summary_model == "openai/gpt-5.5"
-    assert (await AIProviderModel.get(migrated.id)).summary_model == "openai/gpt-5.5"
+    assert (await providers.find_one({"_id": already_new_id}))["summary_model"] == "openai/gpt-5.5"
+    assert (await providers.find_one({"_id": migrated_id}))["summary_model"] == "openai/gpt-5.5"
 
 
 @pytest.mark.usefixtures("db_init")
@@ -652,14 +652,13 @@ async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice() -> 
     test fails.
     """
     migration = importlib.import_module("sophie_bot.db.migrations.20260504_210000_add_ai_summary_model")
-    chat = await _seed_chat(-1106)
-    collection = AIProviderModel.get_pymongo_collection()
+    collection = get_collection("ai_provider")
 
-    chosen = await AIProviderModel(chat=chat, summary_model="openai/gpt-5.4").insert()
+    chosen_id = (await collection.insert_one({"summary_model": "openai/gpt-5.4"})).inserted_id
 
     await migration.Backward.noop.run(None)
 
-    stored = await collection.find_one({"_id": chosen.id})
+    stored = await collection.find_one({"_id": chosen_id})
     assert stored["summary_model"] == "openai/gpt-5.4"
 
 
@@ -714,3 +713,230 @@ async def test_relink_legacy_note_users_relinks_edited_user() -> None:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+async def _reset_collections(*names: str) -> None:
+    """db_init is session-scoped, so collections carry over between tests."""
+    for name in names:
+        await get_collection(name).delete_many({})
+
+
+def _ai_mode_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_140000_migrate_ai_settings_to_mode")
+
+
+def _ai_catalog_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_150000_seed_ai_catalog")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_ai_settings_to_mode_derives_one_mode_per_chat() -> None:
+    """A chat's old enabled/moderator pair decides its mode; chats with neither stay disabled."""
+    migration = _ai_mode_migration()
+    enabled, moderator, modes = (
+        get_collection("ai_enabled"),
+        get_collection("ai_moderator"),
+        get_collection("ai_mode"),
+    )
+    await _reset_collections("ai_enabled", "ai_moderator", "ai_mode")
+    plain_chat, moderated_chat, off_chat = ObjectId(), ObjectId(), ObjectId()
+
+    await enabled.insert_many([{"chat": plain_chat}, {"chat": moderated_chat}])
+    await moderator.insert_many([{"chat": moderated_chat, "enabled": True}, {"chat": off_chat, "enabled": True}])
+
+    await migration.Forward.migrate.run(None)
+
+    stored = {document["chat"]: document["mode"] async for document in modes.find({})}
+    assert stored == {plain_chat: "support", moderated_chat: "moderation"}
+    # A chat that had the moderator configured but AI switched off must not gain AI features.
+    assert off_chat not in stored
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_ai_settings_to_mode_backward_restores_only_enabled_chats() -> None:
+    migration = _ai_mode_migration()
+    modes, enabled = get_collection("ai_mode"), get_collection("ai_enabled")
+    await _reset_collections("ai_enabled", "ai_mode")
+    support_chat, disabled_chat = ObjectId(), ObjectId()
+
+    await modes.insert_many([{"chat": support_chat, "mode": "support"}, {"chat": disabled_chat, "mode": "disabled"}])
+
+    await migration.Backward.migrate.run(None)
+
+    restored = [document["chat"] async for document in enabled.find({})]
+    assert restored == [support_chat]
+    assert await modes.count_documents({}) == 0
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_seed_ai_catalog_is_idempotent_and_keeps_operator_edits() -> None:
+    """Re-running the seed must not duplicate entries nor overwrite a rotated key."""
+    migration = _ai_catalog_migration()
+    providers, models = get_collection("ai_catalog_provider"), get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_provider", "ai_catalog_model")
+
+    await migration.Forward.migrate.run(None)
+
+    seeded_models = await models.count_documents({})
+    assert seeded_models == len(migration._MODELS)
+    assert await providers.count_documents({"name": "openrouter"}) == 1
+
+    await providers.update_one({"name": "openrouter"}, {"$set": {"api_key": "rotated-by-operator"}})
+    await migration.Forward.migrate.run(None)
+
+    assert await models.count_documents({}) == seeded_models
+    assert (await providers.find_one({"name": "openrouter"}))["api_key"] == "rotated-by-operator"
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_seeded_catalog_covers_every_purpose_every_mode_falls_back_to() -> None:
+    """The support tier answers for any mode with no model of its own, so it must be complete."""
+    migration = _ai_catalog_migration()
+
+    roles = {(role["mode"], role["purpose"]) for model in migration._MODELS for role in model["roles"]}
+
+    assert {"chatbot", "translation", "filters"} <= {purpose for mode, purpose in roles if mode == "support"}
+    assert {"summary", "moderation_reason"} <= {purpose for mode, purpose in roles if mode is None}
+
+
+def _sophie_inspect_model_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_160000_add_deep_help_model")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_sophie_inspect_model_role_is_added_without_disturbing_an_existing_entry() -> None:
+    migration = _sophie_inspect_model_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+
+    await models.insert_one(
+        {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [{"mode": "support", "purpose": "chatbot"}]}
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert {"mode": "support", "purpose": "chatbot"} in stored["roles"]
+    assert migration._ROLE in stored["roles"]
+
+    await migration.Backward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    # Backward drops only its own role: the model may serve other purposes by now.
+    assert stored["roles"] == [{"mode": "support", "purpose": "chatbot"}]
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_sophie_inspect_migration_replaces_the_role_it_used_to_write() -> None:
+    """It shipped once under the tool's old name; a database that ran it then must converge."""
+    migration = _sophie_inspect_model_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+
+    await models.insert_one(
+        {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [migration._LEGACY_ROLE]}
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert stored["roles"] == [migration._ROLE]
+
+
+def _rename_deep_help_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_170000_rename_deep_help_role")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_rename_deep_help_role_converges_a_stale_catalog() -> None:
+    """A database that ran the seed before the tool was renamed holds a role the enum now rejects."""
+    migration = _rename_deep_help_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+
+    await models.insert_many(
+        [
+            {"name": "a/model", "provider": "openrouter", "roles": [{"mode": None, "purpose": "deep_help"}]},
+            {
+                "name": "b/model",
+                "provider": "openrouter",
+                "roles": [{"mode": "support", "purpose": "chatbot"}, {"mode": None, "purpose": "deep_help"}],
+            },
+            {"name": "c/model", "provider": "openrouter", "roles": [{"mode": None, "purpose": "summary"}]},
+        ]
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    a = await models.find_one({"name": "a/model"})
+    b = await models.find_one({"name": "b/model"})
+    c = await models.find_one({"name": "c/model"})
+    assert a["roles"] == [{"mode": None, "purpose": "sophie_inspect"}]
+    # Only the deep_help role is touched; the other role on the same model is left alone.
+    assert {"mode": "support", "purpose": "chatbot"} in b["roles"]
+    assert {"mode": None, "purpose": "sophie_inspect"} in b["roles"]
+    # A model without a deep_help role is not rewritten.
+    assert c["roles"] == [{"mode": None, "purpose": "summary"}]
+
+
+def _seed_research_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_180000_seed_research_role")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_seed_research_role_adds_an_any_mode_research_role() -> None:
+    migration = _seed_research_migration()
+    models = get_collection("ai_catalog_model")
+    await _reset_collections("ai_catalog_model")
+    await models.insert_one(
+        {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [{"mode": None, "purpose": "summary"}]}
+    )
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert migration._ROLE in stored["roles"]
+    # The existing role is left alone.
+    assert {"mode": None, "purpose": "summary"} in stored["roles"]
+
+    await migration.Backward.migrate.run(None)
+    stored = await models.find_one({"name": migration._MODEL_NAME})
+    assert migration._ROLE not in stored["roles"]
+
+
+def _expand_wildcard_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260723_190000_expand_wildcard_roles")
+
+
+def test_expand_wildcard_roles_fans_a_global_role_across_allowed_modes() -> None:
+    expand = _expand_wildcard_migration()._expand_roles
+
+    roles = expand([{"mode": None, "purpose": "summary", "service_tier": "flex"}])
+    keys = {(role["mode"], role["purpose"]) for role in roles}
+
+    # summary reaches the modes that allow it, carrying its settings, and no others.
+    assert ("entertainment", "summary") in keys
+    assert ("support", "summary") in keys
+    assert ("moderation", "summary") not in keys
+    assert all(role["service_tier"] == "flex" for role in roles)
+
+
+def test_expand_wildcard_roles_mirrors_support_onto_the_private_modes() -> None:
+    expand = _expand_wildcard_migration()._expand_roles
+
+    keys = {(role["mode"], role["purpose"]) for role in expand([{"mode": "support", "purpose": "chatbot"}])}
+
+    # The private-chat modes borrow support's chatbot, since they had no role of their own.
+    assert ("sophie_pm", "chatbot") in keys
+    assert ("sophie_help", "chatbot") in keys
+
+
+def test_expand_wildcard_roles_is_idempotent() -> None:
+    expand = _expand_wildcard_migration()._expand_roles
+
+    once = expand([{"mode": None, "purpose": "sophie_inspect"}])
+    twice = expand(once)
+
+    assert {(role["mode"], role["purpose"]) for role in once} == {(role["mode"], role["purpose"]) for role in twice}
+    # Only the help mode may inspect, so the single global role lands on exactly one mode.
+    assert once == [{"mode": "sophie_help", "purpose": "sophie_inspect"}]

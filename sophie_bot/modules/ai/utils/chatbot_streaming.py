@@ -6,7 +6,6 @@ from enum import Enum
 from random import choice
 from typing import Any
 
-from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InputRichMessage, Message, ReplyParameters
 from pydantic_ai.models import Model
@@ -20,7 +19,6 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     random_ai_thinking_text,
 )
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc
-from sophie_bot.modules.ai.utils.draft_stream import DEFAULT_DRAFT_MAX_TEXT_LENGTH
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
@@ -34,7 +32,8 @@ ToolCallCallback = Callable[[str], Awaitable[None]]
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
-_MAX_STREAM_TEXT_LENGTH = DEFAULT_DRAFT_MAX_TEXT_LENGTH - 128
+# Telegram's message limit, less room for the header and the credit indicator.
+_MAX_STREAM_TEXT_LENGTH = 4096 - 128
 _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
     "tavily_search": (
         _("Searching the web..."),
@@ -54,9 +53,13 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
         _("Removing from memory..."),
         _("Forgetting..."),
     ),
-    "cmds_help": (
-        _("Checking command help..."),
-        _("Looking up commands..."),
+    "sophie_help": (
+        _("Checking the documentation..."),
+        _("Looking up how Sophie works..."),
+    ),
+    "sophie_inspect": (
+        _("Digging through my own sources..."),
+        _("Reading my own code..."),
     ),
     "get_notes": (
         _("Scanning notes..."),
@@ -82,7 +85,6 @@ class StreamMode(Enum):
     THINKING_ONLY = "thinking_only"  # title bar only, no streaming updates
     HTML_EDIT = "html_edit"  # group + streaming: HTML reply → edit in place
     RICH_EDIT = "rich_edit"  # group + rich_streaming: rich send → editMessageText(rich_message=)
-    RICH_DRAFT = "rich_draft"  # private + rich_streaming: sendRichMessageDraft → sendRichMessage
 
 
 def _thinking_header_element(emoji_id: str | None = None) -> Element:
@@ -131,8 +133,6 @@ class ChatbotMessageStreamer:
 
     async def send_thinking_message(self) -> None:
         match self.mode:
-            case StreamMode.RICH_DRAFT:
-                await self._send_rich_draft(Doc(self.header))
             case StreamMode.RICH_EDIT:
                 self.response_message = await self._send_rich_reply(Doc(self.header))
             case _:
@@ -191,9 +191,6 @@ class ChatbotMessageStreamer:
         await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), text, suffix, divider=" "))
 
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
-        if self.mode == StreamMode.RICH_DRAFT:
-            return await self._send_rich_reply(doc, **reply_kwargs)
-
         if self.response_message is None:
             return await self.source_message.reply(
                 doc.to_html(),
@@ -243,8 +240,6 @@ class ChatbotMessageStreamer:
         )
 
         match self.mode:
-            case StreamMode.RICH_DRAFT:
-                await self._send_rich_draft(Doc(self.header))
             case StreamMode.RICH_EDIT if self.response_message is not None:
                 try:
                     await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
@@ -267,8 +262,6 @@ class ChatbotMessageStreamer:
         """Dispatch a streaming update for the current mode. Returns False if the mode should stop."""
         try:
             match self.mode:
-                case StreamMode.RICH_DRAFT:
-                    await self._send_rich_draft(doc)
                 case StreamMode.RICH_EDIT if self.response_message is not None:
                     await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
                         chat_id=self.response_message.chat.id,
@@ -291,14 +284,6 @@ class ChatbotMessageStreamer:
             return True
         except TelegramAPIError:
             return False
-
-    async def _send_rich_draft(self, doc: Doc) -> None:
-        await self.source_message.bot.send_rich_message_draft(  # ty: ignore[unresolved-attribute]
-            chat_id=self.source_message.chat.id,
-            draft_id=self.source_message.message_id,
-            rich_message=InputRichMessage(html=doc.to_rich()),
-            message_thread_id=self.source_message.message_thread_id,
-        )
 
     async def _send_rich_reply(self, doc: Doc, **reply_kwargs: Any) -> Message:
         try:
@@ -323,16 +308,15 @@ async def build_message_streamer(
     model: Model,
     explicit_debug_mode: bool,
 ) -> ChatbotMessageStreamer | None:
-    if explicit_debug_mode or message.chat.type == ChatType.PRIVATE:
+    if explicit_debug_mode:
         return None
 
     thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id)
     streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id)
     rich_streaming_enabled = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id)
 
-    is_private = message.chat.type == ChatType.PRIVATE
     if rich_streaming_enabled:
-        mode = StreamMode.RICH_DRAFT if is_private else StreamMode.RICH_EDIT
+        mode = StreamMode.RICH_EDIT
     elif streaming_enabled:
         mode = StreamMode.HTML_EDIT
     elif thinking_enabled:

@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 # Mock PyICU if not available (required by normality but needs system-level ICU libs)
@@ -25,27 +25,15 @@ if "icu" not in sys.modules:
 import mistralai.client.httpclient
 import mistralai.client.sdk
 import pytest
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.client.session.aiohttp import AiohttpSession
-from aiogram.fsm.storage.base import DefaultKeyBuilder
-from aiogram.fsm.storage.memory import SimpleEventIsolation
-from aiogram.fsm.storage.redis import RedisStorage
-from aiogram_test_framework import TestClient
-from fakeredis import FakeAsyncRedis
 
 from sophie_bot.config import CONFIG
-from sophie_bot.modules import load_modules
 from sophie_bot.utils.i18n import I18nNew
 from tests.utils.db_fixture import (
+    MOCK_MONGO,
     cleanup_beanie,
-    create_mock_mongo,
     initialize_beanie,
+    stop_mongo_patch,
 )
-
-if TYPE_CHECKING:
-    pass
-
 
 # Set testing environment
 os.environ["TESTING"] = "1"
@@ -108,19 +96,17 @@ def i18n_context() -> Any:
 
 @pytest.fixture(scope="session")
 async def mock_mongo() -> AsyncGenerator[Any, None]:
-    """Create a mocked MongoDB client for e2e tests.
+    """Expose the process-wide mocked MongoDB client.
 
-    This fixture patches pymongo.AsyncMongoClient to use our AsyncMongoMockClient
-    which wraps mongomock and provides async compatibility for Beanie 2.0.
+    ``pymongo.AsyncMongoClient`` is already patched to return it by importing
+    ``tests.utils.db_fixture``; ``sophie_bot.services.db.async_mongo`` still needs
+    redirecting because it captured a client at import time.
     """
-    mock_client = create_mock_mongo()
+    with patch("sophie_bot.services.db.async_mongo", MOCK_MONGO):
+        yield MOCK_MONGO
 
-    # Patch AsyncMongoClient at the module level
-    with patch("pymongo.AsyncMongoClient", return_value=mock_client):
-        with patch("sophie_bot.services.db.async_mongo", mock_client):
-            yield mock_client
-
-    await mock_client.aclose()
+    stop_mongo_patch()
+    await MOCK_MONGO.aclose()
 
 
 @pytest.fixture(scope="session")
@@ -134,62 +120,6 @@ async def db_init(mock_mongo: Any) -> AsyncGenerator[Any, None]:
     yield database
 
     await cleanup_beanie()
-
-
-@pytest.fixture(scope="session")
-async def test_dispatcher() -> AsyncGenerator[Dispatcher, None]:
-    """Create a test dispatcher with all modules loaded.
-
-    This fixture creates a fresh Dispatcher and loads all Sophie modules
-    for end-to-end testing.
-    """
-    # Create fake redis for FSM storage
-    fake_redis = FakeAsyncRedis(
-        decode_responses=False,
-        single_connection_client=True,
-    )
-
-    storage = RedisStorage(redis=fake_redis, key_builder=DefaultKeyBuilder(prefix="test_fsm"))
-
-    # Create dispatcher with memory isolation for tests
-    dp = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
-
-    # Load all modules
-    await load_modules(
-        dp,
-        to_load=CONFIG.modules_load,
-        to_not_load=CONFIG.modules_not_load,
-    )
-
-    yield dp
-
-    # Cleanup
-    await storage.close()
-    await fake_redis.close()
-
-
-@pytest.fixture
-async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient, None]:
-    """Create a test client for aiogram testing.
-
-    This fixture provides a TestClient from aiogram-test-framework
-    that can be used to simulate user interactions with the bot.
-    """
-    # Create bot with test token
-    bot = Bot(
-        token=CONFIG.token,
-        default=DefaultBotProperties(parse_mode="html"),
-        session=AiohttpSession(),
-    )
-
-    # Create test client
-    client = TestClient(bot=bot, dispatcher=test_dispatcher)
-
-    yield client
-
-    # Cleanup
-    await client.close()
-    await bot.session.close()
 
 
 @pytest.fixture(autouse=True)

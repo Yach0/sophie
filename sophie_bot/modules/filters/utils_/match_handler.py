@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from aiogram.types import Message
+from beanie import PydanticObjectId
 from normality import normalize
 from pydantic_ai.messages import BinaryContent
 from pydantic_ai.models.openrouter import OpenRouterModelSettings
@@ -11,7 +12,8 @@ from stfu_tg import Template
 
 from sophie_bot.constants import AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.chat import UserInGroupModel
-from sophie_bot.modules.ai.utils.ai_models import get_filter_handler_model
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_filters_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
@@ -19,7 +21,7 @@ from sophie_bot.modules.filters.utils_.extract_content import extract_message_co
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value, is_enabled
+from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -134,10 +136,16 @@ async def _is_within_new_user_message_limit(user_in_group: UserInGroupModel, cha
 
 
 async def match_ai_handler(
-    message: Message, prompt: str, user_in_group: UserInGroupModel | None = None, chat_iid: object | None = None
+    message: Message,
+    prompt: str,
+    user_in_group: UserInGroupModel | None = None,
+    chat_iid: PydanticObjectId | None = None,
 ) -> bool:
     """
-    Match a message against AI-powered filter using Mistral Pixtral model.
+    Match a message against an AI-powered filter.
+
+    The model is resolved via ``get_chat_filters_model``: the ai_filter_handler_model flag when set,
+    otherwise the model the chat's AI mode uses for filters.
 
     Supports text, photos, videos (thumbnail), and stickers.
 
@@ -218,8 +226,8 @@ async def match_ai_handler(
             )
 
         # Run AI evaluation
-        model = await get_filter_handler_model(chat_tid)
-        service_tier = await get_service_tier("ai_filters_service_tier", chat_tid=chat_tid)
+        model = await get_chat_filters_model(chat_iid, chat_tid)
+        service_tier = await resolve_chat_service_tier(AIModelPurpose.filters, chat_iid, chat_tid)
 
         result = await run_structured_task(
             AIStructuredTask(
@@ -253,7 +261,7 @@ async def match_filter_handler(
     handler: str,
     user_in_group: UserInGroupModel | None = None,
     enable_lock_types: bool = True,
-    chat_iid: object | None = None,
+    chat_iid: PydanticObjectId | None = None,
 ) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler

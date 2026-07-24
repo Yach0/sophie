@@ -4,7 +4,7 @@ from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import Doc, HList, Section, Template, Title, Url
+from stfu_tg import Doc, Heading, ListItem, Paragraph, RichBlockQuote, Template, UnorderedList, Url
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_EMOJI
@@ -17,7 +17,7 @@ from sophie_bot.modules.help.callbacks import (
     PMHelpStartUrlCallback,
 )
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, get_aliased_cmds
-from sophie_bot.modules.help.utils.format_help import format_handlers, group_handlers
+from sophie_bot.modules.help.utils.format_help import format_handler_item, group_handlers
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -44,14 +44,6 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         buttons = InlineKeyboardBuilder()
 
         buttons.row(
-            InlineKeyboardButton(
-                text=str(Template(_("💬{ai_emoji} Chat with Sophie for help"), ai_emoji=AI_EMOJI)),
-                callback_data=AIChatCallback().pack(),
-                style="primary",
-            )
-        )
-
-        buttons.row(
             *(
                 InlineKeyboardButton(
                     text=f"{module.icon} {module.name}",
@@ -68,15 +60,25 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         if callback_data and callback_data.back_to_start:
             buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start", style="primary"))
 
-        doc = Doc(
-            Title(_("Help")),
-            _("There are 2 help sources, you can read the detailed wiki or get a quick commands by modules overview."),
-            Url(_("📖 Wiki (detailed information)"), CONFIG.wiki_link),
-            " ",
-            _("Alternatively you can now just chat with Sophie how to use herself!"),
+        buttons.row(
+            InlineKeyboardButton(
+                text=str(Template(_("💬{ai_emoji} Chat with Sophie for help"), ai_emoji=AI_EMOJI)),
+                callback_data=AIChatCallback().pack(),
+                style="primary",
+            )
         )
 
-        await self.answer(doc, reply_markup=buttons.as_markup(), disable_web_page_preview=True)
+        doc = Doc(
+            Heading(_("Help")),
+            Paragraph(_("There are three ways to find your way around Sophie:")),
+            UnorderedList(
+                ListItem(Url(_("📖 The wiki"), CONFIG.wiki_link) + " — " + _("detailed information on every feature")),
+                ListItem(_("🧩 The modules below — a quick overview of the commands in each one")),
+                ListItem(_("💬 Sophie herself — ask her how to use her, in your own words")),
+            ),
+        )
+
+        await self.answer_rich(doc, reply_markup=buttons.as_markup())
 
 
 class PMModuleHelp(SophieCallbackQueryHandler):
@@ -95,34 +97,29 @@ class PMModuleHelp(SophieCallbackQueryHandler):
 
         cmds = list(filter(lambda x: not x.only_op, module.handlers))
 
-        doc = Doc(
-            HList(
-                Title(f"{module.icon} {module.name}"),
-                f"- {module.description}" if module.description else None,
-            )
-        )
+        doc = Doc(Heading(f"{module.icon} {module.name}"))
+        if module.description:
+            doc += RichBlockQuote(module.description)
         if module.info:
-            doc += module.info
-
-        doc += " "
+            doc += Paragraph(module.info)
 
         for section_title, handlers in group_handlers(cmds):
-            doc += Section(*format_handlers(handlers), title=section_title)
+            doc += Heading(section_title, level=2)
+            doc += UnorderedList(*(ListItem(format_handler_item(handler)) for handler in handlers))
 
         for a_mod_name, a_cmds in get_aliased_cmds(module_name).items():
             a_module = HELP_MODULES[a_mod_name]
-            doc += Section(
-                format_handlers(a_cmds),
-                title=Template(
-                    _("Aliased commands from {module}"), module=f"{a_module.icon} {a_module.name}"
-                ).to_html(),
+            doc += Heading(
+                Template(_("Aliased commands from {module}"), module=f"{a_module.icon} {a_module.name}"), level=2
             )
+            doc += UnorderedList(*(ListItem(format_handler_item(handler)) for handler in a_cmds))
 
         buttons = InlineKeyboardBuilder()
 
         if module.advertise_wiki_page:
-            doc += " "
-            doc += Url(_("📖 Look the module's wiki page for more information"), CONFIG.wiki_modules_link + module_name)
+            doc += Paragraph(
+                Url(_("📖 Look the module's wiki page for more information"), CONFIG.wiki_modules_link + module_name)
+            )
             buttons.row(InlineKeyboardButton(text=_("📖 Wiki page"), url=CONFIG.wiki_modules_link + module_name))
 
         buttons.row(
@@ -133,4 +130,4 @@ class PMModuleHelp(SophieCallbackQueryHandler):
             )
         )
 
-        await self.edit_text(doc, reply_markup=buttons.as_markup(), disable_web_page_preview=True)
+        await self.answer_rich(doc, reply_markup=buttons.as_markup())

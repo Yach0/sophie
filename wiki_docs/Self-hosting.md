@@ -40,6 +40,7 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `TOKEN`: Your Telegram Bot API token.
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
+- `OPENROUTER_API_KEY`: Seeds the AI catalog on first migration. See below.
 
 ### 2. Run the Playbook
 
@@ -54,6 +55,85 @@ To deploy the beta environment (includes scheduler and REST API):
 ```bash
 ansible-playbook -i your_inventory deploy/beta.yml
 ```
+
+## Greetings and welcome security
+
+`greetings_ephemeral` sends the welcome only to the members it greets, one message each, filled
+with their own name. Nothing is posted to the chat, so the clean-welcome cleanup has nothing to
+delete afterwards.
+
+`welcomecaptcha_ephemeral` sends the captcha prompt as an ephemeral message to each new member
+instead of posting it in the chat. Only they see it, one prompt per member rather than one for the
+batch, and nothing is left behind to clean up — so the prompt is not deleted when the captcha is
+passed, because there is nothing there to delete.
+
+A prompt whose security note is an album is still posted to the chat: `sendMediaGroup` cannot
+address one member, and splitting the album into separate ephemeral messages is no way around it —
+Telegram accepts at most five ephemeral messages per user.
+
+## AI models and providers
+
+Sophie's AI models, the endpoints they are served from and the API keys used to reach them live in
+the database, not in the configuration file. They are managed at runtime with operator commands, so
+adding a model or rotating a key never needs a redeploy.
+
+### Seeding
+
+The `seed_ai_catalog` migration creates the initial catalog from your environment:
+
+- `OPENROUTER_API_KEY` becomes the `openrouter` provider.
+- `CUSTOM_PROVIDERS` becomes one provider per entry, for OpenAI-compatible endpoints:
+
+```
+CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://example.com/compatible-mode/v1","api_key":"sk-..."}]'
+```
+
+Both variables are read **only** by this migration. Once the catalog exists, changing them has no
+effect — use the commands below instead.
+
+### Managing the catalog
+
+| Command | Purpose |
+| --- | --- |
+| `/op_aiproviders` | List providers. API keys are always masked. |
+| `/op_aiprovider <name> ^kind= ^base_url= ^key= ^enabled=` | Create or update a provider. Private chat only; the command message is deleted immediately. |
+| `/op_aimodels` | List models and what each one is used for. |
+| `/op_aimodel <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^enabled=` | Create or update a model. |
+
+`kind` is `openrouter` or `openai_compatible`. A role is `<mode>:<purpose>` — for example
+`^role=support:chatbot` — or just `<purpose>` for the purposes that are not per-chat (`summary`,
+`moderation_reason`). Purposes are `chatbot`, `translation`, `filters`, `summary` and
+`moderation_reason`, `sophie_inspect`; modes are `entertainment`, `moderation`, `support`, `sophie_pm` and
+`sophie_help`.
+
+A mode with no model for a purpose falls back to the `support` tier, so you only need to define the
+roles you want to differ. Changes take effect on every process within a few seconds without a
+restart.
+
+> **Warning:** with an empty catalog no AI feature can resolve a model and every AI request fails.
+> Check `/op_aimodels` after deploying.
+> {.is-warning}
+
+### Experimental: source inspection
+
+`ai_sophie_inspect` lets the Sophie-help assistant start a sub-agent that reads Sophie's own source code
+when the documentation cannot answer a question. It is **off by default** because it costs several
+model requests per question.
+
+Groups do not get it from their AI mode. `ai_sophie_inspect_chats` is a space or comma separated list of
+group IDs allowed to use it anyway, for the chats where people ask how Sophie works.
+
+Every run is bounded: `ai_sophie_inspect_request_limit`, `ai_sophie_inspect_tool_calls_limit` and
+`ai_sophie_inspect_output_tokens_limit` cap one run, `ai_sophie_inspect_daily_chat_limit` caps how many runs
+one chat may start per day, and the tokens are charged to that chat's AI quota like any other
+feature.
+
+The model it uses is the catalog model holding the `sophie_inspect` role, so it is swapped like
+any other: `/op_aimodel <name> ^role=sophie_inspect`. Prefer a cheap one — the daily cap is what bounds the
+damage, not the price per run.
+
+The sub-agent can only read `.py` files inside the `sophie_bot` package, and only through search and
+bounded reads — it never executes anything and never sees configuration or data.
 
 ## Running with Podman (Manual)
 

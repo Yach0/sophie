@@ -7,7 +7,7 @@ from sophie_bot.db.models import AIMemoryModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIResetContext
-from sophie_bot.modules.ai.filters.ai_enabled import AIEnabledFilter
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_RESET
 from sophie_bot.modules.ai.utils.cache_messages import reset_messages
 from sophie_bot.utils import flags
@@ -20,15 +20,15 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class AIContextReset(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("aireset"), UserRestricting(admin=True), AIEnabledFilter()
+        return CMDFilter("aireset"), UserRestricting(admin=True), AICapabilityFilter()
 
     @staticmethod
     def filters_alt() -> tuple[CallbackType, ...]:
-        return F.text == AI_PM_RESET, UserRestricting(admin=True), AIEnabledFilter()
+        return F.text == AI_PM_RESET, UserRestricting(admin=True), AICapabilityFilter()
 
     @staticmethod
     def filters_callback() -> tuple[CallbackType, ...]:
-        return AIResetContext.filter(), UserRestricting(admin=True), AIEnabledFilter()
+        return AIResetContext.filter(), UserRestricting(admin=True), AICapabilityFilter()
 
     @classmethod
     def register(cls, router: Router) -> None:

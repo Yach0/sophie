@@ -1,18 +1,16 @@
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 from beanie import Document
 from bson import ObjectId
 from pydantic import Field
 
-from ._link_type import Link
+from sophie_bot.db.models.chat import ChatModel
 
-if TYPE_CHECKING:
-    from sophie_bot.db.models import ChatModel
+from ._link_type import Link
 
 
 class ChatPhotoModel(Document):
-    chat: Link["ChatModel"]
+    chat: Link[ChatModel]
     url: str
     last_updated: datetime = Field(default_factory=lambda: datetime.now(tz=UTC))
 

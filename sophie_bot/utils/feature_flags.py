@@ -23,14 +23,15 @@ FeatureType = Literal[
     "ai_translation_model",
     "ai_search_provider",
     "ai_chatbot_system_prompt",
+    "ai_help_system_prompt",
     "ai_translate_system_prompt",
     "ai_chat_summaries_prompt",
     "ai_moderation_reason_prompt",
+    "ai_moderation_reason_model",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
     "ai_chatbot_admin_status",
     "ai_chatbot_chat_name",
-    "ai_chatbot_blockquote",
     "ai_chatbot_research_quote",
     "ai_chatbot_thinking_message",
     "ai_chatbot_tool_thinking",
@@ -50,9 +51,6 @@ FeatureType = Literal[
     "ai_system_prompt_summaries",
     "ai_notes_related_system_prompt",
     "ai_notes_related_system_prompt_full_content",
-    "ai_agent_save_notes",
-    "ai_memories_to_notes",
-    "ai_delete_notes",
     "notes_rag_embeddings",
     "notes_rag_list_search",
     "notes_media_groups",
@@ -60,8 +58,10 @@ FeatureType = Literal[
     "filters_silent_mode",
     "antiflood",
     "locks",
+    "greetings_ephemeral",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
+    "welcomecaptcha_ephemeral",
     "op_task",
     "communities",
     "ai_chatbot_service_tier",
@@ -79,16 +79,24 @@ FeatureType = Literal[
     "ai_proactive_replies_min_messages",
     "ai_research",
     "ai_research_model",
+    "ai_sophie_inspect",
+    "ai_sophie_inspect_model",
+    "ai_sophie_inspect_chats",
+    "ai_sophie_inspect_daily_chat_limit",
+    "ai_sophie_inspect_request_limit",
+    "ai_sophie_inspect_tool_calls_limit",
+    "ai_sophie_inspect_output_tokens_limit",
     "ai_research_max_rounds",
     "ai_research_queries_per_round",
     "ai_research_results_per_query",
     "ai_research_service_tier",
-    "ai_chatbot_rich_markdown",
     "ai_chatbot_rich_streaming",
     "ai_chatbot_tables",
     "ussr_spam_detection",
     "ussr_spam_save_to_db",
     "sentry_update_tracing",
+    "ai_entertainment_boost",
+    "ai_entertainment_monthly_credits",
 ]
 
 
@@ -116,9 +124,9 @@ def get_value_kind(feature: FeatureType) -> FeatureValueKind:
 def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
     """Return the closed set of accepted string values, or None when unrestricted.
 
-    ``ai_model`` features accept any string: the runtime builds unregistered names
-    as custom OpenRouter models (see ``ai_model_factory._build_custom_model``), so
-    the curated registry is only a UI convenience, not a validation boundary.
+    ``ai_model`` features accept any string: the runtime sends unregistered names
+    to OpenRouter as-is (see ``ai_model_factory._build_model``), so the curated
+    registry is only a UI convenience, not a validation boundary.
     """
     value_kind = get_value_kind(feature)
     if value_kind == "service_tier":
@@ -185,8 +193,8 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
-    "ai_summary_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
-    "ai_filter_handler_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
+    "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
+    "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
     "ai_filter_daily_user_limit": _feature(10),
     "ai_filter_new_user_message_limit": _feature(10),
@@ -195,6 +203,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
     "ai_chatbot_system_prompt": _feature(
         "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet"
+    ),
+    "ai_help_system_prompt": _feature(
+        "You're Sophie, a Telegram group management bot, helping a user in a private chat.\nYour only job here is to help them use Sophie: explain features, walk through commands, and troubleshoot their setup.\nAlways call the `sophie_help` tool before describing any command, and read the relevant wiki page with it when a topic needs detail; never invent commands or arguments.\nIf the documentation does not answer a question about how Sophie behaves, use the `sophie_inspect` tool once and explain its answer in your own words.\nSuggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\nRefuse anything that is not about Sophie, however harmless: no general knowledge, no writing, no code, no chit-chat. Say in one sentence that this mode only covers Sophie, and tell them to leave it with the \"Exit AI help\" button below to talk about anything else."
     ),
     "ai_translate_system_prompt": _feature(
         "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
@@ -205,13 +216,13 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_moderation_reason_prompt": _feature(
         "Generate a brief, professional moderation reason for restricting a user based on their message."
     ),
+    "ai_moderation_reason_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_suggestions_prompt": _feature(
         "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data."
     ),
     "ai_chatbot": _feature(True),
     "ai_chatbot_admin_status": _feature(False),
     "ai_chatbot_chat_name": _feature(False),
-    "ai_chatbot_blockquote": _feature(True),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_thinking_message": _feature(False),
     "ai_chatbot_tool_thinking": _feature(False),
@@ -231,9 +242,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_system_prompt_summaries": _feature(False),
     "ai_notes_related_system_prompt": _feature(False),
     "ai_notes_related_system_prompt_full_content": _feature(False),
-    "ai_agent_save_notes": _feature(False),
-    "ai_memories_to_notes": _feature(False),
-    "ai_delete_notes": _feature(False),
     "notes_rag_embeddings": _feature(False),
     "notes_rag_list_search": _feature(False),
     "notes_media_groups": _feature(False),
@@ -241,8 +249,12 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "filters_silent_mode": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
+    # Send the welcome only to the members it greets, so it never becomes chat clutter to clean up.
+    "greetings_ephemeral": _feature(False),
     "welcomecaptcha": _feature(True),
     "welcomecaptcha_autokick": _feature(True),
+    # Send the captcha prompt only to the new members, so it never becomes chat clutter to clean up.
+    "welcomecaptcha_ephemeral": _feature(False),
     "op_task": _feature(False),
     "communities": _feature(False),
     "ai_chatbot_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
@@ -261,17 +273,29 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_proactive_replies_max_reactions": _feature(1),
     "ai_proactive_replies_min_messages": _feature(30),
     "ai_research": _feature(False),
-    "ai_research_model": _feature("openai/gpt-5.5", _AI_MODEL_FEATURE),
+    "ai_research_model": _feature("", _AI_MODEL_FEATURE),
+    # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
+    "ai_sophie_inspect": _feature(False),
+    "ai_sophie_inspect_model": _feature("", _AI_MODEL_FEATURE),
+    # Group chats allowed to use source inspection, beyond the Sophie-help assistant.
+    "ai_sophie_inspect_chats": _feature("-1001202504432"),
+    "ai_sophie_inspect_daily_chat_limit": _feature(10),
+    "ai_sophie_inspect_request_limit": _feature(8),
+    "ai_sophie_inspect_tool_calls_limit": _feature(10),
+    # Cumulative across the run, and reasoning tokens count towards it, so this is a runaway
+    # backstop rather than the cost control: the daily cap and the cheap model are.
+    "ai_sophie_inspect_output_tokens_limit": _feature(8000),
     "ai_research_max_rounds": _feature(3),
     "ai_research_queries_per_round": _feature(5),
     "ai_research_results_per_query": _feature(5),
     "ai_research_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
-    "ai_chatbot_rich_markdown": _feature(False),
     "ai_chatbot_rich_streaming": _feature(False),
-    "ai_chatbot_tables": _feature(False),
+    "ai_chatbot_tables": _feature(True),
     "ussr_spam_detection": _feature(False),
     "ussr_spam_save_to_db": _feature(False),
     "sentry_update_tracing": _feature(False),
+    "ai_entertainment_boost": _feature(False),
+    "ai_entertainment_monthly_credits": _feature(200000),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

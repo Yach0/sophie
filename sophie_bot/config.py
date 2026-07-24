@@ -4,6 +4,7 @@ from typing import Annotated, List, Literal, Optional
 from aiogram.webhook.security import DEFAULT_TELEGRAM_NETWORKS
 from pydantic import (
     AnyHttpUrl,
+    BaseModel,
     Field,
     FilePath,
     ValidationInfo,
@@ -12,6 +13,14 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class CustomProviderConfig(BaseModel):
+    """An OpenAI-compatible AI provider used to seed the AI catalog on first migration."""
+
+    name: str
+    base_url: str
+    api_key: str
 
 
 class Config(BaseSettings):
@@ -126,6 +135,11 @@ class Config(BaseSettings):
     tavily_api_key: str = ""
     kagi_api_key: str = ""
     mistral_api_key: str | None = None
+
+    # Seed values for the AI provider catalog, read only by the seed_ai_catalog migration. Once the
+    # catalog exists, providers and keys are managed with /op_aiprovider; changing these does nothing.
+    # CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://dashscope-intl.aliyuncs.com/compatible-mode/v1","api_key":"sk-..."}]'
+    custom_providers: List[CustomProviderConfig] = []
 
     gitlab_token: str | None = None
     gitlab_project_id: str | None = None  # GitLab project ID or URL-encoded path

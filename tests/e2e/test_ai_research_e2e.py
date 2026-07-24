@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -15,7 +17,14 @@ from sophie_bot.utils.feature_flags import set_enabled
 
 def _apply_ai_research_patches(stack: ExitStack) -> None:
     stack.enter_context(
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True))
+        patch(
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
+        )
+    )
+    # The AI moderator runs whenever the chat's mode enables it, and would reach the network.
+    stack.enter_context(
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.is_enabled", AsyncMock(return_value=False))
     )
     stack.enter_context(
         patch("sophie_bot.modules.ai.filters.quota.check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))

@@ -17,7 +17,10 @@ from sophie_bot.metrics import (
     track_ai_proactive_event,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.modules.ai.utils.ai_chat_models import resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_mode
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
@@ -292,7 +295,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         db_model=chat,
     )
     model = await get_chat_default_model(chat.iid, chat_tid=chat_tid)
-    service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=chat_tid)
+    service_tier = await resolve_chat_service_tier(AIModelPurpose.chatbot, chat.iid, chat_tid)
     _log_proactive_info(
         "Proactive AI answer generation started",
         chat_id=chat_tid,
@@ -301,6 +304,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         service_tier=service_tier or "none",
     )
     history = await _build_answer_history(chat_tid, target_message)
+    mode = await resolve_chat_mode(chat)
     run_config = await build_chatbot_run_config(
         chat_tid,
         connection,
@@ -311,6 +315,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
         service_tier=service_tier,
         use_base_tools=True,
+        mode=mode,
     )
     async with track_ai_conversation():
         set_conversation_id(f"{chat.iid}:proactive")

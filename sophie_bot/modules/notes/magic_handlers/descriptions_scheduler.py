@@ -1,10 +1,11 @@
 from asyncio import sleep
 from datetime import datetime, timedelta
 
-from sophie_bot.db.models import AIEnabledModel, ChatModel, NoteModel
+from sophie_bot.db.models import ChatModel, NoteModel
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.middlewares import i18n
 from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateNoteData
-from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.i18n import gettext as _
@@ -24,7 +25,7 @@ class NotesDescriptionsScheduler:
                 async for chat in ChatModel.find(ChatModel.last_saw >= delta):  # skipcq: PYL-E1133
                     await sleep(5)
 
-                    if not await AIEnabledModel.get_state(chat.tid):
+                    if not (await resolve_chat_capabilities(chat)).ai_enabled:
                         log.debug("- NotesDescriptionsScheduler: AI features are not enabled, skipping...", chat=chat)
                         continue
 

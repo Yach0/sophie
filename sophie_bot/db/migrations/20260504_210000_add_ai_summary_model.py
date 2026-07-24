@@ -29,7 +29,7 @@ Rollback:
 
 from beanie import free_fall_migration
 
-from sophie_bot.db.models.ai.ai_provider import AIProviderModel
+from sophie_bot.services.db import get_collection
 
 SUMMARY_MODEL_NAME = "openai/gpt-5.4"
 
@@ -37,9 +37,9 @@ SUMMARY_MODEL_NAME = "openai/gpt-5.4"
 class Forward:
     """Backfill the dedicated summary model on provider documents."""
 
-    @free_fall_migration(document_models=[AIProviderModel])
+    @free_fall_migration(document_models=[])
     async def migrate(self, session):
-        collection = AIProviderModel.get_pymongo_collection()
+        collection = get_collection("ai_provider")
         await collection.update_many(
             {"summary_model": {"$exists": False}},
             {"$set": {"summary_model": SUMMARY_MODEL_NAME}},
@@ -50,6 +50,6 @@ class Forward:
 class Backward:
     """No rollback: backfilled documents are indistinguishable from a deliberate gpt-5.4 choice."""
 
-    @free_fall_migration(document_models=[AIProviderModel])
+    @free_fall_migration(document_models=[])
     async def noop(self, session) -> None:
         del session

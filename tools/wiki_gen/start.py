@@ -19,6 +19,12 @@ class RedisStub:
     async def hset(self, key: str, field: str, value: str) -> int:
         return 0
 
+    async def get(self, key: str) -> bytes | None:
+        return None
+
+    async def incr(self, key: str) -> int:
+        return 0
+
 
 # We need to patch the databases in order to be able to run this in CI without them.
 @patch("redis.asyncio.Redis")

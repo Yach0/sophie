@@ -1,43 +1,41 @@
+from __future__ import annotations
+
+import os
 import sys
-from enum import Enum
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    pass
+from pydantic_ai.providers import Provider
+from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
-from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.utils.ai_catalog import CatalogProvider
 
+TESTING = "pytest" in sys.modules or os.environ.get("TESTING") == "1"
 
-class AIProviders(str, Enum):
-    auto = "auto"
-    anthropic = "anthropic"
-    google = "google"
-    mistral = "mistral"
-    openai = "openai"
+# Providers reject an empty API key at construction time. Under pytest no key is configured and no
+# request is ever made, so a placeholder keeps model construction working offline; outside tests an
+# empty key still fails loudly instead of silently producing an unusable client.
+_TESTING_API_KEY = "testing"
 
-
-# Check if we're in testing mode
-TESTING = "pytest" in sys.modules or __import__("os").environ.get("TESTING") == "1"
-
-# Lazy provider initialization
-_openrouter_provider = None
+_providers: dict[tuple[str, str], Provider] = {}
 
 
-def _get_openrouter_provider():
-    global _openrouter_provider
-    if _openrouter_provider is None:
-        from pydantic_ai.providers.openrouter import OpenRouterProvider
-
-        _openrouter_provider = OpenRouterProvider(api_key=CONFIG.openrouter_api_key or "")
-    return _openrouter_provider
+def _api_key(configured_key: str) -> str:
+    if configured_key:
+        return configured_key
+    return _TESTING_API_KEY if TESTING else ""
 
 
-if TESTING:
-    AI_PROVIDERS = {}
-else:
-    AI_PROVIDERS = {
-        AIProviders.anthropic.name: _get_openrouter_provider,
-        AIProviders.google.name: _get_openrouter_provider,
-        AIProviders.mistral.name: _get_openrouter_provider,
-        AIProviders.openai.name: _get_openrouter_provider,
-    }
+def _cached(provider: CatalogProvider | None, build) -> Provider:
+    """Cache by name and key so rotating a key in the catalog builds a fresh client."""
+    key = (provider.name, provider.api_key) if provider else ("", "")
+    if key not in _providers:
+        _providers[key] = build()
+    return _providers[key]
+
+
+def get_openrouter_provider(provider: CatalogProvider | None = None) -> Provider:
+    return _cached(provider, lambda: OpenRouterProvider(api_key=_api_key(provider.api_key if provider else "")))
+
+
+def get_openai_provider(provider: CatalogProvider) -> Provider:
+    return _cached(provider, lambda: OpenAIProvider(base_url=provider.base_url, api_key=_api_key(provider.api_key)))

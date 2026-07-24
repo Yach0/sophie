@@ -11,17 +11,19 @@ Tests cover:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
+from sophie_bot.db.models import ChatModel, GreetingsModel
+from tests.e2e.helpers import grant_admin
 
-def _patch_bot_refs(monkeypatch: pytest.MonkeyPatch, test_client: TestClient) -> None:
-    """Patch module-level bot references so send_saveable and handlers use the test bot."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
-    monkeypatch.setattr("sophie_bot.utils.handlers.bot", test_client.bot)
+
+async def _greetings(chat_tid: int) -> GreetingsModel:
+    chat = await ChatModel.get_by_tid(chat_tid)
+    assert chat is not None
+    return await GreetingsModel.get_by_chat_iid(chat.iid)
 
 
 # ---------------------------------------------------------------------------
@@ -32,11 +34,8 @@ def _patch_bot_refs(monkeypatch: pytest.MonkeyPatch, test_client: TestClient) ->
 @pytest.mark.asyncio
 async def test_welcome_shows_settings(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The /welcome command shows the welcome settings overview."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000001, title="Greetings E2E Group")
     user_wrapper = test_client.create_user(user_id=930000001, first_name="Viewer", username="viewer_user")
@@ -63,11 +62,8 @@ async def test_welcome_shows_settings(
 @pytest.mark.asyncio
 async def test_enablewelcome_requires_admin(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-admin user cannot use /enablewelcome."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000002, title="EnableWelcome NoAdmin")
     user_wrapper = test_client.create_user(user_id=930000002, first_name="Regular", username="regular_user")
@@ -88,26 +84,20 @@ async def test_enablewelcome_requires_admin(
 @pytest.mark.asyncio
 async def test_enablewelcome_shows_status(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin calling /enablewelcome without args sees the current status."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000003, title="EnableWelcome Status")
     admin_wrapper = test_client.create_user(user_id=930000003, first_name="Admin", username="admin_enable")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="enablewelcome",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="enablewelcome",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /enablewelcome from admin"
     response_text = requests[-1].text or ""
@@ -115,6 +105,21 @@ async def test_enablewelcome_shows_status(
     assert "Current state" in response_text or "Enabled" in response_text or "Disabled" in response_text, (
         f"Response should show current status, got: {response_text}"
     )
+
+
+@pytest.mark.asyncio
+async def test_enablewelcome_off_persists(test_client: TestClient) -> None:
+    """`/enablewelcome off` flips welcome_disabled in the database."""
+
+    group = ChatFactory.create_group(chat_id=-1003000000010, title="EnableWelcome Toggle")
+    admin_wrapper = test_client.create_user(user_id=930000010, first_name="Admin", username="admin_enable_toggle")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    await test_client.send_command(command="enablewelcome", from_user=admin_wrapper.user, args="off", chat=group)
+
+    assert (await _greetings(group.id)).welcome_disabled is True
 
 
 # ---------------------------------------------------------------------------
@@ -125,41 +130,37 @@ async def test_enablewelcome_shows_status(
 @pytest.mark.asyncio
 async def test_setwelcome_success(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin can set a custom welcome message with /setwelcome."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000004, title="SetWelcome Success")
     admin_wrapper = test_client.create_user(user_id=930000004, first_name="Admin", username="admin_setwelcome")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="setwelcome",
-            from_user=admin_wrapper.user,
-            chat=group,
-            args="Hello new member!",
-        )
+    requests = await test_client.send_command(
+        command="setwelcome",
+        from_user=admin_wrapper.user,
+        chat=group,
+        args="Hello new member!",
+    )
 
     assert requests, "Bot should respond to /setwelcome from admin"
     response_text = requests[-1].text or ""
     assert "successfully updated" in response_text.lower(), f"Response should confirm update, got: {response_text}"
 
+    stored = await _greetings(group.id)
+    assert stored.note is not None and "Hello new member!" in (stored.note.text or ""), (
+        "The custom welcome text should be persisted on GreetingsModel.note"
+    )
+
 
 @pytest.mark.asyncio
 async def test_setwelcome_requires_admin(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-admin user cannot use /setwelcome."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000005, title="SetWelcome NoAdmin")
     user_wrapper = test_client.create_user(user_id=930000005, first_name="Regular", username="regular_setwelcome")
@@ -186,11 +187,8 @@ async def test_setwelcome_requires_admin(
 @pytest.mark.asyncio
 async def test_cleanservice_requires_admin(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-admin user cannot use /cleanservice."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000006, title="CleanService NoAdmin")
     user_wrapper = test_client.create_user(user_id=930000006, first_name="Regular", username="regular_cleanservice")
@@ -211,32 +209,42 @@ async def test_cleanservice_requires_admin(
 @pytest.mark.asyncio
 async def test_cleanservice_shows_status(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin calling /cleanservice without args sees the current status."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000007, title="CleanService Status")
     admin_wrapper = test_client.create_user(user_id=930000007, first_name="Admin", username="admin_cleanservice")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="cleanservice",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="cleanservice",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /cleanservice from admin"
     response_text = requests[-1].text or ""
     assert "Current state" in response_text or "Enabled" in response_text or "Disabled" in response_text, (
         f"Response should show current status, got: {response_text}"
     )
+
+
+@pytest.mark.asyncio
+async def test_cleanservice_on_persists(test_client: TestClient) -> None:
+    """`/cleanservice on` enables clean_service in the database."""
+
+    group = ChatFactory.create_group(chat_id=-1003000000011, title="CleanService Toggle")
+    admin_wrapper = test_client.create_user(user_id=930000011, first_name="Admin", username="admin_cs_toggle")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    await test_client.send_command(command="cleanservice", from_user=admin_wrapper.user, args="on", chat=group)
+
+    stored = await _greetings(group.id)
+    assert stored.clean_service is not None and stored.clean_service.enabled is True
 
 
 # ---------------------------------------------------------------------------
@@ -247,32 +255,42 @@ async def test_cleanservice_shows_status(
 @pytest.mark.asyncio
 async def test_cleanwelcome_shows_status(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An admin calling /cleanwelcome without args sees the current status."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000008, title="CleanWelcome Status")
     admin_wrapper = test_client.create_user(user_id=930000008, first_name="Admin", username="admin_cleanwelcome")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="cleanwelcome",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="cleanwelcome",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /cleanwelcome from admin"
     response_text = requests[-1].text or ""
     assert "Current state" in response_text or "Enabled" in response_text or "Disabled" in response_text, (
         f"Response should show current status, got: {response_text}"
     )
+
+
+@pytest.mark.asyncio
+async def test_cleanwelcome_on_persists(test_client: TestClient) -> None:
+    """`/cleanwelcome on` enables clean_welcome in the database."""
+
+    group = ChatFactory.create_group(chat_id=-1003000000012, title="CleanWelcome Toggle")
+    admin_wrapper = test_client.create_user(user_id=930000012, first_name="Admin", username="admin_cw_toggle")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
+
+    await test_client.send_command(command="cleanwelcome", from_user=admin_wrapper.user, args="on", chat=group)
+
+    stored = await _greetings(group.id)
+    assert stored.clean_welcome is not None and stored.clean_welcome.enabled is True
 
 
 # ---------------------------------------------------------------------------
@@ -283,26 +301,20 @@ async def test_cleanwelcome_shows_status(
 @pytest.mark.asyncio
 async def test_deljoinrequest_no_message_set(
     test_client: TestClient,
-    test_dispatcher,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Deleting a join request message when none is set returns an appropriate error."""
-    _patch_bot_refs(monkeypatch, test_client)
 
     group = ChatFactory.create_group(chat_id=-1003000000009, title="DelJoinReq None")
     admin_wrapper = test_client.create_user(user_id=930000009, first_name="Admin", username="admin_deljoinreq")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    await grant_admin(group.id, admin_wrapper.user.id)
 
-    with patch(
-        "sophie_bot.filters.admin_rights.check_user_admin_permissions",
-        AsyncMock(return_value=True),
-    ):
-        requests = await test_client.send_command(
-            command="deljoinrequest",
-            from_user=admin_wrapper.user,
-            chat=group,
-        )
+    requests = await test_client.send_command(
+        command="deljoinrequest",
+        from_user=admin_wrapper.user,
+        chat=group,
+    )
 
     assert requests, "Bot should respond to /deljoinrequest from admin"
     response_text = requests[-1].text or ""

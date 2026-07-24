@@ -4,6 +4,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
 from stfu_tg import Title
 
@@ -36,7 +39,8 @@ from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabl
 async def test_research_feature_flags_have_safe_defaults(db_init: object) -> None:
     assert await is_enabled("ai_chatbot_research_quote") is True
     assert await is_enabled("ai_research") is False
-    assert await get_value("ai_research_model") == "openai/gpt-5.5"
+    # Empty by default now: research resolves from the catalog, the flag is only an override.
+    assert await get_value("ai_research_model") == ""
     assert await get_value("ai_research_max_rounds") == 3
     assert await get_value("ai_research_queries_per_round") == 5
     assert await get_value("ai_research_results_per_query") == 5
@@ -86,8 +90,9 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
 
     with (
         patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
+        patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
         patch(
-            "sophie_bot.modules.ai.utils.research.get_research_model",
+            "sophie_bot.modules.ai.utils.research.get_chat_research_model",
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(
@@ -174,15 +179,14 @@ async def test_research_tool_forwards_chatbot_progress_callback() -> None:
 
 @pytest.mark.asyncio
 async def test_build_fitting_reply_doc_fits_rendered_html_limit() -> None:
-    with patch("sophie_bot.modules.ai.utils.chatbot_response.is_enabled", AsyncMock(return_value=True)):
-        doc = await _build_fitting_reply_doc(
-            Title("AI Chatbot"),
-            "Long answer " * 600,
-            model=None,
-            result=SimpleNamespace(),
-            explicit_debug_mode=False,
-            chat_tid=-100123,
-        )
+    doc = await _build_fitting_reply_doc(
+        Title("AI Chatbot"),
+        "Long answer " * 600,
+        model=None,
+        result=SimpleNamespace(),
+        explicit_debug_mode=False,
+        chat_tid=-100123,
+    )
 
     assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
 
@@ -225,7 +229,13 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None
         patch("sophie_bot.modules.ai.utils.chatbot_context.AIMemoryModel.get_lines", AsyncMock(return_value=[])),
     ):
         instructions = await build_chatbot_instructions(
-            SimpleNamespace(chat_tid=-100123, chat_iid="chat-iid", user_text=None)
+            SimpleNamespace(
+                chat_tid=-100123,
+                chat_iid="chat-iid",
+                user_text=None,
+                mode=AIMode.support,
+                connection=SimpleNamespace(db_model=SimpleNamespace()),
+            )
         )
 
     assert "research tool to research complicated topics instead of plain web search" in instructions
@@ -240,7 +250,7 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
     ):
-        tools = await get_chatbot_tools(-100123)
+        tools = await get_chatbot_tools(-100123, get_capabilities(AIMode.support))
 
     assert research_topic_tool in tools
 
@@ -248,7 +258,7 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
     ):
-        tools = await get_chatbot_tools(-100123)
+        tools = await get_chatbot_tools(-100123, get_capabilities(AIMode.support))
 
     assert research_topic_tool not in tools
 

@@ -10,7 +10,7 @@ Regression coverage for two findings:
 from __future__ import annotations
 
 import importlib
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -34,17 +34,9 @@ from sophie_bot.middlewares.localization import LocalizationMiddleware
 from sophie_bot.modules.language.handlers.language import LanguageCallbackHandler, SelectLangCb
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.services.i18n import i18n
-from tests.utils.mongo_mock import dbref_traversal
 
 _CLIENT_LOCALE = "en"  # What Telegram reports; not a Sophie locale directory
 _SELECTED_LOCALE = "ru_RU"
-
-
-@pytest.fixture(autouse=True)
-def resolve_links() -> Iterator[None]:
-    """Every lookup here goes through `LanguageModel.chat` -- a Beanie Link."""
-    with dbref_traversal():
-        yield
 
 
 def _telegram_user(user_tid: int, language_code: str | None = _CLIENT_LOCALE) -> User:

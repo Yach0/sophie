@@ -4,8 +4,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
+
+from tests.e2e.helpers import grant_admin
 
 from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestion,
@@ -20,6 +24,7 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=926000004, first_name="Admin", username="admin_user")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     ai_result = SimpleNamespace(
         output=AIFilterSuggestionsResponse(
@@ -48,8 +53,12 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
     )
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
+        ),
+        # The AI moderator runs whenever the chat's mode enables it, and would reach the network.
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.is_enabled", AsyncMock(return_value=False)),
         patch(
             "sophie_bot.modules.ai.filters.quota.check_quota",
             AsyncMock(return_value=SimpleNamespace(allowed=True)),
@@ -87,10 +96,15 @@ async def test_aiaddfilter_returns_generic_error_when_ai_fails(test_client: Test
     admin_wrapper = test_client.create_user(user_id=926000005, first_name="Admin", username="admin_user_two")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
+        ),
+        # The AI moderator runs whenever the chat's mode enables it, and would reach the network.
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.is_enabled", AsyncMock(return_value=False)),
         patch(
             "sophie_bot.modules.ai.filters.quota.check_quota",
             AsyncMock(return_value=SimpleNamespace(allowed=True)),

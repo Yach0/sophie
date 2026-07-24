@@ -14,6 +14,7 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
+from tests.e2e.helpers import grant_admin
 from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
 from sophie_bot.modules.notes.handlers.save import SaveNote
 
@@ -26,6 +27,7 @@ async def _setup_group_and_user(
     group_title: str,
     first_name: str,
     username: str,
+    admin: bool = False,
 ) -> tuple[Any, Any, ChatModel]:
     """Create a group and user, send init to register both in DB."""
     group_chat = ChatFactory.create_group(chat_id=chat_id, title=group_title)
@@ -35,6 +37,9 @@ async def _setup_group_and_user(
 
     chat_model = await ChatModel.get_by_tid(chat_id)
     assert chat_model is not None, f"ChatModel for group {chat_id} should exist after init"
+
+    if admin:
+        await grant_admin(chat_id, user_id)
 
     return user_wrapper, group_chat, chat_model
 
@@ -60,10 +65,8 @@ async def _save_note_directly(chat_model: ChatModel, names: tuple[str, ...], tex
 @pytest.mark.asyncio
 async def test_save_note_success(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Admin saves a note and gets a confirmation message."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -72,10 +75,10 @@ async def test_save_note_success(
         group_title="Notes Save Group",
         first_name="AdminSave",
         username="admin_save",
+        admin=True,
     )
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
     ):
         requests = await test_client.send_command(
@@ -98,7 +101,6 @@ async def test_save_note_success(
     assert saved_note.version == 2
 
 
-
 # ---------------------------------------------------------------------------
 # test_save_note_requires_admin
 # ---------------------------------------------------------------------------
@@ -107,10 +109,8 @@ async def test_save_note_success(
 @pytest.mark.asyncio
 async def test_save_note_requires_admin(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Non-admin user cannot save a note — gets denied."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, _chat_model = await _setup_group_and_user(
         test_client,
@@ -139,10 +139,8 @@ async def test_save_note_requires_admin(
 @pytest.mark.asyncio
 async def test_save_note_rejects_empty_note_names(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Save rejects a command when all note names are filtered out."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -196,10 +194,8 @@ async def test_save_note_rejects_empty_note_names(
 @pytest.mark.asyncio
 async def test_get_note_success(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Retrieve an existing note by name."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -234,10 +230,8 @@ async def test_get_note_success(
 @pytest.mark.asyncio
 async def test_get_note_not_found(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Getting a non-existent note returns an error message."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, _chat_model = await _setup_group_and_user(
         test_client,
@@ -272,10 +266,8 @@ async def test_get_note_not_found(
 @pytest.mark.asyncio
 async def test_notes_list_success(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Listing notes in a chat that has notes."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -311,10 +303,8 @@ async def test_notes_list_success(
 @pytest.mark.asyncio
 async def test_notes_list_empty(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Listing notes when no notes exist shows appropriate message."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, _chat_model = await _setup_group_and_user(
         test_client,
@@ -346,10 +336,8 @@ async def test_notes_list_empty(
 @pytest.mark.asyncio
 async def test_notes_list_with_search(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Listing notes with a search term filters the results."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -391,10 +379,8 @@ async def test_notes_list_with_search(
 @pytest.mark.asyncio
 async def test_delnote_success(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Admin successfully deletes a note."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -403,6 +389,7 @@ async def test_delnote_success(
         group_title="Notes Delete Group",
         first_name="AdminDeleter",
         username="admin_deleter",
+        admin=True,
     )
 
     note = await _save_note_directly(chat_model, ("obsolete",), "This note is outdated")
@@ -410,7 +397,6 @@ async def test_delnote_success(
     get_note_mock = AsyncMock(return_value=note)
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
         patch.object(NoteModel, "get_by_notenames", get_note_mock),
     ):
@@ -435,10 +421,8 @@ async def test_delnote_success(
 @pytest.mark.asyncio
 async def test_delnote_requires_admin(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Non-admin cannot delete a note."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, _chat_model = await _setup_group_and_user(
         test_client,
@@ -472,10 +456,8 @@ async def test_delnote_requires_admin(
 @pytest.mark.asyncio
 async def test_delnote_not_found(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Deleting a non-existent note returns an error."""
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, _chat_model = await _setup_group_and_user(
         test_client,
@@ -484,11 +466,11 @@ async def test_delnote_not_found(
         group_title="Notes DelNotFound Group",
         first_name="DelFinder",
         username="del_finder",
+        admin=True,
     )
 
     get_note_mock = AsyncMock(return_value=None)
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch.object(NoteModel, "get_by_notenames", get_note_mock),
     ):
         requests = await test_client.send_command(
@@ -504,6 +486,7 @@ async def test_delnote_not_found(
         f"Response should indicate note not found, got: {response_text}"
     )
 
+
 # ---------------------------------------------------------------------------
 # test_save_note_stores_names_lowercased
 # ---------------------------------------------------------------------------
@@ -512,14 +495,12 @@ async def test_delnote_not_found(
 @pytest.mark.asyncio
 async def test_save_note_stores_names_lowercased(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`/save Rules` must store "rules".
 
     Lowercase-on-write is the invariant the case-insensitive retrieval in `get_by_notenames` relies
     on (see tests/test_notes_name_normalization.py), so it is pinned at the handler level too.
     """
-    monkeypatch.setattr("sophie_bot.modules.notes.utils.send.bot", test_client.bot)
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -528,10 +509,10 @@ async def test_save_note_stores_names_lowercased(
         group_title="Notes Case Group",
         first_name="AdminCase",
         username="admin_case",
+        admin=True,
     )
 
     with (
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()),
     ):
         requests = await test_client.send_command(

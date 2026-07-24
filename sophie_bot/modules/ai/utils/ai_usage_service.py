@@ -123,14 +123,12 @@ async def get_chat_usage_view(chat_iid: PydanticObjectId) -> ChatUsageView | Non
         )
 
     percentage_remaining = int(
-        (quota_state.quota.remaining_credits / quota_state.quota.total_credits) * 100
-        if quota_state.quota.total_credits > 0
-        else 0
+        (quota_state.remaining_credits / quota_state.total_credits) * 100 if quota_state.total_credits > 0 else 0
     )
     return ChatUsageView(
-        total_credits=quota_state.quota.total_credits,
-        used_credits=quota_state.quota.used_credits_amount,
-        remaining_credits=quota_state.quota.remaining_credits,
+        total_credits=quota_state.total_credits,
+        used_credits=quota_state.used_credits,
+        remaining_credits=quota_state.remaining_credits,
         percentage_remaining=percentage_remaining,
         period_end=get_period_end(quota_state.quota.period_start),
         breakdown=tuple(breakdown_items),

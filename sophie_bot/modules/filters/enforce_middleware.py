@@ -21,6 +21,9 @@ from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.restrictions.services.silent import schedule_message_deletion
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.ai.utils.ai_header import ai_table_header
+from sophie_bot.modules.ai.utils.ai_filter_texts import AI_FILTER_STATUS
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
@@ -92,16 +95,20 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return triggered, messages
 
     @staticmethod
-    async def _handle_action_messages(message: Message, messages: list[ActionResult]) -> list[int]:
+    async def _handle_action_messages(
+        message: Message, messages: list[ActionResult], ai_matched: bool = False
+    ) -> list[int]:
         """Sends the aggregated filter text and returns the IDs of every message the bot produced.
 
         Actions that deliver their own message(s) (notes/replies carrying buttons or files, rules)
         return them instead of text, so they only contribute their IDs and stay out of the doc.
         """
         sent_message_ids: list[int] = []
-        doc = Doc(
-            # Title(_("Filters 🪄")),
-        )
+        doc = Doc()
+        if ai_matched:
+            # An AI filter decided this, so the reply carries the AI header and can be replied to
+            # like any other AI message to carry on the conversation.
+            doc += ai_table_header(str(AI_FILTER_STATUS))
 
         for msg in messages:
             if isinstance(msg, Message):
@@ -124,7 +131,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         async def send_message():
             return await bot.send_message(chat_id=message.chat.id, text=doc.to_html())
 
-        reply = await common_try(message.reply(doc.to_html()), reply_not_found=send_message)
+        if ai_matched:
+            reply = await common_try(send_ai_rich_message(message, doc), reply_not_found=send_message)
+        else:
+            reply = await common_try(message.reply(doc.to_html()), reply_not_found=send_message)
         if isinstance(reply, Message):
             sent_message_ids.append(reply.message_id)
 
@@ -199,7 +209,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
         sent_message_ids: list[int] = []
         if all_messages:
-            sent_message_ids = await self._handle_action_messages(message, all_messages)
+            ai_matched = any(matched.handler.startswith("ai:") for matched in matched_filters)
+            sent_message_ids = await self._handle_action_messages(message, all_messages, ai_matched=ai_matched)
+            data["ai_filter_handled"] = ai_matched
 
         # A single reply aggregates every triggered filter, so one silent filter makes the whole exchange silent
         if silent and await is_enabled("filters_silent_mode", chat_tid=message.chat.id):

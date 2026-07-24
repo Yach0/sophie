@@ -14,6 +14,6 @@ icon: 📌
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/pin` | `<None>` `<None>` | Pins replied message |  |
-| `/unpin` | `<None>` | Unpins message |  |
+| `/pin` | `<loud>` `<notify>` | Pins the replied message, silently unless loud or notify is given |  |
+| `/unpin` | `<all>` | Unpins the replied message, or every pinned message with all |  |
 {.card-view-on-mobile}

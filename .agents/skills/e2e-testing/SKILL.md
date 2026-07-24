@@ -14,22 +14,35 @@ Use this skill for tests under `tests/e2e/`.
 
 ## Test environment
 
-- `tests/e2e/conftest.py` provides the main fixtures.
-- `test_client` is the primary entry point for user interaction simulation.
-- The E2E environment uses mocked MongoDB, Redis, and Telegram APIs.
+- `tests/e2e/conftest.py` provides the main fixtures; `test_client` is the entry point.
+- Only the world outside the bot is mocked (MongoDB, Redis, Telegram). Handlers, middlewares,
+  permission checks, and persistence all run for real.
+- The database is empty at the start of every test (autouse `clean_db`), so do not hand-pick
+  "globally unique" IDs to dodge collisions.
+
+## Building state — do not patch permission checks
+
+- Use `tests/e2e/helpers.py`:
+  - `create_test_user_and_group(test_client, ...)` registers a user + group and returns models.
+  - `grant_admin(chat_tid, user_tid, ...)` / `grant_bot_admin(chat_tid, ...)` write real
+    `ChatAdminModel` state. Admin-gated handlers then pass without patching
+    `check_user_admin_permissions` or `is_user_admin` — those read this state.
+  - `next_user_id()` / `next_group_id()` allocate collision-free IDs.
+- Need a test-only handler? Use the `extra_router` fixture; it detaches on teardown.
 
 ## Test shape
 
 - Prefer `test_<handler>_<scenario>` naming.
-- Exercise the real user flow: send the command or interaction, inspect the bot reply, and verify the database state when relevant.
+- Exercise the real user flow: send the command/interaction, then verify.
 - Keep each test independent and explicit about the scenario it covers.
 
 ## What to assert
 
-- The bot responded.
-- The response text or structure matches the intended outcome.
-- Relevant database documents were created, updated, or left untouched as expected.
-- Important negative cases are covered, such as invalid input or missing permissions.
+- **Captured Telegram calls** first: `test_client.capture.get_by_type(RequestType.X)` with the
+  expected params. This proves the bot took the action, rather than trusting a mocked internal.
+- **Database state**: read back the model the handler should have written or left untouched.
+- **Reply text**: a secondary check — keep it, but don't rely on it alone.
+- Cover negative cases: invalid input, missing permissions (a user you did *not* `grant_admin`).
 
 ## Running tests
 

@@ -11,6 +11,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from tests.e2e.helpers import grant_admin
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
@@ -26,13 +29,24 @@ from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLAT
 # ---------------------------------------------------------------------------
 
 
-def _apply_ai_admin_patches(stack: ExitStack) -> None:
-    """Enter patches that bypass admin, AI-enabled, and quota filters."""
+def _apply_ai_moderation_off(stack: ExitStack) -> None:
+    """Keep the AI moderator out of the way: it now runs whenever the chat's mode enables it."""
     stack.enter_context(
-        patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", AsyncMock(return_value=True))
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.is_enabled", AsyncMock(return_value=False))
     )
+
+
+def _apply_ai_admin_patches(stack: ExitStack) -> None:
+    """Enter patches that bypass the AI-enabled and quota filters.
+
+    Admin rights are real ChatAdminModel state -- see `grant_admin`.
+    """
+    _apply_ai_moderation_off(stack)
     stack.enter_context(
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True))
+        patch(
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
+        )
     )
     stack.enter_context(
         patch("sophie_bot.modules.ai.filters.quota.check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
@@ -42,116 +56,17 @@ def _apply_ai_admin_patches(stack: ExitStack) -> None:
 
 def _apply_ai_non_admin_patches(stack: ExitStack) -> None:
     """Enter patches that deny admin but pass AI-enabled and quota filters."""
+    _apply_ai_moderation_off(stack)
     stack.enter_context(
-        patch("sophie_bot.modules.ai.filters.ai_enabled.AIEnabledFilter.get_status", AsyncMock(return_value=True))
+        patch(
+            "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode",
+            AsyncMock(return_value=AIMode.support),
+        )
     )
     stack.enter_context(
         patch("sophie_bot.modules.ai.filters.quota.check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
     )
     stack.enter_context(patch("sophie_bot.modules.ai.filters.quota.get_quota_info", AsyncMock(return_value=None)))
-
-
-# ---------------------------------------------------------------------------
-# /enableai tests
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_enableai_requires_admin(test_client: TestClient) -> None:
-    """Non-admin users should receive a permission error for /enableai."""
-    group_chat = ChatFactory.create_group(chat_id=-1002900000001, title="EnableAI Admin Group")
-    user_wrapper = test_client.create_user(user_id=929000001, first_name="RegUser", username="reg_enableai")
-
-    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
-
-    with ExitStack() as stack:
-        _apply_ai_non_admin_patches(stack)
-        requests = await test_client.send_command(
-            command="enableai",
-            from_user=user_wrapper.user,
-            chat=group_chat,
-        )
-
-    assert requests, "Bot should respond to non-admin /enableai attempt"
-    response_text = requests[-1].text or ""
-    assert "administrator" in response_text.lower() or "admin" in response_text.lower(), (
-        f"Expected permission error, got: {response_text}"
-    )
-
-
-@pytest.mark.asyncio
-async def test_enableai_shows_status(test_client: TestClient) -> None:
-    """Admin calling /enableai without args should see the current AI status."""
-    group_chat = ChatFactory.create_group(chat_id=-1002900000002, title="EnableAI Status Group")
-    admin_wrapper = test_client.create_user(user_id=929000002, first_name="AdminEnable", username="admin_enableai")
-
-    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
-
-    with ExitStack() as stack:
-        _apply_ai_admin_patches(stack)
-        requests = await test_client.send_command(
-            command="enableai",
-            from_user=admin_wrapper.user,
-            chat=group_chat,
-        )
-
-    assert requests, "Bot should respond to admin /enableai"
-    response_text = requests[-1].text or ""
-    # StatusBoolHandlerABC shows "Current state" and "Enabled"/"Disabled"
-    assert "Current state" in response_text or "AI Features" in response_text, (
-        f"Expected status display, got: {response_text}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# /aimoderator tests
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_aimoderator_requires_admin(test_client: TestClient) -> None:
-    """Non-admin users should receive a permission error for /aimoderator."""
-    group_chat = ChatFactory.create_group(chat_id=-1002900000003, title="AIMod Admin Group")
-    user_wrapper = test_client.create_user(user_id=929000003, first_name="RegModUser", username="reg_aimod")
-
-    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
-
-    with ExitStack() as stack:
-        _apply_ai_non_admin_patches(stack)
-        requests = await test_client.send_command(
-            command="aimoderator",
-            from_user=user_wrapper.user,
-            chat=group_chat,
-        )
-
-    assert requests, "Bot should respond to non-admin /aimoderator attempt"
-    response_text = requests[-1].text or ""
-    assert "administrator" in response_text.lower() or "admin" in response_text.lower(), (
-        f"Expected permission error, got: {response_text}"
-    )
-
-
-@pytest.mark.asyncio
-async def test_aimoderator_shows_status(test_client: TestClient) -> None:
-    """Admin calling /aimoderator without args should see the current moderator status."""
-    group_chat = ChatFactory.create_group(chat_id=-1002900000004, title="AIMod Status Group")
-    admin_wrapper = test_client.create_user(user_id=929000004, first_name="AdminMod", username="admin_aimod")
-
-    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
-
-    with ExitStack() as stack:
-        _apply_ai_admin_patches(stack)
-        requests = await test_client.send_command(
-            command="aimoderator",
-            from_user=admin_wrapper.user,
-            chat=group_chat,
-        )
-
-    assert requests, "Bot should respond to admin /aimoderator"
-    response_text = requests[-1].text or ""
-    assert "Current state" in response_text or "AI Moderator" in response_text, (
-        f"Expected status display, got: {response_text}"
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -166,6 +81,7 @@ async def test_ai_summaries_shows_status(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000041, first_name="AdminSummaries", username="admin_summaries")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -189,6 +105,7 @@ async def test_ai_note_titles_shows_status(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000042, first_name="AdminTitles", username="admin_titles")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -267,6 +184,7 @@ async def test_aiusage_not_available(test_client: TestClient) -> None:
     user_wrapper = test_client.create_user(user_id=929000006, first_name="NoDataUser", username="nodata_user")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -299,6 +217,7 @@ async def test_aireset_success(test_client: TestClient) -> None:
     admin_wrapper = test_client.create_user(user_id=929000007, first_name="AdminReset", username="admin_reset")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     mock_reset_messages = AsyncMock()
     mock_clear = AsyncMock()
@@ -346,34 +265,35 @@ async def test_aireset_requires_admin(test_client: TestClient) -> None:
 
 
 # ---------------------------------------------------------------------------
-# /aiprovider tests
+# /aimode tests
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_aiprovider_shows_provider_list(test_client: TestClient) -> None:
-    """Admin calling /aiprovider should see the provider selection with inline keyboard."""
-    group_chat = ChatFactory.create_group(chat_id=-1002900000009, title="AIProvider Group")
-    admin_wrapper = test_client.create_user(user_id=929000009, first_name="AdminProvider", username="admin_provider")
+async def test_aimode_shows_mode_picker(test_client: TestClient) -> None:
+    """Admin calling /aimode should see the mode table with an inline keyboard."""
+    group_chat = ChatFactory.create_group(chat_id=-1002900000009, title="AIMode Group")
+    admin_wrapper = test_client.create_user(user_id=929000009, first_name="AdminMode", username="admin_mode")
 
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
         requests = await test_client.send_command(
-            command="aiprovider",
+            command="aimode",
             from_user=admin_wrapper.user,
             chat=group_chat,
         )
 
-    assert requests, "Bot should respond to /aiprovider"
+    assert requests, "Bot should respond to /aimode"
     last_request = requests[-1]
-    response_text = last_request.text or ""
-    assert "AI Provider" in response_text or "provider" in response_text.lower(), (
-        f"Expected provider info, got: {response_text}"
-    )
-    # Should have an inline keyboard with provider options
-    assert last_request.reply_markup is not None, "Expected inline keyboard with provider options"
+    # The picker is sent as a rich message, so the mode table is in the rich payload, not in `text`.
+    rendered = str(last_request.params.get("rich_message") or last_request.text or "")
+    assert "Mode" in rendered, f"Expected the mode table, got: {rendered}"
+    keyboard = last_request.reply_markup
+    assert keyboard is not None, "Expected inline keyboard with mode options"
+    assert len(keyboard["inline_keyboard"]) == 4, "Expected one button per mode"
 
 
 # ---------------------------------------------------------------------------
@@ -436,6 +356,7 @@ async def test_translate_empty_text_error(test_client: TestClient) -> None:
     user_wrapper = test_client.create_user(user_id=929000011, first_name="EmptyTransUser", username="empty_trans")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -465,6 +386,7 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
     user_wrapper = test_client.create_user(user_id=929000012, first_name="FailTransUser", username="fail_trans")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)

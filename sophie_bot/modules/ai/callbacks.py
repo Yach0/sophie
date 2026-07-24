@@ -1,17 +1,19 @@
 from aiogram.filters.callback_data import CallbackData
 
+from sophie_bot.filters.command_start import CmdStart
+
 
 class AIResetContext(CallbackData, prefix="ai_reset_context"):
     pass
 
 
-class AIProviderCallback(CallbackData, prefix="ai_provider"):
-    provider: str  # 'openai' or 'google'
-
-
-class AIPlaygroundCallback(CallbackData, prefix="ai_playground"):
-    model: str  # specific model name like 'gpt_4o', 'gemini_2_5_flash', etc.
+class AIModeCallback(CallbackData, prefix="ai_mode"):
+    mode: str
 
 
 class AIChatCallback(CallbackData, prefix="ai_chat"):
     pass
+
+
+class AIHelpStartUrlCallback(CmdStart, prefix="aihelp"):
+    """Deep link from a group into the Sophie-help assistant in the bot's private chat."""

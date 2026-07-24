@@ -3,105 +3,23 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import Message
-from beanie import PydanticObjectId
 from aiogram_test_framework import MessageFactory, TestClient, UpdateFactory
-from bson import DBRef
+from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType
 from sophie_bot.modules.federations.exceptions import FederationBanValidationError
 from sophie_bot.modules.federations.services import FederationBanService, FederationChatService, FederationManageService
+from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin
 from tests.e2e.federations.conftest import (
     create_federation_via_command,
-    create_test_user_and_group,
 )
-
-
-def _extract_link_id(link_value: Any) -> Optional[PydanticObjectId]:
-    """Extract the PydanticObjectId from a Beanie Link / DBRef / ChatModel / raw ObjectId."""
-    if isinstance(link_value, DBRef):
-        return PydanticObjectId(link_value.id)
-    if isinstance(link_value, PydanticObjectId):
-        return link_value
-    # Beanie Document (e.g. ChatModel) — use its primary key
-    if hasattr(link_value, "iid"):
-        return PydanticObjectId(link_value.iid)
-    if hasattr(link_value, "ref"):
-        ref = link_value.ref
-        if isinstance(ref, DBRef):
-            return PydanticObjectId(ref.id)
-    if hasattr(link_value, "to_ref"):
-        ref = link_value.to_ref()
-        return _extract_link_id(ref)
-    if hasattr(link_value, "id"):
-        return PydanticObjectId(link_value.id)
-    return None
-
-
-class _FakeFirstOrNone:
-    """Wraps a list of UserInGroupModel and exposes ``first_or_none()``."""
-
-    def __init__(self, results: list[UserInGroupModel]) -> None:
-        self._results = results
-
-    async def first_or_none(self) -> Optional[UserInGroupModel]:
-        return self._results[0] if self._results else None
-
-    async def to_list(self) -> list[UserInGroupModel]:
-        return self._results
-
-
-def _make_uig_find_patch(inserted_entries: list[UserInGroupModel]):
-    """Return a replacement for ``UserInGroupModel.find`` that filters in Python.
-
-    mongomock cannot evaluate DBRef sub-field queries (``user.$id``, ``group.$id``).
-    This helper scans the pre-inserted *inserted_entries* list instead.
-    """
-
-    def _patched_find(*args: Any, **_kwargs: Any) -> _FakeFirstOrNone:
-        # Parse the Beanie expression arguments to extract user_iid and group_iids.
-        user_iid: Optional[PydanticObjectId] = None
-        group_iids: Optional[set[PydanticObjectId]] = None
-
-        for arg in args:
-            # Beanie comparison expressions have `field` and `value` or similar attrs.
-            # We inspect the dict representation instead for reliability.
-            if hasattr(arg, "query"):
-                query_dict = arg.query
-            elif isinstance(arg, dict):
-                query_dict = arg
-            else:
-                continue
-
-            for key, val in query_dict.items():
-                if "user" in key:
-                    user_iid = PydanticObjectId(val) if not isinstance(val, PydanticObjectId) else val
-                elif "group" in key:
-                    if isinstance(val, dict) and "$in" in val:
-                        group_iids = {PydanticObjectId(gid) for gid in val["$in"]}
-                    else:
-                        group_iids = {PydanticObjectId(val) if not isinstance(val, PydanticObjectId) else val}
-
-        matched: list[UserInGroupModel] = []
-        for entry in inserted_entries:
-            entry_user_iid = _extract_link_id(entry.user)
-            entry_group_iid = _extract_link_id(entry.group)
-
-            if user_iid is not None and entry_user_iid != user_iid:
-                continue
-            if group_iids is not None and entry_group_iid not in group_iids:
-                continue
-            matched.append(entry)
-        return _FakeFirstOrNone(matched)
-
-    return _patched_find
 
 
 @pytest.mark.asyncio
@@ -112,22 +30,20 @@ async def test_fban_user_via_service(test_client: TestClient) -> None:
     1. A federation is created and a user is banned
     2. The ban record exists in the database with correct fields
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4001,
+        first_name="BanOwner",
+        username="ban_owner",
+        chat_id=-1001000004001,
+        group_title="Ban Test Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4001,
-            first_name="BanOwner",
-            username="ban_owner",
-            chat_id=-1001000004001,
-            group_title="Ban Test Group",
-        )
+    target_wrapper = test_client.create_user(user_id=4002, first_name="Target", username="ban_target")
+    await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
 
-        target_wrapper = test_client.create_user(user_id=4002, first_name="Target", username="ban_target")
-        await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "Ban Test Fed", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Ban Test Fed", owner_model)
 
     # Ban user via service
     ban = await FederationBanService.ban_user(federation, 4002, owner_model.iid, reason="test ban reason")
@@ -144,41 +60,39 @@ async def test_fban_user_via_service(test_client: TestClient) -> None:
 @pytest.mark.asyncio
 async def test_sfban_reply_records_banner_as_command_sender(test_client: TestClient) -> None:
     """Test that reply-based /sfban stores the command sender as the banner."""
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4050,
+        first_name="ReplyBanOwner",
+        username="reply_ban_owner",
+        chat_id=-1001000004050,
+        group_title="Reply Ban Test Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4050,
-            first_name="ReplyBanOwner",
-            username="reply_ban_owner",
-            chat_id=-1001000004050,
-            group_title="Reply Ban Test Group",
-        )
+    target_wrapper = test_client.create_user(user_id=4051, first_name="ReplyTarget", username="reply_target")
+    await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
+    target_model = await ChatModel.get_by_tid(4051)
+    assert target_model is not None
 
-        target_wrapper = test_client.create_user(user_id=4051, first_name="ReplyTarget", username="reply_target")
-        await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
-        target_model = await ChatModel.get_by_tid(4051)
-        assert target_model is not None
+    federation = await create_federation_via_command(test_client, owner_user, group, "Reply Ban Test Fed", owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
 
-        federation = await create_federation_via_command(test_client, owner_user, group, "Reply Ban Test Fed", owner_model)
-        await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
-
-        target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
-        command_message = MessageFactory.create_command(
-            command="sfban",
-            from_user=owner_user,
-            chat=group,
-        ).model_copy(update={"reply_to_message": target_message})
-        await test_client.dispatcher.feed_update(
-            bot=test_client.bot,
-            update=UpdateFactory.create_message_update(command_message),
-        )
+    target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
+    command_message = MessageFactory.create_command(
+        command="sfban",
+        from_user=owner_user,
+        chat=group,
+    ).model_copy(update={"reply_to_message": target_message})
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot,
+        update=UpdateFactory.create_message_update(command_message),
+    )
 
     ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id, FederationBan.user_id == 4051)
     assert ban is not None
-    assert _extract_link_id(ban.by) == owner_model.iid
-    assert _extract_link_id(ban.by) != target_model.iid
+    assert ban.by.to_ref().id == owner_model.iid
+    assert ban.by.to_ref().id != target_model.iid
 
 
 @pytest.mark.asyncio
@@ -190,22 +104,20 @@ async def test_fban_and_unfban_via_service(test_client: TestClient) -> None:
     2. User is unbanned
     3. Ban record is removed from the database
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4003,
+        first_name="UnbanOwner",
+        username="unban_owner",
+        chat_id=-1001000004003,
+        group_title="Unban Test Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4003,
-            first_name="UnbanOwner",
-            username="unban_owner",
-            chat_id=-1001000004003,
-            group_title="Unban Test Group",
-        )
+    target_wrapper = test_client.create_user(user_id=4004, first_name="UnbanTarget", username="unban_target")
+    await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
 
-        target_wrapper = test_client.create_user(user_id=4004, first_name="UnbanTarget", username="unban_target")
-        await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "Unban Test Fed", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Unban Test Fed", owner_model)
 
     # Ban user
     await FederationBanService.ban_user(federation, 4004, owner_model.iid, reason="temp ban")
@@ -229,22 +141,20 @@ async def test_fban_updates_reason_on_reban(test_client: TestClient) -> None:
     2. User is banned again with reason B
     3. The ban record now has reason B
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4005,
+        first_name="RebanOwner",
+        username="reban_owner",
+        chat_id=-1001000004005,
+        group_title="Reban Test Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4005,
-            first_name="RebanOwner",
-            username="reban_owner",
-            chat_id=-1001000004005,
-            group_title="Reban Test Group",
-        )
+    target_wrapper = test_client.create_user(user_id=4006, first_name="RebanTarget", username="reban_target")
+    await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
 
-        target_wrapper = test_client.create_user(user_id=4006, first_name="RebanTarget", username="reban_target")
-        await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "Reban Test Fed", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Reban Test Fed", owner_model)
 
     # Ban user with first reason
     await FederationBanService.ban_user(federation, 4006, owner_model.iid, reason="first reason")
@@ -265,19 +175,17 @@ async def test_unfban_nonexistent_user(test_client: TestClient) -> None:
     Verifies:
     1. Unbanning a non-banned user returns (False, None)
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4007,
+        first_name="NoUnbanOwner",
+        username="no_unban_owner",
+        chat_id=-1001000004007,
+        group_title="No Unban Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4007,
-            first_name="NoUnbanOwner",
-            username="no_unban_owner",
-            chat_id=-1001000004007,
-            group_title="No Unban Group",
-        )
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "No Unban Fed", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "No Unban Fed", owner_model)
 
     success, origin_ban = await FederationBanService.unban_user(federation.fed_id, 99999)
     assert success is False, "Unbanning a non-banned user should return False"
@@ -291,25 +199,23 @@ async def test_fban_cannot_ban_federation_owner(test_client: TestClient) -> None
     Verifies:
     1. Attempting to ban the federation owner raises a validation error
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4008,
+        first_name="SelfBanOwner",
+        username="self_ban_owner",
+        chat_id=-1001000004008,
+        group_title="Self Ban Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4008,
-            first_name="SelfBanOwner",
-            username="self_ban_owner",
-            chat_id=-1001000004008,
-            group_title="Self Ban Group",
-        )
+    # Create a second user to attempt the ban
+    admin_wrapper = test_client.create_user(user_id=4009, first_name="Admin", username="fed_admin")
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
+    admin_model = await ChatModel.get_by_tid(4009)
+    assert admin_model is not None
 
-        # Create a second user to attempt the ban
-        admin_wrapper = test_client.create_user(user_id=4009, first_name="Admin", username="fed_admin")
-        await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group)
-        admin_model = await ChatModel.get_by_tid(4009)
-        assert admin_model is not None
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "Self Ban Fed", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Self Ban Fed", owner_model)
 
     # Try to ban the federation owner
     with pytest.raises(FederationBanValidationError, match="Cannot ban the federation owner"):
@@ -323,19 +229,17 @@ async def test_fban_cannot_ban_self(test_client: TestClient) -> None:
     Verifies:
     1. Attempting to ban yourself raises a validation error
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4010,
+        first_name="SelfBanner",
+        username="self_banner",
+        chat_id=-1001000004010,
+        group_title="Self Ban Group 2",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4010,
-            first_name="SelfBanner",
-            username="self_banner",
-            chat_id=-1001000004010,
-            group_title="Self Ban Group 2",
-        )
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "Self Ban Fed 2", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Self Ban Fed 2", owner_model)
 
     with pytest.raises(FederationBanValidationError, match="You cannot ban yourself"):
         await FederationBanService.ban_user(federation, 4010, owner_model.iid)
@@ -349,25 +253,23 @@ async def test_ban_count_tracking(test_client: TestClient) -> None:
     1. Ban count increases after banning users
     2. Ban count decreases after unbanning
     """
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4011,
+        first_name="CountOwner",
+        username="count_owner",
+        chat_id=-1001000004011,
+        group_title="Count Test Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4011,
-            first_name="CountOwner",
-            username="count_owner",
-            chat_id=-1001000004011,
-            group_title="Count Test Group",
+    for target_tid in (4012, 4013, 4014):
+        target_wrapper = test_client.create_user(
+            user_id=target_tid, first_name=f"Target{target_tid}", username=f"target_{target_tid}"
         )
+        await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
 
-        for target_tid in (4012, 4013, 4014):
-            target_wrapper = test_client.create_user(
-                user_id=target_tid, first_name=f"Target{target_tid}", username=f"target_{target_tid}"
-            )
-            await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group)
-
-        federation = await create_federation_via_command(test_client, owner_user, group, "Count Test Fed", owner_model)
+    federation = await create_federation_via_command(test_client, owner_user, group, "Count Test Fed", owner_model)
 
     # Ban three users
     await FederationBanService.ban_user(federation, 4012, owner_model.iid, reason="ban 1")
@@ -393,43 +295,41 @@ async def test_ban_in_subscription_chain(test_client: TestClient) -> None:
     2. User is banned in Fed B
     3. User is detected as banned in Fed A's chain
     """
-    admin_mock = AsyncMock(return_value=True)
+    user_a, group_a, model_a = await create_test_user_and_group(
+        test_client,
+        user_id=4020,
+        first_name="ChainOwnerA",
+        username="chain_owner_a",
+        chat_id=-1001000004020,
+        group_title="Chain Group A",
+    )
+    await grant_admin(group_a.id, user_a.id, creator=True)
+    user_b, group_b, model_b = await create_test_user_and_group(
+        test_client,
+        user_id=4021,
+        first_name="ChainOwnerB",
+        username="chain_owner_b",
+        chat_id=-1001000004021,
+        group_title="Chain Group B",
+    )
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        user_a, group_a, model_a = await create_test_user_and_group(
-            test_client,
-            user_id=4020,
-            first_name="ChainOwnerA",
-            username="chain_owner_a",
-            chat_id=-1001000004020,
-            group_title="Chain Group A",
-        )
-        user_b, group_b, model_b = await create_test_user_and_group(
-            test_client,
-            user_id=4021,
-            first_name="ChainOwnerB",
-            username="chain_owner_b",
-            chat_id=-1001000004021,
-            group_title="Chain Group B",
-        )
+    target_wrapper = test_client.create_user(user_id=4022, first_name="ChainTarget", username="chain_target")
+    await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group_a)
 
-        target_wrapper = test_client.create_user(user_id=4022, first_name="ChainTarget", username="chain_target")
-        await test_client.send_message(text="init", from_user=target_wrapper.user, chat=group_a)
+    fed_a = await create_federation_via_command(test_client, user_a, group_a, "Chain Fed A", model_a)
+    fed_b = await create_federation_via_command(test_client, user_b, group_b, "Chain Fed B", model_b)
 
-        fed_a = await create_federation_via_command(test_client, user_a, group_a, "Chain Fed A", model_a)
-        fed_b = await create_federation_via_command(test_client, user_b, group_b, "Chain Fed B", model_b)
-
-        # Join chats to their federations
-        group_model_a = await ChatModel.get_by_tid(group_a.id)
-        group_model_b = await ChatModel.get_by_tid(group_b.id)
-        assert group_model_a is not None
-        assert group_model_b is not None
-        await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid)
-        await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid)
-        fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
-        fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
-        assert fed_a is not None
-        assert fed_b is not None
+    # Join chats to their federations
+    group_model_a = await ChatModel.get_by_tid(group_a.id)
+    group_model_b = await ChatModel.get_by_tid(group_b.id)
+    assert group_model_a is not None
+    assert group_model_b is not None
+    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid)
+    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid)
+    fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
+    fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
+    assert fed_a is not None
+    assert fed_b is not None
 
     # Subscribe Fed A to Fed B via service (the /fsub command relies on
     # chat-context federation lookup which has DBRef issues in mongomock)
@@ -457,63 +357,61 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     3. User is banned in Fed C
     4. User is automatically banned in Fed B and Fed A via lazy-ban
     """
-    admin_mock = AsyncMock(return_value=True)
+    # Create three federations with owners and groups
+    user_a, group_a, model_a = await create_test_user_and_group(
+        test_client,
+        user_id=4030,
+        first_name="LazyOwnerA",
+        username="lazy_owner_a",
+        chat_id=-1001000004030,
+        group_title="Lazy Group A",
+    )
+    await grant_admin(group_a.id, user_a.id, creator=True)
+    user_b, group_b, model_b = await create_test_user_and_group(
+        test_client,
+        user_id=4031,
+        first_name="LazyOwnerB",
+        username="lazy_owner_b",
+        chat_id=-1001000004031,
+        group_title="Lazy Group B",
+    )
+    user_c, group_c, model_c = await create_test_user_and_group(
+        test_client,
+        user_id=4032,
+        first_name="LazyOwnerC",
+        username="lazy_owner_c",
+        chat_id=-1001000004032,
+        group_title="Lazy Group C",
+    )
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        # Create three federations with owners and groups
-        user_a, group_a, model_a = await create_test_user_and_group(
-            test_client,
-            user_id=4030,
-            first_name="LazyOwnerA",
-            username="lazy_owner_a",
-            chat_id=-1001000004030,
-            group_title="Lazy Group A",
-        )
-        user_b, group_b, model_b = await create_test_user_and_group(
-            test_client,
-            user_id=4031,
-            first_name="LazyOwnerB",
-            username="lazy_owner_b",
-            chat_id=-1001000004031,
-            group_title="Lazy Group B",
-        )
-        user_c, group_c, model_c = await create_test_user_and_group(
-            test_client,
-            user_id=4032,
-            first_name="LazyOwnerC",
-            username="lazy_owner_c",
-            chat_id=-1001000004032,
-            group_title="Lazy Group C",
-        )
+    # Create target user who will be in all three groups
+    target_wrapper = test_client.create_user(user_id=4033, first_name="LazyTarget", username="lazy_target")
+    # User sends messages in all three groups
+    await test_client.send_message(text="init A", from_user=target_wrapper.user, chat=group_a)
+    await test_client.send_message(text="init B", from_user=target_wrapper.user, chat=group_b)
+    await test_client.send_message(text="init C", from_user=target_wrapper.user, chat=group_c)
 
-        # Create target user who will be in all three groups
-        target_wrapper = test_client.create_user(user_id=4033, first_name="LazyTarget", username="lazy_target")
-        # User sends messages in all three groups
-        await test_client.send_message(text="init A", from_user=target_wrapper.user, chat=group_a)
-        await test_client.send_message(text="init B", from_user=target_wrapper.user, chat=group_b)
-        await test_client.send_message(text="init C", from_user=target_wrapper.user, chat=group_c)
+    # Create federations
+    fed_a = await create_federation_via_command(test_client, user_a, group_a, "Lazy Fed A", model_a)
+    fed_b = await create_federation_via_command(test_client, user_b, group_b, "Lazy Fed B", model_b)
+    fed_c = await create_federation_via_command(test_client, user_c, group_c, "Lazy Fed C", model_c)
 
-        # Create federations
-        fed_a = await create_federation_via_command(test_client, user_a, group_a, "Lazy Fed A", model_a)
-        fed_b = await create_federation_via_command(test_client, user_b, group_b, "Lazy Fed B", model_b)
-        fed_c = await create_federation_via_command(test_client, user_c, group_c, "Lazy Fed C", model_c)
-
-        # Join chats to their respective federations
-        group_model_a = await ChatModel.get_by_tid(group_a.id)
-        group_model_b = await ChatModel.get_by_tid(group_b.id)
-        group_model_c = await ChatModel.get_by_tid(group_c.id)
-        assert group_model_a is not None
-        assert group_model_b is not None
-        assert group_model_c is not None
-        await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid)
-        await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid)
-        await FederationChatService.add_chat_to_federation(fed_c, group_model_c.iid)
-        fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
-        fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
-        fed_c = await FederationManageService.get_federation_by_id(fed_c.fed_id)
-        assert fed_a is not None
-        assert fed_b is not None
-        assert fed_c is not None
+    # Join chats to their respective federations
+    group_model_a = await ChatModel.get_by_tid(group_a.id)
+    group_model_b = await ChatModel.get_by_tid(group_b.id)
+    group_model_c = await ChatModel.get_by_tid(group_c.id)
+    assert group_model_a is not None
+    assert group_model_b is not None
+    assert group_model_c is not None
+    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid)
+    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid)
+    await FederationChatService.add_chat_to_federation(fed_c, group_model_c.iid)
+    fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
+    fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
+    fed_c = await FederationManageService.get_federation_by_id(fed_c.fed_id)
+    assert fed_a is not None
+    assert fed_b is not None
+    assert fed_c is not None
 
     # Get target user model and create UserInGroupModel entries manually
     # (mongomock doesn't handle Link relationships well in e2e tests)
@@ -535,10 +433,6 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     await user_in_group_a.insert()
     await user_in_group_b.insert()
     await user_in_group_c.insert()
-
-    # Build a patched UserInGroupModel.find that filters in Python instead of
-    # relying on DBRef sub-field queries (which mongomock cannot handle).
-    uig_entries = [user_in_group_a, user_in_group_b, user_in_group_c]
 
     # Set up subscription chain: A → B → C
     # Fed A subscribes to Fed B
@@ -566,14 +460,9 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     assert ban_c.fed_id == fed_c.fed_id
 
     # Trigger lazy-ban in subscribing federations.
-    # Patch UserInGroupModel.find to work around mongomock DBRef query limitation.
-    # Import the specific module where UserInGroupModel is used to ensure proper patching.
-    from sophie_bot.modules.federations.services import ban as ban_service_module
-
-    with patch.object(ban_service_module.UserInGroupModel, "find", _make_uig_find_patch(uig_entries)):
-        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-            fed_c, 4033, model_c.iid, reason="transitive lazy ban test"
-        )
+    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+        fed_c, 4033, model_c.iid, reason="transitive lazy ban test"
+    )
 
     # Should have banned in Fed B and Fed A (2 lazy bans)
     assert len(lazy_bans) == 2, f"Expected 2 lazy bans (B and A), got {len(lazy_bans)}"
@@ -606,49 +495,45 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
     3. User is banned in Fed B
     4. User is NOT banned in Fed A via lazy-ban (user not present there)
     """
-    admin_mock = AsyncMock(return_value=True)
+    # Create two federations
+    user_a, group_a, model_a = await create_test_user_and_group(
+        test_client,
+        user_id=4040,
+        first_name="SelectiveOwnerA",
+        username="selective_owner_a",
+        chat_id=-1001000004040,
+        group_title="Selective Group A",
+    )
+    await grant_admin(group_a.id, user_a.id, creator=True)
+    user_b, group_b, model_b = await create_test_user_and_group(
+        test_client,
+        user_id=4041,
+        first_name="SelectiveOwnerB",
+        username="selective_owner_b",
+        chat_id=-1001000004041,
+        group_title="Selective Group B",
+    )
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        # Create two federations
-        user_a, group_a, model_a = await create_test_user_and_group(
-            test_client,
-            user_id=4040,
-            first_name="SelectiveOwnerA",
-            username="selective_owner_a",
-            chat_id=-1001000004040,
-            group_title="Selective Group A",
-        )
-        user_b, group_b, model_b = await create_test_user_and_group(
-            test_client,
-            user_id=4041,
-            first_name="SelectiveOwnerB",
-            username="selective_owner_b",
-            chat_id=-1001000004041,
-            group_title="Selective Group B",
-        )
+    # Create target user who is ONLY in group B
+    target_wrapper = test_client.create_user(user_id=4042, first_name="SelectiveTarget", username="selective_target")
+    # User only sends message in group B, NOT in group A
+    await test_client.send_message(text="init B", from_user=target_wrapper.user, chat=group_b)
 
-        # Create target user who is ONLY in group B
-        target_wrapper = test_client.create_user(
-            user_id=4042, first_name="SelectiveTarget", username="selective_target"
-        )
-        # User only sends message in group B, NOT in group A
-        await test_client.send_message(text="init B", from_user=target_wrapper.user, chat=group_b)
+    # Create federations
+    fed_a = await create_federation_via_command(test_client, user_a, group_a, "Selective Fed A", model_a)
+    fed_b = await create_federation_via_command(test_client, user_b, group_b, "Selective Fed B", model_b)
 
-        # Create federations
-        fed_a = await create_federation_via_command(test_client, user_a, group_a, "Selective Fed A", model_a)
-        fed_b = await create_federation_via_command(test_client, user_b, group_b, "Selective Fed B", model_b)
-
-        # Join chats to their respective federations
-        group_model_a = await ChatModel.get_by_tid(group_a.id)
-        group_model_b = await ChatModel.get_by_tid(group_b.id)
-        assert group_model_a is not None
-        assert group_model_b is not None
-        await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid)
-        await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid)
-        fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
-        fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
-        assert fed_a is not None
-        assert fed_b is not None
+    # Join chats to their respective federations
+    group_model_a = await ChatModel.get_by_tid(group_a.id)
+    group_model_b = await ChatModel.get_by_tid(group_b.id)
+    assert group_model_a is not None
+    assert group_model_b is not None
+    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid)
+    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid)
+    fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
+    fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
+    assert fed_a is not None
+    assert fed_b is not None
 
     # Get target user model and create UserInGroupModel entry only for group B
     # (mongomock doesn't handle Link relationships well in e2e tests)
@@ -672,13 +557,9 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
     assert ban_b is not None
 
     # Trigger lazy-ban
-    # Import the specific module where UserInGroupModel is used to ensure proper patching.
-    from sophie_bot.modules.federations.services import ban as ban_service_module
-
-    with patch.object(ban_service_module.UserInGroupModel, "find", _make_uig_find_patch([user_in_group_b])):
-        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
-            fed_b, 4042, model_b.iid, reason="selective lazy ban test"
-        )
+    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+        fed_b, 4042, model_b.iid, reason="selective lazy ban test"
+    )
 
     # Should have banned ONLY in Fed A where user is NOT present
     # So actually 0 lazy bans since user isn't in Fed A's chats
@@ -702,28 +583,26 @@ async def _create_subscribed_fed_pair(
     name_prefix: str,
 ) -> tuple[Federation, Federation, ChatModel]:
     """Create Fed A and Fed B (each with one chat) and subscribe Fed A to Fed B."""
-    admin_mock = AsyncMock(return_value=True)
+    user_a, group_a, model_a = await create_test_user_and_group(
+        test_client,
+        user_id=owner_a_tid,
+        first_name=f"{name_prefix}OwnerA",
+        username=f"{name_prefix.lower()}_owner_a",
+        chat_id=group_a_tid,
+        group_title=f"{name_prefix} Group A",
+    )
+    await grant_admin(group_a.id, user_a.id, creator=True)
+    user_b, group_b, model_b = await create_test_user_and_group(
+        test_client,
+        user_id=owner_b_tid,
+        first_name=f"{name_prefix}OwnerB",
+        username=f"{name_prefix.lower()}_owner_b",
+        chat_id=group_b_tid,
+        group_title=f"{name_prefix} Group B",
+    )
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        user_a, group_a, model_a = await create_test_user_and_group(
-            test_client,
-            user_id=owner_a_tid,
-            first_name=f"{name_prefix}OwnerA",
-            username=f"{name_prefix.lower()}_owner_a",
-            chat_id=group_a_tid,
-            group_title=f"{name_prefix} Group A",
-        )
-        user_b, group_b, model_b = await create_test_user_and_group(
-            test_client,
-            user_id=owner_b_tid,
-            first_name=f"{name_prefix}OwnerB",
-            username=f"{name_prefix.lower()}_owner_b",
-            chat_id=group_b_tid,
-            group_title=f"{name_prefix} Group B",
-        )
-
-        fed_a = await create_federation_via_command(test_client, user_a, group_a, f"{name_prefix} Fed A", model_a)
-        fed_b = await create_federation_via_command(test_client, user_b, group_b, f"{name_prefix} Fed B", model_b)
+    fed_a = await create_federation_via_command(test_client, user_a, group_a, f"{name_prefix} Fed A", model_a)
+    fed_b = await create_federation_via_command(test_client, user_b, group_b, f"{name_prefix} Fed B", model_b)
 
     subscribed = await FederationManageService.subscribe_to_federation(fed_a, fed_b.fed_id)
     assert subscribed is True, "Fed A should subscribe to Fed B"
@@ -731,9 +610,7 @@ async def _create_subscribed_fed_pair(
     return fed_a, fed_b, model_b
 
 
-async def _insert_inherited_ban(
-    fed_id: str, origin_fed_id: str, user_tid: int, by_model: ChatModel
-) -> FederationBan:
+async def _insert_inherited_ban(fed_id: str, origin_fed_id: str, user_tid: int, by_model: ChatModel) -> FederationBan:
     """Insert the ban row shape that lazy_ban_in_subscribing_federations produces."""
     ban = FederationBan(
         fed_id=fed_id,
@@ -820,39 +697,35 @@ async def test_unfban_allowed_after_origin_ban_is_lifted(test_client: TestClient
 @pytest.mark.asyncio
 async def test_fban_queues_propagation_task_when_reply_cannot_be_sent(test_client: TestClient) -> None:
     """Losing send rights must not cost the ban its propagation task."""
-    admin_mock = AsyncMock(return_value=True)
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client,
+        user_id=4070,
+        first_name="NoReplyOwner",
+        username="no_reply_owner",
+        chat_id=-1001000004070,
+        group_title="No Reply Group",
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
 
-    with patch("sophie_bot.filters.admin_rights.check_user_admin_permissions", admin_mock):
-        owner_user, group, owner_model = await create_test_user_and_group(
-            test_client,
-            user_id=4070,
-            first_name="NoReplyOwner",
-            username="no_reply_owner",
-            chat_id=-1001000004070,
-            group_title="No Reply Group",
+    target_wrapper = test_client.create_user(user_id=4071, first_name="NoReplyTarget", username="no_reply_target")
+    await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, "No Reply Fed", owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+
+    target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
+    command_message = MessageFactory.create_command(
+        command="fban",
+        from_user=owner_user,
+        chat=group,
+    ).model_copy(update={"reply_to_message": target_message})
+
+    forbidden = TelegramForbiddenError(method=None, message="Forbidden: bot is not a member of the group chat")  # type: ignore[arg-type]
+    with patch.object(Message, "reply", AsyncMock(side_effect=forbidden)):
+        await test_client.dispatcher.feed_update(
+            bot=test_client.bot,
+            update=UpdateFactory.create_message_update(command_message),
         )
-
-        target_wrapper = test_client.create_user(user_id=4071, first_name="NoReplyTarget", username="no_reply_target")
-        await test_client.send_message(text="spam", from_user=target_wrapper.user, chat=group)
-
-        federation = await create_federation_via_command(
-            test_client, owner_user, group, "No Reply Fed", owner_model
-        )
-        await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
-
-        target_message = MessageFactory.create(text="spam", from_user=target_wrapper.user, chat=group)
-        command_message = MessageFactory.create_command(
-            command="fban",
-            from_user=owner_user,
-            chat=group,
-        ).model_copy(update={"reply_to_message": target_message})
-
-        forbidden = TelegramForbiddenError(method=None, message="Forbidden: bot is not a member of the group chat")  # type: ignore[arg-type]
-        with patch.object(Message, "reply", AsyncMock(side_effect=forbidden)):
-            await test_client.dispatcher.feed_update(
-                bot=test_client.bot,
-                update=UpdateFactory.create_message_update(command_message),
-            )
 
     ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id, FederationBan.user_id == 4071)
     assert ban is not None, "The ban record should still be written"
@@ -864,3 +737,74 @@ async def test_fban_queues_propagation_task_when_reply_cannot_be_sent(test_clien
     )
     assert task is not None, "The propagation task must be queued even when the reply could not be sent"
     assert task.reply_message_id is None
+
+
+# ---------------------------------------------------------------------------
+# Command-flow coverage: /fban, /unfban, /fcheck through the dispatcher
+# ---------------------------------------------------------------------------
+
+async def _fed_with_joined_member(
+    test_client: TestClient, *, owner_tid: int, chat_tid: int, target_tid: int, fed_name: str
+):
+    owner_user, group, owner_model = await create_test_user_and_group(
+        test_client, user_id=owner_tid, chat_id=chat_tid, first_name="BanOwner", group_title=fed_name
+    )
+    await grant_admin(group.id, owner_user.id, creator=True)
+    await grant_bot_admin(group.id)
+    target = test_client.create_user(user_id=target_tid, first_name="Spammer", username=f"spammer_{target_tid}")
+    await test_client.send_message(text="init", from_user=target.user, chat=group)
+
+    federation = await create_federation_via_command(test_client, owner_user, group, fed_name, owner_model)
+    await test_client.send_command(command="joinfed", from_user=owner_user, args=federation.fed_id, chat=group)
+    return owner_user, group, federation, target.user
+
+
+@pytest.mark.asyncio
+async def test_fban_command_records_ban_and_bans_in_chat(test_client: TestClient) -> None:
+    owner_user, group, federation, target = await _fed_with_joined_member(
+        test_client, owner_tid=6040, chat_tid=-1001000006040, target_tid=6041, fed_name="Fban Cmd Fed"
+    )
+
+    requests = await test_client.send_command(
+        command="fban", from_user=owner_user, args=f"{target.id} spamming", chat=group
+    )
+
+    assert await FederationBanService.is_user_banned(federation.fed_id, target.id) is not None, (
+        "The federation ban record should exist"
+    )
+    bans = [
+        request
+        for request in requests
+        if request.request_type == RequestType.BAN_CHAT_MEMBER and request.params.get("user_id") == target.id
+    ]
+    assert bans, "The user should be banned in the current federation chat immediately"
+
+
+@pytest.mark.asyncio
+async def test_unfban_command_lifts_ban(test_client: TestClient) -> None:
+    owner_user, group, federation, target = await _fed_with_joined_member(
+        test_client, owner_tid=6042, chat_tid=-1001000006042, target_tid=6043, fed_name="Unfban Cmd Fed"
+    )
+    await test_client.send_command(command="fban", from_user=owner_user, args=str(target.id), chat=group)
+    assert await FederationBanService.is_user_banned(federation.fed_id, target.id) is not None
+
+    await test_client.send_command(command="unfban", from_user=owner_user, args=str(target.id), chat=group)
+
+    assert await FederationBanService.is_user_banned(federation.fed_id, target.id) is None, (
+        "The federation ban should be lifted after /unfban"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fcheck_group_reports_ban_status(test_client: TestClient) -> None:
+    owner_user, group, federation, target = await _fed_with_joined_member(
+        test_client, owner_tid=6044, chat_tid=-1001000006044, target_tid=6045, fed_name="Fcheck Cmd Fed"
+    )
+
+    before = await test_client.send_command(command="fcheck", from_user=owner_user, args=str(target.id), chat=group)
+    assert any("not banned" in (request.text or "").lower() for request in before)
+
+    await test_client.send_command(command="fban", from_user=owner_user, args=str(target.id), chat=group)
+
+    after = await test_client.send_command(command="fcheck", from_user=owner_user, args=str(target.id), chat=group)
+    assert any("Banned in current fed" in (request.text or "") for request in after)
