@@ -508,7 +508,7 @@ async def test_migration_applies_correctly():
 5. **Verify status**: `make migrate_status`
 6. **Open merge request** with migration details
 7. **CI runs tests** automatically
-8. **Merge to main/beta**
+8. **Merge to main**
 9. **Deploy to beta** - migrations run automatically
 10. **Verify in beta**
 11. **Deploy to stable** if needed

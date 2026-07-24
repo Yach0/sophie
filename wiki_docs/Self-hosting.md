@@ -146,7 +146,7 @@ podman run -d \
   --name sophie-stable \
   --env-file /var/sophie/stable.env \
   -p 8071:8071 \
-  registry.gitlab.com/sophiebot/sophie:stable-runtime
+  registry.gitlab.com/sophiebot/sophie:main-runtime
 ```
 
 ### Scheduler
@@ -158,7 +158,7 @@ podman run -d \
   --name sophie-scheduler \
   -e MODE=scheduler \
   --env-file /var/sophie/scheduler.env \
-  registry.gitlab.com/sophiebot/sophie:stable-runtime
+  registry.gitlab.com/sophiebot/sophie:main-runtime
 ```
 
 ### REST API
@@ -171,7 +171,7 @@ podman run -d \
   -e MODE=rest \
   --env-file /var/sophie/rest.env \
   -p 8075:8075 \
-  registry.gitlab.com/sophiebot/sophie:stable-runtime
+  registry.gitlab.com/sophiebot/sophie:main-runtime
 ```
 
 ## Proxy System (Stable + Beta)
