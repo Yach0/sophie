@@ -16,14 +16,16 @@
 test-codestyle:
   extends: .test-base
   script:
-    - pycln . -a -c
-    - ruff format sophie_bot/ --check
-    - ruff check .
+    # Run via `uv run` so the lint/format tools come from the synced lockfile, not the
+    # CI image's prebuilt /sophie/.venv (which can lag the project's pinned versions).
+    - uv run pycln . -a -c
+    - uv run ruff format sophie_bot/ --check
+    - uv run ruff check .
 
 test-codeanal:
   extends: .test-base
   script:
-    - ty check
+    - uv run ty check
 
 test-qodana:
   image:
