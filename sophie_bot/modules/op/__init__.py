@@ -1,5 +1,4 @@
 from aiogram import Router
-from fastapi import APIRouter
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
@@ -25,20 +24,12 @@ except ImportError:
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from .api import health_router
-
-api_router = APIRouter()
-api_router.include_router(health_router)
-
-__all__ = ["api_router"]
-
 router = Router(name="op")
 
 
 module_manifest = ModuleManifest(
     name="op",
     bot_router=router,
-    api_router=api_router,
     handlers=(
         ListJobsHandler,
         StopJobsHandler,

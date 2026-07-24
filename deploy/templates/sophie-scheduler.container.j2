@@ -15,6 +15,11 @@ Volume=/var/sophie/data:/data:rw,z
 PodmanArgs=--memory=1G
 Environment=MODE=scheduler
 EnvironmentFile=/var/sophie/scheduler.env
+HealthCmd=python -m sophie_bot.healthcheck
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
 
 [Install]
 WantedBy=multi-user.target default.target
