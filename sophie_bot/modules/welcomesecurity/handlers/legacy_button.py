@@ -102,8 +102,10 @@ class LegacyWSButtonHandler(SophieMessageHandler):
             )
 
         if await is_user_admin(chat_id, user_db.iid):
-            await WSUserModel.remove_user(user_db.iid, group_db.iid)
-            await unmute_user(chat_tid=chat_id, user_tid=user_db.tid)
+            # Only drop the pending WS record once the unmute succeeds; otherwise the admin
+            # would be left muted with no record to re-enter this flow and retry.
+            if await unmute_user(chat_tid=chat_id, user_tid=user_db.tid):
+                await WSUserModel.remove_user(user_db.iid, group_db.iid)
             log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("You already an admin in the chat, therefore you don't need to pass the authentication!")
