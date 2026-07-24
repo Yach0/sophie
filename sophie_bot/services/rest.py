@@ -26,6 +26,15 @@ RATE_LIMIT_EXEMPT_PATHS: frozenset[str] = frozenset({"/health"})
 GLOBAL_RATE_LIMIT = 300
 GLOBAL_RATE_WINDOW = 60  # seconds
 
+# Liveness endpoint mounted from the core app (not an optional module) so the
+# container health probe keeps working even when a module is disabled via config.
+health_router = APIRouter(prefix="/health", tags=["health"])
+
+
+@health_router.get("")
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
 
 class I18nMiddleware(BaseHTTPMiddleware):
     """Middleware to set up i18n context for REST API requests."""
@@ -147,6 +156,8 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Sophie API")
+
+    app.include_router(health_router)
 
     # I18n middleware
     app.add_middleware(I18nMiddleware)  # type: ignore[arg-type]

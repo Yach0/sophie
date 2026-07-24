@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import ssl
 
 from aiogram.webhook.aiohttp_server import (
@@ -14,6 +15,7 @@ from aiohttp.web_app import Application
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares import enable_middlewares, set_metrics_middleware
 from sophie_bot.runtime import BotModeRuntime, build_bot_runtime
+from sophie_bot.services.health import heartbeat_loop
 from sophie_bot.startup import initialize_bot_mode
 from sophie_bot.utils.logger import log
 
@@ -35,6 +37,10 @@ ALLOWED_UPDATES = [
 ]
 
 
+# Hold strong references to background tasks so they are not garbage-collected mid-run.
+_background_tasks: set[asyncio.Task[None]] = set()
+
+
 def _configure_bot_startup(runtime: BotModeRuntime) -> None:
     dispatcher = runtime.bot_runtime.dispatcher
 
@@ -47,6 +53,10 @@ def _configure_bot_startup(runtime: BotModeRuntime) -> None:
             await _init_metrics()
 
         enable_middlewares(dispatcher)
+
+        heartbeat_task = asyncio.create_task(heartbeat_loop(CONFIG.mode))
+        _background_tasks.add(heartbeat_task)
+        heartbeat_task.add_done_callback(_background_tasks.discard)
 
 
 async def _init_metrics() -> None:

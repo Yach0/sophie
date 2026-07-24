@@ -66,5 +66,9 @@ WORKDIR /app
 # Switch to non-root user
 USER sophie
 
+# Liveness probe: dispatches on MODE (HTTP for rest, redis heartbeat for bot/scheduler)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD ["python", "-m", "sophie_bot.healthcheck"]
+
 # Run the application directly (no uv needed at runtime)
 CMD ["python", "-m", "sophie_bot"]

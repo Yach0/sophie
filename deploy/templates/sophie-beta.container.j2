@@ -13,6 +13,11 @@ PublishPort=9102:9108
 Volume=/var/sophie/data:/data:rw,z
 PodmanArgs=--memory=1500M
 EnvironmentFile=/var/sophie/beta.env
+HealthCmd=python -m sophie_bot.healthcheck
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=60s
 
 [Install]
 WantedBy=multi-user.target default.target
