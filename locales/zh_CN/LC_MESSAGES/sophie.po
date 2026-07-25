@@ -4,38 +4,38 @@ msgstr ""
 "X-Crowdin-Project: sophiebot\n"
 "X-Crowdin-Project-ID: 356879\n"
 "X-Crowdin-Language: zh-CN\n"
-"X-Crowdin-File: /beta/locales/sophie.pot\n"
-"X-Crowdin-File-ID: 288\n"
+"X-Crowdin-File: /main/locales/sophie.pot\n"
+"X-Crowdin-File-ID: 293\n"
 "Project-Id-Version: sophiebot\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language-Team: Chinese Simplified\n"
 "Language: zh_CN\n"
-"PO-Revision-Date: 2026-06-05 06:15\n"
+"PO-Revision-Date: 2026-07-25 02:40\n"
 
-#: sophie_bot/args/chats.py:22
+#: sophie_bot/args/chats.py:28
 msgid "Could not find the requested Chat ID in the database."
 msgstr "未能在数据库中找到请求的聊天 ID。"
 
-#: sophie_bot/args/chats.py:36 sophie_bot/args/users.py:46
+#: sophie_bot/args/chats.py:42 sophie_bot/args/users.py:46
 msgid "Could not find the requested Username in the database."
 msgstr "未能在数据库中找到请求的用户名。"
 
-#: sophie_bot/args/chats.py:49
+#: sophie_bot/args/chats.py:55
 msgid "Chat: 'Chat ID (numeric) / Username (starts with @)'"
 msgstr "聊天：'聊天 ID（数字） / 用户名（以 @ 开头）'"
 
-#: sophie_bot/args/chats.py:50
+#: sophie_bot/args/chats.py:56
 msgid "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
 msgstr "聊天：'聊天 ID（数字） / 用户名（以 @ 开头）'"
 
-#: sophie_bot/args/chats.py:56
+#: sophie_bot/args/chats.py:62
 #: sophie_bot/modules/op/handlers/PreviewChatSummary.py:42
-#: sophie_bot/modules/op/handlers/op_debug.py:383
+#: sophie_bot/modules/op/handlers/op_debug.py:374
 msgid "Chat ID"
 msgstr "聊天 ID"
 
-#: sophie_bot/args/chats.py:57 sophie_bot/args/users.py:83
-#: sophie_bot/modules/users/handlers/info.py:52
+#: sophie_bot/args/chats.py:63 sophie_bot/args/users.py:82
+#: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
 msgstr "用户名"
 
@@ -89,59 +89,61 @@ msgstr "无效的用户ID。"
 msgid "Could not find the requested User ID in the database."
 msgstr "未能在数据库中找到请求的用户 ID。"
 
-#: sophie_bot/args/users.py:75
+#: sophie_bot/args/users.py:74
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr "用户：用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）"
 
-#: sophie_bot/args/users.py:76
+#: sophie_bot/args/users.py:75
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr "用户：用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）"
 
-#: sophie_bot/args/users.py:82
+#: sophie_bot/args/users.py:81
 msgid "User ID"
 msgstr "用户 ID"
 
-#: sophie_bot/args/users.py:85
+#: sophie_bot/args/users.py:84
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "用户的链接，通常通过提及用户而不带用户名来创建。"
 
-#: sophie_bot/filters/admin_rights.py:270
+#: sophie_bot/filters/admin_rights.py:265
 msgid "I don't have the following permissions to do this:"
 msgstr "我没有以下权限来执行此操作："
 
-#: sophie_bot/filters/admin_rights.py:272
+#: sophie_bot/filters/admin_rights.py:267
 msgid "You don't have the following permissions to do this:"
 msgstr "您没有以下权限来执行此操作："
 
-#: sophie_bot/filters/admin_rights.py:277
+#: sophie_bot/filters/admin_rights.py:272
 msgid "I must be an administrator to use this command."
 msgstr "我必须是管理员才能使用此命令。"
 
-#: sophie_bot/filters/admin_rights.py:279
+#: sophie_bot/filters/admin_rights.py:274
 msgid "You must be an administrator to use this command."
 msgstr "您必须是管理员才能使用此命令。"
 
-#: sophie_bot/filters/admin_rights.py:293
+#: sophie_bot/filters/admin_rights.py:281
+#: sophie_bot/modules/federations/handlers/ban.py:213
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr "匿名管理员必须拥有自定义管理员头衔才能使用此命令。"
 
-#: sophie_bot/filters/admin_rights.py:305
+#: sophie_bot/filters/admin_rights.py:285
+#: sophie_bot/modules/federations/handlers/ban.py:219
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr "无法解析此匿名管理员头衔。请刷新管理员缓存或使用唯一头衔。"
 
-#: sophie_bot/filters/admin_rights.py:319
+#: sophie_bot/filters/admin_rights.py:291
 msgid "Multiple anonymous admins share this title, and not all of them can use this command. Use a unique title."
 msgstr "多个匿名管理员共享此头衔，并非所有管理员都能使用此命令。请使用唯一头衔。"
 
-#: sophie_bot/filters/admin_rights.py:334
+#: sophie_bot/filters/admin_rights.py:298
 msgid "You must be the chat creator to use this command."
 msgstr "您必须是群组创建者才能使用此命令。"
 
-#: sophie_bot/filters/is_connected.py:52
+#: sophie_bot/filters/is_connected.py:43
 msgid "This command can only be used in a group or while being connected to a group in PM."
 msgstr "该命令只能在组中使用，或在私人消息中连接到组时使用。"
 
-#: sophie_bot/filters/is_connected.py:53
+#: sophie_bot/filters/is_connected.py:44
 msgid "Refer to /help for more information about connections."
 msgstr "请参阅 /help 获取有关连接的更多信息。"
 
@@ -157,39 +159,56 @@ msgstr "数据库中未找到连接的聊天。您已断开连接并将保持断
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr "您不再有权限连接到此聊天。您已断开连接。"
 
-#: sophie_bot/modules/ai/__init__.py:113
+#: sophie_bot/modules/ai/__init__.py:117
 msgid "Sophie AI"
 msgstr "Sophie AI"
 
-#: sophie_bot/modules/ai/__init__.py:115
+#: sophie_bot/modules/ai/__init__.py:119
 msgid "Rainbow sparkles and shininess"
 msgstr "彩虹闪耀与光辉"
 
-#: sophie_bot/modules/ai/__init__.py:118
+#: sophie_bot/modules/ai/__init__.py:122
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr "Sophie 支持多种使用 AI 功能的方式。"
 
-#: sophie_bot/modules/ai/__init__.py:119
+#: sophie_bot/modules/ai/__init__.py:123
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr "从简单的聊天机器人到自动翻译器。玩得开心。"
 
-#: sophie_bot/modules/ai/__init__.py:122
+#: sophie_bot/modules/ai/__init__.py:126
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "请注意，每个聊天都有有限的每月AI配额。"
 
-#: sophie_bot/modules/ai/__init__.py:123
+#: sophie_bot/modules/ai/__init__.py:127
 msgid "Use /aiusage to check your remaining quota."
 msgstr "使用 /aiusage 检查您的剩余配额。"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:17
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:18
 msgid "Can be empty"
 msgstr "可以为空"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:30
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:26
+msgid "Call this tool again with one of these slugs as `page` to read it in full:"
+msgstr "请再次使用此工具，并将下列其中一个 slug 作为 `page` 参数以完整阅读："
+
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:28
+msgid "Wiki pages"
+msgstr "Wiki 页面"
+
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:35
+msgid "none"
+msgstr "无"
+
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:36
+#, python-brace-format
+msgid "No wiki page named {page}. Available pages: {available}"
+msgstr "没有名为 {page} 的维基页面。可用页面：{available}"
+
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:52
 msgid "No modules found."
 msgstr "未找到任何模块。"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:34
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:56
 msgid "SOPHIE BOT HELP CONTEXT\n\n"
 "Commands are organized by module. Each module represents a feature area of the bot.\n\n"
 "Module fields:\n"
@@ -223,104 +242,111 @@ msgstr "SOPHIE 机器人帮助上下文\n\n"
 "  - 权限：是否需要管理员 / OP 权限。\n"
 "  - 可禁用：用于在聊天中禁用此命令的功能标志名称（如果有）。\n\n"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:60
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:82
 #: sophie_bot/modules/federations/handlers/info.py:63
-#: sophie_bot/modules/notes/handlers/delete.py:48
+#: sophie_bot/modules/notes/handlers/delete.py:58
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
 msgid "Name"
 msgstr "名称"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:61
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:83
 msgid "Icon"
 msgstr "图标"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:64
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:74
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:86
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:96
+#: sophie_bot/modules/notes/handlers/save.py:80
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:159
 msgid "Description"
 msgstr "描述"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:66
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:88
 msgid "Info"
 msgstr "详情"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:67
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:89
 msgid "Wiki page"
 msgstr "Wiki 页面"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:77
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:99
 msgid "Arguments"
 msgstr "参数"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:80
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:102
 msgid "This command has no arguments."
 msgstr "此命令没有参数。"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:81
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:103
 msgid "Can be used only in private chats (PM / DM)"
 msgstr "仅可在私人聊天（PM / DM）中使用"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:82
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:104
 msgid "Can be used only in groups / supergroups"
 msgstr "仅可在群组 / 超级群组中使用"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:83
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:105
 msgid "Can be used in both private chats and groups"
 msgstr "可在私人聊天和群组中使用"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:86
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:108
 msgid "Can be used only by admins"
 msgstr "仅管理员可使用"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:87
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:109
 msgid "Can be used only by OP"
 msgstr "仅 OP 可使用"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:88
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:110
 msgid "No special permissions required"
 msgstr "无需特殊权限"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:91
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:113
 msgid "Disableable"
 msgstr "可禁用的"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:97
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:119
 msgid "Module Information"
 msgstr "模块信息"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:100
-#: sophie_bot/modules/help/utils/format_help.py:71
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:122
+#: sophie_bot/modules/help/utils/format_help.py:87
 #: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr "命令"
 
-#: sophie_bot/modules/ai/agent_tools/cmds_help.py:102
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:124
 msgid "No commands in this module."
 msgstr "此模块中没有命令。"
 
-#: sophie_bot/modules/ai/agent_tools/notes.py:89
-msgid "Note was successfully deleted."
-msgstr "笔记已成功删除。"
-
-#: sophie_bot/modules/ai/filters/ai_enabled.py:33
-msgid "The AI Features are currently deactivated for this chat."
+#: sophie_bot/modules/ai/filters/ai_mode.py:58
+msgid "The AI features are currently disabled for this chat."
 msgstr "此聊天的 AI 功能当前已禁用。"
 
-#: sophie_bot/modules/ai/filters/ai_enabled.py:34
+#: sophie_bot/modules/ai/filters/ai_mode.py:59
 #, python-brace-format
-msgid "Please use \"{cmd}\" to activate them."
-msgstr "请使用 \"{cmd}\" 来激活它们。"
+msgid "Please use \"{cmd}\" to pick an AI mode."
+msgstr "请使用 \"{cmd}\" 选择 AI 模式。"
 
 #: sophie_bot/modules/ai/fsm/pm.py:13
 msgid "🛑 Exit AI mode"
 msgstr "🛑 退出 AI 模式"
 
 #: sophie_bot/modules/ai/fsm/pm.py:14
+msgid "🛑 Exit AI help"
+msgstr "🛑 退出 AI 帮助"
+
+#: sophie_bot/modules/ai/fsm/pm.py:15
 msgid "🔄 Reset AI context"
 msgstr "🔄 重置 AI 上下文"
 
-#: sophie_bot/modules/ai/fsm/pm.py:15
-msgid "⚙️ AI Provider"
-msgstr "⚙️ AI 提供者"
+#: sophie_bot/modules/ai/fsm/pm.py:16
+msgid "💬 Switch to normal AI mode"
+msgstr "💬 切换到普通 AI 模式"
+
+#: sophie_bot/modules/ai/fsm/pm.py:17
+msgid "📖 Sophie help mode"
+msgstr "📖 Sophie 帮助模式"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:77
 #, python-brace-format
@@ -361,7 +387,6 @@ msgid "For example, {cmd}"
 msgstr "例如，{cmd}"
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:20
-#: sophie_bot/modules/ai/handlers/mode.py:16
 msgid "Prompt"
 msgstr "提示"
 
@@ -369,120 +394,216 @@ msgstr "提示"
 msgid "Ask Sophie a question"
 msgstr "问 Sophie 一个问题"
 
-#: sophie_bot/modules/ai/handlers/ai_cmd.py:38
+#: sophie_bot/modules/ai/handlers/ai_cmd.py:42
+#: sophie_bot/modules/ai/handlers/research.py:104
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr "您已自动断开与聊天的连接以使用 AI。"
 
-#: sophie_bot/modules/ai/handlers/ai_moderator_setting.py:14
-msgid "Controls AI Moderator features"
-msgstr "控制 AI 版主功能"
+#: sophie_bot/modules/ai/handlers/aimode.py:24
+msgid "🚫 Disabled"
+msgstr "🚫 未启用"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:31
-msgid "🔃 Automatically choose the best provider"
-msgstr "🔃 自动选择最佳提供者"
+#: sophie_bot/modules/ai/handlers/aimode.py:25
+msgid "🎉 Entertainment"
+msgstr "🎉 娱乐"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:32
-msgid "⚡️ The fastest"
-msgstr "⚡️ 速度最快"
+#: sophie_bot/modules/ai/handlers/aimode.py:26
+msgid "🛡 Moderation"
+msgstr "🛡 管理"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:33
-msgid "🔒 The most private"
-msgstr "🔒 最私密的"
+#: sophie_bot/modules/ai/handlers/aimode.py:27
+msgid "💬 Support"
+msgstr "💬 支持"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:34
-msgid "🧠 The smartest"
-msgstr "🧠 最聪明的"
+#: sophie_bot/modules/ai/handlers/aimode.py:31
+msgid "Every AI feature is off."
+msgstr "所有 AI 功能均已关闭。"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:35
-msgid "👨‍🏫 The most precise"
-msgstr "👨‍🏫 最精确的"
+#: sophie_bot/modules/ai/handlers/aimode.py:32
+msgid "Chats along, joins conversations on its own and remembers people. Reduced privacy."
+msgstr "会主动参与聊天、加入对话并记住用户。隐私性降低。"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:56
-#: sophie_bot/modules/ai/handlers/aiprovider.py:119
-msgid "Select the AI Provider for this chat"
-msgstr "为此聊天选择 AI 提供者"
+#: sophie_bot/modules/ai/handlers/aimode.py:34
+msgid "Only moderates. No chatbot, and no message history is kept at all. Best in class privacy protection."
+msgstr "仅执行审核。不作为聊天机器人，也不会保留任何消息历史。提供一流的隐私保护。"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:73
-msgid "Current provider"
-msgstr "当前提供者"
+#: sophie_bot/modules/ai/handlers/aimode.py:36
+msgid "Answers questions using the chat notes, and moderates."
+msgstr "使用聊天笔记回答问题，并进行审核。"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:74
-msgid "AI Provider"
-msgstr "AI 提供者"
+#: sophie_bot/modules/ai/handlers/aimode.py:42
+msgid "Mode"
+msgstr "模式"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:90
+#: sophie_bot/modules/ai/handlers/aimode.py:42
+msgid "What Sophie does"
+msgstr "Sophie 会做什么"
+
+#: sophie_bot/modules/ai/handlers/aimode.py:66
+msgid "AI Mode"
+msgstr "AI 模式"
+
+#: sophie_bot/modules/ai/handlers/aimode.py:83
+msgid "Select what the AI does in this chat"
+msgstr "选择 AI 在此聊天中的行为"
+
+#: sophie_bot/modules/ai/handlers/aimode.py:101
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr "无效的消息类型"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:98
+#: sophie_bot/modules/ai/handlers/aimode.py:105
 msgid "You are not allowed to change this setting"
 msgstr "您无权更改此设置"
 
-#: sophie_bot/modules/ai/handlers/aiprovider.py:103
-msgid "Unknown provider"
-msgstr "未知的提供者"
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:109
-#: sophie_bot/modules/connections/handlers/connect_dm.py:38
-#: sophie_bot/modules/disabling/handlers/disable.py:50
-#: sophie_bot/modules/disabling/handlers/enable.py:52
-#: sophie_bot/modules/locks/handlers/base.py:58
-#: sophie_bot/modules/locks/handlers/locks_list.py:69
-#: sophie_bot/modules/locks/handlers/locksticker.py:52
-#: sophie_bot/modules/locks/handlers/locksticker.py:66
-#: sophie_bot/modules/notes/handlers/delete.py:47
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/promotes/handlers/demote.py:78
-#: sophie_bot/modules/promotes/handlers/promote.py:138
-#: sophie_bot/modules/restrictions/handlers/base.py:125
-#: sophie_bot/modules/restrictions/services/silent.py:76
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
-#: sophie_bot/modules/utils_/status_handler.py:47
-#: sophie_bot/modules/utils_/status_handler.py:70
-#: sophie_bot/modules/utils_/status_handler.py:124
-msgid "Chat"
-msgstr "聊天"
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:110
-msgid "New provider"
-msgstr "新提供商"
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:111
-msgid "AI Provider was updated"
-msgstr "AI 提供者已更新"
-
-#: sophie_bot/modules/ai/handlers/aiprovider.py:115
-msgid "Provider updated"
-msgstr "提供者已更新"
+#: sophie_bot/modules/ai/handlers/aimode.py:109
+msgid "Unknown mode"
+msgstr "未知模式"
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
 msgid "Controls AI Auto translator"
 msgstr "控制 AI 自动翻译器"
 
-#: sophie_bot/modules/ai/handlers/enable_setting.py:14
-msgid "Controls AI features"
-msgstr "控制 AI 功能"
+#: sophie_bot/modules/ai/handlers/feature_setting.py:26
+msgid "Controls AI chat summaries"
+msgstr "控制 AI 聊天摘要"
 
-#: sophie_bot/modules/ai/handlers/mode.py:17
-msgid "Generates a new AI mode"
-msgstr "生成新的 AI 模式"
+#: sophie_bot/modules/ai/handlers/feature_setting.py:37
+msgid "Controls AI note title generation"
+msgstr "控制 AI 笔记标题生成"
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:53
-msgid "default chat"
-msgstr "默认聊天"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:67
+#, python-brace-format
+msgid "Kinds: {kinds}"
+msgstr "类型：{kinds}"
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:55
-msgid "default translate"
-msgstr "默认翻译"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:68
+msgid "Only the given options change; the rest keep their current values."
+msgstr "只有给定的选项会更改；其余保持当前值。"
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:76
+#: sophie_bot/modules/ai/handlers/op_catalog.py:69
+msgid "A key can only be set in a private chat, and that message is deleted right away."
+msgstr "密钥只能在私人聊天中设置，该消息会立即被删除。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:71
+#: sophie_bot/modules/ai/handlers/op_catalog.py:97
+#: sophie_bot/modules/ai/handlers/usage.py:51
+msgid "Usage"
+msgstr "使用量"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:82
+#, python-brace-format
+msgid "Roles: {modes} paired with {purposes}, e.g. {example}"
+msgstr "角色：{modes} 与 {purposes} 配对，例如 {example}"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:88
+#, python-brace-format
+msgid "Drop the mode for purposes that are not per-chat, e.g. {example}"
+msgstr "对于非每聊天的用途省略模式，例如 {example}"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:91
+msgid "A mode with no model for a purpose falls back to the support one."
+msgstr "如果某用途的模式没有对应模型，则回退到支持（support）模型。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:93
+#, python-brace-format
+msgid "The upstream name defaults to the model name; set {option} when they differ."
+msgstr "上游名称默认使用模型名；当两者不同时设置 {option}。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:116
+#: sophie_bot/modules/ai/handlers/op_catalog.py:209
+msgid " (disabled)"
+msgstr " (未启用)"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:121
+msgid "AI Providers"
+msgstr "AI 提供者"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:122
+msgid "No providers are configured."
+msgstr "未配置任何提供者。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:122
+msgid "Providers"
+msgstr "提供者"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:128
+msgid "Create or update an AI provider (private chat only)"
+msgstr "创建或更新 AI 提供者（仅限私聊）"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:147
+msgid "Provider name"
+msgstr "提供者名称"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:160
+#, python-brace-format
+msgid "No provider named {name}."
+msgstr "没有名为 {name} 的提供者。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:163
+#, python-brace-format
+msgid "Provider {name} deleted."
+msgstr "提供者 {name} 已删除。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:181
+msgid "AI Provider saved"
+msgstr "AI 提供者已保存"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:215
+msgid "AI Models"
+msgstr "AI 模型"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:216
+msgid "No models are configured."
+msgstr "未配置任何模型。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:216
+#: sophie_bot/modules/ai/handlers/op_prices.py:47
+msgid "Models"
+msgstr "模型"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:218
+#, python-brace-format
+msgid "Loaded: {models} models, {providers} providers"
+msgstr "已加载：{models} 个模型，{providers} 个提供者"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:227
+msgid "Create or update an AI model"
+msgstr "创建或更新 AI 模型"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:247
+msgid "Model name"
+msgstr "模型名称"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:257
+#, python-brace-format
+msgid "No model named {name}."
+msgstr "没有名为 {name} 的模型。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:260
+#, python-brace-format
+msgid "Model {name} deleted."
+msgstr "模型 {name} 已删除。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:265
+msgid "A new model needs ^provider=<name>."
+msgstr "新模型需要 ^provider=<name>。"
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:288
+msgid "AI Model saved"
+msgstr "AI 模型已保存"
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:45
 msgid "AI Prices"
 msgstr "AI价格"
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:77
+#: sophie_bot/modules/ai/handlers/op_prices.py:46
 msgid "Prices are shown as approximate USD per 1M input/output tokens."
 msgstr "价格以每1M输入/输出令牌的近似美元显示。"
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:47
+msgid "The AI catalog is empty."
+msgstr "AI 目录为空。"
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:21
 msgid "Monthly credit amount"
@@ -577,46 +698,63 @@ msgstr "按积分量排名前的用户"
 msgid "Top features this month"
 msgstr "本月热门功能"
 
-#: sophie_bot/modules/ai/handlers/pm.py:23
+#: sophie_bot/modules/ai/handlers/pm.py:41
 msgid "Start the AI ChatBot mode"
 msgstr "启动 AI 聊天机器人模式"
 
-#: sophie_bot/modules/ai/handlers/pm.py:34
+#: sophie_bot/modules/ai/handlers/pm.py:58
+#, python-brace-format
+msgid "{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie."
+msgstr "{ai_emoji} 已进入 Sophie 帮助模式，关于使用 Sophie 的任何问题都可以问我。"
+
+#: sophie_bot/modules/ai/handlers/pm.py:60
 #, python-brace-format
 msgid "{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."
 msgstr "{ai_emoji} 进入 AI 模式，在此模式中，您可以直接与 AI 互动。"
 
-#: sophie_bot/modules/ai/handlers/pm.py:39
+#: sophie_bot/modules/ai/handlers/pm.py:65
 #, python-brace-format
 msgid "By using the AI, you agree to the {privacy_policy} of the bot and third party AI services used."
 msgstr "使用 AI 代表您同意机器人的 {privacy_policy} 和使用的第三方 AI 服务。"
 
-#: sophie_bot/modules/ai/handlers/pm.py:40
+#: sophie_bot/modules/ai/handlers/pm.py:66
 msgid "privacy policy"
 msgstr "隐私政策"
 
-#: sophie_bot/modules/ai/handlers/pm.py:42
+#: sophie_bot/modules/ai/handlers/pm.py:68
 msgid "Click on the button below to exit."
 msgstr "点击下方按钮退出。"
 
-#: sophie_bot/modules/ai/handlers/pm.py:50
+#: sophie_bot/modules/ai/handlers/pm.py:78
+msgid "Hello! What would you like to know about Sophie?"
+msgstr "你好！你想了解关于 Sophie 的什么？"
+
+#: sophie_bot/modules/ai/handlers/pm.py:78
 msgid "Hello! How can I help you?"
 msgstr "你好！我能帮你什么？"
 
-#: sophie_bot/modules/ai/handlers/pm.py:68
+#: sophie_bot/modules/ai/handlers/pm.py:92
+msgid "Switched to the normal AI mode."
+msgstr "已切换到普通 AI 模式。"
+
+#: sophie_bot/modules/ai/handlers/pm.py:105
+msgid "Switched to the Sophie help mode, ask me anything about using Sophie."
+msgstr "已切换到 Sophie 帮助模式，有关使用 Sophie 的任何问题都可以问我。"
+
+#: sophie_bot/modules/ai/handlers/pm.py:119
 msgid "The AI mode has been exited."
 msgstr "AI 模式已经退出。"
 
-#: sophie_bot/modules/ai/handlers/research.py:42
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
+#: sophie_bot/modules/ai/handlers/research.py:45
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:80
 msgid "Starting the research..."
 msgstr "开始研究……"
 
-#: sophie_bot/modules/ai/handlers/research.py:76
+#: sophie_bot/modules/ai/handlers/research.py:80
 msgid "Research topic"
 msgstr "研究主题"
 
-#: sophie_bot/modules/ai/handlers/research.py:78
+#: sophie_bot/modules/ai/handlers/research.py:82
 msgid "Research a topic using multistage web search and return a summary with sources"
 msgstr "使用多阶段网页搜索研究主题并返回带来源的摘要"
 
@@ -628,52 +766,52 @@ msgstr "重置聊天的 AI 上下文和 AI 内存"
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 AI 上下文和 AI 内存已成功重置。AI 现在将以干净状态操作。"
 
-#: sophie_bot/modules/ai/handlers/translate.py:71
+#: sophie_bot/modules/ai/handlers/translate.py:93
 msgid "Auto Translator"
 msgstr "自动翻译器"
 
-#: sophie_bot/modules/ai/handlers/translate.py:71
+#: sophie_bot/modules/ai/handlers/translate.py:93
 msgid "Translator"
 msgstr "翻译器"
 
-#: sophie_bot/modules/ai/handlers/translate.py:72
+#: sophie_bot/modules/ai/handlers/translate.py:94
 msgid "Voice"
 msgstr "声音"
 
-#: sophie_bot/modules/ai/handlers/translate.py:78
+#: sophie_bot/modules/ai/handlers/translate.py:100
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "从 {from_lang} 到 {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:88
+#: sophie_bot/modules/ai/handlers/translate.py:110
 msgid "Translation Notes"
 msgstr "翻译备注"
 
-#: sophie_bot/modules/ai/handlers/translate.py:99
+#: sophie_bot/modules/ai/handlers/translate.py:121
 msgid "Text to translate"
 msgstr "待翻译文本"
 
-#: sophie_bot/modules/ai/handlers/translate.py:106
+#: sophie_bot/modules/ai/handlers/translate.py:128
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "将给定（或回复的）文本翻译为聊天选择的语言。还将回复的语音消息转录为文本"
 
-#: sophie_bot/modules/ai/handlers/translate.py:143
+#: sophie_bot/modules/ai/handlers/translate.py:165
 msgid "Please provide text to translate."
 msgstr "请提供要翻译的文本。"
 
-#: sophie_bot/modules/ai/handlers/translate.py:151
+#: sophie_bot/modules/ai/handlers/translate.py:180
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "如果适用，将照片翻译成 {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:162
+#: sophie_bot/modules/ai/handlers/translate.py:195
 #, python-brace-format
 msgid "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr "将以下文本翻译为 {language_name}：\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:191
+#: sophie_bot/modules/ai/handlers/translate.py:226
 msgid "Error generating translation"
 msgstr "生成翻译时出错"
 
@@ -688,10 +826,6 @@ msgstr "AI配额信息尚未可用。"
 #: sophie_bot/modules/ai/handlers/usage.py:49
 msgid "AI Usage"
 msgstr "AI使用情况"
-
-#: sophie_bot/modules/ai/handlers/usage.py:51
-msgid "Usage"
-msgstr "使用量"
 
 #: sophie_bot/modules/ai/handlers/usage.py:53
 #, python-brace-format
@@ -741,8 +875,8 @@ msgid "AI Response"
 msgstr "AI 响应"
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:66
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:45
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:46
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:50
 msgid "Reply to message"
 msgstr "回复消息"
 
@@ -754,51 +888,52 @@ msgstr "发送 AI 响应与提示"
 msgid "Change AI prompt"
 msgstr "更改 AI 提示"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:110
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:113
 #, python-brace-format
 msgid "{ai_emoji} AI Response"
 msgstr "{ai_emoji} AI 响应"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:33
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:35
 msgid "✋ AI Moderator"
 msgstr "✋ AI 版主"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:34
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:36
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr "此消息违反了 AI 版主政策，因此已被删除。"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:35
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:37
 msgid "Message author"
 msgstr "消息作者"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
-#: sophie_bot/modules/federations/handlers/ban.py:57
-#: sophie_bot/modules/federations/handlers/ban.py:98
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:46
+#: sophie_bot/modules/communities/utils/ban_docs.py:37
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:83
+#: sophie_bot/modules/federations/utils/ban_docs.py:42
+#: sophie_bot/modules/federations/utils/ban_docs.py:91
 #: sophie_bot/modules/reports/handlers/report.py:94
-#: sophie_bot/modules/restrictions/actions/base.py:153
-#: sophie_bot/modules/restrictions/actions/kick.py:53
-#: sophie_bot/modules/restrictions/handlers/base.py:72
-#: sophie_bot/modules/restrictions/handlers/base.py:129
-#: sophie_bot/modules/restrictions/services/silent.py:80
-#: sophie_bot/modules/warns/handlers/warn.py:52
-#: sophie_bot/modules/warns/handlers/warn.py:78
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:126
+#: sophie_bot/modules/restrictions/actions/base.py:147
+#: sophie_bot/modules/restrictions/actions/kick.py:48
+#: sophie_bot/modules/restrictions/handlers/base.py:82
+#: sophie_bot/modules/restrictions/handlers/base.py:145
+#: sophie_bot/modules/restrictions/services/silent.py:87
+#: sophie_bot/modules/warns/handlers/warn.py:53
+#: sophie_bot/modules/warns/handlers/warn.py:79
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:131
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] "理由"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:109
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:111
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr "{time} - {emoji} {title}，{users}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:124
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:126
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr "{today} 的聊天记录"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:177
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:179
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr "您将Telegram群组讨论总结为结构化的主题行。"
 
@@ -806,9 +941,9 @@ msgstr "您将Telegram群组讨论总结为结构化的主题行。"
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "使用 AI 功能即表示您同意我们的隐私政策 (/privacy) 和使用的第三方 AI 服务。"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:289
-#: sophie_bot/modules/ai/utils/research.py:401
-#: sophie_bot/modules/ai/utils/research.py:531
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:319
+#: sophie_bot/modules/ai/utils/research.py:373
+#: sophie_bot/modules/ai/utils/research.py:503
 msgid "Research"
 msgstr "研究"
 
@@ -829,10 +964,9 @@ msgstr "AI 提供者未完成请求。请稍后重试。"
 msgid "Reference ID"
 msgstr "参考 ID"
 
-#: sophie_bot/modules/ai/utils/ai_header.py:35
-#, python-brace-format
-msgid "{ai_emoji} AI"
-msgstr "{ai_emoji} AI"
+#: sophie_bot/modules/ai/utils/ai_filter_texts.py:4
+msgid "Filter 🪄"
+msgstr "过滤器 🪄"
 
 #: sophie_bot/modules/ai/utils/ai_moderator.py:19
 msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
@@ -976,292 +1110,320 @@ msgstr "运行 {cmd} 检查使用详情。"
 msgid "AI features are disabled till {date}."
 msgstr "AI功能已禁用，直到 {date}。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:21
-msgid "Do not use tables, use only the following markdown elements: ** for bold, ~~ for strikethrough, ` for code, ``` for code blocks and []() for links."
-msgstr "请不要使用表格，只使用以下markdown元素：**表示粗体，~~表示删除线，`表示代码，```表示代码块和[]()表示链接。"
+#: sophie_bot/modules/ai/utils/chatbot_context.py:23
+msgid "Prefer to use tables when comparing items"
+msgstr "比较项目时优先使用表格"
 
 #: sophie_bot/modules/ai/utils/chatbot_context.py:23
+msgid "Do not use tables."
+msgstr "不要使用表格。"
+
+#: sophie_bot/modules/ai/utils/chatbot_context.py:27
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr "仅将对话历史用作上下文，但要专门回答最近的问题。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:24
+#: sophie_bot/modules/ai/utils/chatbot_context.py:28
 msgid "Today is "
 msgstr "今天是 "
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:25
+#: sophie_bot/modules/ai/utils/chatbot_context.py:29
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr "您可以使用网页搜索工具查找信息。请将信息来源以链接形式包含在内。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:33
-msgid "You can also save important things to chat notes."
-msgstr "您也可以将重要内容保存到聊天笔记。"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:35
+#: sophie_bot/modules/ai/utils/chatbot_context.py:37
 msgid "You can also save important things to the memory."
 msgstr "你也可以将重要的事情保存到记忆中。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:37
-msgid "If the user asks anything regarding using Sophie bot, make sure to execute `cmds_help` tool to obtain a help context, do not search internet for bot information."
-msgstr "如果用户询问有关使用 Sophie 机器人的任何问题，请确保执行 `cmds_help` 工具来获取帮助上下文，不要在互联网上搜索机器人信息。"
-
 #: sophie_bot/modules/ai/utils/chatbot_context.py:39
+msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
+msgstr "如果用户询问关于使用 Sophie 机器人的任何问题，请确保执行 `sophie_help` 工具以获取帮助上下文，不要在互联网上搜索机器人信息。不要将其用于与 Sophie 无关的问题。"
+
+#: sophie_bot/modules/ai/utils/chatbot_context.py:41
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr "可用的 Sophie 模块：{modules}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:43
+#: sophie_bot/modules/ai/utils/chatbot_context.py:45
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr "您可以使用研究工具来研究复杂主题，而不是简单的网页搜索。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:49
+#: sophie_bot/modules/ai/utils/chatbot_context.py:51
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr "此对话发生在聊天：{chat_name}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:58
+#: sophie_bot/modules/ai/utils/chatbot_context.py:60
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr "{title} | 第一条消息 #{message_id} | 用户: {users} | 摘录: {excerpt}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:66
+#: sophie_bot/modules/ai/utils/chatbot_context.py:68
 msgid "Recent chat summaries"
 msgstr "最近的聊天摘要"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:77
+#: sophie_bot/modules/ai/utils/chatbot_context.py:79
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr "{notename} | 标题：{title} | 内容：{content}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:84
+#: sophie_bot/modules/ai/utils/chatbot_context.py:86
 msgid "Related chat notes with content."
 msgstr "包含内容的相关聊天笔记。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:88
+#: sophie_bot/modules/ai/utils/chatbot_context.py:90
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr "{notename} | 标题：{title}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:95
+#: sophie_bot/modules/ai/utils/chatbot_context.py:97
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr "相关聊天笔记。若笔记详情有帮助，请使用 get_note_content 并传入笔记名。"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:102
+#: sophie_bot/modules/ai/utils/chatbot_context.py:104
 msgid "You have the following information in your memory"
 msgstr "您在记忆中拥有以下信息"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:23
+#: sophie_bot/modules/ai/utils/chatbot_response.py:21
 msgid "Memory 💾"
 msgstr "记忆 💾"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:24
+#: sophie_bot/modules/ai/utils/chatbot_response.py:22
 msgid "Forget 🗑"
 msgstr "忘记 🗑"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:25
-msgid "Commands 📋"
-msgstr "命令 📋"
+#: sophie_bot/modules/ai/utils/chatbot_response.py:23
+msgid "Help 📖"
+msgstr "帮助 📖"
 
+#: sophie_bot/modules/ai/utils/chatbot_response.py:24
+msgid "Sources 🧭"
+msgstr "来源 🧭"
+
+#: sophie_bot/modules/ai/utils/chatbot_response.py:25
 #: sophie_bot/modules/ai/utils/chatbot_response.py:26
-#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Search 🔍"
 msgstr "搜索 🔍"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:28
+#: sophie_bot/modules/ai/utils/chatbot_response.py:27
 msgid "Notes 🗒"
 msgstr "笔记 🗒"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:29
+#: sophie_bot/modules/ai/utils/chatbot_response.py:28
 msgid "Note 🗒"
 msgstr "笔记 🗒"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:30
-msgid "Save note 🗒"
-msgstr "保存笔记 🗒"
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:31
-msgid "Delete note 🗑"
-msgstr "删除笔记 🗑"
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:32
+#: sophie_bot/modules/ai/utils/chatbot_response.py:29
 msgid "Research 🔎"
 msgstr "研究 🔎"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:40
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:39
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:44
 msgid "Searching the web..."
 msgstr "正在搜索网页……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
-#: sophie_bot/modules/ai/utils/research.py:81
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:40
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
+#: sophie_bot/modules/ai/utils/research.py:80
 msgid "Looking it up online..."
 msgstr "在线查找……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
 msgid "Browsing the internet..."
 msgstr "浏览互联网……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:49
 msgid "Updating memory..."
 msgstr "更新记忆……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
 msgid "Saving to memory..."
 msgstr "保存到记忆中……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:53
 msgid "Removing from memory..."
 msgstr "从记忆中移除……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
 msgid "Forgetting..."
 msgstr "正在遗忘……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
-msgid "Checking command help..."
-msgstr "检查命令帮助……"
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:57
+msgid "Checking the documentation..."
+msgstr "检查文档……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
-msgid "Looking up commands..."
-msgstr "查找命令……"
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
+msgid "Looking up how Sophie works..."
+msgstr "查询 Sophie 的工作原理……"
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:61
+msgid "Digging through my own sources..."
+msgstr "挖掘我自己的来源……"
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
+msgid "Reading my own code..."
+msgstr "阅读我自己的代码……"
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:65
 msgid "Scanning notes..."
 msgstr "扫描笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
 msgid "Looking through notes..."
 msgstr "浏览笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:69
 msgid "Reading note..."
 msgstr "读取笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
 msgid "Fetching note content..."
 msgstr "获取笔记内容……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:73
 msgid "Saving note..."
 msgstr "保存笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
 msgid "Writing to notes..."
 msgstr "写入笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
 msgid "Deleting note..."
 msgstr "删除笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:78
 msgid "Removing note..."
 msgstr "移除笔记……"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:183
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(重试中 {attempt}/{total_attempts}...)"
 
-#: sophie_bot/modules/ai/utils/message_history.py:105
-#: sophie_bot/modules/ai/utils/message_history.py:107
+#: sophie_bot/modules/ai/utils/help_tip.py:38
+msgid "⚠️ If you want more detailed help, use the special Sophie help mode."
+msgstr "⚠️ 如果需要更详细的帮助，请使用特殊的 Sophie 帮助模式。"
+
+#: sophie_bot/modules/ai/utils/help_tip.py:43
+msgid "Sophie help mode"
+msgstr "Sophie 帮助模式"
+
+#: sophie_bot/modules/ai/utils/message_history.py:106
+#: sophie_bot/modules/ai/utils/message_history.py:108
 msgid "<No text provided>"
 msgstr "<未提供文本>"
 
-#: sophie_bot/modules/ai/utils/message_history.py:158
+#: sophie_bot/modules/ai/utils/message_history.py:159
 msgid "Image is empty"
 msgstr "图片为空"
 
-#: sophie_bot/modules/ai/utils/message_history.py:194
+#: sophie_bot/modules/ai/utils/message_history.py:195
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[视频转录：{text}]"
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:453
+#: sophie_bot/modules/ai/utils/message_history.py:255
+msgid "Recent chat messages (context only — respond solely to the latest message)"
+msgstr "最近的聊天消息（仅用作上下文——仅回应最新消息）"
+
+#: sophie_bot/modules/ai/utils/proactive_replies.py:275
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr "您正在主动加入一个 Telegram 群聊。回复应及时、随意且非常简短：1–2 个简短句子。除非目标消息明确要求，否则不要包含长篇解释、项目符号或工具式的细节。如果话题已经转移或回复会显得牵强，请保持简短，而不是试图覆盖所有内容。"
 
-#: sophie_bot/modules/ai/utils/research.py:75
+#: sophie_bot/modules/ai/utils/research.py:74
 msgid "Preparing search queries..."
 msgstr "准备搜索查询……"
 
-#: sophie_bot/modules/ai/utils/research.py:76
+#: sophie_bot/modules/ai/utils/research.py:75
 msgid "Planning the research..."
 msgstr "规划研究……"
 
-#: sophie_bot/modules/ai/utils/research.py:77
+#: sophie_bot/modules/ai/utils/research.py:76
 msgid "Choosing what to search for..."
 msgstr "选择搜索内容……"
 
-#: sophie_bot/modules/ai/utils/research.py:80
+#: sophie_bot/modules/ai/utils/research.py:79
 msgid "Searching the internet..."
 msgstr "搜索互联网……"
 
-#: sophie_bot/modules/ai/utils/research.py:82
+#: sophie_bot/modules/ai/utils/research.py:81
 msgid "Gathering sources from the web..."
 msgstr "从网络收集来源……"
 
-#: sophie_bot/modules/ai/utils/research.py:85
+#: sophie_bot/modules/ai/utils/research.py:84
 msgid "Reviewing search results..."
 msgstr "审查搜索结果……"
 
-#: sophie_bot/modules/ai/utils/research.py:86
+#: sophie_bot/modules/ai/utils/research.py:85
 msgid "Checking if more searches are needed..."
 msgstr "检查是否需要更多搜索……"
 
-#: sophie_bot/modules/ai/utils/research.py:87
+#: sophie_bot/modules/ai/utils/research.py:86
 msgid "Reading through the sources..."
 msgstr "阅读来源……"
 
-#: sophie_bot/modules/ai/utils/research.py:90
+#: sophie_bot/modules/ai/utils/research.py:89
 msgid "Summarizing the research..."
 msgstr "总结研究内容……"
 
-#: sophie_bot/modules/ai/utils/research.py:91
+#: sophie_bot/modules/ai/utils/research.py:90
 msgid "Putting the findings together..."
 msgstr "整理研究发现……"
 
-#: sophie_bot/modules/ai/utils/research.py:92
+#: sophie_bot/modules/ai/utils/research.py:91
 msgid "Preparing the final answer..."
 msgstr "准备最终答案……"
 
-#: sophie_bot/modules/ai/utils/research.py:173
+#: sophie_bot/modules/ai/utils/research.py:143
 msgid "Research currently supports the Kagi search provider. Set ai_search_provider to kagi to use it."
 msgstr "研究功能目前支持 Kagi 搜索提供商。将 ai_search_provider 设置为 kagi 即可使用。"
 
-#: sophie_bot/modules/ai/utils/research.py:176
+#: sophie_bot/modules/ai/utils/research.py:146
 msgid "Research requires a configured Kagi API key."
 msgstr "研究功能需要配置 Kagi API 密钥。"
 
-#: sophie_bot/modules/ai/utils/research.py:355
+#: sophie_bot/modules/ai/utils/research.py:325
 msgid "Research requires a saved chat context."
 msgstr "研究功能需要已保存的聊天上下文。"
 
-#: sophie_bot/modules/ai/utils/research.py:402
+#: sophie_bot/modules/ai/utils/research.py:374
 msgid "I could not find enough search results to research this topic."
 msgstr "无法找到足够的搜索结果以研究此主题。"
 
-#: sophie_bot/modules/ai/utils/research.py:500
+#: sophie_bot/modules/ai/utils/research.py:472
 msgid "No snippet available."
 msgstr "无摘要可用。"
 
-#: sophie_bot/modules/ai/utils/research.py:522
+#: sophie_bot/modules/ai/utils/research.py:494
 msgid "Sources"
 msgstr "来源"
 
-#: sophie_bot/modules/ai/utils/research.py:535
+#: sophie_bot/modules/ai/utils/research.py:507
 msgid "No sources."
 msgstr "无来源。"
 
-#: sophie_bot/modules/ai/utils/research.py:542
+#: sophie_bot/modules/ai/utils/research.py:514
 msgid "Original request"
 msgstr "原始请求"
 
-#: sophie_bot/modules/ai/utils/research.py:543
+#: sophie_bot/modules/ai/utils/research.py:515
 msgid "Research model"
 msgstr "研究模型"
 
-#: sophie_bot/modules/ai/utils/transform_video.py:67
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:119
+msgid "Source inspection is not available."
+msgstr "源检查不可用。"
+
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:122
+msgid "The daily limit for source inspection in this chat has been reached."
+msgstr "此聊天的每日源检查限额已达。"
+
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:150
+msgid "I could not find the answer in my own sources within the allowed budget."
+msgstr "在允许的预算内，我无法在自己的来源中找到答案。"
+
+#: sophie_bot/modules/ai/utils/transform_video.py:62
 msgid "Failed to download video file"
 msgstr "视频文件下载失败"
 
@@ -1340,8 +1502,8 @@ msgid "Use {cmd} to configure actions"
 msgstr "使用 {cmd} 配置操作"
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:75
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:150
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:64
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:149
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:68
 msgid "Action"
 msgid_plural "Actions"
 msgstr[0] "操作"
@@ -1368,7 +1530,7 @@ msgstr "请提供一个数字。用法：{cmd}"
 msgid "Number must be between 1 and 100"
 msgstr "数字必须在 1 和 100 之间"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:61
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:62
 #, python-brace-format
 msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
 msgstr "✅ 防洪阈值已更新为每 30 秒 {count} 条消息"
@@ -1381,60 +1543,64 @@ msgstr "启用或禁用防洪保护"
 msgid "📈 Antiflood"
 msgstr "📈 防洪"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:116
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:115
 msgid "Banned"
 msgstr "已封禁"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:117
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:116
 msgid "Kicked"
 msgstr "已踢出"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:118
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:117
 msgid "Muted"
 msgstr "已禁言"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:120
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:119
 msgid "Restricted"
 msgstr "已限制"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:147
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:146
 msgid "⚠️ Antiflood"
 msgstr "⚠️ 防洪"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:148
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:147
 msgid "User has been restricted for flooding."
 msgstr "用户因洪水攻击已被限制。"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:149
-#: sophie_bot/modules/federations/handlers/ban.py:53
-#: sophie_bot/modules/federations/handlers/ban.py:83
-#: sophie_bot/modules/federations/handlers/ban.py:121
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:148
+#: sophie_bot/modules/communities/handlers/cban.py:60
+#: sophie_bot/modules/communities/handlers/uncban.py:44
+#: sophie_bot/modules/communities/utils/ban_docs.py:33
+#: sophie_bot/modules/communities/utils/ban_docs.py:67
+#: sophie_bot/modules/federations/handlers/ban.py:59
 #: sophie_bot/modules/federations/handlers/demote.py:19
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:71
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:78
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:96
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:127
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:81
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:99
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:136
 #: sophie_bot/modules/federations/handlers/promote.py:19
-#: sophie_bot/modules/federations/handlers/unban.py:38
-#: sophie_bot/modules/federations/handlers/unban.py:147
+#: sophie_bot/modules/federations/handlers/unban.py:45
+#: sophie_bot/modules/federations/utils/ban_docs.py:38
+#: sophie_bot/modules/federations/utils/ban_docs.py:76
+#: sophie_bot/modules/federations/utils/ban_docs.py:114
 #: sophie_bot/modules/promotes/handlers/demote.py:41
 #: sophie_bot/modules/promotes/handlers/demote.py:79
-#: sophie_bot/modules/promotes/handlers/promote.py:57
-#: sophie_bot/modules/promotes/handlers/promote.py:139
-#: sophie_bot/modules/restrictions/handlers/base.py:67
-#: sophie_bot/modules/restrictions/handlers/base.py:126
-#: sophie_bot/modules/restrictions/services/silent.py:77
+#: sophie_bot/modules/promotes/handlers/promote.py:71
+#: sophie_bot/modules/promotes/handlers/promote.py:153
+#: sophie_bot/modules/restrictions/handlers/base.py:77
+#: sophie_bot/modules/restrictions/handlers/base.py:142
+#: sophie_bot/modules/restrictions/services/silent.py:84
 #: sophie_bot/modules/users/handlers/id.py:22
-#: sophie_bot/modules/users/handlers/info.py:21
+#: sophie_bot/modules/users/handlers/info.py:22
 #: sophie_bot/modules/warns/handlers/callback.py:96
-#: sophie_bot/modules/warns/handlers/warn.py:46
+#: sophie_bot/modules/warns/handlers/warn.py:47
 #: sophie_bot/modules/warns/handlers/warns.py:11
 msgid "User"
 msgstr "用户"
 
-#: sophie_bot/modules/antiflood/middlewares/enforcer.py:153
-#: sophie_bot/modules/restrictions/handlers/base.py:128
-#: sophie_bot/modules/restrictions/services/silent.py:79
+#: sophie_bot/modules/antiflood/middlewares/enforcer.py:152
+#: sophie_bot/modules/restrictions/handlers/base.py:144
+#: sophie_bot/modules/restrictions/services/silent.py:86
 msgid "Duration"
 msgstr "持续时间"
 
@@ -1447,6 +1613,216 @@ msgstr "防洪"
 #: sophie_bot/modules/antiflood/module.py:17
 msgid "Protect your chat from message flooding"
 msgstr "保护您的聊天免受消息洪水的影响"
+
+#: sophie_bot/modules/communities/__init__.py:38
+msgid "Communities"
+msgstr "社区"
+
+#: sophie_bot/modules/communities/__init__.py:40
+msgid "Manage bans across Telegram communities"
+msgstr "跨 Telegram 社区管理封禁"
+
+#: sophie_bot/modules/communities/__init__.py:42
+msgid "Communities let you ban a user from every chat of a Telegram community Sophie is in with a single command, and keep the ban enforced for users who post or join later."
+msgstr "社区功能让您可以通过一个命令封禁 Sophie 所在的 Telegram 社区中的某个用户，并对之后发帖或加入的用户继续强制执行该封禁。"
+
+#: sophie_bot/modules/communities/handlers/cban.py:44
+msgid "Ban a user from the whole community."
+msgstr "从整个社区封禁用户。"
+
+#: sophie_bot/modules/communities/handlers/cban.py:61
+#: sophie_bot/modules/federations/handlers/ban.py:60
+msgid "?Reason"
+msgstr "?原因"
+
+#: sophie_bot/modules/communities/handlers/cban.py:66
+#: sophie_bot/modules/communities/handlers/uncban.py:49
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:39
+#: sophie_bot/modules/federations/handlers/admins.py:28
+#: sophie_bot/modules/federations/handlers/ban.py:68
+#: sophie_bot/modules/federations/handlers/banlist.py:34
+#: sophie_bot/modules/federations/handlers/chats.py:51
+#: sophie_bot/modules/federations/handlers/chats.py:97
+#: sophie_bot/modules/federations/handlers/create.py:39
+#: sophie_bot/modules/federations/handlers/create.py:48
+#: sophie_bot/modules/federations/handlers/delete.py:54
+#: sophie_bot/modules/federations/handlers/fcheck_group.py:42
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:54
+#: sophie_bot/modules/federations/handlers/import_banlist.py:32
+#: sophie_bot/modules/federations/handlers/info.py:87
+#: sophie_bot/modules/federations/handlers/join.py:39
+#: sophie_bot/modules/federations/handlers/leave.py:31
+#: sophie_bot/modules/federations/handlers/logs.py:33
+#: sophie_bot/modules/federations/handlers/logs.py:112
+#: sophie_bot/modules/federations/handlers/promote_demote_base.py:41
+#: sophie_bot/modules/federations/handlers/rename.py:39
+#: sophie_bot/modules/federations/handlers/subscribe.py:35
+#: sophie_bot/modules/federations/handlers/subscribe.py:105
+#: sophie_bot/modules/federations/handlers/transfer.py:47
+#: sophie_bot/modules/federations/handlers/unban.py:53
+msgid "This command can only be used by users."
+msgstr "此命令只能由用户使用。"
+
+#: sophie_bot/modules/communities/handlers/cban.py:72
+#: sophie_bot/modules/communities/handlers/uncban.py:55
+msgid "This chat is not part of a community."
+msgstr "此聊天不属于任何社区。"
+
+#: sophie_bot/modules/communities/handlers/cban.py:82
+#: sophie_bot/modules/communities/handlers/uncban.py:63
+#: sophie_bot/modules/federations/handlers/ban.py:78
+#: sophie_bot/modules/federations/handlers/fcheck_group.py:57
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:69
+#: sophie_bot/modules/federations/handlers/unban.py:62
+msgid "Please specify a user or reply to a user's message."
+msgstr "请指定用户或回复用户的消息。"
+
+#: sophie_bot/modules/communities/handlers/cban.py:89
+#: sophie_bot/modules/communities/handlers/uncban.py:69
+#: sophie_bot/modules/federations/handlers/ban.py:206
+#: sophie_bot/modules/federations/handlers/ban.py:230
+#: sophie_bot/modules/federations/handlers/unban.py:94
+msgid "Could not resolve the command user. Please try again."
+msgstr "无法解析命令用户。请重试。"
+
+#: sophie_bot/modules/communities/handlers/uncban.py:28
+msgid "Unban a user from the whole community."
+msgstr "从整个社区解除封禁用户。"
+
+#: sophie_bot/modules/communities/handlers/uncban.py:74
+msgid "This user is not banned in this community."
+msgstr "该用户未在此社区被封禁。"
+
+#: sophie_bot/modules/communities/middlewares/check_cban.py:61
+#, python-brace-format
+msgid "{user} is banned in this community."
+msgstr "{user} 未被此联盟封禁。"
+
+#: sophie_bot/modules/communities/middlewares/check_cban.py:65
+#: sophie_bot/modules/federations/middlewares/check_fban.py:70
+#, python-brace-format
+msgid "Reason: {text}"
+msgstr "原因：{text}"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:10
+#: sophie_bot/modules/communities/utils/ban_docs.py:32
+#: sophie_bot/modules/communities/utils/ban_docs.py:66
+msgid "Community"
+msgstr "社区"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:31
+msgid "🌐 User Banned from Community"
+msgstr "🌐 用户被社区封禁"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:33
+#: sophie_bot/modules/communities/utils/ban_docs.py:67
+#: sophie_bot/modules/federations/handlers/admins.py:37
+#: sophie_bot/modules/federations/handlers/fcheck_group.py:71
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:81
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:99
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:136
+#: sophie_bot/modules/federations/handlers/info.py:59
+#: sophie_bot/modules/federations/handlers/info.py:75
+#: sophie_bot/modules/federations/handlers/unban.py:165
+#: sophie_bot/modules/federations/schedules/process_bans.py:72
+#: sophie_bot/modules/federations/schedules/process_bans.py:139
+#: sophie_bot/modules/federations/utils/ban_docs.py:38
+#: sophie_bot/modules/federations/utils/ban_docs.py:79
+#: sophie_bot/modules/federations/utils/ban_docs.py:114
+#: sophie_bot/modules/federations/utils/ban_docs.py:146
+#: sophie_bot/modules/locks/handlers/locksticker.py:53
+#: sophie_bot/modules/op/handlers/SetMode.py:107
+#: sophie_bot/modules/warns/handlers/warns_group.py:40
+msgid "Unknown"
+msgstr "未知"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:34
+#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/restrictions/handlers/ban.py:25
+#: sophie_bot/modules/restrictions/handlers/ban.py:51
+#: sophie_bot/modules/restrictions/handlers/silent.py:67
+#: sophie_bot/modules/restrictions/handlers/silent.py:95
+msgid "Banned by"
+msgstr "封禁者"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:41
+msgid "✅ Banned in this chat. Propagating across the community…"
+msgstr "✅ 已在此聊天封禁。正在跨社区传播…"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:43
+msgid "⏳ Ban recorded. Propagating across the community…"
+msgstr "⏳ 已记录封禁。正在跨社区传播…"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:45
+#: sophie_bot/modules/communities/utils/ban_docs.py:77
+#: sophie_bot/modules/federations/utils/ban_docs.py:50
+#: sophie_bot/modules/federations/utils/ban_docs.py:124
+msgid "Result"
+msgstr "结果"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:45
+#: sophie_bot/modules/federations/utils/ban_docs.py:50
+#, python-brace-format
+msgid "Banned in {count} chats"
+msgstr "在 {count} 个群组中被封禁"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:48
+#: sophie_bot/modules/federations/utils/ban_docs.py:57
+msgid "🤫 The action is silent, all related messages would be deleted shortly"
+msgstr "🤫 该操作是静默的，所有相关消息将很快被删除"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:65
+msgid "🌐 User Unbanned from Community"
+msgstr "🌐 用户已从社区解禁"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:68
+#: sophie_bot/modules/federations/utils/ban_docs.py:115
+#: sophie_bot/modules/restrictions/handlers/unban.py:29
+msgid "Unbanned by"
+msgstr "解禁者"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:73
+msgid "✅ Unbanned in this chat. Propagating across the community…"
+msgstr "✅ 已在此聊天解除封禁。正在跨社区传播…"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:75
+msgid "⏳ Unban recorded. Propagating across the community…"
+msgstr "⏳ 已记录解除封禁。正在跨社区传播…"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:77
+#: sophie_bot/modules/federations/utils/ban_docs.py:124
+#, python-brace-format
+msgid "Unbanned in {count} chats"
+msgstr "在 {count} 个群组中解除封禁"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:89
+msgid "⚠️ Community Propagation Failed"
+msgstr "⚠️ 社区传播失败"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:90
+msgid "The action was applied in this chat, but propagating it across the community didn't complete."
+msgstr "该操作已在此聊天应用，但跨社区传播未完成。"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:93
+#: sophie_bot/modules/error/__init__.py:27
+#: sophie_bot/modules/federations/schedules/process_imports.py:72
+#: sophie_bot/modules/federations/utils/task_failure.py:21
+msgid "Error"
+msgstr "错误"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:94
+msgid "Please run the command again to retry."
+msgstr "请再次运行命令以重试。"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:101
+#: sophie_bot/modules/federations/utils/ban_docs.py:137
+msgid "ℹ️ Ban Superseded"
+msgstr "ℹ️ 封禁被覆盖"
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:102
+#: sophie_bot/modules/federations/utils/ban_docs.py:138
+msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
+msgstr "该用户在封禁完成传播前已经被解封，因此无需进一步操作。"
 
 #: sophie_bot/modules/connections/__init__.py:38
 #: sophie_bot/modules/connections/handlers/connect_dm.py:62
@@ -1468,6 +1844,28 @@ msgstr "允许管理聊天设置和使用命令而无需在聊天中。"
 #: sophie_bot/modules/connections/handlers/connect_dm.py:34
 msgid "Connects to the chat."
 msgstr "连接到聊天。"
+
+#: sophie_bot/modules/connections/handlers/connect_dm.py:38
+#: sophie_bot/modules/disabling/handlers/disable.py:56
+#: sophie_bot/modules/disabling/handlers/enable.py:51
+#: sophie_bot/modules/locks/handlers/base.py:58
+#: sophie_bot/modules/locks/handlers/locks_list.py:69
+#: sophie_bot/modules/locks/handlers/locksticker.py:52
+#: sophie_bot/modules/locks/handlers/locksticker.py:66
+#: sophie_bot/modules/notes/handlers/delete.py:56
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/op/handlers/SetMode.py:112
+#: sophie_bot/modules/op/handlers/SetMode.py:149
+#: sophie_bot/modules/promotes/handlers/demote.py:78
+#: sophie_bot/modules/promotes/handlers/promote.py:152
+#: sophie_bot/modules/restrictions/handlers/base.py:141
+#: sophie_bot/modules/restrictions/services/silent.py:83
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
+#: sophie_bot/modules/utils_/status_handler.py:47
+#: sophie_bot/modules/utils_/status_handler.py:70
+#: sophie_bot/modules/utils_/status_handler.py:124
+msgid "Chat"
+msgstr "聊天"
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:53
 #: sophie_bot/modules/connections/handlers/connect_dm.py:106
@@ -1539,7 +1937,7 @@ msgid "Notices"
 msgstr "通知"
 
 #: sophie_bot/modules/connections/utils/connection.py:87
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:67
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:66
 msgid "⏳ This connection will last for 48 hours."
 msgstr "⏳ 此连接将持续 48 小时。"
 
@@ -1567,31 +1965,35 @@ msgstr "允许管理员在群组中禁用特定命令。"
 msgid "Useful for restricting bot functionality to only necessary commands."
 msgstr "用于将机器人功能限制为仅必要的命令。"
 
-#: sophie_bot/modules/disabling/handlers/disable.py:20
-#: sophie_bot/modules/disabling/handlers/disable.py:51
-#: sophie_bot/modules/disabling/handlers/enable.py:22
-#: sophie_bot/modules/disabling/handlers/enable.py:53
+#: sophie_bot/modules/disabling/handlers/disable.py:17
+#: sophie_bot/modules/disabling/handlers/disable.py:57
+#: sophie_bot/modules/disabling/handlers/enable.py:19
+#: sophie_bot/modules/disabling/handlers/enable.py:52
 msgid "Command"
 msgstr "命令"
 
-#: sophie_bot/modules/disabling/handlers/disable.py:21
+#: sophie_bot/modules/disabling/handlers/disable.py:18
 msgid "Disables the command."
 msgstr "禁用该命令。"
 
-#: sophie_bot/modules/disabling/handlers/disable.py:38
-#: sophie_bot/modules/disabling/handlers/enable.py:40
+#: sophie_bot/modules/disabling/handlers/disable.py:35
+#: sophie_bot/modules/disabling/handlers/enable.py:37
 #: sophie_bot/utils/errors.py:36
 #, python-brace-format
 msgid "Command {cmd} not found."
 msgstr "找不到命令 {cmd}。"
 
-#: sophie_bot/modules/disabling/handlers/disable.py:42
-#: sophie_bot/modules/disabling/handlers/enable.py:44
+#: sophie_bot/modules/disabling/handlers/disable.py:44
 #, python-brace-format
 msgid "Command {cmd} is already disabled."
 msgstr "命令 {cmd} 已被禁用。"
 
-#: sophie_bot/modules/disabling/handlers/disable.py:53
+#: sophie_bot/modules/disabling/handlers/disable.py:45
+#: sophie_bot/modules/disabling/handlers/disable.py:59
+msgid "Disabled commands still work for chat administrators."
+msgstr "被禁用的命令对聊天管理员仍然可用。"
+
+#: sophie_bot/modules/disabling/handlers/disable.py:60
 msgid "Command disabled"
 msgstr "命令已禁用"
 
@@ -1615,11 +2017,16 @@ msgstr "未找到已禁用命令。"
 msgid "Disabled commands"
 msgstr "已禁用的命令"
 
-#: sophie_bot/modules/disabling/handlers/enable.py:23
+#: sophie_bot/modules/disabling/handlers/enable.py:20
 msgid "Enables previously disabled command."
 msgstr "启用之前禁用的命令。"
 
-#: sophie_bot/modules/disabling/handlers/enable.py:55
+#: sophie_bot/modules/disabling/handlers/enable.py:43
+#, python-brace-format
+msgid "Command {cmd} is not disabled."
+msgstr "命令 {cmd} 未被禁用。"
+
+#: sophie_bot/modules/disabling/handlers/enable.py:54
 msgid "Command enabled"
 msgstr "命令已启用"
 
@@ -1628,7 +2035,7 @@ msgid "✅ Enable all"
 msgstr "✅ 启用所有"
 
 #: sophie_bot/modules/disabling/handlers/enable_all.py:36
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:99
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:111
 #: sophie_bot/modules/notes/handlers/delete_all.py:43
 msgid "🚫 Cancel"
 msgstr "🚫 取消"
@@ -1646,12 +2053,6 @@ msgstr "只有发起者可以确认禁用所有命令"
 #, python-brace-format
 msgid "✅ All the commands ({removed_count}) have been enabled in the {chat_name}"
 msgstr "✅ 所有命令 ({removed_count}) 已在 {chat_name} 中启用"
-
-#: sophie_bot/modules/error/__init__.py:27
-#: sophie_bot/modules/federations/schedules/process_imports.py:70
-#: sophie_bot/modules/federations/utils/federation_context.py:77
-msgid "Error"
-msgstr "错误"
 
 #: sophie_bot/modules/error/__init__.py:29
 msgid "Error handling and reporting"
@@ -1913,15 +2314,15 @@ msgstr "错误摇篮般呵护着创新，"
 msgid "Softly whispering."
 msgstr "轻声细语。"
 
-#: sophie_bot/modules/federations/__init__.py:82
+#: sophie_bot/modules/federations/__init__.py:86
 msgid "Federations"
 msgstr "联盟"
 
-#: sophie_bot/modules/federations/__init__.py:84
+#: sophie_bot/modules/federations/__init__.py:88
 msgid "Manage federations across multiple chats"
 msgstr "跨多个群组管理联盟"
 
-#: sophie_bot/modules/federations/__init__.py:86
+#: sophie_bot/modules/federations/__init__.py:90
 msgid "Federations allow you to manage multiple chats as a group. You can ban users across all chats in a federation, subscribe to other federations, and manage permissions."
 msgstr "联盟允许您将多个聊天作为一个组进行管理。您可以在联盟中的所有聊天中封禁用户，订阅其他联盟，并管理权限。"
 
@@ -1963,76 +2364,51 @@ msgstr "联盟 ID 示例"
 msgid "⏱ Please wait {seconds} seconds before using this command again."
 msgstr "⏱ 请等待 {seconds} 秒后再次使用此命令。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:21
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:22
 msgid "Accept federation ownership transfer"
 msgstr "接受联盟所有权转让"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:33
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:34
 msgid "Federation ID to accept transfer for"
 msgstr "要接受转让的联盟 ID"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:38
-#: sophie_bot/modules/federations/handlers/admins.py:28
-#: sophie_bot/modules/federations/handlers/ban.py:130
-#: sophie_bot/modules/federations/handlers/banlist.py:33
-#: sophie_bot/modules/federations/handlers/chats.py:51
-#: sophie_bot/modules/federations/handlers/chats.py:97
-#: sophie_bot/modules/federations/handlers/create.py:39
-#: sophie_bot/modules/federations/handlers/create.py:48
-#: sophie_bot/modules/federations/handlers/delete.py:54
-#: sophie_bot/modules/federations/handlers/fcheck_group.py:42
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:51
-#: sophie_bot/modules/federations/handlers/import_banlist.py:31
-#: sophie_bot/modules/federations/handlers/info.py:87
-#: sophie_bot/modules/federations/handlers/join.py:39
-#: sophie_bot/modules/federations/handlers/leave.py:31
-#: sophie_bot/modules/federations/handlers/logs.py:32
-#: sophie_bot/modules/federations/handlers/logs.py:108
-#: sophie_bot/modules/federations/handlers/promote_demote_base.py:41
-#: sophie_bot/modules/federations/handlers/rename.py:39
-#: sophie_bot/modules/federations/handlers/subscribe.py:35
-#: sophie_bot/modules/federations/handlers/subscribe.py:105
-#: sophie_bot/modules/federations/handlers/transfer.py:47
-#: sophie_bot/modules/federations/handlers/unban.py:46
-msgid "This command can only be used by users."
-msgstr "此命令只能由用户使用。"
-
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:52
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:58
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:75
 msgid "No pending transfer request found for this federation."
 msgstr "未找到此联盟的待处理转让请求。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:60
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:64
 msgid "Invalid transfer request data."
 msgstr "无效的转让请求数据。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:65
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:69
 msgid "This transfer request is not for you."
 msgstr "此转让请求不是给您的。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:69
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:79
 msgid "Federation ID mismatch."
 msgstr "联盟 ID 不匹配。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:77
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:87
 #: sophie_bot/modules/federations/handlers/subscribe.py:56
 #: sophie_bot/modules/federations/handlers/subscribe.py:126
 msgid "Federation not found."
 msgstr "联盟未找到。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:84
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:94
 msgid "Transfer request is outdated. The federation owner has changed."
 msgstr "转让请求已过时。联盟所有者已更改。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:95
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:105
 msgid "🏛 Ownership Transferred"
 msgstr "🏛 所有权已转让"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:96
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:106
 #, python-brace-format
 msgid "You are now the owner of federation '{fed_name}'."
 msgstr "您现在是联盟 '{fed_name}' 的所有者。"
 
-#: sophie_bot/modules/federations/handlers/accept_transfer.py:97
+#: sophie_bot/modules/federations/handlers/accept_transfer.py:107
 #: sophie_bot/modules/federations/handlers/create.py:65
 #: sophie_bot/modules/federations/handlers/join.py:73
 #: sophie_bot/modules/federations/handlers/leave.py:57
@@ -2048,24 +2424,6 @@ msgstr "列出联盟的所有管理员"
 msgid "You don't have permission to view this federation's admins."
 msgstr "您没有权限查看此联盟的管理员。"
 
-#: sophie_bot/modules/federations/handlers/admins.py:37
-#: sophie_bot/modules/federations/handlers/ban.py:53
-#: sophie_bot/modules/federations/handlers/ban.py:86
-#: sophie_bot/modules/federations/handlers/fcheck_group.py:71
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:78
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:96
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:127
-#: sophie_bot/modules/federations/handlers/info.py:59
-#: sophie_bot/modules/federations/handlers/info.py:75
-#: sophie_bot/modules/federations/handlers/unban.py:117
-#: sophie_bot/modules/federations/handlers/unban.py:147
-#: sophie_bot/modules/federations/handlers/unban.py:157
-#: sophie_bot/modules/locks/handlers/locksticker.py:53
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:77
-#: sophie_bot/modules/warns/handlers/warns_group.py:40
-msgid "Unknown"
-msgstr "未知"
-
 #: sophie_bot/modules/federations/handlers/admins.py:51
 #, python-brace-format
 msgid "{number}. {admin}"
@@ -2076,20 +2434,20 @@ msgid "🏛 Federation Admins"
 msgstr "🏛 联盟管理员"
 
 #: sophie_bot/modules/federations/handlers/admins.py:65
-#: sophie_bot/modules/federations/handlers/ban.py:52
-#: sophie_bot/modules/federations/handlers/banlist.py:49
-#: sophie_bot/modules/federations/handlers/banlist.py:59
-#: sophie_bot/modules/federations/handlers/banlist.py:77
-#: sophie_bot/modules/federations/handlers/banlist.py:99
+#: sophie_bot/modules/federations/handlers/banlist.py:54
+#: sophie_bot/modules/federations/handlers/banlist.py:64
+#: sophie_bot/modules/federations/handlers/banlist.py:83
+#: sophie_bot/modules/federations/handlers/banlist.py:106
 #: sophie_bot/modules/federations/handlers/chats.py:67
 #: sophie_bot/modules/federations/handlers/chats.py:86
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:68
-#: sophie_bot/modules/federations/handlers/import_banlist.py:71
+#: sophie_bot/modules/federations/handlers/import_banlist.py:77
 #: sophie_bot/modules/federations/handlers/subscribe.py:73
 #: sophie_bot/modules/federations/handlers/subscribe.py:143
-#: sophie_bot/modules/federations/handlers/unban.py:146
-#: sophie_bot/modules/federations/schedules/process_exports.py:140
-#: sophie_bot/modules/federations/schedules/process_imports.py:64
+#: sophie_bot/modules/federations/schedules/process_exports.py:145
+#: sophie_bot/modules/federations/schedules/process_imports.py:66
+#: sophie_bot/modules/federations/utils/ban_docs.py:37
+#: sophie_bot/modules/federations/utils/ban_docs.py:113
 msgid "Federation"
 msgstr "联盟"
 
@@ -2110,139 +2468,77 @@ msgstr "管理员"
 msgid "No additional admins."
 msgstr "没有额外管理员。"
 
-#: sophie_bot/modules/federations/handlers/ban.py:51
-msgid "🏛 User Banned from Federation"
-msgstr "🏛 用户被联盟封禁"
-
-#: sophie_bot/modules/federations/handlers/ban.py:54
-#: sophie_bot/modules/restrictions/handlers/ban.py:25
-#: sophie_bot/modules/restrictions/handlers/ban.py:52
-#: sophie_bot/modules/restrictions/handlers/silent.py:67
-#: sophie_bot/modules/restrictions/handlers/silent.py:95
-msgid "Banned by"
-msgstr "封禁者"
-
-#: sophie_bot/modules/federations/handlers/ban.py:58
-#, python-brace-format
-msgid "Banned in {count} chats"
-msgstr "在 {count} 个群组中被封禁"
-
-#: sophie_bot/modules/federations/handlers/ban.py:58
-#: sophie_bot/modules/federations/handlers/unban.py:149
-msgid "Result"
-msgstr "结果"
-
-#: sophie_bot/modules/federations/handlers/ban.py:61
-msgid "Also banned in"
-msgstr "同时被封禁于"
-
-#: sophie_bot/modules/federations/handlers/ban.py:61
-#, python-brace-format
-msgid "{count} subscribed federations"
-msgstr "{count} 个已订阅的联盟"
-
-#: sophie_bot/modules/federations/handlers/ban.py:64
-msgid "The action is silent, all related messages would be deleted shortly"
-msgstr "该操作是静默的，所有相关消息将很快被删除"
-
-#: sophie_bot/modules/federations/handlers/ban.py:80
-msgid "Ban user in the fed #FedBan"
-msgstr "在联盟中封禁用户 #FedBan"
-
-#: sophie_bot/modules/federations/handlers/ban.py:81
-msgid "Fed"
-msgstr "联盟"
-
-#: sophie_bot/modules/federations/handlers/ban.py:90
-msgid "By"
-msgstr "由"
-
-#: sophie_bot/modules/federations/handlers/ban.py:102
-msgid "Original message"
-msgstr "原始消息"
-
-#: sophie_bot/modules/federations/handlers/ban.py:107
+#: sophie_bot/modules/federations/handlers/ban.py:45
 msgid "Ban a user from the federation"
 msgstr "从联盟中封禁用户"
 
-#: sophie_bot/modules/federations/handlers/ban.py:122
-msgid "?Reason"
-msgstr "?原因"
-
-#: sophie_bot/modules/federations/handlers/ban.py:140
-#: sophie_bot/modules/federations/handlers/fcheck_group.py:57
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:66
-#: sophie_bot/modules/federations/handlers/unban.py:55
-msgid "Please specify a user or reply to a user's message."
-msgstr "请指定用户或回复用户的消息。"
-
-#: sophie_bot/modules/federations/handlers/ban.py:149
-msgid "Could not resolve the command user. Please try again."
-msgstr "无法解析命令用户。请重试。"
-
-#: sophie_bot/modules/federations/handlers/ban.py:154
+#: sophie_bot/modules/federations/handlers/ban.py:94
 msgid "You don't have permission to ban users in this federation."
 msgstr "您没有权限在此联盟中封禁用户。"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:22
+#: sophie_bot/modules/federations/handlers/ban.py:224
+msgid "Multiple anonymous admins share this title. Use a unique title to run this command."
+msgstr "多个匿名管理员共用此头衔。请使用唯一头衔以运行此命令。"
+
+#: sophie_bot/modules/federations/handlers/banlist.py:23
 msgid "Show list of banned users in federation"
 msgstr "显示联盟中被封禁用户的列表"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:40
+#: sophie_bot/modules/federations/handlers/banlist.py:45
 msgid "You don't have permission to view ban lists in this federation."
 msgstr "您没有权限查看此联盟中的封禁列表。"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:48
+#: sophie_bot/modules/federations/handlers/banlist.py:53
 msgid "🏛 Federation Ban List"
 msgstr "🏛 联盟封禁列表"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:50
+#: sophie_bot/modules/federations/handlers/banlist.py:55
 msgid "This federation has no banned users."
 msgstr "此联盟中没有被封禁的用户。"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:58
+#: sophie_bot/modules/federations/handlers/banlist.py:63
 msgid "❌ Export Too Large"
 msgstr "❌ 导出过大"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:60
-#: sophie_bot/modules/federations/handlers/banlist.py:100
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:97
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:128
-#: sophie_bot/modules/federations/schedules/process_exports.py:141
+#: sophie_bot/modules/federations/handlers/banlist.py:65
+#: sophie_bot/modules/federations/handlers/banlist.py:107
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:100
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:137
+#: sophie_bot/modules/federations/schedules/process_exports.py:146
 msgid "Total bans"
 msgstr "总封禁数"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:61
+#: sophie_bot/modules/federations/handlers/banlist.py:66
 msgid "Maximum export size"
 msgstr "最大导出大小"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:62
+#: sophie_bot/modules/federations/handlers/banlist.py:67
 msgid "This federation has too many bans to export. Please contact bot owner for assistance."
 msgstr "此联盟有太多封禁无法导出。请联系机器人所有者以获取帮助。"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:76
+#: sophie_bot/modules/federations/handlers/banlist.py:82
 msgid "⏳ Export Already Queued"
 msgstr "⏳ 导出已排队"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:79
+#: sophie_bot/modules/federations/handlers/banlist.py:85
 msgid "You already have an export task queued for this federation. Please wait for it to complete before creating another one."
 msgstr "您已经有一个导出任务在排队中。请等待完成后再创建新任务。"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:98
+#: sophie_bot/modules/federations/handlers/banlist.py:105
 msgid "📤 Federation Ban List Export Started"
 msgstr "📤 联盟封禁列表导出已开始"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:101
-#: sophie_bot/modules/federations/handlers/import_banlist.py:72
+#: sophie_bot/modules/federations/handlers/banlist.py:108
+#: sophie_bot/modules/federations/handlers/import_banlist.py:78
 msgid "Status"
 msgstr "状态"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:101
-#: sophie_bot/modules/federations/handlers/import_banlist.py:72
+#: sophie_bot/modules/federations/handlers/banlist.py:108
+#: sophie_bot/modules/federations/handlers/import_banlist.py:78
 msgid "Queued for processing"
 msgstr "排队等待处理"
 
-#: sophie_bot/modules/federations/handlers/banlist.py:102
+#: sophie_bot/modules/federations/handlers/banlist.py:109
 msgid "Your ban list will be sent to this chat shortly."
 msgstr "您的封禁列表将很快发送到此聊天。"
 
@@ -2327,15 +2623,15 @@ msgstr "用法："
 
 #: sophie_bot/modules/federations/handlers/chats.py:126
 #: sophie_bot/modules/federations/handlers/info.py:119
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:59
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:82
 msgid "Chat not found in database"
 msgstr "数据库中未找到聊天"
 
 #: sophie_bot/modules/federations/handlers/chats.py:132
 #: sophie_bot/modules/federations/handlers/info.py:125
 #: sophie_bot/modules/federations/handlers/leave.py:40
-#: sophie_bot/modules/federations/handlers/logs.py:44
-#: sophie_bot/modules/federations/handlers/logs.py:120
+#: sophie_bot/modules/federations/handlers/logs.py:45
+#: sophie_bot/modules/federations/handlers/logs.py:124
 msgid "This chat is not in any federation."
 msgstr "此聊天不在任何联盟中。"
 
@@ -2380,7 +2676,7 @@ msgid "🏛 Federation '{name}' has been created by {user}."
 msgstr "🏛 联盟 '{name}' 已由 {user} 创建。"
 
 #: sophie_bot/modules/federations/handlers/delete.py:31
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:101
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:113
 msgid "✅ Confirm"
 msgstr "✅ 确认"
 
@@ -2475,13 +2771,13 @@ msgid "Check federation bans for a user"
 msgstr "检查用户在联盟中的封禁情况"
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:37
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:42
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:45
 msgid "User to check"
 msgstr "要检查的用户"
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:66
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:77
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:95
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:98
 msgid "🏛 Federation Ban Check"
 msgstr "🏛 联盟封禁检查"
 
@@ -2490,7 +2786,7 @@ msgid "Total federation bans"
 msgstr "总联盟封禁数"
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:78
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:90
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:93
 #: sophie_bot/modules/warns/handlers/warns_group.py:59
 #: sophie_bot/modules/warns/handlers/warns_pm.py:37
 msgid "No reason provided"
@@ -2508,48 +2804,48 @@ msgstr "此用户未被当前联盟封禁。"
 msgid "To see the full list of your federation bans, run /fcheck in Sophie's DM."
 msgstr "要查看您的联盟封禁完整列表，请在 Sophie 的私聊中运行 /fcheck。"
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:27
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:30
 msgid "Check federation bans"
 msgstr "检查联盟封禁"
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:43
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:46
 msgid "'full' to show all bans"
 msgstr "'full' 以显示所有封禁"
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:79
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:82
 msgid "No federation bans found."
 msgstr "未找到任何联盟封禁。"
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:103
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:106
 #, python-brace-format
 msgid "Some federation bans are hidden because they do not affect any chats. Use {cmd} to show the complete list."
 msgstr "部分联盟封禁已被隐藏，因为它们不影响任何聊天。使用 {cmd} 以显示完整列表。"
 
-#: sophie_bot/modules/federations/handlers/fcheck_pm.py:126
+#: sophie_bot/modules/federations/handlers/fcheck_pm.py:135
 msgid "🏛 Federation Ban Check Export"
 msgstr "🏛 联盟封禁检查导出"
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:20
+#: sophie_bot/modules/federations/handlers/import_banlist.py:21
 msgid "Import federation ban list from CSV file"
 msgstr "从 CSV 文件导入联盟封禁列表"
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:41
+#: sophie_bot/modules/federations/handlers/import_banlist.py:42
 msgid "Please upload a CSV file with the command or reply to a message containing a CSV file."
 msgstr "请上传带有命令的 CSV 文件或回复包含 CSV 文件的消息。"
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:46
+#: sophie_bot/modules/federations/handlers/import_banlist.py:47
 msgid "Please upload a CSV file (ending with .csv)."
 msgstr "请上传一个 CSV 文件（以 .csv 结尾）。"
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:53
+#: sophie_bot/modules/federations/handlers/import_banlist.py:58
 msgid "You don't have permission to import ban lists to this federation."
 msgstr "您没有权限将封禁列表导入此联盟。"
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:70
+#: sophie_bot/modules/federations/handlers/import_banlist.py:76
 msgid "📥 Federation Ban List Import Started"
 msgstr "📥 联盟封禁列表导入已开始"
 
-#: sophie_bot/modules/federations/handlers/import_banlist.py:74
+#: sophie_bot/modules/federations/handlers/import_banlist.py:80
 msgid "This might take a while."
 msgstr "这可能需要一段时间。"
 
@@ -2562,7 +2858,7 @@ msgid "🏛 Federation Information"
 msgstr "🏛 联盟信息"
 
 #: sophie_bot/modules/federations/handlers/info.py:64
-#: sophie_bot/modules/users/handlers/info.py:45
+#: sophie_bot/modules/users/handlers/info.py:46
 msgid "ID"
 msgstr "ID"
 
@@ -2649,71 +2945,71 @@ msgstr "聊天 '{chat_title}' 已退出联盟 '{fed_name}'。"
 msgid "🏛 Chat '{chat_title}' has left federation by {user}."
 msgstr "🏛 聊天 '{chat_title}' 已通过 {user} 退出联盟。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:17
+#: sophie_bot/modules/federations/handlers/logs.py:18
 msgid "Sets the Federation logs channel"
 msgstr "设置联盟日志频道"
 
-#: sophie_bot/modules/federations/handlers/logs.py:37
-#: sophie_bot/modules/federations/handlers/logs.py:113
+#: sophie_bot/modules/federations/handlers/logs.py:38
+#: sophie_bot/modules/federations/handlers/logs.py:117
 msgid "This chat is not initialized yet."
 msgstr "此聊天尚未初始化。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:51
+#: sophie_bot/modules/federations/handlers/logs.py:55
 msgid "Only the federation owner can set the log channel."
 msgstr "只有联盟拥有者可以设置日志频道。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:57
+#: sophie_bot/modules/federations/handlers/logs.py:61
 msgid "This federation already has a log channel set. Use /funsetlog to remove it first."
 msgstr "此联盟已设置日志频道。请先使用 /funsetlog 移除。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:66
+#: sophie_bot/modules/federations/handlers/logs.py:70
 msgid "Unable to verify permissions in this channel."
 msgstr "无法验证此频道的权限。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:71
+#: sophie_bot/modules/federations/handlers/logs.py:75
 msgid "I don't have permission to post messages in this channel."
 msgstr "我没有在此频道发送消息的权限。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:79
+#: sophie_bot/modules/federations/handlers/logs.py:83
 msgid "🏛 Federation Log Channel Set"
 msgstr "🏛 联盟日志频道设置"
 
-#: sophie_bot/modules/federations/handlers/logs.py:80
+#: sophie_bot/modules/federations/handlers/logs.py:84
 #, python-brace-format
 msgid "Log channel has been set for federation '{name}'."
 msgstr "联盟 '{name}' 的日志频道已设置。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:81
+#: sophie_bot/modules/federations/handlers/logs.py:85
 msgid "All federation actions will now be logged here."
 msgstr "所有联盟操作将在此记录。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:87
+#: sophie_bot/modules/federations/handlers/logs.py:91
 #, python-brace-format
 msgid "🏛 Federation '{name}' log channel has been set to this chat."
 msgstr "🏛 联盟 '{name}' 的日志频道已设置为此聊天。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:93
+#: sophie_bot/modules/federations/handlers/logs.py:97
 msgid "Removes the Federation logs channel"
 msgstr "移除联盟日志频道"
 
-#: sophie_bot/modules/federations/handlers/logs.py:127
+#: sophie_bot/modules/federations/handlers/logs.py:134
 msgid "Only the federation owner can remove the log channel."
 msgstr "只有联盟拥有者可以移除日志频道。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:132
+#: sophie_bot/modules/federations/handlers/logs.py:139
 msgid "This federation doesn't have a log channel set."
 msgstr "此联盟未设置日志频道。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:137
+#: sophie_bot/modules/federations/handlers/logs.py:144
 #, python-brace-format
 msgid "🏛 Federation '{name}' log channel has been removed."
 msgstr "🏛 联盟 '{name}' 的日志频道已移除。"
 
-#: sophie_bot/modules/federations/handlers/logs.py:146
+#: sophie_bot/modules/federations/handlers/logs.py:153
 msgid "🏛 Federation Log Channel Removed"
 msgstr "🏛 联盟日志频道移除"
 
-#: sophie_bot/modules/federations/handlers/logs.py:147
+#: sophie_bot/modules/federations/handlers/logs.py:154
 #, python-brace-format
 msgid "Log channel has been removed for federation '{name}'."
 msgstr "联盟 '{name}' 的日志频道已移除。"
@@ -2750,7 +3046,7 @@ msgid "{user} is already an admin of this federation."
 msgstr "{user} 已是此联盟的管理员。"
 
 #: sophie_bot/modules/federations/handlers/promote_demote_base.py:69
-#: sophie_bot/modules/warns/handlers/warn.py:95
+#: sophie_bot/modules/warns/handlers/warn.py:102
 msgid "User not found in database."
 msgstr "数据库中未找到用户。"
 
@@ -2893,114 +3189,90 @@ msgstr "所有权转移请求已发送至用户 {user_id}。"
 msgid "They have 5 minutes to accept with {cmd}"
 msgstr "他们有 5 分钟时间使用 {cmd} 接受"
 
-#: sophie_bot/modules/federations/handlers/unban.py:24
+#: sophie_bot/modules/federations/handlers/unban.py:31
 msgid "Unban a user from the federation"
 msgstr "从联盟中解禁用户"
 
-#: sophie_bot/modules/federations/handlers/unban.py:77
+#: sophie_bot/modules/federations/handlers/unban.py:84
 msgid "Failed to unban user."
 msgstr "解禁用户失败。"
 
-#: sophie_bot/modules/federations/handlers/unban.py:95
+#: sophie_bot/modules/federations/handlers/unban.py:143
 msgid "You don't have permission to unban users in this federation."
 msgstr "您没有权限在此联盟中解禁用户。"
 
-#: sophie_bot/modules/federations/handlers/unban.py:101
+#: sophie_bot/modules/federations/handlers/unban.py:149
 msgid "This user is not banned in this federation."
 msgstr "此用户未被此联盟封禁。"
 
-#: sophie_bot/modules/federations/handlers/unban.py:107
+#: sophie_bot/modules/federations/handlers/unban.py:155
 msgid "Cannot unban this user because their ban originated from a subscription."
 msgstr "无法解禁此用户，因为其封禁来自订阅。"
 
-#: sophie_bot/modules/federations/handlers/unban.py:121
+#: sophie_bot/modules/federations/handlers/unban.py:169
 msgid "🏛 Cannot Unban User"
 msgstr "🏛 无法解禁用户"
 
-#: sophie_bot/modules/federations/handlers/unban.py:122
+#: sophie_bot/modules/federations/handlers/unban.py:170
 msgid "This user cannot be unbanned because they are banned in a federation this federation subscribes to."
 msgstr "此用户无法被解禁，因为他们被此联盟订阅的联盟封禁。"
 
-#: sophie_bot/modules/federations/handlers/unban.py:124
+#: sophie_bot/modules/federations/handlers/unban.py:172
 msgid "📅 Banned on"
 msgstr "📅 封禁于"
 
-#: sophie_bot/modules/federations/handlers/unban.py:125
+#: sophie_bot/modules/federations/handlers/unban.py:173
 msgid "🏛 Federation"
 msgstr "🏛 联盟"
 
-#: sophie_bot/modules/federations/handlers/unban.py:126
+#: sophie_bot/modules/federations/handlers/unban.py:174
 msgid "👤 Banned by"
 msgstr "👤 封禁者"
 
-#: sophie_bot/modules/federations/handlers/unban.py:130
+#: sophie_bot/modules/federations/handlers/unban.py:178
 msgid "📝 Reason"
 msgstr "📝 原因"
 
-#: sophie_bot/modules/federations/handlers/unban.py:133
+#: sophie_bot/modules/federations/handlers/unban.py:181
 msgid "To unban this user, you need to unsubscribe from the parent federation first:"
 msgstr "要解禁此用户，您需要先取消订阅父联盟："
 
-#: sophie_bot/modules/federations/handlers/unban.py:134
+#: sophie_bot/modules/federations/handlers/unban.py:182
 #, python-brace-format
 msgid "`/funsub {fed_id}`"
 msgstr "`/funsub {fed_id}`"
 
-#: sophie_bot/modules/federations/handlers/unban.py:145
-msgid "🏛 User Unbanned from Federation"
-msgstr "🏛 用户已从联盟中解禁"
-
-#: sophie_bot/modules/federations/handlers/unban.py:148
-#: sophie_bot/modules/restrictions/handlers/unban.py:29
-msgid "Unbanned by"
-msgstr "解禁者"
-
-#: sophie_bot/modules/federations/handlers/unban.py:149
-#, python-brace-format
-msgid "Unbanned in {count} chats"
-msgstr "在 {count} 个群组中解除封禁"
-
-#: sophie_bot/modules/federations/handlers/unban.py:156
-#, python-brace-format
-msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
-msgstr "🏛 用户 {unbanned_user} 已通过 {unbanner} 从联盟中解禁。"
-
-#: sophie_bot/modules/federations/middlewares/check_fban.py:56
+#: sophie_bot/modules/federations/middlewares/check_fban.py:57
 #, python-brace-format
 msgid "{user} has been banned in the current federation <b>{fed_name}</b>."
 msgstr "用户 {user} 已被当前联盟 <b>{fed_name}</b> 封禁。"
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:63
+#: sophie_bot/modules/federations/middlewares/check_fban.py:64
 #, python-brace-format
 msgid "Banned via subscribed federation <b>{fed_name}</b>."
 msgstr "通过订阅联盟 <b>{fed_name}</b> 封禁。"
 
-#: sophie_bot/modules/federations/middlewares/check_fban.py:69
-#, python-brace-format
-msgid "Reason: {text}"
-msgstr "原因：{text}"
-
-#: sophie_bot/modules/federations/schedules/process_exports.py:139
+#: sophie_bot/modules/federations/schedules/process_exports.py:144
 msgid "🏛 Federation Ban List Export"
 msgstr "🏛 联盟封禁列表导出"
 
-#: sophie_bot/modules/federations/schedules/process_exports.py:142
+#: sophie_bot/modules/federations/schedules/process_exports.py:147
 msgid "Exported at"
 msgstr "导出于"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:58
+#: sophie_bot/modules/federations/schedules/process_imports.py:60
 msgid "✅ Import completed successfully"
 msgstr "✅ 导入成功完成"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:60
+#: sophie_bot/modules/federations/schedules/process_imports.py:62
 msgid "⚠️ Import completed with errors"
 msgstr "⚠️ 导入完成但有错误"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:65
+#: sophie_bot/modules/federations/schedules/process_imports.py:67
 msgid "Imported"
 msgstr "已导入"
 
-#: sophie_bot/modules/federations/schedules/process_imports.py:66
+#: sophie_bot/modules/federations/schedules/process_imports.py:68
 msgid "Failed"
 msgstr "失败"
 
@@ -3024,24 +3296,82 @@ msgstr "您没有任何联盟"
 msgid "Could not determine federation"
 msgstr "无法确定联盟"
 
-#: sophie_bot/modules/federations/utils/federation_context.py:65
-msgid "You don't have permission to perform this action in this federation."
-msgstr "您没有权限在此联盟中执行此操作。"
+#: sophie_bot/modules/federations/utils/ban_docs.py:34
+msgid "Anonymous admin"
+msgstr "匿名管理员"
 
-#: sophie_bot/modules/filters/__init__.py:83
+#: sophie_bot/modules/federations/utils/ban_docs.py:36
+msgid "🏛 User Banned from Federation"
+msgstr "🏛 用户被联盟封禁"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:46
+msgid "✅ Banned in this chat. Propagating across the federation…"
+msgstr "✅ 已在此聊天封禁。正在跨联盟传播…"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:48
+msgid "⏳ Ban recorded. Propagating across the federation…"
+msgstr "⏳ 已记录封禁。正在跨联盟传播…"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:53
+msgid "Also banned in"
+msgstr "同时被封禁于"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#, python-brace-format
+msgid "{count} subscribed federations"
+msgstr "{count} 个已订阅的联盟"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:73
+msgid "Ban user in the fed #FedBan"
+msgstr "在联盟中封禁用户 #FedBan"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:74
+msgid "Fed"
+msgstr "联盟"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:83
+msgid "By"
+msgstr "由"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:95
+msgid "Original message"
+msgstr "原始消息"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:112
+msgid "🏛 User Unbanned from Federation"
+msgstr "🏛 用户已从联盟中解禁"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:120
+msgid "✅ Unbanned in this chat. Propagating across the federation…"
+msgstr "✅ 已在此聊天解除封禁。正在跨联盟传播…"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:122
+msgid "⏳ Unban recorded. Propagating across the federation…"
+msgstr "⏳ 已记录解除封禁。正在跨联盟传播…"
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:145
+#, python-brace-format
+msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
+msgstr "🏛 用户 {unbanned_user} 已通过 {unbanner} 从联盟中解禁。"
+
+#: sophie_bot/modules/federations/utils/task_failure.py:19
+msgid "❌ The task has been failed, I will tag it as failed and retry later."
+msgstr "❌ 任务失败，我会将其标记为失败并稍后重试。"
+
+#: sophie_bot/modules/filters/__init__.py:85
 #: sophie_bot/modules/filters/handlers/filter_del.py:52
 msgid "Filters"
 msgstr "过滤器"
 
-#: sophie_bot/modules/filters/__init__.py:87
+#: sophie_bot/modules/filters/__init__.py:89
 msgid "Filters allows to invoke different actions for different messages."
 msgstr "过滤器允许为不同的消息调用不同的操作。"
 
-#: sophie_bot/modules/filters/__init__.py:88
+#: sophie_bot/modules/filters/__init__.py:90
 msgid "For example muting the users when they mention crypto."
 msgstr "例如，当用户提到加密货币时静音用户。"
 
-#: sophie_bot/modules/filters/__init__.py:90
+#: sophie_bot/modules/filters/__init__.py:92
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
 msgstr "Sophie 支持许多您可以配置的不同操作，以多种不同方式自动化聊天管理。"
 
@@ -3051,8 +3381,9 @@ msgstr "Sophie 支持许多您可以配置的不同操作，以多种不同方�
 #: sophie_bot/modules/filters/handlers/action_setup_confirm.py:67
 #: sophie_bot/modules/filters/handlers/actions_list.py:38
 #: sophie_bot/modules/filters/handlers/actions_list_to_remove.py:35
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:43
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:45
 #: sophie_bot/modules/filters/handlers/filter_save.py:51
+#: sophie_bot/modules/filters/handlers/filter_toggle_silent.py:29
 msgid "Continuing setup is only possible by the same user who started it."
 msgstr "继续设置只能由开始设置的同一用户执行。"
 
@@ -3084,24 +3415,32 @@ msgstr "选择要删除的过滤器操作："
 msgid "⬅️ Do not remove actions (Back)"
 msgstr "⬅️ 不删除操作（返回）"
 
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:50
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:52
 #: sophie_bot/modules/filters/handlers/filter_new.py:51
 msgid "New filter"
 msgstr "新过滤器"
 
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:51
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:53
 #: sophie_bot/modules/filters/handlers/filter_new.py:52
 msgid "Handles"
 msgstr "处理"
 
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:84
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:88
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:78
 msgid "➕ Add another action"
 msgstr "➕ 添加另一个操作"
 
-#: sophie_bot/modules/filters/handlers/filter_confirm.py:89
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:93
 msgid "➖ Remove actions"
 msgstr "➖ 移除操作"
+
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:101
+msgid "🔇 Silent mode: on"
+msgstr "🔇 静默模式：开启"
+
+#: sophie_bot/modules/filters/handlers/filter_confirm.py:101
+msgid "🔊 Silent mode: off"
+msgstr "🔊 静默模式：关闭"
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:24
 msgid "Deletes a filter"
@@ -3205,64 +3544,64 @@ msgstr "在将其添加为过滤器之前，请先使用 {cmd} 删除它。"
 msgid "The lock-filter {name} already exists! Please use {cmd} to edit the filter."
 msgstr "锁定过滤器 {name} 已存在！请使用 {cmd} 编辑过滤器。"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:67
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:71
 #, python-brace-format
 msgid "Filter with the handler {handler} already exists!"
 msgstr "带处理程序 {handler} 的过滤器已存在！"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:71
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:75
 #, python-brace-format
 msgid "You can edit the filter's actions with {cmd}."
 msgstr "您可以使用 {cmd} 编辑过滤器的操作。"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:93
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:97
 msgid "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
 "Example: ai:Message contains crypto scam"
 msgstr "AI 过滤提示不能为空。请提供触发过滤器的描述。\n"
 "示例：ai: 消息包含加密骗局"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:116
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:120
 #, python-brace-format
 msgid "Maximum number of AI filter handlers reached ({limit} per chat).\n"
 "AI filters consume tokens and can overload the system. Please remove an existing AI filter before adding a new one."
 msgstr "已达到每个群组的最大 AI 过滤器处理程序数量（每个群组 {limit} 个）。\n"
 "AI 过滤器会消耗令牌并可能使系统超负荷。请在添加新的 AI 过滤器之前删除现有的 AI 过滤器。"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:140
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:144
 msgid "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
 msgstr "提供的正则表达式模式执行得太慢。请审查该模式并尝试再次添加过滤器。"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:148
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:152
 msgid "Provided regex pattern is invalid. Please check the syntax and try again."
 msgstr "提供的正则表达式模式无效。请检查语法并重试。"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:173
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:177
 #, python-brace-format
 msgid "When AI detects: {prompt}"
 msgstr "当 AI 检测到：{prompt}"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:176
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:180
 #, python-brace-format
 msgid "When messages matches the regex pattern {pattern}"
 msgstr "当消息与正则表达式模式 {pattern} 匹配时"
 
-#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:178
+#: sophie_bot/modules/filters/utils_/filter_handler_rules.py:182
 #, python-brace-format
 msgid "When {handler} in message"
 msgstr "当 {handler} 在消息中"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:149
+#: sophie_bot/modules/filters/utils_/match_handler.py:204
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr "您是内容审核助理。评估提供的消息内容是否符合过滤器标准。评估时要精确且客观。"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:156
+#: sophie_bot/modules/filters/utils_/match_handler.py:211
 #, python-brace-format
 msgid "Filter criteria: {criteria}\n\n"
 "Message content: {content}"
 msgstr "过滤标准：{criteria}\n\n"
 "消息内容：{content}"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:158
+#: sophie_bot/modules/filters/utils_/match_handler.py:213
 msgid "(no text content)"
 msgstr "（无文本内容）"
 
@@ -3325,8 +3664,9 @@ msgstr "欢迎消息"
 
 #: sophie_bot/modules/greetings/handlers/set_join_request.py:20
 #: sophie_bot/modules/greetings/handlers/status_greetings.py:20
-#: sophie_bot/modules/notes/handlers/save.py:32
+#: sophie_bot/modules/notes/handlers/save.py:34
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/TextWithButtonsArg.py:14
+#: sophie_bot/modules/op/handlers/StfuGallery.py:217
 #: sophie_bot/modules/rules/handlers/set.py:20
 msgid "Content"
 msgstr "内容"
@@ -3430,7 +3770,7 @@ msgid "Use {cmd} to retrieve Welcome Security settings"
 msgstr "使用 {cmd} 检索欢迎安全设置"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:47
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
 #, python-brace-format
 msgid "Check out {cmd} to learn more about Welcome settings."
 msgstr "查看 {cmd} 以了解有关欢迎设置的更多信息。"
@@ -3440,35 +3780,35 @@ msgid "Welcome Message"
 msgstr "欢迎消息"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
-#: sophie_bot/modules/greetings/utils/send_welcome.py:23
+#: sophie_bot/modules/greetings/utils/send_welcome.py:24
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:124
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:86
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:78
 msgid "No chat rules, have fun!"
 msgstr "没有聊天规则，玩得开心！"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:40
+#: sophie_bot/modules/greetings/middlewares/new_user.py:41
 msgid "I am not a robot"
 msgstr "我不是机器人"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:81
+#: sophie_bot/modules/greetings/middlewares/new_user.py:82
 msgid "Hi, Thank you for choosing Sophie for your group!"
 msgstr "嗨，感谢您选择Sophie为您的群组！"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:82
+#: sophie_bot/modules/greetings/middlewares/new_user.py:83
 msgid "Please read the documentation to learn more about Sophie and do not hesitate to join the Support Chat"
 msgstr "请阅读文档以了解更多关于Sophie的信息，如有疑问，请随时加入支持聊天。"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:87
+#: sophie_bot/modules/greetings/middlewares/new_user.py:88
 msgid "Documentation"
 msgstr "文档"
 
-#: sophie_bot/modules/greetings/middlewares/new_user.py:88
+#: sophie_bot/modules/greetings/middlewares/new_user.py:89
 msgid "Support Chat"
 msgstr "支持聊天"
 
 #: sophie_bot/modules/help/__init__.py:46
 #: sophie_bot/modules/help/handlers/help_group.py:27
-#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:72
 #: sophie_bot/modules/help/handlers/start_group.py:34
 #: sophie_bot/modules/help/handlers/start_pm.py:54
 msgid "Help"
@@ -3494,47 +3834,55 @@ msgstr "显示帮助消息"
 msgid "The help information available in the private messages with Sophie"
 msgstr "在与Sophie的私信中获取可用的帮助信息"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:28
+#: sophie_bot/modules/help/handlers/pm_modules.py:27
 msgid "Shows help overview for all modules"
 msgstr "显示所有模块的帮助概述"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:49
-#, python-brace-format
-msgid "💬{ai_emoji} Chat with Sophie for help"
-msgstr "💬{ai_emoji} 与 Sophie 聊天以获取帮助"
-
-#: sophie_bot/modules/help/handlers/pm_modules.py:70
-#: sophie_bot/modules/help/handlers/pm_modules.py:134
+#: sophie_bot/modules/help/handlers/pm_modules.py:61
+#: sophie_bot/modules/help/handlers/pm_modules.py:127
 #: sophie_bot/modules/privacy/handlers/privacy.py:38
 msgid "⬅️ Back"
 msgstr "⬅️ 返回"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:74
-msgid "There are 2 help sources, you can read the detailed wiki or get a quick commands by modules overview."
-msgstr "有 2 个帮助来源，您可以阅读详细的维基或快速获取模块命令概述。"
+#: sophie_bot/modules/help/handlers/pm_modules.py:65
+#, python-brace-format
+msgid "💬{ai_emoji} Chat with Sophie for help"
+msgstr "💬{ai_emoji} 与 Sophie 聊天以获取帮助"
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:73
+msgid "There are three ways to find your way around Sophie:"
+msgstr "有三种方式可以了解如何使用 Sophie："
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:75
-msgid "📖 Wiki (detailed information)"
-msgstr "📖 维基（详细信息）"
+msgid "📖 The wiki"
+msgstr "📖 维基"
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:75
+msgid "detailed information on every feature"
+msgstr "有关每个功能的详细信息"
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:76
+msgid "🧩 The modules below — a quick overview of the commands in each one"
+msgstr "🧩 下面的模块——每个模块中的命令快速概览"
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:77
-msgid "Alternatively you can now just chat with Sophie how to use herself!"
-msgstr "另外，您现在也可以直接与 Sophie 聊天，询问如何使用她！"
+msgid "💬 Sophie herself — ask her how to use her, in your own words"
+msgstr "💬 直接向 Sophie 询问如何使用（用你自己的话）"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:97
+#: sophie_bot/modules/help/handlers/pm_modules.py:95
 msgid "Module not found"
 msgstr "未找到模块"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:121
+#: sophie_bot/modules/help/handlers/pm_modules.py:113
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr "{module} 的别名命令"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:129
+#: sophie_bot/modules/help/handlers/pm_modules.py:121
 msgid "📖 Look the module's wiki page for more information"
 msgstr "📖 查看模块的 Wiki 页面以获取更多信息"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:130
+#: sophie_bot/modules/help/handlers/pm_modules.py:123
 msgid "📖 Wiki page"
 msgstr "📖 Wiki 页面"
 
@@ -3601,11 +3949,11 @@ msgstr "({value})"
 msgid "Disable-able"
 msgstr "可禁用的"
 
-#: sophie_bot/modules/help/utils/format_help.py:73
+#: sophie_bot/modules/help/utils/format_help.py:89
 msgid "PM-only"
 msgstr "仅限 PM"
 
-#: sophie_bot/modules/help/utils/format_help.py:75
+#: sophie_bot/modules/help/utils/format_help.py:91
 msgid "Only admins"
 msgstr "仅管理员"
 
@@ -3617,46 +3965,46 @@ msgstr "语言和本地化设置"
 msgid "Allows users to set their preferred language for bot interactions."
 msgstr "允许用户设置与机器人交互的首选语言。"
 
-#: sophie_bot/modules/language/handlers/language.py:21
+#: sophie_bot/modules/language/handlers/language.py:22
 msgid "Change the language of the bot in the chat."
 msgstr "更改群组中机器人的语言。"
 
-#: sophie_bot/modules/language/handlers/language.py:34
+#: sophie_bot/modules/language/handlers/language.py:36
 msgid "Select the language you want to use in this chat."
 msgstr "选择您要在此群组中使用的语言。"
 
-#: sophie_bot/modules/language/handlers/language.py:58
-#: sophie_bot/modules/language/handlers/language.py:108
+#: sophie_bot/modules/language/handlers/language.py:60
+#: sophie_bot/modules/language/handlers/language.py:116
 msgid "Help us translate!"
 msgstr "帮助我们翻译！"
 
-#: sophie_bot/modules/language/handlers/language.py:76
+#: sophie_bot/modules/language/handlers/language.py:78
 msgid "Language not found."
 msgstr "未找到语言。"
 
-#: sophie_bot/modules/language/handlers/language.py:88
+#: sophie_bot/modules/language/handlers/language.py:96
 #, python-brace-format
 msgid "Language changed to {lang}"
 msgstr "语言已更改为 {lang}"
 
-#: sophie_bot/modules/language/handlers/language.py:113
+#: sophie_bot/modules/language/handlers/language.py:119
 #, python-brace-format
 msgid "Language set to {lang}"
 msgstr "语言设置为 {lang}"
 
-#: sophie_bot/modules/locks/__init__.py:48
+#: sophie_bot/modules/locks/__init__.py:53
 msgid "Locks"
 msgstr "锁"
 
-#: sophie_bot/modules/locks/__init__.py:50
+#: sophie_bot/modules/locks/__init__.py:55
 msgid "Lock specific message types in chats"
 msgstr "在群组中锁定特定消息类型"
 
-#: sophie_bot/modules/locks/__init__.py:53
+#: sophie_bot/modules/locks/__init__.py:58
 msgid "Allows administrators to lock specific types of messages in chats."
 msgstr "允许管理员锁定聊天中特定类型的消息。"
 
-#: sophie_bot/modules/locks/__init__.py:55
+#: sophie_bot/modules/locks/__init__.py:60
 msgid "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
 msgstr "阻止用户发送特定内容类型，例如贴纸、GIF、URL、贴纸包和语言。"
 
@@ -4195,41 +4543,49 @@ msgstr "消息已清除"
 msgid "Message deleted"
 msgstr "消息已删除"
 
-#: sophie_bot/modules/notes/__init__.py:75
+#: sophie_bot/modules/notes/__init__.py:73
 msgid "Notes"
 msgstr "笔记"
 
-#: sophie_bot/modules/notes/__init__.py:77
+#: sophie_bot/modules/notes/__init__.py:75
 msgid "Save and retrieve notes in chats"
 msgstr "保存和检索聊天中的笔记"
 
-#: sophie_bot/modules/notes/__init__.py:81
+#: sophie_bot/modules/notes/__init__.py:79
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr "如果您想在聊天中保存一些常用的内容，比如常见问题解答、回复模板、您最喜欢的贴纸或整个互动菜单，可以通过笔记来实现。"
 
-#: sophie_bot/modules/notes/__init__.py:84
+#: sophie_bot/modules/notes/__init__.py:82
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr "笔记允许保存不同类型的内容，从普通文本消息到贴纸和语音消息，笔记还支持添加内联消息按钮。"
 
-#: sophie_bot/modules/notes/handlers/delete.py:20
-#: sophie_bot/modules/notes/handlers/get.py:21
+#: sophie_bot/modules/notes/handlers/delete.py:21
+#: sophie_bot/modules/notes/handlers/get.py:22
 msgid "Note name"
 msgstr "备注名称"
 
-#: sophie_bot/modules/notes/handlers/delete.py:21
+#: sophie_bot/modules/notes/handlers/delete.py:22
 msgid "Deletes notes."
 msgstr "删除备注。"
 
-#: sophie_bot/modules/notes/handlers/delete.py:38
+#: sophie_bot/modules/notes/handlers/delete.py:50
 #, python-brace-format
-msgid "No notes was found with {name} name."
-msgstr "未能找到名为 {name} 的笔记。"
+msgid "No notes were found with the specified names in {chat}."
+msgstr "在 {chat} 中未找到具有指定名称的笔记。"
 
-#: sophie_bot/modules/notes/handlers/delete.py:48
+#: sophie_bot/modules/notes/handlers/delete.py:58
 msgid "Names"
 msgstr "名称"
 
-#: sophie_bot/modules/notes/handlers/delete.py:49
+#: sophie_bot/modules/notes/handlers/delete.py:66
+msgid "Deleted notes"
+msgstr "已删除的笔记"
+
+#: sophie_bot/modules/notes/handlers/delete.py:68
+msgid "Not found"
+msgstr "未找到"
+
+#: sophie_bot/modules/notes/handlers/delete.py:69
 msgid "Note was successfully deleted"
 msgstr "笔记已成功删除"
 
@@ -4255,16 +4611,20 @@ msgstr "只有发起者可以确认删除所有笔记"
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 所有笔记 ({removed_count}) 已在 {chat_name} 中删除"
 
-#: sophie_bot/modules/notes/handlers/get.py:22
+#: sophie_bot/modules/notes/handlers/get.py:23
 msgid "Retrieve the note."
 msgstr "检索备注。"
 
-#: sophie_bot/modules/notes/handlers/get.py:36
+#: sophie_bot/modules/notes/handlers/get.py:37
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "未找到名为 {name} 的笔记。"
 
-#: sophie_bot/modules/notes/handlers/legacy_button.py:42
+#: sophie_bot/modules/notes/handlers/legacy_button.py:41
+msgid "You need to be a member of this chat to open its notes."
+msgstr "您需要是此聊天的成员才能打开其笔记。"
+
+#: sophie_bot/modules/notes/handlers/legacy_button.py:47
 msgid "This note no longer exists."
 msgstr "此备忘录已不存在。"
 
@@ -4276,56 +4636,52 @@ msgstr "?搜索笔记"
 msgid "Lists available notes."
 msgstr "列出可用的备注。"
 
-#: sophie_bot/modules/notes/handlers/list.py:54
+#: sophie_bot/modules/notes/handlers/list.py:66
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr "未能根据提供的搜索模式 {pattern} 在 {chat_name} 中找到任何笔记。"
 
-#: sophie_bot/modules/notes/handlers/list.py:62
+#: sophie_bot/modules/notes/handlers/list.py:74
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr "在 {chat_name} 中没有找到任何笔记。"
 
-#: sophie_bot/modules/notes/handlers/list.py:67
-#: sophie_bot/modules/notes/handlers/search.py:44
+#: sophie_bot/modules/notes/handlers/list.py:79
 msgid "Search pattern"
 msgstr "搜索模式"
 
-#: sophie_bot/modules/notes/handlers/list.py:69
-#: sophie_bot/modules/notes/handlers/search.py:46
+#: sophie_bot/modules/notes/handlers/list.py:81
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr "在 {chat_name} 中的笔记"
 
-#: sophie_bot/modules/notes/handlers/list.py:73
-#: sophie_bot/modules/notes/handlers/search.py:50
+#: sophie_bot/modules/notes/handlers/list.py:85
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr "使用 {cmd} 来检索笔记。示例：{cmd_example}"
 
-#: sophie_bot/modules/notes/handlers/list.py:74
-#: sophie_bot/modules/notes/handlers/search.py:51
+#: sophie_bot/modules/notes/handlers/list.py:86
 msgid "#(Note name)"
 msgstr "#(备注名称)"
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:29
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:28
 msgid "Please connect to the chat to interact with chat notes"
 msgstr "请连接到聊天以与聊天备注交互"
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:35
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:34
 msgid "🔌 Connect"
 msgstr "🔌 连接"
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:59
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:58
 msgid "Chat not found in the database. Please try to disconnect and connect again."
 msgstr "数据库中未找到聊天。请尝试断开连接并重新连接。"
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:65
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:64
 #, python-brace-format
 msgid "Connected to chat {chat_name} successfully!"
 msgstr "成功连接到聊天 {chat_name}！"
 
-#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:66
+#: sophie_bot/modules/notes/handlers/pmnotes_handler.py:65
 #, python-brace-format
 msgid "Use {command} to disconnect"
 msgstr "使用 {command} 断开连接"
@@ -4345,9 +4701,9 @@ msgstr "已启用"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:85
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:48
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:74
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:51
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:66
 msgid "Disabled"
 msgstr "未启用"
 
@@ -4356,7 +4712,7 @@ msgid "Private Notes"
 msgstr "私人笔记"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:41
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:86
+#: sophie_bot/modules/op/handlers/SetMode.py:118
 #: sophie_bot/modules/utils_/status_handler.py:51
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
@@ -4384,106 +4740,107 @@ msgstr "未启用"
 msgid "PrivateNotes have been {status} in {chat}."
 msgstr "私人笔记已在 {chat} 中被 {status}。"
 
-#: sophie_bot/modules/notes/handlers/save.py:30
+#: sophie_bot/modules/notes/handlers/save.py:32
+#: sophie_bot/modules/notes/handlers/save.py:79
 msgid "Note names"
 msgstr "备注名称"
 
-#: sophie_bot/modules/notes/handlers/save.py:31
+#: sophie_bot/modules/notes/handlers/save.py:33
 msgid "?Description"
 msgstr "?描述"
 
-#: sophie_bot/modules/notes/handlers/save.py:34
+#: sophie_bot/modules/notes/handlers/save.py:36
 msgid "Save the note."
 msgstr "保存备注。"
 
-#: sophie_bot/modules/notes/handlers/save.py:71
+#: sophie_bot/modules/notes/handlers/save.py:59
+msgid "Please provide at least one valid note name."
+msgstr "请至少提供一个有效的笔记名称。"
+
+#: sophie_bot/modules/notes/handlers/save.py:81
 msgid "Note was successfully created"
 msgstr "笔记已成功创建"
 
-#: sophie_bot/modules/notes/handlers/save.py:71
+#: sophie_bot/modules/notes/handlers/save.py:81
 msgid "Note was successfully updated"
 msgstr "笔记已成功更新"
 
-#: sophie_bot/modules/notes/handlers/save.py:74
+#: sophie_bot/modules/notes/handlers/save.py:83
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
 msgstr "使用 {cmd} 检索此笔记。"
 
-#: sophie_bot/modules/notes/handlers/search.py:20
-msgid "Text to search"
-msgstr "要搜索的文本"
-
-#: sophie_bot/modules/notes/handlers/search.py:22
-msgid "Searches for note contents"
-msgstr "搜索笔记内容"
-
-#: sophie_bot/modules/notes/handlers/search.py:39
+#: sophie_bot/modules/notes/handlers/save.py:93
 #, python-brace-format
-msgid "No notes found by the provided search pattern {pattern}."
-msgstr "未能根据提供的搜索模式 {pattern} 找到任何笔记。"
+msgid "To save the whole album, send it with {cmd} in the caption instead."
+msgstr "要保存整个相册，请在标题中随同 {cmd} 发送。"
 
-#: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:52
-#: sophie_bot/modules/notes/schedules/generate_ai_titles.py:23
+#: sophie_bot/modules/notes/handlers/save.py:96
+msgid "⚠️ Only the first media of the album was saved"
+msgstr "⚠️ 仅保存了相册的第一张媒体"
+
+#: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:53
+#: sophie_bot/modules/notes/schedules/generate_ai_titles.py:25
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr "您需要更新聊天笔记的数据。从提供的笔记文本生成笔记数据"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:34
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:35
 msgid "Now, please type the text you want to automatically send."
 msgstr "现在，请输入您想要自动发送的文本。"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:36
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:37
 msgid "Markup help"
 msgstr "格式帮助"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:57
 msgid "Replies to the message with"
 msgstr "回复消息时使用"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:58
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:59
 msgid "Replies to the message"
 msgstr "回复消息"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:63
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:64
 msgid "Change reply text"
 msgstr "更改回复文本"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:71
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:72
 msgid "Reply"
 msgstr "回复"
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:36
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:37
 msgid "Note with this name does not exist. Please try again."
 msgstr "名称为此名称的备注不存在。请再试一次。"
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:44
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:45
 msgid "Please write the note name you want to send as a filter trigger."
 msgstr "请输入您要作为过滤触发器发送的备注名称。"
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:52
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:56
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:53
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:57
 msgid "Send note"
 msgstr "发送备注"
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:63
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:64
 #, python-brace-format
 msgid "Replies to the message with the note with {notename} note name"
 msgstr "回复消息时使用名称为 {notename} 的备注"
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:69
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:70
 msgid "Change note name"
 msgstr "更改备注名称"
 
-#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:83
+#: sophie_bot/modules/notes/magic_handlers/send_note_action.py:84
 #: sophie_bot/utils/errors.py:93
 #, python-brace-format
 msgid "#{name} note was not found."
 msgstr "#{name} 笔记未找到。"
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
-#: sophie_bot/modules/restrictions/actions/base.py:142
-#: sophie_bot/modules/restrictions/actions/kick.py:48
+#: sophie_bot/modules/restrictions/actions/base.py:136
+#: sophie_bot/modules/restrictions/actions/kick.py:43
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:117
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:122
 msgid "Filter action"
 msgstr "过滤器操作"
 
@@ -4568,15 +4925,15 @@ msgstr "按钮样式必须是以下之一：primary、danger、success"
 msgid "URL must start with http or https"
 msgstr "URL 必须以 http 或 https 开头"
 
-#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:27
+#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:28
 msgid "The buttons are not valid."
 msgstr "按钮无效。"
 
-#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:28
+#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:29
 msgid "Please check the buttons documentation for the list of the allowed buttons."
 msgstr "请查看按钮文档以获取允许的按钮列表。"
 
-#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:30
+#: sophie_bot/modules/notes/utils/buttons_processor/list_from_message.py:31
 msgid "Buttons are not valid."
 msgstr "按钮无效。"
 
@@ -4584,44 +4941,44 @@ msgstr "按钮无效。"
 msgid "Local chat"
 msgstr "本地聊天"
 
-#: sophie_bot/modules/notes/utils/parse.py:73
+#: sophie_bot/modules/notes/utils/parse.py:46
 msgid "Please check the notes documentation for the list of the allowed content types."
 msgstr "请检查备注文档，获取允许的内容类型列表。"
 
-#: sophie_bot/modules/notes/utils/parse.py:74
+#: sophie_bot/modules/notes/utils/parse.py:47
 msgid "Reply message content is not parsable as the note."
 msgstr "回复消息内容无法解析为笔记。"
 
-#: sophie_bot/modules/notes/utils/parse.py:129
+#: sophie_bot/modules/notes/utils/parse.py:127
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr "笔记的最大长度为 {limit} 个字符。"
 
-#: sophie_bot/modules/notes/utils/parse.py:131
+#: sophie_bot/modules/notes/utils/parse.py:128
 msgid "Please try to reduce the length of note."
 msgstr "请尝试减小笔记的长度。"
 
-#: sophie_bot/modules/notes/utils/parse.py:132
+#: sophie_bot/modules/notes/utils/parse.py:129
 msgid "Note is too long."
 msgstr "笔记过长。"
 
-#: sophie_bot/modules/notes/utils/send.py:101
+#: sophie_bot/modules/notes/utils/send.py:182
 msgid "The text is too long"
 msgstr "笔记过长。"
 
-#: sophie_bot/modules/op/__init__.py:45
+#: sophie_bot/modules/op/__init__.py:57
 msgid "Operator"
 msgstr "运营商"
 
-#: sophie_bot/modules/op/__init__.py:47
+#: sophie_bot/modules/op/__init__.py:59
 msgid "Operator-only commands and tools"
 msgstr "仅限运营商的命令和工具"
 
-#: sophie_bot/modules/op/__init__.py:50
+#: sophie_bot/modules/op/__init__.py:62
 msgid "Provides operator-only commands and tools for bot administration."
 msgstr "提供机器人管理的仅限运营商的命令和工具。"
 
-#: sophie_bot/modules/op/__init__.py:51
+#: sophie_bot/modules/op/__init__.py:63
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr "包括系统统计信息、作业管理和其他管理功能。"
 
@@ -4629,147 +4986,147 @@ msgstr "包括系统统计信息、作业管理和其他管理功能。"
 msgid "Generate a test emoji captcha"
 msgstr "生成测试表情符号验证码"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:89
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:68
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr "未知功能 {feature}。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:90
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:99
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:69
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:78
 #, python-brace-format
 msgid "Allowed features: {features}"
 msgstr "允许的功能: {features}"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:98
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:77
 msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
 msgstr "用法：/op_ff [^chat[=<chat_id>]] <feature> <value>"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:130
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:429
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:109
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:397
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr "{feature}：{value}"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:162
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:130
 #, python-brace-format
 msgid "Invalid value for {feature}: expected {expected}, got {actual}."
 msgstr "无效的 {feature} 值：期望 {expected}，实际为 {actual}。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:176
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:144
 #, python-brace-format
 msgid "Invalid value for {feature}: {value}."
 msgstr "无效的 {feature} 值：{value}。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:222
 #, python-brace-format
 msgid "Args: {args}"
 msgstr "参数：{args}"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:281
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:249
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:252
 msgid "No changed feature flags are set."
 msgstr "未设置已更改的功能标志。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:284
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:252
 msgid "Changed feature flags"
 msgstr "已更改的功能标志"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
 msgid "All feature flags"
 msgstr "所有功能标志"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:286
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:254
 msgid "No feature flags are registered."
 msgstr "未注册任何功能标志。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:255
 msgid "Rollouts"
 msgstr "灰度发布"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:287
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:462
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:255
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:430
 msgid "No feature flag rollouts are set."
 msgstr "未设置任何功能标志的灰度发布。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:298
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:266
 msgid "Manual per-chat overrides"
 msgstr "每聊天手动覆盖"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:300
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:268
 msgid "No manual per-chat overrides are set."
 msgstr "未设置任何每聊手动覆盖。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:305
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:273
 msgid "Rollout-created per-chat overrides"
 msgstr "由灰度发布创建的每聊覆盖"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:307
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:275
 msgid "No rollout-created per-chat overrides are set."
 msgstr "未设置任何由灰度发布创建的每聊覆盖。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:342
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:493
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:310
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:461
 msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
 msgstr "用法：/op_ff ^rollout=<0-100> <feature> <value>"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:344
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:458
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:495
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:312
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:426
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:463
 msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
 msgstr "用法：/op_ff ^rollout_bump=<0-100> <feature>"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:346
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:456
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:473
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:314
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:424
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:441
 msgid "Usage: /op_ff ^days=<days> <feature> <value>"
 msgstr "用法：/op_ff ^days=<days> <feature> <value>"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:350
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:318
 msgid "Usage: /op_ff ^chat_overrides"
 msgstr "用法：/op_ff ^chat_overrides"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:396
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:364
 #, python-brace-format
 msgid "{feature} override for chat {chat} deleted."
 msgstr "{feature} 在聊天 {chat} 的覆盖已删除。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:404
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:372
 #, python-brace-format
 msgid "{feature} override deleted."
 msgstr "{feature} 覆盖已删除。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:418
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:386
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr "聊天 {chat} 的 {feature}: {value}"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:449
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:417
 msgid "Rollouts cannot be combined with per-chat overrides."
 msgstr "灰度发布不能与每聊覆盖同时使用。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:452
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:420
 msgid "Use only one rollout argument at a time."
 msgstr "一次只能使用一个灰度发布参数。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:478
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:523
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:446
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:491
 #, python-brace-format
 msgid "No rollout is set for {feature}."
 msgstr "未为 {feature} 设置灰度发布。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:482
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:512
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:528
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:450
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:480
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:496
 #, python-brace-format
 msgid "{feature}: {rollout}"
 msgstr "{feature}：{rollout}"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:490
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:458
 #, python-brace-format
 msgid "{feature} rollout deleted."
 msgstr "{feature} 的灰度发布已删除。"
 
-#: sophie_bot/modules/op/handlers/FeatureFlags.py:509
+#: sophie_bot/modules/op/handlers/FeatureFlags.py:477
 msgid "Rollout was not saved."
 msgstr "灰度发布未保存。"
 
@@ -4785,214 +5142,616 @@ msgstr "聊天摘要已重新生成"
 msgid "Summary day"
 msgstr "摘要日期"
 
+#: sophie_bot/modules/op/handlers/SetMode.py:25
+msgid "Auto"
+msgstr "自动"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:26
+msgid "Old"
+msgstr "旧"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:27
+msgid "Latest"
+msgstr "最新"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:76
+msgid "Preferred strategy mode"
+msgstr "首选策略模式"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:88
+#, python-brace-format
+msgid "Chat {chat} not found."
+msgstr "找不到聊天 {chat}。"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:113
+msgid "Preferred mode"
+msgstr "首选模式"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:114
+msgid "Current mode"
+msgstr "当前模式"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:115
+msgid "Mode information"
+msgstr "模式信息"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:130
+msgid "Preferred mode cannot always match the current state due to development and rollout progress."
+msgstr "由于开发和灰度发布进度，首选模式并不总能与当前状态匹配。"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:139
+msgid "Sophie Support"
+msgstr "Sophie 支持"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:150
+msgid "New strategy"
+msgstr "新策略"
+
+#: sophie_bot/modules/op/handlers/SetMode.py:152
+msgid "Preferred mode changed"
+msgstr "首选模式已更改"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:102
+#, python-brace-format
+msgid "Template with {style} and escaped {user_input}"
+msgstr "模板：{style}，并对 {user_input} 做了转义"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:103
+msgid "bold placeholder"
+msgstr "加粗占位符"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:108
+msgid "STFU Formatting Gallery"
+msgstr "STFU 格式画廊"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:110
+msgid "first line"
+msgstr "第一行"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:110
+msgid "second line"
+msgstr "第二行"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:111
+msgid "Regular title"
+msgstr "常规标题"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:112
+msgid "Field"
+msgstr "字段"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:112
+msgid "Section title"
+msgstr "分节标题"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:115
+msgid "Containers and meta elements"
+msgstr "容器和元元素"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:118
+#: sophie_bot/modules/op/handlers/StfuGallery.py:149
+msgid "bold text"
+msgstr "加粗文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:119
+#: sophie_bot/modules/op/handlers/StfuGallery.py:150
+msgid "italic text"
+msgstr "斜体文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:120
+#: sophie_bot/modules/op/handlers/StfuGallery.py:151
+msgid "underlined text"
+msgstr "下划线文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:121
+#: sophie_bot/modules/op/handlers/StfuGallery.py:152
+msgid "strikethrough text"
+msgstr "删除线文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:122
+msgid "spoiler text"
+msgstr "剧透文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:125
+msgid "Telegram"
+msgstr "Telegram"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:126
+msgid "User mention"
+msgstr "用户提及"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:127
+msgid "quoted text"
+msgstr "引用文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:128
+msgid "Regular inline formatting"
+msgstr "常规内联格式"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:131
+msgid "Key"
+msgstr "键"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:131
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+#: sophie_bot/modules/op/handlers/StfuGallery.py:193
+msgid "Value"
+msgstr "值"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:132
+msgid "alpha"
+msgstr "alpha"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:132
+msgid "beta"
+msgstr "beta"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:133
+msgid "first item"
+msgstr "第一项"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:133
+msgid "second item"
+msgstr "第二项"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:134
+msgid "before"
+msgstr "之前"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:134
+msgid "after"
+msgstr "之后"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:135
+msgid "left"
+msgstr "左"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:135
+msgid "right"
+msgstr "右"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:136
+#: sophie_bot/modules/op/handlers/StfuGallery.py:137
+msgid "Rows"
+msgstr "行"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:140
+msgid "Convenience and Markdown helpers"
+msgstr "便捷工具与 Markdown 辅助"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:147
+msgid "STFU Rich HTML Gallery: Text"
+msgstr "STFU 富 HTML 画廊：文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:153
+msgid "deleted text"
+msgstr "已删除文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:154
+msgid "marked text"
+msgstr "标记文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:157
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
+#: sophie_bot/modules/op/handlers/StfuGallery.py:216
+msgid "The Author"
+msgstr "作者"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:160
+msgid "22:45 tomorrow"
+msgstr "明天 22:45"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:162
+msgid "Inline rich components"
+msgstr "内联富组件"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:166
+msgid "Reference"
+msgstr "参考"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:167
+msgid "Referenced text"
+msgstr "被引用文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:168
+msgid "inline URL"
+msgstr "内联 URL"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:169
+msgid "inline e-mail"
+msgstr "内联电子邮件"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:170
+msgid "inline phone number"
+msgstr "内联电话号码"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:171
+msgid "inline mention of a user"
+msgstr "内联用户提及"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:172
+msgid "Links, anchors, and references"
+msgstr "链接、锚点与引用"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:175
+msgid "Heading 1"
+msgstr "标题 1"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:176
+msgid "Heading 2"
+msgstr "标题 2"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:177
+msgid "Heading 3"
+msgstr "标题 3"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:178
+msgid "Heading 4"
+msgstr "标题 4"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:179
+msgid "Heading 5"
+msgstr "标题 5"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:180
+msgid "Heading 6"
+msgstr "标题 6"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:181
+msgid "Paragraph text"
+msgstr "段落文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:183
+msgid "Footer text"
+msgstr "页脚文本"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:185
+msgid "Rich text blocks"
+msgstr "富文本块"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:192
+msgid "Header 1"
+msgstr "页眉 1"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:192
+msgid "Header 2"
+msgstr "页眉 2"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:193
+msgid "Value 2"
+msgstr "值 2"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:194
+msgid "Value 4"
+msgstr "值 4"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:194
+msgid "Value 5"
+msgstr "值 5"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:197
+msgid "Table caption"
+msgstr "表格说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:201
+msgid "STFU Rich HTML Gallery: Structure"
+msgstr "STFU 富 HTML 画廊：结构"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:203
+msgid "unordered list item"
+msgstr "无序列表项"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:204
+#: sophie_bot/modules/op/handlers/StfuGallery.py:207
+msgid "ordered list item"
+msgstr "有序列表项"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:209
+msgid "explicit number"
+msgstr "显式编号"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:210
+msgid "Lists"
+msgstr "列表"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
+msgid "Block quotation started"
+msgstr "块引用开始"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:214
+msgid "continued"
+msgstr "继续"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:216
+msgid "Pull quote"
+msgstr "摘录引用"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:217
+#: sophie_bot/modules/op/handlers/op_task.py:154
+msgid "Title"
+msgstr "标题"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:218
+msgid "Quotes and collapsible blocks"
+msgstr "引用与可折叠块"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:223
+msgid "Tables and formulas"
+msgstr "表格与公式"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:230
+msgid "STFU Rich HTML Gallery: Media"
+msgstr "STFU 富 HTML 画廊：媒体"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:238
+msgid "Media blocks"
+msgstr "媒体块"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:243
+msgid "Photo caption"
+msgstr "照片说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:243
+msgid "Photo credit"
+msgstr "图片来源"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:245
+msgid "Video caption"
+msgstr "视频说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:246
+msgid "Audio caption"
+msgstr "音频说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:248
+msgid "Map caption"
+msgstr "地图说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:249
+msgid "Figures and maps"
+msgstr "图与地图"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:255
+msgid "Collage caption"
+msgstr "拼贴说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:260
+msgid "Slideshow caption"
+msgstr "幻灯片说明"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:262
+msgid "Collages and slideshows"
+msgstr "拼贴与幻灯片"
+
+#: sophie_bot/modules/op/handlers/StfuGallery.py:276
+msgid "Show an operator-only STFU formatting gallery."
+msgstr "显示仅限操作员的 STFU 格式画廊。"
+
 #: sophie_bot/modules/op/handlers/event.py:13
 msgid "Prints the message event as JSON."
 msgstr "以 JSON 形式打印消息事件。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:51
-#: sophie_bot/modules/op/handlers/op_debug.py:63
-#: sophie_bot/modules/op/handlers/op_debug.py:76
-#: sophie_bot/modules/op/handlers/op_debug.py:81
-#: sophie_bot/modules/op/handlers/op_debug.py:112
-#: sophie_bot/modules/op/handlers/op_debug.py:368
-#: sophie_bot/modules/op/handlers/op_debug.py:385
+#: sophie_bot/modules/op/handlers/op_debug.py:42
+#: sophie_bot/modules/op/handlers/op_debug.py:54
+#: sophie_bot/modules/op/handlers/op_debug.py:67
+#: sophie_bot/modules/op/handlers/op_debug.py:72
+#: sophie_bot/modules/op/handlers/op_debug.py:103
+#: sophie_bot/modules/op/handlers/op_debug.py:359
+#: sophie_bot/modules/op/handlers/op_debug.py:376
+#: sophie_bot/modules/op/handlers/op_task.py:65
 msgid "unknown"
 msgstr "未知"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:114
+#: sophie_bot/modules/op/handlers/op_debug.py:105
 msgid "last seen"
 msgstr "最后在线"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:115
+#: sophie_bot/modules/op/handlers/op_debug.py:106
 msgid "last allowed"
 msgstr "上次允许"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:115
+#: sophie_bot/modules/op/handlers/op_debug.py:106
 msgid "step"
 msgstr "步骤"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:120
+#: sophie_bot/modules/op/handlers/op_debug.py:111
 msgid "🔧 Operator Debug"
 msgstr "🔧 操作员调试"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:168
+#: sophie_bot/modules/op/handlers/op_debug.py:159
 msgid "reply to"
 msgstr "回复给"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:178
+#: sophie_bot/modules/op/handlers/op_debug.py:169
+#: sophie_bot/modules/op/handlers/op_task.py:46
 msgid "bot"
 msgstr "机器人"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:178
+#: sophie_bot/modules/op/handlers/op_debug.py:169
+#: sophie_bot/modules/op/handlers/op_task.py:46
 msgid "user"
 msgstr "用户"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:196
+#: sophie_bot/modules/op/handlers/op_debug.py:187
 msgid "No cached messages found. Chat history is populated when AI chatbot is active."
 msgstr "未找到缓存的消息。聊天历史仅在 AI 聊天机器人激活时才会填充。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:197
-#: sophie_bot/modules/op/handlers/op_debug.py:205
+#: sophie_bot/modules/op/handlers/op_debug.py:188
+#: sophie_bot/modules/op/handlers/op_debug.py:196
 msgid "Chat History"
 msgstr "聊天历史"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:206
+#: sophie_bot/modules/op/handlers/op_debug.py:197
 msgid "No cached messages found."
 msgstr "未找到缓存的消息。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:218
+#: sophie_bot/modules/op/handlers/op_debug.py:209
 msgid "command args"
 msgstr "命令参数"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:225
-#: sophie_bot/modules/op/handlers/op_debug.py:230
+#: sophie_bot/modules/op/handlers/op_debug.py:216
+#: sophie_bot/modules/op/handlers/op_debug.py:221
 msgid "No additional notes provided."
 msgstr "未提供额外说明。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:229
+#: sophie_bot/modules/op/handlers/op_debug.py:220
 msgid "Operator Notes"
 msgstr "操作员备注"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:265
+#: sophie_bot/modules/op/handlers/op_debug.py:256
 msgid "Active error signatures"
 msgstr "活跃的错误签名"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:268
+#: sophie_bot/modules/op/handlers/op_debug.py:259
 msgid "Sentry organization"
 msgstr "Sentry 组织"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:271
+#: sophie_bot/modules/op/handlers/op_debug.py:262
 msgid "No active error signatures found."
 msgstr "未找到活跃的错误签名。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:281
+#: sophie_bot/modules/op/handlers/op_debug.py:272
 msgid "Error Backoff"
 msgstr "错误退避"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:296
+#: sophie_bot/modules/op/handlers/op_debug.py:287
 msgid "default"
 msgstr "默认"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:301
+#: sophie_bot/modules/op/handlers/op_debug.py:292
 #, python-brace-format
 msgid "{count} flag(s) differ from defaults (marked with ✦)"
 msgstr "{count} 个功能标志与默认值不同（以 ✦ 标记）"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:303
+#: sophie_bot/modules/op/handlers/op_debug.py:294
 msgid "Feature Flags"
 msgstr "功能标志"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:325
+#: sophie_bot/modules/op/handlers/op_debug.py:316
 msgid "Ping"
 msgstr "Ping"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:326
+#: sophie_bot/modules/op/handlers/op_debug.py:317
 msgid "Database keys"
 msgstr "数据库键"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:327
+#: sophie_bot/modules/op/handlers/op_debug.py:318
 msgid "Sophie keys"
 msgstr "Sophie 键"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:328
+#: sophie_bot/modules/op/handlers/op_debug.py:319
 msgid "No sophie:* keys found."
 msgstr "未找到 sophie:* 键。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:329
+#: sophie_bot/modules/op/handlers/op_debug.py:320
 msgid "Redis Health"
 msgstr "Redis 健康状态"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:351
+#: sophie_bot/modules/op/handlers/op_debug.py:342
 msgid "Current time (UTC)"
 msgstr "当前时间（UTC）"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:352
+#: sophie_bot/modules/op/handlers/op_debug.py:343
 msgid "Unix time"
 msgstr "Unix 时间"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:353
+#: sophie_bot/modules/op/handlers/op_debug.py:344
 msgid "Version"
 msgstr "版本"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:354
+#: sophie_bot/modules/op/handlers/op_debug.py:345
 msgid "Commit"
 msgstr "提交"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:355
+#: sophie_bot/modules/op/handlers/op_debug.py:346
 msgid "Branch"
 msgstr "分支"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:356
+#: sophie_bot/modules/op/handlers/op_debug.py:347
 msgid "Instance"
 msgstr "实例"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:357
+#: sophie_bot/modules/op/handlers/op_debug.py:348
 msgid "Environment"
 msgstr "环境"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:358
+#: sophie_bot/modules/op/handlers/op_debug.py:349
 msgid "Debug mode"
 msgstr "调试模式"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:359
+#: sophie_bot/modules/op/handlers/op_debug.py:350
 msgid "SOPHIE_MODE"
 msgstr "SOPHIE_MODE"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:360
+#: sophie_bot/modules/op/handlers/op_debug.py:351
 msgid "System Context"
 msgstr "系统上下文"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:384
+#: sophie_bot/modules/op/handlers/op_debug.py:375
 msgid "Chat type"
 msgstr "聊天类型"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:385
+#: sophie_bot/modules/op/handlers/op_debug.py:376
 msgid "Chat title"
 msgstr "聊天标题"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:386
+#: sophie_bot/modules/op/handlers/op_debug.py:377
 msgid "Invoked by"
 msgstr "触发者"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:387
+#: sophie_bot/modules/op/handlers/op_debug.py:378
 msgid "Current Chat"
 msgstr "当前聊天"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:446
-msgid "🐛 Bug Report"
-msgstr "🐛 错误报告"
+#: sophie_bot/modules/op/handlers/op_debug.py:420
+msgid "Collect diagnostic context for debugging bot issues (private chat only)."
+msgstr "收集诊断上下文以调试机器人问题（仅限私聊）。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:446
-msgid "✨ Feature Request"
-msgstr "✨ 功能请求"
+#: sophie_bot/modules/op/handlers/op_task.py:54
+msgid "No cached messages available."
+msgstr "没有可用的缓存消息。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:451
-msgid "Type"
-msgstr "类型"
+#: sophie_bot/modules/op/handlers/op_task.py:66
+#, python-brace-format
+msgid "Reply to {name}: {text}"
+msgstr "回复 {name}：{text}"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:452
-msgid "Title"
-msgstr "标题"
+#: sophie_bot/modules/op/handlers/op_task.py:69
+msgid "Generate and create a GitLab issue from chat context."
+msgstr "根据聊天上下文生成并创建 GitLab 问题。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:453
-msgid "Severity"
-msgstr "严重性"
+#: sophie_bot/modules/op/handlers/op_task.py:79
+msgid "GitLab integration is not configured."
+msgstr "未配置 GitLab 集成。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:458
-msgid "AI Summary"
-msgstr "AI 摘要"
+#: sophie_bot/modules/op/handlers/op_task.py:89
+msgid "Please provide a description for the task."
+msgstr "请提供任务描述。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:468
-msgid "AI Analysis"
-msgstr "AI 分析"
+#: sophie_bot/modules/op/handlers/op_task.py:95
+msgid "Could not find chat model."
+msgstr "找不到聊天模型。"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:583
-msgid "Collect diagnostic context for debugging bot issues."
-msgstr "收集诊断上下文以调试机器人问题。"
+#: sophie_bot/modules/op/handlers/op_task.py:131
+msgid "Error generating task description"
+msgstr "生成任务描述时出错"
 
-#: sophie_bot/modules/op/handlers/op_debug.py:593
-msgid "Collect diagnostic context with AI summarization (requires feature flag)."
-msgstr "使用 AI 摘要收集诊断上下文（需要功能开关）。"
+#: sophie_bot/modules/op/handlers/op_task.py:146
+msgid "Failed to create GitLab issue"
+msgstr "创建 GitLab 问题失败"
+
+#: sophie_bot/modules/op/handlers/op_task.py:152
+msgid "GitLab Issue Created"
+msgstr "已创建 GitLab 问题"
+
+#: sophie_bot/modules/op/handlers/op_task.py:155
+msgid "Issue"
+msgstr "问题"
+
+#: sophie_bot/modules/op/handlers/op_task.py:156
+msgid "Open in GitLab"
+msgstr "在 GitLab 中打开"
 
 #: sophie_bot/modules/op/handlers/stats.py:95
 msgid "Show bot statistics."
@@ -5015,8 +5774,16 @@ msgid "Also provides the ability to unpin messages when needed."
 msgstr "还提供了在需要时取消置顶消息的功能。"
 
 #: sophie_bot/modules/pins/handlers/pin.py:17
-msgid "Pins replied message"
-msgstr "固定回复消息"
+msgid "Pins the replied message, silently unless loud or notify is given"
+msgstr "固定被回复的消息，除非指定 loud 或 notify，否则为静默操作"
+
+#: sophie_bot/modules/pins/handlers/pin.py:30
+msgid "loud"
+msgstr "响亮"
+
+#: sophie_bot/modules/pins/handlers/pin.py:31
+msgid "notify"
+msgstr "通知"
 
 #: sophie_bot/modules/pins/handlers/pin.py:37
 msgid "You need to reply to a message to pin it."
@@ -5027,8 +5794,12 @@ msgid "I don't have enough rights to pin messages in this chat."
 msgstr "我没有足够的权限在此聊天中置顶消息。"
 
 #: sophie_bot/modules/pins/handlers/unpin.py:14
-msgid "Unpins message"
-msgstr "取消置顶消息"
+msgid "Unpins the replied message, or every pinned message with all"
+msgstr "取消固定被回复的消息，或在使用 all 时取消所有固定消息"
+
+#: sophie_bot/modules/pins/handlers/unpin.py:27
+msgid "all"
+msgstr "全部"
 
 #: sophie_bot/modules/privacy/__init__.py:33
 msgid "Data protection"
@@ -5102,39 +5873,39 @@ msgstr "降级者"
 msgid "User demoted successfully"
 msgstr "用户已成功降级"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:42
+#: sophie_bot/modules/promotes/handlers/promote.py:56
 msgid "Promotes the user to admins."
 msgstr "将用户提升为管理员。"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:59
+#: sophie_bot/modules/promotes/handlers/promote.py:73
 msgid "?Admin title"
 msgstr "?管理员头衔"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:74
+#: sophie_bot/modules/promotes/handlers/promote.py:88
 msgid "I cannot promote myself."
 msgstr "我不能提升自己。"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:77
+#: sophie_bot/modules/promotes/handlers/promote.py:91
 msgid "You cannot promote yourself."
 msgstr "您不能提升自己。"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:80
+#: sophie_bot/modules/promotes/handlers/promote.py:94
 msgid "Admin title is too long."
 msgstr "管理员头衔太长。"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:140
+#: sophie_bot/modules/promotes/handlers/promote.py:154
 msgid "Promoted by"
 msgstr "提升者"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:141
+#: sophie_bot/modules/promotes/handlers/promote.py:155
 msgid "Admin title"
 msgstr "管理员头衔"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:141
+#: sophie_bot/modules/promotes/handlers/promote.py:155
 msgid "No admin title"
 msgstr "没有管理员头衔"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:142
+#: sophie_bot/modules/promotes/handlers/promote.py:156
 msgid "Admin promoted successfully"
 msgstr "管理员已成功提升"
 
@@ -5158,35 +5929,35 @@ msgstr "用于清理聊天记录和删除不需要的内容。"
 msgid "Deletes the replied message"
 msgstr "删除回复消息"
 
-#: sophie_bot/modules/purges/handlers/delete.py:35
+#: sophie_bot/modules/purges/handlers/delete.py:36
 msgid "Reply to a message to delete it."
 msgstr "回复一条消息以删除！"
 
-#: sophie_bot/modules/purges/handlers/delete.py:40
+#: sophie_bot/modules/purges/handlers/delete.py:41
 msgid "Couldn't delete the message older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
 msgstr "无法删除超过 48 小时（2 天）的消息。您仍然可以使用 Telegram 的管理员工具删除它。"
 
-#: sophie_bot/modules/purges/handlers/purge.py:20
+#: sophie_bot/modules/purges/handlers/purge.py:21
 msgid "Purges all messages after replied message (including the replied message)"
 msgstr "清除回复消息后的所有消息（包括被回复的消息）"
 
-#: sophie_bot/modules/purges/handlers/purge.py:36
+#: sophie_bot/modules/purges/handlers/purge.py:38
 msgid "Reply to a message to start."
 msgstr "回复一条消息以开始。"
 
-#: sophie_bot/modules/purges/handlers/purge.py:41
+#: sophie_bot/modules/purges/handlers/purge.py:43
 msgid "Couldn't delete the messages older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
 msgstr "无法删除超过 48 小时（2 天）的消息。您仍然可以使用 Telegram 的管理员工具删除它。"
 
-#: sophie_bot/modules/purges/handlers/purge.py:68
+#: sophie_bot/modules/purges/handlers/purge.py:71
 msgid "Purge completed. This message will be removed in 5 seconds."
 msgstr "清理完成。此消息将在 5 秒内被删除。"
 
-#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:22
+#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:20
 msgid "Delete the message"
 msgstr "删除消息"
 
-#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:29
+#: sophie_bot/modules/purges/magic_handlers/modern_filter.py:28
 msgid "Deletes the message"
 msgstr "删除消息"
 
@@ -5231,19 +6002,19 @@ msgstr "用户 {user} ({user_id}) 已被举报！"
 msgid "Reported by"
 msgstr "举报者"
 
-#: sophie_bot/modules/rest/__init__.py:21
+#: sophie_bot/modules/rest/__init__.py:22
 msgid "REST API"
 msgstr "REST API"
 
-#: sophie_bot/modules/rest/__init__.py:23
+#: sophie_bot/modules/rest/__init__.py:24
 msgid "REST API for external integrations"
 msgstr "用于外部集成的 REST API"
 
-#: sophie_bot/modules/rest/__init__.py:26
+#: sophie_bot/modules/rest/__init__.py:27
 msgid "Provides a REST API for external integrations and third-party applications."
 msgstr "提供外部集成和第三方应用程序的 REST API。"
 
-#: sophie_bot/modules/rest/__init__.py:27
+#: sophie_bot/modules/rest/__init__.py:28
 msgid "Allows programmatic access to bot functionality and data."
 msgstr "允许以编程方式访问机器人功能和数据。"
 
@@ -5276,28 +6047,28 @@ msgstr "用户 {user} 已根据过滤器操作自动被禁言"
 msgid "Change ban duration"
 msgstr "更改禁言时长"
 
-#: sophie_bot/modules/restrictions/actions/base.py:99
+#: sophie_bot/modules/restrictions/actions/base.py:98
 #, python-brace-format
 msgid "Restricts user for {time}"
 msgstr "限制用户 {time}"
 
-#: sophie_bot/modules/restrictions/actions/base.py:102
+#: sophie_bot/modules/restrictions/actions/base.py:101
 msgid "Restricts user indefinitely"
 msgstr "无限期限制用户"
 
-#: sophie_bot/modules/restrictions/actions/base.py:111
+#: sophie_bot/modules/restrictions/actions/base.py:110
 msgid "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
 msgstr "请写明持续时间，例如 2h 表示 2 小时，7d 表示 7 天，2w 表示 2 周。或输入 0 表示永久。"
 
-#: sophie_bot/modules/restrictions/actions/base.py:116
+#: sophie_bot/modules/restrictions/actions/base.py:115
 msgid "Invalid duration, please try again."
 msgstr "无效的持续时间，请重试。"
 
-#: sophie_bot/modules/restrictions/actions/base.py:150
+#: sophie_bot/modules/restrictions/actions/base.py:144
 msgid "For"
 msgstr "为"
 
-#: sophie_bot/modules/restrictions/actions/kick.py:22
+#: sophie_bot/modules/restrictions/actions/kick.py:21
 msgid "Kick"
 msgstr "踢出"
 
@@ -5305,7 +6076,7 @@ msgstr "踢出"
 msgid "Kicks a user"
 msgstr "踢出用户"
 
-#: sophie_bot/modules/restrictions/actions/kick.py:50
+#: sophie_bot/modules/restrictions/actions/kick.py:45
 #, python-brace-format
 msgid "User {user} was automatically kicked based on a filter action"
 msgstr "用户 {user} 已根据过滤器操作自动被踢出"
@@ -5328,61 +6099,61 @@ msgid "Bans the user from the chat."
 msgstr "从聊天中封禁用户。"
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:19
-#: sophie_bot/modules/restrictions/handlers/ban.py:46
+#: sophie_bot/modules/restrictions/handlers/ban.py:45
 #: sophie_bot/modules/restrictions/handlers/silent.py:61
 #: sophie_bot/modules/restrictions/handlers/silent.py:89
 msgid "I cannot ban myself."
 msgstr "我不能封禁自己。"
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:20
-#: sophie_bot/modules/restrictions/handlers/ban.py:47
+#: sophie_bot/modules/restrictions/handlers/ban.py:46
 #: sophie_bot/modules/restrictions/handlers/silent.py:62
 #: sophie_bot/modules/restrictions/handlers/silent.py:90
 msgid "You cannot ban yourself."
 msgstr "您不能封禁自己。"
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:21
-#: sophie_bot/modules/restrictions/handlers/ban.py:48
+#: sophie_bot/modules/restrictions/handlers/ban.py:47
 #: sophie_bot/modules/restrictions/handlers/silent.py:63
 #: sophie_bot/modules/restrictions/handlers/silent.py:91
 msgid "I cannot ban an admin."
 msgstr "我不能封禁管理员。"
 
 #: sophie_bot/modules/restrictions/handlers/ban.py:23
-#: sophie_bot/modules/restrictions/handlers/ban.py:50
+#: sophie_bot/modules/restrictions/handlers/ban.py:49
 #: sophie_bot/modules/restrictions/handlers/silent.py:65
 #: sophie_bot/modules/restrictions/handlers/silent.py:93
 msgid "Failed to ban the user. Make sure I have the right permissions."
 msgstr "封禁用户失败。请确保我拥有正确的权限。"
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:44
+#: sophie_bot/modules/restrictions/handlers/ban.py:43
 msgid "Temporarily bans the user from the chat."
 msgstr "暂时从聊天中封禁用户。"
 
-#: sophie_bot/modules/restrictions/handlers/ban.py:53
+#: sophie_bot/modules/restrictions/handlers/ban.py:52
 #: sophie_bot/modules/restrictions/handlers/silent.py:96
 msgid "User temporarily banned"
 msgstr "用户暂时被封禁"
 
-#: sophie_bot/modules/restrictions/handlers/base.py:52
+#: sophie_bot/modules/restrictions/handlers/base.py:62
 #, python-brace-format
 msgid "The user is already banned in the current federation: {fed_name} ({fed_id})."
 msgstr "该用户已被当前联盟 {fed_name} ({fed_id}) 封禁。"
 
-#: sophie_bot/modules/restrictions/handlers/base.py:55
+#: sophie_bot/modules/restrictions/handlers/base.py:65
 #, python-brace-format
 msgid "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr "该用户已被已订阅的联盟 {fed_name} ({fed_id}) 封禁。"
 
-#: sophie_bot/modules/restrictions/handlers/base.py:70
+#: sophie_bot/modules/restrictions/handlers/base.py:80
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr "时间（例如，2h、7d、2w）"
 
-#: sophie_bot/modules/restrictions/handlers/base.py:151
-#: sophie_bot/modules/restrictions/handlers/base.py:157
-#: sophie_bot/modules/users/handlers/info.py:62
-#: sophie_bot/modules/users/handlers/info.py:67
-#: sophie_bot/modules/users/handlers/info.py:76
+#: sophie_bot/modules/restrictions/handlers/base.py:166
+#: sophie_bot/modules/restrictions/handlers/base.py:172
+#: sophie_bot/modules/users/handlers/info.py:63
+#: sophie_bot/modules/users/handlers/info.py:68
+#: sophie_bot/modules/users/handlers/info.py:77
 msgid "Notice"
 msgstr "注意"
 
@@ -5500,13 +6271,13 @@ msgid "Failed to unban the user. Make sure I have the right permissions."
 msgstr "解除用户封禁失败。请确保我拥有正确的权限。"
 
 #: sophie_bot/modules/restrictions/handlers/unban.py:36
-#: sophie_bot/modules/users/handlers/info.py:69
+#: sophie_bot/modules/users/handlers/info.py:70
 #, python-brace-format
 msgid "The user is banned in the current federation: {fed_name} ({fed_id})."
 msgstr "该用户已被当前联盟 {fed_name} ({fed_id}) 封禁。"
 
 #: sophie_bot/modules/restrictions/handlers/unban.py:39
-#: sophie_bot/modules/users/handlers/info.py:78
+#: sophie_bot/modules/users/handlers/info.py:79
 #, python-brace-format
 msgid "The user is banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr "该用户已被已订阅的联盟 {fed_name} ({fed_id}) 封禁。"
@@ -5535,7 +6306,7 @@ msgstr "由以下用户解除禁言"
 #: sophie_bot/modules/rules/handlers/get.py:34
 #: sophie_bot/modules/rules/handlers/legacy_button.py:36
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
-#: sophie_bot/modules/warns/handlers/warn.py:160
+#: sophie_bot/modules/warns/handlers/warn.py:167
 msgid "Rules"
 msgstr "规则"
 
@@ -5581,7 +6352,11 @@ msgstr "🗑 聊天规则已重置。"
 msgid "Sets chat rules"
 msgstr "设置聊天规则"
 
-#: sophie_bot/modules/rules/handlers/set.py:38
+#: sophie_bot/modules/rules/handlers/set.py:37
+msgid "Please provide the rules text, or reply to the message you want to set as the rules."
+msgstr "请提供规则文本，或回复您想设置为规则的消息。"
+
+#: sophie_bot/modules/rules/handlers/set.py:45
 #, python-brace-format
 msgid "🪧 Rules have been set in {chat_name} successfully."
 msgstr "🪧 成功在 {chat_name} 中设置规则。"
@@ -5598,11 +6373,11 @@ msgstr "以聊天规则回复消息"
 msgid "Rules filter failed"
 msgstr "规则过滤器失败"
 
-#: sophie_bot/modules/troubleshooters/__init__.py:40
+#: sophie_bot/modules/troubleshooters/__init__.py:27
 msgid "Troubleshooters"
 msgstr "故障排除"
 
-#: sophie_bot/modules/troubleshooters/__init__.py:42
+#: sophie_bot/modules/troubleshooters/__init__.py:29
 msgid "Tools for fixing problems and issues"
 msgstr "解决问题和故障的工具"
 
@@ -5617,58 +6392,6 @@ msgstr "您无法在私人聊天中使用此命令。"
 #: sophie_bot/modules/troubleshooters/handlers/admincache.py:29
 msgid "Admin rights cache has been reset."
 msgstr "管理员权限缓存已重置。"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:13
-msgid "Auto"
-msgstr "自动"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:14
-msgid "Old"
-msgstr "旧"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:15
-msgid "Latest"
-msgstr "最新"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:28
-msgid "Preferred strategy mode"
-msgstr "首选策略模式"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:30
-msgid "Set preferred strategy mode"
-msgstr "设置首选策略模式"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:40
-msgid "Sophie Support"
-msgstr "Sophie 支持"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:50
-msgid "New strategy"
-msgstr "新策略"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:52
-msgid "Preferred mode cannot always match the current state due to development and rollout progress."
-msgstr "由于开发和灰度发布进度，首选模式并不总能与当前状态匹配。"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:56
-msgid "Preferred mode changed"
-msgstr "首选模式已更改"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:63
-msgid "Get current strategy mode / current state"
-msgstr "获取当前的策略模式 / 当前状态"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:82
-msgid "Preferred mode"
-msgstr "首选模式"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:83
-msgid "Current mode"
-msgstr "当前模式"
-
-#: sophie_bot/modules/troubleshooters/handlers/beta_state.py:84
-msgid "Mode information"
-msgstr "模式信息"
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel.py:13
 msgid "Cancel current state, use if Sophie is not responding on your message"
@@ -5704,7 +6427,7 @@ msgstr "您无权取消此操作！"
 msgid "❌ Cancelled."
 msgstr "❌ 已取消。"
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:77
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:78
 #, python-brace-format
 msgid "The action was cancelled by {user}."
 msgstr "该操作已被 {user} 取消。"
@@ -5772,37 +6495,41 @@ msgstr "回复的用户 ID：{id}"
 msgid "{user}'s ID: {id}"
 msgstr "{user} 的 ID：{id}"
 
-#: sophie_bot/modules/users/handlers/info.py:19
+#: sophie_bot/modules/users/handlers/info.py:20
 msgid "Shows the additional information about the user."
 msgstr "显示有关用户的额外信息。"
 
-#: sophie_bot/modules/users/handlers/info.py:37
+#: sophie_bot/modules/users/handlers/info.py:38
 msgid "Could not identify user."
 msgstr "无法识别用户。"
 
-#: sophie_bot/modules/users/handlers/info.py:43
+#: sophie_bot/modules/users/handlers/info.py:44
 msgid "User Information"
 msgstr "用户信息"
 
-#: sophie_bot/modules/users/handlers/info.py:46
+#: sophie_bot/modules/users/handlers/info.py:47
 msgid "First Name"
 msgstr "名字"
 
-#: sophie_bot/modules/users/handlers/info.py:49
+#: sophie_bot/modules/users/handlers/info.py:50
 msgid "Last Name"
 msgstr "姓氏"
 
-#: sophie_bot/modules/users/handlers/info.py:55
+#: sophie_bot/modules/users/handlers/info.py:56
 msgid "User Link"
 msgstr "用户链接"
 
-#: sophie_bot/modules/users/handlers/info.py:62
+#: sophie_bot/modules/users/handlers/info.py:63
 msgid "This user is an admin in this chat."
 msgstr "此用户是此群组的管理员。"
 
-#: sophie_bot/modules/users/handlers/info.py:88
+#: sophie_bot/modules/users/handlers/info.py:89
 msgid "Shared Chats"
 msgstr "共享群组"
+
+#: sophie_bot/modules/utils_/acting_user.py:27
+msgid "Sophie can't tell who you are while you're posting anonymously. Turn off anonymous mode and try again."
+msgstr "在匿名发布时 Sophie 无法识别您的身份。请关闭匿名模式后重试。"
 
 #: sophie_bot/modules/utils_/action_config_wizard/callback.py:49
 #: sophie_bot/modules/utils_/action_config_wizard/callback.py:64
@@ -5944,8 +6671,8 @@ msgid "Action configured successfully!"
 msgstr "操作配置成功！"
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:14
-#: sophie_bot/utils/handlers.py:85 sophie_bot/utils/handlers.py:104
-#: sophie_bot/utils/handlers.py:106 sophie_bot/utils/handlers.py:115
+#: sophie_bot/utils/handlers.py:89 sophie_bot/utils/handlers.py:108
+#: sophie_bot/utils/handlers.py:117
 msgid "The message is inaccessible. Please write the command again"
 msgstr "消息无法访问。请再次写下命令"
 
@@ -6073,8 +6800,8 @@ msgstr "重置当前群组中所有用户的所有警告。"
 
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:115
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:74
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:135
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:75
 msgid "Confirm"
 msgstr "确认"
 
@@ -6100,46 +6827,46 @@ msgstr "请提供要重置警告的用户。"
 msgid "Are you sure you want to reset warnings of {user}?"
 msgstr "您确定要重置 {user} 的警告吗？"
 
-#: sophie_bot/modules/warns/handlers/warn.py:45
+#: sophie_bot/modules/warns/handlers/warn.py:46
 msgid "⚠️ User warned"
 msgstr "⚠️ 用户已被警告"
 
-#: sophie_bot/modules/warns/handlers/warn.py:47
+#: sophie_bot/modules/warns/handlers/warn.py:48
 msgid "By admin"
 msgstr "由管理员"
 
-#: sophie_bot/modules/warns/handlers/warn.py:48
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:122
+#: sophie_bot/modules/warns/handlers/warn.py:49
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:127
 msgid "Warnings count"
 msgstr "警告次数"
 
-#: sophie_bot/modules/warns/handlers/warn.py:55
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:129
+#: sophie_bot/modules/warns/handlers/warn.py:56
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:134
 #, python-brace-format
 msgid "User has been {punishment} due to reaching max warns."
 msgstr "由于达到最大警告次数，用户已被 {punishment}。"
 
-#: sophie_bot/modules/warns/handlers/warn.py:60
+#: sophie_bot/modules/warns/handlers/warn.py:61
 msgid "Warns a user."
 msgstr "警告用户。"
 
-#: sophie_bot/modules/warns/handlers/warn.py:76
+#: sophie_bot/modules/warns/handlers/warn.py:77
 msgid "User to warn"
 msgstr "要警告的用户"
 
-#: sophie_bot/modules/warns/handlers/warn.py:101
+#: sophie_bot/modules/warns/handlers/warn.py:108
 msgid "I cannot warn myself."
 msgstr "我不能警告自己。"
 
-#: sophie_bot/modules/warns/handlers/warn.py:105
+#: sophie_bot/modules/warns/handlers/warn.py:112
 msgid "You cannot warn yourself."
 msgstr "您不能警告自己。"
 
-#: sophie_bot/modules/warns/handlers/warn.py:109
+#: sophie_bot/modules/warns/handlers/warn.py:116
 msgid "I cannot warn an admin."
 msgstr "我不能警告管理员。"
 
-#: sophie_bot/modules/warns/handlers/warn.py:169
+#: sophie_bot/modules/warns/handlers/warn.py:176
 msgid "Delete warn"
 msgstr "删除警告"
 
@@ -6234,36 +6961,36 @@ msgstr "请输入警告原因。"
 msgid "Warn"
 msgstr "警告"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:55
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:56
 msgid "Warn user with the reason"
 msgstr "用原因警告用户"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:57
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:58
 msgid "Warns user with no reason"
 msgstr "在没有原因的情况下警告用户"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:62
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:63
 msgid "Change warn reason"
 msgstr "更改警告原因"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:90
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:95
 msgid "No reason"
 msgstr "没有原因"
 
-#: sophie_bot/modules/warns/magic_handlers/modern_action.py:119
+#: sophie_bot/modules/warns/magic_handlers/modern_action.py:124
 #, python-brace-format
 msgid "User {user} was automatically warned based on a filter action"
 msgstr "用户 {user} 已根据过滤器操作自动被警告"
 
-#: sophie_bot/modules/warns/utils.py:61 sophie_bot/modules/warns/utils.py:167
+#: sophie_bot/modules/warns/utils.py:30 sophie_bot/modules/warns/utils.py:137
 msgid "banned"
 msgstr "已封禁"
 
-#: sophie_bot/modules/warns/utils.py:66
+#: sophie_bot/modules/warns/utils.py:35
 msgid "kicked"
 msgstr "已踢出"
 
-#: sophie_bot/modules/warns/utils.py:71
+#: sophie_bot/modules/warns/utils.py:40
 msgid "muted"
 msgstr "已禁言"
 
@@ -6284,13 +7011,13 @@ msgstr "欢迎安全包含一系列工具，可以帮助过滤试图加入您群
 msgid "Captcha expired. Please try again."
 msgstr "验证码已过期。请重试。"
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:84
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:51
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:104
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:52
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr "完成 '{emoji_name}' 表情以完成验证码并参与 {group_name}。"
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:92
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:112
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ 不正确的解决方案。请重试。"
 
@@ -6318,7 +7045,7 @@ msgstr "欢迎静音（自动新用户媒体限制）"
 msgid "? Action time"
 msgstr "? 操作时间"
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:55
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:46
 #, python-brace-format
 msgid "Enabled, set to {time}"
 msgstr "已启用，设置为 {time}"
@@ -6330,6 +7057,10 @@ msgstr "显示/更改欢迎验证码的状态。"
 #: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:13
 msgid "Welcome Captcha"
 msgstr "欢迎验证码"
+
+#: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:84
+msgid "This group no longer exists or has been removed."
+msgstr "该群组已不存在或已被移除。"
 
 #: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:94
 msgid "It seems like you do not have to pass the welcome security authentication"
@@ -6351,44 +7082,44 @@ msgstr "您在此聊天中被禁止，因此无法通过身份验证！"
 msgid "You are banned in the federation, so you cannot pass the authentication!"
 msgstr "您在联盟中被禁止，因此无法通过身份验证！"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:25
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:22
 msgid "Shows Welcome Security settings"
 msgstr "显示欢迎安全设置"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:40
 msgid "Captcha"
 msgstr "验证码"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:43
 #, python-brace-format
 msgid "Enabled, expires in {time}"
 msgstr "已启用，过期于 {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:61
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
 msgid "Media restriction"
 msgstr "媒体限制"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:64
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:59
 #, python-brace-format
 msgid "Enabled, on {time}"
 msgstr "已启用，在 {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:77
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
 #, python-brace-format
 msgid "Use {cmd} to control Welcome Captcha"
 msgstr "使用 {cmd} 控制欢迎验证码"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:78
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
 #, python-brace-format
 msgid "Use {cmd} to control Media restriction"
 msgstr "使用 {cmd} 控制媒体限制"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:83
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:75
 msgid "Welcome Security message"
 msgstr "欢迎安全消息"
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_done.py:31
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:43
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:45
 msgid "You're all set, and can now participate in the conversation"
 msgstr "您已准备就绪，现在可以参与对话"
 
@@ -6642,279 +7373,298 @@ msgstr "包含骰子投掷的消息"
 msgid "Invalid {action} duration, please try again."
 msgstr "无效的 {action} 时长，请再试一次。"
 
-#: exceptions.py:33
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:33
 msgid "Examples"
 msgstr "示例"
 
-#: exceptions.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:61
 #, python-brace-format
 msgid "The argument {description} has an invalid type"
 msgstr "参数 {description} 的类型无效"
 
-#: exceptions.py:65 exceptions.py:112
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:65
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:112
 msgid "Needed type"
 msgstr "所需类型"
 
-#: exceptions.py:108
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:108
 #, python-brace-format
 msgid "The required argument {description} wasn't provided!"
 msgstr "必需参数 {description} 未提供！"
 
-#: exceptions.py:156
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:156
 #, python-brace-format
 msgid "The argument {description} has an invalid formatting!"
 msgstr "参数 {description} 的格式无效！"
 
-#: types/keyvalue.py:31
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:31
 #, python-brace-format
 msgid "Key-value of {}"
 msgstr "键值 {}"
 
-#: types/keyvalue.py:32
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:32
 #, python-brace-format
 msgid "Key-values of {}"
 msgstr "键值 {}"
 
-#: types/keyvalue.py:67
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:67
 #, python-brace-format
 msgid "The optional argument {name} must contain a value!"
 msgstr "可选参数 {name} 必须包含一个值！"
 
-#: types/keyvalue.py:92 types/keyvalue.py:93
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:92
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:93
 msgid "Key-values"
 msgstr "键值对"
 
-#: types/lists.py:46 types/lists.py:59
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:46
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:59
 #, python-brace-format
 msgid "List of {}"
 msgstr "列表 {}"
 
-#: types/lists.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:47
 #, python-brace-format
 msgid "Lists of {}"
 msgstr "列表 {}"
 
-#: types/lists.py:65
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:65
 #, python-brace-format
 msgid "The starting character {} of list wasn't found!"
 msgstr "未找到列表的起始字符 {}！"
 
-#: types/lists.py:73
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:73
 #, python-brace-format
 msgid "The ending character {} of list wasn't found!"
 msgstr "未找到列表的结束字符 {}！"
 
-#: types/lists.py:77
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:77
 msgid "The list is empty!"
 msgstr "列表为空！"
 
-#: types/lists.py:97
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:97
 msgid "➡️ The start prefix text of the lists cannot have the overlapping formatting"
 msgstr "➡️ 列表的起始前缀文本不能有重叠的格式"
 
-#: types/lists.py:153 types/lists.py:171
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:153
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:171
 #, python-brace-format
 msgid "Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr "参数 '{arg_text}' 已被解析，但其后有未知文本！"
 
-#: types/lists.py:157 types/lists.py:175
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:157
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:175
 msgid "Please ensure you correctly divided all of arguments."
 msgstr "请确保您正确划分了所有参数。"
 
-#: types/logic.py:20
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:20
 #, python-brace-format
 msgid "Optional {}"
 msgstr "可选的 {}"
 
-#: types/logic.py:21
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:21
 #, python-brace-format
 msgid "Optionals {}"
 msgstr "可选项 {}"
 
-#: types/logic.py:44 types/logic.py:45 types/one_of.py:25 types/one_of.py:28
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:44
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:45
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:25
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:28
 msgid " or "
 msgstr " 或 "
 
-#: types/logic.py:105
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:105
 msgid ", and "
 msgstr "，和 "
 
-#: types/logic.py:121
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:121
 msgid "Example syntax"
 msgstr "示例语法"
 
-#: types/one_of.py:24 types/one_of.py:27
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:24
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:27
 #, python-brace-format
 msgid "One of: {}"
 msgstr "其中之一：{}"
 
-#: types/oneword.py:13
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Word (string with no spaces)"
 msgstr "单词（不含空格的字符串）"
 
-#: types/oneword.py:13
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Words (strings with no spaces)"
 msgstr "单词（不含空格的字符串）"
 
-#: types/oneword.py:33
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integer (number)"
 msgstr "整数（数字）"
 
-#: types/oneword.py:33
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integers (numbers)"
 msgstr "整数（数字）"
 
-#: types/oneword.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Boolean (Yes / No value)"
 msgstr "布尔值（是 / 否）"
 
-#: types/oneword.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Booleans (Yes / No values)"
 msgstr "布尔值（是 / 否）"
 
-#: types/oneword.py:54
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:54
 msgid "True (can means Enabled or Yes)"
 msgstr "True（可表示启用或是）"
 
-#: types/oneword.py:55
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:55
 msgid "False (can means Disabled or No)"
 msgstr "False（可表示禁用或否）"
 
-#: types/text.py:18
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text.py:18
 msgid "Text"
 msgstr "文本"
 
-#: types/text_rules.py:27
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:27
 #, python-brace-format
 msgid "➡️ The Argument should start with {}!"
 msgstr "➡️ 参数应该以 {} 开头！"
 
-#: types/text_rules.py:31
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:31
 #, python-brace-format
 msgid "⬅️️ The Argument should end with {}!"
 msgstr "⬅️️ 参数应该以 {} 结束！"
 
-#: types/text_rules.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:49
 msgid "➡️ The start text cannot have the overlapping formatting"
 msgstr "➡️ 起始文本不能有重叠的格式"
 
-#: types/text_rules.py:75
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:75
 #, python-brace-format
 msgid "➡️ Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr "➡️ 参数 '{arg_text}' 已被解析，但其后有未知文本！"
 
-#: types/text_rules.py:91 types/text_rules.py:95
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:91
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:95
 #, python-brace-format
 msgid "{} surrounded by {} and {}"
 msgstr "{} 被 {} 和 {} 包围"
 
-#: types/text_rules.py:107
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:107
 #, python-brace-format
 msgid "Surrounded by {} and {}"
 msgstr "被 {} 和 {} 包围"
 
-#: types/time_arg.py:24
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "2 days"
 msgstr "2 天"
 
-#: types/time_arg.py:25
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "3 weeks and 2 days"
 msgstr "3 周和 2 天"
 
-#. NOTE: Please use the first letter of the "years" in your language
-#: types/time_arg.py:41
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:46
 msgid "y"
 msgstr "y"
 
-#. NOTE: Please use the first letter of the "weeks" in your language
-#: types/time_arg.py:44
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:48
 msgid "w"
 msgstr "w"
 
-#. NOTE: Please use the first letter of the "days" in your language
-#: types/time_arg.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:50
 msgid "d"
 msgstr "d"
 
-#. NOTE: Please use the first letter of the "hours" in your language
-#: types/time_arg.py:50
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:52
 msgid "h"
 msgstr "h"
 
-#. NOTE: Please use the first letter of the "minutes" in your language
-#: types/time_arg.py:53
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:54
 msgid "m"
 msgstr "m"
 
-#: types/time_arg.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:56
+msgid "s"
+msgstr "s"
+
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action time"
 msgstr "操作时间"
 
-#: types/time_arg.py:61
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action times"
 msgstr "操作时间"
 
-#: types/user.py:17
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:68
+#, python-brace-format
+msgid "The duration is too small. It must be at least {minimum}."
+msgstr "持续时间过短。至少应为 {minimum}。"
+
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:71
+#, python-brace-format
+msgid "The duration is too large. It must be at most {maximum}."
+msgstr "持续时间过长。最多为 {maximum}。"
+
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User ID (Numeric)"
-msgstr "User ID (Numeric)"
+msgstr "用户 ID（数字）"
 
-#: types/user.py:17
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User IDs (Numeric)"
-msgstr "User IDs (Numeric)"
+msgstr "用户 ID（数字）"
 
-#: types/user.py:37
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:37
 msgid "Username (starts with @)"
-msgstr "Username (starts with @)"
+msgstr "用户名（以 @ 开头）"
 
-#: types/user.py:47
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:47
 msgid "Should start with a prefix"
 msgstr "应该以前缀开头"
 
-#: types/user.py:49
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:49
 msgid "Username is too short"
 msgstr "用户名太短"
 
-#: types/user.py:51
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:51
 msgid "Username is too long"
 msgstr "用户名太长"
 
-#: types/user.py:67
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mention (a link to user)"
-msgstr "User mention (a link to user)"
+msgstr "用户提及（链接到用户）"
 
-#: types/user.py:67
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mentions (links to users)"
-msgstr "User mentions (links to users)"
+msgstr "用户提及（链接到用户）"
 
-#: types/user.py:99
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:99
 msgid "Should start with mention!"
 msgstr "应该以提及开始！"
 
-#: types/user.py:107
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:107
 msgid "Unexpected error while trying to get the user! Please report this in the support chat!"
 msgstr "尝试获取用户时出现意外错误！请在支持聊天中报告此事！"
 
-#: types/user.py:108
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:108
 msgid "Could not find the user mention"
 msgstr "未找到用户提及"
 
-#: types/user.py:120
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:120
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
-msgstr "用户：用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）"
+msgstr "用户：'用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）'"
 
-#: types/user.py:122
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:122
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
-msgstr "用户：用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）"
+msgstr "用户：'用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）'"
 
-#: types/user.py:128
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:128
 msgid "User ID"
 msgstr "用户 ID"
 
-#: types/user.py:129
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:129
 msgid "Username"
 msgstr "用户名"
 
-#: types/user.py:134
+#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:134
 msgid "A link to user, usually creates by mentioning a user without username."
-msgstr "用户的链接，通常通过提及用户而不带用户名来创建。"
+msgstr "指向用户的链接，通常通过在没有用户名的情况下提及用户创建。"
 
