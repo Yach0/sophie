@@ -44,6 +44,35 @@ def test_forwarded_payload_stays_parsable_by_the_receiving_instance() -> None:
     assert Update.model_validate(payload) == update
 
 
+def test_forwarded_payload_drops_bot_default_sentinels() -> None:
+    update = Update.model_validate(
+        {
+            "update_id": 2,
+            "message": {
+                "message_id": 1,
+                "date": 1784942750,
+                "chat": {"id": 483808054, "type": "private"},
+                "text": "https://example.com",
+                "link_preview_options": {"url": "https://example.com"},
+            },
+        }
+    )
+
+    payload = json.loads(BetaMiddleware().get_data(update))
+
+    # Unset LinkPreviewOptions fields hold Default sentinels pydantic cannot serialize.
+    assert payload["message"]["link_preview_options"] == {
+        "is_disabled": None,
+        "url": "https://example.com",
+        "prefer_small_media": None,
+        "prefer_large_media": None,
+        "show_above_text": None,
+    }
+    forwarded = Update.model_validate(payload)
+    assert forwarded.message is not None
+    assert forwarded.message.text == "https://example.com"
+
+
 def test_forwarded_payload_keeps_dates_as_unix_timestamps() -> None:
     update = Update.model_validate(RICH_MESSAGE_UPDATE)
 
