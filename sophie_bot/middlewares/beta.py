@@ -1,24 +1,15 @@
+from collections.abc import Awaitable, Callable
 from random import randint
-from typing import override
+from typing import Any, override
 
+from aiogram import BaseMiddleware
+from aiogram.types import TelegramObject
 from aiohttp import ClientError, ClientSession
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import BetaModeModel, ChatModel, GlobalSettings
 from sophie_bot.db.models.beta import CurrentMode, PreferredMode
 from sophie_bot.utils.logger import log
-
-try:
-    import ujson as json
-except ImportError:
-    import json
-
-from collections.abc import Awaitable, Callable
-from datetime import datetime
-from typing import Any
-
-from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject
 
 
 class BetaMiddleware(BaseMiddleware):
@@ -80,23 +71,11 @@ class BetaMiddleware(BaseMiddleware):
 
         return new_mode == CurrentMode.beta
 
-    def get_data(self, update: TelegramObject):
-        raw_json = update.model_dump_json(by_alias=True, exclude_none=True, exclude_defaults=True, indent=1)
-        raw_data = json.loads(raw_json)
-
-        data = self.change_data_type(raw_data)
-
-        return json.dumps(data)
-
-    def change_data_type(self, data: dict) -> dict:
-        # Recursively convert all date fields to unix timestamps
-        for key, value in data.items():
-            if isinstance(value, dict):
-                data[key] = self.change_data_type(value)
-            elif isinstance(value, str) and "date" in key and "T" in value:
-                data[key] = datetime.fromisoformat(value).timestamp()
-
-        return data
+    def get_data(self, update: TelegramObject) -> str:
+        # Never exclude defaults: discriminator fields (such as rich block 'type') carry
+        # their tag as a field default, and dropping them makes the payload unparsable
+        # on the receiving instance.
+        return update.model_dump_json(by_alias=True, exclude_none=True)
 
     async def send_request(self, json_request: str, instance_url: str):
         try:
