@@ -20,6 +20,7 @@ PRODUCTION_SAFE: dict[str, Any] = {
     "api_jwt_secret": "a-real-generated-secret",
     "api_operator_token": "a-real-operator-token",
     "api_cors_origins": ["https://sophie.example"],
+    "owner_id": 483808054,
 }
 
 # The exact strings deploy/templates/*.env.j2 render, per service and role. A template change that invents
@@ -87,6 +88,33 @@ def test_production_rejects_wildcard_among_other_cors_origins() -> None:
         build_config(**PRODUCTION_SAFE | {"api_cors_origins": ["https://sophie.example", "*"]})
 
 
+def test_production_rejects_cors_origin_without_scheme() -> None:
+    """The real prod misconfiguration: a bare hostname never matches a browser's Origin header."""
+    with pytest.raises(ValidationError, match="api_cors_origins entries must include a scheme"):
+        build_config(**PRODUCTION_SAFE | {"api_cors_origins": ["sophie-app.orangefox.tech"]})
+
+
+def test_production_rejects_schemeless_cors_origin_among_valid_ones() -> None:
+    with pytest.raises(ValidationError, match="sophie-app.orangefox.tech"):
+        build_config(
+            **PRODUCTION_SAFE | {"api_cors_origins": ["https://sophie.example", "sophie-app.orangefox.tech"]}
+        )
+
+
+def test_production_accepts_http_and_https_cors_origins() -> None:
+    config = build_config(**PRODUCTION_SAFE | {"api_cors_origins": ["https://sophie.example", "http://localhost:5173"]})
+
+    assert config.api_cors_origins == ["https://sophie.example", "http://localhost:5173"]
+
+
+def test_production_rejects_unset_owner_id() -> None:
+    """Operator login mints its token from the owner, so an unset owner_id 500s at call time."""
+    unset_owner = {key: value for key, value in PRODUCTION_SAFE.items() if key != "owner_id"}
+
+    with pytest.raises(ValidationError, match="owner_id must be set in production"):
+        build_config(**unset_owner)
+
+
 def test_properly_configured_production_config_is_accepted() -> None:
     config = build_config(**PRODUCTION_SAFE)
 
@@ -121,6 +149,7 @@ def test_real_production_deploy_templates_boot(service: str) -> None:
             "api_jwt_secret": "a-real-generated-secret",
             "api_operator_token": "a-real-operator-token",
             "api_cors_origins": ["https://sophie.example"],
+            "owner_id": 483808054,
         }
 
     config = build_config(**overrides)

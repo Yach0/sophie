@@ -219,6 +219,17 @@ class Config(BaseSettings):
         if "*" in self.api_cors_origins:
             raise ValueError("api_cors_origins must not contain '*' in production")
 
+        # Browsers always send a scheme in Origin, so a bare hostname silently matches nothing
+        # and blocks every real request instead of failing at startup.
+        schemeless = [origin for origin in self.api_cors_origins if not origin.startswith(("http://", "https://"))]
+        if schemeless:
+            raise ValueError(f"api_cors_origins entries must include a scheme, got: {', '.join(schemeless)}")
+
+        # Operator login resolves the owner to mint its token, so an unset owner_id turns every
+        # operator login into a 500 that only shows up at call time.
+        if not self.owner_id:
+            raise ValueError("owner_id must be set in production")
+
         return self
 
     @field_validator("webhooks_allowed_networks")
