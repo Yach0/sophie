@@ -207,7 +207,9 @@ class ChatbotMessageStreamer:
 
         try:
             reply_markup = reply_kwargs.get("reply_markup")
-            kwargs: dict[str, Any] = {"reply_markup": reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None}
+            kwargs: dict[str, Any] = {
+                "reply_markup": reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None
+            }
             if self.mode == StreamMode.RICH_EDIT:
                 result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
                     chat_id=self.response_message.chat.id,
