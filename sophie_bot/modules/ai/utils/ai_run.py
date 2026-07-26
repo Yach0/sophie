@@ -2,11 +2,27 @@ from __future__ import annotations
 
 import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from contextlib import nullcontext
+from dataclasses import dataclass, field
 from typing import Any, Final, TypeVar, cast
 
 from pydantic import BaseModel
-from pydantic_ai import Agent, AgentStreamEvent, FunctionToolCallEvent, RunContext
+from pydantic_ai import (
+    Agent,
+    AgentRunResultEvent,
+    AgentStreamEvent,
+    FunctionToolCallEvent,
+    PartDeltaEvent,
+    PartEndEvent,
+    PartStartEvent,
+    RunContext,
+    TextPart,
+    TextPartDelta,
+    ThinkingPart,
+    ThinkingPartDelta,
+    capture_run_messages,
+)
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage, UsageLimits
@@ -36,6 +52,10 @@ ToolCallCallback = Callable[[str], Awaitable[None]]
 # Cheap, broadly-capable model used as a last resort when the primary model keeps failing with a
 # transient/provider error after its own retries are exhausted. Better a degraded answer than none.
 AI_FALLBACK_MODEL_NAME: Final = "mistralai/mistral-small-2603"
+
+# Rendering the accumulated text costs a full join, so callbacks are debounced rather than fired on
+# every delta. Matches the debounce the pydantic-ai `stream_text` helper applied before.
+_STREAM_DEBOUNCE_SECONDS: Final = 0.2
 
 
 def _resolve_fallback_model(primary_model: Model) -> Model | None:
@@ -97,6 +117,92 @@ class AIAgentResult[OutputT](BaseModel):
     retries: int | None = None
     message_history: list[ModelRequest | ModelResponse]
     usage: RunUsage
+    truncated: bool = False
+    """The run hit a usage limit and ``output`` is only what the model produced before that."""
+
+
+@dataclass(slots=True)
+class _PartAccumulator:
+    """Reassembles one kind of model output (text or thinking) from a run's event stream.
+
+    Part indices restart with every model response, so segments are tracked through the part
+    lifecycle instead of by index: ``end`` closes the in-flight segment with the authoritative
+    content pydantic-ai hands back, and ``start`` closes any segment that never got an end event.
+
+    Deltas go into a chunk list and closed segments into a running prefix, so rendering a growing
+    reply on every delta stays linear instead of re-joining everything each time.
+    """
+
+    prefix: str = ""
+    active: list[str] = field(default_factory=list)
+
+    @property
+    def empty(self) -> bool:
+        return not self.prefix and not any(self.active)
+
+    def start(self, content: str) -> None:
+        self._close()
+        self.active = [content] if content else []
+
+    def delta(self, content: str) -> None:
+        self.active.append(content)
+
+    def end(self, content: str) -> None:
+        self.active = [content] if content else []
+        self._close()
+
+    def render(self) -> str:
+        active = "".join(self.active)
+        if not self.prefix:
+            return active
+        return f"{self.prefix}\n\n{active}" if active else self.prefix
+
+    def _close(self) -> None:
+        segment = "".join(self.active)
+        self.active = []
+        if not segment:
+            return
+        self.prefix = f"{self.prefix}\n\n{segment}" if self.prefix else segment
+
+
+@dataclass(slots=True)
+class _StreamChannel:
+    """One accumulated output channel (answer text or reasoning) plus its debounced consumer."""
+
+    callback: TextStreamCallback | None
+    parts: _PartAccumulator = field(default_factory=_PartAccumulator)
+    last_emit: float = 0.0
+
+    async def emit(self) -> None:
+        if self.callback is None:
+            return
+        now = time.monotonic()
+        if now - self.last_emit < _STREAM_DEBOUNCE_SECONDS:
+            return
+        self.last_emit = now
+        await self.callback(self.parts.render())
+
+
+@dataclass(frozen=True, slots=True)
+class ChatbotStreamOptions:
+    """Chat-level switches for how a streamed chatbot run behaves.
+
+    ``continuation`` off restores the pre-continuation `Agent.run_stream` path, which cannot report
+    reasoning or partial output — the other two switches do nothing while it is off.
+    """
+
+    continuation: bool = True
+    partial_on_limit: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class _StreamOutcome:
+    output_text: str
+    usage: RunUsage
+    message_history: list[ModelRequest | ModelResponse]
+    first_token_seen: bool
+    chunk_count: int
+    truncated: bool = False
 
 
 def build_model_settings(
@@ -261,6 +367,178 @@ async def run_ai_structured[DepsT, OutputT](
     return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry)
 
 
+def _usage_from_messages(messages: Sequence[ModelRequest | ModelResponse]) -> RunUsage:
+    """Rebuild run usage from captured messages, for a run that raised before reporting its own."""
+    usage = RunUsage()
+    for message in messages:
+        if isinstance(message, ModelResponse):
+            usage.requests += 1
+            usage.incr(message.usage)
+    return usage
+
+
+def _tool_call_notifier(
+    on_tool_call: ToolCallCallback | None,
+    seen_tool_names: set[str],
+) -> ToolCallCallback:
+    """A tool-call callback that reports each tool name at most once per reply."""
+
+    async def notify(tool_name: str) -> None:
+        if on_tool_call is None or tool_name in seen_tool_names:
+            return
+        seen_tool_names.add(tool_name)
+        await on_tool_call(tool_name)
+
+    return notify
+
+
+async def _stream_via_events[DepsT](
+    agent: Agent[DepsT, str],
+    run_kwargs: dict[str, Any],
+    effective_model: Model,
+    on_text_stream: TextStreamCallback,
+    on_reasoning_stream: TextStreamCallback | None,
+    on_tool_call: ToolCallCallback | None,
+    seen_tool_names: set[str],
+    partial_on_limit: bool,
+) -> _StreamOutcome:
+    """Stream a run over the agent's full event stream.
+
+    ``Agent.run_stream`` ends the agent graph at the first text token, so a model that narrates
+    before acting has its narration promoted to the final answer and its tool calls discarded.
+    ``run_stream_events`` wraps ``Agent.run`` instead, so the tool-calling loop runs to completion.
+    Text from every round is concatenated, because the run result only carries the last round's.
+    """
+    text = _StreamChannel(on_text_stream)
+    reasoning = _StreamChannel(on_reasoning_stream)
+    notify_tool_call = _tool_call_notifier(on_tool_call, seen_tool_names)
+    stream_start = time.perf_counter()
+    first_token_seen = False
+    chunk_count = 0
+    output_text = ""
+    usage = RunUsage()
+    result_message_history: list[ModelRequest | ModelResponse] = []
+
+    def note_first_token() -> None:
+        nonlocal first_token_seen
+        if first_token_seen or text.parts.empty:
+            return
+        first_token_seen = True
+        track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
+
+    # `partial_on_limit` is the only consumer, and capturing retains a second reference to the whole
+    # message list for the length of the run, so only pay for it when it can be read.
+    capture = capture_run_messages() if partial_on_limit else nullcontext([])
+
+    with capture as captured_messages:
+        try:
+            async with agent.run_stream_events(**run_kwargs) as events:
+                async for event in events:
+                    match event:
+                        case PartStartEvent(part=TextPart(content=content)):
+                            text.parts.start(content)
+                            note_first_token()
+                            await text.emit()
+                        case PartStartEvent(part=ThinkingPart(content=content)):
+                            reasoning.parts.start(content)
+                            await reasoning.emit()
+                        case PartDeltaEvent(delta=TextPartDelta(content_delta=content_delta)):
+                            chunk_count += 1
+                            text.parts.delta(content_delta or "")
+                            note_first_token()
+                            await text.emit()
+                        case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=content_delta)):
+                            reasoning.parts.delta(content_delta or "")
+                            await reasoning.emit()
+                        case PartEndEvent(part=TextPart(content=content)):
+                            text.parts.end(content)
+                            note_first_token()
+                            await text.emit()
+                        case PartEndEvent(part=ThinkingPart(content=content)):
+                            reasoning.parts.end(content)
+                            await reasoning.emit()
+                        case FunctionToolCallEvent():
+                            await notify_tool_call(event.part.tool_name)
+                        case AgentRunResultEvent():
+                            output_text = text.parts.render()
+                            usage = event.result.usage
+                            result_message_history = cast(
+                                list[ModelRequest | ModelResponse], event.result.all_messages()
+                            )
+        except UsageLimitExceeded:
+            if not partial_on_limit:
+                raise
+            captured = list(captured_messages)
+            return _StreamOutcome(
+                output_text=text.parts.render(),
+                usage=_usage_from_messages(captured),
+                message_history=captured,
+                first_token_seen=first_token_seen,
+                chunk_count=chunk_count,
+                truncated=True,
+            )
+
+    if not result_message_history:
+        raise UnexpectedModelBehavior("Agent event stream ended without a run result")
+
+    return _StreamOutcome(
+        output_text=output_text,
+        usage=usage,
+        message_history=result_message_history,
+        first_token_seen=first_token_seen,
+        chunk_count=chunk_count,
+    )
+
+
+async def _stream_via_run_stream[DepsT](
+    agent: Agent[DepsT, str],
+    run_kwargs: dict[str, Any],
+    effective_model: Model,
+    on_text_stream: TextStreamCallback,
+    on_tool_call: ToolCallCallback | None,
+    seen_tool_names: set[str],
+) -> _StreamOutcome:
+    """Rollback path for ``ai_chatbot_stream_continuation``: stream a single model response.
+
+    This is the pre-continuation behaviour and carries its bug — the agent loop stops at the first
+    text token, so tool calls made after a narration preamble never get a follow-up request.
+    """
+    stream_start = time.perf_counter()
+    first_token_seen = False
+    chunk_count = 0
+
+    if on_tool_call is not None:
+        notify_tool_call = _tool_call_notifier(on_tool_call, seen_tool_names)
+
+        async def event_stream_handler(
+            _ctx: RunContext[object],
+            events: AsyncIterable[AgentStreamEvent],
+        ) -> None:
+            async for event in events:
+                if isinstance(event, FunctionToolCallEvent):
+                    await notify_tool_call(event.part.tool_name)
+
+        run_kwargs["event_stream_handler"] = event_stream_handler
+
+    async with agent.run_stream(**run_kwargs) as result_stream:
+        accumulated_text = ""
+        async for text_delta in result_stream.stream_text(delta=True, debounce_by=_STREAM_DEBOUNCE_SECONDS):
+            if text_delta and not first_token_seen:
+                first_token_seen = True
+                track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
+            chunk_count += 1
+            accumulated_text += text_delta
+            await on_text_stream(accumulated_text)
+
+        return _StreamOutcome(
+            output_text=await result_stream.get_output(),
+            usage=result_stream.usage,
+            message_history=cast(list[ModelRequest | ModelResponse], result_stream.all_messages()),
+            first_token_seen=first_token_seen,
+            chunk_count=chunk_count,
+        )
+
+
 async def run_ai_stream[DepsT](
     agent: Agent[DepsT, str],
     user_prompt: str | Sequence[UserContent],
@@ -271,16 +549,17 @@ async def run_ai_stream[DepsT](
     request_options: AIRequestOptions | None = None,
     model_settings: Mapping[str, object] | None = None,
     on_tool_call: ToolCallCallback | None = None,
+    on_reasoning_stream: TextStreamCallback | None = None,
     on_retry: AIRetryCallback | None = None,
+    stream_options: ChatbotStreamOptions | None = None,
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[str]:
+    options = stream_options or ChatbotStreamOptions()
     metrics_model = _get_agent_model(agent)
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
-    async def run_stream_once(
-        active_model: Model | None,
-    ) -> tuple[str, RunUsage, list[ModelRequest | ModelResponse], bool, int]:
+    async def run_stream_once(active_model: Model | None) -> _StreamOutcome:
         run_stream_kwargs = _build_agent_run_kwargs(
             user_prompt, message_history, deps, usage_limits, request_options, model_settings
         )
@@ -288,75 +567,52 @@ async def run_ai_stream[DepsT](
         if active_model is not None:
             run_stream_kwargs["model"] = active_model
         effective_model = active_model or metrics_model
-        stream_start = time.perf_counter()
-        first_token_seen = False
-        stream_chunk_count = 0
-        if on_tool_call is not None:
 
-            async def event_stream_handler(
-                _ctx: RunContext[object],
-                events: AsyncIterable[AgentStreamEvent],
-            ) -> None:
-                async for event in events:
-                    if not isinstance(event, FunctionToolCallEvent):
-                        continue
+        if not options.continuation:
+            return await _stream_via_run_stream(
+                agent,
+                run_stream_kwargs,
+                effective_model,
+                on_text_stream,
+                on_tool_call,
+                seen_tool_names,
+            )
 
-                    tool_name = event.part.tool_name
-                    if tool_name in seen_tool_names:
-                        continue
-
-                    seen_tool_names.add(tool_name)
-                    await on_tool_call(tool_name)
-
-            run_stream_kwargs["event_stream_handler"] = event_stream_handler
-
-        async with agent.run_stream(**run_stream_kwargs) as result_stream:
-            accumulated_text = ""
-            async for text_delta in result_stream.stream_text(delta=True, debounce_by=0.2):
-                if text_delta and not first_token_seen:
-                    first_token_seen = True
-                    track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
-                stream_chunk_count += 1
-                accumulated_text += text_delta
-                await on_text_stream(accumulated_text)
-
-            output_text = await result_stream.get_output()
-            usage = result_stream.usage
-            result_message_history = cast(list[ModelRequest | ModelResponse], result_stream.all_messages())
-            return output_text, usage, result_message_history, first_token_seen, stream_chunk_count
+        return await _stream_via_events(
+            agent,
+            run_stream_kwargs,
+            effective_model,
+            on_text_stream,
+            on_reasoning_stream,
+            on_tool_call,
+            seen_tool_names,
+            options.partial_on_limit,
+        )
 
     try:
-        (
-            (
-                output_text,
-                usage,
-                result_message_history,
-                first_token_seen,
-                stream_chunk_count,
-            ),
-            served_model,
-        ) = await _run_with_model_fallback(run_stream_once, metrics_model, on_retry=on_retry)
+        outcome, served_model = await _run_with_model_fallback(run_stream_once, metrics_model, on_retry=on_retry)
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
-    retries = count_retries_from_messages(result_message_history)
+    retries = count_retries_from_messages(outcome.message_history)
     track_ai_agent_result(
         served_model,
-        usage,
-        result_message_history,
-        output_length=len(output_text),
+        outcome.usage,
+        outcome.message_history,
+        output_length=len(outcome.output_text),
         retries=retries,
     )
     track_ai_stream_result(
         served_model,
-        chunks=stream_chunk_count,
-        text_length=len(output_text),
-        first_token_seen=first_token_seen,
+        chunks=outcome.chunk_count,
+        text_length=len(outcome.output_text),
+        first_token_seen=outcome.first_token_seen,
     )
 
     return AIAgentResult(
-        output=output_text,
+        output=outcome.output_text,
         retries=retries,
-        message_history=result_message_history,
-        usage=usage,
+        message_history=outcome.message_history,
+        usage=outcome.usage,
+        truncated=outcome.truncated,
     )

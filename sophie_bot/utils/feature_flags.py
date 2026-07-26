@@ -39,6 +39,9 @@ FeatureType = Literal[
     "ai_chatbot_random_emoji",
     "ai_chatbot_streaming",
     "ai_chatbot_streaming_backoff_seconds",
+    "ai_chatbot_stream_continuation",
+    "ai_chatbot_stream_reasoning",
+    "ai_chatbot_partial_on_limit",
     "ai_chatbot_request_limit",
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
@@ -262,6 +265,14 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_random_emoji": _feature(False),
     "ai_chatbot_streaming": _feature(False),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
+    # Off restores `Agent.run_stream`, which ends the agent loop at the first text token and so
+    # drops any tool call the model makes after narrating. Rollback switch only: it also disables
+    # `ai_chatbot_stream_reasoning` and `ai_chatbot_partial_on_limit`, which the old path cannot
+    # support. Delete it, `_stream_via_run_stream`, and its test once the new path has held in
+    # production for a release.
+    "ai_chatbot_stream_continuation": _feature(True),
+    "ai_chatbot_stream_reasoning": _feature(False),
+    "ai_chatbot_partial_on_limit": _feature(False),
     "ai_chatbot_request_limit": _feature(4),
     "ai_chatbot_tool_calls_limit": _feature(6),
     "ai_chatbot_response_tokens_limit": _feature(2048),

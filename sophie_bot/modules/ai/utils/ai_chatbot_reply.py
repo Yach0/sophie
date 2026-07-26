@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -17,7 +18,7 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions, run_ai_stream, run_ai_text
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -30,6 +31,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     TELEGRAM_MESSAGE_SAFE_LIMIT,
     build_chatbot_header,
     build_reply_doc,
+    build_truncated_note,
     truncate_output,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
@@ -157,10 +159,12 @@ async def _generate_chatbot_result(
     service_tier: str | None = None,
     on_text_stream: TextStreamCallback | None = None,
     on_tool_call: ToolCallCallback | None = None,
+    on_reasoning_stream: TextStreamCallback | None = None,
     on_research_progress: ResearchProgressCallback | None = None,
     on_retry: AIRetryCallback | None = None,
     user_text: str | None = None,
     mode: AIMode = AIMode.support,
+    stream_options: ChatbotStreamOptions | None = None,
 ) -> AIAgentResult[str]:
     run_config = await build_chatbot_run_config(
         connection.tid,
@@ -184,7 +188,9 @@ async def _generate_chatbot_result(
             usage_limits=run_config.usage_limits,
             request_options=run_config.request_options,
             on_tool_call=on_tool_call,
+            on_reasoning_stream=on_reasoning_stream,
             on_retry=on_retry,
+            stream_options=stream_options,
         )
 
     return await run_ai_text(
@@ -259,11 +265,15 @@ async def ai_chatbot_reply(
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.chatbot, connection.db_model.iid, message.chat.id, mode
         )
-        on_tool_call = (
-            message_streamer.update_thinking_for_tool
-            if message_streamer and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
-            else None
+        tool_thinking, reasoning_enabled, continuation, partial_on_limit = await asyncio.gather(
+            is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id),
+            is_enabled("ai_chatbot_stream_reasoning", chat_tid=message.chat.id),
+            is_enabled("ai_chatbot_stream_continuation", chat_tid=message.chat.id),
+            is_enabled("ai_chatbot_partial_on_limit", chat_tid=message.chat.id),
         )
+        on_tool_call = message_streamer.update_thinking_for_tool if message_streamer and tool_thinking else None
+        on_reasoning_stream = message_streamer.stream_reasoning if message_streamer and reasoning_enabled else None
+        stream_options = ChatbotStreamOptions(continuation=continuation, partial_on_limit=partial_on_limit)
         try:
             result = await _generate_chatbot_result(
                 message,
@@ -276,10 +286,12 @@ async def ai_chatbot_reply(
                 if message_streamer and message_streamer.mode != StreamMode.THINKING_ONLY
                 else None,
                 on_tool_call=on_tool_call,
+                on_reasoning_stream=on_reasoning_stream,
                 on_research_progress=message_streamer.update_research_progress if message_streamer else None,
                 on_retry=message_streamer.update_retrying if message_streamer else None,
                 user_text=user_text,
                 mode=mode,
+                stream_options=stream_options,
             )
         except AIRequestFailed as err:
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
@@ -302,6 +314,10 @@ async def ai_chatbot_reply(
             explicit_debug_mode,
             chat_tid=message.chat.id,
         )
+        # Appended to the doc rather than to the text, so the length-fitting loop above cannot eat
+        # it — a truncated reply is exactly the case where the loop is shrinking hardest.
+        if result.truncated:
+            doc += build_truncated_note()
         if await should_offer_help_mode(message, mode, result.message_history):
             doc += build_help_mode_tip()
             # A private AI session already carries its own reply keyboard, and a message can only

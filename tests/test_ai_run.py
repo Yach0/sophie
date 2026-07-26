@@ -1,18 +1,33 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterable
+from collections.abc import AsyncGenerator, AsyncIterable, Iterator
 from contextlib import asynccontextmanager
 from typing import Any, cast
 
+import pytest
 from pydantic import BaseModel
-from pydantic_ai import Agent, FunctionToolCallEvent
+from pydantic_ai import (
+    Agent,
+    AgentRunResultEvent,
+    FunctionToolCallEvent,
+    PartDeltaEvent,
+    PartEndEvent,
+    PartStartEvent,
+    TextPart,
+    TextPartDelta,
+    ThinkingPart,
+    ThinkingPartDelta,
+)
+from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
 from sophie_bot.modules.ai.utils import ai_run
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
+    ChatbotStreamOptions,
     build_model_settings,
     run_ai_stream,
     run_ai_structured,
@@ -22,6 +37,65 @@ from sophie_bot.modules.ai.utils.ai_run import (
 
 class StructuredOutput(BaseModel):
     value: str
+
+
+@pytest.fixture
+def no_stream_debounce(monkeypatch: Any) -> Iterator[None]:
+    """Emit every accumulated update, so assertions see the full callback sequence."""
+    monkeypatch.setattr(ai_run, "_STREAM_DEBOUNCE_SECONDS", 0.0)
+    yield
+
+
+def _part_round(part_cls: Any, delta_cls: Any, chunks: tuple[str, ...]) -> list[Any]:
+    """Events for one model response that streams a single part of the given kind."""
+    return [
+        PartStartEvent(index=0, part=part_cls(content="")),
+        *(PartDeltaEvent(index=0, delta=delta_cls(content_delta=chunk)) for chunk in chunks),
+        PartEndEvent(index=0, part=part_cls(content="".join(chunks))),
+    ]
+
+
+def text_round(*chunks: str) -> list[Any]:
+    return _part_round(TextPart, TextPartDelta, chunks)
+
+
+def thinking_round(*chunks: str) -> list[Any]:
+    return _part_round(ThinkingPart, ThinkingPartDelta, chunks)
+
+
+def tool_call(tool_name: str) -> FunctionToolCallEvent:
+    return FunctionToolCallEvent(part=ToolCallPart(tool_name=tool_name, args={}))
+
+
+class FakeRunResult:
+    usage = RunUsage(input_tokens=1, output_tokens=2, requests=1)
+
+    def __init__(self, output: str) -> None:
+        self.output = output
+
+    def all_messages(self) -> list[ModelRequest | ModelResponse]:
+        return [ModelResponse(parts=[TextPart(content=self.output)])]
+
+
+class FakeEventAgent:
+    """Replays a scripted event stream through ``run_stream_events``."""
+
+    def __init__(self, events: list[Any], final_output: str, raises: Exception | None = None) -> None:
+        self.model = TestModel()
+        self.events = events
+        self.final_output = final_output
+        self.raises = raises
+
+    @asynccontextmanager
+    async def run_stream_events(self, **_kwargs: Any) -> AsyncGenerator[AsyncIterable[Any]]:
+        async def stream() -> AsyncIterable[Any]:
+            for event in self.events:
+                yield event
+            if self.raises is not None:
+                raise self.raises
+            yield AgentRunResultEvent(cast(Any, FakeRunResult(self.final_output)))
+
+        yield stream()
 
 
 class FakeStreamResult:
@@ -56,7 +130,7 @@ class FakeStreamingAgent:
 
 async def _tool_events(*tool_names: str) -> AsyncIterable[FunctionToolCallEvent]:
     for tool_name in tool_names:
-        yield FunctionToolCallEvent(part=ToolCallPart(tool_name=tool_name, args={}))
+        yield tool_call(tool_name)
 
 
 def test_build_model_settings_injects_openai_extra_body() -> None:
@@ -96,7 +170,7 @@ async def test_run_ai_structured_wraps_typed_output() -> None:
     assert result.usage.total_tokens
 
 
-async def test_run_ai_stream_sends_cumulative_text_and_deduplicates_tools() -> None:
+async def test_run_ai_stream_legacy_path_sends_cumulative_text_and_deduplicates_tools() -> None:
     streamed_text: list[str] = []
     tool_calls: list[str] = []
 
@@ -111,11 +185,119 @@ async def test_run_ai_stream_sends_cumulative_text_and_deduplicates_tools() -> N
         user_prompt="Say hello",
         on_text_stream=on_text_stream,
         on_tool_call=on_tool_call,
+        stream_options=ChatbotStreamOptions(continuation=False),
     )
 
     assert streamed_text == ["hel", "hello"]
     assert tool_calls == ["search", "notes"]
     assert result.output == "hello"
+
+
+async def test_run_ai_stream_concatenates_text_from_every_round(no_stream_debounce: None) -> None:
+    """A model that narrates, calls a tool, then answers must keep both rounds of text.
+
+    `Agent.run_stream` ended the run at the narration and dropped the answer; this is the
+    regression guard for that.
+    """
+    streamed_text: list[str] = []
+    tool_calls: list[str] = []
+
+    async def on_text_stream(text: str) -> None:
+        streamed_text.append(text)
+
+    async def on_tool_call(tool_name: str) -> None:
+        tool_calls.append(tool_name)
+
+    agent = FakeEventAgent(
+        events=[
+            *text_round("Let me check ", "the docs."),
+            tool_call("sophie_help"),
+            tool_call("sophie_help"),
+            *text_round("Antiflood ", "works like this."),
+        ],
+        final_output="Antiflood works like this.",
+    )
+
+    result = await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="How does antiflood work?",
+        on_text_stream=on_text_stream,
+        on_tool_call=on_tool_call,
+    )
+
+    assert result.output == "Let me check the docs.\n\nAntiflood works like this."
+    assert tool_calls == ["sophie_help"]
+    # Cumulative, never a bare delta, and the second round appends to the first.
+    assert streamed_text[-1] == result.output
+    assert streamed_text[1] == "Let me check "
+    assert "Let me check the docs." in streamed_text
+
+
+async def test_run_ai_stream_routes_thinking_away_from_the_answer(no_stream_debounce: None) -> None:
+    streamed_text: list[str] = []
+    streamed_reasoning: list[str] = []
+
+    async def on_text_stream(text: str) -> None:
+        streamed_text.append(text)
+
+    async def on_reasoning_stream(text: str) -> None:
+        streamed_reasoning.append(text)
+
+    agent = FakeEventAgent(
+        events=[*thinking_round("The user ", "wants antiflood."), *text_round("Antiflood works.")],
+        final_output="Antiflood works.",
+    )
+
+    result = await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="How does antiflood work?",
+        on_text_stream=on_text_stream,
+        on_reasoning_stream=on_reasoning_stream,
+    )
+
+    assert result.output == "Antiflood works."
+    assert streamed_reasoning[-1] == "The user wants antiflood."
+    assert all("wants antiflood" not in text for text in streamed_text)
+
+
+async def test_run_ai_stream_returns_partial_text_when_usage_limit_is_hit(no_stream_debounce: None) -> None:
+    agent = FakeEventAgent(
+        events=text_round("Partial answer"),
+        final_output="",
+        raises=UsageLimitExceeded("request limit exceeded"),
+    )
+
+    async def on_text_stream(_text: str) -> None:
+        return None
+
+    result = await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="How does antiflood work?",
+        on_text_stream=on_text_stream,
+        stream_options=ChatbotStreamOptions(partial_on_limit=True),
+    )
+
+    assert result.truncated is True
+    assert result.output == "Partial answer"
+
+
+async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_stream_debounce: None) -> None:
+    agent = FakeEventAgent(
+        events=text_round("Partial answer"),
+        final_output="",
+        raises=UsageLimitExceeded("request limit exceeded"),
+    )
+
+    async def on_text_stream(_text: str) -> None:
+        return None
+
+    with pytest.raises(AIRequestFailed):
+        await run_ai_stream(
+            cast(Agent[Any, str], agent),
+            user_prompt="How does antiflood work?",
+            on_text_stream=on_text_stream,
+            stream_options=ChatbotStreamOptions(partial_on_limit=False),
+        )
 
 
 async def test_run_with_model_fallback_returns_primary_when_it_succeeds(monkeypatch: Any) -> None:

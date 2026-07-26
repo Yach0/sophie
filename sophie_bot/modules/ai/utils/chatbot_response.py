@@ -5,7 +5,7 @@ from typing import Any, cast
 from beanie import PydanticObjectId
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models import Model
-from stfu_tg import BlockQuote, Doc, HList, KeyValue, Section
+from stfu_tg import BlockQuote, Doc, HList, Italic, KeyValue, Section
 from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
@@ -13,6 +13,7 @@ from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_table_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
@@ -90,6 +91,11 @@ def truncate_output(header: Element, output_text: str) -> str:
     if length > 4000:
         return output_text[:4000] + "..."
     return output_text
+
+
+def build_truncated_note() -> Doc:
+    """Shown when the agent loop hit a usage limit and the answer stops mid-thought."""
+    return Doc(Italic(_("⚠️ Cut short — the reply hit its step limit.")))
 
 
 async def build_reply_doc(

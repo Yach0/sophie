@@ -34,6 +34,8 @@ _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
 # Telegram's message limit, less room for the header and the credit indicator.
 _MAX_STREAM_TEXT_LENGTH = 4096 - 128
+# Reasoning is shown inline in the one-line header, so only its tail fits.
+_MAX_REASONING_TAIL_LENGTH = 200
 _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
     "tavily_search": (
         _("Searching the web..."),
@@ -107,6 +109,16 @@ def _truncate_stream_text(output_text: str) -> str:
     return f"{output_text[: _MAX_STREAM_TEXT_LENGTH - 3]}..."
 
 
+def _reasoning_tail(reasoning_text: str) -> str:
+    # Collapse only the slice that can survive truncation: reasoning traces run to thousands of
+    # characters and this is called for every update.
+    tail = reasoning_text[-(_MAX_REASONING_TAIL_LENGTH * 4) :]
+    collapsed = " ".join(tail.split())
+    if len(collapsed) <= _MAX_REASONING_TAIL_LENGTH and len(tail) == len(reasoning_text):
+        return collapsed
+    return f"...{collapsed[-_MAX_REASONING_TAIL_LENGTH:]}"
+
+
 class ChatbotMessageStreamer:
     def __init__(
         self,
@@ -142,30 +154,30 @@ class ChatbotMessageStreamer:
                 )
 
     async def stream(self, text: str) -> None:
-        if self.mode == StreamMode.THINKING_ONLY or not text.strip():
-            return
-
-        now = time.monotonic()
-        if now - self.last_sent_at < self.throttle_seconds:
+        if self.mode == StreamMode.THINKING_ONLY or not text.strip() or self._throttled():
             return
 
         draft_text = _truncate_stream_text(text)
         if draft_text == self.last_sent_text:
             return
 
-        doc = await build_reply_doc(
-            self.header,
-            draft_text,
-            model=None,
-            result=None,
-            explicit_debug_mode=False,
-            chat_tid=self.source_message.chat.id,
-        )
-
-        success = await self._update(doc)
-        if success:
+        if await self._update(await self._render_doc(draft_text)):
             self.last_sent_text = draft_text
-            self.last_sent_at = now
+
+    async def stream_reasoning(self, reasoning_text: str) -> None:
+        """Show the tail of the model's own reasoning in the thinking header while it works.
+
+        Placeholder content only: reasoning never becomes part of the final message and never
+        reaches the message cache.
+        """
+        if self.response_message is None or self._throttled():
+            return
+
+        tail = _reasoning_tail(reasoning_text)
+        if not tail:
+            return
+
+        await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), tail, divider=" "))
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
         if not self.tool_thinking_texts:
@@ -229,6 +241,21 @@ class ChatbotMessageStreamer:
 
     # ── Private helpers ────────────────────────────────────────────────────────
 
+    def _throttled(self) -> bool:
+        """Text and header updates edit the same message, so they share one operator-tunable rate
+        limit instead of each getting its own."""
+        return time.monotonic() - self.last_sent_at < self.throttle_seconds
+
+    async def _render_doc(self, text: str) -> Doc:
+        return await build_reply_doc(
+            self.header,
+            text,
+            model=None,
+            result=None,
+            explicit_debug_mode=False,
+            chat_tid=self.source_message.chat.id,
+        )
+
     async def _update_thinking_header(self, thinking_element: Element) -> None:
         if not self.connection or not self.model:
             return
@@ -241,51 +268,36 @@ class ChatbotMessageStreamer:
             skip_battery=True,
         )
 
-        match self.mode:
-            case StreamMode.RICH_EDIT if self.response_message is not None:
-                try:
-                    await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
-                        chat_id=self.response_message.chat.id,
-                        message_id=self.response_message.message_id,
-                        rich_message=InputRichMessage(html=Doc(self.header).to_rich()),
-                    )
-                except TelegramAPIError:
-                    pass
-            case _ if self.response_message is not None:
-                try:
-                    await self.response_message.edit_text(
-                        text=Doc(self.header).to_html(),
-                        disable_web_page_preview=True,
-                    )
-                except TelegramAPIError:
-                    pass
+        # The agent loop can keep going after it has already written text (narrate, call a tool,
+        # answer), so a header-only doc here would wipe what the user is reading. Re-render the
+        # streamed text under the new header instead.
+        doc = await self._render_doc(self.last_sent_text) if self.last_sent_text else Doc(self.header)
+        await self._update(doc)
 
     async def _update(self, doc: Doc) -> bool:
-        """Dispatch a streaming update for the current mode. Returns False if the mode should stop."""
+        """Edit the placeholder in place. Returns False if the edit failed and updates should stop."""
         try:
-            match self.mode:
-                case StreamMode.RICH_EDIT if self.response_message is not None:
-                    await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
-                        chat_id=self.response_message.chat.id,
-                        message_id=self.response_message.message_id,
-                        rich_message=InputRichMessage(html=doc.to_rich()),
-                    )
-                case StreamMode.HTML_EDIT:
-                    if self.response_message is None:
-                        self.response_message = await self.source_message.reply(
-                            doc.to_html(),
-                            disable_web_page_preview=True,
-                        )
-                    else:
-                        await self.response_message.edit_text(
-                            text=doc.to_html(),
-                            disable_web_page_preview=True,
-                        )
-                case _:
-                    return False
-            return True
+            if self.response_message is None:
+                self.response_message = await self.source_message.reply(
+                    doc.to_html(),
+                    disable_web_page_preview=True,
+                )
+            elif self.mode == StreamMode.RICH_EDIT:
+                await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+                    chat_id=self.response_message.chat.id,
+                    message_id=self.response_message.message_id,
+                    rich_message=InputRichMessage(html=doc.to_rich()),
+                )
+            else:
+                await self.response_message.edit_text(
+                    text=doc.to_html(),
+                    disable_web_page_preview=True,
+                )
         except TelegramAPIError:
             return False
+
+        self.last_sent_at = time.monotonic()
+        return True
 
     async def _send_rich_reply(self, doc: Doc, **reply_kwargs: Any) -> Message:
         try:
