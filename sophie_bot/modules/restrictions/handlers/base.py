@@ -16,12 +16,10 @@ from sophie_bot.metrics.moderation import track_moderation_action
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.restrictions.services.silent import (
-    collect_message_ids_for_cleanup,
-    schedule_message_deletion,
-)
+from sophie_bot.modules.restrictions.services.silent import collect_message_ids_for_cleanup
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer

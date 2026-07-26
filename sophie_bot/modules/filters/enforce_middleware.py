@@ -22,9 +22,9 @@ from sophie_bot.modules.filters.utils_.handle_action import (
 )
 from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
-from sophie_bot.modules.restrictions.services.silent import schedule_message_deletion
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled

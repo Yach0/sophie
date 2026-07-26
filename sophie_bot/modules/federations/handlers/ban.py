@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -9,7 +8,7 @@ from aiogram.types import Message
 from ass_tg.types import OptionalArg, TextArg
 
 from sophie_bot.args.users import SophieUserArg
-from sophie_bot.constants import SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS, TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
+from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.federations import FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType
@@ -25,21 +24,11 @@ from sophie_bot.modules.restrictions.utils.logging import extract_offending_mess
 from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
 from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title, resolve_anonymous_admin_candidates
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
+from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-
-
-async def delete_messages_after_delay(
-    chat_id: int,
-    message_ids: list[int],
-    delay_seconds: int = SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS,
-) -> None:
-    """Delete messages after a specified delay."""
-    await asyncio.sleep(delay_seconds)
-    await common_try(bot.delete_messages(chat_id, message_ids))
 
 
 @flags.help(description=l_("Ban a user from the federation"))
@@ -154,12 +143,11 @@ class FederationBanHandler(FederationCommandHandler):
             reply_not_found=lambda: self.event.answer(doc.to_html()),
         )
 
-        # If silent mode, schedule deletion of messages after SILENT_MODE_MESSAGE_DELETE_DELAY_SECONDS
         if silent and reply_msg:
             messages_to_delete = [self.event.message_id, reply_msg.message_id]
             if self.event.reply_to_message:
                 messages_to_delete.append(self.event.reply_to_message.message_id)
-            asyncio.create_task(delete_messages_after_delay(self.event.chat.id, messages_to_delete))
+            schedule_message_deletion(self.event.chat.id, messages_to_delete)
 
         # Propagate the ban across the rest of the federation + subscriber chain in the scheduler.
         await FederationTask(

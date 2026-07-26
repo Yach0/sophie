@@ -11,7 +11,6 @@ from aiogram.types import ChatPermissions
 from sophie_bot.modules.restrictions.services.silent import (
     build_silent_action_doc,
     collect_message_ids_for_cleanup,
-    delete_messages_after_delay,
     log_silent_action,
 )
 from sophie_bot.modules.restrictions.utils.restrictions import (
@@ -64,20 +63,6 @@ def test_collect_message_ids_for_cleanup_includes_reply_message() -> None:
     message = SimpleNamespace(message_id=100, reply_to_message=reply_to_message)
 
     assert collect_message_ids_for_cleanup(message, 102) == [100, 102, 101]
-
-
-@pytest.mark.asyncio
-async def test_delete_messages_after_delay_uses_bot_delete_messages(monkeypatch: pytest.MonkeyPatch) -> None:
-    delete_mock = AsyncMock()
-    sleep_mock = AsyncMock()
-
-    monkeypatch.setattr("sophie_bot.modules.restrictions.services.silent.bot.delete_messages", delete_mock)
-    monkeypatch.setattr("sophie_bot.modules.restrictions.services.silent.asyncio.sleep", sleep_mock)
-
-    await delete_messages_after_delay(CHAT_TID, [1, 2, 3], delay_seconds=7)
-
-    sleep_mock.assert_awaited_once_with(7)
-    delete_mock.assert_awaited_once_with(CHAT_TID, [1, 2, 3])
 
 
 @pytest.mark.asyncio
