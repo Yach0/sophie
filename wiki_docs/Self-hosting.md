@@ -40,7 +40,8 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `TOKEN`: Your Telegram Bot API token.
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
-- `OPENROUTER_API_KEY`: Seeds the AI catalog on first migration. See below.
+- `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`: Seed the AI catalog on first
+  migration, and are never read again. See below.
 
 ### 2. Run the Playbook
 
@@ -82,14 +83,17 @@ adding a model or rotating a key never needs a redeploy.
 The `seed_ai_catalog` migration creates the initial catalog from your environment:
 
 - `OPENROUTER_API_KEY` becomes the `openrouter` provider.
+- `MISTRAL_API_KEY` and `OPENAI_API_KEY` become the `mistral` and `openai` providers, of kind
+  `moderation`. These carry no models: they hold the key for a service Sophie calls with the
+  vendor's own SDK — the moderation classifiers, and Mistral's voice and video transcription.
 - `CUSTOM_PROVIDERS` becomes one provider per entry, for OpenAI-compatible endpoints:
 
 ```
 CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://example.com/compatible-mode/v1","api_key":"sk-..."}]'
 ```
 
-Both variables are read **only** by this migration. Once the catalog exists, changing them has no
-effect — use the commands below instead.
+Every one of these variables is read **only** by a seed migration. Once the catalog exists, changing
+them has no effect — use the commands below instead.
 
 ### Managing the catalog
 
@@ -100,7 +104,8 @@ effect — use the commands below instead.
 | `/op_aimodels` | List models and what each one is used for. |
 | `/op_aimodel <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^enabled=` | Create or update a model. |
 
-`kind` is `openrouter` or `openai_compatible`. A role is `<mode>:<purpose>` — for example
+`kind` is `openrouter`, `openai_compatible`, or `moderation` (a key for a vendor SDK rather than a
+chat-completions endpoint — do not point models at one). A role is `<mode>:<purpose>` — for example
 `^role=support:chatbot` — or just `<purpose>` for the purposes that are not per-chat (`summary`,
 `moderation_reason`). Purposes are `chatbot`, `translation`, `filters`, `summary` and
 `moderation_reason`, `sophie_inspect`; modes are `entertainment`, `moderation`, `support`, `sophie_pm` and
@@ -113,6 +118,71 @@ restart.
 > **Warning:** with an empty catalog no AI feature can resolve a model and every AI request fails.
 > Check `/op_aimodels` after deploying.
 > {.is-warning}
+
+## AI moderation
+
+The AI moderator classifies messages against nine categories and deletes anything that crosses a
+threshold. It does **not** go through the AI catalog above — it calls a dedicated moderation
+classifier, chosen with the `ai_moderation_provider` feature flag:
+
+| Value | Model | Catalog provider holding the key |
+| --- | --- | --- |
+| `mistral` (default) | `mistral-moderation-latest` | `mistral` |
+| `openai` | `omni-moderation-latest` | `openai` |
+
+Switching backend is two steps: put the key in the catalog, then flip the flag. Neither needs a
+restart — the client is rebuilt as soon as the catalog version changes.
+
+```
+/op_aiprovider openai ^key=sk-...
+/op_ff ai_moderation_provider openai
+```
+
+> **Warning:** the `openrouter` provider's key cannot serve the OpenAI backend. OpenRouter proxies
+> chat completions, not `/moderations`, so selecting `openai` without a real OpenAI key makes every
+> moderation request fail — which silently leaves messages unmoderated. Check `/op_aiproviders`
+> shows a key against `openai`.
+> {.is-warning}
+
+The two providers report different categories, and Sophie normalises them onto its own nine.
+`health`, `financial`, `law` and `pii` have no OpenAI equivalent and never trigger on that backend.
+
+### Per-chat detection levels
+
+Chat admins run `/aimoderator` to get a table of the nine categories and a button for each one.
+Pressing a button walks that category through Off → Low → Medium → High.
+
+The level multiplies the classifier's score before it is compared to the threshold, so a chat can be
+made more or less sensitive without an operator retuning anything. The factors are feature flags:
+
+| Level | Flag | Default |
+| --- | --- | --- |
+| Low | `ai_moderation_level_low_multiplier` | `0.7` |
+| Medium | `ai_moderation_level_normal_multiplier` | `1.0` |
+| High | `ai_moderation_level_high_multiplier` | `1.3` |
+
+Off skips the category entirely rather than scaling it to zero.
+
+### Tuning thresholds
+
+Every threshold is a feature flag, so it can be changed per chat with no redeploy:
+
+```
+/op_ff ai_moderation_provider openai
+/op_ff ai_moderation_threshold_openai_sexual_minors 0.1
+/op_ff ai_moderation_threshold_mistral_sexual unset
+```
+
+Flags are named `ai_moderation_threshold_<provider>_<the provider's own category>`, because
+categories that Sophie groups together do not score alike: `sexual/minors` needs a much lower
+cut-off than `sexual`. These are the operator-level tuning; per-chat sensitivity is the detection
+level above.
+
+> **Note:** thresholds are floats, so write `1.0` rather than `1` — a bare `1` parses as `true`.
+> {.is-info}
+
+The "message deleted" notice removes itself after `ai_moderation_notice_delete_after_seconds`
+(30 by default); set it to `0` to keep the notices in the chat.
 
 ### Experimental: source inspection
 

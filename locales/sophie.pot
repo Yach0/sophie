@@ -107,12 +107,12 @@ msgid "You must be an administrator to use this command."
 msgstr ""
 
 #: sophie_bot/filters/admin_rights.py:281
-#: sophie_bot/modules/federations/handlers/ban.py:213
+#: sophie_bot/modules/federations/handlers/ban.py:201
 msgid "Anonymous admin must have a custom admin title to use this command."
 msgstr ""
 
 #: sophie_bot/filters/admin_rights.py:285
-#: sophie_bot/modules/federations/handlers/ban.py:219
+#: sophie_bot/modules/federations/handlers/ban.py:207
 msgid "Could not resolve this anonymous admin title. Refresh admin cache or use a unique title."
 msgstr ""
 
@@ -144,27 +144,27 @@ msgstr ""
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:117
+#: sophie_bot/modules/ai/__init__.py:120
 msgid "Sophie AI"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:119
+#: sophie_bot/modules/ai/__init__.py:122
 msgid "Rainbow sparkles and shininess"
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:122
+#: sophie_bot/modules/ai/__init__.py:125
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:123
+#: sophie_bot/modules/ai/__init__.py:126
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:126
+#: sophie_bot/modules/ai/__init__.py:129
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr ""
 
-#: sophie_bot/modules/ai/__init__.py:127
+#: sophie_bot/modules/ai/__init__.py:130
 msgid "Use /aiusage to check your remaining quota."
 msgstr ""
 
@@ -423,16 +423,62 @@ msgid "Select what the AI does in this chat"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimode.py:102
+#: sophie_bot/modules/ai/handlers/aimoderator.py:114
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimode.py:106
+#: sophie_bot/modules/ai/handlers/aimoderator.py:118
 msgid "You are not allowed to change this setting"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimode.py:110
 msgid "Unknown mode"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:35
+msgid "🚫 Off"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:36
+msgid "🟢 Low"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:37
+msgid "🟡 Medium"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:38
+msgid "🔴 High"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:46
+msgid "Category"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:46
+msgid "What it detects"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:60
+msgid "AI Moderator"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:61
+msgid "Sophie deletes messages that cross a category's detection level."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:63
+msgid "Press a category to walk it through Off, Low, Medium and High."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:96
+msgid "Tune what the AI moderator detects in this chat"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:123
+msgid "Unknown category"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
@@ -868,19 +914,19 @@ msgstr ""
 msgid "{ai_emoji} AI Response"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:36
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
 msgid "✋ AI Moderator"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:37
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:38
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
 msgid "Message author"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:44
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:59
 #: sophie_bot/modules/communities/utils/ban_docs.py:37
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:83
 #: sophie_bot/modules/federations/utils/ban_docs.py:42
@@ -888,9 +934,9 @@ msgstr ""
 #: sophie_bot/modules/reports/handlers/report.py:94
 #: sophie_bot/modules/restrictions/actions/base.py:145
 #: sophie_bot/modules/restrictions/actions/kick.py:46
-#: sophie_bot/modules/restrictions/handlers/base.py:82
-#: sophie_bot/modules/restrictions/handlers/base.py:145
-#: sophie_bot/modules/restrictions/services/silent.py:87
+#: sophie_bot/modules/restrictions/handlers/base.py:80
+#: sophie_bot/modules/restrictions/handlers/base.py:143
+#: sophie_bot/modules/restrictions/services/silent.py:49
 #: sophie_bot/modules/warns/handlers/warn.py:53
 #: sophie_bot/modules/warns/handlers/warn.py:79
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:131
@@ -898,6 +944,10 @@ msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] ""
 msgstr[1] ""
+
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:63
+msgid "This message will be deleted shortly."
+msgstr ""
 
 #: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:111
 #, python-brace-format
@@ -942,42 +992,6 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_filter_texts.py:4
 msgid "Filter 🪄"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:19
-msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:22
-msgid "Content that expresses prejudice, hostility, or advocates discrimination against individuals or groups based on protected characteristics such as race, ethnicity, religion, gender, sexual orientation, or disability."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:25
-msgid "Content that describes, glorifies, incites, or threatens physical violence against individuals or groups."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:28
-msgid "Content that promotes or provides instructions for illegal activities or extremely hazardous behaviors that pose a significant risk of physical harm, death, or legal consequences."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:31
-msgid "Content that promotes, instructs, plans, or encourages deliberate self-injury, suicide, eating disorders, or other self-destructive behaviors."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:33
-msgid "Content that contains or tries to elicit detailed or tailored medical advice."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:34
-msgid "Content that contains or tries to elicit detailed or tailored financial advice."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:35
-msgid "Content that contains or tries to elicit detailed or tailored legal advice."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/ai_moderator.py:37
-msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:33
@@ -1285,22 +1299,94 @@ msgstr ""
 msgid "Sophie help mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:106
-#: sophie_bot/modules/ai/utils/message_history.py:108
+#: sophie_bot/modules/ai/utils/message_history.py:107
+#: sophie_bot/modules/ai/utils/message_history.py:109
 msgid "<No text provided>"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:159
+#: sophie_bot/modules/ai/utils/message_history.py:160
 msgid "Image is empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:195
+#: sophie_bot/modules/ai/utils/message_history.py:196
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/message_history.py:255
+#: sophie_bot/modules/ai/utils/message_history.py:256
 msgid "Recent chat messages (context only — respond solely to the latest message)"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:27
+msgid "🔞 Sexual"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:28
+msgid "💢 Hate"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:29
+msgid "⚔ Violence"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:30
+msgid "☠ Dangerous"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:31
+msgid "💔 Self-harm"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:32
+msgid "🩺 Health"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:33
+msgid "💰 Financial"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:34
+msgid "⚖ Law"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:35
+msgid "🪪 Personal data"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:40
+msgid "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:43
+msgid "Content that expresses prejudice, hostility, or advocates discrimination against individuals or groups based on protected characteristics such as race, ethnicity, religion, gender, sexual orientation, or disability."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:46
+msgid "Content that describes, glorifies, incites, or threatens physical violence against individuals or groups."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:49
+msgid "Content that promotes or provides instructions for illegal activities or extremely hazardous behaviors that pose a significant risk of physical harm, death, or legal consequences."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:52
+msgid "Content that promotes, instructs, plans, or encourages deliberate self-injury, suicide, eating disorders, or other self-destructive behaviors."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:54
+msgid "Content that contains or tries to elicit detailed or tailored medical advice."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:55
+msgid "Content that contains or tries to elicit detailed or tailored financial advice."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:56
+msgid "Content that contains or tries to elicit detailed or tailored legal advice."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/moderation/categories.py:58
+msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/proactive_replies.py:286
@@ -1545,11 +1631,11 @@ msgid "User has been restricted for flooding."
 msgstr ""
 
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:147
-#: sophie_bot/modules/communities/handlers/cban.py:60
+#: sophie_bot/modules/communities/handlers/cban.py:48
 #: sophie_bot/modules/communities/handlers/uncban.py:44
 #: sophie_bot/modules/communities/utils/ban_docs.py:33
 #: sophie_bot/modules/communities/utils/ban_docs.py:67
-#: sophie_bot/modules/federations/handlers/ban.py:59
+#: sophie_bot/modules/federations/handlers/ban.py:48
 #: sophie_bot/modules/federations/handlers/demote.py:19
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:71
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:80
@@ -1564,9 +1650,9 @@ msgstr ""
 #: sophie_bot/modules/promotes/handlers/demote.py:79
 #: sophie_bot/modules/promotes/handlers/promote.py:71
 #: sophie_bot/modules/promotes/handlers/promote.py:153
-#: sophie_bot/modules/restrictions/handlers/base.py:77
-#: sophie_bot/modules/restrictions/handlers/base.py:142
-#: sophie_bot/modules/restrictions/services/silent.py:84
+#: sophie_bot/modules/restrictions/handlers/base.py:75
+#: sophie_bot/modules/restrictions/handlers/base.py:140
+#: sophie_bot/modules/restrictions/services/silent.py:46
 #: sophie_bot/modules/users/handlers/id.py:22
 #: sophie_bot/modules/users/handlers/info.py:22
 #: sophie_bot/modules/warns/handlers/callback.py:96
@@ -1576,8 +1662,8 @@ msgid "User"
 msgstr ""
 
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:151
-#: sophie_bot/modules/restrictions/handlers/base.py:144
-#: sophie_bot/modules/restrictions/services/silent.py:86
+#: sophie_bot/modules/restrictions/handlers/base.py:142
+#: sophie_bot/modules/restrictions/services/silent.py:48
 msgid "Duration"
 msgstr ""
 
@@ -1603,20 +1689,20 @@ msgstr ""
 msgid "Communities let you ban a user from every chat of a Telegram community Sophie is in with a single command, and keep the ban enforced for users who post or join later."
 msgstr ""
 
-#: sophie_bot/modules/communities/handlers/cban.py:44
+#: sophie_bot/modules/communities/handlers/cban.py:32
 msgid "Ban a user from the whole community."
 msgstr ""
 
-#: sophie_bot/modules/communities/handlers/cban.py:61
-#: sophie_bot/modules/federations/handlers/ban.py:60
+#: sophie_bot/modules/communities/handlers/cban.py:49
+#: sophie_bot/modules/federations/handlers/ban.py:49
 msgid "?Reason"
 msgstr ""
 
-#: sophie_bot/modules/communities/handlers/cban.py:66
+#: sophie_bot/modules/communities/handlers/cban.py:54
 #: sophie_bot/modules/communities/handlers/uncban.py:49
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:39
 #: sophie_bot/modules/federations/handlers/admins.py:28
-#: sophie_bot/modules/federations/handlers/ban.py:68
+#: sophie_bot/modules/federations/handlers/ban.py:57
 #: sophie_bot/modules/federations/handlers/banlist.py:34
 #: sophie_bot/modules/federations/handlers/chats.py:51
 #: sophie_bot/modules/federations/handlers/chats.py:97
@@ -1640,24 +1726,24 @@ msgstr ""
 msgid "This command can only be used by users."
 msgstr ""
 
-#: sophie_bot/modules/communities/handlers/cban.py:72
+#: sophie_bot/modules/communities/handlers/cban.py:60
 #: sophie_bot/modules/communities/handlers/uncban.py:55
 msgid "This chat is not part of a community."
 msgstr ""
 
-#: sophie_bot/modules/communities/handlers/cban.py:82
+#: sophie_bot/modules/communities/handlers/cban.py:70
 #: sophie_bot/modules/communities/handlers/uncban.py:63
-#: sophie_bot/modules/federations/handlers/ban.py:78
+#: sophie_bot/modules/federations/handlers/ban.py:67
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:57
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:68
 #: sophie_bot/modules/federations/handlers/unban.py:62
 msgid "Please specify a user or reply to a user's message."
 msgstr ""
 
-#: sophie_bot/modules/communities/handlers/cban.py:89
+#: sophie_bot/modules/communities/handlers/cban.py:77
 #: sophie_bot/modules/communities/handlers/uncban.py:69
-#: sophie_bot/modules/federations/handlers/ban.py:206
-#: sophie_bot/modules/federations/handlers/ban.py:230
+#: sophie_bot/modules/federations/handlers/ban.py:194
+#: sophie_bot/modules/federations/handlers/ban.py:218
 #: sophie_bot/modules/federations/handlers/unban.py:94
 msgid "Could not resolve the command user. Please try again."
 msgstr ""
@@ -1835,8 +1921,8 @@ msgstr ""
 #: sophie_bot/modules/op/handlers/set_mode.py:149
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:152
-#: sophie_bot/modules/restrictions/handlers/base.py:141
-#: sophie_bot/modules/restrictions/services/silent.py:83
+#: sophie_bot/modules/restrictions/handlers/base.py:139
+#: sophie_bot/modules/restrictions/services/silent.py:45
 #: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
 #: sophie_bot/modules/utils_/status_handler.py:49
 #: sophie_bot/modules/utils_/status_handler.py:72
@@ -2445,15 +2531,15 @@ msgstr ""
 msgid "No additional admins."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:45
+#: sophie_bot/modules/federations/handlers/ban.py:34
 msgid "Ban a user from the federation"
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:94
+#: sophie_bot/modules/federations/handlers/ban.py:83
 msgid "You don't have permission to ban users in this federation."
 msgstr ""
 
-#: sophie_bot/modules/federations/handlers/ban.py:224
+#: sophie_bot/modules/federations/handlers/ban.py:212
 msgid "Multiple anonymous admins share this title. Use a unique title to run this command."
 msgstr ""
 
@@ -6113,22 +6199,22 @@ msgstr ""
 msgid "User temporarily banned"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/base.py:62
+#: sophie_bot/modules/restrictions/handlers/base.py:60
 #, python-brace-format
 msgid "The user is already banned in the current federation: {fed_name} ({fed_id})."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/base.py:65
+#: sophie_bot/modules/restrictions/handlers/base.py:63
 #, python-brace-format
 msgid "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/base.py:80
+#: sophie_bot/modules/restrictions/handlers/base.py:78
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/base.py:166
-#: sophie_bot/modules/restrictions/handlers/base.py:172
+#: sophie_bot/modules/restrictions/handlers/base.py:164
+#: sophie_bot/modules/restrictions/handlers/base.py:170
 #: sophie_bot/modules/users/handlers/info.py:63
 #: sophie_bot/modules/users/handlers/info.py:68
 #: sophie_bot/modules/users/handlers/info.py:77

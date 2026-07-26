@@ -34,7 +34,7 @@ class ServiceRegistry:
 
         Args:
             name: The service name (e.g. "redis", "bot", "mongo", "dispatcher",
-                  "mistral", "scheduler").
+                  "scheduler").
             instance: The replacement instance to use.
         """
         self._overrides[name] = instance
@@ -93,15 +93,6 @@ class ServiceRegistry:
         if "dispatcher" not in self._instances:
             self._instances["dispatcher"] = self._create_dispatcher()
         return self._instances["dispatcher"]
-
-    def get_mistral(self) -> Any:
-        """Get the Mistral AI client."""
-        if "mistral" in self._overrides:
-            return self._overrides["mistral"]
-
-        if "mistral" not in self._instances:
-            self._instances["mistral"] = self._create_mistral()
-        return self._instances["mistral"]
 
     def get_scheduler(self) -> Any:
         """Get the APScheduler AsyncIOScheduler instance."""
@@ -192,13 +183,6 @@ class ServiceRegistry:
             key_builder=DefaultKeyBuilder(prefix=str(CONFIG.redis_db_fsm)),
         )
         return Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
-
-    @staticmethod
-    def _create_mistral() -> Any:
-        """Create the Mistral AI client."""
-        from mistralai.client.sdk import Mistral
-
-        return Mistral(api_key=CONFIG.mistral_api_key or "")
 
     def _create_scheduler(self) -> Any:
         """Create the APScheduler AsyncIOScheduler instance."""

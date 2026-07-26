@@ -73,12 +73,16 @@ When these features are activated, you agree to:
 
 * [OpenRouter Privacy Policy](https://openrouter.ai/docs/features/privacy-and-logging)
 * [Mistral Privacy Policy](https://mistral.ai/terms#privacy-policy)
+* [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy)
 * [Tavily Privacy Policy](https://www.tavily.com/privacy)
 * The privacy policy of whichever AI provider serves the model your chat's AI mode uses.
 
 While using some AI-enabled features such as AI Chatbot, AI Translator or AI Moderator,
 we may share the context of the conversation, which can
 include up to 40 of the most recent messages (including bot responses).
+
+The AI Moderator sends message text to a moderation classifier run by either Mistral or OpenAI,
+depending on which backend the instance is configured to use.
 
 ### AI modes and message history
 

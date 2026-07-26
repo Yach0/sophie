@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, BinaryIO
 from aiogram.types import Video, VideoNote
 
 from sophie_bot.constants import AI_MAX_VIDEO_SIZE_BYTES
-from sophie_bot.services.ai import mistral_client
+from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -136,7 +136,8 @@ async def transform_video_to_text(video: Video | VideoNote) -> str | None:
 
     audio_bytes_io = BufferedReader(BytesIO(audio_bytes))
 
-    resp = await mistral_client.audio.transcriptions.complete_async(
+    client = await get_mistral_client()
+    resp = await client.audio.transcriptions.complete_async(
         model="voxtral-mini-latest",
         file={
             "file_name": "audio.ogg",

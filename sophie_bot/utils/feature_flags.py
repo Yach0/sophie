@@ -9,6 +9,7 @@ from typing import Any, Final, Literal, TypedDict, cast, get_args
 
 from sentry_sdk import feature_flags as sentry_feature_flags
 
+from sophie_bot.constants import AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOverrideSource
 from sophie_bot.services.redis import aredis
 
@@ -45,6 +46,33 @@ FeatureType = Literal[
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
+    "ai_moderation_provider",
+    "ai_moderation_notice_delete_after_seconds",
+    "ai_moderation_level_low_multiplier",
+    "ai_moderation_level_normal_multiplier",
+    "ai_moderation_level_high_multiplier",
+    "ai_moderation_threshold_mistral_sexual",
+    "ai_moderation_threshold_mistral_hate_and_discrimination",
+    "ai_moderation_threshold_mistral_violence_and_threats",
+    "ai_moderation_threshold_mistral_dangerous_and_criminal_content",
+    "ai_moderation_threshold_mistral_selfharm",
+    "ai_moderation_threshold_mistral_health",
+    "ai_moderation_threshold_mistral_financial",
+    "ai_moderation_threshold_mistral_law",
+    "ai_moderation_threshold_mistral_pii",
+    "ai_moderation_threshold_openai_sexual",
+    "ai_moderation_threshold_openai_sexual_minors",
+    "ai_moderation_threshold_openai_harassment",
+    "ai_moderation_threshold_openai_harassment_threatening",
+    "ai_moderation_threshold_openai_hate",
+    "ai_moderation_threshold_openai_hate_threatening",
+    "ai_moderation_threshold_openai_illicit",
+    "ai_moderation_threshold_openai_illicit_violent",
+    "ai_moderation_threshold_openai_self_harm",
+    "ai_moderation_threshold_openai_self_harm_intent",
+    "ai_moderation_threshold_openai_self_harm_instructions",
+    "ai_moderation_threshold_openai_violence",
+    "ai_moderation_threshold_openai_violence_graphic",
     "ai_filters",
     "ai_chat_summaries",
     "ai_note_titles",
@@ -106,7 +134,7 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = get_args(FeatureType)
 
 
 FeatureValue = bool | str | int | float
-FeatureValueKind = Literal["plain", "ai_model", "service_tier", "search_provider"]
+FeatureValueKind = Literal["plain", "ai_model", "service_tier", "search_provider", "moderation_provider"]
 
 
 class FeatureDefinition(TypedDict):
@@ -134,6 +162,8 @@ def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
         return _SERVICE_TIER_VALUES
     if value_kind == "search_provider":
         return _SEARCH_PROVIDER_VALUES
+    if value_kind == "moderation_provider":
+        return _MODERATION_PROVIDER_VALUES
     return None
 
 
@@ -185,8 +215,10 @@ _PLAIN_FEATURE: Final[FeatureValueKind] = "plain"
 _AI_MODEL_FEATURE: Final[FeatureValueKind] = "ai_model"
 _SERVICE_TIER_FEATURE: Final[FeatureValueKind] = "service_tier"
 _SEARCH_PROVIDER_FEATURE: Final[FeatureValueKind] = "search_provider"
+_MODERATION_PROVIDER_FEATURE: Final[FeatureValueKind] = "moderation_provider"
 _SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
 _SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi"})
+_MODERATION_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"mistral", "openai"})
 
 
 def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATURE) -> FeatureDefinition:
@@ -237,6 +269,39 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_translations": _feature(True),
     "ai_moderation": _feature(True),
     "ai_moderation_reasons": _feature(True),
+    "ai_moderation_provider": _feature("mistral", _MODERATION_PROVIDER_FEATURE),
+    # 0 keeps the "message deleted" notice in the chat forever.
+    "ai_moderation_notice_delete_after_seconds": _feature(AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS),
+    # A category's detection level scales the score before it meets its threshold, so LOW detects
+    # less and HIGH detects more without touching the per-category thresholds below.
+    "ai_moderation_level_low_multiplier": _feature(0.7),
+    "ai_moderation_level_normal_multiplier": _feature(1.0),
+    "ai_moderation_level_high_multiplier": _feature(1.3),
+    # Thresholds are per provider and per the provider's own category, not per Sophie's normalised
+    # nine: grouped categories score on different distributions, so `sexual/minors` and `sexual`
+    # cannot share a cut-off even though both surface as "sexual".
+    "ai_moderation_threshold_mistral_sexual": _feature(0.5),
+    "ai_moderation_threshold_mistral_hate_and_discrimination": _feature(0.4),
+    "ai_moderation_threshold_mistral_violence_and_threats": _feature(0.4),
+    "ai_moderation_threshold_mistral_dangerous_and_criminal_content": _feature(0.4),
+    "ai_moderation_threshold_mistral_selfharm": _feature(0.3),
+    "ai_moderation_threshold_mistral_health": _feature(0.3),
+    "ai_moderation_threshold_mistral_financial": _feature(0.3),
+    "ai_moderation_threshold_mistral_law": _feature(0.3),
+    "ai_moderation_threshold_mistral_pii": _feature(0.3),
+    "ai_moderation_threshold_openai_sexual": _feature(0.5),
+    "ai_moderation_threshold_openai_sexual_minors": _feature(0.2),
+    "ai_moderation_threshold_openai_harassment": _feature(0.5),
+    "ai_moderation_threshold_openai_harassment_threatening": _feature(0.4),
+    "ai_moderation_threshold_openai_hate": _feature(0.4),
+    "ai_moderation_threshold_openai_hate_threatening": _feature(0.3),
+    "ai_moderation_threshold_openai_illicit": _feature(0.4),
+    "ai_moderation_threshold_openai_illicit_violent": _feature(0.3),
+    "ai_moderation_threshold_openai_self_harm": _feature(0.3),
+    "ai_moderation_threshold_openai_self_harm_intent": _feature(0.3),
+    "ai_moderation_threshold_openai_self_harm_instructions": _feature(0.3),
+    "ai_moderation_threshold_openai_violence": _feature(0.4),
+    "ai_moderation_threshold_openai_violence_graphic": _feature(0.4),
     "ai_filters": _feature(True),
     "ai_chat_summaries": _feature(True),
     "ai_note_titles": _feature(True),
@@ -347,6 +412,13 @@ def _parse_override(value: bytes | str | None, default: FeatureValue) -> Feature
     # When the default is bool, an unparsable string should not fall through as a raw string.
     if parsed == normalized_value and isinstance(default, bool):
         return None
+    # parse_feature_value reads "0"/"1" as booleans, which is right for a bool flag and wrong for a
+    # numeric one: without this, setting an int flag to 0 would read back as False.
+    if isinstance(parsed, bool) and not isinstance(default, bool):
+        if isinstance(default, int):
+            return int(parsed)
+        if isinstance(default, float):
+            return float(parsed)
     return parsed
 
 

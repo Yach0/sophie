@@ -516,6 +516,21 @@ class TestSetGetValue:
         await set_value("ai_chatbot_streaming_backoff_seconds", 2.5)
         assert await get_value("ai_chatbot_streaming_backoff_seconds") == 2.5
 
+    async def test_set_integer_zero_stays_an_integer(self) -> None:
+        # "0"/"1" round-trip through the string parser, which reads them as booleans for bool flags.
+        await set_value("ai_chatbot_request_limit", 0)
+        assert await get_value("ai_chatbot_request_limit") == 0
+        assert await get_value("ai_chatbot_request_limit") is not False
+
+    async def test_set_integer_one_stays_an_integer(self) -> None:
+        await set_value("ai_chatbot_request_limit", 1)
+        assert await get_value("ai_chatbot_request_limit") is not True
+
+    async def test_set_float_one_stays_a_float(self) -> None:
+        await set_value("ai_chatbot_streaming_backoff_seconds", 1.0)
+        assert await get_value("ai_chatbot_streaming_backoff_seconds") == 1.0
+        assert await get_value("ai_chatbot_streaming_backoff_seconds") is not True
+
     async def test_persists_to_redis(self) -> None:
         await set_value(FEATURE, True)
         assert await aredis.hget("sophie:kill_switch", FEATURE) == b"1"

@@ -15,6 +15,9 @@ class AIProviderKind(str, Enum):
 
     openrouter = "openrouter"
     openai_compatible = "openai_compatible"
+    # Reached with the vendor's own SDK rather than a chat-completions client: these rows carry the
+    # key for a first-party service (moderation classifiers, audio transcription), not a model.
+    moderation = "moderation"
 
 
 class AIModelPurpose(str, Enum):

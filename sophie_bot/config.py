@@ -134,7 +134,11 @@ class Config(BaseSettings):
     openrouter_api_key: str | None = None
     tavily_api_key: str = ""
     kagi_api_key: str = ""
+    # TODO: delete both, with the seed_vendor_sdk_provider_keys migration, once every deployment
+    # has run it. They are read only by that migration, which copies them into the AI catalog;
+    # afterwards the keys are managed with /op_aiprovider.
     mistral_api_key: str | None = None
+    openai_api_key: str | None = None
 
     # Seed values for the AI provider catalog, read only by the seed_ai_catalog migration. Once the
     # catalog exists, providers and keys are managed with /op_aiprovider; changing these does nothing.

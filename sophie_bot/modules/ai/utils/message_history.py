@@ -10,6 +10,7 @@ from mistralai.client.models.assistantmessage import AssistantMessage
 from mistralai.client.models.systemmessage import SystemMessage
 from mistralai.client.models.usermessage import UserMessage
 from normality import normalize
+from openai.types.moderation_text_input_param import ModerationTextInputParam
 from pydantic_ai.messages import (
     BinaryContent,
     ModelRequest,
@@ -399,6 +400,17 @@ class AIMessageHistory:
                     moderation_content.append({"role": "user", "content": content})
 
         return moderation_content
+
+
+def convert_to_openai_moderation_format(messages: list[dict[str, str]]) -> list[ModerationTextInputParam]:
+    """Convert plain dict messages to OpenAI moderation input parts.
+
+    OpenAI's moderation endpoint takes content parts rather than chat messages, so roles are
+    dropped: it has no notion of who said what.
+    """
+    return [
+        ModerationTextInputParam(type="text", text=content) for msg in messages if (content := msg.get("content", ""))
+    ]
 
 
 def convert_to_moderation_format(

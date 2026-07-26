@@ -9,13 +9,15 @@ All new medium/high-risk features, external integrations, and large refactors mu
 
 ## Source of truth
 
-- Storage currently lives in Redis under legacy `sophie:kill_switch*` keys.
+- Overrides are stored in MongoDB (`feature_flag_overrides`), cached in Redis under legacy
+  `sophie:kill_switch*` keys.
 - Runtime API lives in `sophie_bot/utils/feature_flags.py`.
 - That file is the single source of truth for:
-  - `FeatureType`
-  - `FeatureStates`
-  - `FEATURE_FLAGS`
-  - `_default_state_map()`
+  - `FeatureType` — the flag names
+  - `_FEATURE_DEFINITIONS` — defaults and validation metadata
+
+`FEATURE_FLAGS` and `_DEFAULT_STATES` are derived from those two; an import-time check raises
+`RuntimeError` if they fall out of sync.
 
 ## When a flag is required
 
@@ -26,12 +28,15 @@ All new medium/high-risk features, external integrations, and large refactors mu
 
 ## Adding a new flag
 
-Update every required location in `sophie_bot/utils/feature_flags.py`:
+Two edits in `sophie_bot/utils/feature_flags.py`:
 
 1. Add the literal to `FeatureType`.
-2. Add the typed field to `FeatureStates`.
-3. Append the flag to `FEATURE_FLAGS`.
-4. Set the default in `_default_state_map()`.
+2. Add the entry to `_FEATURE_DEFINITIONS` with `_feature(default, value_kind)`.
+
+The flag's Python type comes from the default's type — `is_valid_value_type` rejects anything else,
+so a `float` flag will not accept an `int`. `value_kind` is separate: it restricts string flags to a
+closed set (`service_tier`, `search_provider`, `moderation_provider`) or leaves them open
+(`plain`, `ai_model`). See `get_allowed_string_values`.
 
 Choose defaults intentionally:
 
@@ -67,6 +72,9 @@ Public API for non-boolean flags:
 - `get_value(feature, chat_tid=None)` → returns the resolved value (chat override → global override → default)
 - `set_value(feature, value)` → sets a global override
 
+Because `1`/`0` parse as booleans, a numeric flag must be written with a decimal point when the
+value would be ambiguous: `/op_ff some_float_flag 1.0`, not `1`.
+
 ## Per-chat overrides
 
 Feature flags can be overridden per-chat using separate Redis keys (`sophie:kill_switch_chat:{chat_tid}`).
@@ -101,9 +109,11 @@ Public API:
 
 ## Model name flags
 
-Two feature flags control AI model names at runtime:
-- `ai_summary_model` (default: `"openai/gpt-5.5"`) — used in `get_chat_summary_model()` in `ai_get_provider.py`
-- `ai_filter_handler_model` (default: `"openai/gpt-5-nano"`) — used via `get_filter_handler_model()` in `ai_model_factory.py`
+Flags declared with the `ai_model` value kind override the model for one AI purpose — for example
+`ai_summary_model`, `ai_chatbot_model`, `ai_filter_handler_model`. They default to `""`, meaning
+"use whatever the chat's AI mode resolves". They are consumed through
+`MODEL_OVERRIDE_FLAG_BY_PURPOSE` in `sophie_bot/modules/ai/utils/ai_chat_models.py`. An unregistered
+model name is passed to OpenRouter as-is, so the value is not validated.
 
 ## `/op_ff` command syntax
 

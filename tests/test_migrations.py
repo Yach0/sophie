@@ -799,6 +799,59 @@ async def test_seeded_catalog_covers_every_purpose_every_mode_falls_back_to() ->
     assert {"summary", "moderation_reason"} <= {purpose for mode, purpose in roles if mode is None}
 
 
+def _vendor_sdk_keys_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260727_000000_seed_vendor_sdk_provider_keys")
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_vendor_sdk_keys_are_copied_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    migration = _vendor_sdk_keys_migration()
+    providers = get_collection("ai_catalog_provider")
+    await _reset_collections("ai_catalog_provider")
+    monkeypatch.setattr(migration.CONFIG, "mistral_api_key", "env-mistral-key")
+    monkeypatch.setattr(migration.CONFIG, "openai_api_key", "env-openai-key")
+
+    await migration.Forward.migrate.run(None)
+
+    stored = {document["name"]: document async for document in providers.find({})}
+    assert stored["mistral"]["api_key"] == "env-mistral-key"
+    assert stored["openai"]["api_key"] == "env-openai-key"
+    assert {document["kind"] for document in stored.values()} == {"moderation"}
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_vendor_sdk_keys_seed_is_idempotent_and_keeps_operator_edits(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An operator who rotated a key with /op_aiprovider must not have the env value put back."""
+    migration = _vendor_sdk_keys_migration()
+    providers = get_collection("ai_catalog_provider")
+    await _reset_collections("ai_catalog_provider")
+    monkeypatch.setattr(migration.CONFIG, "mistral_api_key", "env-mistral-key")
+    monkeypatch.setattr(migration.CONFIG, "openai_api_key", None)
+
+    await migration.Forward.migrate.run(None)
+    await providers.update_one({"name": "mistral"}, {"$set": {"api_key": "rotated-by-operator"}})
+    await migration.Forward.migrate.run(None)
+
+    assert await providers.count_documents({}) == len(migration._PROVIDER_NAMES)
+    assert (await providers.find_one({"name": "mistral"}))["api_key"] == "rotated-by-operator"
+    # An instance that never set the env var gets an empty row to fill in, not a missing one.
+    assert (await providers.find_one({"name": "openai"}))["api_key"] == ""
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_vendor_sdk_keys_backward_removes_only_its_own_rows() -> None:
+    migration = _vendor_sdk_keys_migration()
+    providers = get_collection("ai_catalog_provider")
+    await _reset_collections("ai_catalog_provider")
+    await providers.insert_one({"name": "openrouter", "kind": "openrouter", "api_key": "keep-me"})
+
+    await migration.Forward.migrate.run(None)
+    await migration.Backward.migrate.run(None)
+
+    remaining = [document["name"] async for document in providers.find({})]
+    assert remaining == ["openrouter"]
+
+
 def _sophie_inspect_model_migration() -> ModuleType:
     return importlib.import_module("sophie_bot.db.migrations.20260723_160000_add_deep_help_model")
 

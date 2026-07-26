@@ -35,6 +35,7 @@ icon: ✨
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/aimode` | - | Select what the AI does in this chat |  |
+| `/aimoderator` | - | Tune what the AI moderator detects in this chat |  |
 | `/aiautotranslate` `/autotranslate` | `<?New status>` | Controls AI Auto translator |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries |  |
 | `/ai_note_titles` | `<?New status>` | Controls AI note title generation |  |

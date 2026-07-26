@@ -1,54 +1,60 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiogram.types import Message
 
 from sophie_bot.db.models.ai.ai_moderator import DetectionLevel
-from sophie_bot.modules.ai.utils.ai_moderator import (
-    CATEGORY_MIN_SCORES,
-    CategoriesDict,
+from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
+from sophie_bot.modules.ai.handlers.aimoderator import _build_doc, _build_keyboard
+from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
+from sophie_bot.modules.ai.utils.moderation import (
+    MODERATION_CATEGORIES_TRANSLATES,
+    ModerationCategory,
     check_moderator,
+    get_moderation_provider,
 )
+from sophie_bot.modules.ai.utils.moderation.providers.mistral import MistralModerationProvider
+from sophie_bot.modules.ai.utils.moderation.settings import LEVEL_CYCLE, next_level
+from sophie_bot.modules.ai.utils.moderation.thresholds import resolve_level_multipliers, resolve_thresholds
+from sophie_bot.utils.feature_flags import set_chat_override, set_value
+
+_MISTRAL_DEFAULTS = {native.key: native.default_threshold for native in MistralModerationProvider.native_categories}
+_CHAT_TID = -1001234567890
 
 
-def _make_moderation_response(category_scores: dict[str, float]) -> SimpleNamespace:
-    """Create a fake ModerationResponse with controlled category_scores."""
-    return SimpleNamespace(
-        results=[SimpleNamespace(category_scores=category_scores)],
-    )
+def _make_moderation_response(category_scores: dict[str, float] | None) -> SimpleNamespace:
+    return SimpleNamespace(results=[SimpleNamespace(category_scores=category_scores)])
 
 
 def _make_settings(**overrides: DetectionLevel) -> SimpleNamespace:
-    """Create a fake AIModeratorModel settings object with DetectionLevel attributes."""
-    defaults = {
-        "sexual": DetectionLevel.NORMAL,
-        "hate_and_discrimination": DetectionLevel.NORMAL,
-        "violence_and_threats": DetectionLevel.NORMAL,
-        "dangerous_and_criminal_content": DetectionLevel.NORMAL,
-        "selfharm": DetectionLevel.NORMAL,
-        "health": DetectionLevel.NORMAL,
-        "financial": DetectionLevel.NORMAL,
-        "law": DetectionLevel.NORMAL,
-        "pii": DetectionLevel.NORMAL,
-    }
+    defaults = {category.value: DetectionLevel.NORMAL for category in ModerationCategory}
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
 
 
 def _make_message(text: str = "Hello world") -> AsyncMock:
-    """Create a mock Message object."""
     message = AsyncMock(spec=Message)
     message.text = text
     return message
 
 
+def _mistral_returning(scores: dict[str, float] | None):
+    """Stand in for the catalog-built Mistral client, whose key now lives in the database."""
+    client = SimpleNamespace(
+        classifiers=SimpleNamespace(moderate_chat_async=AsyncMock(return_value=_make_moderation_response(scores)))
+    )
+    return patch(
+        "sophie_bot.modules.ai.utils.moderation.providers.mistral.get_mistral_client",
+        new=AsyncMock(return_value=client),
+    )
+
+
 @pytest.fixture
 def mock_history() -> AsyncMock:
-    """Mock AIMessageHistory to avoid needing real message processing."""
-    with patch("sophie_bot.modules.ai.utils.ai_moderator.AIMessageHistory") as mock_cls:
+    with patch("sophie_bot.modules.ai.utils.moderation.AIMessageHistory") as mock_cls:
         instance = AsyncMock()
         instance.add_from_message = AsyncMock()
         instance.to_moderation = [{"role": "user", "content": "test message"}]
@@ -58,194 +64,254 @@ def mock_history() -> AsyncMock:
 
 @pytest.fixture
 def mock_convert() -> AsyncMock:
-    """Mock convert_to_moderation_format."""
     with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.convert_to_moderation_format",
+        "sophie_bot.modules.ai.utils.moderation.providers.mistral.convert_to_moderation_format",
         return_value=[{"role": "user", "content": "test message"}],
     ) as mock_fn:
         yield mock_fn
 
 
-# --- check_moderator tests ---
+pytestmark = pytest.mark.usefixtures("db_init", "mock_history", "mock_convert")
 
 
-@pytest.mark.asyncio
-async def test_moderation_not_flagged(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """All scores below thresholds should result in not flagged."""
-    low_scores = {key: threshold - 0.1 for key, threshold in CATEGORY_MIN_SCORES.items()}
+# --- check_moderator ---
 
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=_make_moderation_response(low_scores)),
-    ):
+
+async def test_moderation_not_flagged() -> None:
+    scores = {key: threshold - 0.1 for key, threshold in _MISTRAL_DEFAULTS.items()}
+
+    with _mistral_returning(scores):
         result = await check_moderator(_make_message())
 
     assert result.flagged is False
-    assert result.categories.any_flagged is False
+    assert result.triggered == frozenset()
 
 
-@pytest.mark.asyncio
-async def test_moderation_flagged_sexual(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """Sexual score above threshold should flag the message."""
-    scores = {key: 0.0 for key in CATEGORY_MIN_SCORES}
-    scores["sexual"] = CATEGORY_MIN_SCORES["sexual"] + 0.1
+async def test_moderation_flagged_sexual() -> None:
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
+    scores["sexual"] = _MISTRAL_DEFAULTS["sexual"] + 0.1
 
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=_make_moderation_response(scores)),
-    ):
+    with _mistral_returning(scores):
         result = await check_moderator(_make_message())
 
     assert result.flagged is True
-    assert result.categories.sexual is True
-    assert result.categories.hate_and_discrimination is False
+    assert result.triggered == frozenset({ModerationCategory.SEXUAL})
+    assert result.triggered_native == frozenset({"sexual"})
 
 
-@pytest.mark.asyncio
-async def test_moderation_flagged_multiple_categories(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """Multiple categories above thresholds should all be flagged."""
-    scores = {key: 0.0 for key in CATEGORY_MIN_SCORES}
-    scores["violence_and_threats"] = CATEGORY_MIN_SCORES["violence_and_threats"] + 0.1
-    scores["hate_and_discrimination"] = CATEGORY_MIN_SCORES["hate_and_discrimination"] + 0.2
-    scores["pii"] = CATEGORY_MIN_SCORES["pii"] + 0.3
+async def test_moderation_flagged_multiple_categories() -> None:
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
+    scores["violence_and_threats"] = _MISTRAL_DEFAULTS["violence_and_threats"] + 0.1
+    scores["hate_and_discrimination"] = _MISTRAL_DEFAULTS["hate_and_discrimination"] + 0.2
+    scores["pii"] = _MISTRAL_DEFAULTS["pii"] + 0.3
 
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=_make_moderation_response(scores)),
-    ):
+    with _mistral_returning(scores):
         result = await check_moderator(_make_message())
 
-    assert result.flagged is True
-    assert result.categories.violence_and_threats is True
-    assert result.categories.hate_and_discrimination is True
-    assert result.categories.pii is True
-    assert result.categories.sexual is False
+    assert result.triggered == frozenset(
+        {
+            ModerationCategory.VIOLENCE_AND_THREATS,
+            ModerationCategory.HATE_AND_DISCRIMINATION,
+            ModerationCategory.PII,
+        }
+    )
 
 
-@pytest.mark.asyncio
-async def test_moderation_off_disables_category(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """Setting a category to OFF makes its threshold 1.1 (unreachable)."""
-    scores = {key: 0.0 for key in CATEGORY_MIN_SCORES}
-    # Set sexual score very high, but turn detection OFF
+async def test_moderation_no_scores_not_flagged() -> None:
+    with _mistral_returning(None):
+        result = await check_moderator(_make_message())
+
+    assert result.flagged is False
+    assert result.scores == {}
+
+
+# --- DetectionLevel ---
+
+
+async def test_moderation_off_disables_category() -> None:
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = 1.0
 
-    settings = _make_settings(sexual=DetectionLevel.OFF)
-
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=_make_moderation_response(scores)),
-    ):
-        result = await check_moderator(_make_message(), settings=settings)
+    with _mistral_returning(scores):
+        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.OFF))
 
     assert result.flagged is False
-    assert result.categories.sexual is False
 
 
-@pytest.mark.asyncio
-async def test_moderation_high_lowers_threshold(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """HIGH detection level lowers threshold, catching lower scores."""
-    # Use a score that is below NORMAL threshold but above HIGH threshold
-    normal_threshold = CATEGORY_MIN_SCORES["sexual"]
-    high_threshold = max(0.01, normal_threshold - 0.2)
-    score_between = (normal_threshold + high_threshold) / 2
+async def test_moderation_high_lowers_threshold() -> None:
+    normal = _MISTRAL_DEFAULTS["sexual"]
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
+    scores["sexual"] = normal - 0.1
 
-    scores = {key: 0.0 for key in CATEGORY_MIN_SCORES}
-    scores["sexual"] = score_between
+    with _mistral_returning(scores):
+        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH))
 
+    assert result.triggered == frozenset({ModerationCategory.SEXUAL})
+
+
+async def test_moderation_low_raises_threshold() -> None:
+    normal = _MISTRAL_DEFAULTS["sexual"]
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
+    scores["sexual"] = normal + 0.1
+
+    with _mistral_returning(scores):
+        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.LOW))
+
+    assert result.flagged is False
+
+
+# --- feature flags ---
+
+
+async def test_thresholds_come_from_flags() -> None:
+    provider = MistralModerationProvider()
+
+    thresholds = await resolve_thresholds(provider, None)
+    assert thresholds["sexual"] == _MISTRAL_DEFAULTS["sexual"]
+
+    await set_value("ai_moderation_threshold_mistral_sexual", 0.05)
+    try:
+        thresholds = await resolve_thresholds(provider, None)
+        assert thresholds["sexual"] == pytest.approx(0.05)
+    finally:
+        await set_value("ai_moderation_threshold_mistral_sexual", _MISTRAL_DEFAULTS["sexual"])
+
+
+async def test_threshold_chat_override_flags_low_score() -> None:
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
+    scores["sexual"] = 0.1
+
+    with _mistral_returning(scores):
+        assert (await check_moderator(_make_message(), chat_tid=_CHAT_TID)).flagged is False
+
+        await set_chat_override("ai_moderation_threshold_mistral_sexual", _CHAT_TID, 0.05)
+        result = await check_moderator(_make_message(), chat_tid=_CHAT_TID)
+
+    assert result.triggered == frozenset({ModerationCategory.SEXUAL})
+
+
+async def test_level_multipliers_come_from_flags() -> None:
+    multipliers = await resolve_level_multipliers(None)
+    assert multipliers == {DetectionLevel.LOW: 0.7, DetectionLevel.NORMAL: 1.0, DetectionLevel.HIGH: 1.3}
+
+    await set_value("ai_moderation_level_high_multiplier", 3.0)
+    try:
+        assert (await resolve_level_multipliers(None))[DetectionLevel.HIGH] == pytest.approx(3.0)
+    finally:
+        await set_value("ai_moderation_level_high_multiplier", 1.3)
+
+
+async def test_level_multiplier_scales_the_score() -> None:
+    # 0.3 misses the 0.5 threshold even at HIGH's default 1.3x, and clears it once HIGH scales by 3.
+    scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
+    scores["sexual"] = 0.3
     settings = _make_settings(sexual=DetectionLevel.HIGH)
 
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=_make_moderation_response(scores)),
+    with _mistral_returning(scores):
+        assert (await check_moderator(_make_message(), settings=settings)).flagged is False
+
+        await set_value("ai_moderation_level_high_multiplier", 3.0)
+        try:
+            result = await check_moderator(_make_message(), settings=settings)
+        finally:
+            await set_value("ai_moderation_level_high_multiplier", 1.3)
+
+    assert result.triggered == frozenset({ModerationCategory.SEXUAL})
+
+
+async def test_provider_flag_selects_backend() -> None:
+    assert (await get_moderation_provider()).name == "mistral"
+
+    await set_value("ai_moderation_provider", "openai")
+    try:
+        assert (await get_moderation_provider()).name == "openai"
+    finally:
+        await set_value("ai_moderation_provider", "mistral")
+
+
+async def test_unknown_provider_falls_back_to_mistral() -> None:
+    await set_value("ai_moderation_provider", "nonsense")
+    try:
+        assert (await get_moderation_provider()).name == "mistral"
+    finally:
+        await set_value("ai_moderation_provider", "mistral")
+
+
+# --- the /aimoderator picker ---
+
+
+def test_level_cycle_walks_every_level_and_returns() -> None:
+    level = DetectionLevel.OFF
+    walked = [level]
+    for _step in LEVEL_CYCLE:
+        level = next_level(level)
+        walked.append(level)
+
+    assert walked[:-1] == list(LEVEL_CYCLE)
+    assert walked[-1] == DetectionLevel.OFF
+
+
+def test_keyboard_shows_every_category_with_its_level() -> None:
+    levels = dict.fromkeys(ModerationCategory, DetectionLevel.NORMAL)
+    levels[ModerationCategory.PII] = DetectionLevel.OFF
+
+    buttons = [button for row in _build_keyboard(levels).inline_keyboard for button in row]
+
+    assert len(buttons) == len(ModerationCategory)
+    pii_button = next(button for button in buttons if "Personal data" in button.text)
+    assert "Off" in pii_button.text
+    assert AIModeratorCategoryCallback.unpack(pii_button.callback_data).category == ModerationCategory.PII.value
+
+
+def test_picker_table_describes_every_category() -> None:
+    rendered = _build_doc().to_rich()
+
+    for category in ModerationCategory:
+        assert str(MODERATION_CATEGORIES_TRANSLATES[category]) in rendered
+
+
+# --- the deletion notice ---
+
+
+def _notice_message() -> AsyncMock:
+    message = AsyncMock(spec=Message)
+    message.chat = SimpleNamespace(id=_CHAT_TID)
+    message.message_thread_id = None
+    # aiogram's Message.delete() is sync and returns an awaitable method object, so spec'ing gives
+    # a MagicMock that common_try cannot await.
+    message.delete = AsyncMock()
+    message.from_user = SimpleNamespace(id=42, first_name="Spammer")
+    return message
+
+
+async def _send_notice() -> tuple[str, AsyncMock]:
+    schedule_mock = MagicMock()
+    send_mock = AsyncMock(return_value=SimpleNamespace(message_id=777))
+
+    with (
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.bot.send_message", send_mock),
+        patch("sophie_bot.modules.ai.middlewares.ai_moderator.schedule_message_deletion", schedule_mock),
     ):
-        result = await check_moderator(_make_message(), settings=settings)
+        await AiModeratorMiddleware._triggered(
+            _notice_message(), frozenset({ModerationCategory.SEXUAL}), _CHAT_TID
+        )
 
-    assert result.flagged is True
-    assert result.categories.sexual is True
-
-
-@pytest.mark.asyncio
-async def test_moderation_low_raises_threshold(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """LOW detection level raises threshold, requiring higher scores to flag."""
-    # Use a score that is above NORMAL threshold but below LOW threshold
-    normal_threshold = CATEGORY_MIN_SCORES["sexual"]
-    low_threshold = min(1.0, normal_threshold + 0.3)
-    score_between = (normal_threshold + low_threshold) / 2
-
-    scores = {key: 0.0 for key in CATEGORY_MIN_SCORES}
-    scores["sexual"] = score_between
-
-    settings = _make_settings(sexual=DetectionLevel.LOW)
-
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=_make_moderation_response(scores)),
-    ):
-        result = await check_moderator(_make_message(), settings=settings)
-
-    assert result.flagged is False
-    assert result.categories.sexual is False
+    return send_mock.call_args.kwargs["text"], schedule_mock
 
 
-@pytest.mark.asyncio
-async def test_moderation_no_scores_not_flagged(mock_history: AsyncMock, mock_convert: AsyncMock) -> None:
-    """When category_scores is empty/None, result should not be flagged."""
-    response = SimpleNamespace(
-        results=[SimpleNamespace(category_scores=None)],
-    )
+async def test_notice_announces_and_schedules_its_own_deletion() -> None:
+    text, schedule_mock = await _send_notice()
 
-    with patch(
-        "sophie_bot.modules.ai.utils.ai_moderator.mistral_client.classifiers.moderate_chat_async",
-        new=AsyncMock(return_value=response),
-    ):
-        result = await check_moderator(_make_message())
-
-    assert result.flagged is False
-    assert result.categories == CategoriesDict()
+    assert "deleted shortly" in text
+    schedule_mock.assert_called_once_with(_CHAT_TID, [777], delay_seconds=30)
 
 
-# --- CategoriesDict tests ---
+async def test_notice_stays_when_delay_flag_is_zero() -> None:
+    await set_value("ai_moderation_notice_delete_after_seconds", 0)
+    try:
+        text, schedule_mock = await _send_notice()
+    finally:
+        await set_value("ai_moderation_notice_delete_after_seconds", 30)
 
-
-def test_categories_dict_any_flagged_true() -> None:
-    """any_flagged returns True when at least one category is set."""
-    categories = CategoriesDict(sexual=True)
-    assert categories.any_flagged is True
-
-    categories = CategoriesDict(pii=True, violence_and_threats=True)
-    assert categories.any_flagged is True
-
-
-def test_categories_dict_any_flagged_false() -> None:
-    """any_flagged returns False when no categories are set."""
-    categories = CategoriesDict()
-    assert categories.any_flagged is False
-
-
-def test_categories_dict_to_dict() -> None:
-    """to_dict returns correct dictionary representation."""
-    categories = CategoriesDict(
-        sexual=True,
-        hate_and_discrimination=False,
-        violence_and_threats=True,
-        dangerous_and_criminal_content=False,
-        selfharm=False,
-        health=False,
-        financial=True,
-        law=False,
-        pii=False,
-    )
-
-    result = categories.to_dict()
-
-    assert result == {
-        "sexual": True,
-        "hate_and_discrimination": False,
-        "violence_and_threats": True,
-        "dangerous_and_criminal_content": False,
-        "selfharm": False,
-        "health": False,
-        "financial": True,
-        "law": False,
-        "pii": False,
-    }
+    assert "deleted shortly" not in text
+    schedule_mock.assert_not_called()
