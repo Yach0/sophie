@@ -1,5 +1,3 @@
-from typing import cast
-
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgCustomError
 from babel.support import LazyProxy
@@ -41,7 +39,7 @@ class URLButton(SophieButtonABC):
                     length=len(raw_button_type),
                 )
 
-            style = cast(ButtonStyle, raw_style)
+            style = raw_style
         else:
             button_type = raw_button_type
 
