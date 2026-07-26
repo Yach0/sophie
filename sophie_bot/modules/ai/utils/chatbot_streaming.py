@@ -8,7 +8,7 @@ from typing import Any
 
 from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message, ReplyParameters
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
 from pydantic_ai.models import Model
 from stfu_tg import Doc, HList, Template
 from stfu_tg.doc import Element
@@ -206,7 +206,8 @@ class ChatbotMessageStreamer:
             return self.response_message
 
         try:
-            kwargs: dict[str, Any] = {"reply_markup": reply_kwargs.get("reply_markup")}
+            reply_markup = reply_kwargs.get("reply_markup")
+            kwargs: dict[str, Any] = {"reply_markup": reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None}
             if self.mode == StreamMode.RICH_EDIT:
                 result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
                     chat_id=self.response_message.chat.id,
