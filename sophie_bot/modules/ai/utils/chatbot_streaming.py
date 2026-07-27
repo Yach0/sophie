@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Awaitable, Callable
 from enum import Enum
 from random import choice
 from typing import Any
@@ -26,9 +25,6 @@ from sophie_bot.modules.ai.utils.research import (
 )
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
-
-ToolCallCallback = Callable[[str], Awaitable[None]]
-
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
