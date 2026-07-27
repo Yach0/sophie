@@ -90,6 +90,12 @@ class GreetingsModel(Document):
         model.join_request_message = saveable
         return await model.save()
 
+    @staticmethod
+    async def change_security_message(chat_iid: PydanticObjectId, saveable: Saveable) -> "GreetingsModel":
+        model = await GreetingsModel.get_by_chat_iid(chat_iid)
+        model.security_note = saveable
+        return await model.save()
+
     async def set_clean_welcome_status(self, new_state: bool) -> "GreetingsModel":
         if not self.clean_welcome:
             self.clean_welcome = CleanWelcome(enabled=new_state)

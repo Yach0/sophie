@@ -68,6 +68,7 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
             ),
             Template(_("Use {cmd} to control Welcome Captcha"), cmd=Italic("/enablewelcomecaptcha")),
             Template(_("Use {cmd} to control Media restriction"), cmd=Italic("/welcomerestrict")),
+            Template(_("Use {cmd} to set a custom Welcome Security message"), cmd=Italic("/setwelcomesecurity")),
             Template(_("Check out {cmd} to learn more about Welcome settings."), cmd=Italic("/help")),
         )
         await self.event.reply(str(doc))

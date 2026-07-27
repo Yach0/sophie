@@ -26,6 +26,10 @@ from sophie_bot.modules.welcomesecurity.handlers.legacy_button import (
     LegacyStableWSButtonRedirectHandler,
     LegacyWSButtonHandler,
 )
+from sophie_bot.modules.welcomesecurity.handlers.set_security_message import (
+    DelSecurityMessageHandler,
+    SetSecurityMessageHandler,
+)
 from sophie_bot.modules.welcomesecurity.handlers.status_overall import (
     WelcomeSecuritySettingsShowHandler,
 )
@@ -61,6 +65,8 @@ module_manifest = ModuleManifest(
         ChatJoinRequestHandler,
         EnableWelcomeCaptchaHandlerABC,
         EnableWelcomeMute,
+        SetSecurityMessageHandler,
+        DelSecurityMessageHandler,
         WelcomeSecuritySettingsShowHandler,
         LegacyStableWSButtonRedirectHandler,
     ),
