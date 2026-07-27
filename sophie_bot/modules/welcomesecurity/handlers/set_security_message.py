@@ -64,7 +64,6 @@ class DelSecurityMessageHandler(SophieMessageHandler):
                 ).to_html()
             )
 
-        # Reset to None
         db_model.security_note = None
         await db_model.save()
 
