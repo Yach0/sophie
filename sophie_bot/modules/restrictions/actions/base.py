@@ -99,6 +99,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
         return _("Restricts user indefinitely")
 
     def settings(self, data: ACTION_DATA) -> dict[str, ModernActionSetting]:
+        assert self.data_object is not None
         return {
             self.settings_key: ModernActionSetting(
                 title=self.settings_title,
@@ -109,7 +110,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
                     )
                 ),
                 setup_confirm=make_duration_setup_confirm(
-                    type(data),
+                    self.data_object,
                     _("Invalid duration, please try again."),
                 ),
             ),
