@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
@@ -18,7 +17,14 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.ai_run import (
+    AIAgentResult,
+    ChatbotStreamOptions,
+    TextStreamCallback,
+    ToolCallCallback,
+    run_ai_stream,
+    run_ai_text,
+)
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -45,9 +51,6 @@ from sophie_bot.modules.ai.utils.research import build_research_markdown_file, r
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
-
-TextStreamCallback = Callable[[str], Awaitable[None]]
-ToolCallCallback = Callable[[str], Awaitable[None]]
 
 __all__ = ("CHATBOT_TOOLS", "ChatbotMessageStreamer", "ai_chatbot_reply")
 
