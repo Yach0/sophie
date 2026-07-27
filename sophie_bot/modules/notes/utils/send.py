@@ -161,10 +161,12 @@ async def send_saveable(
 
         inline_markup = render_buttons(saveable.buttons, chat_id_for_buttons)
 
-        # Fallback: parse legacy button syntax from text for old/unmigrated saveables
+        # Defensive net: parse legacy button syntax from text for persisted saveables
+        # that predate the structured button model. Kept permanently as a safety net.
         if not inline_markup.inline_keyboard and text:
-            text, legacy_buttons = parse_legacy_text_buttons(text)
+            cleaned_text, legacy_buttons = parse_legacy_text_buttons(text)
             if legacy_buttons:
+                text = cleaned_text
                 inline_markup = render_buttons(legacy_buttons, chat_id_for_buttons)
 
         if additional_keyboard:
