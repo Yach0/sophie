@@ -11,10 +11,10 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
     ProactiveReplySettings,
     _get_recent_candidates,
     _get_settings,
-    _is_candidate,
     _limit_actions,
     _normalize_reaction_emoji,
 )
+from sophie_bot.modules.ai.utils.proactive_tracking import is_candidate
 
 
 @pytest.mark.parametrize(
@@ -43,7 +43,7 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
     ),
 )
 def test_is_candidate_filters_already_handled_ai_messages(message: MessageType, expected: bool) -> None:
-    assert _is_candidate(message) is expected
+    assert is_candidate(message) is expected
 
 
 def test_normalize_reaction_emoji_keeps_supported_telegram_reactions() -> None:
