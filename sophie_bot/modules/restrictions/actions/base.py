@@ -31,7 +31,7 @@ from sophie_bot.utils.i18n import gettext as _
 
 
 def make_duration_setup_confirm(
-    data_cls: type[Any],
+    data_cls: type[BaseModel],
     invalid_duration_text: str,
 ) -> Any:
     async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> Any:
