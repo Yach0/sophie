@@ -147,7 +147,7 @@ async def test_legacy_note_button_renders_migrated_button_rows(
 
 
 @pytest.mark.asyncio
-async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
+async def test_unmigrated_v1_note_parses_legacy_buttons_at_send_time(
     test_client: TestClient,
 ) -> None:
 
@@ -179,8 +179,12 @@ async def test_unmigrated_v1_note_does_not_parse_legacy_buttons_at_send_time(
     assert requests, "Legacy note deep link should still send the note"
     response = requests[-1]
     assert response.request_type.value == "sendMessage"
-    assert "[URL](btnurl:https://example.com/path)" in (response.text or "")
-    assert response.reply_markup in (None, {"inline_keyboard": []})
+    # An unmigrated v1 note has no structured buttons, so the send-time safety net
+    # must strip the legacy syntax from the text and render the buttons itself.
+    assert "[URL](btnurl:https://example.com/path)" not in (response.text or "")
+    assert "Legacy menu" in (response.text or "")
+    assert response.reply_markup is not None
+    assert response.reply_markup.get("inline_keyboard"), "Legacy buttons should be rendered"
 
 
 @pytest.mark.asyncio

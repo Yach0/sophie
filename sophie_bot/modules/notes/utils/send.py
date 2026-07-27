@@ -23,6 +23,7 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils._random_parser import parse_random_text
+from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_buttons
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
@@ -159,6 +160,14 @@ async def send_saveable(
         chat_id_for_buttons = connection.db_model.tid if connection else (message.chat.id if message else send_to)
 
         inline_markup = render_buttons(saveable.buttons, chat_id_for_buttons)
+
+        # Defensive net: parse legacy button syntax from text for persisted saveables
+        # that predate the structured button model. Kept permanently as a safety net.
+        if not inline_markup.inline_keyboard and text:
+            cleaned_text, legacy_buttons = parse_legacy_text_buttons(text)
+            if legacy_buttons:
+                text = cleaned_text
+                inline_markup = render_buttons(legacy_buttons, chat_id_for_buttons)
 
         if additional_keyboard:
             inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
