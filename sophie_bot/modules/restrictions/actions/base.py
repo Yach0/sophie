@@ -31,7 +31,7 @@ from sophie_bot.utils.i18n import gettext as _
 
 
 def make_duration_setup_confirm(
-    data_cls: type[Any],
+    data_cls: type[BaseModel],
     invalid_duration_text: str,
 ) -> Any:
     async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> Any:
@@ -72,6 +72,8 @@ def make_duration_setup_message(prompt_text: str) -> Any:
 class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION_DATA]):
     skip_for_admins = True
 
+    data_object: type[ACTION_DATA]
+
     action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
     auto_banned_text: ClassVar[str | LazyProxy]
@@ -109,7 +111,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
                     )
                 ),
                 setup_confirm=make_duration_setup_confirm(
-                    type(data),
+                    self.data_object,
                     _("Invalid duration, please try again."),
                 ),
             ),
