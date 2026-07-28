@@ -49,6 +49,7 @@ test-unit:
   coverage: '/^TOTAL.*\s+(\d+%)$/'
   script:
     - uv run pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
+    - if [ -n "$DEEPSOURCE_DSN" ]; then uv run deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml; fi
   artifacts:
     when: always
     paths:
@@ -79,14 +80,3 @@ test-migrations:
     paths:
       - allure_results
     expire_in: 1 day
-
-report-coverage:
-  extends: .test-base
-  needs:
-    - job: test-unit
-      artifacts: true
-      optional: true
-  script:
-    - uv run deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
-  rules:
-    - if: $DEEPSOURCE_DSN
