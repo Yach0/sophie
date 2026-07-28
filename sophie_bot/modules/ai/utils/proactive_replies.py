@@ -31,10 +31,20 @@ from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUser
 from sophie_bot.modules.ai.utils.proactive_prompt import build_decision_history as _build_decision_history
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     acquire_lock as _acquire_lock,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     clear_tracked_messages as _clear_tracked_messages,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     get_recent_candidates as _get_recent_candidates,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     log_proactive_info as _log_proactive_info,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     release_lock as _release_lock,
+)
+from sophie_bot.modules.ai.utils.proactive_tracking import (
     track_eligible_message as _track_eligible_message,
 )
 from sophie_bot.services.bot import bot
