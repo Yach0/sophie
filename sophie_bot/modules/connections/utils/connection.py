@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from beanie import PydanticObjectId
-from stfu_tg import Doc, Element, Section, Template, Title
+from stfu_tg import Doc, Section, Template, Title
+from stfu_tg.doc import Element
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
@@ -12,6 +13,7 @@ from sophie_bot.modules.connections.utils.texts import CONNECTION_OBSOLETE_NOTIC
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -74,7 +76,7 @@ async def check_connection_permissions(chat_iid: PydanticObjectId, user_iid: Pyd
 async def get_connection_text(chat_id: int) -> Doc:
     """Returns the formatted document for a successful connection."""
     chat = await ChatModel.get_by_tid(chat_id)
-    obsolete_notice: str | Element | None = (
+    obsolete_notice: str | LazyProxy | Element | None = (
         CONNECTION_OBSOLETE_NOTICE if await is_enabled("connection_webapp_notice") else None
     )
 
