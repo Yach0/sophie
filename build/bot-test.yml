@@ -49,7 +49,7 @@ test-unit:
   coverage: '/^TOTAL.*\s+(\d+%)$/'
   script:
     - uv run pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
-    - if [ -n "$DEEPSOURCE_DSN" ]; then uv run deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml; fi
+    - if [ -n "$DEEPSOURCE_DSN" ]; then uv run deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml || echo "DeepSource coverage report failed, continuing"; fi
   artifacts:
     when: always
     paths:
