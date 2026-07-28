@@ -10,7 +10,6 @@ from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.metrics import (
     track_ai_conversation,
     track_ai_proactive_action,
@@ -18,8 +17,7 @@ from sophie_bot.metrics import (
     track_ai_proactive_event,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_mode
+from sophie_bot.modules.ai.utils.ai_get_provider import get_chat_default_model
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
@@ -33,23 +31,10 @@ from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUser
 from sophie_bot.modules.ai.utils.proactive_prompt import build_decision_history as _build_decision_history
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     acquire_lock as _acquire_lock,
-)
-from sophie_bot.modules.ai.utils.proactive_tracking import (
     clear_tracked_messages as _clear_tracked_messages,
-)
-from sophie_bot.modules.ai.utils.proactive_tracking import (
     get_recent_candidates as _get_recent_candidates,
-)
-from sophie_bot.modules.ai.utils.proactive_tracking import (
-    is_candidate as _tracking_is_candidate,
-)
-from sophie_bot.modules.ai.utils.proactive_tracking import (
     log_proactive_info as _log_proactive_info,
-)
-from sophie_bot.modules.ai.utils.proactive_tracking import (
     release_lock as _release_lock,
-)
-from sophie_bot.modules.ai.utils.proactive_tracking import (
     track_eligible_message as _track_eligible_message,
 )
 from sophie_bot.services.bot import bot
@@ -165,16 +150,11 @@ async def _get_settings(chat_tid: int) -> ProactiveReplySettings:
     return settings
 
 
-def _metric_attributes() -> dict[str, str]:
-    return {"feature": "ai_proactive_replies"}
+_METRIC_ATTRIBUTES: dict[str, str] = {"feature": "ai_proactive_replies"}
 
 
 def _target_by_message_id(messages: tuple[MessageType, ...]) -> dict[int, MessageType]:
     return {message.message_id: message for message in messages}
-
-
-def _is_candidate(message: MessageType) -> bool:
-    return _tracking_is_candidate(message)
 
 
 def _normalize_reaction_emoji(emoji: str | None) -> str | None:
@@ -237,12 +217,12 @@ async def _generate_decision(
         service_tier=service_tier,
     )
     limited_actions = _limit_actions(result.output, settings)
-    track_ai_proactive_event("decision_generated", _metric_attributes())
-    track_ai_proactive_batch(len(messages), len(limited_actions), _metric_attributes())
+    track_ai_proactive_event("decision_generated", _METRIC_ATTRIBUTES)
+    track_ai_proactive_batch(len(messages), len(limited_actions), _METRIC_ATTRIBUTES)
     if not limited_actions:
-        track_ai_proactive_action("none", _metric_attributes())
+        track_ai_proactive_action("none", _METRIC_ATTRIBUTES)
     for action in limited_actions:
-        track_ai_proactive_action(action.action, _metric_attributes())
+        track_ai_proactive_action(action.action, _METRIC_ATTRIBUTES)
     _log_proactive_info(
         "Proactive AI decision generated",
         chat_id=chat_tid,
@@ -270,7 +250,7 @@ async def _react_to_message(chat_tid: int, target_message: MessageType, emoji: s
         message_id=target_message.message_id,
         reaction=[ReactionTypeEmoji(emoji=reaction_emoji)],
     )
-    track_ai_proactive_event("reaction_sent", _metric_attributes())
+    track_ai_proactive_event("reaction_sent", _METRIC_ATTRIBUTES)
     _log_proactive_info(
         "Proactive AI reaction sent",
         chat_id=chat_tid,
@@ -306,7 +286,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         db_model=chat,
     )
     model = await get_chat_default_model(chat.iid, chat_tid=chat_tid)
-    service_tier = await resolve_chat_service_tier(AIModelPurpose.chatbot, chat.iid, chat_tid)
+    service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=chat_tid)
     _log_proactive_info(
         "Proactive AI answer generation started",
         chat_id=chat_tid,
@@ -315,7 +295,6 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         service_tier=service_tier or "none",
     )
     history = await _build_answer_history(chat_tid, target_message)
-    mode = await resolve_chat_mode(chat)
     run_config = await build_chatbot_run_config(
         chat_tid,
         connection,
@@ -326,7 +305,6 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
         service_tier=service_tier,
         use_base_tools=True,
-        mode=mode,
     )
     async with track_ai_conversation():
         set_conversation_id(f"{chat.iid}:proactive")
@@ -356,7 +334,7 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         reply_to_message_id=target_message.message_id,
         message_thread_id=target_message.message_thread_id,
     )
-    track_ai_proactive_event("answer_sent", _metric_attributes())
+    track_ai_proactive_event("answer_sent", _METRIC_ATTRIBUTES)
     _log_proactive_info(
         "Proactive AI answer sent",
         chat_id=chat_tid,
@@ -389,7 +367,7 @@ async def _execute_actions(
     _log_proactive_info("Proactive AI executing actions", chat_id=chat_tid, action_count=len(limited_actions))
     for action in limited_actions:
         if action.message_id is None or action.message_id not in messages_by_id:
-            track_ai_proactive_event("action_invalid_target", _metric_attributes())
+            track_ai_proactive_event("action_invalid_target", _METRIC_ATTRIBUTES)
             _log_proactive_info(
                 "Proactive AI action skipped due to invalid target",
                 chat_id=chat_tid,
@@ -399,7 +377,7 @@ async def _execute_actions(
             continue
         target_message = messages_by_id[action.message_id]
         if action.action == "react":
-            track_ai_proactive_event("action_react_selected", _metric_attributes())
+            track_ai_proactive_event("action_react_selected", _METRIC_ATTRIBUTES)
             _log_proactive_info(
                 "Proactive AI reaction action selected",
                 chat_id=chat_tid,
@@ -408,7 +386,7 @@ async def _execute_actions(
             )
             await _react_to_message(chat_tid, target_message, action.emoji)
         if action.action == "answer":
-            track_ai_proactive_event("action_answer_selected", _metric_attributes())
+            track_ai_proactive_event("action_answer_selected", _METRIC_ATTRIBUTES)
             _log_proactive_info(
                 "Proactive AI answer action selected",
                 chat_id=chat_tid,
@@ -427,15 +405,15 @@ async def maybe_run_proactive_reply(message: Message, chat: ChatModel) -> None:
     _log_proactive_info("Proactive AI evaluation started", chat_id=chat_tid, message_id=message.message_id)
     quota_result = await check_quota(chat.iid)
     if not quota_result.allowed:
-        track_ai_proactive_event("quota_exhausted", _metric_attributes())
+        track_ai_proactive_event("quota_exhausted", _METRIC_ATTRIBUTES)
         _log_proactive_info("Proactive AI skipped because quota is exhausted", chat_id=chat_tid)
         return
 
     settings = await _get_settings(chat_tid)
     tracked_count = await _track_eligible_message(chat_tid, message, settings)
-    track_ai_proactive_event("eligible_message", _metric_attributes())
+    track_ai_proactive_event("eligible_message", _METRIC_ATTRIBUTES)
     if tracked_count < settings.min_messages:
-        track_ai_proactive_event("below_threshold", _metric_attributes())
+        track_ai_proactive_event("below_threshold", _METRIC_ATTRIBUTES)
         _log_proactive_info(
             "Proactive AI waiting for more messages",
             chat_id=chat_tid,
@@ -444,14 +422,14 @@ async def maybe_run_proactive_reply(message: Message, chat: ChatModel) -> None:
         )
         return
     if not await _acquire_lock(chat_tid):
-        track_ai_proactive_event("lock_busy", _metric_attributes())
+        track_ai_proactive_event("lock_busy", _METRIC_ATTRIBUTES)
         _log_proactive_info("Proactive AI skipped because lock is busy", chat_id=chat_tid)
         return
 
     try:
         candidates = await _get_recent_candidates(chat_tid, settings)
         if len(candidates) < settings.min_messages:
-            track_ai_proactive_event("no_candidates", _metric_attributes())
+            track_ai_proactive_event("no_candidates", _METRIC_ATTRIBUTES)
             _log_proactive_info(
                 "Proactive AI skipped because candidate count is below minimum",
                 chat_id=chat_tid,
@@ -459,7 +437,7 @@ async def maybe_run_proactive_reply(message: Message, chat: ChatModel) -> None:
                 min_messages=settings.min_messages,
             )
             return
-        track_ai_proactive_event("batch_started", _metric_attributes())
+        track_ai_proactive_event("batch_started", _METRIC_ATTRIBUTES)
         _log_proactive_info(
             "Proactive AI batch started",
             chat_id=chat_tid,
