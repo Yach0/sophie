@@ -6,7 +6,7 @@ from random import choice
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
+from aiogram.types import InputRichMessage, Message, ReplyParameters
 from pydantic_ai.models import Model
 from stfu_tg import Doc, HList, Template
 from stfu_tg.doc import Element
@@ -17,6 +17,7 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     random_ai_progress_custom_emoji_id,
     random_ai_thinking_text,
 )
+from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
@@ -211,9 +212,7 @@ class ChatbotMessageStreamer:
             return self.response_message
 
         try:
-            reply_markup = reply_kwargs.get("reply_markup")
-            if not isinstance(reply_markup, InlineKeyboardMarkup):
-                reply_markup = None
+            reply_markup = editable_reply_markup(reply_kwargs.get("reply_markup"))
             if self.mode == StreamMode.RICH_EDIT:
                 result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
                     chat_id=self.response_message.chat.id,

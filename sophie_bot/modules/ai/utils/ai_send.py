@@ -3,8 +3,18 @@ from __future__ import annotations
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InputRichMessage, Message, ReplyParameters
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
 from stfu_tg import Doc
+
+
+def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
+    """Keep a markup only if an edited message can carry it.
+
+    Reply keyboards are valid for a fresh send but are rejected by Bot API edit methods, and aiogram
+    raises a pydantic ValidationError before any request is made — so it cannot be caught as a
+    Telegram error.
+    """
+    return reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None
 
 
 async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
