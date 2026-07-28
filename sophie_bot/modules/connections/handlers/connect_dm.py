@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from ass_tg.types import OptionalArg
-from stfu_tg import Doc, Title
+from stfu_tg import Doc, Element, Title
 
 from sophie_bot.args.chats import SophieChatArg
 from sophie_bot.db.models.chat import ChatModel
@@ -22,6 +22,7 @@ from sophie_bot.modules.connections.utils.connection import (
 )
 from sophie_bot.modules.connections.utils.texts import CONNECTION_OBSOLETE_NOTICE
 from sophie_bot.utils import flags
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -58,9 +59,13 @@ class ConnectDMCmd(SophieMessageHandler):
         # No arg, show buttons
         conn = await ChatConnectionModel.get_by_user_tid(self.event.from_user.id)
 
+        obsolete_notice: str | Element | None = (
+            CONNECTION_OBSOLETE_NOTICE if await is_enabled("connection_webapp_notice") else None
+        )
+
         doc = Doc(
             Title(_("Connections")),
-            CONNECTION_OBSOLETE_NOTICE,
+            obsolete_notice,
             _("Select a chat to connect to:"),
         )
 
