@@ -101,6 +101,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
         return _("Restricts user indefinitely")
 
     def settings(self, data: ACTION_DATA) -> dict[str, ModernActionSetting]:
+        assert self.data_object is not None, f"{type(self).__name__} must define data_object"
         return {
             self.settings_key: ModernActionSetting(
                 title=self.settings_title,
