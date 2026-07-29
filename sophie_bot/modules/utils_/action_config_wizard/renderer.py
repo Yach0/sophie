@@ -98,7 +98,7 @@ class WizardRenderer:
 
         doc = Section(
             *items,
-            title=_(cfg.wizard_title),
+            title=_(str(cfg.wizard_title)),
         )
         return doc.to_html(), builder.as_markup()
 
