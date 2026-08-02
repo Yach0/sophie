@@ -61,10 +61,7 @@ class SaveChatsMiddleware(BaseMiddleware):
         # Reply to a forwarded message
         reply_to_forwarded = reply_message.forward_from_chat or reply_message.forward_from
         if reply_to_forwarded and reply_to_forwarded.id != CONFIG.bot_id:
-            if reply_message.forward_from_chat:
-                chats_to_update.append(reply_message.forward_from_chat)
-            elif reply_message.forward_from:
-                chats_to_update.append(reply_message.forward_from)
+            chats_to_update.append(reply_to_forwarded)
 
         return chats_to_update
 
@@ -85,11 +82,6 @@ class SaveChatsMiddleware(BaseMiddleware):
                 "SaveChatsMiddleware: Saving topic", group=group, thread_id=message.message_thread_id, name=name
             )
             await ChatTopicModel.ensure_topic(group, message.message_thread_id, name)
-
-    @staticmethod
-    async def close_topic(message: Message, group_id: int):
-        # TODO: Closed topics notation
-        pass
 
     @staticmethod
     async def save_community(message: Message, group: ChatModel):
@@ -305,7 +297,7 @@ class SaveChatsMiddleware(BaseMiddleware):
             await self.handle_message(event.edited_message, data)
         elif event.edited_channel_post:
             await self.handle_message(event.edited_channel_post, data)
-        elif any([event.callback_query, event.inline_query, event.poll_answer]):
+        elif any((event.callback_query, event.inline_query, event.poll_answer)):
             await self.save_from_user(data)
         elif event.chat_join_request:
             await self.save_chat_join_request(event.chat_join_request, data)
