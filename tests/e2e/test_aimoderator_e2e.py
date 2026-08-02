@@ -6,11 +6,16 @@ import pytest
 from aiogram.types import InlineKeyboardMarkup
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
+from aiogram_test_framework.types import RequestType
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_moderator import DetectionLevel
-from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
+from sophie_bot.modules.ai.callbacks import (
+    AIModeratorCategoryCallback,
+    AIModeratorConfirmCallback,
+    AIModeratorToggleCallback,
+)
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.settings import get_levels, get_moderator_settings
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user_id
@@ -23,17 +28,63 @@ def _callbacks(requests: list) -> list[str]:
 
 
 @pytest.mark.asyncio
-async def test_aimoderator_shows_a_button_per_category(test_client: TestClient) -> None:
+async def test_aimoderator_starts_disabled(test_client: TestClient) -> None:
     admin, group, _model = await create_test_user_and_group(test_client, group_title="AIModerator Group")
     await grant_admin(group.id, admin.id)
 
     requests = await test_client.send_command(command="aimoderator", from_user=admin, chat=group)
 
     callbacks = _callbacks(requests)
-    assert len(callbacks) == len(ModerationCategory)
-    assert {AIModeratorCategoryCallback.unpack(data).category for data in callbacks} == {
-        category.value for category in ModerationCategory
-    }
+    assert len(callbacks) == 1
+    assert AIModeratorToggleCallback.unpack(callbacks[0]).action == "enable"
+
+
+@pytest.mark.asyncio
+async def test_enabling_aimoderator_renders_categories_and_confirm(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="AIModerator Enable Group")
+    await grant_admin(group.id, admin.id)
+
+    bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    picker = MessageFactory.create(text="AI Moderator", from_user=bot_user, chat=group)
+    requests = await test_client.send_callback(
+        AIModeratorToggleCallback(action="enable").pack(),
+        from_user=admin,
+        message=picker,
+    )
+
+    edit_request = next(request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT)
+    keyboard = InlineKeyboardMarkup.model_validate(edit_request.params["reply_markup"])
+    callbacks = [button.callback_data or "" for row in keyboard.inline_keyboard for button in row]
+    assert len(callbacks) == len(ModerationCategory) + 2
+    assert AIModeratorToggleCallback.unpack(callbacks[0]).action == "disable"
+    assert AIModeratorConfirmCallback.unpack(callbacks[-1])
+
+    disabled_requests = await test_client.send_callback(
+        AIModeratorToggleCallback(action="disable").pack(),
+        from_user=admin,
+        message=picker,
+    )
+    disabled_edit = next(
+        request for request in disabled_requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT
+    )
+    disabled_keyboard = InlineKeyboardMarkup.model_validate(disabled_edit.params["reply_markup"])
+    assert [button.text for row in disabled_keyboard.inline_keyboard for button in row] == ["Enable AI Moderator"]
+
+
+@pytest.mark.asyncio
+async def test_confirm_deletes_aimoderator_picker(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="AIModerator Confirm Group")
+    await grant_admin(group.id, admin.id)
+
+    bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    picker = MessageFactory.create(text="AI Moderator", from_user=bot_user, chat=group)
+    requests = await test_client.send_callback(
+        AIModeratorConfirmCallback().pack(),
+        from_user=admin,
+        message=picker,
+    )
+
+    assert any(request.request_type == RequestType.DELETE_MESSAGE for request in requests)
 
 
 @pytest.mark.asyncio
@@ -45,6 +96,11 @@ async def test_pressing_a_category_cycles_and_persists_its_level(test_client: Te
 
     bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
     picker = MessageFactory.create(text="AI Moderator", from_user=bot_user, chat=group)
+    await test_client.send_callback(
+        AIModeratorToggleCallback(action="enable").pack(),
+        from_user=admin,
+        message=picker,
+    )
     callback_data = AIModeratorCategoryCallback(category=ModerationCategory.PII.value).pack()
 
     # An unconfigured chat starts at NORMAL, so one press moves it to HIGH and the next wraps to OFF.

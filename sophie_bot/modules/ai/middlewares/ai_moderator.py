@@ -84,6 +84,9 @@ class AiModeratorMiddleware(BaseMiddleware):
                 return await handler(event, data)
             settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
 
+            if settings is None or not settings.enabled:
+                return await handler(event, data)
+
             if not (event.text or event.caption or event.photo or event.audio):
                 return await handler(event, data)
 

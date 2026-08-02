@@ -12,9 +12,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
+from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
+from aiogram_test_framework.types import RequestType
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.callbacks import AIModeCallback
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageBreakdownItem,
@@ -293,6 +296,35 @@ async def test_aimode_shows_mode_picker(test_client: TestClient) -> None:
     keyboard = last_request.reply_markup
     assert keyboard is not None, "Expected inline keyboard with mode options"
     assert len(keyboard["inline_keyboard"]) == 4, "Expected one button per mode"
+
+
+@pytest.mark.asyncio
+async def test_aimode_selection_removes_picker(test_client: TestClient) -> None:
+    """Selecting a mode should remove the inline keyboard and show a confirmation toast."""
+    group_chat = ChatFactory.create_group(chat_id=-1002900000009, title="AIMode Confirmation Group")
+    admin_wrapper = test_client.create_user(user_id=929000009, first_name="AdminMode", username="admin_mode")
+
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
+
+    bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    picker = MessageFactory.create(text="AI Mode", from_user=bot_user, chat=group_chat)
+    mode = AIMode.entertainment
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        requests = await test_client.send_callback(
+            AIModeCallback(mode=mode.value).pack(),
+            from_user=admin_wrapper.user,
+            message=picker,
+        )
+
+    edit_request = next(
+        request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_REPLY_MARKUP
+    )
+    assert edit_request.params.get("reply_markup") is None
+    answer_request = next(request for request in requests if request.request_type == RequestType.ANSWER_CALLBACK_QUERY)
+    assert answer_request.params["text"] == "Mode changed to 🎉 Entertainment"
 
 
 # ---------------------------------------------------------------------------

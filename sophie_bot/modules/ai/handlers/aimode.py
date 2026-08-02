@@ -6,7 +6,7 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputRichMessage, Message
-from stfu_tg import Doc, RichTable, RichTableCell, Title
+from stfu_tg import Doc, RichTable, RichTableCell, Template, Title
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
@@ -111,7 +111,5 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
 
         await set_chat_mode(self.connection.db_model, mode)
 
-        # The picker may have been sent as a rich message, which cannot be edited; only the keyboard
-        # is refreshed so the checkmark follows the selection.
-        await message.edit_reply_markup(reply_markup=_build_keyboard(mode))
-        return await self.event.answer(str(MODE_TITLES[mode]))
+        await message.edit_reply_markup(reply_markup=None)
+        return await self.event.answer(Template(_("Mode changed to {mode}"), mode=MODE_TITLES[mode]).to_html())

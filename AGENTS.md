@@ -69,6 +69,7 @@
 ### Delivery workflow
 
 - Run `make commit` after every task. This is very important!
+- Do not edit `.pot` files manually. `make commit` runs gettext extraction and must generate locale catalogs from the source strings.
 - Keep documentation updated when behavior or workflows change.
 - New handlers should have E2E coverage; use the `e2e-testing` skill.
 - New medium/high-risk features, integrations, and large refactors must ship behind a feature flag; use the `feature-flags` skill.

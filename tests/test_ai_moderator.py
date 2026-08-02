@@ -255,12 +255,20 @@ def test_keyboard_shows_every_category_with_its_level() -> None:
     levels = dict.fromkeys(ModerationCategory, DetectionLevel.NORMAL)
     levels[ModerationCategory.PII] = DetectionLevel.OFF
 
-    buttons = [button for row in _build_keyboard(levels).inline_keyboard for button in row]
+    buttons = [button for row in _build_keyboard(levels).inline_keyboard[1:-1] for button in row]
 
     assert len(buttons) == len(ModerationCategory)
     pii_button = next(button for button in buttons if "Personal data" in button.text)
     assert "Off" in pii_button.text
     assert AIModeratorCategoryCallback.unpack(pii_button.callback_data).category == ModerationCategory.PII.value
+
+
+def test_disabled_keyboard_only_offers_enable() -> None:
+    levels = dict.fromkeys(ModerationCategory, DetectionLevel.NORMAL)
+
+    buttons = [button for row in _build_keyboard(levels, enabled=False).inline_keyboard for button in row]
+
+    assert [button.text for button in buttons] == ["Enable AI Moderator"]
 
 
 def test_picker_table_describes_every_category() -> None:
@@ -292,9 +300,7 @@ async def _send_notice() -> tuple[str, AsyncMock]:
         patch("sophie_bot.modules.ai.middlewares.ai_moderator.bot.send_message", send_mock),
         patch("sophie_bot.modules.ai.middlewares.ai_moderator.schedule_message_deletion", schedule_mock),
     ):
-        await AiModeratorMiddleware._triggered(
-            _notice_message(), frozenset({ModerationCategory.SEXUAL}), _CHAT_TID
-        )
+        await AiModeratorMiddleware._triggered(_notice_message(), frozenset({ModerationCategory.SEXUAL}), _CHAT_TID)
 
     return send_mock.call_args.kwargs["text"], schedule_mock
 

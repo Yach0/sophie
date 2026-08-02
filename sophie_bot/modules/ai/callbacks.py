@@ -19,5 +19,13 @@ class AIModeratorCategoryCallback(CallbackData, prefix="ai_mod_cat"):
     category: str
 
 
+class AIModeratorToggleCallback(CallbackData, prefix="ai_mod_toggle"):
+    action: str
+
+
+class AIModeratorConfirmCallback(CallbackData, prefix="ai_mod_confirm"):
+    pass
+
+
 class AIHelpStartUrlCallback(CmdStart, prefix="aihelp"):
     """Deep link from a group into the Sophie-help assistant in the bot's private chat."""

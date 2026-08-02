@@ -12,7 +12,11 @@ from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
+from sophie_bot.modules.ai.callbacks import (
+    AIModeratorCategoryCallback,
+    AIModeratorConfirmCallback,
+    AIModeratorToggleCallback,
+)
 from sophie_bot.modules.ai.utils.moderation.categories import (
     MODERATION_CATEGORIES_TITLES,
     MODERATION_CATEGORIES_TRANSLATES,
@@ -55,7 +59,10 @@ def _build_table() -> RichTable:
     )
 
 
-def _build_doc() -> Doc:
+def _build_doc(enabled: bool = True) -> Doc:
+    if not enabled:
+        return Doc(Title(f"{AI_EMOJI} {_('AI Moderator')}"), _("The AI Moderator is disabled."))
+
     return Doc(
         Title(f"{AI_EMOJI} {_('AI Moderator')}"),
         _("Sophie deletes messages that cross a category's detection level."),
@@ -64,7 +71,23 @@ def _build_doc() -> Doc:
     )
 
 
-def _build_keyboard(levels: Mapping[ModerationCategory, DetectionLevel]) -> InlineKeyboardMarkup:
+def _build_keyboard(
+    levels: Mapping[ModerationCategory, DetectionLevel],
+    *,
+    enabled: bool = True,
+) -> InlineKeyboardMarkup:
+    if not enabled:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text=_("Enable AI Moderator"),
+                        callback_data=AIModeratorToggleCallback(action="enable").pack(),
+                    )
+                ]
+            ]
+        )
+
     buttons = [
         InlineKeyboardButton(
             text=f"{MODERATION_CATEGORIES_TITLES[category]}: {LEVEL_TITLES[levels[category]]}",
@@ -74,14 +97,22 @@ def _build_keyboard(levels: Mapping[ModerationCategory, DetectionLevel]) -> Inli
     ]
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            buttons[index : index + _BUTTONS_PER_ROW] for index in range(0, len(buttons), _BUTTONS_PER_ROW)
+            [
+                InlineKeyboardButton(
+                    text=_("Disable AI Moderator"),
+                    callback_data=AIModeratorToggleCallback(action="disable").pack(),
+                )
+            ],
+            *(buttons[index : index + _BUTTONS_PER_ROW] for index in range(0, len(buttons), _BUTTONS_PER_ROW)),
+            [InlineKeyboardButton(text=_("Confirm"), callback_data=AIModeratorConfirmCallback().pack())],
         ]
     )
 
 
 async def _send_picker(message: Message, settings: AIModeratorModel | None) -> None:
-    doc = _build_doc()
-    keyboard = _build_keyboard(get_levels(settings))
+    enabled = settings is not None and settings.enabled
+    doc = _build_doc(enabled)
+    keyboard = _build_keyboard(get_levels(settings), enabled=enabled)
     try:
         await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
             chat_id=message.chat.id,
@@ -123,7 +154,11 @@ class AIModeratorCategoryToggle(SophieCallbackQueryHandler):
             return await self.event.answer(_("Unknown category"))
 
         chat = self.connection.db_model
-        levels = get_levels(await get_moderator_settings(chat.iid))
+        settings = await get_moderator_settings(chat.iid)
+        if settings is None or not settings.enabled:
+            return await self.event.answer(_("The AI Moderator is disabled."))
+
+        levels = get_levels(settings)
         level = next_level(levels[category])
         levels = {**levels, category: level}
         await set_category_level(chat, category, level)
@@ -132,3 +167,48 @@ class AIModeratorCategoryToggle(SophieCallbackQueryHandler):
         # is refreshed, which is also where every level is displayed.
         await message.edit_reply_markup(reply_markup=_build_keyboard(levels))
         return await self.event.answer(f"{MODERATION_CATEGORIES_TITLES[category]}: {LEVEL_TITLES[level]}")
+
+
+class AIModeratorToggle(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (AIModeratorToggleCallback.filter(),)
+
+    async def handle(self) -> Any:
+        await self.check_for_message()
+        if not isinstance(self.event.message, Message):
+            return await self.event.answer(_("Invalid message type"))
+
+        message = self.event.message
+        if not await is_user_admin(message.chat.id, self.event.from_user.id):
+            return await self.event.answer(_("You are not allowed to change this setting"))
+
+        action = self.callback_data.action
+        if action not in {"enable", "disable"}:
+            return await self.event.answer(_("Unknown moderator action"))
+
+        enabled = action == "enable"
+        settings = await AIModeratorModel.set_state(self.connection.db_model, enabled)
+        await self.answer_rich(
+            _build_doc(enabled),
+            reply_markup=_build_keyboard(get_levels(settings), enabled=enabled),
+        )
+        return await self.event.answer(_("AI Moderator enabled") if enabled else _("AI Moderator disabled"))
+
+
+class AIModeratorConfirm(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (AIModeratorConfirmCallback.filter(),)
+
+    async def handle(self) -> Any:
+        await self.check_for_message()
+        if not isinstance(self.event.message, Message):
+            return await self.event.answer(_("Invalid message type"))
+
+        message = self.event.message
+        if not await is_user_admin(message.chat.id, self.event.from_user.id):
+            return await self.event.answer(_("You are not allowed to change this setting"))
+
+        await message.delete()
+        return await self.event.answer()
