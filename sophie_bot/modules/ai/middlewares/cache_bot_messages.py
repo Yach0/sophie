@@ -5,7 +5,6 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.flags import get_flag
 from aiogram.types import Message, TelegramObject
-from pydantic import BaseModel
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -15,17 +14,7 @@ from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
 from sophie_bot.utils.logger import log
 
 
-class MessageType(BaseModel):
-    user_id: int
-    message_id: int
-    text: str
-
-
 class CacheBotMessagesMiddleware(BaseMiddleware):
-    @staticmethod
-    def get_key(chat_id: int | str) -> str:
-        return f"messages:{chat_id}"
-
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
