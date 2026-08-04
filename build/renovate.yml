@@ -2,6 +2,7 @@ renovate:
   stage: test
   image: ghcr.io/renovatebot/renovate:43
   allow_failure: true
+  needs: []
   rules:
     - if: $RENOVATE_TOKEN || $RENOVATE_GITHUB_TOKEN || $RENOVATE_GITHUB_COM_TOKEN
   variables:
