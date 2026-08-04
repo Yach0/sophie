@@ -1,11 +1,15 @@
-image: quay.io/podman/stable:latest
-
 build_runtime_container:
+  image: quay.io/podman/stable:latest
+  stage: build
+  interruptible: true
+  # Empty needs: the image build does not depend on the tests, so it starts
+  # immediately alongside them. The deploy jobs are what gate on both.
+  needs: []
   variables:
     IMAGE_FULL: "$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-runtime"
     CACHE_IMAGE: "$CI_REGISTRY_IMAGE/cache/runtime"
-  stage: build
-  interruptible: true
+    # The build only needs the working tree; libs are cloned separately.
+    GIT_DEPTH: "1"
   before_script:
     - podman login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" registry.gitlab.com
     - rm -rf libs
@@ -28,9 +32,9 @@ build_runtime_container:
         --build-arg BRANCH_NAME="${CI_COMMIT_BRANCH:-Local}" \
         --build-arg COMMIT_HASH="${CI_COMMIT_SHORT_SHA:-unknown}" \
         --tag "$IMAGE_FULL" \
+        --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA-runtime" \
         .
     - podman push "$IMAGE_FULL"
-    - podman tag "$IMAGE_FULL" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA-runtime"
     - podman push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA-runtime"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^(main|dev_.*|dev-.*)$/'

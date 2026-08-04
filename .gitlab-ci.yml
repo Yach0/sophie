@@ -1,5 +1,16 @@
 variables:
   CI_IMAGE: "registry.gitlab.com/sophiebot/sophie-ci/sophie-ci:main"
+  # Shallow clones: no CI job needs history.
+  GIT_DEPTH: "20"
+  GIT_SUBMODULE_STRATEGY: none
+  # Faster cache/artifact (un)packing on the runners.
+  FF_USE_FASTZIP: "true"
+  CACHE_COMPRESSION_LEVEL: "fastest"
+  ARTIFACT_COMPRESSION_LEVEL: "fastest"
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
+  # Hardlinking out of the cache dir fails across runner mounts.
+  UV_LINK_MODE: copy
+  UV_IMAGE: "ghcr.io/astral-sh/uv:0.9.26-python3.14-bookworm-slim"
 
 default:
   interruptible: true

@@ -1,33 +1,88 @@
-.test-base:
+test:
   image: "$CI_IMAGE"
   stage: test
   interruptible: true
+  needs: []
+  coverage: '/^TOTAL.*\s+(\d+%)$/'
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
   variables:
     TOKEN: "123456:test"
+    RUFF_CACHE_DIR: "$CI_PROJECT_DIR/.cache/ruff"
+  cache:
+    # uv's package cache, keyed on the lockfile: a dependency bump gets a fresh
+    # entry, everything else reuses the previous one.
+    - key:
+        files:
+          - uv.lock
+        prefix: uv
+      paths:
+        - .cache/uv
+      policy: pull-push
+    - key: "ruff-$CI_COMMIT_REF_SLUG"
+      fallback_keys:
+        - ruff-$CI_DEFAULT_BRANCH
+        - ruff
+      paths:
+        - .cache/ruff
+      policy: pull-push
   before_script:
     - unset VIRTUAL_ENV
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/SophieBot/".insteadOf "https://gitlab.com/SophieBot/"
     - uv sync --frozen
     - uv run pybabel compile -d locales -D sophie --use-fuzzy
-
-test-codestyle:
-  extends: .test-base
   script:
-    # Run via `uv run` so the lint/format tools come from the synced lockfile, not the
+    # Every check runs even if an earlier one fails, so one pipeline reports all
+    # problems instead of one per re-run. `run` records failures; the job exits
+    # non-zero at the end if anything failed.
+    - |
+      FAILED=""
+      run() {
+        name="$1"; shift
+        echo -e "\e[0Ksection_start:$(date +%s):${name}[collapsed=true]\r\e[0K${name}"
+        if "$@"; then
+          echo -e "\e[0Ksection_end:$(date +%s):${name}\r\e[0K"
+        else
+          echo -e "\e[0Ksection_end:$(date +%s):${name}\r\e[0K"
+          echo "FAILED: ${name}"
+          FAILED="${FAILED} ${name}"
+        fi
+      }
+    # Lint/format/type tools come from the synced lockfile via `uv run`, not the
     # CI image's prebuilt /sophie/.venv (which can lag the project's pinned versions).
-    - uv run pycln . -a -c
-    - uv run ruff format sophie_bot/ --check
-    - uv run ruff check .
-
-test-codeanal:
-  extends: .test-base
-  script:
-    - uv run ty check
+    - run pycln uv run pycln . -a -c
+    - run ruff-format uv run ruff format sophie_bot/ --check
+    - run ruff-check uv run ruff check .
+    - run types uv run ty check
+    - run unit uv run pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
+    - run migrations env RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations uv run pytest tests/test_migrations.py -v --alluredir=allure_results/migrations
+    - run e2e uv run pytest tests/e2e -v -n auto --alluredir=allure_results/e2e
+    - |
+      if [ -f coverage.xml ] && [ -n "$DEEPSOURCE_DSN" ]; then
+        uv run deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml \
+          || echo "DeepSource coverage report failed, continuing"
+      fi
+    - |
+      if [ -n "$FAILED" ]; then
+        echo "Failed checks:${FAILED}"
+        exit 1
+      fi
+  artifacts:
+    when: always
+    paths:
+      - allure_results
+      - coverage.xml
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 1 day
 
 test-qodana:
+  stage: test
+  interruptible: true
+  needs: []
   image:
     name: jetbrains/qodana-python-community:2026.1
     entrypoint: [""]
@@ -43,40 +98,3 @@ test-qodana:
     QODANA_ENDPOINT: "https://qodana.cloud"
   script:
     - qodana --cache-dir=$CI_PROJECT_DIR/.qodana/cache
-
-test-unit:
-  extends: .test-base
-  coverage: '/^TOTAL.*\s+(\d+%)$/'
-  script:
-    - uv run pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
-    - if [ -n "$DEEPSOURCE_DSN" ]; then uv run deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml || echo "DeepSource coverage report failed, continuing"; fi
-  artifacts:
-    when: always
-    paths:
-      - allure_results
-      - coverage.xml
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-    expire_in: 1 day
-
-test-e2e:
-  extends: .test-base
-  script:
-    - uv run pytest tests/e2e -v -n auto --alluredir=allure_results/e2e
-  artifacts:
-    when: always
-    paths:
-      - allure_results
-    expire_in: 1 day
-
-test-migrations:
-  extends: .test-base
-  script:
-    - RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations uv run pytest tests/test_migrations.py -v --alluredir=allure_results/migrations
-  artifacts:
-    when: always
-    paths:
-      - allure_results
-    expire_in: 1 day

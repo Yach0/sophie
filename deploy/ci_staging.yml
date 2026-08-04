@@ -6,6 +6,9 @@ deploy_staging_all:
   stage: deploy
   interruptible: false
   needs:
+    - job: test
+    # Optional: the branch rules for the build are narrower than the deploy rules
+    # (e.g. test_ci), so the build job may not exist in this pipeline.
     - job: build_runtime_container
       optional: true
   image: willhallonline/ansible:2.18.6-alpine-3.18

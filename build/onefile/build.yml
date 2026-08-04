@@ -42,7 +42,7 @@ build_linux_onefile:
   rules:
     - changes:
         - build/onefile/**
-        - build/prepare.yml
+        - .gitlab-ci.yml
         - sophie_bot/**
         - locales/**
         - pyproject.toml
@@ -88,7 +88,7 @@ build_linux_onefile_container:
   rules:
     - changes:
         - build/onefile/**
-        - build/prepare.yml
+        - .gitlab-ci.yml
         - sophie_bot/**
         - locales/**
         - pyproject.toml
