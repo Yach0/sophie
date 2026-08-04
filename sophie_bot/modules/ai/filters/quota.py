@@ -33,24 +33,15 @@ class AIQuotaFilter(Filter):
             return {"quota_info": quota_info}
 
         track_ai_quota_exceeded(feature=str(self.feature), chat_type=message.chat.type)
+        quota_info = await get_quota_info(chat_db.iid)
+        period_start = quota_info.period_start if quota_info else _current_period_start()
+        period_end = quota_info.period_end if quota_info else get_period_end(period_start)
+
         if self._is_chatbot:
-            quota_info = await get_quota_info(chat_db.iid)
-            if quota_info:
-                period_end = quota_info.period_end
-            else:
-                period_end = get_period_end(_current_period_start())
             await message.reply(
                 str(build_chatbot_quota_exhausted_doc(quota_info.total_credits if quota_info else "?", period_end))
             )
         else:
-            quota_info = await get_quota_info(chat_db.iid)
-            if quota_info:
-                period_end = quota_info.period_end
-                period_start = quota_info.period_start
-            else:
-                period_start = _current_period_start()
-                period_end = get_period_end(period_start)
-
             quota_model = await AIQuotaModel.get_for_chat(chat_db.iid)
             already_notified = bool(
                 quota_model
