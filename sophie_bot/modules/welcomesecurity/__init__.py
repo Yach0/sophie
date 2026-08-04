@@ -36,7 +36,7 @@ from sophie_bot.modules.welcomesecurity.handlers.status_overall import (
 from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import (
     LockMutedUsers,
 )
-from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanUnpassedUsers
+from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -52,7 +52,7 @@ async def pre_setup() -> None:
 
 async def post_setup(_modules: dict[str, ModuleType]) -> None:
     if SOPHIE_MODE == "scheduler":
-        scheduler.add_job(BanUnpassedUsers().handle, "interval", minutes=10, jobstore="ram")
+        scheduler.add_job(KickUnpassedUsers().handle, "interval", minutes=10, jobstore="ram")
 
 
 module_manifest = ModuleManifest(
