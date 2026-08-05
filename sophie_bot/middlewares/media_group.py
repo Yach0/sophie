@@ -27,6 +27,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from aiogram import BaseMiddleware, Bot
+from aiogram.client.default import Default
 from aiogram.fsm.storage.base import StorageKey
 from aiogram.fsm.storage.redis import DefaultKeyBuilder, KeyBuilder
 from aiogram.types import Message, TelegramObject, Update
@@ -153,9 +154,13 @@ class RedisMediaGroupAggregator(BaseMediaGroupAggregator):
 
     async def add_into_group(self, key: StorageKey, media: Message) -> int:
         current_time = await self.get_current_time()
+        # Some update paths leave aiogram ``Default`` sentinels as field *values*; pydantic
+        # cannot serialize them, so drop those fields. They deserialize back as ``None``,
+        # exactly like an incoming update that never carried the field.
+        default_fields: set[str] = {name for name, value in media if isinstance(value, Default)}
         async with self.redis.pipeline(transaction=True) as pipe:
             pipe.set(self.build_last_message_time_key(key), current_time, ex=self.ttl_sec)
-            pipe.rpush(self.build_group_key(key), media.model_dump_json())
+            pipe.rpush(self.build_group_key(key), media.model_dump_json(exclude=default_fields))
             pipe.expire(self.build_group_key(key), self.ttl_sec)
             res = await pipe.execute()
         return cast(int, res[1])
