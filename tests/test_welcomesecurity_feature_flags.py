@@ -9,7 +9,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.modules.greetings.middlewares.new_user import NewUserMiddleware
 from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
-from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanUnpassedUsers
+from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
 
 
 @pytest.mark.asyncio
@@ -105,10 +105,10 @@ async def test_lock_muted_users_skips_enforcement_when_captcha_flag_disabled(
 
 
 @pytest.mark.asyncio
-async def test_ban_unpassed_users_handle_skips_when_autokick_flag_disabled(
+async def test_kick_unpassed_users_handle_skips_when_autokick_flag_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    schedule = BanUnpassedUsers()
+    schedule = KickUnpassedUsers()
     user_iid = PydanticObjectId()
     group_iid = PydanticObjectId()
     user = SimpleNamespace(tid=123)
@@ -120,19 +120,19 @@ async def test_ban_unpassed_users_handle_skips_when_autokick_flag_disabled(
         group=SimpleNamespace(ref=SimpleNamespace(id=group_iid)),
         delete=AsyncMock(),
     )
-    ban_user = AsyncMock()
+    kick_user = AsyncMock()
 
     monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.ChatModel.get_by_iid",
+        "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.ChatModel.get_by_iid",
         AsyncMock(side_effect=[user, group]),
     )
     monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.is_enabled",
+        "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.is_enabled",
         AsyncMock(return_value=False),
     )
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users.ban_user", ban_user)
+    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.kick_user", kick_user)
 
     await schedule.process_user(ws_user)
 
-    ban_user.assert_not_awaited()
+    kick_user.assert_not_awaited()
     ws_user.delete.assert_not_awaited()

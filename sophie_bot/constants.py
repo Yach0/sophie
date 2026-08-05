@@ -112,8 +112,8 @@ FEDERATION_EXPORT_TTL_DAYS: Final[int] = 7  # Clean up COMPLETED tasks after 7 d
 # import/export over a large federation is never mistaken for an orphan.
 FEDERATION_TASK_STALE_AFTER_MINUTES: Final[int] = 15
 
-# Welcomesecurity ban timeout (in hours)
-WELCOMESECURITY_BAN_TIMEOUT_HOURS: Final[int] = 48
+# Welcomesecurity kick timeout (in hours) - unpassed users are kicked, not banned
+WELCOMESECURITY_KICK_TIMEOUT_HOURS: Final[int] = 48
 
 # Welcomesecurity join timeout (in minutes) - skip captcha for old joins if bot was down
 WELCOMESECURITY_JOIN_TIMEOUT_MINUTES: Final[int] = 15

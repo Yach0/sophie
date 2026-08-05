@@ -16,7 +16,7 @@ from aiogram.types import Message, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
-from sophie_bot.constants import WELCOMESECURITY_BAN_TIMEOUT_HOURS
+from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeSecurity
 from sophie_bot.db.models.notes import Saveable
@@ -24,7 +24,7 @@ from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityRulesAgreeCB,
 )
-from sophie_bot.modules.welcomesecurity.schedules.ban_unpassed_users import BanUnpassedUsers
+from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import initiate_captcha
 from tests.e2e.helpers import (
     create_test_user_and_group,
@@ -195,7 +195,7 @@ async def test_ephemeral_captcha_prompts_each_member_privately(test_client: Test
 
 
 @pytest.mark.asyncio
-async def test_autokick_bans_stale_unpassed_user(test_client: TestClient) -> None:
+async def test_autokick_kicks_stale_unpassed_user(test_client: TestClient) -> None:
     _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Autokick Group")
     await grant_bot_admin(group.id)
     chat = await _enable_ws(group.id)
@@ -205,19 +205,24 @@ async def test_autokick_bans_stale_unpassed_user(test_client: TestClient) -> Non
     stale_model = await ChatModel.get_by_tid(stale.id)
     assert stale_model is not None
     pending = await WSUserModel.ensure_user(stale_model, chat, is_join_request=False)
-    pending.added_at = datetime.now(UTC) - timedelta(hours=WELCOMESECURITY_BAN_TIMEOUT_HOURS + 1)
+    pending.added_at = datetime.now(UTC) - timedelta(hours=WELCOMESECURITY_KICK_TIMEOUT_HOURS + 1)
     await pending.save()
 
     start = len(test_client.capture)
-    await BanUnpassedUsers().handle()
+    await KickUnpassedUsers().handle()
     requests = test_client.capture.all_requests[start:]
 
-    bans = [
+    kicks = [
+        request
+        for request in requests
+        if request.request_type == RequestType.UNBAN_CHAT_MEMBER and request.params.get("user_id") == stale.id
+    ]
+    assert kicks, "A user who never solved the captcha within the window should be kicked"
+    assert not [
         request
         for request in requests
         if request.request_type == RequestType.BAN_CHAT_MEMBER and request.params.get("user_id") == stale.id
-    ]
-    assert bans, "A user who never solved the captcha within the window should be banned"
+    ], "The timed-out user must be kicked, never permanently banned"
     assert await WSUserModel.is_user(stale_model.iid, chat.iid) is None, "The pending row is removed after autokick"
 
 
@@ -234,14 +239,15 @@ async def test_autokick_leaves_recent_user_alone(test_client: TestClient) -> Non
     await WSUserModel.ensure_user(recent_model, chat, is_join_request=False)
 
     start = len(test_client.capture)
-    await BanUnpassedUsers().handle()
+    await KickUnpassedUsers().handle()
     requests = test_client.capture.all_requests[start:]
 
     assert not [
         request
         for request in requests
-        if request.request_type == RequestType.BAN_CHAT_MEMBER and request.params.get("user_id") == recent.id
-    ], "A user still inside the window must not be banned"
+        if request.request_type in (RequestType.BAN_CHAT_MEMBER, RequestType.UNBAN_CHAT_MEMBER)
+        and request.params.get("user_id") == recent.id
+    ], "A user still inside the window must not be kicked"
     assert await WSUserModel.is_user(recent_model.iid, chat.iid) is not None
 
 
