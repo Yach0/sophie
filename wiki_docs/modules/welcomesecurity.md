@@ -15,5 +15,7 @@ icon: 🛡️
 | --- | --- | --- | --- |
 | `/welcomecaptcha` `/enablewelcomecaptcha` | `<?New status>` | Shows / changes the state of Welcome Captcha. |  |
 | `/welcomerestrict` | `<?New status or restrict time>` | Shows / changes the state of Welcome Restrict (Media restricting). |  |
+| `/setwelcomesecurity` | `<Content>` | Sets welcome security message. |  |
+| `/delwelcomesecurity` | - | Deletes the welcome security message |  |
 | `/welcomesecurity` | - | Shows Welcome Security settings | *Disable-able* |
 {.card-view-on-mobile}

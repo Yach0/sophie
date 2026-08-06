@@ -13,10 +13,12 @@ from sophie_bot.modules.ai.schedules.generate_chat_summaries import (
     GenerateChatSummaries,
     _build_message_url,
     _build_summary_doc,
+    _build_summary_prompt,
     _build_summary_window,
     _derive_summary_line,
 )
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
+from sophie_bot.modules.ai.utils.summary_transcript import UNKNOWN_TIME, build_summary_transcript
 
 
 @pytest.mark.asyncio
@@ -96,7 +98,7 @@ def test_derive_summary_line_uses_first_message_and_unique_usernames() -> None:
     )
 
     line = _derive_summary_line(
-        AIChatSummaryGroup(emoji="🛠", title="Moderation discussion", message_ids=[102, 100, 101]),
+        AIChatSummaryGroup(emoji="🛠", title="Moderation discussion", message_refs=[102, 100, 101]),
         {100: earlier, 101: later, 102: duplicate_user},
     )
 
@@ -120,7 +122,7 @@ def test_derive_summary_line_skips_low_signal_single_participant_topic() -> None
     )
 
     line = _derive_summary_line(
-        AIChatSummaryGroup(emoji="🧪", title="One-off", message_ids=[100]),
+        AIChatSummaryGroup(emoji="🧪", title="One-off", message_refs=[100]),
         {100: message},
     )
 
@@ -169,7 +171,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
         AsyncMock(
             return_value=SimpleNamespace(
                 overview="General overview",
-                lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_ids=[100, 101])],
+                lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_refs=[100, 101])],
             )
         ),
     )
@@ -261,7 +263,7 @@ async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPat
         AsyncMock(
             return_value=SimpleNamespace(
                 overview="General overview",
-                lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_ids=[100, 101])],
+                lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_refs=[100, 101])],
             )
         ),
     )
@@ -327,7 +329,7 @@ async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkey
         AsyncMock(
             return_value=SimpleNamespace(
                 overview="General overview",
-                lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_ids=[100])],
+                lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_refs=[100])],
             )
         ),
     )
@@ -418,7 +420,7 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
         AsyncMock(
             return_value=SimpleNamespace(
                 overview="Overview",
-                lines=[AIChatSummaryGroup(emoji="\U0001f4a1", title="Topic", message_ids=[100, 101, 102])],
+                lines=[AIChatSummaryGroup(emoji="\U0001f4a1", title="Topic", message_refs=[100, 101, 102])],
             )
         ),
     )
@@ -542,3 +544,179 @@ def test_build_summary_doc_renders_lines_with_non_default_locale(monkeypatch: py
 
 def test_build_message_url_returns_supergroup_message_url() -> None:
     assert _build_message_url(-1001519075655, 321) == "https://t.me/c/1519075655/321"
+
+
+def _transcript_sample() -> tuple[MessageType, ...]:
+    return (
+        MessageType(
+            user_id=777,
+            message_id=45201,
+            text="hello\nthere",
+            created_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
+            username="alice",
+        ),
+        MessageType(
+            user_id=888,
+            message_id=45202,
+            text="hi",
+            created_at=datetime(2026, 5, 3, 8, 5, tzinfo=UTC),
+            username="bob",
+        ),
+        MessageType(
+            user_id=777,
+            message_id=45203,
+            text="bye",
+            created_at=datetime(2026, 5, 3, 8, 6, tzinfo=UTC),
+            username="alice",
+        ),
+    )
+
+
+def test_build_summary_transcript_anonymized_uses_positions_and_pseudonyms() -> None:
+    transcript = build_summary_transcript(_transcript_sample(), anonymize=True)
+
+    assert transcript.text == (
+        "[1] [08:00] [speaker1] hello there\n[2] [08:05] [speaker2] hi\n[3] [08:06] [speaker1] bye"
+    )
+    assert transcript.messages_by_reference == dict(enumerate(_transcript_sample(), start=1))
+
+
+def test_build_summary_transcript_anonymized_leaks_no_telegram_identifiers() -> None:
+    text = build_summary_transcript(_transcript_sample(), anonymize=True).text
+
+    for identifier in ("45201", "45202", "45203", "777", "888", "alice", "bob", "2026-05-03"):
+        assert identifier not in text
+
+
+def test_build_summary_transcript_plain_keeps_ids_usernames_and_timestamps() -> None:
+    transcript = build_summary_transcript(_transcript_sample(), anonymize=False)
+
+    assert transcript.text.splitlines()[0] == "[id=45201] [2026-05-03T08:00:00+00:00] [alice] hello there"
+    assert transcript.messages_by_reference == {
+        message.message_id: message for message in _transcript_sample()
+    }
+
+
+def test_build_summary_transcript_renders_placeholder_for_missing_timestamp() -> None:
+    message = MessageType(user_id=1, message_id=5, text="no time", created_at=None, username="alice")
+
+    assert build_summary_transcript((message,), anonymize=True).text == f"[1] [{UNKNOWN_TIME}] [speaker1] no time"
+
+
+def test_build_summary_prompt_combines_instructions_format_and_transcript() -> None:
+    transcript = build_summary_transcript(_transcript_sample(), anonymize=True)
+
+    prompt = _build_summary_prompt(transcript, "Instructions")
+
+    assert prompt == f"Instructions\n{transcript.format_instructions}\n\n{transcript.text}"
+
+
+def _summary_groups(*message_refs: list[int]) -> SimpleNamespace:
+    return SimpleNamespace(
+        overview="General overview",
+        lines=[AIChatSummaryGroup(emoji="💡", title="Topic", message_refs=refs) for refs in message_refs],
+    )
+
+
+def _patch_process_chat_dependencies(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    privacy_enabled: bool,
+    generate_summary_groups: AsyncMock,
+) -> tuple[AsyncMock, AsyncMock]:
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.get_for_date",
+        AsyncMock(return_value=None),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.schedules.generate_chat_summaries.get_cached_messages_between",
+        AsyncMock(return_value=_transcript_sample()),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.schedules.generate_chat_summaries.is_enabled",
+        AsyncMock(return_value=privacy_enabled),
+    )
+    monkeypatch.setattr(GenerateChatSummaries, "generate_summary_groups", generate_summary_groups)
+    upsert_for_date = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
+        upsert_for_date,
+    )
+    send_summary = AsyncMock()
+    monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
+    return upsert_for_date, send_summary
+
+
+async def _run_process_chat(chat: SimpleNamespace) -> None:
+    await GenerateChatSummaries().process_chat(chat, date(2026, 5, 3), now=datetime(2026, 5, 3, 12, 0, tzinfo=UTC))
+
+
+@pytest.mark.asyncio
+async def test_process_chat_sends_anonymized_transcript_and_resolves_real_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    generate_summary_groups = AsyncMock(return_value=_summary_groups([1, 2]))
+    _, send_summary = _patch_process_chat_dependencies(
+        monkeypatch, privacy_enabled=True, generate_summary_groups=generate_summary_groups
+    )
+
+    await _run_process_chat(chat)
+
+    sent_transcript = generate_summary_groups.await_args.args[0]
+    for identifier in ("45201", "45202", "45203", "777", "888", "alice", "bob"):
+        assert identifier not in sent_transcript.text
+
+    # Positional references still resolve back to the real message the deep link points at.
+    (line,) = send_summary.await_args.args[3]
+    assert line.first_message_id == 45201
+    assert line.usernames == ["alice", "bob"]
+
+
+@pytest.mark.asyncio
+async def test_process_chat_retries_once_when_model_invents_references(monkeypatch: pytest.MonkeyPatch) -> None:
+    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    generate_summary_groups = AsyncMock(side_effect=[_summary_groups([1, 99]), _summary_groups([1, 2])])
+    upsert_for_date, send_summary = _patch_process_chat_dependencies(
+        monkeypatch, privacy_enabled=True, generate_summary_groups=generate_summary_groups
+    )
+
+    await _run_process_chat(chat)
+
+    assert generate_summary_groups.await_count == 2
+    upsert_for_date.assert_awaited_once()
+    send_summary.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_process_chat_discards_summary_when_retry_also_invents_references(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    generate_summary_groups = AsyncMock(side_effect=[_summary_groups([1, 99]), _summary_groups([2, 98])])
+    upsert_for_date, send_summary = _patch_process_chat_dependencies(
+        monkeypatch, privacy_enabled=True, generate_summary_groups=generate_summary_groups
+    )
+
+    await _run_process_chat(chat)
+
+    assert generate_summary_groups.await_count == 2
+    upsert_for_date.assert_not_awaited()
+    send_summary.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_chat_drops_unknown_references_without_retrying_when_flag_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    generate_summary_groups = AsyncMock(return_value=_summary_groups([45201, 45202, 999]))
+    upsert_for_date, send_summary = _patch_process_chat_dependencies(
+        monkeypatch, privacy_enabled=False, generate_summary_groups=generate_summary_groups
+    )
+
+    await _run_process_chat(chat)
+
+    assert generate_summary_groups.await_count == 1
+    upsert_for_date.assert_awaited_once()
+    send_summary.assert_awaited_once()

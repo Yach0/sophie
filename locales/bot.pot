@@ -767,7 +767,7 @@ msgid "The AI mode has been exited."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/research.py:45
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:82
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:78
 msgid "Starting the research..."
 msgstr ""
 
@@ -932,7 +932,7 @@ msgstr ""
 #: sophie_bot/modules/federations/utils/ban_docs.py:42
 #: sophie_bot/modules/federations/utils/ban_docs.py:91
 #: sophie_bot/modules/reports/handlers/report.py:94
-#: sophie_bot/modules/restrictions/actions/base.py:145
+#: sophie_bot/modules/restrictions/actions/base.py:147
 #: sophie_bot/modules/restrictions/actions/kick.py:46
 #: sophie_bot/modules/restrictions/handlers/base.py:80
 #: sophie_bot/modules/restrictions/handlers/base.py:143
@@ -949,17 +949,17 @@ msgstr[1] ""
 msgid "This message will be deleted shortly."
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:111
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:124
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:126
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:139
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:179
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:192
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr ""
 
@@ -967,7 +967,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:334
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:337
 #: sophie_bot/modules/ai/utils/research.py:366
 #: sophie_bot/modules/ai/utils/research.py:496
 msgid "Research"
@@ -1142,34 +1142,39 @@ msgstr ""
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:59
+#: sophie_bot/modules/ai/utils/chatbot_context.py:60
+#, python-brace-format
+msgid "{title} | users: {users} | excerpt: {excerpt}"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_context.py:62
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:67
+#: sophie_bot/modules/ai/utils/chatbot_context.py:74
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:78
+#: sophie_bot/modules/ai/utils/chatbot_context.py:85
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:85
+#: sophie_bot/modules/ai/utils/chatbot_context.py:92
 msgid "Related chat notes with content."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:89
+#: sophie_bot/modules/ai/utils/chatbot_context.py:96
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:96
+#: sophie_bot/modules/ai/utils/chatbot_context.py:103
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:103
+#: sophie_bot/modules/ai/utils/chatbot_context.py:110
 msgid "You have the following information in your memory"
 msgstr ""
 
@@ -1210,87 +1215,87 @@ msgstr ""
 msgid "⚠️ Cut short — the reply hit its step limit."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:37
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
 msgid "Searching the web..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:38
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:43
 #: sophie_bot/modules/ai/utils/research.py:79
 msgid "Looking it up online..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:43
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:48
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:39
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:44
 msgid "Browsing the internet..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
 msgid "Updating memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:52
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:48
 msgid "Saving to memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
 msgid "Removing from memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:56
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:52
 msgid "Forgetting..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
 msgid "Checking the documentation..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:60
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:56
 msgid "Looking up how Sophie works..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
 msgid "Digging through my own sources..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:64
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:60
 msgid "Reading my own code..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
 msgid "Scanning notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:68
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:64
 msgid "Looking through notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
 msgid "Reading note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:72
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:68
 msgid "Fetching note content..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
 msgid "Saving note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:76
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:72
 msgid "Writing to notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:79
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
 msgid "Deleting note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:80
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:76
 msgid "Removing note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:195
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:191
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""
@@ -1393,7 +1398,7 @@ msgstr ""
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:286
+#: sophie_bot/modules/ai/utils/proactive_replies.py:276
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr ""
 
@@ -1487,6 +1492,14 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/sophie_inspect.py:150
 msgid "I could not find the answer in my own sources within the allowed budget."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/summary_transcript.py:53
+msgid "Every transcript line starts with its own number in square brackets, followed by the time and an anonymous speaker label. Reference source messages by those line numbers."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/summary_transcript.py:70
+msgid "Every transcript line starts with its message ID as [id=<id>], followed by the timestamp and the author. Reference source messages by those IDs."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/transform_video.py:62
@@ -1892,7 +1905,7 @@ msgid "This user was unbanned before the ban finished propagating, so there was 
 msgstr ""
 
 #: sophie_bot/modules/connections/__init__.py:38
-#: sophie_bot/modules/connections/handlers/connect_dm.py:62
+#: sophie_bot/modules/connections/handlers/connect_dm.py:69
 msgid "Connections"
 msgstr ""
 
@@ -1908,11 +1921,11 @@ msgstr ""
 msgid "Enables managing chat settings and using commands without being in the chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:34
+#: sophie_bot/modules/connections/handlers/connect_dm.py:37
 msgid "Connects to the chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:38
+#: sophie_bot/modules/connections/handlers/connect_dm.py:41
 #: sophie_bot/modules/disabling/handlers/disable.py:56
 #: sophie_bot/modules/disabling/handlers/enable.py:51
 #: sophie_bot/modules/locks/handlers/base.py:58
@@ -1934,18 +1947,18 @@ msgstr ""
 msgid "Chat"
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:53
-#: sophie_bot/modules/connections/handlers/connect_dm.py:106
+#: sophie_bot/modules/connections/handlers/connect_dm.py:56
+#: sophie_bot/modules/connections/handlers/connect_dm.py:113
 #: sophie_bot/modules/connections/handlers/connect_group.py:43
 #: sophie_bot/modules/connections/handlers/start_connect.py:48
 msgid "You are not allowed to connect to this chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:64
+#: sophie_bot/modules/connections/handlers/connect_dm.py:71
 msgid "Select a chat to connect to:"
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:101
+#: sophie_bot/modules/connections/handlers/connect_dm.py:108
 msgid "Chat not found in database."
 msgstr ""
 
@@ -1990,20 +2003,20 @@ msgstr ""
 msgid "Allow users connect"
 msgstr ""
 
-#: sophie_bot/modules/connections/utils/connection.py:77
+#: sophie_bot/modules/connections/utils/connection.py:84
 msgid "Connected!"
 msgstr ""
 
-#: sophie_bot/modules/connections/utils/connection.py:78
+#: sophie_bot/modules/connections/utils/connection.py:85
 #, python-brace-format
 msgid "Connected to {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/connections/utils/connection.py:80
+#: sophie_bot/modules/connections/utils/connection.py:87
 msgid "Notices"
 msgstr ""
 
-#: sophie_bot/modules/connections/utils/connection.py:82
+#: sophie_bot/modules/connections/utils/connection.py:89
 #: sophie_bot/modules/notes/handlers/pmnotes_handler.py:66
 msgid "⏳ This connection will last for 48 hours."
 msgstr ""
@@ -3687,39 +3700,40 @@ msgid ""
 "If you want to enforce captcha / rules verification, please see 'Welcome Security' module instead."
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:9
+#: sophie_bot/modules/greetings/default_welcome.py:11
 #, python-brace-format
 msgid "Hi {mention}! Welcome in the group."
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:10
+#: sophie_bot/modules/greetings/default_welcome.py:12
 msgid "Group rules"
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:10
+#: sophie_bot/modules/greetings/default_welcome.py:12
 msgid "There are no rules in this group, have fun!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:17
+#: sophie_bot/modules/greetings/default_welcome.py:19
 #, python-brace-format
 msgid "Hi {mention}! Welcome to the {chatname}!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:18
+#: sophie_bot/modules/greetings/default_welcome.py:20
 msgid "⬇️ Please click the button below to participate in the group."
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:25
+#: sophie_bot/modules/greetings/default_welcome.py:27
 #, python-brace-format
 msgid "Hi {mention}!"
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:26
+#: sophie_bot/modules/greetings/default_welcome.py:28
 msgid "Please check your direct messages with me to complete verification and join the group."
 msgstr ""
 
-#: sophie_bot/modules/greetings/default_welcome.py:27
-msgid "[Open DM with Sophie](btnsophieurl)"
+#: sophie_bot/modules/greetings/default_welcome.py:32
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:45
+msgid "Open DM with Sophie"
 msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/enablewelcome.py:11
@@ -3736,6 +3750,7 @@ msgstr ""
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/text_with_buttons_arg.py:14
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 #: sophie_bot/modules/rules/handlers/set.py:20
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:20
 msgid "Content"
 msgstr ""
 
@@ -3838,7 +3853,7 @@ msgid "Use {cmd} to retrieve Welcome Security settings"
 msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:47
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:72
 #, python-brace-format
 msgid "Check out {cmd} to learn more about Welcome settings."
 msgstr ""
@@ -3850,7 +3865,7 @@ msgstr ""
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:22
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:124
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:78
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 msgid "No chat rules, have fun!"
 msgstr ""
 
@@ -4905,7 +4920,7 @@ msgid "#{name} note was not found."
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:86
-#: sophie_bot/modules/restrictions/actions/base.py:134
+#: sophie_bot/modules/restrictions/actions/base.py:136
 #: sophie_bot/modules/restrictions/actions/kick.py:41
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:35
 #: sophie_bot/modules/warns/magic_handlers/modern_action.py:122
@@ -5030,7 +5045,7 @@ msgstr ""
 msgid "Note is too long."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:182
+#: sophie_bot/modules/notes/utils/send.py:191
 msgid "The text is too long"
 msgstr ""
 
@@ -6115,24 +6130,24 @@ msgstr ""
 msgid "Change ban duration"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:96
+#: sophie_bot/modules/restrictions/actions/base.py:98
 #, python-brace-format
 msgid "Restricts user for {time}"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:99
+#: sophie_bot/modules/restrictions/actions/base.py:101
 msgid "Restricts user indefinitely"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:108
+#: sophie_bot/modules/restrictions/actions/base.py:110
 msgid "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:113
+#: sophie_bot/modules/restrictions/actions/base.py:115
 msgid "Invalid duration, please try again."
 msgstr ""
 
-#: sophie_bot/modules/restrictions/actions/base.py:142
+#: sophie_bot/modules/restrictions/actions/base.py:144
 msgid "For"
 msgstr ""
 
@@ -7062,15 +7077,15 @@ msgstr ""
 msgid "muted"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:69
+#: sophie_bot/modules/welcomesecurity/__init__.py:75
 msgid "Welcome Security"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:71
+#: sophie_bot/modules/welcomesecurity/__init__.py:77
 msgid "Protect your chat from bots and verify new users"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:73
+#: sophie_bot/modules/welcomesecurity/__init__.py:79
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr ""
 
@@ -7095,10 +7110,6 @@ msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:40
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
-msgstr ""
-
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:45
-msgid "Open DM with Sophie"
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:25
@@ -7154,6 +7165,29 @@ msgstr ""
 msgid "You are banned in the federation, so you cannot pass the authentication!"
 msgstr ""
 
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:21
+msgid "Sets welcome security message."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:43
+#, python-brace-format
+msgid "Welcome security message was saved in {chat_title}."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:49
+msgid "Deletes the welcome security message"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:62
+#, python-brace-format
+msgid "Welcome security message in {chat_title} has not been set before"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:72
+#, python-brace-format
+msgid "Welcome security message was reset to default in {chat_title}."
+msgstr ""
+
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:22
 msgid "Shows Welcome Security settings"
 msgstr ""
@@ -7186,7 +7220,12 @@ msgstr ""
 msgid "Use {cmd} to control Media restriction"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:75
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
+#, python-brace-format
+msgid "Use {cmd} to set a custom Welcome Security message"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:76
 msgid "Welcome Security message"
 msgstr ""
 

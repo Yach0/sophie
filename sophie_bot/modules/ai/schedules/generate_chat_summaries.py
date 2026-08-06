@@ -16,6 +16,7 @@ from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.summary_transcript import SummaryTranscript, build_summary_transcript
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.bot import bot
@@ -29,6 +30,7 @@ from sophie_bot.utils.logger import log
 MIN_TOPIC_MESSAGE_COUNT = 3
 MIN_TOPIC_PARTICIPANT_COUNT = 2
 SOURCE_EXCERPT_MAX_LENGTH = 160
+SUMMARY_GENERATION_ATTEMPTS = 2
 
 
 def _build_summary_window(now: datetime) -> tuple[datetime, datetime]:
@@ -37,16 +39,16 @@ def _build_summary_window(now: datetime) -> tuple[datetime, datetime]:
     return window_start, window_end
 
 
-def _render_message_line(message: MessageType) -> str:
-    username = message.username or "unknown"
-    created_at = message.created_at.isoformat() if message.created_at else "unknown"
-    text = message.text.replace("\n", " ").strip()
-    return f"[id={message.message_id}] [{created_at}] [{username}] {text}"
+def _build_summary_prompt(transcript: SummaryTranscript, instructions: str) -> str:
+    return f"{instructions}\n{transcript.format_instructions}\n\n{transcript.text}"
 
 
-def _build_summary_prompt(messages: tuple[MessageType, ...], instructions: str) -> str:
-    rendered_messages = "\n".join(_render_message_line(message) for message in messages)
-    return f"{instructions}\n\n{rendered_messages}"
+def _collect_unknown_refs(groups: AIChatSummaryGroups, messages_by_reference: dict[int, MessageType]) -> set[int]:
+    return {
+        reference
+        for reference in chain.from_iterable(group.message_refs for group in groups.lines)
+        if reference not in messages_by_reference
+    }
 
 
 def _normalize_excerpt(text: str) -> str:
@@ -69,12 +71,23 @@ def _is_significant_topic(messages: list[MessageType]) -> bool:
     return len(messages) >= MIN_TOPIC_MESSAGE_COUNT or participant_count >= MIN_TOPIC_PARTICIPANT_COUNT
 
 
-def _derive_summary_line(group: AIChatSummaryGroup, messages_by_id: dict[int, MessageType]) -> AIChatSummaryLine | None:
-    grouped_messages = list(
+def _resolve_group_messages(
+    group: AIChatSummaryGroup, messages_by_reference: dict[int, MessageType]
+) -> list[MessageType]:
+    """Maps the model's transcript references back to messages, dropping hallucinated ones."""
+    return list(
         OrderedDict(
-            (message_id, messages_by_id[message_id]) for message_id in group.message_ids if message_id in messages_by_id
+            (reference, messages_by_reference[reference])
+            for reference in group.message_refs
+            if reference in messages_by_reference
         ).values()
     )
+
+
+def _derive_summary_line(
+    group: AIChatSummaryGroup, messages_by_reference: dict[int, MessageType]
+) -> AIChatSummaryLine | None:
+    grouped_messages = _resolve_group_messages(group, messages_by_reference)
     if not grouped_messages:
         return None
     if not _is_significant_topic(grouped_messages):
@@ -172,12 +185,12 @@ def _track_summary_metrics(
 class GenerateChatSummaries:
     @staticmethod
     async def generate_summary_groups(
-        messages: tuple[MessageType, ...], chat_iid: PydanticObjectId, chat_tid: int
+        transcript: SummaryTranscript, chat_iid: PydanticObjectId, chat_tid: int
     ) -> AIChatSummaryGroups:
         history = AIMessageHistory()
         instructions = str(await get_value("ai_chat_summaries_prompt", chat_tid=chat_tid))
         history.add_system(_("You summarize Telegram group discussions into structured topic lines."))
-        history.add_custom(_build_summary_prompt(messages, instructions), name="Transcript")
+        history.add_custom(_build_summary_prompt(transcript, instructions), name="Transcript")
 
         model = await get_chat_summary_model(chat_iid, chat_tid=chat_tid)
         service_tier = await resolve_chat_service_tier(AIModelPurpose.summary, chat_iid, chat_tid)
@@ -190,6 +203,37 @@ class GenerateChatSummaries:
             service_tier=service_tier,
         )
         return result.output
+
+    async def generate_verified_summary_groups(
+        self, transcript: SummaryTranscript, chat: ChatModel, *, strict: bool
+    ) -> AIChatSummaryGroups | None:
+        """Generates summary groups, retrying once when the model invents transcript references.
+
+        Under the anonymized transcript a hallucinated reference silently points at the wrong real
+        message, so the whole run is discarded rather than published when a retry does not fix it.
+        """
+        if not strict:
+            return await self.generate_summary_groups(transcript, chat.iid, chat.tid)
+
+        for attempt in range(1, SUMMARY_GENERATION_ATTEMPTS + 1):
+            groups = await self.generate_summary_groups(transcript, chat.iid, chat.tid)
+            unknown_refs = _collect_unknown_refs(groups, transcript.messages_by_reference)
+            if not unknown_refs:
+                return groups
+            log.warning(
+                "generate_chat_summaries: model referenced unknown transcript lines",
+                chat=chat.tid,
+                attempt=attempt,
+                unknown_ref_count=len(unknown_refs),
+            )
+            count_metric(
+                "sophie.ai.chat_summaries.unknown_refs",
+                len(unknown_refs),
+                attributes={"summary_kind": "daily"},
+            )
+
+        log.warning("generate_chat_summaries: discarding summary after failed retry", chat=chat.tid)
+        return None
 
     @staticmethod
     async def send_summary(chat_tid: int, summary_date: date, overview: str, lines: list[AIChatSummaryLine]) -> None:
@@ -226,26 +270,31 @@ class GenerateChatSummaries:
             )
             return
 
-        groups = await self.generate_summary_groups(cached_messages, chat.iid, chat.tid)
-        messages_by_id = {message.message_id: message for message in cached_messages}
-        raw_group_message_ids = {
-            message_id
-            for message_id in chain.from_iterable(group.message_ids for group in groups.lines)
-            if message_id in messages_by_id
+        anonymize = await is_enabled("ai_summary_improved_privacy", chat_tid=chat.tid)
+        transcript = build_summary_transcript(cached_messages, anonymize=anonymize)
+        groups = await self.generate_verified_summary_groups(transcript, chat, strict=anonymize)
+        if groups is None:
+            return
+
+        messages_by_reference = transcript.messages_by_reference
+        known_refs = {
+            reference
+            for reference in chain.from_iterable(group.message_refs for group in groups.lines)
+            if reference in messages_by_reference
         }
         lines = [
-            line for line in (_derive_summary_line(group, messages_by_id) for group in groups.lines) if line is not None
+            line
+            for line in (_derive_summary_line(group, messages_by_reference) for group in groups.lines)
+            if line is not None
         ]
         covered_message_ids = {line.first_message_id for line in lines}
         for group in groups.lines:
-            grouped_messages = [
-                messages_by_id[message_id] for message_id in group.message_ids if message_id in messages_by_id
-            ]
+            grouped_messages = _resolve_group_messages(group, messages_by_reference)
             if not grouped_messages or not _is_significant_topic(grouped_messages):
                 continue
             covered_message_ids.update(message.message_id for message in grouped_messages)
 
-        grouped_message_count = len(raw_group_message_ids)
+        grouped_message_count = len(known_refs)
         covered_percentage = (
             round((len(covered_message_ids) / len(cached_messages)) * 100, 2) if cached_messages else 0.0
         )

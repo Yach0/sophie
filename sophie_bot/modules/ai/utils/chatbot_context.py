@@ -54,9 +54,16 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
     if await is_enabled("ai_system_prompt_summaries", chat_tid=context.chat_tid):
         summary_lines = await AIChatSummaryModel.get_recent_lines(context.chat_iid)
         if summary_lines:
+            # The message ID lets the provider correlate the summary back to the real chat.
+            hide_message_ids = await is_enabled("ai_summary_improved_privacy", chat_tid=context.chat_tid)
+            summary_template = (
+                _("{title} | users: {users} | excerpt: {excerpt}")
+                if hide_message_ids
+                else _("{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}")
+            )
             rendered_summaries = [
                 Template(
-                    _("{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"),
+                    summary_template,
                     title=line.title,
                     message_id=line.first_message_id,
                     users=", ".join(line.usernames) if line.usernames else "-",

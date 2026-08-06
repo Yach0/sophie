@@ -78,6 +78,7 @@ FeatureType = Literal[
     "ai_moderation_threshold_openai_violence_graphic",
     "ai_filters",
     "ai_chat_summaries",
+    "ai_summary_improved_privacy",
     "ai_note_titles",
     "ai_system_prompt_summaries",
     "ai_notes_related_system_prompt",
@@ -248,7 +249,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
         "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
     ),
     "ai_chat_summaries_prompt": _feature(
-        "Summarize the chat day into one short general overview and several topic lines.\nEach topic line must contain a short title, one fitting emoji, and the list of source message IDs.\nDo not include any IDs that are not present in the provided transcript.\nSkip one-off chatter that does not form a meaningful discussion.\nPrefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
+        "Summarize the chat day into one short general overview and several topic lines.\nEach topic line must contain a short title, one fitting emoji, and the references of the source messages it is built from.\nOnly reference messages that are present in the provided transcript.\nSkip one-off chatter that does not form a meaningful discussion.\nPrefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
     ),
     "ai_moderation_reason_prompt": _feature(
         "Generate a brief, professional moderation reason for restricting a user based on their message."
@@ -316,6 +317,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_moderation_threshold_openai_violence_graphic": _feature(0.4),
     "ai_filters": _feature(True),
     "ai_chat_summaries": _feature(True),
+    # Sends the summary transcript with positional references and pseudonymous speakers instead of
+    # real Telegram message IDs, usernames, and absolute timestamps.
+    "ai_summary_improved_privacy": _feature(False),
     "ai_note_titles": _feature(True),
     "ai_system_prompt_summaries": _feature(False),
     "ai_notes_related_system_prompt": _feature(False),
