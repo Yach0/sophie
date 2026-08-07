@@ -109,6 +109,12 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
         if mode not in SELECTABLE_MODES:
             return await self.event.answer(_("Unknown mode"))
 
+        # Re-selecting the current mode would rebuild a byte-identical keyboard, which Telegram
+        # rejects with "message is not modified"; nothing changed, so only acknowledge the tap.
+        current_mode: AIMode = await get_chat_mode(self.connection.db_model.iid, AIMode.disabled)
+        if mode == current_mode:
+            return await self.event.answer(str(MODE_TITLES[mode]))
+
         await set_chat_mode(self.connection.db_model, mode)
 
         # The picker may have been sent as a rich message, which cannot be edited; only the keyboard
