@@ -84,7 +84,7 @@ test-qodana:
   interruptible: true
   needs: []
   image:
-    name: jetbrains/qodana-python-community:2026.1
+    name: jetbrains/qodana-python-community:2026.2
     entrypoint: [""]
   cache:
     - key: qodana-2026.1-$CI_DEFAULT_BRANCH-$CI_COMMIT_REF_SLUG
