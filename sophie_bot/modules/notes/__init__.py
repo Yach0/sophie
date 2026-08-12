@@ -27,6 +27,7 @@ from .handlers.pmnotes_handler import (
 )
 from .handlers.pmnotes_setting import PMNotesControl, PMNotesStatus
 from .handlers.save import SaveNote
+from .handlers.status_cleannotes import CleanNotesHandlerABC
 from .magic_handlers.export import export
 from .magic_handlers.reply_action import ReplyModernAction
 from .magic_handlers.send_note_action import SendNoteAction
@@ -65,6 +66,7 @@ module_manifest = ModuleManifest(
         HashtagGetNote,
         DelNote,
         SaveNote,
+        CleanNotesHandlerABC,
         DelAllNotesHandler,
         DelAllNotesCallbackHandler,
         LegacyStartNoteButton,
