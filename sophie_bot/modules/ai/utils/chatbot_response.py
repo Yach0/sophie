@@ -51,15 +51,18 @@ async def build_chatbot_header(
     chat_iid: PydanticObjectId,
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
-    additional_header_items: list[Element] | None = None,
-    skip_battery: bool = False,
 ) -> Element:
-    status_items = [*(additional_header_items or []), *retrieve_tools_titles(message_history)]
+    """The header of a *finished* AI message.
+
+    Only built once generation completed: the status names what the run actually did and the battery
+    reports the quota left after it was charged. In-progress messages use `ai_progress_line`.
+    """
+    status_items = retrieve_tools_titles(message_history)
     # Nothing to report means nothing was used: name the model instead of leaving the cell empty.
     status: Element | str = HList(*status_items, divider=", ") if status_items else model.model_name
 
     battery: Element | str = ""
-    if not skip_battery and (quota_info := await get_quota_info(chat_iid)):
+    if quota_info := await get_quota_info(chat_iid):
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )

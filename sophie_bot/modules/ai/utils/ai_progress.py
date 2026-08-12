@@ -54,5 +54,10 @@ def random_ai_thinking_text() -> str:
     )
 
 
-def ai_progress_line(text: str, emoji_id: str | None = None, suffix: str | None = None) -> Element:
+def ai_progress_line(text: Element | str, emoji_id: str | None = None, suffix: Element | str | None = None) -> Element:
+    """The in-progress placeholder for every AI feature.
+
+    Deliberately not the AI table header: while generation runs there is no generated title to show
+    and no final quota reading to report, so the placeholder stays a plain line.
+    """
     return HList(ai_progress_custom_emoji(emoji_id), text, suffix, divider=" ")

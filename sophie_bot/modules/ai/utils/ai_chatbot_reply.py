@@ -83,16 +83,8 @@ async def _build_chatbot_header(
     connection: ChatConnection,
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
-    additional_header_items: list[Element] | None = None,
-    skip_battery: bool = False,
 ) -> Element:
-    return await build_chatbot_header(
-        connection.db_model.iid,
-        model,
-        message_history,
-        additional_header_items=additional_header_items,
-        skip_battery=skip_battery,
-    )
+    return await build_chatbot_header(connection.db_model.iid, model, message_history)
 
 
 def _truncate_to_boundary(text: str, max_length: int) -> str:
@@ -252,7 +244,7 @@ async def ai_chatbot_reply(
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         model = await _resolve_model(connection, model, mode)
-        message_streamer = await build_message_streamer(message, connection, model, explicit_debug_mode)
+        message_streamer = await build_message_streamer(message, model, explicit_debug_mode)
         context = SophieAIToolContext(
             connection=connection,
             chat_tid=connection.tid,
