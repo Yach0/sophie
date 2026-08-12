@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import ClassVar
 
 from beanie import Document, PydanticObjectId
 from pydantic import Field
+from pymongo import ASCENDING, IndexModel
 
 from sophie_bot.db.models.chat import ChatModel
 
@@ -21,6 +23,13 @@ class CleanNotesModel(Document):
 
     class Settings:
         name = "clean_notes"
+        indexes: ClassVar = [
+            IndexModel(
+                [("chat.$id", ASCENDING)],
+                unique=True,
+                name="chat_id_index",
+            ),
+        ]
 
     @staticmethod
     async def get_by_chat_iid(chat_iid: PydanticObjectId) -> CleanNotesModel:
