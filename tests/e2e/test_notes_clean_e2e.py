@@ -149,6 +149,42 @@ async def test_cleannotes_deletes_standalone_get_command(test_client: TestClient
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "text",
+    [
+        "/get rules",
+        "/get   rules",
+        "/get #rules",
+        "/get@test_bot rules",
+        "/get rules noformat",
+    ],
+)
+async def test_cleannotes_deletes_standalone_get_command_variants(test_client: TestClient, text: str) -> None:
+    """Whitespace, a leading `#`, a bot mention or the raw modifier still make it a bare request."""
+
+    admin, group = await _group_with_note(test_client)
+
+    request_id = next_message_id()
+    requests = await _send_text(test_client, text, admin, group, request_id)
+
+    assert _sends(requests), f"The note should be sent for {text!r}"
+    assert request_id in _deleted_ids(requests), f"{text!r} should be deleted as a standalone request"
+
+
+@pytest.mark.asyncio
+async def test_cleannotes_keeps_get_command_with_extra_text(test_client: TestClient) -> None:
+    """`/get name` followed by other words is a real message and stays."""
+
+    admin, group = await _group_with_note(test_client)
+
+    request_id = next_message_id()
+    requests = await _send_text(test_client, "/get rules and also hello", admin, group, request_id)
+
+    assert _sends(requests), "The note should still be sent"
+    assert request_id not in _deleted_ids(requests), "A /get message with extra text must not be deleted"
+
+
+@pytest.mark.asyncio
 async def test_cleannotes_deletes_standalone_hashtag_request(test_client: TestClient) -> None:
     """A message that is only `#name` is removed together with the previous note."""
 
@@ -165,6 +201,19 @@ async def test_cleannotes_deletes_standalone_hashtag_request(test_client: TestCl
 
     assert first_note_id in deleted, "The previously sent note should be deleted"
     assert second_id in deleted, "The new standalone request should be deleted too"
+
+
+@pytest.mark.asyncio
+async def test_cleannotes_deletes_padded_hashtag_request(test_client: TestClient) -> None:
+    """Surrounding whitespace does not make `#name` part of a conversation."""
+
+    admin, group = await _group_with_note(test_client)
+
+    request_id = next_message_id()
+    requests = await _send_text(test_client, "  #rules \n", admin, group, request_id)
+
+    assert _sends(requests), "The note should be sent"
+    assert request_id in _deleted_ids(requests), "A whitespace-padded hashtag request should be deleted"
 
 
 @pytest.mark.asyncio
