@@ -8,6 +8,11 @@ from stfu_tg.doc import Element
 
 from sophie_bot.utils.i18n import gettext as _
 
+# Fallback character of the progress custom emoji, and with it the plain-text marker of an
+# in-progress AI message: it is the only thing `is_ai_message` can recognise a placeholder by, since
+# the placeholder deliberately carries no table header.
+AI_PROGRESS_MARKER: Final[str] = "💭"
+
 AI_PROGRESS_CUSTOM_EMOJI_IDS: Final[tuple[str, ...]] = (
     "5256211041615889001",
     "5258317508326214175",
@@ -18,13 +23,19 @@ AI_PROGRESS_CUSTOM_EMOJI_IDS: Final[tuple[str, ...]] = (
 )
 
 
+AI_PROGRESS_DEFAULT_CUSTOM_EMOJI_ID: Final[str] = AI_PROGRESS_CUSTOM_EMOJI_IDS[0]
+
+
 def random_ai_progress_custom_emoji_id() -> str:
     return choice(AI_PROGRESS_CUSTOM_EMOJI_IDS)
 
 
-def ai_progress_custom_emoji(emoji_id: str | None = None, fallback: str = "💭") -> Element:
-    progress_emoji_id = emoji_id or random_ai_progress_custom_emoji_id()
-    return PreformattedHTML(f'<tg-emoji emoji-id="{progress_emoji_id}">{fallback}</tg-emoji>')
+def ai_progress_custom_emoji(emoji_id: str | None = None, fallback: str = AI_PROGRESS_MARKER) -> Element:
+    """One progress emoji. Defaults to the fixed one: the placeholder is edited many times per run,
+    so picking at random here would make it flicker. Randomising is the caller's explicit choice."""
+    return PreformattedHTML(
+        f'<tg-emoji emoji-id="{emoji_id or AI_PROGRESS_DEFAULT_CUSTOM_EMOJI_ID}">{fallback}</tg-emoji>'
+    )
 
 
 def random_ai_thinking_text() -> str:
@@ -54,5 +65,10 @@ def random_ai_thinking_text() -> str:
     )
 
 
-def ai_progress_line(text: str, emoji_id: str | None = None, suffix: str | None = None) -> Element:
+def ai_progress_line(text: Element | str, emoji_id: str | None = None, suffix: Element | str | None = None) -> Element:
+    """The in-progress placeholder for every AI feature.
+
+    Deliberately not the AI table header: while generation runs there is no generated title to show
+    and no final quota reading to report, so the placeholder stays a plain line.
+    """
     return HList(ai_progress_custom_emoji(emoji_id), text, suffix, divider=" ")
