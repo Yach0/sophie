@@ -4,9 +4,10 @@ import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 from contextlib import nullcontext
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any, Final, TypeVar, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import (
     Agent,
     AgentRunResultEvent,
@@ -39,18 +40,20 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     AI_PROVIDER_EXCEPTIONS,
     AIRetryCallback,
     ai_request_failed_from_error,
-    is_retryable_ai_provider_error,
     run_ai_request_with_retries,
 )
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan, request_has_images
+from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.utils.logger import log
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
-# Cheap, broadly-capable model used as a last resort when the primary model keeps failing with a
-# transient/provider error after its own retries are exhausted. Better a degraded answer than none.
+# Cheap, broadly-capable model used as a last resort once every candidate the catalog offers has
+# failed. Better a degraded answer than none. It is appended to every plan, so a purpose the
+# operator gave no failover chain still behaves exactly as it did before plans existed.
 AI_FALLBACK_MODEL_NAME: Final = "mistralai/mistral-small-2603"
 
 # Rendering the accumulated text costs a full join, so callbacks are debounced rather than fired on
@@ -65,39 +68,101 @@ def _resolve_fallback_model(primary_model: Model) -> Model | None:
     return fallback_model
 
 
-async def _run_with_model_fallback[FallbackOutputT](
+def resolve_candidate_models(
+    agent_model: Model,
+    model_plan: AIModelPlan | None,
+    has_images: bool,
+) -> list[Model]:
+    """The models to try for one request, best first.
+
+    The agent's own model leads unless the plan deliberately ruled it out: a caller that built an
+    agent around a model it chose by hand gets that model first, but a plan candidate skipped for
+    lacking image support must not sneak back in through the agent. The cheap last-resort model
+    closes every list, which is the pre-plan behaviour for purposes with a single model.
+    """
+    plan_models = list(model_plan.models(has_images=has_images)) if model_plan else []
+    # Identity, not equality: two distinct model objects for the same provider settings compare
+    # equal, and "is this the very object the agent holds" is the question actually being asked.
+    ruled_out = (
+        model_plan is not None
+        and all(model is not agent_model for model in plan_models)
+        and any(candidate.model is agent_model for candidate in model_plan.candidates)
+    )
+
+    candidates = (
+        plan_models if ruled_out else [agent_model, *(model for model in plan_models if model is not agent_model)]
+    )
+
+    if (last_resort := _resolve_fallback_model(candidates[0] if candidates else agent_model)) is not None and all(
+        last_resort is not candidate for candidate in candidates
+    ):
+        candidates.append(last_resort)
+    return candidates
+
+
+def _should_try_next_model(error: BaseException) -> bool:
+    """Whether another candidate is worth trying after this failure.
+
+    Every provider failure earns a failover, not just the transient ones: the request that most
+    needs a different model — an image sent to a model that cannot read one — comes back as a flat
+    400 that retrying the same model would never fix. A usage limit is the exception, because it is
+    Sophie's own budget stopping the run and the next model would spend more of it.
+    """
+    return not isinstance(error, UsageLimitExceeded)
+
+
+async def _run_with_model_candidates[FallbackOutputT](
     operation: Callable[[Model | None], Awaitable[FallbackOutputT]],
-    primary_model: Model,
+    candidates: Sequence[Model],
+    agent_model: Model,
+    is_refusal: Callable[[FallbackOutputT], bool] | None = None,
     on_retry: AIRetryCallback | None = None,
     operation_label: str = "agent",
 ) -> tuple[FallbackOutputT, Model]:
-    """Run ``operation`` with retries on the primary model; on a transient/provider failure that
-    survives retries, retry once on a cheaper fallback model.
+    """Run ``operation`` against each candidate in turn until one answers.
 
-    Each model's attempt is tracked under its own name via :func:`track_ai_request`, and the model
-    that actually served the request is returned alongside the result so callers attribute
-    post-completion metrics (usage, agent/stream results) to the served model rather than the
-    primary one.
+    A candidate is given up on when it fails in a way another model could survive, or when it
+    finishes without producing a usable answer (see :func:`is_refusal_output`). The last candidate's
+    refusal is returned rather than raised: an empty answer is still an answer, and turning the end
+    of the chain into an error would change what the user sees for every mode at once.
+
+    Each attempt is tracked under its own model name via :func:`track_ai_request`, and the model that
+    actually served the request comes back with the result so callers attribute post-completion
+    metrics (usage, agent/stream results) to it rather than to the first candidate.
     """
-    try:
-        async with track_ai_request(primary_model, operation_label):
-            result = await run_ai_request_with_retries(lambda: operation(None), on_retry=on_retry)
-        return result, primary_model
-    except AI_PROVIDER_EXCEPTIONS as primary_error:
-        if not is_retryable_ai_provider_error(primary_error):
-            raise
-        fallback_model = _resolve_fallback_model(primary_model)
-        if fallback_model is None:
-            raise
-        log.warning(
-            "AI request on %s failed after retries (%s); falling back to %s",
-            primary_model.model_name,
-            type(primary_error).__name__,
-            fallback_model.model_name,
-        )
-        async with track_ai_request(fallback_model, operation_label):
-            result = await run_ai_request_with_retries(lambda: operation(fallback_model), on_retry=on_retry)
-        return result, fallback_model
+    last_error: BaseException | None = None
+
+    for index, candidate in enumerate(candidates):
+        # ``None`` leaves the agent on the model it was built with, so the common single-candidate
+        # path issues exactly the request it always did, with no per-run model override.
+        active_model = None if candidate is agent_model else candidate
+        try:
+            async with track_ai_request(candidate, operation_label):
+                result = await run_ai_request_with_retries(partial(operation, active_model), on_retry=on_retry)
+        except AI_PROVIDER_EXCEPTIONS as error:
+            if not _should_try_next_model(error) or index == len(candidates) - 1:
+                raise
+            last_error = error
+            log.warning(
+                "AI request on %s failed (%s); trying %s",
+                candidate.model_name,
+                type(error).__name__,
+                candidates[index + 1].model_name,
+            )
+            continue
+
+        if is_refusal is not None and index < len(candidates) - 1 and is_refusal(result):
+            last_error = AIModelRefused(candidate.model_name)
+            log.warning(
+                "AI request on %s produced no usable output; trying %s",
+                candidate.model_name,
+                candidates[index + 1].model_name,
+            )
+            continue
+
+        return result, candidate
+
+    raise last_error or RuntimeError("AI model candidate loop finished without returning or raising")
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +177,8 @@ class AIRequestOptions:
 
 
 class AIAgentResult[OutputT](BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     output: OutputT
     steps: int | None = None
     retries: int | None = None
@@ -119,6 +186,12 @@ class AIAgentResult[OutputT](BaseModel):
     usage: RunUsage
     truncated: bool = False
     """The run hit a usage limit and ``output`` is only what the model produced before that."""
+    served_model: Model | None = None
+    """The candidate that actually answered, which failover may have moved off the first one.
+
+    Callers that report or bill the model should prefer this over the one they asked for, so a
+    reply header and a usage charge both name the model the user's answer really came from.
+    """
 
 
 @dataclass(slots=True)
@@ -276,8 +349,14 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
     agent: Agent[DepsT, OutputT],
     run_kwargs: Mapping[str, Any],
     on_retry: AIRetryCallback | None = None,
+    model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[OutputT]:
     model = _get_agent_model(agent)
+    candidates = resolve_candidate_models(
+        model,
+        model_plan,
+        request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
+    )
 
     async def run_agent_once(active_model: Model | None) -> Any:
         if active_model is None:
@@ -287,7 +366,13 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
         return await agent.run(**run_with_fallback_kwargs)
 
     try:
-        result, served_model = await _run_with_model_fallback(run_agent_once, model, on_retry=on_retry)
+        result, served_model = await _run_with_model_candidates(
+            run_agent_once,
+            candidates,
+            model,
+            is_refusal=lambda run_result: is_refusal_output(run_result.output),
+            on_retry=on_retry,
+        )
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
@@ -309,6 +394,7 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
         retries=retries,
         message_history=message_history,
         usage=result.usage,
+        served_model=served_model,
     )
 
 
@@ -342,11 +428,12 @@ async def run_ai_text[DepsT](
     request_options: AIRequestOptions | None = None,
     model_settings: Mapping[str, object] | None = None,
     on_retry: AIRetryCallback | None = None,
+    model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[str]:
     run_kwargs = _build_agent_run_kwargs(
         user_prompt, message_history, deps, usage_limits, request_options, model_settings
     )
-    return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry)
+    return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry, model_plan=model_plan)
 
 
 async def run_ai_structured[DepsT, OutputT](
@@ -358,13 +445,14 @@ async def run_ai_structured[DepsT, OutputT](
     request_options: AIRequestOptions | None = None,
     model_settings: Mapping[str, object] | None = None,
     on_retry: AIRetryCallback | None = None,
+    model_plan: AIModelPlan | None = None,
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[OutputT]:
     run_kwargs = _build_agent_run_kwargs(
         user_prompt, message_history, deps, usage_limits, request_options, model_settings
     )
     run_kwargs.update(extra_run_kwargs)
-    return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry)
+    return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry, model_plan=model_plan)
 
 
 def _usage_from_messages(messages: Sequence[ModelRequest | ModelResponse]) -> RunUsage:
@@ -552,10 +640,12 @@ async def run_ai_stream[DepsT](
     on_reasoning_stream: TextStreamCallback | None = None,
     on_retry: AIRetryCallback | None = None,
     stream_options: ChatbotStreamOptions | None = None,
+    model_plan: AIModelPlan | None = None,
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[str]:
     options = stream_options or ChatbotStreamOptions()
     metrics_model = _get_agent_model(agent)
+    candidates = resolve_candidate_models(metrics_model, model_plan, request_has_images(user_prompt, message_history))
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
@@ -590,7 +680,15 @@ async def run_ai_stream[DepsT](
         )
 
     try:
-        outcome, served_model = await _run_with_model_fallback(run_stream_once, metrics_model, on_retry=on_retry)
+        outcome, served_model = await _run_with_model_candidates(
+            run_stream_once,
+            candidates,
+            metrics_model,
+            # A truncated run is never a refusal: it stopped on Sophie's own usage limit with text
+            # already delivered, and re-running it on another model would spend the budget twice.
+            is_refusal=lambda stream: not stream.truncated and is_refusal_output(stream.output_text),
+            on_retry=on_retry,
+        )
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
@@ -615,4 +713,5 @@ async def run_ai_stream[DepsT](
         message_history=outcome.message_history,
         usage=outcome.usage,
         truncated=outcome.truncated,
+        served_model=served_model,
     )

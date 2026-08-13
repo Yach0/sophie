@@ -63,7 +63,7 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
         ),
         patch("sophie_bot.modules.ai.filters.quota.get_quota_info", AsyncMock(return_value=None)),
         patch(
-            "sophie_bot.modules.ai.handlers.ai_addfilter.get_chat_default_model",
+            "sophie_bot.modules.ai.handlers.ai_addfilter.get_chat_default_model_plan",
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(
@@ -109,7 +109,7 @@ async def test_aiaddfilter_returns_generic_error_when_ai_fails(test_client: Test
         ),
         patch("sophie_bot.modules.ai.filters.quota.get_quota_info", AsyncMock(return_value=None)),
         patch(
-            "sophie_bot.modules.ai.handlers.ai_addfilter.get_chat_default_model",
+            "sophie_bot.modules.ai.handlers.ai_addfilter.get_chat_default_model_plan",
             AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
         ),
         patch(

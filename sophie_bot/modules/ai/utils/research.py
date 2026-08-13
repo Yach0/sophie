@@ -41,7 +41,8 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSearchQuery,
     ResearchSource,
 )
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
@@ -182,7 +183,7 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
     history: AIMessageHistory,
     output_type: type[ResearchStepT],
     connection: ChatConnection,
-    model: Model,
+    model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
     session_suffix: str,
 ) -> AIAgentResult[ResearchStepT]:
@@ -191,7 +192,7 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
             output_type=output_type,
             feature=AI_FEATURE_RESEARCH,
         ),
-        model,
+        model_plan,
         history,
         chat_iid=connection.db_model.iid,
         chat_tid=connection.tid,
@@ -203,7 +204,7 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
 async def _generate_initial_queries(
     prompt: str,
     connection: ChatConnection,
-    model: Model,
+    model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
 ) -> ResearchQueryPlan:
     history = _build_history(
@@ -224,7 +225,7 @@ async def _generate_initial_queries(
         history,
         ResearchQueryPlan,
         connection,
-        model,
+        model_plan,
         settings,
         "queries",
     )
@@ -237,7 +238,7 @@ async def _decide_next_step(
     sources: list[ResearchSource],
     round_index: int,
     connection: ChatConnection,
-    model: Model,
+    model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
 ) -> ResearchDecision:
     history = _build_history(
@@ -264,7 +265,7 @@ async def _decide_next_step(
         history,
         ResearchDecision,
         connection,
-        model,
+        model_plan,
         settings,
         f"decision:{round_index}",
     )
@@ -279,7 +280,7 @@ async def _summarize_research(
     prompt: str,
     sources: list[ResearchSource],
     connection: ChatConnection,
-    model: Model,
+    model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
 ) -> AIAgentResult[ResearchFinalResponse]:
     history = _build_history(
@@ -302,7 +303,7 @@ async def _summarize_research(
         history,
         ResearchFinalResponse,
         connection,
-        model,
+        model_plan,
         settings,
         "summary",
     )
@@ -321,10 +322,10 @@ async def run_research_workflow(
     settings = await get_research_settings(chat_tid)
     service_tier = await resolve_chat_service_tier(AIModelPurpose.research, connection.db_model.iid, chat_tid)
     settings = replace(settings, service_tier=service_tier)
-    model = await get_chat_research_model(connection.db_model.iid, chat_tid)
+    model_plan = await get_chat_research_model_plan(connection.db_model.iid, chat_tid)
     if progress_callback is not None:
         await progress_callback("planning")
-    query_plan = await _generate_initial_queries(prompt, connection, model, settings)
+    query_plan = await _generate_initial_queries(prompt, connection, model_plan, settings)
     current_queries = query_plan.queries
     all_sources: list[ResearchSource] = []
     seen_urls: set[str] = set()
@@ -353,7 +354,7 @@ async def run_research_workflow(
             all_sources,
             round_index,
             connection,
-            model,
+            model_plan,
             settings,
         )
         if decision.action == "continue":
@@ -367,23 +368,23 @@ async def run_research_workflow(
                 text=_("I could not find enough search results to research this topic."),
                 sources=[],
                 research_query=prompt,
-                research_model=model.model_name,
+                research_model=model_plan.primary.model_name,
             ),
-            model=model,
+            model=model_plan.primary,
             message_history=[],
         )
 
     if progress_callback is not None:
         await progress_callback("summarizing")
-    summary_result = await _summarize_research(prompt, all_sources, connection, model, settings)
+    summary_result = await _summarize_research(prompt, all_sources, connection, model_plan, settings)
     return ResearchWorkflowResult(
         response=summary_result.output.model_copy(
             update={
                 "research_query": prompt,
-                "research_model": model.model_name,
+                "research_model": model_plan.primary.model_name,
             }
         ),
-        model=model,
+        model=model_plan.primary,
         message_history=summary_result.message_history,
     )
 

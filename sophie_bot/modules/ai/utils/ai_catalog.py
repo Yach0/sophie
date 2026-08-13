@@ -88,6 +88,7 @@ class CatalogModel:
     api_name: str
     supports_reasoning: bool
     extra_params: dict[str, object] | None
+    supports_images: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +96,10 @@ class ResolvedRole:
     model_name: str
     service_tier: str | None
     reasoning_effort: str | None
+    # Copied off the model the role belongs to, so a candidate carries everything the runtime needs
+    # to decide whether it may serve a given request without reaching back into the catalog.
+    supports_images: bool = True
+    priority: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,15 +107,24 @@ class AICatalog:
     version: str = ""
     providers: Mapping[str, CatalogProvider] = field(default_factory=dict)
     models: Mapping[str, CatalogModel] = field(default_factory=dict)
-    # (mode, purpose) -> the role serving it.
-    roles: Mapping[tuple[AIMode, AIModelPurpose], ResolvedRole] = field(default_factory=dict)
+    # (mode, purpose) -> the ordered candidates serving it, best first. One entry is the common case;
+    # more make a failover chain.
+    roles: Mapping[tuple[AIMode, AIModelPurpose], tuple[ResolvedRole, ...]] = field(default_factory=dict)
+
+    def roles_for(self, mode: AIMode, purpose: AIModelPurpose) -> tuple[ResolvedRole, ...]:
+        return self.roles.get((mode, purpose), ())
 
     def role_for(self, mode: AIMode, purpose: AIModelPurpose) -> ResolvedRole | None:
-        return self.roles.get((mode, purpose))
+        """The highest-priority candidate, for the callers that only need one model."""
+        candidates = self.roles_for(mode, purpose)
+        return candidates[0] if candidates else None
 
     def model_name_for(self, mode: AIMode, purpose: AIModelPurpose) -> str | None:
-        role = self.roles.get((mode, purpose))
+        role = self.role_for(mode, purpose)
         return role.model_name if role else None
+
+    def model_names_for(self, mode: AIMode, purpose: AIModelPurpose) -> tuple[str, ...]:
+        return tuple(role.model_name for role in self.roles_for(mode, purpose))
 
 
 _catalog = AICatalog()
@@ -187,7 +201,7 @@ async def load_catalog() -> AICatalog:
     }
 
     models: dict[str, CatalogModel] = {}
-    roles: dict[tuple[AIMode, AIModelPurpose], ResolvedRole] = {}
+    candidates: dict[tuple[AIMode, AIModelPurpose], list[ResolvedRole]] = {}
     for stored_model in await load_documents(AICatalogModelModel, {"enabled": True}):
         provider = providers.get(stored_model.provider)
         if provider is None:
@@ -204,13 +218,32 @@ async def load_catalog() -> AICatalog:
             api_name=stored_model.api_name or stored_model.name,
             supports_reasoning=stored_model.supports_reasoning,
             extra_params=stored_model.extra_params,
+            supports_images=stored_model.supports_images,
         )
         for role in stored_model.roles:
-            roles[(role.mode, role.purpose)] = ResolvedRole(
-                model_name=stored_model.name,
-                service_tier=role.service_tier,
-                reasoning_effort=role.reasoning_effort,
+            key = (role.mode, role.purpose)
+            role_candidates = candidates.setdefault(key, [])
+            # A model listing the same (mode, purpose) twice would otherwise be tried twice in a row,
+            # which is never what the second row meant.
+            if any(existing.model_name == stored_model.name for existing in role_candidates):
+                continue
+            role_candidates.append(
+                ResolvedRole(
+                    model_name=stored_model.name,
+                    service_tier=role.service_tier,
+                    reasoning_effort=role.reasoning_effort,
+                    supports_images=stored_model.supports_images,
+                    priority=role.priority,
+                )
             )
+
+    # Sorted here rather than at resolution time: the order is a property of the snapshot, and every
+    # request would otherwise re-sort the same list. The model name breaks priority ties so the same
+    # catalog always yields the same order, whatever order Mongo returned the rows in.
+    roles = {
+        key: tuple(sorted(role_candidates, key=lambda role: (role.priority, role.model_name)))
+        for key, role_candidates in candidates.items()
+    }
 
     _catalog = AICatalog(version=await _current_version(), providers=providers, models=models, roles=roles)
 
@@ -224,17 +257,22 @@ async def get_catalog() -> AICatalog:
     return _catalog
 
 
-async def resolve_role(mode: AIMode, purpose: AIModelPurpose) -> ResolvedRole:
-    """The role serving a (mode, purpose), or a crash.
+async def resolve_roles(mode: AIMode, purpose: AIModelPurpose) -> tuple[ResolvedRole, ...]:
+    """Every candidate serving a (mode, purpose), best first, or a crash when there are none.
 
-    Resolution is exact: the mode's own role or nothing. There is no any-mode wildcard and no
+    Resolution is exact: the mode's own roles or nothing. There is no any-mode wildcard and no
     support-tier fallback — an unconfigured combination is an operator mistake, and failing loudly
     beats silently serving a model the operator never chose for that mode.
     """
-    role = (await get_catalog()).role_for(mode, purpose)
-    if role is None:
+    candidates = (await get_catalog()).roles_for(mode, purpose)
+    if not candidates:
         raise ValueError(f"No AI model in the catalog serves {mode.value}:{purpose.value}")
-    return role
+    return candidates
+
+
+async def resolve_role(mode: AIMode, purpose: AIModelPurpose) -> ResolvedRole:
+    """The highest-priority role serving a (mode, purpose), or a crash."""
+    return (await resolve_roles(mode, purpose))[0]
 
 
 async def resolve_model_name(mode: AIMode, purpose: AIModelPurpose) -> str:

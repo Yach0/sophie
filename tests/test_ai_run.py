@@ -18,13 +18,20 @@ from pydantic_ai import (
     ThinkingPart,
     ThinkingPartDelta,
 )
-from pydantic_ai.exceptions import UsageLimitExceeded
-from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
+from pydantic_ai.messages import BinaryContent, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
 from sophie_bot.modules.ai.utils import ai_run
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_model_plan import (
+    AIModelCandidate,
+    AIModelPlan,
+    build_model_plan,
+    request_has_images,
+)
+from sophie_bot.modules.ai.utils.ai_refusal import is_refusal_output
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
     ChatbotStreamOptions,
@@ -300,48 +307,208 @@ async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_st
         )
 
 
-async def test_run_with_model_fallback_returns_primary_when_it_succeeds(monkeypatch: Any) -> None:
-    primary = TestModel()
+@pytest.fixture
+def immediate_retries(monkeypatch: Any) -> Iterator[None]:
+    """Run each attempt exactly once, so assertions see the candidate sequence and nothing else."""
 
     async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
         return await operation()
 
     monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
+    yield
 
+
+async def test_the_first_candidate_serves_when_it_succeeds(immediate_retries: None) -> None:
+    primary = TestModel()
     seen_models: list[Any] = []
 
     async def operation(active_model: Any) -> str:
         seen_models.append(active_model)
         return "from-primary"
 
-    result, served_model = await ai_run._run_with_model_fallback(operation, primary)
+    result, served_model = await ai_run._run_with_model_candidates(operation, [primary], primary)
 
     assert result == "from-primary"
     assert served_model is primary
+    # ``None`` keeps the agent on the model it was built with, so the common path adds no override.
     assert seen_models == [None]
 
 
-async def test_run_with_model_fallback_returns_fallback_model_when_primary_fails(monkeypatch: Any) -> None:
+async def test_a_failing_candidate_hands_over_to_the_next(immediate_retries: None) -> None:
     primary = TestModel()
-    fallback = TestModel()
-
-    async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
-        return await operation()
-
-    monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
-    monkeypatch.setattr(ai_run, "_resolve_fallback_model", lambda model: fallback)
-
+    backup = TestModel()
     seen_models: list[Any] = []
 
     async def operation(active_model: Any) -> str:
         seen_models.append(active_model)
         if active_model is None:
             raise TimeoutError("primary provider is down")
-        return "from-fallback"
+        return "from-backup"
 
-    result, served_model = await ai_run._run_with_model_fallback(operation, primary)
+    result, served_model = await ai_run._run_with_model_candidates(operation, [primary, backup], primary)
 
-    # The served model must be the fallback so callers attribute usage/result metrics correctly.
-    assert result == "from-fallback"
-    assert served_model is fallback
-    assert seen_models == [None, fallback]
+    # The served model must be the one that answered, so callers attribute usage/metrics correctly.
+    assert result == "from-backup"
+    assert served_model is backup
+    assert seen_models == [None, backup]
+
+
+async def test_a_flat_provider_rejection_also_hands_over(immediate_retries: None) -> None:
+    """The request that most needs another model — an image a model cannot read — is a plain 400."""
+    primary = TestModel()
+    backup = TestModel()
+
+    async def operation(active_model: Any) -> str:
+        if active_model is None:
+            raise ModelHTTPError(status_code=400, model_name="primary", body="no image support")
+        return "from-backup"
+
+    result, served_model = await ai_run._run_with_model_candidates(operation, [primary, backup], primary)
+
+    assert result == "from-backup"
+    assert served_model is backup
+
+
+async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
+    """Sophie's own budget ended the run; the next model would only spend more of it."""
+    primary = TestModel()
+    backup = TestModel()
+    seen_models: list[Any] = []
+
+    async def operation(active_model: Any) -> str:
+        seen_models.append(active_model)
+        raise UsageLimitExceeded("request limit exceeded")
+
+    with pytest.raises(UsageLimitExceeded):
+        await ai_run._run_with_model_candidates(operation, [primary, backup], primary)
+
+    assert seen_models == [None]
+
+
+async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> None:
+    """Exhaustion keeps error semantics: callers still see a provider error to map onto a message."""
+    primary = TestModel()
+    backup = TestModel()
+
+    async def operation(active_model: Any) -> str:
+        raise TimeoutError("everything is down")
+
+    with pytest.raises(TimeoutError, match="everything is down"):
+        await ai_run._run_with_model_candidates(operation, [primary, backup], primary)
+
+
+async def test_an_empty_answer_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
+    primary = TestModel()
+    backup = TestModel()
+
+    async def operation(active_model: Any) -> str:
+        return "" if active_model is None else "a real answer"
+
+    result, served_model = await ai_run._run_with_model_candidates(
+        operation, [primary, backup], primary, is_refusal=is_refusal_output
+    )
+
+    assert result == "a real answer"
+    assert served_model is backup
+
+
+async def test_the_last_candidates_empty_answer_is_returned(immediate_retries: None) -> None:
+    """An empty answer is still an answer; turning the end of the chain into an error would not be."""
+    primary = TestModel()
+
+    async def operation(active_model: Any) -> str:
+        return ""
+
+    result, served_model = await ai_run._run_with_model_candidates(
+        operation, [primary], primary, is_refusal=is_refusal_output
+    )
+
+    assert result == ""
+    assert served_model is primary
+
+
+def test_the_agents_own_model_leads_and_the_last_resort_closes(monkeypatch: Any) -> None:
+    agent_model = TestModel()
+    plan_model = TestModel()
+    last_resort = TestModel()
+    monkeypatch.setattr(ai_run, "_resolve_fallback_model", lambda model: last_resort)
+    plan = AIModelPlan(candidates=(AIModelCandidate(model=plan_model, model_name="plan"),))
+
+    candidates = ai_run.resolve_candidate_models(agent_model, plan, has_images=False)
+
+    assert candidates == [agent_model, plan_model, last_resort]
+
+
+def test_a_candidate_ruled_out_for_images_cannot_return_through_the_agent(monkeypatch: Any) -> None:
+    text_only = TestModel()
+    visual = TestModel()
+    monkeypatch.setattr(ai_run, "_resolve_fallback_model", lambda model: None)
+    plan = AIModelPlan(
+        candidates=(
+            AIModelCandidate(model=text_only, model_name="text-only", supports_images=False),
+            AIModelCandidate(model=visual, model_name="visual"),
+        )
+    )
+
+    # The agent was built with the plan's primary, which is exactly the model an image turn must skip.
+    assert ai_run.resolve_candidate_models(text_only, plan, has_images=True) == [visual]
+    assert ai_run.resolve_candidate_models(text_only, plan, has_images=False) == [text_only, visual]
+
+
+def test_a_hand_picked_model_the_plan_never_had_still_leads(monkeypatch: Any) -> None:
+    """Only a model the plan deliberately ruled out is dropped; a caller's own choice is not."""
+    hand_picked = TestModel()
+    visual = TestModel()
+    monkeypatch.setattr(ai_run, "_resolve_fallback_model", lambda model: None)
+    plan = AIModelPlan(candidates=(AIModelCandidate(model=visual, model_name="visual"),))
+
+    assert ai_run.resolve_candidate_models(hand_picked, plan, has_images=True) == [hand_picked, visual]
+
+
+def test_an_image_in_the_prompt_is_detected() -> None:
+    png = BinaryContent(data=b"\x89PNG", media_type="image/png")
+
+    assert request_has_images([png])
+    assert request_has_images(["just text"]) is False
+    assert request_has_images("just text") is False
+    assert request_has_images(None) is False
+
+
+def test_audio_is_not_an_image() -> None:
+    """Audio reaches the model transcribed to text, which every candidate can read."""
+    assert request_has_images([BinaryContent(data=b"RIFF", media_type="audio/wav")]) is False
+
+
+def test_an_image_folded_into_the_history_is_detected() -> None:
+    png = BinaryContent(data=b"\x89PNG", media_type="image/png")
+    history = [ModelRequest(parts=[UserPromptPart(content=[png])])]
+
+    assert request_has_images("follow-up question", history)
+
+
+def test_a_plan_drops_a_model_that_already_appears_earlier() -> None:
+    first = TestModel()
+    duplicate = TestModel()
+    plan = build_model_plan(
+        [
+            AIModelCandidate(model=first, model_name="same"),
+            AIModelCandidate(model=duplicate, model_name="same"),
+            AIModelCandidate(model=TestModel(), model_name="other"),
+        ]
+    )
+
+    assert plan.model_names == ("same", "other")
+    assert plan.primary is first
+
+
+def test_an_empty_plan_cannot_serve_a_request() -> None:
+    with pytest.raises(ValueError, match="no candidates"):
+        _ = AIModelPlan().primary
+
+
+def test_an_all_text_only_plan_still_tries_rather_than_refusing() -> None:
+    """Better a model that may not see the image than no answer at all — the pre-filtering behaviour."""
+    text_only = AIModelCandidate(model=TestModel(), model_name="text-only", supports_images=False)
+    plan = AIModelPlan(candidates=(text_only,))
+
+    assert plan.eligible(has_images=True) == (text_only,)

@@ -5,7 +5,7 @@ from beanie import PydanticObjectId
 from sophie_bot.db.models import BetaModeModel, ChatModel, NoteModel
 from sophie_bot.db.models.beta import CurrentMode
 from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateNoteData
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -29,10 +29,10 @@ class GenerateAITitles:
         messages.add_custom(note.text or "", name=None)
         messages.add_system(system_prompt)
 
-        model = await get_chat_default_model(chat_iid, chat_tid=chat_tid)
+        model_plan = await get_chat_default_model_plan(chat_iid, chat_tid=chat_tid)
         result = await run_structured_task(
             AIStructuredTask(output_type=AIUpdateNoteData),
-            model,
+            model_plan,
             messages,
             chat_iid=chat_iid,
             chat_tid=chat_tid,

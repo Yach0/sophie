@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
+from pydantic_ai.models import Model
 from stfu_tg import Title
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -18,6 +20,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_usage_limits, get_chatbot_tools
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
@@ -91,8 +94,16 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
         patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
         patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
         patch(
-            "sophie_bot.modules.ai.utils.research.get_chat_research_model",
-            AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            "sophie_bot.modules.ai.utils.research.get_chat_research_model_plan",
+            AsyncMock(
+                return_value=AIModelPlan(
+                    candidates=(
+                        AIModelCandidate(
+                            model=cast(Model, SimpleNamespace(model_name="test-model")), model_name="test-model"
+                        ),
+                    )
+                )
+            ),
         ),
         patch(
             "sophie_bot.modules.ai.utils.research.run_research_structured_step",

@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.middlewares import i18n
 from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateNoteData
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -58,10 +58,10 @@ class NotesDescriptionsScheduler:
                         messages.add_system(system_prompt)
                         messages.add_custom(note.text, name=None)
 
-                        model = await get_chat_default_model(chat.iid, chat_tid=chat.tid)
+                        model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat.tid)
                         result = await run_structured_task(
                             AIStructuredTask(output_type=AIUpdateNoteData),
-                            model,
+                            model_plan,
                             messages,
                             chat_iid=chat.iid,
                             chat_tid=chat.tid,

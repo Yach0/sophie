@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
-from ass_tg.types import BooleanArg, KeyValueArg, KeyValuesArg, OptionalArg, WordArg
+from ass_tg.types import BooleanArg, IntArg, KeyValueArg, KeyValuesArg, OptionalArg, WordArg
 from ass_tg.types.base_abc import ArgFabric, ParsedArg
 from stfu_tg import Bold, Code, Doc, Section, Template, Title, VList
 
@@ -36,8 +36,10 @@ _ENABLED_OPTION = "enabled"
 _PROVIDER_OPTION = "provider"
 _API_NAME_OPTION = "api_name"
 _REASONING_OPTION = "reasoning"
+_IMAGES_OPTION = "images"
 _ROLE_OPTION = "role"
 _UNROLE_OPTION = "unrole"
+_PRIORITY_OPTION = "priority"
 
 
 def _option(options: object, name: str) -> object | None:
@@ -49,15 +51,17 @@ def _option(options: object, name: str) -> object | None:
     return value
 
 
-def _parse_role(raw_role: str) -> AIModelRole:
+def _parse_role(raw_role: str, priority: int = 0) -> AIModelRole:
     """``<mode>:<purpose>`` or ``<purpose>`` for purposes that are not per-chat."""
     mode_name, _, purpose_name = raw_role.rpartition(":")
     purpose = AIModelPurpose(purpose_name)
-    return AIModelRole(mode=AIMode(mode_name) if mode_name else None, purpose=purpose)
+    return AIModelRole(mode=AIMode(mode_name) if mode_name else None, purpose=purpose, priority=priority)
 
 
 def _format_role(role: AIModelRole) -> str:
-    return f"{role.mode.value if role.mode else 'any'}:{role.purpose.value}"
+    name = f"{role.mode.value if role.mode else 'any'}:{role.purpose.value}"
+    # Priority is only worth the noise once it is not the default, which is the single-model case.
+    return f"{name}#{role.priority}" if role.priority else name
 
 
 def _provider_usage() -> Section:
@@ -77,7 +81,8 @@ def _model_usage() -> Section:
     return Section(
         VList(
             Code("/op_aimodel <name> ^provider=<name> ^api_name=<upstream name> ^role=<role> ^enabled=<yes/no>"),
-            Code("/op_aimodel <name> ^unrole=<role> ^reasoning=<yes/no>"),
+            Code("/op_aimodel <name> ^unrole=<role> ^reasoning=<yes/no> ^images=<yes/no>"),
+            Code("/op_aimodel <name> ^role=<role> ^priority=<number>"),
             Code("/op_aimodel <name> ^delete=yes"),
             Template(
                 _("Roles: {modes} paired with {purposes}, e.g. {example}"),
@@ -89,7 +94,15 @@ def _model_usage() -> Section:
                 _("Drop the mode for purposes that are not per-chat, e.g. {example}"),
                 example=Code("^role=summary"),
             ),
-            _("A mode with no model for a purpose falls back to the support one."),
+            _(
+                "Several models can share one role: they are tried best-first, ordered by "
+                "^priority (lower runs earlier), and the next one takes over when the current "
+                "one fails or answers with nothing."
+            ),
+            Template(
+                _("A model that cannot be shown an image is skipped for image messages: set {option}."),
+                option=Code("^images=no"),
+            ),
             Template(
                 _("The upstream name defaults to the model name; set {option} when they differ."),
                 option=Code("^api_name"),
@@ -240,9 +253,11 @@ class OpAIModel(SophieMessageHandler):
                     KeyValueArg(_PROVIDER_OPTION, WordArg()),
                     KeyValueArg(_API_NAME_OPTION, WordArg()),
                     KeyValueArg(_REASONING_OPTION, BooleanArg()),
+                    KeyValueArg(_IMAGES_OPTION, BooleanArg()),
                     KeyValueArg(_ENABLED_OPTION, BooleanArg()),
                     KeyValueArg(_ROLE_OPTION, WordArg()),
                     KeyValueArg(_UNROLE_OPTION, WordArg()),
+                    KeyValueArg(_PRIORITY_OPTION, IntArg()),
                 )
             ),
             "name": WordArg(l_("Model name")),
@@ -272,15 +287,28 @@ class OpAIModel(SophieMessageHandler):
             stored_model.api_name = str(api_name)
         if (reasoning := _option(options, _REASONING_OPTION)) is not None:
             stored_model.supports_reasoning = bool(reasoning)
+        if (images := _option(options, _IMAGES_OPTION)) is not None:
+            stored_model.supports_images = bool(images)
         if (enabled := _option(options, _ENABLED_OPTION)) is not None:
             stored_model.enabled = bool(enabled)
 
         if (raw_role := _option(options, _ROLE_OPTION)) is not None:
-            role = _parse_role(str(raw_role))
-            stored_model.roles = [existing for existing in stored_model.roles if existing != role] + [role]
+            priority = _option(options, _PRIORITY_OPTION)
+            role = _parse_role(str(raw_role), int(str(priority)) if priority is not None else 0)
+            # Matched on (mode, purpose) rather than on the whole role, so re-assigning a role this
+            # model already has updates its priority instead of listing it twice.
+            stored_model.roles = [
+                existing
+                for existing in stored_model.roles
+                if (existing.mode, existing.purpose) != (role.mode, role.purpose)
+            ] + [role]
         if (raw_unrole := _option(options, _UNROLE_OPTION)) is not None:
             unrole = _parse_role(str(raw_unrole))
-            stored_model.roles = [existing for existing in stored_model.roles if existing != unrole]
+            stored_model.roles = [
+                existing
+                for existing in stored_model.roles
+                if (existing.mode, existing.purpose) != (unrole.mode, unrole.purpose)
+            ]
 
         await stored_model.save()
         await bump_version()

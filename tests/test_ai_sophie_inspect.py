@@ -10,6 +10,7 @@ from pydantic_ai.messages import ToolCallPart
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.fsm.pm import AI_PM_STOP_HELP_TEXT
+from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, ResolvedRole
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.help_tip import build_help_mode_keyboard, should_offer_help_mode
 from sophie_bot.modules.ai.utils.sophie_inspect import _parse_chat_ids, is_sophie_inspect_chat, run_sophie_inspect
@@ -75,6 +76,27 @@ async def test_daily_limit_stops_further_runs(monkeypatch: pytest.MonkeyPatch) -
     started.assert_not_awaited()
 
 
+def _patch_model_resolution(monkeypatch: pytest.MonkeyPatch, *role_models: str) -> None:
+    """Resolve the inspect plan from a fixed catalog, without a reload or a real provider client."""
+    catalog = AICatalog(
+        version="1",
+        roles={
+            (AIMode.sophie_help, AIModelPurpose.sophie_inspect): tuple(
+                ResolvedRole(model_name=name, service_tier=None, reasoning_effort=None, priority=index)
+                for index, name in enumerate(role_models)
+            )
+        }
+        if role_models
+        else {},
+    )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_catalog.get_catalog", AsyncMock(return_value=catalog))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.catalog", lambda: catalog)
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_model_factory.get_ai_model",
+        lambda model_name, reasoning_effort=None: SimpleNamespace(model_name=model_name),
+    )
+
+
 async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=True))
@@ -88,13 +110,13 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch) -> 
         "sophie_bot.modules.ai.utils.sophie_inspect.get_value",
         AsyncMock(side_effect=lambda feature, chat_tid=None: values[feature]),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.sophie_inspect.get_ai_model",
-        lambda model_name: SimpleNamespace(model_name=model_name),
-    )
+    # The flag pins a model the catalog has never heard of, which must still run on its own.
+    _patch_model_resolution(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     run = AsyncMock(
-        return_value=SimpleNamespace(output="Notes are saved with /save.", usage=SimpleNamespace(total_tokens=10))
+        return_value=SimpleNamespace(
+            output="Notes are saved with /save.", usage=SimpleNamespace(total_tokens=10), served_model=None
+        )
     )
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", run)
     charge = AsyncMock()
@@ -123,21 +145,18 @@ async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch)
         "sophie_bot.modules.ai.utils.sophie_inspect.get_value",
         AsyncMock(side_effect=lambda feature, chat_tid=None: 8 if "limit" in feature else ""),
     )
-    resolve = AsyncMock(return_value="catalog/model")
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.resolve_model_name", resolve)
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.sophie_inspect.get_ai_model", lambda name: SimpleNamespace(model_name=name)
-    )
+    _patch_model_resolution(monkeypatch, "catalog/model", "catalog/backup")
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text",
-        AsyncMock(return_value=SimpleNamespace(output="answer", usage=SimpleNamespace(total_tokens=5))),
+    run = AsyncMock(
+        return_value=SimpleNamespace(output="answer", usage=SimpleNamespace(total_tokens=5), served_model=None)
     )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", run)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.charge_ai_usage", AsyncMock())
 
     await run_sophie_inspect("how do notes work", PydanticObjectId())
 
-    assert resolve.await_args.args[1] == AIModelPurpose.sophie_inspect
+    # The whole role chain reaches the runtime, best first, so an unusable answer can fail over.
+    assert run.await_args.kwargs["model_plan"].model_names == ("catalog/model", "catalog/backup")
 
 
 async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -148,9 +167,7 @@ async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch:
         "sophie_bot.modules.ai.utils.sophie_inspect.get_value",
         AsyncMock(side_effect=lambda feature, chat_tid=None: 8 if "limit" in feature else "cheap/model"),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.sophie_inspect.get_ai_model", lambda name: SimpleNamespace(model_name=name)
-    )
+    _patch_model_resolution(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text",
@@ -245,8 +262,18 @@ async def test_a_stale_catalog_row_does_not_stop_the_bot() -> None:
     await models.insert_many(
         [
             # Written by an older version, under a purpose that has since been renamed.
-            {"name": "stale/model", "provider": "openrouter", "roles": [{"mode": "support", "purpose": "deep_help"}], "enabled": True},
-            {"name": "good/model", "provider": "openrouter", "roles": [{"mode": "support", "purpose": "chatbot"}], "enabled": True},
+            {
+                "name": "stale/model",
+                "provider": "openrouter",
+                "roles": [{"mode": "support", "purpose": "deep_help"}],
+                "enabled": True,
+            },
+            {
+                "name": "good/model",
+                "provider": "openrouter",
+                "roles": [{"mode": "support", "purpose": "chatbot"}],
+                "enabled": True,
+            },
         ]
     )
 

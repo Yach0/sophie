@@ -9,7 +9,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
@@ -113,14 +113,14 @@ class OpTaskHandler(SophieMessageHandler):
 
         history.add_custom("\n\n".join(prompt_parts), name="OperatorTask")
 
-        model = await get_chat_summary_model(chat_model.iid, chat_tid=chat_tid)
+        model_plan = await get_chat_summary_model_plan(chat_model.iid, chat_tid=chat_tid)
         try:
             result = await run_structured_task(
                 AIStructuredTask(
                     output_type=OpTaskAIResult,
                     feature=AI_FEATURE_CHATBOT,
                 ),
-                model,
+                model_plan,
                 history,
                 chat_iid=chat_model.iid,
                 chat_tid=chat_tid,
