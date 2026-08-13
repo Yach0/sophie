@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, cast
-from unittest.mock import AsyncMock, patch
+from typing import cast
+from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.types import Message
-from pydantic_ai.models import Model
 from stfu_tg import Doc
-from stfu_tg.doc import Element
 
-from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
 
 
@@ -20,16 +17,9 @@ def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer
         header=Doc("Initial"),
         mode=StreamMode.HTML_EDIT,
         throttle_seconds=1,
-        connection=cast(ChatConnection, SimpleNamespace(db_model=SimpleNamespace(iid="chat-iid"))),
-        model=cast(Model[Any], SimpleNamespace()),
     )
     streamer.response_message = cast(Message, response_message)
     return streamer
-
-
-async def fake_build_chatbot_header(*args: object, **kwargs: object) -> Element:
-    additional_header_items = cast(list[Element], kwargs["additional_header_items"])
-    return additional_header_items[0]
 
 
 def _edited_text(response_message: SimpleNamespace) -> str:
@@ -42,8 +32,7 @@ async def test_retrying_updates_chatbot_header() -> None:
     response_message = SimpleNamespace(edit_text=AsyncMock())
     streamer = _build_streamer(response_message)
 
-    with patch("sophie_bot.modules.ai.utils.chatbot_streaming.build_chatbot_header", fake_build_chatbot_header):
-        await streamer.update_retrying(1, 5)
+    await streamer.update_retrying(1, 5)
 
     response_message.edit_text.assert_awaited_once()
     assert "(Retrying 1/5...)" in _edited_text(response_message)
@@ -57,8 +46,7 @@ async def test_header_update_keeps_already_streamed_text() -> None:
     streamer = _build_streamer(response_message)
     streamer.last_sent_text = "Let me check the docs."
 
-    with patch("sophie_bot.modules.ai.utils.chatbot_streaming.build_chatbot_header", fake_build_chatbot_header):
-        await streamer.update_retrying(1, 5)
+    await streamer.update_retrying(1, 5)
 
     edited_text = _edited_text(response_message)
     assert "(Retrying 1/5...)" in edited_text
@@ -71,9 +59,8 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
     streamer = _build_streamer(response_message)
     streamer.throttle_seconds = 0
 
-    with patch("sophie_bot.modules.ai.utils.chatbot_streaming.build_chatbot_header", fake_build_chatbot_header):
-        await streamer.stream_reasoning("The user   is asking\nabout antiflood.")
-        await streamer.stream_reasoning("   ")
+    await streamer.stream_reasoning("The user   is asking\nabout antiflood.")
+    await streamer.stream_reasoning("   ")
 
     # Whitespace collapsed, and a blank update never costs an edit.
     response_message.edit_text.assert_awaited_once()

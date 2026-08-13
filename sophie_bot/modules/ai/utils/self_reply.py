@@ -4,6 +4,7 @@ from aiogram.types import Message
 
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.utils.ai_header import AI_HEADER_LABEL, AI_HEADER_SEPARATOR
+from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 
 
 def _rich_block_text(block: object) -> str:
@@ -35,13 +36,19 @@ def message_text(message: Message) -> str:
 
 
 def is_ai_message(text: str) -> bool:
-    """Whether a message carries Sophie's AI header, in any rendering it has ever had.
+    """Whether a message is one of Sophie's AI messages, in any rendering it has ever had.
 
-    The separator matters: without it "✨ AI Usage" and other AI-titled replies would match too,
-    and replying to them would start a conversation.
+    Callers check the sender first, so this only has to tell Sophie's AI messages from her other
+    ones. The separator matters: without it "✨ AI Usage" and other AI-titled replies would match
+    too, and replying to them would start a conversation.
     """
     first_line = text.split("\n", 1)[0].strip()
     if first_line == AI_HEADER_LABEL or first_line.startswith(AI_HEADER_LABEL + AI_HEADER_SEPARATOR):
+        return True
+
+    # An answer still being generated has no header yet — it is a plain progress line, and replying
+    # to it has to continue the conversation just like replying to the finished message does.
+    if first_line.startswith(AI_PROGRESS_MARKER + " "):
         return True
 
     # Messages sent before the header became a table are still in chat history, and replying to one

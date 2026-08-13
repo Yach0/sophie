@@ -767,7 +767,7 @@ msgid "The AI mode has been exited."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/research.py:45
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:78
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
 msgid "Starting the research..."
 msgstr ""
 
@@ -967,7 +967,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:337
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:329
 #: sophie_bot/modules/ai/utils/research.py:366
 #: sophie_bot/modules/ai/utils/research.py:496
 msgid "Research"
@@ -994,83 +994,83 @@ msgstr ""
 msgid "Filter 🪄"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:33
+#: sophie_bot/modules/ai/utils/ai_progress.py:44
 msgid "Thinking..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:34
+#: sophie_bot/modules/ai/utils/ai_progress.py:45
 msgid "Working on it..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:35
+#: sophie_bot/modules/ai/utils/ai_progress.py:46
 msgid "Let me think..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:36
+#: sophie_bot/modules/ai/utils/ai_progress.py:47
 msgid "Generating response..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:37
+#: sophie_bot/modules/ai/utils/ai_progress.py:48
 msgid "Preparing an answer..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:38
+#: sophie_bot/modules/ai/utils/ai_progress.py:49
 msgid "Reading the context..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:39
+#: sophie_bot/modules/ai/utils/ai_progress.py:50
 msgid "Checking the details..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:40
+#: sophie_bot/modules/ai/utils/ai_progress.py:51
 msgid "Looking into it..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:41
+#: sophie_bot/modules/ai/utils/ai_progress.py:52
 msgid "Sorting through the context..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:42
+#: sophie_bot/modules/ai/utils/ai_progress.py:53
 msgid "Connecting the dots..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:43
+#: sophie_bot/modules/ai/utils/ai_progress.py:54
 msgid "Reviewing the conversation..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:44
+#: sophie_bot/modules/ai/utils/ai_progress.py:55
 msgid "Drafting a reply..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:45
+#: sophie_bot/modules/ai/utils/ai_progress.py:56
 msgid "Checking what matters..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:46
+#: sophie_bot/modules/ai/utils/ai_progress.py:57
 msgid "Putting it together..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:47
+#: sophie_bot/modules/ai/utils/ai_progress.py:58
 msgid "Thinking this through..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:48
+#: sophie_bot/modules/ai/utils/ai_progress.py:59
 msgid "Finding the right angle..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:49
+#: sophie_bot/modules/ai/utils/ai_progress.py:60
 msgid "Weighing the options..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:50
+#: sophie_bot/modules/ai/utils/ai_progress.py:61
 msgid "Tracing the details..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:51
+#: sophie_bot/modules/ai/utils/ai_progress.py:62
 msgid "Building the answer..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_progress.py:52
+#: sophie_bot/modules/ai/utils/ai_progress.py:63
 msgid "Making sense of it..."
 msgstr ""
 
@@ -1211,91 +1211,91 @@ msgstr ""
 msgid "Research 🔎"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:98
+#: sophie_bot/modules/ai/utils/chatbot_response.py:101
 msgid "⚠️ Cut short — the reply hit its step limit."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:36
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
+msgid "Searching the web..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:37
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
-msgid "Searching the web..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:38
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:43
 #: sophie_bot/modules/ai/utils/research.py:79
 msgid "Looking it up online..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:39
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:44
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:38
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:43
 msgid "Browsing the internet..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
 msgid "Updating memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:48
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
 msgid "Saving to memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
 msgid "Removing from memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:52
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
 msgid "Forgetting..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
 msgid "Checking the documentation..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:56
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
 msgid "Looking up how Sophie works..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
 msgid "Digging through my own sources..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:60
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
 msgid "Reading my own code..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
 msgid "Scanning notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:64
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
 msgid "Looking through notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
 msgid "Reading note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:68
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
 msgid "Fetching note content..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
 msgid "Saving note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:72
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
 msgid "Writing to notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
 msgid "Deleting note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:76
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
 msgid "Removing note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:191
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:186
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""

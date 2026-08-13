@@ -8,16 +8,15 @@ from typing import Any
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
 from pydantic_ai.models import Model
-from stfu_tg import Doc, HList, Template
+from stfu_tg import Doc, Template
 from stfu_tg.doc import Element
 
-from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_progress import (
-    ai_progress_custom_emoji,
+    ai_progress_line,
     random_ai_progress_custom_emoji_id,
     random_ai_thinking_text,
 )
-from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc
+from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
@@ -86,7 +85,7 @@ class StreamMode(Enum):
 
 
 def _thinking_header_element(emoji_id: str | None = None) -> Element:
-    return HList(ai_progress_custom_emoji(emoji_id), random_ai_thinking_text(), divider=" ")
+    return ai_progress_line(random_ai_thinking_text(), emoji_id)
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:
@@ -123,8 +122,6 @@ class ChatbotMessageStreamer:
         mode: StreamMode,
         throttle_seconds: float,
         tool_thinking_texts: dict[str, tuple[str, ...]] | None = None,
-        connection: ChatConnection | None = None,
-        model: Model | None = None,
         emoji_id: str | None = None,
     ) -> None:
         self.source_message = source_message
@@ -132,8 +129,6 @@ class ChatbotMessageStreamer:
         self.mode = mode
         self.throttle_seconds = throttle_seconds
         self.tool_thinking_texts = tool_thinking_texts
-        self.connection = connection
-        self.model = model
         self.emoji_id = emoji_id
         self.response_message: Message | None = None
         self.last_sent_text: str = ""
@@ -173,7 +168,7 @@ class ChatbotMessageStreamer:
         if not tail:
             return
 
-        await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), tail, divider=" "))
+        await self._update_thinking_header(ai_progress_line(tail, self.emoji_id))
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
         if not self.tool_thinking_texts:
@@ -181,22 +176,21 @@ class ChatbotMessageStreamer:
         texts = self.tool_thinking_texts.get(tool_name)
         if not texts:
             return
-        await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), choice(texts), divider=" "))
+        await self._update_thinking_header(ai_progress_line(choice(texts), self.emoji_id))
 
     async def update_retrying(self, attempt: int, total_attempts: int) -> None:
         await self._update_thinking_header(
-            HList(
-                ai_progress_custom_emoji(self.emoji_id),
+            ai_progress_line(
                 random_ai_thinking_text(),
+                self.emoji_id,
                 Template(_("(Retrying {attempt}/{total_attempts}...)"), attempt=attempt, total_attempts=total_attempts),
-                divider=" ",
             )
         )
 
     async def update_research_progress(self, stage: ResearchProgressStage) -> None:
         text = random_research_progress_text(stage)
         suffix = research_progress_suffix(stage)
-        await self._update_thinking_header(HList(ai_progress_custom_emoji(self.emoji_id), text, suffix, divider=" "))
+        await self._update_thinking_header(ai_progress_line(text, self.emoji_id, suffix))
 
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
         if self.response_message is None:
@@ -253,16 +247,7 @@ class ChatbotMessageStreamer:
         )
 
     async def _update_thinking_header(self, thinking_element: Element) -> None:
-        if not self.connection or not self.model:
-            return
-
-        self.header = await build_chatbot_header(
-            self.connection.db_model.iid,
-            self.model,
-            [],
-            additional_header_items=[thinking_element],
-            skip_battery=True,
-        )
+        self.header = thinking_element
 
         # The agent loop can keep going after it has already written text (narrate, call a tool,
         # answer), so a header-only doc here would wipe what the user is reading. Re-render the
@@ -314,7 +299,6 @@ class ChatbotMessageStreamer:
 
 async def build_message_streamer(
     message: Message,
-    connection: ChatConnection,
     model: Model,
     explicit_debug_mode: bool,
 ) -> ChatbotMessageStreamer | None:
@@ -334,19 +318,20 @@ async def build_message_streamer(
     else:
         return None
 
-    emoji_id = None
-    header_items = None
-    if thinking_enabled:
-        if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id):
-            emoji_id = random_ai_progress_custom_emoji_id()
-        header_items = [_thinking_header_element(emoji_id=emoji_id)]
+    # Picked once per run, so every edit of the placeholder keeps the same emoji. Without the flag
+    # `ai_progress_custom_emoji` uses the fixed default one — the choice never depends on whether
+    # the thinking text is shown.
+    emoji_id = (
+        random_ai_progress_custom_emoji_id()
+        if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id)
+        else None
+    )
 
-    header = await build_chatbot_header(
-        connection.db_model.iid,
-        model,
-        [],
-        additional_header_items=header_items,
-        skip_battery=thinking_enabled,
+    # Placeholder only — the AI table header and its battery are built once the answer is ready.
+    header = (
+        _thinking_header_element(emoji_id=emoji_id)
+        if thinking_enabled
+        else ai_progress_line(model.model_name, emoji_id)
     )
     backoff_seconds = _coerce_stream_backoff_seconds(
         await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id)
@@ -359,8 +344,6 @@ async def build_message_streamer(
         tool_thinking_texts=_TOOL_THINKING_TEXTS
         if thinking_enabled and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
         else None,
-        connection=connection,
-        model=model,
         emoji_id=emoji_id,
     )
     await streamer.send_thinking_message()
