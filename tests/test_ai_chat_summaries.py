@@ -129,10 +129,24 @@ def test_derive_summary_line_skips_low_signal_single_participant_topic() -> None
     assert line is None
 
 
+def _patch_privacy_flag(monkeypatch: pytest.MonkeyPatch, *, enabled: bool) -> None:
+    """Stub the privacy feature flag.
+
+    ``process_chat`` resolves ``ai_summary_improved_privacy`` through Redis and, on a cache miss,
+    through the ``FeatureFlagOverride`` document. Unit tests do not initialize Beanie, so the
+    lookup must be stubbed instead of relying on whatever state earlier tests left behind.
+    """
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.schedules.generate_chat_summaries.is_enabled",
+        AsyncMock(return_value=enabled),
+    )
+
+
 @pytest.mark.asyncio
 async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(iid="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
+    _patch_privacy_flag(monkeypatch, enabled=False)
     cached_messages = (
         MessageType(
             user_id=1,
@@ -226,6 +240,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
 async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(iid="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
+    _patch_privacy_flag(monkeypatch, enabled=False)
     cached_messages = (
         MessageType(
             user_id=1,
@@ -292,6 +307,7 @@ async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPat
 async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(iid="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
+    _patch_privacy_flag(monkeypatch, enabled=False)
     cached_messages = (
         MessageType(
             user_id=1,
@@ -387,6 +403,7 @@ async def test_process_chat_skips_when_summary_already_exists(monkeypatch: pytes
 async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(iid="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
+    _patch_privacy_flag(monkeypatch, enabled=False)
 
     # An existing summary with lines would normally cause a skip.
     existing_line = AIChatSummaryLine(
@@ -632,10 +649,7 @@ def _patch_process_chat_dependencies(
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.get_cached_messages_between",
         AsyncMock(return_value=_transcript_sample()),
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.schedules.generate_chat_summaries.is_enabled",
-        AsyncMock(return_value=privacy_enabled),
-    )
+    _patch_privacy_flag(monkeypatch, enabled=privacy_enabled)
     monkeypatch.setattr(GenerateChatSummaries, "generate_summary_groups", generate_summary_groups)
     upsert_for_date = AsyncMock()
     monkeypatch.setattr(
