@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 import pytest
 from aiogram.client.default import Default
 from aiogram.fsm.storage.base import StorageKey
-from aiogram.types import Chat, Message, User
+from aiogram.types import Chat, LinkPreviewOptions, Message, User
 from fakeredis import FakeAsyncRedis
 from pydantic_core import PydanticSerializationError
 
@@ -44,7 +44,7 @@ def _storage_key() -> StorageKey:
 
 
 def _message_with_default_sentinels(message_id: int) -> Message:
-    """A message carrying ``Default`` sentinels as field values.
+    """A message carrying ``Default`` sentinels as field values, both top-level and nested.
 
     ``Message`` is frozen and validates on construction, so the sentinels are
     injected the same way aiogram does it internally: through ``model_copy``.
@@ -56,11 +56,17 @@ def _message_with_default_sentinels(message_id: int) -> Message:
         from_user=User(id=USER_ID, is_bot=False, first_name="AlbumUser"),
         media_group_id=MEDIA_GROUP_ID,
         caption="album item",
+        link_preview_options=LinkPreviewOptions(url="https://example.org"),
+    )
+    # Nested sentinel: aiogram fills the unset fields of child objects the same way.
+    link_preview_options = message.link_preview_options.model_copy(
+        update={"is_disabled": Default("link_preview_is_disabled")}
     )
     return message.model_copy(
         update={
             "has_protected_content": Default("protect_content"),
             "show_caption_above_media": Default("show_caption_above_media"),
+            "link_preview_options": link_preview_options,
         }
     )
 
@@ -87,3 +93,7 @@ async def test_add_into_group_round_trips_messages_with_default_sentinels(redis:
         assert not [name for name, value in message if isinstance(value, Default)]
         assert message.has_protected_content is None
         assert message.show_caption_above_media is None
+        # Nested sentinels are cleared too, and the rest of the child object survives.
+        assert message.link_preview_options is not None
+        assert message.link_preview_options.is_disabled is None
+        assert message.link_preview_options.url == "https://example.org"

@@ -3,7 +3,6 @@ from random import randint
 from typing import Any, override
 
 from aiogram import BaseMiddleware
-from aiogram.client.default import Default
 from aiogram.types import TelegramObject
 from aiohttp import ClientError, ClientSession
 
@@ -11,14 +10,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import BetaModeModel, ChatModel, GlobalSettings
 from sophie_bot.db.models.beta import CurrentMode, PreferredMode
 from sophie_bot.utils.logger import log
-
-
-def _serialize_bot_default(value: Any) -> None:
-    # aiogram fills unset fields of incoming objects (LinkPreviewOptions, ReplyParameters, ...)
-    # with Default sentinels, which pydantic cannot serialize. They only mean "the bot decides",
-    # so the receiving instance is better off seeing nothing at all.
-    if not isinstance(value, Default):
-        raise TypeError(f"Unable to serialize unknown type: {type(value)}")
+from sophie_bot.utils.serialization import serialize_bot_default
 
 
 class BetaMiddleware(BaseMiddleware):
@@ -84,7 +76,9 @@ class BetaMiddleware(BaseMiddleware):
         # Never exclude defaults: discriminator fields (such as rich block 'type') carry
         # their tag as a field default, and dropping them makes the payload unparsable
         # on the receiving instance.
-        return update.model_dump_json(by_alias=True, exclude_none=True, fallback=_serialize_bot_default)
+        # `warnings=False`: a Default sentinel never matches its field type, and the fallback
+        # replacing it with null is the intended outcome, not a mismatch worth reporting.
+        return update.model_dump_json(by_alias=True, exclude_none=True, fallback=serialize_bot_default, warnings=False)
 
     async def send_request(self, json_request: str, instance_url: str):
         try:
