@@ -1,6 +1,15 @@
+import re
 from types import SimpleNamespace
 
+from stfu_tg import Doc
+
+from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_thinking_text
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
+
+
+def _as_telegram_shows(html: str) -> str:
+    """Telegram delivers custom emoji as their fallback character, with the markup stripped."""
+    return re.sub(r"<[^>]+>", "", html)
 
 
 def test_is_ai_message_accepts_legacy_header() -> None:
@@ -18,6 +27,22 @@ def test_cut_titlebar_removes_short_header() -> None:
 def test_is_ai_message_accepts_the_table_header() -> None:
     assert is_ai_message("✨ AI | Help 📖 | 🔋 80%")
     assert is_ai_message("✨ AI")
+
+
+def test_is_ai_message_accepts_the_in_progress_placeholder() -> None:
+    """Replying while the answer is still being generated must continue the conversation.
+
+    The placeholder carries no table header, so the progress marker is what identifies it.
+    """
+    placeholder = _as_telegram_shows(Doc(ai_progress_line(random_ai_thinking_text())).to_html())
+
+    assert is_ai_message(placeholder)
+
+
+def test_is_ai_message_accepts_a_placeholder_that_already_streamed_text() -> None:
+    placeholder = _as_telegram_shows(Doc(ai_progress_line("Searching the web...")).to_html())
+
+    assert is_ai_message(f"{placeholder}\n\nHere is what I found")
 
 
 def test_is_ai_message_rejects_other_ai_titled_replies() -> None:

@@ -318,12 +318,21 @@ async def build_message_streamer(
     else:
         return None
 
-    emoji_id = None
-    if thinking_enabled and await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id):
-        emoji_id = random_ai_progress_custom_emoji_id()
+    # Picked once per run, so every edit of the placeholder keeps the same emoji. Without the flag
+    # `ai_progress_custom_emoji` uses the fixed default one — the choice never depends on whether
+    # the thinking text is shown.
+    emoji_id = (
+        random_ai_progress_custom_emoji_id()
+        if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id)
+        else None
+    )
 
     # Placeholder only — the AI table header and its battery are built once the answer is ready.
-    header = _thinking_header_element(emoji_id=emoji_id) if thinking_enabled else ai_progress_line(model.model_name)
+    header = (
+        _thinking_header_element(emoji_id=emoji_id)
+        if thinking_enabled
+        else ai_progress_line(model.model_name, emoji_id)
+    )
     backoff_seconds = _coerce_stream_backoff_seconds(
         await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id)
     )
