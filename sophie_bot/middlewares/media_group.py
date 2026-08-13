@@ -33,6 +33,7 @@ from aiogram.types import Message, TelegramObject, Update
 from redis.asyncio import Redis
 
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.serialization import serialize_bot_default
 
 DELAY_SEC = 1.0
 LOCK_TTL_SEC = 30
@@ -155,7 +156,13 @@ class RedisMediaGroupAggregator(BaseMediaGroupAggregator):
         current_time = await self.get_current_time()
         async with self.redis.pipeline(transaction=True) as pipe:
             pipe.set(self.build_last_message_time_key(key), current_time, ex=self.ttl_sec)
-            pipe.rpush(self.build_group_key(key), media.model_dump_json())
+            # Some update paths leave aiogram ``Default`` sentinels as field values, at any depth;
+            # pydantic cannot serialize them, so they are written as null. They validate back as
+            # ``None``, exactly like an incoming update that never carried the field.
+            pipe.rpush(
+                self.build_group_key(key),
+                media.model_dump_json(fallback=serialize_bot_default, warnings=False),
+            )
             pipe.expire(self.build_group_key(key), self.ttl_sec)
             res = await pipe.execute()
         return cast(int, res[1])
