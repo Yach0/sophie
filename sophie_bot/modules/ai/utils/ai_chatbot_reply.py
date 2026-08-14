@@ -15,8 +15,9 @@ from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import (
     AIAgentResult,
     ChatbotStreamOptions,
@@ -73,10 +74,17 @@ async def _reply_debug_history(message: Message, history: AIMessageHistory) -> N
     )
 
 
-async def _resolve_model(connection: ChatConnection, model: Model | None, mode: AIMode) -> Model:
-    if model is not None:
-        return model
-    return await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid, mode=mode)
+async def _resolve_model_plan(connection: ChatConnection, model: Model | None, mode: AIMode) -> AIModelPlan:
+    """The chatbot's candidates for this chat, with a caller's own model pinned in front.
+
+    A caller that hand-picked a model still gets exactly that model first; what it gains is the
+    mode's own candidates behind it, so a pin that fails is no longer a dead end.
+    """
+    plan = await get_chat_default_model_plan(connection.db_model.iid, chat_tid=connection.db_model.tid, mode=mode)
+    if model is None:
+        return plan
+    pinned = AIModelCandidate(model=model, model_name=model.model_name)
+    return build_model_plan([pinned, *plan.candidates], failover=plan.failover)
 
 
 async def _build_chatbot_header(
@@ -160,6 +168,7 @@ async def _generate_chatbot_result(
     user_text: str | None = None,
     mode: AIMode = AIMode.support,
     stream_options: ChatbotStreamOptions | None = None,
+    model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[str]:
     run_config = await build_chatbot_run_config(
         connection.tid,
@@ -186,6 +195,7 @@ async def _generate_chatbot_result(
             on_reasoning_stream=on_reasoning_stream,
             on_retry=on_retry,
             stream_options=stream_options,
+            model_plan=model_plan,
         )
 
     return await run_ai_text(
@@ -196,6 +206,7 @@ async def _generate_chatbot_result(
         usage_limits=run_config.usage_limits,
         request_options=run_config.request_options,
         on_retry=on_retry,
+        model_plan=model_plan,
     )
 
 
@@ -243,7 +254,8 @@ async def ai_chatbot_reply(
     async with track_ai_conversation():
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
-        model = await _resolve_model(connection, model, mode)
+        model_plan = await _resolve_model_plan(connection, model, mode)
+        model = model_plan.primary
         message_streamer = await build_message_streamer(message, model, explicit_debug_mode)
         context = SophieAIToolContext(
             connection=connection,
@@ -287,9 +299,14 @@ async def ai_chatbot_reply(
                 user_text=user_text,
                 mode=mode,
                 stream_options=stream_options,
+                model_plan=model_plan,
             )
         except AIRequestFailed as err:
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
+
+        # Failover may have moved the reply off the model the streamer opened with, so the charge and
+        # the header both follow the model that actually answered.
+        model = result.served_model or model
 
         if result.usage:
             await charge_ai_usage(connection.db_model.iid, AI_FEATURE_CHATBOT, model, result.usage)

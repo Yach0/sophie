@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
+from pydantic_ai.models import Model
 from stfu_tg import Title
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -18,6 +20,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_usage_limits, get_chatbot_tools
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
@@ -70,7 +73,7 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
             output=ResearchDecision(action="continue", followup_queries=[], reasoning="Enough"),
             usage=None,
         ),
-        SimpleNamespace(output=final_response, usage=None, message_history=[]),
+        SimpleNamespace(output=final_response, usage=None, message_history=[], served_model=None),
     ]
 
     async def search_side_effect(chat_tid: int, query: str, limit: int) -> list[ResearchSource]:
@@ -91,8 +94,16 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
         patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
         patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
         patch(
-            "sophie_bot.modules.ai.utils.research.get_chat_research_model",
-            AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            "sophie_bot.modules.ai.utils.research.get_chat_research_model_plan",
+            AsyncMock(
+                return_value=AIModelPlan(
+                    candidates=(
+                        AIModelCandidate(
+                            model=cast(Model, SimpleNamespace(model_name="test-model")), model_name="test-model"
+                        ),
+                    )
+                )
+            ),
         ),
         patch(
             "sophie_bot.modules.ai.utils.research.run_research_structured_step",
@@ -109,6 +120,50 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
     )
     assert progress_stages == ["planning", "searching", "reviewing", "searching", "reviewing", "summarizing"]
     assert generate_mock.await_count == 4
+
+
+async def test_the_reported_research_model_is_the_one_that_summarised() -> None:
+    """Failover may move the summary off the plan's first candidate; the report must follow it."""
+    connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
+    settings = ResearchWorkflowSettings(max_rounds=1, queries_per_round=1, results_per_query=1, service_tier=None)
+    source = ResearchSource(title="Only", url="https://example.com/only", snippet="Only snippet")
+    final_response = ResearchFinalResponse(research_title="Answer", text="Answer", sources=[source])
+    served_model = cast(Model, SimpleNamespace(model_name="backup-model"))
+
+    generated_results = [
+        SimpleNamespace(output=ResearchQueryPlan(queries=[ResearchSearchQuery(query="q", reason="r")]), usage=None),
+        SimpleNamespace(output=final_response, usage=None, message_history=[], served_model=served_model),
+    ]
+
+    with (
+        patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
+        patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
+        patch(
+            "sophie_bot.modules.ai.utils.research.get_chat_research_model_plan",
+            AsyncMock(
+                return_value=AIModelPlan(
+                    candidates=(
+                        AIModelCandidate(
+                            model=cast(Model, SimpleNamespace(model_name="primary-model")), model_name="primary-model"
+                        ),
+                    ),
+                    failover=True,
+                )
+            ),
+        ),
+        patch(
+            "sophie_bot.modules.ai.utils.research.run_research_structured_step",
+            AsyncMock(side_effect=generated_results),
+        ),
+        patch(
+            "sophie_bot.modules.ai.utils.research.search_web_for_research",
+            AsyncMock(return_value=[source]),
+        ),
+    ):
+        result = await run_research_workflow("Research this", connection)
+
+    assert result.model is served_model
+    assert result.response.research_model == "backup-model"
 
 
 def test_build_research_doc_formats_summary_and_sources() -> None:

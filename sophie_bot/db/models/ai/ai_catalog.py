@@ -38,12 +38,19 @@ class AIModelRole(BaseModel):
     ``service_tier`` and ``reasoning_effort`` are per role, so one model can be flex-tier for
     research and normal for chatbot at once. When unset, the feature-flag service tier and the
     default reasoning effort apply, exactly as before.
+
+    Several models may claim the same (mode, purpose): they form that combination's ordered
+    candidate list, tried best-first. ``priority`` orders them — lower runs earlier — and ties break
+    on the model name so the order never depends on how the rows happen to come back from Mongo.
     """
 
     mode: AIMode
     purpose: AIModelPurpose
     service_tier: str | None = None
     reasoning_effort: str | None = None
+    # Lower wins. Rows written before candidate lists existed all land on 0, which keeps a
+    # single-model purpose behaving exactly as it did.
+    priority: int = 0
 
 
 class AICatalogProviderModel(Document):
@@ -65,6 +72,10 @@ class AICatalogModelModel(Document):
     # OpenAI-compatible providers so model names stay unique across the catalog.
     api_name: str | None = None
     supports_reasoning: bool = True
+    # Whether this model can be shown an image. A request carrying one skips the candidates that
+    # cannot. Defaults to true so rows written before this field keep serving images as they did —
+    # an operator marks a cheap text-only model false to route image turns past it.
+    supports_images: bool = True
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] = Field(default_factory=list)
     enabled: bool = True

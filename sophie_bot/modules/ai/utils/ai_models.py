@@ -1,7 +1,7 @@
 from sophie_bot.modules.ai.utils.ai_catalog import get_catalog, load_catalog, resolve_model_name
 from sophie_bot.modules.ai.utils.ai_model_factory import (
     get_ai_model,
-    get_proactive_replies_model,
+    get_proactive_replies_model_plan,
 )
 from sophie_bot.modules.ai.utils.ai_model_pricing import (
     clear_model_pricing_cache,
@@ -18,7 +18,7 @@ __all__ = [
     "get_ai_model",
     "get_catalog",
     "get_model_pricing",
-    "get_proactive_replies_model",
+    "get_proactive_replies_model_plan",
     "load_catalog",
     "refresh_model_pricing_cache",
     "resolve_model_name",

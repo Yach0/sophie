@@ -329,7 +329,7 @@ async def test_translate_success(test_client: TestClient) -> None:
         )
         stack.enter_context(
             patch(
-                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model",
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
                 AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
             )
         )
@@ -361,7 +361,7 @@ async def test_translate_empty_text_error(test_client: TestClient) -> None:
         _apply_ai_admin_patches(stack)
         stack.enter_context(
             patch(
-                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model",
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
                 AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
             )
         )
@@ -397,7 +397,7 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
         )
         stack.enter_context(
             patch(
-                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model",
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
                 AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
             )
         )

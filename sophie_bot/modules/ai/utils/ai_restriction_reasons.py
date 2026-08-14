@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.db.models.notes import Saveable
-from sophie_bot.modules.ai.utils.ai_chat_models import get_moderation_reason_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_moderation_reason_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -92,7 +92,7 @@ async def generate_restriction_reason(
     try:
         result = await run_structured_task(
             AIStructuredTask(output_type=AIReasonResponse),
-            await get_moderation_reason_model(chat_db.iid, chat_tid=chat_db.tid),
+            await get_moderation_reason_model_plan(chat_db.iid, chat_tid=chat_db.tid),
             history,
             chat_iid=chat_db.iid,
             chat_tid=chat_db.tid,

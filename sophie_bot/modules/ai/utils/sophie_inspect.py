@@ -9,9 +9,8 @@ from pydantic_ai.models import Model
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_catalog import resolve_model_name
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
-from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
+from sophie_bot.modules.ai.utils.ai_model_factory import build_purpose_plan
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.sophie_inspect_source import read_source, search_source
@@ -123,9 +122,13 @@ async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid
 
     # Source inspection is the help mode's tool wherever it runs (help chats and allow-listed
     # groups alike), so it always uses the help mode's model rather than the calling chat's mode.
-    model_name = str(await get_value("ai_sophie_inspect_model", chat_tid=chat_tid)) or await resolve_model_name(
-        AIMode.sophie_help, AIModelPurpose.sophie_inspect
+    model_plan = await build_purpose_plan(
+        AIMode.sophie_help,
+        AIModelPurpose.sophie_inspect,
+        str(await get_value("ai_sophie_inspect_model", chat_tid=chat_tid)),
+        chat_tid=chat_tid,
     )
+    model_name = model_plan.model_names[0]
     usage_limits = UsageLimits(
         request_limit=await _feature_int("ai_sophie_inspect_request_limit", chat_tid),
         tool_calls_limit=await _feature_int("ai_sophie_inspect_tool_calls_limit", chat_tid),
@@ -134,7 +137,7 @@ async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid
 
     log.debug("sophie_inspect: started", question=question, chat_iid=str(chat_iid), model=model_name)
 
-    model = get_ai_model(model_name)
+    model = model_plan.primary
     agent = _build_agent(model)
     try:
         result = await run_ai_text(
@@ -142,6 +145,7 @@ async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid
             user_prompt=question,
             usage_limits=usage_limits,
             request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:sophie_inspect"),
+            model_plan=model_plan,
         )
     except (AIRequestFailed, UsageLimitExceeded) as error:
         # Running out of budget is a normal outcome for a bounded sub-agent, and must not take the
@@ -149,7 +153,7 @@ async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid
         log.info("sophie_inspect: gave up", chat_iid=str(chat_iid), error=str(error))
         return _("I could not find the answer in my own sources within the allowed budget.")
 
-    await charge_ai_usage(chat_iid, AI_FEATURE_SOPHIE_INSPECT, model, result.usage)
+    await charge_ai_usage(chat_iid, AI_FEATURE_SOPHIE_INSPECT, result.served_model or model, result.usage)
 
     log.debug("sophie_inspect: finished", chat_iid=str(chat_iid), tokens=result.usage.total_tokens)
     return result.output

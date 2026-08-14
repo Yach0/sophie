@@ -12,7 +12,7 @@ from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
@@ -97,17 +97,20 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)
         messages.apply_context_block()
-        provider = await get_chat_default_model(connection.db_model.iid, chat_tid=connection.db_model.tid)
+        model_plan = await get_chat_default_model_plan(connection.db_model.iid, chat_tid=connection.db_model.tid)
 
         result = await run_ai_text(
-            Agent(provider, output_type=str),
+            Agent(model_plan.primary, output_type=str),
             user_prompt=messages.prompt,
             message_history=messages.message_history,
             request_options=AIRequestOptions(user_tracking_id=chat_db.iid),
+            model_plan=model_plan,
         )
 
         if result.usage and result.usage.total_tokens:
-            await charge_ai_usage(chat_db.iid, AI_FEATURE_FILTER, provider, result.usage)
+            await charge_ai_usage(
+                chat_db.iid, AI_FEATURE_FILTER, result.served_model or model_plan.primary, result.usage
+            )
 
         return Doc(
             Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),

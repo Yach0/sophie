@@ -9,10 +9,10 @@ from sophie_bot.db.models.ai.ai_mode import SELECTABLE_MODES, AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider, ResolvedRole
 from sophie_bot.modules.ai.utils.ai_chat_models import (
-    get_chat_default_model,
-    get_chat_filters_model,
-    get_chat_summary_model,
-    get_chat_translations_model,
+    get_chat_default_model_plan,
+    get_chat_filters_model_plan,
+    get_chat_summary_model_plan,
+    get_chat_translations_model_plan,
 )
 from sophie_bot.modules.ai.utils.ai_help_mode import set_help_mode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
@@ -20,66 +20,144 @@ from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructio
 from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
 
 ENTERTAINMENT_CHATBOT = "free/chatbot"
+ENTERTAINMENT_CHATBOT_BACKUP = "free/chatbot-backup"
 MODERATION_TRANSLATION = "standard/translate"
 MODERATION_FILTERS = "standard/filter"
 SUPPORT_FILTERS = "quality/filter"
 SUMMARY = "quality/summary"
 
+# The entertainment chatbot chain is the one with more than one candidate: the primary cannot be
+# shown an image, so an image turn has to skip past it to the backup.
+TEXT_ONLY_MODELS = frozenset({ENTERTAINMENT_CHATBOT})
+
 
 def _catalog() -> AICatalog:
     provider = CatalogProvider(name="openrouter", kind="openrouter", base_url=None, api_key="k")
-    names = [ENTERTAINMENT_CHATBOT, MODERATION_TRANSLATION, MODERATION_FILTERS, SUPPORT_FILTERS, SUMMARY]
+    names = [
+        ENTERTAINMENT_CHATBOT,
+        ENTERTAINMENT_CHATBOT_BACKUP,
+        MODERATION_TRANSLATION,
+        MODERATION_FILTERS,
+        SUPPORT_FILTERS,
+        SUMMARY,
+    ]
+
+    def _role(name: str, priority: int = 0) -> ResolvedRole:
+        return ResolvedRole(
+            model_name=name,
+            service_tier=None,
+            reasoning_effort=None,
+            supports_images=name not in TEXT_ONLY_MODELS,
+            priority=priority,
+        )
+
     return AICatalog(
         version="1",
         providers={provider.name: provider},
         models={
-            name: CatalogModel(name=name, provider=provider, api_name=name, supports_reasoning=True, extra_params=None)
+            name: CatalogModel(
+                name=name,
+                provider=provider,
+                api_name=name,
+                supports_reasoning=True,
+                extra_params=None,
+                supports_images=name not in TEXT_ONLY_MODELS,
+            )
             for name in names
         },
         roles={
-            key: ResolvedRole(model_name=name, service_tier=None, reasoning_effort=None)
-            for key, name in {
-                (AIMode.entertainment, AIModelPurpose.chatbot): ENTERTAINMENT_CHATBOT,
-                (AIMode.moderation, AIModelPurpose.translation): MODERATION_TRANSLATION,
-                (AIMode.moderation, AIModelPurpose.filters): MODERATION_FILTERS,
-                (AIMode.support, AIModelPurpose.filters): SUPPORT_FILTERS,
-                (AIMode.support, AIModelPurpose.summary): SUMMARY,
-            }.items()
+            (AIMode.entertainment, AIModelPurpose.chatbot): (
+                _role(ENTERTAINMENT_CHATBOT),
+                _role(ENTERTAINMENT_CHATBOT_BACKUP, priority=1),
+            ),
+            (AIMode.moderation, AIModelPurpose.translation): (_role(MODERATION_TRANSLATION),),
+            (AIMode.moderation, AIModelPurpose.filters): (_role(MODERATION_FILTERS),),
+            (AIMode.support, AIModelPurpose.filters): (_role(SUPPORT_FILTERS),),
+            (AIMode.support, AIModelPurpose.summary): (_role(SUMMARY),),
         },
     )
 
 
-def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+def _patch_model_builder(monkeypatch: pytest.MonkeyPatch, failover: bool = False) -> dict[str, object]:
     """Make get_ai_model return a distinct sentinel per model name, without building a real client."""
     built: dict[str, object] = {}
 
     def fake_get_ai_model(model_name: str, reasoning_effort: str | None = None) -> object:
         return built.setdefault(model_name, object())
 
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_ai_model", fake_get_ai_model)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.get_ai_model", fake_get_ai_model)
+    # Both the async accessor ``resolve_roles`` goes through and the cached snapshot the factory
+    # reads a pinned model's capabilities from.
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_catalog.get_catalog", AsyncMock(return_value=_catalog()))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.catalog", _catalog)
+    # The plan always lists the whole chain; this flag only decides whether the runtime walks it.
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.is_enabled", AsyncMock(return_value=failover))
     return built
 
 
-async def test_override_flag_wins_over_the_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_override_flag_leads_the_plan(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pinned model still runs first — what it gains is the mode's own chain behind it."""
+    built = _patch_model_builder(monkeypatch)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value="custom/model"))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.entertainment)
+    )
+
+    plan = await get_chat_default_model_plan(PydanticObjectId(), chat_tid=-100123)
+
+    assert plan.primary is built["custom/model"]
+    assert plan.model_names == ("custom/model", ENTERTAINMENT_CHATBOT, ENTERTAINMENT_CHATBOT_BACKUP)
+
+
+async def test_override_for_a_purpose_the_mode_does_not_serve_still_works(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pin is a complete answer: only a purpose with neither a pin nor a catalog model may crash."""
     built = _patch_model_builder(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value="custom/model"))
 
-    model = await get_chat_default_model(PydanticObjectId(), chat_tid=-100123)
+    plan = await get_chat_filters_model_plan(PydanticObjectId(), mode=AIMode.entertainment)
 
-    assert model is built["custom/model"]
+    assert plan.model_names == ("custom/model",)
+    assert plan.primary is built["custom/model"]
 
 
-async def test_chatbot_model_follows_the_chat_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_an_override_naming_a_catalog_model_is_not_listed_twice(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_model_builder(monkeypatch)
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=ENTERTAINMENT_CHATBOT_BACKUP)
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.entertainment)
+    )
+
+    plan = await get_chat_default_model_plan(PydanticObjectId())
+
+    assert plan.model_names == (ENTERTAINMENT_CHATBOT_BACKUP, ENTERTAINMENT_CHATBOT)
+
+
+async def test_chatbot_plan_follows_the_chat_mode_in_priority_order(monkeypatch: pytest.MonkeyPatch) -> None:
     built = _patch_model_builder(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.entertainment)
     )
 
-    model = await get_chat_default_model(PydanticObjectId())
+    plan = await get_chat_default_model_plan(PydanticObjectId())
 
-    assert model is built[ENTERTAINMENT_CHATBOT]
+    assert plan.primary is built[ENTERTAINMENT_CHATBOT]
+    assert plan.model_names == (ENTERTAINMENT_CHATBOT, ENTERTAINMENT_CHATBOT_BACKUP)
+
+
+async def test_an_image_turn_skips_the_candidate_that_cannot_see_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    built = _patch_model_builder(monkeypatch)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.entertainment)
+    )
+
+    plan = await get_chat_default_model_plan(PydanticObjectId())
+
+    assert plan.models(has_images=True) == (built[ENTERTAINMENT_CHATBOT_BACKUP],)
+    assert plan.models(has_images=False) == (built[ENTERTAINMENT_CHATBOT], built[ENTERTAINMENT_CHATBOT_BACKUP])
 
 
 async def test_translations_and_filters_follow_the_chat_mode(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -90,20 +168,20 @@ async def test_translations_and_filters_follow_the_chat_mode(monkeypatch: pytest
     )
     chat_iid = PydanticObjectId()
 
-    translations = await get_chat_translations_model(chat_iid)
-    filters = await get_chat_filters_model(chat_iid)
+    translations = await get_chat_translations_model_plan(chat_iid)
+    filters = await get_chat_filters_model_plan(chat_iid)
 
-    assert translations is built[MODERATION_TRANSLATION]
-    assert filters is built[MODERATION_FILTERS]
+    assert translations.primary is built[MODERATION_TRANSLATION]
+    assert filters.primary is built[MODERATION_FILTERS]
 
 
 async def test_filters_model_without_a_chat_uses_the_support_tier(monkeypatch: pytest.MonkeyPatch) -> None:
     built = _patch_model_builder(monkeypatch)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
 
-    model = await get_chat_filters_model(None)
+    plan = await get_chat_filters_model_plan(None)
 
-    assert model is built[SUPPORT_FILTERS]
+    assert plan.primary is built[SUPPORT_FILTERS]
 
 
 async def test_summary_model_follows_the_chat_mode(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -113,9 +191,9 @@ async def test_summary_model_follows_the_chat_mode(monkeypatch: pytest.MonkeyPat
         "sophie_bot.modules.ai.utils.ai_chat_models.get_chat_mode", AsyncMock(return_value=AIMode.support)
     )
 
-    model = await get_chat_summary_model(PydanticObjectId())
+    plan = await get_chat_summary_model_plan(PydanticObjectId())
 
-    assert model is built[SUMMARY]
+    assert plan.primary is built[SUMMARY]
 
 
 async def test_a_mode_without_a_role_for_a_purpose_crashes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -124,7 +202,7 @@ async def test_a_mode_without_a_role_for_a_purpose_crashes(monkeypatch: pytest.M
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chat_models.get_value", AsyncMock(return_value=""))
 
     with pytest.raises(ValueError, match="entertainment:filters"):
-        await get_chat_filters_model(PydanticObjectId(), mode=AIMode.entertainment)
+        await get_chat_filters_model_plan(PydanticObjectId(), mode=AIMode.entertainment)
 
 
 def test_disabled_mode_grants_nothing() -> None:

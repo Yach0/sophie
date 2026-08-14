@@ -9,9 +9,11 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIModelPurpose,
     AIProviderKind,
 )
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_catalog import (
     CATALOG_MODES,
     MODE_PURPOSES,
+    AICatalog,
     bump_version,
     get_catalog,
     load_catalog,
@@ -38,6 +40,7 @@ from .catalog_schemas import (
     ProviderCreate,
     ProviderResponse,
     ProviderUpdate,
+    ResolvedCandidate,
     ResolvedModel,
 )
 
@@ -67,6 +70,7 @@ def _model_response(model: AICatalogModelModel) -> ModelResponse:
         provider=model.provider,
         api_name=model.api_name,
         supports_reasoning=model.supports_reasoning,
+        supports_images=model.supports_images,
         extra_params=model.extra_params,
         roles=model.roles,
         enabled=model.enabled,
@@ -104,6 +108,21 @@ async def get_status() -> CatalogStatus:
     )
 
 
+def _resolved_model(current: AICatalog, mode: AIMode, purpose: AIModelPurpose) -> ResolvedModel:
+    candidates = current.roles_for(mode, purpose)
+    return ResolvedModel(
+        model=candidates[0].model_name if candidates else None,
+        candidates=[
+            ResolvedCandidate(
+                model=role.model_name,
+                priority=role.priority,
+                supports_images=role.supports_images,
+            )
+            for role in candidates
+        ],
+    )
+
+
 @router.get("/resolution", response_model=CatalogResolution)
 async def get_resolution() -> CatalogResolution:
     current = await get_catalog()
@@ -115,7 +134,7 @@ async def get_resolution() -> CatalogResolution:
         # cannot drift from reality. A purpose a mode never uses is simply absent (the panel shows "—").
         per_mode={
             mode.value: {
-                purpose.value: ResolvedModel(model=current.model_name_for(mode, purpose))
+                purpose.value: _resolved_model(current, mode, purpose)
                 for purpose in AIModelPurpose
                 if mode_allows(mode, purpose)
             }
@@ -240,6 +259,7 @@ async def export_catalog() -> CatalogExport:
                 provider=model.provider,
                 api_name=model.api_name,
                 supports_reasoning=model.supports_reasoning,
+                supports_images=model.supports_images,
                 extra_params=model.extra_params,
                 roles=model.roles,
                 enabled=model.enabled,

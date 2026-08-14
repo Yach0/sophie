@@ -19,6 +19,7 @@ from sophie_bot.modules.ai.api.catalog_schemas import (
     ProviderCreate,
     ProviderUpdate,
 )
+from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_roles
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 
@@ -85,9 +86,7 @@ async def test_creating_a_model_carries_its_roles(_no_version_bump) -> None:
     await _clear()
     role = AIModelRole(mode="support", purpose=AIModelPurpose.summary)
 
-    result = await catalog.create_model(
-        ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role])
-    )
+    result = await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role]))
 
     assert result.roles == [role]
     stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5")
@@ -299,8 +298,12 @@ async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bum
             name="one/model",
             provider="openrouter",
             roles=[
-                AIModelRole(mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"),
-                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"),
+                AIModelRole(
+                    mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"
+                ),
+                AIModelRole(
+                    mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"
+                ),
             ],
         )
     )
@@ -312,6 +315,68 @@ async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bum
     assert research.model_name == chatbot.model_name == "one/model"
     assert research.service_tier == "flex" and research.reasoning_effort == "high"
     assert chatbot.service_tier == "none" and chatbot.reasoning_effort == "low"
+
+
+async def _create_chain(*models: tuple[str, int, bool]) -> None:
+    """Several models claiming the same (support, chatbot), each with its own priority."""
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+    for name, priority, supports_images in models:
+        await catalog.create_model(
+            ModelCreate(
+                name=name,
+                provider="openrouter",
+                supports_images=supports_images,
+                roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=priority)],
+            )
+        )
+
+
+async def test_a_shared_purpose_resolves_to_a_chain_ordered_by_priority_then_name(_no_version_bump) -> None:
+    """Lower priority runs first; equal priorities fall back to the name so Mongo's order never leaks."""
+    await _create_chain(("b/model", 0, True), ("a/model", 0, True), ("z/model", -1, True))
+    await load_catalog()
+
+    roles = await resolve_roles("support", AIModelPurpose.chatbot)
+
+    assert [role.model_name for role in roles] == ["z/model", "a/model", "b/model"]
+
+
+async def test_a_model_claiming_one_purpose_twice_is_tried_once(_no_version_bump) -> None:
+    """A duplicate role row never meant "run this model twice in a row"."""
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+    await catalog.create_model(
+        ModelCreate(
+            name="one/model",
+            provider="openrouter",
+            roles=[
+                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot),
+                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=5),
+            ],
+        )
+    )
+    await load_catalog()
+
+    roles = await resolve_roles("support", AIModelPurpose.chatbot)
+
+    assert [role.model_name for role in roles] == ["one/model"]
+
+
+async def test_resolution_exposes_the_whole_chain_and_its_image_support(_no_version_bump) -> None:
+    """The panel sees every candidate in run order, so an operator can tell what failover will do."""
+    await _create_chain(("first/model", 0, True), ("second/model", 1, False))
+
+    with patch.object(catalog, "get_catalog", catalog.load_catalog):
+        resolution = await catalog.get_resolution()
+
+    chatbot = resolution.per_mode["support"]["chatbot"]
+    # ``model`` stays the one that runs first, so a panel reading only that field keeps working.
+    assert chatbot.model == "first/model"
+    assert [(candidate.model, candidate.priority, candidate.supports_images) for candidate in chatbot.candidates] == [
+        ("first/model", 0, True),
+        ("second/model", 1, False),
+    ]
 
 
 async def test_meta_exposes_service_tiers_and_reasoning_efforts() -> None:
