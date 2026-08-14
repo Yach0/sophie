@@ -28,6 +28,7 @@ from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettings
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.chat_leave_log import ChatLeaveLogModel
 from sophie_bot.db.models.chat_photo import ChatPhotoModel
+from sophie_bot.db.models.clean_notes import CleanNotesModel
 from sophie_bot.db.models.communities import (
     CommunityBanModel,
     CommunityModel,
@@ -81,6 +82,7 @@ models: list[type[Document]] = [
     AIChatSummaryModel,
     DisablingModel,
     PrivateNotesModel,
+    CleanNotesModel,
     RulesModel,
     GreetingsModel,
     WSUserModel,
@@ -125,6 +127,7 @@ __all__ = [
     "ChatModel",
     "ChatPhotoModel",
     "ChatTopicModel",
+    "CleanNotesModel",
     "CommunityBanModel",
     "CommunityModel",
     "CommunityTask",
