@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 from contextlib import nullcontext
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import Any, Final, TypeVar, cast
 
@@ -40,10 +40,12 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     AI_PROVIDER_EXCEPTIONS,
     AIRetryCallback,
     ai_request_failed_from_error,
+    is_provider_configuration_error,
+    is_retryable_ai_provider_error,
     run_ai_request_with_retries,
 )
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
-from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan, request_has_images
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, request_has_images
 from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.utils.logger import log
 
@@ -52,95 +54,166 @@ TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
 # Cheap, broadly-capable model used as a last resort once every candidate the catalog offers has
-# failed. Better a degraded answer than none. It is appended to every plan, so a purpose the
-# operator gave no failover chain still behaves exactly as it did before plans existed.
+# failed. Better a degraded answer than none. It closes every chain, so a purpose the operator gave
+# no failover chain still behaves exactly as it did before plans existed.
 AI_FALLBACK_MODEL_NAME: Final = "mistralai/mistral-small-2603"
+
+# The most models one request may try, the last resort included. An operator may declare a longer
+# chain than this and the panel still shows all of it, but a user waiting on provider after
+# provider is worse served than by an earlier error, and a failure that is not model-specific costs
+# one more upstream call per candidate before saying so.
+AI_MAX_MODEL_ATTEMPTS: Final = 4
 
 # Rendering the accumulated text costs a full join, so callbacks are debounced rather than fired on
 # every delta. Matches the debounce the pydantic-ai `stream_text` helper applied before.
 _STREAM_DEBOUNCE_SECONDS: Final = 0.2
 
 
-def _resolve_fallback_model(primary_model: Model) -> Model | None:
-    fallback_model = get_ai_model(AI_FALLBACK_MODEL_NAME)
-    if fallback_model.model_name == primary_model.model_name:
+def _last_resort_candidate(candidates: Sequence[AIModelCandidate]) -> AIModelCandidate | None:
+    """The cheap candidate that closes a chain, unless that model is already in it.
+
+    Membership is by model name, not by object identity: a catalog entry for the last-resort model
+    carrying its own reasoning effort is a different object for the same upstream model, and trying
+    it twice in a row only spends one more failed request.
+    """
+    model = get_ai_model(AI_FALLBACK_MODEL_NAME)
+    if any(
+        candidate.model_name == AI_FALLBACK_MODEL_NAME or candidate.model.model_name == model.model_name
+        for candidate in candidates
+    ):
         return None
-    return fallback_model
+    return AIModelCandidate(model=model, model_name=AI_FALLBACK_MODEL_NAME)
 
 
-def resolve_candidate_models(
+def _closed_chain(candidates: list[AIModelCandidate]) -> list[AIModelCandidate]:
+    """A chain capped at :data:`AI_MAX_MODEL_ATTEMPTS`, closed by the last-resort model."""
+    chain = candidates[: AI_MAX_MODEL_ATTEMPTS - 1]
+    if (last_resort := _last_resort_candidate(chain)) is not None:
+        chain.append(last_resort)
+    return chain
+
+
+def _agent_candidate(agent_model: Model, model_plan: AIModelPlan | None) -> AIModelCandidate:
+    """The candidate for the model the agent was built with.
+
+    A plan that already lists that model hands back its own entry, so the agent's model keeps the
+    image support and the service tier its role declared rather than a bare assumption.
+    """
+    for candidate in model_plan.candidates if model_plan else ():
+        if candidate.model is agent_model:
+            return candidate
+    return AIModelCandidate(model=agent_model, model_name=agent_model.model_name)
+
+
+def resolve_candidates(
     agent_model: Model,
     model_plan: AIModelPlan | None,
     has_images: bool,
-) -> list[Model]:
-    """The models to try for one request, best first.
+) -> list[AIModelCandidate]:
+    """The candidates to try for one request, best first.
 
-    The agent's own model leads unless the plan deliberately ruled it out: a caller that built an
-    agent around a model it chose by hand gets that model first, but a plan candidate skipped for
-    lacking image support must not sneak back in through the agent. The cheap last-resort model
-    closes every list, which is the pre-plan behaviour for purposes with a single model.
+    With ``ai_model_failover`` off — or with no plan at all — the chain is the pre-plan one: the
+    agent's own model, closed by the cheap last resort. With it on, the agent's own model still
+    leads unless the plan deliberately ruled it out: a caller that built an agent around a model it
+    chose by hand gets that model first, but a plan candidate skipped for lacking image support
+    must not sneak back in through the agent.
     """
-    plan_models = list(model_plan.models(has_images=has_images)) if model_plan else []
+    agent_candidate = _agent_candidate(agent_model, model_plan)
+    if model_plan is None or not model_plan.failover:
+        return _closed_chain([agent_candidate])
+
+    eligible = list(model_plan.eligible(has_images=has_images))
     # Identity, not equality: two distinct model objects for the same provider settings compare
     # equal, and "is this the very object the agent holds" is the question actually being asked.
-    ruled_out = (
-        model_plan is not None
-        and all(model is not agent_model for model in plan_models)
-        and any(candidate.model is agent_model for candidate in model_plan.candidates)
+    ruled_out = all(candidate.model is not agent_model for candidate in eligible) and any(
+        candidate.model is agent_model for candidate in model_plan.candidates
     )
-
-    candidates = (
-        plan_models if ruled_out else [agent_model, *(model for model in plan_models if model is not agent_model)]
-    )
-
-    if (last_resort := _resolve_fallback_model(candidates[0] if candidates else agent_model)) is not None and all(
-        last_resort is not candidate for candidate in candidates
-    ):
-        candidates.append(last_resort)
-    return candidates
+    if ruled_out:
+        return _closed_chain(eligible)
+    return _closed_chain([agent_candidate, *(c for c in eligible if c.model is not agent_model)])
 
 
 def _should_try_next_model(error: BaseException) -> bool:
-    """Whether another candidate is worth trying after this failure.
+    """Whether another candidate is worth trying after this failure, with failover on.
 
-    Every provider failure earns a failover, not just the transient ones: the request that most
+    Most provider failures earn a failover, not just the transient ones: the request that most
     needs a different model — an image sent to a model that cannot read one — comes back as a flat
-    400 that retrying the same model would never fix. A usage limit is the exception, because it is
-    Sophie's own budget stopping the run and the next model would spend more of it.
+    400 that retrying the same model would never fix. Two kinds do not. A usage limit is Sophie's
+    own budget stopping the run, and the next model would only spend more of it. A configuration
+    error is the provider refusing Sophie rather than the request, so every candidate is refused
+    the same way and walking the chain only delays the error the user was always going to get.
     """
-    return not isinstance(error, UsageLimitExceeded)
+    return not isinstance(error, UsageLimitExceeded) and not is_provider_configuration_error(error)
+
+
+@dataclass(frozen=True, slots=True)
+class CandidateChain:
+    """One request's candidates plus the failover rules that go with them."""
+
+    candidates: list[AIModelCandidate]
+    should_try_next: Callable[[BaseException], bool]
+    refusal_failover: bool
+
+
+def build_candidate_chain(
+    agent_model: Model,
+    model_plan: AIModelPlan | None,
+    has_images: bool,
+) -> CandidateChain:
+    """The candidates for one request and how far it may walk them.
+
+    Flag off restores the pre-plan rules whole: one model plus the last resort, moved onto only by
+    an error another attempt could actually survive, and never by an unusable answer.
+    """
+    failover = model_plan is not None and model_plan.failover
+    return CandidateChain(
+        candidates=resolve_candidates(agent_model, model_plan, has_images),
+        should_try_next=_should_try_next_model if failover else is_retryable_ai_provider_error,
+        refusal_failover=failover,
+    )
 
 
 async def _run_with_model_candidates[FallbackOutputT](
-    operation: Callable[[Model | None], Awaitable[FallbackOutputT]],
-    candidates: Sequence[Model],
-    agent_model: Model,
+    operation: Callable[[AIModelCandidate], Awaitable[FallbackOutputT]],
+    chain: CandidateChain,
     is_refusal: Callable[[FallbackOutputT], bool] | None = None,
     on_retry: AIRetryCallback | None = None,
     operation_label: str = "agent",
-) -> tuple[FallbackOutputT, Model]:
+) -> tuple[FallbackOutputT, AIModelCandidate]:
     """Run ``operation`` against each candidate in turn until one answers.
 
-    A candidate is given up on when it fails in a way another model could survive, or when it
-    finishes without producing a usable answer (see :func:`is_refusal_output`). The last candidate's
-    refusal is returned rather than raised: an empty answer is still an answer, and turning the end
-    of the chain into an error would change what the user sees for every mode at once.
+    A candidate is given up on when it fails in a way another model could survive (see
+    :meth:`CandidateChain.should_try_next`), or — with failover on — when it finishes without
+    producing a usable answer, whether that is an empty output (:func:`is_refusal_output`) or an
+    :exc:`AIModelRefused` a caller's own output validator raised. The last candidate's *returned*
+    refusal is handed back rather than raised: an empty answer is still an answer, and turning the
+    end of the chain into an error would change what the user sees for every mode at once. A
+    *raised* refusal has no answer to hand back, so it reaches the caller that raised it.
 
-    Each attempt is tracked under its own model name via :func:`track_ai_request`, and the model that
-    actually served the request comes back with the result so callers attribute post-completion
-    metrics (usage, agent/stream results) to it rather than to the first candidate.
+    Each attempt is tracked under its own model name via :func:`track_ai_request`, and the candidate
+    that actually served the request comes back with the result so callers attribute post-completion
+    metrics (usage, agent/stream results) and charges to it rather than to the first candidate.
     """
     last_error: BaseException | None = None
+    candidates = chain.candidates
 
     for index, candidate in enumerate(candidates):
-        # ``None`` leaves the agent on the model it was built with, so the common single-candidate
-        # path issues exactly the request it always did, with no per-run model override.
-        active_model = None if candidate is agent_model else candidate
+        is_last = index == len(candidates) - 1
         try:
-            async with track_ai_request(candidate, operation_label):
-                result = await run_ai_request_with_retries(partial(operation, active_model), on_retry=on_retry)
+            async with track_ai_request(candidate.model, operation_label):
+                result = await run_ai_request_with_retries(partial(operation, candidate), on_retry=on_retry)
+        except AIModelRefused as refusal:
+            if is_last or not chain.refusal_failover:
+                raise
+            last_error = refusal
+            log.warning(
+                "AI request on %s produced no usable output; trying %s",
+                candidate.model_name,
+                candidates[index + 1].model_name,
+            )
+            continue
         except AI_PROVIDER_EXCEPTIONS as error:
-            if not _should_try_next_model(error) or index == len(candidates) - 1:
+            if is_last or not chain.should_try_next(error):
                 raise
             last_error = error
             log.warning(
@@ -151,7 +224,7 @@ async def _run_with_model_candidates[FallbackOutputT](
             )
             continue
 
-        if is_refusal is not None and index < len(candidates) - 1 and is_refusal(result):
+        if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
             last_error = AIModelRefused(candidate.model_name)
             log.warning(
                 "AI request on %s produced no usable output; trying %s",
@@ -297,43 +370,54 @@ def build_model_settings(
     return model_settings
 
 
-def _request_options_from_args(
+def _merge_model_settings(
+    base_model_settings: Mapping[str, object] | None,
+    run_model_settings: object | None,
+) -> Mapping[str, object] | None:
+    """Model settings a caller passed through ``**extra_run_kwargs``, layered over the base ones."""
+    if run_model_settings is None:
+        return base_model_settings
+    if not isinstance(run_model_settings, Mapping):
+        raise TypeError("run model_settings must be a mapping when request options are injected")
+    return {**(base_model_settings or {}), **cast(Mapping[str, object], run_model_settings)}
+
+
+def _candidate_request_options(
     request_options: AIRequestOptions | None,
-    user_tracking_id: object | None,
-    session_id: str | None,
-    service_tier: str | None,
-) -> AIRequestOptions:
-    if request_options is not None:
+    candidate: AIModelCandidate,
+) -> AIRequestOptions | None:
+    """Request options carrying the service tier of the candidate about to be attempted.
+
+    A role's tier belongs to the model that role names, so failover must not send the primary's
+    tier upstream with a different candidate: the tier is part of the request body, and the
+    provider serves and bills whatever it is sent.
+    """
+    base = request_options or AIRequestOptions()
+    service_tier = candidate.resolve_service_tier(base.service_tier)
+    if service_tier == base.service_tier:
         return request_options
-    return AIRequestOptions(user_tracking_id=user_tracking_id, session_id=session_id, service_tier=service_tier)
+    return replace(base, service_tier=service_tier)
 
 
-def _build_run_kwargs(
-    agent_kwargs: Mapping[str, Any] | None,
-    request_options: AIRequestOptions,
-    base_model_settings: Mapping[str, object] | None = None,
+def _candidate_run_kwargs(
+    run_kwargs: Mapping[str, Any],
+    model_settings: Mapping[str, object] | None,
+    request_options: AIRequestOptions | None,
+    candidate: AIModelCandidate,
+    agent_model: Model,
 ) -> dict[str, Any]:
-    run_kwargs = dict(agent_kwargs or {})
-    run_model_settings_input = run_kwargs.pop("model_settings", None)
-    merged_model_settings = dict(base_model_settings or {})
-    if run_model_settings_input is not None:
-        if not isinstance(run_model_settings_input, Mapping):
-            raise TypeError("run model_settings must be a mapping when request options are injected")
-        merged_model_settings.update(cast(Mapping[str, object], run_model_settings_input))
-
-    run_model_settings = build_model_settings(merged_model_settings, request_options)
-    if run_model_settings is not None:
-        run_kwargs["model_settings"] = run_model_settings
-    return run_kwargs
-
-
-def _pop_model_settings(agent_init_kwargs: dict[str, Any]) -> Mapping[str, object] | None:
-    model_settings = agent_init_kwargs.pop("model_settings", None)
-    if model_settings is None:
-        return None
-    if isinstance(model_settings, Mapping):
-        return cast(Mapping[str, object], model_settings)
-    raise TypeError("model_settings must be a mapping when request options are injected")
+    """The run kwargs for one attempt, built per candidate because the service tier is one of them."""
+    candidate_kwargs = dict(run_kwargs)
+    resolved_model_settings = build_model_settings(
+        model_settings, _candidate_request_options(request_options, candidate)
+    )
+    if resolved_model_settings is not None:
+        candidate_kwargs["model_settings"] = resolved_model_settings
+    # Leaving the model out keeps the agent on the one it was built with, so the common
+    # single-candidate path issues exactly the request it always did, with no per-run override.
+    if candidate.model is not agent_model:
+        candidate_kwargs["model"] = candidate.model
+    return candidate_kwargs
 
 
 def _get_agent_model(agent: Agent[Any, Any]) -> Model:
@@ -348,34 +432,34 @@ def _get_agent_model(agent: Agent[Any, Any]) -> Model:
 async def _run_with_retries_and_metrics[DepsT, OutputT](
     agent: Agent[DepsT, OutputT],
     run_kwargs: Mapping[str, Any],
+    request_options: AIRequestOptions | None = None,
+    model_settings: Mapping[str, object] | None = None,
     on_retry: AIRetryCallback | None = None,
     model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[OutputT]:
-    model = _get_agent_model(agent)
-    candidates = resolve_candidate_models(
-        model,
+    agent_model = _get_agent_model(agent)
+    chain = build_candidate_chain(
+        agent_model,
         model_plan,
         request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
     )
 
-    async def run_agent_once(active_model: Model | None) -> Any:
-        if active_model is None:
-            return await agent.run(**run_kwargs)
-        run_with_fallback_kwargs = dict(run_kwargs)
-        run_with_fallback_kwargs["model"] = active_model
-        return await agent.run(**run_with_fallback_kwargs)
+    async def run_agent_once(candidate: AIModelCandidate) -> Any:
+        return await agent.run(
+            **_candidate_run_kwargs(run_kwargs, model_settings, request_options, candidate, agent_model)
+        )
 
     try:
-        result, served_model = await _run_with_model_candidates(
+        result, served_candidate = await _run_with_model_candidates(
             run_agent_once,
-            candidates,
-            model,
+            chain,
             is_refusal=lambda run_result: is_refusal_output(run_result.output),
             on_retry=on_retry,
         )
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
+    served_model = served_candidate.model
     message_history = cast(list[ModelRequest | ModelResponse], result.all_messages())
     retries = count_retries_from_messages(message_history)
 
@@ -403,9 +487,8 @@ def _build_agent_run_kwargs[DepsT](
     message_history: list[ModelRequest | ModelResponse] | None,
     deps: DepsT | None,
     usage_limits: UsageLimits | None,
-    request_options: AIRequestOptions | None,
-    model_settings: Mapping[str, object] | None,
 ) -> dict[str, Any]:
+    """The kwargs shared by every attempt. Model settings are per candidate, so they are not here."""
     run_kwargs: dict[str, Any] = {"user_prompt": user_prompt}
     if message_history is not None:
         run_kwargs["message_history"] = message_history
@@ -413,9 +496,6 @@ def _build_agent_run_kwargs[DepsT](
         run_kwargs["deps"] = deps
     if usage_limits is not None:
         run_kwargs["usage_limits"] = usage_limits
-    resolved_model_settings = build_model_settings(model_settings, request_options)
-    if resolved_model_settings is not None:
-        run_kwargs["model_settings"] = resolved_model_settings
     return run_kwargs
 
 
@@ -430,10 +510,15 @@ async def run_ai_text[DepsT](
     on_retry: AIRetryCallback | None = None,
     model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[str]:
-    run_kwargs = _build_agent_run_kwargs(
-        user_prompt, message_history, deps, usage_limits, request_options, model_settings
+    run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
+    return await _run_with_retries_and_metrics(
+        agent,
+        run_kwargs,
+        request_options=request_options,
+        model_settings=model_settings,
+        on_retry=on_retry,
+        model_plan=model_plan,
     )
-    return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry, model_plan=model_plan)
 
 
 async def run_ai_structured[DepsT, OutputT](
@@ -448,11 +533,17 @@ async def run_ai_structured[DepsT, OutputT](
     model_plan: AIModelPlan | None = None,
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[OutputT]:
-    run_kwargs = _build_agent_run_kwargs(
-        user_prompt, message_history, deps, usage_limits, request_options, model_settings
-    )
+    run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
+    merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     run_kwargs.update(extra_run_kwargs)
-    return await _run_with_retries_and_metrics(agent, run_kwargs, on_retry=on_retry, model_plan=model_plan)
+    return await _run_with_retries_and_metrics(
+        agent,
+        run_kwargs,
+        request_options=request_options,
+        model_settings=merged_model_settings,
+        on_retry=on_retry,
+        model_plan=model_plan,
+    )
 
 
 def _usage_from_messages(messages: Sequence[ModelRequest | ModelResponse]) -> RunUsage:
@@ -644,19 +735,19 @@ async def run_ai_stream[DepsT](
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[str]:
     options = stream_options or ChatbotStreamOptions()
-    metrics_model = _get_agent_model(agent)
-    candidates = resolve_candidate_models(metrics_model, model_plan, request_has_images(user_prompt, message_history))
+    agent_model = _get_agent_model(agent)
+    chain = build_candidate_chain(agent_model, model_plan, request_has_images(user_prompt, message_history))
+    base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
+    merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
+    base_run_kwargs.update(extra_run_kwargs)
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
-    async def run_stream_once(active_model: Model | None) -> _StreamOutcome:
-        run_stream_kwargs = _build_agent_run_kwargs(
-            user_prompt, message_history, deps, usage_limits, request_options, model_settings
+    async def run_stream_once(candidate: AIModelCandidate) -> _StreamOutcome:
+        run_stream_kwargs = _candidate_run_kwargs(
+            base_run_kwargs, merged_model_settings, request_options, candidate, agent_model
         )
-        run_stream_kwargs.update(extra_run_kwargs)
-        if active_model is not None:
-            run_stream_kwargs["model"] = active_model
-        effective_model = active_model or metrics_model
+        effective_model = candidate.model
 
         if not options.continuation:
             return await _stream_via_run_stream(
@@ -680,10 +771,9 @@ async def run_ai_stream[DepsT](
         )
 
     try:
-        outcome, served_model = await _run_with_model_candidates(
+        outcome, served_candidate = await _run_with_model_candidates(
             run_stream_once,
-            candidates,
-            metrics_model,
+            chain,
             # A truncated run is never a refusal: it stopped on Sophie's own usage limit with text
             # already delivered, and re-running it on another model would spend the budget twice.
             is_refusal=lambda stream: not stream.truncated and is_refusal_output(stream.output_text),
@@ -692,6 +782,7 @@ async def run_ai_stream[DepsT](
     except AI_PROVIDER_EXCEPTIONS as error:
         raise ai_request_failed_from_error(error) from error
 
+    served_model = served_candidate.model
     retries = count_retries_from_messages(outcome.message_history)
     track_ai_agent_result(
         served_model,

@@ -10,7 +10,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, catalog, resolve_roles
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_providers import get_openai_provider, get_openrouter_provider
-from sophie_bot.utils.feature_flags import get_value
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 _ai_models: dict[str, Model] = {}
 _cache_version = ""
@@ -94,11 +94,17 @@ def pinned_candidate(model_name: str) -> AIModelCandidate:
 
 
 def role_candidate(role: ResolvedRole) -> AIModelCandidate:
-    """A candidate built for the role it came from, so its reasoning effort travels with it."""
+    """A candidate built for the role it came from, so its reasoning effort travels with it.
+
+    The role's service tier travels with it too, unresolved: failover may move a request onto a
+    candidate whose role declares a different tier, and that is the tier the provider must be asked
+    for and bill against.
+    """
     return AIModelCandidate(
         model=get_ai_model(role.model_name, reasoning_effort=role.reasoning_effort),
         model_name=role.model_name,
         supports_images=role.supports_images,
+        service_tier=role.service_tier,
     )
 
 
@@ -111,13 +117,18 @@ def single_model_plan(model_name: str) -> AIModelPlan:
     return AIModelPlan(candidates=(pinned_candidate(model_name),))
 
 
-async def build_purpose_plan(mode: AIMode, purpose: AIModelPurpose, override_name: str = "") -> AIModelPlan:
+async def build_purpose_plan(
+    mode: AIMode, purpose: AIModelPurpose, override_name: str = "", chat_tid: int | None = None
+) -> AIModelPlan:
     """The ordered candidates serving a (mode, purpose), with a flag-pinned model in front.
 
     A pin still wins, but it now leads the list rather than replacing it: the pinned model runs
     exactly as before and the mode's own candidates stay behind it as the failover chain the pin
     never had. A pin is also a complete answer on its own, so only a purpose with neither a pin nor
     a catalog model is the operator mistake worth failing loudly on.
+
+    Whether that chain is actually walked is the ``ai_model_failover`` flag, resolved here because
+    this is where the chat is known.
     """
     try:
         roles = await resolve_roles(mode, purpose)
@@ -130,7 +141,8 @@ async def build_purpose_plan(mode: AIMode, purpose: AIModelPurpose, override_nam
         [
             *((pinned_candidate(override_name),) if override_name else ()),
             *(role_candidate(role) for role in roles),
-        ]
+        ],
+        failover=await is_enabled("ai_model_failover", chat_tid=chat_tid),
     )
 
 

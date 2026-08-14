@@ -95,6 +95,7 @@ def _patch_model_resolution(monkeypatch: pytest.MonkeyPatch, *role_models: str) 
         "sophie_bot.modules.ai.utils.ai_model_factory.get_ai_model",
         lambda model_name, reasoning_effort=None: SimpleNamespace(model_name=model_name),
     )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.is_enabled", AsyncMock(return_value=True))
 
 
 async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch) -> None:

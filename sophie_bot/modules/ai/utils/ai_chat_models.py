@@ -4,7 +4,6 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import build_purpose_plan
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
@@ -53,7 +52,7 @@ async def get_chat_model_plan(
     if mode is None:
         mode = await get_chat_mode(chat_iid) if chat_iid else AIMode.support
 
-    plan = await build_purpose_plan(mode, purpose, await _get_override_name(purpose, chat_tid))
+    plan = await build_purpose_plan(mode, purpose, await _get_override_name(purpose, chat_tid), chat_tid=chat_tid)
 
     log.debug(f"{purpose.value} models for chat {chat_iid}: {', '.join(plan.model_names)}", mode=mode.value)
 
@@ -66,17 +65,13 @@ async def resolve_chat_service_tier(
     chat_tid: int | None = None,
     mode: AIMode | None = None,
 ) -> str | None:
-    """The service tier for a purpose in a chat: the resolved role's, else the feature-flag one.
+    """The feature-flag service tier for a purpose in a chat, or ``None`` when it has no flag.
 
-    ``"none"`` means no tier, matching ``get_service_tier``.
+    This is only the default. A role's own tier belongs to the model that role names, so it travels
+    on :class:`~sophie_bot.modules.ai.utils.ai_model_plan.AIModelCandidate` and is applied to the
+    candidate actually being attempted — failover would otherwise bill a second model at the
+    primary's tier. ``"none"`` on a role means "no tier", overriding this default.
     """
-    if mode is None:
-        mode = await get_chat_mode(chat_iid) if chat_iid else AIMode.support
-    # Non-raising: a purpose with no catalog model still resolves a tier from its flag.
-    role = (await get_catalog()).role_for(mode, purpose)
-    if role is not None and role.service_tier is not None:
-        return None if role.service_tier == "none" else role.service_tier
-
     flag = SERVICE_TIER_FLAG_BY_PURPOSE.get(purpose)
     return await get_service_tier(flag, chat_tid=chat_tid) if flag else None
 

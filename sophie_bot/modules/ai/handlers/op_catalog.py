@@ -275,6 +275,13 @@ class OpAIModel(SophieMessageHandler):
             await bump_version()
             return await self.event.reply(str(Template(_("Model {name} deleted."), name=Code(name))))
 
+        raw_role = _option(options, _ROLE_OPTION)
+        priority = _option(options, _PRIORITY_OPTION)
+        # Priority orders the models inside one role, so on its own it has nothing to apply to.
+        # Silently dropping it would leave an operator believing they had reordered a chain.
+        if priority is not None and raw_role is None:
+            return await self.event.reply(str(_("^priority only applies together with ^role.")))
+
         provider_name = _option(options, _PROVIDER_OPTION)
         if not stored_model:
             if provider_name is None:
@@ -292,9 +299,8 @@ class OpAIModel(SophieMessageHandler):
         if (enabled := _option(options, _ENABLED_OPTION)) is not None:
             stored_model.enabled = bool(enabled)
 
-        if (raw_role := _option(options, _ROLE_OPTION)) is not None:
-            priority = _option(options, _PRIORITY_OPTION)
-            role = _parse_role(str(raw_role), int(str(priority)) if priority is not None else 0)
+        if raw_role is not None:
+            role = _parse_role(str(raw_role), cast(int, priority) if priority is not None else 0)
             # Matched on (mode, purpose) rather than on the whole role, so re-assigning a role this
             # model already has updates its priority instead of listing it twice.
             stored_model.roles = [

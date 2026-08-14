@@ -4,10 +4,14 @@ from __future__ import annotations
 class AIModelRefused(Exception):
     """A candidate finished its run without producing a usable answer.
 
-    Not a provider failure — the request succeeded — so it never reaches Sentry or the user as an
-    error. It exists so the failover loop can treat "answered with nothing" the same way it treats
-    "could not answer", and so a caller that can recognise a useless answer of its own can opt into
-    the same handling by raising it from an output validator.
+    Not a provider failure — the request succeeded — so it never reaches Sentry as one. It exists so
+    the failover loop can treat "answered with nothing" the same way it treats "could not answer",
+    and a caller that can recognise a useless answer of its own opts into that handling by raising
+    it from an output validator: the loop catches it and moves to the next candidate.
+
+    The last candidate is the exception. There the refusal is re-raised, because a raised refusal
+    carries no answer to hand back the way an empty output does, so the caller that chose to raise
+    it is the one that decides what an exhausted chain means.
     """
 
     def __init__(self, model_name: str) -> None:

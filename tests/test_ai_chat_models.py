@@ -78,7 +78,7 @@ def _catalog() -> AICatalog:
     )
 
 
-def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+def _patch_model_builder(monkeypatch: pytest.MonkeyPatch, failover: bool = False) -> dict[str, object]:
     """Make get_ai_model return a distinct sentinel per model name, without building a real client."""
     built: dict[str, object] = {}
 
@@ -90,6 +90,8 @@ def _patch_model_builder(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     # reads a pinned model's capabilities from.
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_catalog.get_catalog", AsyncMock(return_value=_catalog()))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.catalog", _catalog)
+    # The plan always lists the whole chain; this flag only decides whether the runtime walks it.
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.is_enabled", AsyncMock(return_value=failover))
     return built
 
 

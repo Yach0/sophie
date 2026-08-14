@@ -126,6 +126,7 @@ async def run_sophie_inspect(question: str, chat_iid: PydanticObjectId, chat_tid
         AIMode.sophie_help,
         AIModelPurpose.sophie_inspect,
         str(await get_value("ai_sophie_inspect_model", chat_tid=chat_tid)),
+        chat_tid=chat_tid,
     )
     model_name = model_plan.model_names[0]
     usage_limits = UsageLimits(

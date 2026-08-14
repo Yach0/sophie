@@ -26,6 +26,10 @@ AI_PROVIDER_EXCEPTIONS: Final[tuple[type[Exception], ...]] = (
 )
 AI_REQUEST_RETRY_ATTEMPTS: Final = 5
 AI_RETRYABLE_STATUS_CODES: Final = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
+# Statuses that say the deployment is misconfigured rather than that this model refused this
+# request: a rejected key, a disabled account or an empty balance answers the same way whatever
+# model is asked for, so neither a retry nor another candidate can turn it into an answer.
+AI_CONFIGURATION_ERROR_STATUS_CODES: Final = frozenset({401, 402, 403})
 _OPENROUTER_PROVIDER_ERROR_STATUS_CODE: Final = 400
 _OPENROUTER_PROVIDER_ERROR_TEXT: Final = "provider returned error"
 AIRetryCallback = Callable[[int, int], Awaitable[None]]
@@ -90,6 +94,17 @@ def _get_error_message(error: BaseException) -> str:
         return message
 
     return str(error)
+
+
+def is_provider_configuration_error(error: BaseException) -> bool:
+    """Whether the provider rejected Sophie itself rather than this particular request.
+
+    Neither retrying nor moving to another model fixes a key the provider will not accept. The
+    retry loop rules these out by omission, since these statuses are absent from
+    AI_RETRYABLE_STATUS_CODES; this check is what stops the failover loop from walking the rest of
+    the chain into the same refusal.
+    """
+    return _get_status_code(error) in AI_CONFIGURATION_ERROR_STATUS_CODES
 
 
 def is_retryable_ai_provider_error(error: BaseException) -> bool:

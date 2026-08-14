@@ -84,7 +84,7 @@ async def _resolve_model_plan(connection: ChatConnection, model: Model | None, m
     if model is None:
         return plan
     pinned = AIModelCandidate(model=model, model_name=model.model_name)
-    return build_model_plan([pinned, *plan.candidates])
+    return build_model_plan([pinned, *plan.candidates], failover=plan.failover)
 
 
 async def _build_chatbot_header(

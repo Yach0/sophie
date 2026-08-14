@@ -377,14 +377,17 @@ async def run_research_workflow(
     if progress_callback is not None:
         await progress_callback("summarizing")
     summary_result = await _summarize_research(prompt, all_sources, connection, model_plan, settings)
+    # Failover may have moved the summary off the plan's first candidate, and the summary is the
+    # step whose answer the user reads, so the reported model follows the one that produced it.
+    summary_model = summary_result.served_model or model_plan.primary
     return ResearchWorkflowResult(
         response=summary_result.output.model_copy(
             update={
                 "research_query": prompt,
-                "research_model": model_plan.primary.model_name,
+                "research_model": summary_model.model_name,
             }
         ),
-        model=model_plan.primary,
+        model=summary_model,
         message_history=summary_result.message_history,
     )
 
