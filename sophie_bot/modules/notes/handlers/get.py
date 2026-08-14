@@ -3,6 +3,7 @@ from typing import Any
 
 from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import Message
 from ass_tg.types import OneOf, OptionalArg, WordArg
 from stfu_tg import Bold, HList, Italic, Template, Title
 from stfu_tg.doc import Element
@@ -11,6 +12,11 @@ from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.metrics.notes import track_note_retrieved
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.notes.utils.clean import (
+    clean_notes,
+    is_standalone_command_request,
+    is_standalone_hashtag_request,
+)
 from sophie_bot.modules.notes.utils.combine import combine_saveables
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.utils import flags
@@ -50,6 +56,7 @@ class GetNote(SophieMessageHandler):
         else:
             reply_to = self.event.message_id
 
+        sent_messages: list[Message] = []
         message = await send_saveable(
             self.event,
             self.event.chat.id,
@@ -59,11 +66,18 @@ class GetNote(SophieMessageHandler):
             reply_to=reply_to,
             connection=chat,
             message_thread_id=self.event.message_thread_id,
+            collect_sent=sent_messages,
         )
         track_note_retrieved(
             trigger="command",
             has_media=bool(note.model_dump().get("file")),
             chat_type=self.event.chat.type,
+        )
+        await clean_notes(
+            chat,
+            self.event,
+            sent_messages,
+            request_is_standalone=is_standalone_command_request(self.data.get("command"), note_name),
         )
 
         return message
@@ -117,11 +131,21 @@ class HashtagGetNote(SophieMessageHandler):
             has_media=any(bool(n.model_dump().get("file")) for n in notes_to_stack),
             chat_type=self.event.chat.type,
         )
-        return await send_saveable(
+        sent_messages: list[Message] = []
+        message = await send_saveable(
             self.event,
             self.event.chat.id,
             saveable,
             reply_to=reply_to,
             connection=chat,
             message_thread_id=self.event.message_thread_id,
+            collect_sent=sent_messages,
         )
+        await clean_notes(
+            chat,
+            self.event,
+            sent_messages,
+            request_is_standalone=is_standalone_hashtag_request(raw_text, matches),
+        )
+
+        return message
