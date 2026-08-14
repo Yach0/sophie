@@ -22,7 +22,10 @@ from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_translations_model, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_chat_models import (
+    get_chat_translations_model_plan,
+    resolve_chat_service_tier,
+)
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_progress import (
@@ -202,7 +205,9 @@ class AiTranslate(SophieMessageHandler):
 
         log.debug("AiTranslate", ai_context=ai_context.history_debug())
 
-        model = await get_chat_translations_model(self.connection.db_model.iid, chat_tid=self.connection.db_model.tid)
+        model_plan = await get_chat_translations_model_plan(
+            self.connection.db_model.iid, chat_tid=self.connection.db_model.tid
+        )
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.translation, self.connection.db_model.iid, self.event.chat.id
         )
@@ -213,7 +218,7 @@ class AiTranslate(SophieMessageHandler):
                     output_type=AITranslateResponseSchema,
                     feature=AI_FEATURE_AUTO_TRANSLATE if is_autotranslate else AI_FEATURE_TRANSLATE,
                 ),
-                model,
+                model_plan,
                 ai_context,
                 chat_iid=self.connection.db_model.iid,
                 chat_tid=self.event.chat.id,

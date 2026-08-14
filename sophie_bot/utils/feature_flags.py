@@ -30,6 +30,7 @@ FeatureType = Literal[
     "ai_moderation_reason_prompt",
     "ai_moderation_reason_model",
     "ai_filter_suggestions_prompt",
+    "ai_model_failover",
     "ai_chatbot",
     "ai_chatbot_admin_status",
     "ai_chatbot_chat_name",
@@ -258,6 +259,12 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filter_suggestions_prompt": _feature(
         "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data."
     ),
+    # Off keeps the pre-plan behaviour: one model per purpose, handing over to the cheap last-resort
+    # model only when a retryable provider error survives its retries. On, the whole priority chain
+    # the catalog declares is walked, an unusable answer also hands over, and image-only turns skip
+    # the models that cannot see one. It changes every AI request in every chat, so it rolls out
+    # rather than ships on.
+    "ai_model_failover": _feature(False),
     "ai_chatbot": _feature(True),
     "ai_chatbot_admin_status": _feature(False),
     "ai_chatbot_chat_name": _feature(False),

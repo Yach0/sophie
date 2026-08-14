@@ -19,7 +19,7 @@ from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestion,
     AIFilterSuggestionsResponse,
 )
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -202,7 +202,9 @@ class AIFilterAddHandler(SophieMessageHandler):
         history.add_system(_build_system_prompt(base_prompt))
         history.prompt = [prompt]
 
-        model = await get_chat_default_model(self.connection.db_model.iid, chat_tid=self.connection.db_model.tid)
+        model_plan = await get_chat_default_model_plan(
+            self.connection.db_model.iid, chat_tid=self.connection.db_model.tid
+        )
 
         try:
             result = await run_structured_task(
@@ -210,7 +212,7 @@ class AIFilterAddHandler(SophieMessageHandler):
                     output_type=AIFilterSuggestionsResponse,
                     feature=AI_FEATURE_FILTER,
                 ),
-                model,
+                model_plan,
                 history,
                 chat_iid=self.connection.db_model.iid,
                 chat_tid=self.event.chat.id,

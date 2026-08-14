@@ -17,8 +17,8 @@ from sophie_bot.metrics import (
     track_ai_proactive_event,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model
-from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
+from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -204,12 +204,12 @@ def _limit_actions(decision: ProactiveDecision, settings: ProactiveReplySettings
 async def _generate_decision(
     chat: ChatModel, chat_tid: int, messages: tuple[MessageType, ...], settings: ProactiveReplySettings
 ) -> ProactiveDecision:
-    model = await get_proactive_replies_model(chat_tid)
+    model_plan = await get_proactive_replies_model_plan(chat_tid)
     service_tier = await get_service_tier("ai_proactive_replies_service_tier", chat_tid=chat_tid)
     _log_proactive_info(
         "Proactive AI decision request started",
         chat_id=chat_tid,
-        model=model.model_name,
+        model=model_plan.primary.model_name,
         service_tier=service_tier or "none",
         message_count=len(messages),
     )
@@ -219,7 +219,7 @@ async def _generate_decision(
             output_type=ProactiveDecision,
             feature=AI_FEATURE_CHATBOT,
         ),
-        model,
+        model_plan,
         history,
         chat_iid=chat.iid,
         chat_tid=chat_tid,
@@ -295,7 +295,8 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         title=chat.first_name_or_title,
         db_model=chat,
     )
-    model = await get_chat_default_model(chat.iid, chat_tid=chat_tid)
+    model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid)
+    model = model_plan.primary
     service_tier = await get_service_tier("ai_chatbot_service_tier", chat_tid=chat_tid)
     _log_proactive_info(
         "Proactive AI answer generation started",
@@ -325,7 +326,10 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
             deps=run_config.deps,
             usage_limits=run_config.usage_limits,
             request_options=run_config.request_options,
+            model_plan=model_plan,
         )
+    # Failover may have moved the answer to another candidate; bill and label the one that served it.
+    model = result.served_model or model
     if result.usage:
         await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, model, result.usage)
     header = await build_chatbot_header(chat.iid, model, result.message_history)

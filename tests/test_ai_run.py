@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, AsyncIterable, Iterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -18,13 +19,20 @@ from pydantic_ai import (
     ThinkingPart,
     ThinkingPartDelta,
 )
-from pydantic_ai.exceptions import UsageLimitExceeded
-from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
+from pydantic_ai.messages import BinaryContent, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
 from sophie_bot.modules.ai.utils import ai_run
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, is_retryable_ai_provider_error
+from sophie_bot.modules.ai.utils.ai_model_plan import (
+    AIModelCandidate,
+    AIModelPlan,
+    build_model_plan,
+    request_has_images,
+)
+from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
     ChatbotStreamOptions,
@@ -300,48 +308,410 @@ async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_st
         )
 
 
-async def test_run_with_model_fallback_returns_primary_when_it_succeeds(monkeypatch: Any) -> None:
-    primary = TestModel()
+@pytest.fixture
+def immediate_retries(monkeypatch: Any) -> Iterator[None]:
+    """Run each attempt exactly once, so assertions see the candidate sequence and nothing else."""
 
     async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
         return await operation()
 
     monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
+    yield
 
-    seen_models: list[Any] = []
 
-    async def operation(active_model: Any) -> str:
-        seen_models.append(active_model)
+class NamedTestModel(TestModel):
+    """A ``TestModel`` that reports a name of its own.
+
+    Every ``TestModel`` calls itself ``test``, and a chain identifies its models by name, so
+    same-named stand-ins would look like one model to the last-resort dedup.
+    """
+
+    def __init__(self, model_name: str) -> None:
+        super().__init__()
+        self._name = model_name
+
+    @property
+    def model_name(self) -> str:
+        return self._name
+
+
+def candidate(
+    model_name: str,
+    *,
+    supports_images: bool = True,
+    service_tier: str | None = None,
+) -> AIModelCandidate:
+    return AIModelCandidate(
+        model=NamedTestModel(model_name),
+        model_name=model_name,
+        supports_images=supports_images,
+        service_tier=service_tier,
+    )
+
+
+def chain(*candidates: AIModelCandidate, failover: bool = True) -> ai_run.CandidateChain:
+    """A chain with the rules the flag would give it, without going through plan resolution."""
+    return ai_run.CandidateChain(
+        candidates=list(candidates),
+        should_try_next=ai_run._should_try_next_model if failover else is_retryable_ai_provider_error,
+        refusal_failover=failover,
+    )
+
+
+def no_last_resort(monkeypatch: Any) -> None:
+    """Drop the closing candidate, so a test asserts on exactly the chain it declared."""
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
+
+
+async def test_the_first_candidate_serves_when_it_succeeds(immediate_retries: None) -> None:
+    primary = candidate("primary")
+    attempted: list[AIModelCandidate] = []
+
+    async def operation(active: AIModelCandidate) -> str:
+        attempted.append(active)
         return "from-primary"
 
-    result, served_model = await ai_run._run_with_model_fallback(operation, primary)
+    result, served = await ai_run._run_with_model_candidates(operation, chain(primary))
 
     assert result == "from-primary"
-    assert served_model is primary
-    assert seen_models == [None]
+    assert served is primary
+    assert attempted == [primary]
 
 
-async def test_run_with_model_fallback_returns_fallback_model_when_primary_fails(monkeypatch: Any) -> None:
-    primary = TestModel()
-    fallback = TestModel()
+async def test_a_failing_candidate_hands_over_to_the_next(immediate_retries: None) -> None:
+    primary = candidate("primary")
+    backup = candidate("backup")
+    attempted: list[AIModelCandidate] = []
 
-    async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
-        return await operation()
-
-    monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
-    monkeypatch.setattr(ai_run, "_resolve_fallback_model", lambda model: fallback)
-
-    seen_models: list[Any] = []
-
-    async def operation(active_model: Any) -> str:
-        seen_models.append(active_model)
-        if active_model is None:
+    async def operation(active: AIModelCandidate) -> str:
+        attempted.append(active)
+        if active is primary:
             raise TimeoutError("primary provider is down")
-        return "from-fallback"
+        return "from-backup"
 
-    result, served_model = await ai_run._run_with_model_fallback(operation, primary)
+    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, backup))
 
-    # The served model must be the fallback so callers attribute usage/result metrics correctly.
-    assert result == "from-fallback"
-    assert served_model is fallback
-    assert seen_models == [None, fallback]
+    # The served model must be the one that answered, so callers attribute usage/metrics correctly.
+    assert result == "from-backup"
+    assert served is backup
+    assert attempted == [primary, backup]
+
+
+async def test_a_flat_provider_rejection_also_hands_over(immediate_retries: None) -> None:
+    """The request that most needs another model — an image a model cannot read — is a plain 400."""
+    primary = candidate("primary")
+    backup = candidate("backup")
+
+    async def operation(active: AIModelCandidate) -> str:
+        if active is primary:
+            raise ModelHTTPError(status_code=400, model_name="primary", body="no image support")
+        return "from-backup"
+
+    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, backup))
+
+    assert result == "from-backup"
+    assert served is backup
+
+
+async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
+    """Sophie's own budget ended the run; the next model would only spend more of it."""
+    attempted: list[AIModelCandidate] = []
+
+    async def operation(active: AIModelCandidate) -> str:
+        attempted.append(active)
+        raise UsageLimitExceeded("request limit exceeded")
+
+    with pytest.raises(UsageLimitExceeded):
+        await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
+
+    assert len(attempted) == 1
+
+
+@pytest.mark.parametrize("status_code", [401, 402, 403])
+async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None, status_code: int) -> None:
+    """A rejected key fails identically on every candidate: walking the chain only delays the error."""
+    attempted: list[AIModelCandidate] = []
+
+    async def operation(active: AIModelCandidate) -> str:
+        attempted.append(active)
+        raise ModelHTTPError(status_code=status_code, model_name="primary", body="invalid api key")
+
+    with pytest.raises(ModelHTTPError):
+        await ai_run._run_with_model_candidates(
+            operation, chain(candidate("primary"), candidate("backup"), candidate("third"))
+        )
+
+    assert len(attempted) == 1
+
+
+async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> None:
+    """Exhaustion keeps error semantics: callers still see a provider error to map onto a message."""
+
+    async def operation(active: AIModelCandidate) -> str:
+        raise TimeoutError("everything is down")
+
+    with pytest.raises(TimeoutError, match="everything is down"):
+        await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
+
+
+async def test_an_empty_answer_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
+    primary = candidate("primary")
+    backup = candidate("backup")
+
+    async def operation(active: AIModelCandidate) -> str:
+        return "" if active is primary else "a real answer"
+
+    result, served = await ai_run._run_with_model_candidates(
+        operation, chain(primary, backup), is_refusal=is_refusal_output
+    )
+
+    assert result == "a real answer"
+    assert served is backup
+
+
+async def test_the_last_candidates_empty_answer_is_returned(immediate_retries: None) -> None:
+    """An empty answer is still an answer; turning the end of the chain into an error would not be."""
+    primary = candidate("primary")
+
+    async def operation(active: AIModelCandidate) -> str:
+        return ""
+
+    result, served = await ai_run._run_with_model_candidates(operation, chain(primary), is_refusal=is_refusal_output)
+
+    assert result == ""
+    assert served is primary
+
+
+async def test_a_raised_refusal_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
+    """An output validator opting into failover is caught, exactly as the class promises."""
+    primary = candidate("primary")
+    backup = candidate("backup")
+
+    async def operation(active: AIModelCandidate) -> str:
+        if active is primary:
+            raise AIModelRefused("primary")
+        return "a real answer"
+
+    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, backup))
+
+    assert result == "a real answer"
+    assert served is backup
+
+
+async def test_the_last_candidates_raised_refusal_reaches_the_caller(immediate_retries: None) -> None:
+    """Unlike an empty output, a raised refusal carries no answer to hand back."""
+
+    async def operation(active: AIModelCandidate) -> str:
+        raise AIModelRefused(active.model_name)
+
+    with pytest.raises(AIModelRefused):
+        await ai_run._run_with_model_candidates(operation, chain(candidate("primary")))
+
+
+async def test_with_failover_off_only_a_retryable_error_moves_a_request(immediate_retries: None) -> None:
+    """The pre-plan rule: a flat rejection fails fast instead of walking the chain."""
+    primary = candidate("primary")
+    backup = candidate("backup")
+    attempted: list[AIModelCandidate] = []
+
+    async def operation(active: AIModelCandidate) -> str:
+        attempted.append(active)
+        raise ModelHTTPError(status_code=400, model_name="primary", body="malformed request")
+
+    with pytest.raises(ModelHTTPError):
+        await ai_run._run_with_model_candidates(operation, chain(primary, backup, failover=False))
+
+    assert attempted == [primary]
+
+
+async def test_with_failover_off_a_retryable_error_still_reaches_the_last_resort(immediate_retries: None) -> None:
+    primary = candidate("primary")
+    last_resort = candidate("last-resort")
+
+    async def operation(active: AIModelCandidate) -> str:
+        if active is primary:
+            raise TimeoutError("primary provider is down")
+        return "from-last-resort"
+
+    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, last_resort, failover=False))
+
+    assert result == "from-last-resort"
+    assert served is last_resort
+
+
+async def test_with_failover_off_an_empty_answer_is_kept(immediate_retries: None) -> None:
+    """Refusal failover is part of the new behaviour, so the flag has to hold it back too."""
+    primary = candidate("primary")
+    backup = candidate("backup")
+
+    async def operation(active: AIModelCandidate) -> str:
+        return "" if active is primary else "a real answer"
+
+    result, served = await ai_run._run_with_model_candidates(
+        operation, chain(primary, backup, failover=False), is_refusal=is_refusal_output
+    )
+
+    assert result == ""
+    assert served is primary
+
+
+def test_with_failover_off_only_the_agents_model_and_the_last_resort_are_tried(monkeypatch: Any) -> None:
+    agent_model = NamedTestModel("agent")
+    last_resort = candidate("last-resort")
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: last_resort)
+    plan = AIModelPlan(
+        candidates=(
+            AIModelCandidate(model=agent_model, model_name="agent"),
+            candidate("backup"),
+        )
+    )
+
+    resolved = ai_run.build_candidate_chain(agent_model, plan, has_images=False)
+
+    assert [item.model_name for item in resolved.candidates] == ["agent", "last-resort"]
+    assert resolved.refusal_failover is False
+    assert resolved.should_try_next is is_retryable_ai_provider_error
+
+
+def test_a_plan_without_the_flag_never_walks_its_chain(monkeypatch: Any) -> None:
+    """The plan still lists every candidate — the panel shows them — but only the first one runs."""
+    no_last_resort(monkeypatch)
+    agent_model = NamedTestModel("agent")
+    plan = AIModelPlan(candidates=(AIModelCandidate(model=agent_model, model_name="agent"), candidate("backup")))
+
+    assert len(ai_run.resolve_candidates(agent_model, plan, has_images=False)) == 1
+    assert len(ai_run.resolve_candidates(agent_model, replace(plan, failover=True), has_images=False)) == 2
+
+
+def test_the_agents_own_model_leads_and_the_last_resort_closes(monkeypatch: Any) -> None:
+    agent_model = NamedTestModel("agent")
+    last_resort = candidate("last-resort")
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: last_resort)
+    plan = AIModelPlan(candidates=(candidate("plan"),), failover=True)
+
+    resolved = ai_run.resolve_candidates(agent_model, plan, has_images=False)
+
+    assert [item.model_name for item in resolved] == ["agent", "plan", "last-resort"]
+
+
+def test_the_agents_model_keeps_the_settings_of_the_plan_entry_it_came_from(monkeypatch: Any) -> None:
+    """Otherwise the primary would lose the tier its own role declared the moment plans got involved."""
+    no_last_resort(monkeypatch)
+    primary = candidate("primary", service_tier="flex")
+    plan = AIModelPlan(candidates=(primary,), failover=True)
+
+    resolved = ai_run.resolve_candidates(primary.model, plan, has_images=False)
+
+    assert resolved == [primary]
+
+
+def test_a_candidate_ruled_out_for_images_cannot_return_through_the_agent(monkeypatch: Any) -> None:
+    no_last_resort(monkeypatch)
+    text_only = candidate("text-only", supports_images=False)
+    visual = candidate("visual")
+    plan = AIModelPlan(candidates=(text_only, visual), failover=True)
+
+    # The agent was built with the plan's primary, which is exactly the model an image turn must skip.
+    assert ai_run.resolve_candidates(text_only.model, plan, has_images=True) == [visual]
+    assert ai_run.resolve_candidates(text_only.model, plan, has_images=False) == [text_only, visual]
+
+
+def test_a_hand_picked_model_the_plan_never_had_still_leads(monkeypatch: Any) -> None:
+    """Only a model the plan deliberately ruled out is dropped; a caller's own choice is not."""
+    no_last_resort(monkeypatch)
+    hand_picked = NamedTestModel("hand-picked")
+    visual = candidate("visual")
+    plan = AIModelPlan(candidates=(visual,), failover=True)
+
+    resolved = ai_run.resolve_candidates(hand_picked, plan, has_images=True)
+
+    assert [item.model_name for item in resolved] == ["hand-picked", "visual"]
+
+
+def test_a_long_chain_is_capped(monkeypatch: Any) -> None:
+    """An operator may declare more candidates than one request should ever wait through."""
+    last_resort = candidate("last-resort")
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: last_resort)
+    plan = AIModelPlan(candidates=tuple(candidate(f"model-{index}") for index in range(6)), failover=True)
+
+    resolved = ai_run.resolve_candidates(plan.candidates[0].model, plan, has_images=False)
+
+    assert len(resolved) == ai_run.AI_MAX_MODEL_ATTEMPTS
+    # The cap never costs the safety net: the cheap model still closes the chain.
+    assert resolved[-1] is last_resort
+
+
+def test_the_last_resort_is_not_tried_twice_for_a_second_reasoning_effort(monkeypatch: Any) -> None:
+    """A catalog entry for the last-resort model is the same upstream model, whatever effort it uses."""
+    fallback_model = NamedTestModel("upstream/last-resort")
+    monkeypatch.setattr(ai_run, "get_ai_model", lambda model_name: fallback_model)
+    # Same catalog name, a different object because the role asked for another reasoning effort.
+    role_entry = AIModelCandidate(
+        model=NamedTestModel("upstream/last-resort"), model_name=ai_run.AI_FALLBACK_MODEL_NAME
+    )
+
+    assert ai_run._last_resort_candidate([role_entry]) is None
+    assert ai_run._last_resort_candidate([candidate("something-else")]) is not None
+
+
+def test_the_attempted_candidates_tier_is_the_one_sent_upstream() -> None:
+    """Failover must not bill a second model at the first one's tier."""
+    request_options = AIRequestOptions(session_id="s", service_tier="flex")
+
+    inherited = ai_run._candidate_request_options(request_options, candidate("plain"))
+    overridden = ai_run._candidate_request_options(request_options, candidate("priority", service_tier="priority"))
+    opted_out = ai_run._candidate_request_options(request_options, candidate("free", service_tier="none"))
+
+    assert inherited is request_options
+    assert overridden is not None and overridden.service_tier == "priority"
+    assert overridden.session_id == "s"
+    assert opted_out is not None and opted_out.service_tier is None
+
+
+def test_an_image_in_the_prompt_is_detected() -> None:
+    png = BinaryContent(data=b"\x89PNG", media_type="image/png")
+
+    assert request_has_images([png])
+    assert request_has_images(["just text"]) is False
+    assert request_has_images("just text") is False
+    assert request_has_images(None) is False
+
+
+def test_audio_is_not_an_image() -> None:
+    """Audio reaches the model transcribed to text, which every candidate can read."""
+    assert request_has_images([BinaryContent(data=b"RIFF", media_type="audio/wav")]) is False
+
+
+def test_an_image_folded_into_the_history_is_detected() -> None:
+    png = BinaryContent(data=b"\x89PNG", media_type="image/png")
+    history = [ModelRequest(parts=[UserPromptPart(content=[png])])]
+
+    assert request_has_images("follow-up question", history)
+
+
+def test_a_plan_drops_a_model_that_already_appears_earlier() -> None:
+    first = TestModel()
+    duplicate = TestModel()
+    plan = build_model_plan(
+        [
+            AIModelCandidate(model=first, model_name="same"),
+            AIModelCandidate(model=duplicate, model_name="same"),
+            AIModelCandidate(model=TestModel(), model_name="other"),
+        ]
+    )
+
+    assert plan.model_names == ("same", "other")
+    assert plan.primary is first
+
+
+def test_an_empty_plan_cannot_serve_a_request() -> None:
+    with pytest.raises(ValueError, match="no candidates"):
+        _ = AIModelPlan().primary
+
+
+def test_an_all_text_only_plan_still_tries_rather_than_refusing() -> None:
+    """Better a model that may not see the image than no answer at all — the pre-filtering behaviour."""
+    text_only = AIModelCandidate(model=TestModel(), model_name="text-only", supports_images=False)
+    plan = AIModelPlan(candidates=(text_only,))
+
+    assert plan.eligible(has_images=True) == (text_only,)

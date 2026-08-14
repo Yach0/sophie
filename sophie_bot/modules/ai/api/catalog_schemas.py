@@ -36,6 +36,7 @@ class ModelResponse(BaseModel):
     provider: str
     api_name: str | None
     supports_reasoning: bool
+    supports_images: bool
     extra_params: dict[str, object] | None
     roles: list[AIModelRole]
     enabled: bool
@@ -46,6 +47,7 @@ class ModelCreate(BaseModel):
     provider: str
     api_name: str | None = None
     supports_reasoning: bool = True
+    supports_images: bool = True
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] = Field(default_factory=list)
     enabled: bool = True
@@ -55,6 +57,7 @@ class ModelUpdate(BaseModel):
     provider: str | None = None
     api_name: str | None = None
     supports_reasoning: bool | None = None
+    supports_images: bool | None = None
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] | None = None
     enabled: bool | None = None
@@ -92,8 +95,23 @@ class CatalogStatus(BaseModel):
     roles: int
 
 
+class ResolvedCandidate(BaseModel):
+    """One model in a (mode, purpose) chain, in the order Sophie tries them."""
+
+    model: str
+    priority: int
+    supports_images: bool
+
+
 class ResolvedModel(BaseModel):
+    """What a (mode, purpose) resolves to: the model that runs, and the chain behind it.
+
+    ``model`` stays the highest-priority candidate so a panel reading only that field keeps
+    working; ``candidates`` is the whole ordered list, which is what actually runs on failover.
+    """
+
     model: str | None
+    candidates: list[ResolvedCandidate] = Field(default_factory=list)
 
 
 class ModelExport(BaseModel):
@@ -101,6 +119,7 @@ class ModelExport(BaseModel):
     provider: str
     api_name: str | None = None
     supports_reasoning: bool = True
+    supports_images: bool = True
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] = Field(default_factory=list)
     enabled: bool = True
