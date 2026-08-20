@@ -18,6 +18,7 @@ data/*.yaml
 # IDEs
 .vscode/
 .idea/
+.junie
 
 # AI Agents love to create those files
 *.txt
