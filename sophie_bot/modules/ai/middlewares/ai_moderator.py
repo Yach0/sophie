@@ -12,13 +12,13 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import AIModeratorModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, capture_ai_error
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities
 from sophie_bot.modules.ai.utils.moderation import (
     MODERATION_CATEGORIES_TRANSLATES,
     ModerationCategory,
     check_moderator,
 )
-from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
@@ -99,6 +99,8 @@ class AiModeratorMiddleware(BaseMiddleware):
                     await self._triggered(event, result.triggered, chat_db.tid)
                     raise SkipHandler
             except (SDKError, OpenAIError) as err:
-                capture_sentry(err)
+                # The provider is already distinguishable from the exception type, so no flag lookup
+                # is done here: this runs while the moderation backend is failing.
+                capture_ai_error(err, AIErrorContext(operation="moderation"))
 
         return await handler(event, data)

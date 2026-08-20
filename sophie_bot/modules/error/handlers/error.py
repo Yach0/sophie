@@ -12,6 +12,7 @@ from sophie_bot.modules.error.utils.permission_errors import (
     handle_no_rights_error,
     is_no_rights_error,
 )
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.logger import log
 
 
@@ -82,6 +83,12 @@ class SophieErrorHandler(ErrorHandler):
 
     @staticmethod
     def capture_sentry(exception: Exception) -> str | None:
+        # Already reported by the raiser, with context this handler does not have (the AI paths
+        # attach the model and operation). Capturing again would split one failure across two
+        # issues and show the user a reference ID matching neither.
+        if isinstance(exception, SophieException) and exception.sentry_event_id:
+            return exception.sentry_event_id
+
         # Prefer capturing the active system exception to preserve full traceback
         sys_exc = sys.exception()
         if isinstance(sys_exc, Exception):

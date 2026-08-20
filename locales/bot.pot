@@ -958,6 +958,10 @@ msgstr[1] ""
 msgid "This message will be deleted shortly."
 msgstr ""
 
+#: sophie_bot/modules/ai/middlewares/ai_timeout.py:37
+msgid "The AI request took too long and was cancelled. Please try again."
+msgstr ""
+
 #: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:124
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
@@ -982,19 +986,19 @@ msgstr ""
 msgid "Research"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:43
+#: sophie_bot/modules/ai/utils/ai_errors.py:65
 msgid "The AI request failed. Please try again in a moment."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:154
+#: sophie_bot/modules/ai/utils/ai_errors.py:243
 msgid "🤖 AI request failed"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:165
+#: sophie_bot/modules/ai/utils/ai_errors.py:254
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:169
+#: sophie_bot/modules/ai/utils/ai_errors.py:258
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr ""
@@ -4635,24 +4639,24 @@ msgstr ""
 msgid "Message deleted"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:73
+#: sophie_bot/modules/notes/__init__.py:75
 msgid "Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:75
+#: sophie_bot/modules/notes/__init__.py:77
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:79
+#: sophie_bot/modules/notes/__init__.py:81
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:82
+#: sophie_bot/modules/notes/__init__.py:84
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:22
+#: sophie_bot/modules/notes/handlers/get.py:28
 msgid "Note name"
 msgstr ""
 
@@ -4703,11 +4707,11 @@ msgstr ""
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/get.py:23
+#: sophie_bot/modules/notes/handlers/get.py:29
 msgid "Retrieve the note."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/get.py:37
+#: sophie_bot/modules/notes/handlers/get.py:43
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr ""
@@ -4869,6 +4873,14 @@ msgstr ""
 
 #: sophie_bot/modules/notes/handlers/save.py:97
 msgid "⚠️ Only the first media of the album was saved"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/status_cleannotes.py:12
+msgid "Shows / changes the state of automatic notes cleanup."
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/status_cleannotes.py:14
+msgid "Automatic notes cleanup"
 msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:53

@@ -312,7 +312,7 @@ async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_st
 def immediate_retries(monkeypatch: Any) -> Iterator[None]:
     """Run each attempt exactly once, so assertions see the candidate sequence and nothing else."""
 
-    async def fake_retries(operation: Any, on_retry: Any = None) -> Any:
+    async def fake_retries(operation: Any, context: Any, on_retry: Any = None) -> Any:
         return await operation()
 
     monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
@@ -421,9 +421,10 @@ async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
         attempted.append(active)
         raise UsageLimitExceeded("request limit exceeded")
 
-    with pytest.raises(UsageLimitExceeded):
+    with pytest.raises(AIRequestFailed) as raised:
         await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
 
+    assert isinstance(raised.value.__cause__, UsageLimitExceeded)
     assert len(attempted) == 1
 
 
@@ -436,22 +437,25 @@ async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None,
         attempted.append(active)
         raise ModelHTTPError(status_code=status_code, model_name="primary", body="invalid api key")
 
-    with pytest.raises(ModelHTTPError):
+    with pytest.raises(AIRequestFailed) as raised:
         await ai_run._run_with_model_candidates(
             operation, chain(candidate("primary"), candidate("backup"), candidate("third"))
         )
 
+    assert isinstance(raised.value.__cause__, ModelHTTPError)
     assert len(attempted) == 1
 
 
 async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> None:
-    """Exhaustion keeps error semantics: callers still see a provider error to map onto a message."""
+    """Exhaustion keeps error semantics: the last candidate's failure is the one callers get."""
 
     async def operation(active: AIModelCandidate) -> str:
         raise TimeoutError("everything is down")
 
-    with pytest.raises(TimeoutError, match="everything is down"):
+    with pytest.raises(AIRequestFailed) as raised:
         await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
+
+    assert str(raised.value.__cause__) == "everything is down"
 
 
 async def test_an_empty_answer_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
@@ -518,9 +522,10 @@ async def test_with_failover_off_only_a_retryable_error_moves_a_request(immediat
         attempted.append(active)
         raise ModelHTTPError(status_code=400, model_name="primary", body="malformed request")
 
-    with pytest.raises(ModelHTTPError):
+    with pytest.raises(AIRequestFailed) as raised:
         await ai_run._run_with_model_candidates(operation, chain(primary, backup, failover=False))
 
+    assert isinstance(raised.value.__cause__, ModelHTTPError)
     assert attempted == [primary]
 
 

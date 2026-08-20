@@ -38,8 +38,10 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.modules.ai.utils.ai_errors import (
     AI_PROVIDER_EXCEPTIONS,
+    AIErrorContext,
     AIRetryCallback,
     ai_request_failed_from_error,
+    capture_ai_error,
     is_provider_configuration_error,
     is_retryable_ai_provider_error,
     run_ai_request_with_retries,
@@ -193,15 +195,25 @@ async def _run_with_model_candidates[FallbackOutputT](
     Each attempt is tracked under its own model name via :func:`track_ai_request`, and the candidate
     that actually served the request comes back with the result so callers attribute post-completion
     metrics (usage, agent/stream results) and charges to it rather than to the first candidate.
+
+    This is also the single point where a provider failure becomes a reported, user-facing error:
+    only here is it known which candidate was in play, so the failure that ends the chain is raised
+    as :exc:`AIRequestFailed` carrying its Sentry event ID rather than escaping untagged.
     """
     last_error: BaseException | None = None
     candidates = chain.candidates
+    lead_model_name = candidates[0].model_name if candidates else None
 
     for index, candidate in enumerate(candidates):
         is_last = index == len(candidates) - 1
+        context = AIErrorContext(
+            operation=operation_label,
+            model_name=candidate.model_name,
+            primary_model_name=lead_model_name if index else None,
+        )
         try:
             async with track_ai_request(candidate.model, operation_label):
-                result = await run_ai_request_with_retries(partial(operation, candidate), on_retry=on_retry)
+                result = await run_ai_request_with_retries(partial(operation, candidate), context, on_retry=on_retry)
         except AIModelRefused as refusal:
             if is_last or not chain.refusal_failover:
                 raise
@@ -214,7 +226,7 @@ async def _run_with_model_candidates[FallbackOutputT](
             continue
         except AI_PROVIDER_EXCEPTIONS as error:
             if is_last or not chain.should_try_next(error):
-                raise
+                raise ai_request_failed_from_error(error, context) from error
             last_error = error
             log.warning(
                 "AI request on %s failed (%s); trying %s",
@@ -222,6 +234,10 @@ async def _run_with_model_candidates[FallbackOutputT](
                 type(error).__name__,
                 candidates[index + 1].model_name,
             )
+            # A request the chain rescues still returns an answer, so nothing else would ever
+            # surface a candidate that is failing every request in production. Warning level keeps
+            # it apart from the failures a user actually saw.
+            capture_ai_error(error, context, level="warning")
             continue
 
         if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
@@ -449,15 +465,12 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
             **_candidate_run_kwargs(run_kwargs, model_settings, request_options, candidate, agent_model)
         )
 
-    try:
-        result, served_candidate = await _run_with_model_candidates(
-            run_agent_once,
-            chain,
-            is_refusal=lambda run_result: is_refusal_output(run_result.output),
-            on_retry=on_retry,
-        )
-    except AI_PROVIDER_EXCEPTIONS as error:
-        raise ai_request_failed_from_error(error) from error
+    result, served_candidate = await _run_with_model_candidates(
+        run_agent_once,
+        chain,
+        is_refusal=lambda run_result: is_refusal_output(run_result.output),
+        on_retry=on_retry,
+    )
 
     served_model = served_candidate.model
     message_history = cast(list[ModelRequest | ModelResponse], result.all_messages())
@@ -770,17 +783,14 @@ async def run_ai_stream[DepsT](
             options.partial_on_limit,
         )
 
-    try:
-        outcome, served_candidate = await _run_with_model_candidates(
-            run_stream_once,
-            chain,
-            # A truncated run is never a refusal: it stopped on Sophie's own usage limit with text
-            # already delivered, and re-running it on another model would spend the budget twice.
-            is_refusal=lambda stream: not stream.truncated and is_refusal_output(stream.output_text),
-            on_retry=on_retry,
-        )
-    except AI_PROVIDER_EXCEPTIONS as error:
-        raise ai_request_failed_from_error(error) from error
+    outcome, served_candidate = await _run_with_model_candidates(
+        run_stream_once,
+        chain,
+        # A truncated run is never a refusal: it stopped on Sophie's own usage limit with text
+        # already delivered, and re-running it on another model would spend the budget twice.
+        is_refusal=lambda stream: not stream.truncated and is_refusal_output(stream.output_text),
+        on_retry=on_retry,
+    )
 
     served_model = served_candidate.model
     retries = count_retries_from_messages(outcome.message_history)
