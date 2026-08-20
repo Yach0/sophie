@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any, Final, cast
 
-from httpx import HTTPError, HTTPStatusError, RequestError, TimeoutException
+import httpx
+import httpx2
 from openai import OpenAIError
 from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior, UsageLimitExceeded
 from stfu_tg import Code, Doc, KeyValue, Title
@@ -16,11 +17,19 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
+# openai and pydantic-ai speak httpx2; mistralai and the Tavily search tool still speak legacy
+# httpx. The two libraries' exception trees are unrelated -- httpx2.HTTPError is not a subclass of
+# httpx.HTTPError -- so every handler that classifies a transport failure has to name both.
+_HTTP_ERRORS: Final[tuple[type[Exception], ...]] = (httpx.HTTPError, httpx2.HTTPError)
+_HTTP_STATUS_ERRORS: Final = (httpx.HTTPStatusError, httpx2.HTTPStatusError)
+# TimeoutException subclasses RequestError in both libraries, so RequestError alone covers timeouts.
+_HTTP_REQUEST_ERRORS: Final = (httpx.RequestError, httpx2.RequestError)
+
 AI_PROVIDER_EXCEPTIONS: Final[tuple[type[Exception], ...]] = (
     ModelHTTPError,
     UnexpectedModelBehavior,
     UsageLimitExceeded,
-    HTTPError,
+    *_HTTP_ERRORS,
     OpenAIError,
     TimeoutError,
 )
@@ -65,7 +74,7 @@ def _get_response_error_message(response_data: object) -> str | None:
 def _get_status_code(error: BaseException) -> int | None:
     if isinstance(error, ModelHTTPError):
         return error.status_code
-    if isinstance(error, HTTPStatusError):
+    if isinstance(error, _HTTP_STATUS_ERRORS):
         return error.response.status_code
 
     status_code = getattr(error, "status_code", None)
@@ -80,7 +89,7 @@ def _get_error_message(error: BaseException) -> str:
         if message:
             return message
 
-    if isinstance(error, HTTPStatusError):
+    if isinstance(error, _HTTP_STATUS_ERRORS):
         try:
             message = _get_response_error_message(error.response.json())
         except ValueError:
@@ -110,7 +119,7 @@ def is_provider_configuration_error(error: BaseException) -> bool:
 def is_retryable_ai_provider_error(error: BaseException) -> bool:
     if isinstance(error, UsageLimitExceeded):
         return False
-    if isinstance(error, TimeoutError | TimeoutException | RequestError):
+    if isinstance(error, (TimeoutError, *_HTTP_REQUEST_ERRORS)):
         return True
     if isinstance(error, UnexpectedModelBehavior):
         return True

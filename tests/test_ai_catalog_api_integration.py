@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.api import api_router as ai_api_router

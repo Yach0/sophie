@@ -152,7 +152,7 @@ async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
 
 
 async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
-    from httpx import HTTPError
+    from httpx2 import HTTPError
 
     with (
         patch.object(catalog.ai_http_client, "get", AsyncMock(side_effect=HTTPError("boom"))),

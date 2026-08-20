@@ -3,7 +3,7 @@ from __future__ import annotations
 from math import ceil
 
 import ujson
-from httpx import AsyncClient, HTTPError
+from httpx2 import AsyncClient, HTTPError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN

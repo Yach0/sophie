@@ -12,7 +12,7 @@ import asyncio
 import ipaddress
 import sys
 
-import httpx
+import httpx2
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.health import HEARTBEAT_TTL_SECONDS, check_heartbeat
@@ -41,9 +41,9 @@ def _format_host(host: str) -> str:
 async def _check_rest() -> tuple[bool, str]:
     url = f"http://{_format_host(_rest_probe_host())}:{CONFIG.api_port}/health"
     try:
-        async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
+        async with httpx2.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
             response = await client.get(url)
-    except httpx.HTTPError as error:
+    except httpx2.HTTPError as error:
         return False, f"rest: request failed: {error}"
 
     if response.status_code != 200:

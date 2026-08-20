@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from httpx import HTTPError
+from httpx2 import HTTPError
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,

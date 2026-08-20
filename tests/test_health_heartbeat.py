@@ -115,7 +115,7 @@ async def test_cli_rest_check_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
         async def get(self, _url: str) -> FakeResponse:
             return FakeResponse()
 
-    monkeypatch.setattr(healthcheck.httpx, "AsyncClient", FakeClient)
+    monkeypatch.setattr(healthcheck.httpx2, "AsyncClient", FakeClient)
 
     healthy, status = await healthcheck._check_rest()
 
