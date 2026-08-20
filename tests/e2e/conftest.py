@@ -33,6 +33,7 @@ from sophie_bot.services.i18n import i18n
 
 # Importing db_fixture patches pymongo.AsyncMongoClient. It must precede every sophie_bot
 # import below, because sophie_bot.services.db builds a client at module level.
+from tests.e2e.helpers import TEST_BOT_USERNAME
 from tests.utils.db_fixture import (
     cleanup_beanie,
 )
@@ -92,7 +93,7 @@ async def test_client(test_dispatcher: Dispatcher) -> AsyncGenerator[TestClient]
         capture=capture,
         token=CONFIG.token,
         bot_id=CONFIG.bot_id,
-        bot_username=CONFIG.username or "test_bot",
+        bot_username=TEST_BOT_USERNAME,
         bot_first_name="Sophie",
     )
 

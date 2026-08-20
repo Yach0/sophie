@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from itertools import count
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from aiogram.enums import ChatMemberStatus
 from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message, Update, User
@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     from aiogram.types import Chat
     from aiogram_test_framework import TestClient
     from aiogram_test_framework.types import CapturedRequest
+
+# Fixed rather than taken from CONFIG.username: Settings declares no env_prefix, so a bare USERNAME
+# in the environment lands on it -- and desktop sessions export USERNAME as the login name. Letting
+# that reach the mock bot makes every `/command@bot` test pass or fail per developer.
+TEST_BOT_USERNAME: Final = "test_bot"
 
 # Allocated from ranges no hand-written test literal uses, so a test that still pins its own
 # IDs cannot collide with a generated one.

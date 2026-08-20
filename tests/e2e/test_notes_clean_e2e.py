@@ -16,6 +16,7 @@ from aiogram_test_framework.types import CapturedRequest, RequestType
 from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.db.models.clean_notes import CleanNotesModel
 from tests.e2e.helpers import (
+    TEST_BOT_USERNAME,
     create_test_user_and_group,
     grant_admin,
     grant_bot_admin,
@@ -155,7 +156,7 @@ async def test_cleannotes_deletes_standalone_get_command(test_client: TestClient
         "/get rules",
         "/get   rules",
         "/get #rules",
-        "/get@test_bot rules",
+        f"/get@{TEST_BOT_USERNAME} rules",
         "/get rules noformat",
     ],
 )

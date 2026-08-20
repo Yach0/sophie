@@ -12,7 +12,7 @@ from sophie_bot.modules import ModuleManifest, get_module_manifest
     ("module_name", "expected_handler_count"),
     [
         ("disabling", 6),
-        ("notes", 12),
+        ("notes", 13),
         ("ai", 27),
         ("help", 7),
         ("privacy", 2),
