@@ -42,6 +42,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
+from sophie_bot.modules.ai.utils.chatbot_tool_history import remember_chatbot_tool_history
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
     build_help_mode_tip,
@@ -266,6 +267,9 @@ async def ai_chatbot_reply(
             user_tid=message.from_user.id if message.from_user else None,
         )
         history = await prepare_chatbot_history(message, context)
+        # Snapshotted before the run: whatever tool calls it already contains were replayed from a
+        # previous answer and must not be stored a second time.
+        previous_history = list(history.message_history)
         if explicit_debug_mode:
             await _reply_debug_history(message, history)
 
@@ -341,6 +345,10 @@ async def ai_chatbot_reply(
             final_message = await message_streamer.send_final(doc, **kwargs)
         else:
             final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
+
+        await remember_chatbot_tool_history(
+            message.chat.id, final_message.message_id, result.message_history, previous_history
+        )
 
         if research_response is not None:
             await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))
