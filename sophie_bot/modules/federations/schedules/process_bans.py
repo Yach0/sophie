@@ -29,6 +29,11 @@ async def send_replacement(task: FederationTask, chat_id: int, text: str) -> Non
     task.reply_message_id = message.message_id
 
 
+def schedule_silent_reply_deletion(task: FederationTask) -> None:
+    if task.silent and task.reply_chat_id and task.reply_message_id:
+        schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
+
+
 class ProcessFederationBans:
     """Scheduler job that propagates deferred federation (un)ban tasks.
 
@@ -64,11 +69,13 @@ class ProcessFederationBans:
                 await self._process_unban(task, federation)
 
             await self._update_status(task, TaskStatus.COMPLETED)
+            schedule_silent_reply_deletion(task)
         except Exception as err:
             # Mark FAILED and surface it instead of leaving the reply on "Propagating…".
             # FAILED tasks are kept indefinitely so the cause can be found and the task re-done.
             await self._update_status(task, TaskStatus.FAILED, error_message=str(err))
             await notify_task_failed(task, str(err))
+            schedule_silent_reply_deletion(task)
             raise
 
     async def _process_ban(self, task: FederationTask, federation: Federation) -> None:
@@ -88,7 +95,7 @@ class ProcessFederationBans:
 
                 await common_try(
                     bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                    reply_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+                    edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
                 )
             return
 
@@ -128,10 +135,8 @@ class ProcessFederationBans:
 
             await common_try(
                 bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                reply_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+                edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
             )
-        if task.silent and task.reply_chat_id and task.reply_message_id:
-            schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
 
         total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
@@ -172,7 +177,7 @@ class ProcessFederationBans:
 
             await common_try(
                 bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                reply_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+                edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
             )
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)

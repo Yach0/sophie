@@ -17,6 +17,7 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
     MSG_NOT_MODIFIED,
     MSG_TEXT_EMPTY,
     MSG_TO_DEL_NOT_FOUND,
+    MSG_TO_EDIT_NOT_FOUND,
     MSG_TOO_LONG,
     NO_TEXT_IN_MSG_TO_EDIT,
     REPLIED_NOT_FOUND,
@@ -28,7 +29,11 @@ CALLBACK_COROUTINE_TYPE = Callable[[], COROUTINE_TYPE]
 IGNORED_EXCEPTIONS = (TelegramNotFound, TelegramForbiddenError, TelegramMigrateToChat)
 
 
-async def common_try(to_try: COROUTINE_TYPE, reply_not_found: CALLBACK_COROUTINE_TYPE | None = None) -> Any:
+async def common_try(
+    to_try: COROUTINE_TYPE,
+    reply_not_found: CALLBACK_COROUTINE_TYPE | None = None,
+    edit_not_found: CALLBACK_COROUTINE_TYPE | None = None,
+) -> Any:
     """
     Catches common Telegram exceptions
     """
@@ -39,6 +44,9 @@ async def common_try(to_try: COROUTINE_TYPE, reply_not_found: CALLBACK_COROUTINE
         if reply_not_found and REPLIED_NOT_FOUND in err.message:
             log.debug("common_try: Reply not found, trying to execute reply_not_found")
             return await common_try(to_try=reply_not_found())
+        if edit_not_found and MSG_TO_EDIT_NOT_FOUND in err.message:
+            log.debug("common_try: Message to edit not found, trying to execute edit_not_found")
+            return await common_try(to_try=edit_not_found())
         if REPLIED_NOT_FOUND in err.message:
             log.debug("common_try: Reply not found, ignoring")
             return None
