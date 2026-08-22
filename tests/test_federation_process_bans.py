@@ -8,7 +8,7 @@ out of the scheduler either edits the reply with a result or reports the failure
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -23,7 +23,8 @@ from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatu
 from sophie_bot.modules.federations.schedules.cleanup_tasks import CleanupOldTasks
 from sophie_bot.modules.federations.schedules.process_bans import ProcessFederationBans
 from sophie_bot.modules.federations.utils.task_failure import build_task_failed_doc
-from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_EDIT_NOT_FOUND
+from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND
 
 BANNER_TID = 900_001
 TARGET_TID = 900_002
@@ -156,14 +157,19 @@ async def test_silent_ban_deletes_reply_only_after_final_edit(db_init: Any, monk
 @pytest.mark.asyncio
 async def test_deleted_progress_reply_is_resent(monkeypatch: pytest.MonkeyPatch) -> None:
     task = SimpleNamespace(reply_chat_id=REPLY_CHAT_TID, reply_message_id=REPLY_MESSAGE_ID)
-    edit_message = AsyncMock(
-        side_effect=TelegramBadRequest(method=None, message=MSG_TO_EDIT_NOT_FOUND),  # type: ignore[arg-type]
-    )
+    edit_message = AsyncMock(side_effect=TelegramBadRequest(method=None, message=REPLIED_NOT_FOUND))  # type: ignore[arg-type]
     send_message = AsyncMock(return_value=Mock(message_id=4343))
     monkeypatch.setattr("sophie_bot.modules.federations.schedules.process_bans.bot.edit_message_text", edit_message)
     monkeypatch.setattr("sophie_bot.modules.federations.schedules.process_bans.bot.send_message", send_message)
 
-    await ProcessFederationBans._edit_reply(cast(FederationTask, task), "final result")
+    async def send_replacement() -> None:
+        message = await send_message(REPLY_CHAT_TID, "final result")
+        task.reply_message_id = message.message_id
+
+    await common_try(
+        edit_message(),
+        reply_not_found=send_replacement,
+    )
 
     send_message.assert_awaited_once_with(REPLY_CHAT_TID, "final result")
     assert task.reply_message_id == 4343

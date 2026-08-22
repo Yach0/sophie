@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from aiogram.exceptions import TelegramBadRequest
 from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.db.models import ChatModel
@@ -19,7 +18,6 @@ from sophie_bot.modules.federations.utils.ban_docs import (
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
-from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_EDIT_NOT_FOUND
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -79,7 +77,17 @@ class ProcessFederationBans:
             # The ban record is gone (e.g. the user was unbanned before this ran) - nothing to do.
             # Edit the queued reply to a terminal state so it doesn't stay on "Propagating…".
             log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
-            await self._edit_reply(task, build_ban_superseded_doc().to_html())
+            if task.reply_chat_id and task.reply_message_id:
+                text = build_ban_superseded_doc().to_html()
+
+                async def send_replacement() -> None:
+                    message = await bot.send_message(task.reply_chat_id, text)
+                    task.reply_message_id = message.message_id
+
+                await common_try(
+                    bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+                    reply_not_found=send_replacement,
+                )
             return
 
         banned_count = await FederationBanService.ban_user_in_federation_chats(
@@ -113,7 +121,17 @@ class ProcessFederationBans:
             lazy_ban_count=lazy_ban_count,
             banner_anonymous=task.banner_anonymous,
         )
-        await self._edit_reply(task, reply_doc.to_html())
+        if task.reply_chat_id and task.reply_message_id:
+            text = reply_doc.to_html()
+
+            async def send_replacement() -> None:
+                message = await bot.send_message(task.reply_chat_id, text)
+                task.reply_message_id = message.message_id
+
+            await common_try(
+                bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+                reply_not_found=send_replacement,
+            )
         if task.silent and task.reply_chat_id and task.reply_message_id:
             schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
 
@@ -151,7 +169,17 @@ class ProcessFederationBans:
             unbanner_name,
             unbanned_count=unbanned_count,
         )
-        await self._edit_reply(task, reply_doc.to_html())
+        if task.reply_chat_id and task.reply_message_id:
+            text = reply_doc.to_html()
+
+            async def send_replacement() -> None:
+                message = await bot.send_message(task.reply_chat_id, text)
+                task.reply_message_id = message.message_id
+
+            await common_try(
+                bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+                reply_not_found=send_replacement,
+            )
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
         await FederationManageService.post_federation_log(federation, log_text, bot)
@@ -180,20 +208,6 @@ class ProcessFederationBans:
         gating the edit on this is what left replies stuck on "Propagating…" forever.
         """
         return await ChatModel.get_by_tid(target_user_id) or ChatModel.user_from_id(target_user_id)
-
-    @staticmethod
-    async def _edit_reply(task: FederationTask, text: str) -> None:
-        """Edit the result reply, sending a new one if the progress message was deleted."""
-        if not task.reply_chat_id or not task.reply_message_id:
-            return
-
-        try:
-            await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
-        except TelegramBadRequest as error:
-            if MSG_TO_EDIT_NOT_FOUND not in error.message:
-                raise
-            message = await bot.send_message(task.reply_chat_id, text)
-            task.reply_message_id = message.message_id
 
     @staticmethod
     async def _update_status(
