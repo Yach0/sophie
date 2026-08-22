@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import partial
 
 from beanie.odm.operators.find.comparison import In
 
@@ -21,6 +22,11 @@ from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
+
+
+async def send_replacement(task: FederationTask, chat_id: int, text: str) -> None:
+    message = await bot.send_message(chat_id, text)
+    task.reply_message_id = message.message_id
 
 
 class ProcessFederationBans:
@@ -80,13 +86,9 @@ class ProcessFederationBans:
             if task.reply_chat_id and task.reply_message_id:
                 text = build_ban_superseded_doc().to_html()
 
-                async def send_replacement() -> None:
-                    message = await bot.send_message(task.reply_chat_id, text)
-                    task.reply_message_id = message.message_id
-
                 await common_try(
                     bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                    reply_not_found=send_replacement,
+                    reply_not_found=partial(send_replacement, task, task.reply_chat_id, text),
                 )
             return
 
@@ -124,13 +126,9 @@ class ProcessFederationBans:
         if task.reply_chat_id and task.reply_message_id:
             text = reply_doc.to_html()
 
-            async def send_replacement() -> None:
-                message = await bot.send_message(task.reply_chat_id, text)
-                task.reply_message_id = message.message_id
-
             await common_try(
                 bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                reply_not_found=send_replacement,
+                reply_not_found=partial(send_replacement, task, task.reply_chat_id, text),
             )
         if task.silent and task.reply_chat_id and task.reply_message_id:
             schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
@@ -172,13 +170,9 @@ class ProcessFederationBans:
         if task.reply_chat_id and task.reply_message_id:
             text = reply_doc.to_html()
 
-            async def send_replacement() -> None:
-                message = await bot.send_message(task.reply_chat_id, text)
-                task.reply_message_id = message.message_id
-
             await common_try(
                 bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                reply_not_found=send_replacement,
+                reply_not_found=partial(send_replacement, task, task.reply_chat_id, text),
             )
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
