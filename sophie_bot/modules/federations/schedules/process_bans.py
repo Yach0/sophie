@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from aiogram.exceptions import TelegramBadRequest
 from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.db.models import ChatModel
@@ -18,6 +19,7 @@ from sophie_bot.modules.federations.utils.ban_docs import (
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_EDIT_NOT_FOUND
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -181,10 +183,17 @@ class ProcessFederationBans:
 
     @staticmethod
     async def _edit_reply(task: FederationTask, text: str) -> None:
-        """Edit the original reply with the final result, tolerating a deleted message."""
+        """Edit the result reply, sending a new one if the progress message was deleted."""
         if not task.reply_chat_id or not task.reply_message_id:
             return
-        await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
+
+        try:
+            await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
+        except TelegramBadRequest as error:
+            if MSG_TO_EDIT_NOT_FOUND not in error.message:
+                raise
+            message = await bot.send_message(task.reply_chat_id, text)
+            task.reply_message_id = message.message_id
 
     @staticmethod
     async def _update_status(
