@@ -346,6 +346,8 @@ async def ai_chatbot_reply(
         else:
             final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
 
+        # Best effort inside the helper: the reply is already out, so a storage failure only costs
+        # the next run its replay.
         await remember_chatbot_tool_history(
             message.chat.id, final_message.message_id, result.message_history, previous_history
         )
