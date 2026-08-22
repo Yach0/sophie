@@ -8,8 +8,8 @@ out of the scheduler either edits the reply with a result or reports the failure
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
