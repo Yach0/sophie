@@ -17,6 +17,7 @@ from sophie_bot.modules.federations.utils.ban_docs import (
 )
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -111,6 +112,8 @@ class ProcessFederationBans:
             banner_anonymous=task.banner_anonymous,
         )
         await self._edit_reply(task, reply_doc.to_html())
+        if task.silent and task.reply_chat_id and task.reply_message_id:
+            schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
 
         total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
