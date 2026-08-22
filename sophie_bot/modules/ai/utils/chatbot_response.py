@@ -13,6 +13,7 @@ from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_table_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
+from sophie_bot.modules.ai.utils.mention_usernames import apply_mention_usernames
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -109,8 +110,10 @@ async def build_reply_doc(
     explicit_debug_mode: bool,
     chat_tid: int | None,
 ) -> Doc:
-    del chat_tid
-    doc = Doc(header, ai_markdown_to_doc(output_text))
+    # The single rendering chokepoint for both streamed drafts and the final message, so mention
+    # resolution happens here — before Markdown is rendered, which keeps escaping STFU's job.
+    resolved_text = await apply_mention_usernames(output_text, chat_tid)
+    doc = Doc(header, ai_markdown_to_doc(resolved_text))
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "
         doc += build_debug_doc(model, result)
