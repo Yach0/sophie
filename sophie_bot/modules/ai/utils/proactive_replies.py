@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_pl
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
@@ -341,10 +342,9 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
         message_id=target_message.message_id,
         output_length=len(doc.to_html()),
     )
-    sent_message = await bot.send_message(
-        chat_id=chat_tid,
-        text=doc.to_html(),
-        disable_web_page_preview=True,
+    sent_message = await send_ai_rich_message_to_chat(
+        chat_tid,
+        doc,
         reply_to_message_id=target_message.message_id,
         message_thread_id=target_message.message_thread_id,
     )

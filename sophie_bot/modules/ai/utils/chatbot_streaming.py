@@ -6,7 +6,7 @@ from random import choice
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
 from pydantic_ai.models import Model
 from stfu_tg import Doc, Template
 from stfu_tg.doc import Element
@@ -16,6 +16,7 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     random_ai_progress_custom_emoji_id,
     random_ai_thinking_text,
 )
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
@@ -223,6 +224,8 @@ class ChatbotMessageStreamer:
                 )
             return result if isinstance(result, Message) else self.response_message
         except TelegramAPIError:
+            if self.mode == StreamMode.RICH_EDIT:
+                return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
             return await self.source_message.reply(
                 doc.to_html(),
                 disable_web_page_preview=True,
@@ -281,20 +284,7 @@ class ChatbotMessageStreamer:
         return True
 
     async def _send_rich_reply(self, doc: Doc, **reply_kwargs: Any) -> Message:
-        try:
-            return await self.source_message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
-                chat_id=self.source_message.chat.id,
-                rich_message=InputRichMessage(html=doc.to_rich()),
-                reply_parameters=ReplyParameters(message_id=self.source_message.message_id),
-                message_thread_id=self.source_message.message_thread_id,
-                reply_markup=reply_kwargs.get("reply_markup"),
-            )
-        except TelegramAPIError:
-            return await self.source_message.reply(
-                doc.to_html(),
-                disable_web_page_preview=True,
-                **reply_kwargs,
-            )
+        return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
 
 
 async def build_message_streamer(
