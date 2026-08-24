@@ -176,10 +176,15 @@ async def apply_mention_usernames(text: str, chat_tid: int | None) -> str:
     """Flag-gated entry point used by the reply renderer, for both streamed and final output."""
     if not text or "@" not in text or chat_tid is None:
         return text
-    if not await is_enabled("ai_chatbot_mention_usernames", chat_tid=chat_tid):
+    index = await resolve_mention_index(chat_tid)
+    if index is None:
         return text
+    return resolve_mentions(text, index)
 
+
+async def resolve_mention_index(chat_tid: int | None) -> MentionIndex | None:
+    """Resolve the flag-gated mention index once for a reply/run."""
+    if chat_tid is None or not await is_enabled("ai_chatbot_mention_usernames", chat_tid=chat_tid):
+        return None
     candidates = await collect_mention_candidates(chat_tid)
-    if not candidates:
-        return text
-    return resolve_mentions(text, build_mention_index(candidates))
+    return build_mention_index(candidates) if candidates else None

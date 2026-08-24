@@ -17,6 +17,7 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     random_ai_thinking_text,
 )
 from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc
+from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, resolve_mention_index
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
@@ -125,6 +126,8 @@ class ChatbotMessageStreamer:
         emoji_id: str | None = None,
     ) -> None:
         self.source_message = source_message
+        self.mention_index: MentionIndex | None = None
+        self._mention_index_resolved = False
         self.header = header
         self.mode = mode
         self.throttle_seconds = throttle_seconds
@@ -237,6 +240,9 @@ class ChatbotMessageStreamer:
         return time.monotonic() - self.last_sent_at < self.throttle_seconds
 
     async def _render_doc(self, text: str) -> Doc:
+        if not self._mention_index_resolved and "@" in text:
+            self.mention_index = await resolve_mention_index(self.source_message.chat.id)
+            self._mention_index_resolved = True
         return await build_reply_doc(
             self.header,
             text,
@@ -244,6 +250,7 @@ class ChatbotMessageStreamer:
             result=None,
             explicit_debug_mode=False,
             chat_tid=self.source_message.chat.id,
+            mention_index=self.mention_index,
         )
 
     async def _update_thinking_header(self, thinking_element: Element) -> None:

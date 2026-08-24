@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.mention_usernames import (
     apply_mention_usernames,
     build_mention_index,
     collect_mention_candidates,
+    resolve_mention_index,
     resolve_mentions,
 )
 
@@ -230,6 +231,28 @@ async def test_disabled_flag_leaves_the_reply_untouched(_enabled_with: Any) -> N
 async def test_enabled_flag_resolves_the_mention(_enabled_with: Any) -> None:
     _enabled_with(MentionCandidate(display_names=("John",), username="john_s"))
     assert await apply_mention_usernames("Hey @John", CHAT_TID) == "Hey @john_s"
+
+
+@pytest.mark.asyncio
+async def test_resolve_mention_index_collects_candidates_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    async def fake_collect(chat_tid: int) -> tuple[MentionCandidate, ...]:
+        nonlocal calls
+        calls += 1
+        return (MentionCandidate(display_names=("John",), username="john_s"),)
+
+    async def fake_is_enabled(feature: str, chat_tid: int | None = None) -> bool:
+        return True
+
+    monkeypatch.setattr(mention_usernames, "collect_mention_candidates", fake_collect)
+    monkeypatch.setattr(mention_usernames, "is_enabled", fake_is_enabled)
+
+    index = await resolve_mention_index(CHAT_TID)
+    assert index is not None
+    assert resolve_mentions("@John", index) == "@john_s"
+    assert resolve_mentions("Again @John", index) == "Again @john_s"
+    assert calls == 1
 
 
 @pytest.mark.asyncio
