@@ -194,7 +194,13 @@ def capture_ai_error(
             details["error_type"],
             str(details["status_code"]),
         ]
-        return sentry_sdk.capture_exception(error)
+        event_id = sentry_sdk.capture_exception(error)
+        if event_id is not None:
+            # The SDK returns the ID before its background transport has handed the envelope off.
+            # Flush before exposing the ID to the user so a short-lived worker/restart cannot leave
+            # them with a reference that Sentry never received.
+            sentry_sdk.flush(timeout=2.0)
+        return event_id
 
 
 def add_ai_retry_breadcrumb(error: BaseException, context: AIErrorContext, attempt: int) -> None:
