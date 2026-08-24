@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 from stfu_tg import Doc
 
-from sophie_bot.modules.ai.utils import chatbot_streaming, proactive_replies
+from sophie_bot.modules.ai.utils import ai_send, chatbot_streaming, proactive_replies
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
 
 
@@ -15,7 +15,7 @@ class _RichFailure(Exception):
 
 
 @pytest.mark.asyncio
-async def test_chatbot_final_resend_retries_rich_before_html(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_chatbot_final_resend_uses_rich_message(monkeypatch: pytest.MonkeyPatch) -> None:
     source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2)
     response = SimpleNamespace(
         chat=SimpleNamespace(id=1),
@@ -31,6 +31,36 @@ async def test_chatbot_final_resend_retries_rich_before_html(monkeypatch: pytest
     await streamer.send_final(Doc("answer"))
 
     rich_resend.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_rich_sender_uses_rich_payload() -> None:
+    send_rich_message = AsyncMock(return_value=SimpleNamespace())
+    message = SimpleNamespace(
+        chat=SimpleNamespace(id=1),
+        message_id=2,
+        message_thread_id=None,
+        bot=SimpleNamespace(send_rich_message=send_rich_message),
+    )
+
+    await ai_send.send_ai_rich_message(message, Doc("answer"))
+
+    send_rich_message.assert_awaited_once()
+    assert send_rich_message.call_args.kwargs["rich_message"].html == Doc("answer").to_rich()
+
+
+@pytest.mark.asyncio
+async def test_rich_sender_propagates_telegram_errors() -> None:
+    error = _RichFailure()
+    message = SimpleNamespace(
+        chat=SimpleNamespace(id=1),
+        message_id=2,
+        message_thread_id=None,
+        bot=SimpleNamespace(send_rich_message=AsyncMock(side_effect=error)),
+    )
+
+    with pytest.raises(_RichFailure):
+        await ai_send.send_ai_rich_message(message, Doc("answer"))
 
 
 @pytest.mark.asyncio
