@@ -31,8 +31,15 @@ async def notify_task_failed(task: FederationTask, error_message: str | None = N
     """
     text = build_task_failed_doc(error_message).to_html()
 
+    async def send_replacement() -> None:
+        message = await bot.send_message(task.reply_chat_id, text)
+        task.reply_message_id = message.message_id
+
     if task.reply_chat_id and task.reply_message_id:
-        await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
+        await common_try(
+            bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+            edit_not_found=send_replacement,
+        )
         return
 
     chat = await task.chat.fetch()

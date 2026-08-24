@@ -29,6 +29,14 @@ async def send_replacement(task: FederationTask, chat_id: int, text: str) -> Non
     task.reply_message_id = message.message_id
 
 
+async def _edit_or_resend_reply(task: FederationTask, text: str) -> None:
+    if task.reply_chat_id and task.reply_message_id:
+        await common_try(
+            bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+            edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+        )
+
+
 def schedule_silent_reply_deletion(task: FederationTask) -> None:
     if task.silent and task.reply_chat_id and task.reply_message_id:
         schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
@@ -75,6 +83,7 @@ class ProcessFederationBans:
             # FAILED tasks are kept indefinitely so the cause can be found and the task re-done.
             await self._update_status(task, TaskStatus.FAILED, error_message=str(err))
             await notify_task_failed(task, str(err))
+            await task.save()
             schedule_silent_reply_deletion(task)
             raise
 
@@ -90,13 +99,8 @@ class ProcessFederationBans:
             # The ban record is gone (e.g. the user was unbanned before this ran) - nothing to do.
             # Edit the queued reply to a terminal state so it doesn't stay on "Propagating…".
             log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
-            if task.reply_chat_id and task.reply_message_id:
-                text = build_ban_superseded_doc().to_html()
-
-                await common_try(
-                    bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                    edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
-                )
+            text = build_ban_superseded_doc().to_html()
+            await _edit_or_resend_reply(task, text)
             return
 
         banned_count = await FederationBanService.ban_user_in_federation_chats(
@@ -130,13 +134,8 @@ class ProcessFederationBans:
             lazy_ban_count=lazy_ban_count,
             banner_anonymous=task.banner_anonymous,
         )
-        if task.reply_chat_id and task.reply_message_id:
-            text = reply_doc.to_html()
-
-            await common_try(
-                bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
-            )
+        text = reply_doc.to_html()
+        await _edit_or_resend_reply(task, text)
 
         total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
@@ -172,13 +171,8 @@ class ProcessFederationBans:
             unbanner_name,
             unbanned_count=unbanned_count,
         )
-        if task.reply_chat_id and task.reply_message_id:
-            text = reply_doc.to_html()
-
-            await common_try(
-                bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
-            )
+        text = reply_doc.to_html()
+        await _edit_or_resend_reply(task, text)
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
         await FederationManageService.post_federation_log(federation, log_text, bot)
