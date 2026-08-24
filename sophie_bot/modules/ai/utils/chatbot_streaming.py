@@ -42,6 +42,11 @@ _TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
         _("Looking it up online..."),
         _("Browsing the internet..."),
     ),
+    "tinyfish_search": (
+        _("Searching the web..."),
+        _("Looking it up online..."),
+        _("Browsing the internet..."),
+    ),
     "write_memory": (
         _("Updating memory..."),
         _("Saving to memory..."),
