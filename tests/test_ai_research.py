@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Self, cast
 from unittest.mock import AsyncMock, patch
 
 import httpx2
@@ -367,6 +367,22 @@ class _FailingTinyFishResponse:
         raise AssertionError("response body must not be read after an HTTP error")
 
 
+class _FakeTinyFishAsyncClient:
+    def __init__(self, response: _FakeTinyFishResponse | _FailingTinyFishResponse, captured: dict[str, object]) -> None:
+        self._response = response
+        self._captured = captured
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *_args: object) -> None:
+        return None
+
+    async def get(self, url: str, params: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> Any:
+        self._captured.update({"url": url, "params": params, "headers": headers})
+        return self._response
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("provider", "tinyfish_key", "expected"),
@@ -450,19 +466,17 @@ async def test_search_tinyfish_maps_fields_truncates_and_sends_api_key(monkeypat
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
     captured: dict[str, object] = {}
 
-    def fake_get(url: str, params: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> Any:
-        captured.update({"url": url, "params": params, "headers": headers})
-        return _FakeTinyFishResponse(
-            {
-                "results": [
-                    {"title": "First", "url": "https://example.com/1", "snippet": "S", "date": "2026-08-01"},
-                    {"title": "Second", "url": "https://example.com/2"},
-                    {"title": "Third", "url": "https://example.com/3"},
-                ]
-            }
-        )
+    def fake_async_client() -> _FakeTinyFishAsyncClient:
+        return _FakeTinyFishAsyncClient(_FakeTinyFishResponse(payload), captured)
 
-    monkeypatch.setattr("sophie_bot.modules.ai.agent_tools.tinyfish_search.httpx2.get", fake_get)
+    payload = {
+        "results": [
+            {"title": "First", "url": "https://example.com/1", "snippet": "S", "date": "2026-08-01"},
+            {"title": "Second", "url": "https://example.com/2"},
+            {"title": "Third", "url": "https://example.com/3"},
+        ]
+    }
+    monkeypatch.setattr("sophie_bot.modules.ai.agent_tools.tinyfish_search.httpx2.AsyncClient", fake_async_client)
 
     results = await search_tinyfish("telegram bot framework", 2)
 
@@ -481,10 +495,10 @@ async def test_search_tinyfish_propagates_http_errors_for_retry_classification(
 ) -> None:
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
 
-    def failing_get(url: str, params: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> Any:
-        return _FailingTinyFishResponse()
+    def failing_async_client() -> _FakeTinyFishAsyncClient:
+        return _FakeTinyFishAsyncClient(_FailingTinyFishResponse(), {})
 
-    monkeypatch.setattr("sophie_bot.modules.ai.agent_tools.tinyfish_search.httpx2.get", failing_get)
+    monkeypatch.setattr("sophie_bot.modules.ai.agent_tools.tinyfish_search.httpx2.AsyncClient", failing_async_client)
 
     with pytest.raises(httpx2.HTTPError):
         await search_tinyfish("query", 5)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-
 import httpx2
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext, Tool
@@ -20,13 +18,16 @@ class TinyFishSearchResult(BaseModel):
     published: str | None = Field(default=None, description="Publication date if TinyFish returned one.")
 
 
-def _search_tinyfish(query: str, limit: int) -> list[TinyFishSearchResult]:
-    response = httpx2.get(
-        _TINYFISH_SEARCH_URL,
-        params={"query": query},
-        headers={"X-API-Key": CONFIG.tinyfish_api_key},
-    )
-    response.raise_for_status()
+async def search_tinyfish(query: str, limit: int = 5) -> list[TinyFishSearchResult]:
+    limited_results = max(1, min(limit, 10))
+    async with httpx2.AsyncClient() as client:
+        response = await client.get(
+            _TINYFISH_SEARCH_URL,
+            params={"query": query},
+            headers={"X-API-Key": CONFIG.tinyfish_api_key},
+        )
+        response.raise_for_status()
+        payload = response.json()
     # The Search API exposes no count parameter, so trim client-side.
     return [
         TinyFishSearchResult(
@@ -35,13 +36,8 @@ def _search_tinyfish(query: str, limit: int) -> list[TinyFishSearchResult]:
             snippet=result.get("snippet"),
             published=result.get("date"),
         )
-        for result in response.json().get("results", [])[:limit]
+        for result in payload.get("results", [])[:limited_results]
     ]
-
-
-async def search_tinyfish(query: str, limit: int = 5) -> list[TinyFishSearchResult]:
-    limited_results = max(1, min(limit, 10))
-    return await asyncio.to_thread(_search_tinyfish, query, limited_results)
 
 
 async def tinyfish_search(
