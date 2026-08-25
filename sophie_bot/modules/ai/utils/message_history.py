@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import gather
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import BinaryIO, cast
 
@@ -18,6 +19,7 @@ from pydantic_ai.messages import (
     SystemPromptPart,
     TextPart,
     ToolCallPart,
+    ToolReturnPart,
     UserContent,
     UserPromptPart,
 )
@@ -32,6 +34,7 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
 )
+from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
@@ -237,8 +240,12 @@ class AIMessageHistory:
     def _fold_trailing_requests(self) -> None:
         """Move trailing unanswered user turns out of the history and into the context block."""
         folded: list[str] = []
-        while self.message_history and isinstance(self.message_history[-1], ModelRequest):
-            request = self.message_history.pop()
+        while self.message_history and isinstance(request := self.message_history[-1], ModelRequest):
+            # A tool return must stay attached to the call that precedes it, or the provider sees a
+            # tool call with no result.
+            if any(isinstance(part, ToolReturnPart) for part in request.parts):
+                break
+            self.message_history.pop()
             folded.extend(
                 part.content
                 for part in request.parts
@@ -280,6 +287,7 @@ class AIMessageHistory:
         limit: int | None = None,
         fold_background: bool = False,
         max_age: timedelta | None = None,
+        tool_exchanges: Mapping[int, Sequence[ToolExchange]] | None = None,
     ) -> None:
         """Adds messages from the cache to the message history.
 
@@ -288,15 +296,27 @@ class AIMessageHistory:
         ``context_lines`` instead, to be surfaced as reference-only context via
         :meth:`apply_context_block`. This prevents the model from treating a backlog of unanswered
         group messages as the current turn and answering all of them at once.
+
+        ``tool_exchanges`` maps a Sophie message ID to the tool call/return pairs that produced it.
+        They are replayed right before that answer, so the model can reuse what it already looked up
+        instead of running the same searches again.
         """
         messages = await get_cached_messages(chat_id, limit=limit, max_age=max_age)
+        exchanges = tool_exchanges or {}
 
         if not fold_background:
-            self.message_history.extend(await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]))
+            for msg, transformed in zip(
+                messages,
+                await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]),
+                strict=True,
+            ):
+                self.message_history.extend(exchanges.get(msg.message_id, ()))
+                self.message_history.append(transformed)
             return
 
         for msg in messages:
             if msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg):
+                self.message_history.extend(exchanges.get(msg.message_id, ()))
                 self.message_history.append(await self._cache_transform_msg(chat_id, msg))
             else:
                 self.context_lines.append(await self._format_context_line(chat_id, msg))

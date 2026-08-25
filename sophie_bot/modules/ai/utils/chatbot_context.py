@@ -10,6 +10,7 @@ from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
+from sophie_bot.modules.ai.utils.chatbot_tool_history import load_chatbot_tool_history
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
@@ -42,6 +43,11 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
 
     if await is_enabled("ai_research", chat_tid=context.chat_tid):
         context_doc += _("You can use the research tool to research complicated topics instead of plain web search.")
+
+    if await is_enabled("ai_chatbot_tool_history", chat_tid=context.chat_tid):
+        context_doc += _(
+            "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
+        )
 
     if chat_name_enabled:
         chat_model = await ChatModel.get_by_tid(context.chat_tid)
@@ -135,7 +141,11 @@ async def prepare_chatbot_history(message: Message, context: SophieAIToolContext
     max_age_minutes = int(await get_value("ai_chatbot_history_max_age_minutes", chat_tid=context.chat_tid))
     max_age = datetime.timedelta(minutes=max_age_minutes) if max_age_minutes > 0 else None
     await history.add_from_cache(
-        context.chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True, max_age=max_age
+        context.chat_tid,
+        limit=CHATBOT_CACHE_MESSAGE_LIMIT,
+        fold_background=True,
+        max_age=max_age,
+        tool_exchanges=await load_chatbot_tool_history(context.chat_tid),
     )
     await history.add_from_message(message, custom_text=context.user_text)
     history.apply_context_block()
