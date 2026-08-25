@@ -48,6 +48,7 @@ from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_tip,
     should_offer_help_mode,
 )
+from sophie_bot.modules.ai.utils.mention_usernames import resolve_mention_index
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
@@ -123,6 +124,7 @@ async def _build_fitting_reply_doc(
     chat_tid: int,
 ) -> Doc:
     fitted_output_text = output_text
+    mention_index = await resolve_mention_index(chat_tid) if "@" in output_text else None
     for _attempt_index in range(8):
         doc = await build_reply_doc(
             header,
@@ -131,6 +133,7 @@ async def _build_fitting_reply_doc(
             result,
             explicit_debug_mode,
             chat_tid=chat_tid,
+            mention_index=mention_index,
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
@@ -151,6 +154,7 @@ async def _build_fitting_reply_doc(
         result,
         explicit_debug_mode,
         chat_tid=chat_tid,
+        mention_index=mention_index,
     )
 
 

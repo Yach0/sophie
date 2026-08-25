@@ -128,6 +128,7 @@ FeatureType = Literal[
     "ai_research_service_tier",
     "ai_chatbot_rich_streaming",
     "ai_chatbot_tables",
+    "ai_chatbot_mention_usernames",
     "ussr_spam_detection",
     "ussr_spam_save_to_db",
     "sentry_update_tracing",
@@ -388,6 +389,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_research_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_chatbot_rich_streaming": _feature(False),
     "ai_chatbot_tables": _feature(True),
+    # Rewrites @DisplayName mentions the model wrote into real @usernames on the way out.
+    # Output-side only: usernames never enter the prompt, so this cannot leak into the model.
+    "ai_chatbot_mention_usernames": _feature(False),
     "ussr_spam_detection": _feature(False),
     "ussr_spam_save_to_db": _feature(False),
     "sentry_update_tracing": _feature(False),
