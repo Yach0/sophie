@@ -227,7 +227,7 @@ _SERVICE_TIER_FEATURE: Final[FeatureValueKind] = "service_tier"
 _SEARCH_PROVIDER_FEATURE: Final[FeatureValueKind] = "search_provider"
 _MODERATION_PROVIDER_FEATURE: Final[FeatureValueKind] = "moderation_provider"
 _SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
-_SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi"})
+_SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi", "tavily", "tinyfish"})
 _MODERATION_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"mistral", "openai"})
 
 

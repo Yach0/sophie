@@ -17,6 +17,7 @@ from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_n
 from sophie_bot.modules.ai.agent_tools.research import research_topic_tool
 from sophie_bot.modules.ai.agent_tools.sophie_help import sophie_help_tool
 from sophie_bot.modules.ai.agent_tools.sophie_inspect import sophie_inspect_tool
+from sophie_bot.modules.ai.agent_tools.tinyfish_search import tinyfish_search_tool
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, get_capabilities
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, SophieAIToolContext
@@ -64,6 +65,8 @@ async def _get_search_tool(chat_tid: int) -> Any | None:
     search_provider = str(await get_value("ai_search_provider", chat_tid=chat_tid)).lower()
     if search_provider == "tavily":
         return tavily_search_tool(api_key=CONFIG.tavily_api_key) if CONFIG.tavily_api_key else None
+    if search_provider == "tinyfish":
+        return tinyfish_search_tool if CONFIG.tinyfish_api_key else None
     return kagi_search_tool if CONFIG.kagi_api_key else None
 
 

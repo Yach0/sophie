@@ -134,6 +134,7 @@ class Config(BaseSettings):
     openrouter_api_key: str | None = None
     tavily_api_key: str = ""
     kagi_api_key: str = ""
+    tinyfish_api_key: str = ""
     # TODO: delete both, with the seed_vendor_sdk_provider_keys migration, once every deployment
     # has run it. They are read only by that migration, which copies them into the AI catalog;
     # afterwards the keys are managed with /op_aiprovider.

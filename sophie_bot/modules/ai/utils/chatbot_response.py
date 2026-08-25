@@ -26,6 +26,7 @@ CHATBOT_TOOLS_TITLES: dict[str, Element] = {
     "sophie_inspect": cast(Element, l_("Sources 🧭")),
     "tavily_search": cast(Element, l_("Search 🔍")),
     "kagi_search": cast(Element, l_("Search 🔍")),
+    "tinyfish_search": cast(Element, l_("Search 🔍")),
     "get_notes": cast(Element, l_("Notes 🗒")),
     "get_note_content": cast(Element, l_("Note 🗒")),
     "research_topic": cast(Element, l_("Research 🔎")),
