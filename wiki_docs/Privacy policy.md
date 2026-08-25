@@ -75,6 +75,7 @@ When these features are activated, you agree to:
 * [Mistral Privacy Policy](https://mistral.ai/terms#privacy-policy)
 * [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy)
 * [Tavily Privacy Policy](https://www.tavily.com/privacy)
+* [TinyFish Privacy Policy](https://www.tinyfish.ai/privacy-policy)
 * The privacy policy of whichever AI provider serves the model your chat's AI mode uses.
 
 While using some AI-enabled features such as AI Chatbot, AI Translator or AI Moderator,
@@ -108,8 +109,8 @@ When you use Sophie's AI features, your data is initially sent to OpenRouter, wh
 requests to various AI providers based on the model your chat's AI mode uses. OpenRouter then forwards these
 requests to the appropriate AI provider (such as Mistral AI, OpenAI, or others). Some models may instead be served
 by an AI provider Sophie's operators have configured directly, without OpenRouter in between. Additionally, if the AI model
-determines it needs to search the internet for up-to-date information, the relevant data may be sent to Tavily's search
-service to enhance response accuracy.
+determines it needs to search the internet for up-to-date information, the relevant data may be sent to the search provider
+configured for the chat (Tavily, Kagi, or TinyFish) to enhance response accuracy.
 
 ### Crashlytics (Sentry):
 

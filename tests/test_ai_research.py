@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, Self, cast
 from unittest.mock import AsyncMock, patch
 
+import httpx2
 import pytest
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
 from pydantic_ai.models import Model
 from stfu_tg import Title
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic, research_topic_tool
+from sophie_bot.modules.ai.agent_tools.tinyfish_search import (
+    TinyFishSearchResult,
+    search_tinyfish,
+    tinyfish_search_tool,
+)
 from sophie_bot.modules.ai.json_schemas.research import (
     ResearchDecision,
     ResearchFinalResponse,
@@ -21,7 +29,11 @@ from sophie_bot.modules.ai.json_schemas.research import (
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
-from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_usage_limits, get_chatbot_tools
+from sophie_bot.modules.ai.utils.chatbot_agent import (
+    _get_search_tool,
+    build_chatbot_usage_limits,
+    get_chatbot_tools,
+)
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
 from sophie_bot.modules.ai.utils.research import (
@@ -33,7 +45,9 @@ from sophie_bot.modules.ai.utils.research import (
     research_markdown_filename,
     retrieve_latest_research_response,
     run_research_workflow,
+    search_web_for_research,
 )
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabled
 
 
@@ -332,3 +346,159 @@ async def test_build_chatbot_usage_limits_maps_token_limit() -> None:
     assert limits.request_limit == 3
     assert limits.tool_calls_limit == 5
     assert limits.output_tokens_limit == 2048
+
+
+class _FakeTinyFishResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _FailingTinyFishResponse:
+    def raise_for_status(self) -> None:
+        raise httpx2.HTTPError("503 Service Unavailable")
+
+    def json(self) -> dict:
+        raise AssertionError("response body must not be read after an HTTP error")
+
+
+class _FakeTinyFishAsyncClient:
+    def __init__(self, response: _FakeTinyFishResponse | _FailingTinyFishResponse, captured: dict[str, object]) -> None:
+        self._response = response
+        self._captured = captured
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *_args: object) -> None:
+        return None
+
+    async def get(self, url: str, params: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> Any:
+        self._captured.update({"url": url, "params": params, "headers": headers})
+        return self._response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider", "tinyfish_key", "expected"),
+    [
+        ("tinyfish", "tf-key", tinyfish_search_tool),
+        ("tinyfish", "", None),
+    ],
+)
+async def test_get_search_tool_selects_tinyfish_by_flag(
+    monkeypatch: pytest.MonkeyPatch, provider: str, tinyfish_key: str, expected: object
+) -> None:
+    monkeypatch.setattr(CONFIG, "tinyfish_api_key", tinyfish_key)
+    with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(return_value=provider)):
+        assert await _get_search_tool(-100123) is expected
+
+
+@pytest.mark.asyncio
+async def test_get_search_tool_keeps_existing_providers_working(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(CONFIG, "tavily_api_key", "tvly-key")
+    monkeypatch.setattr(CONFIG, "kagi_api_key", "kagi-key")
+    with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(return_value="tavily")):
+        assert await _get_search_tool(-100123) is not None
+    with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(return_value="kagi")):
+        assert await _get_search_tool(-100123) is kagi_search_tool
+
+
+@pytest.mark.asyncio
+async def test_search_web_for_research_maps_tinyfish_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
+    tiny_result = TinyFishSearchResult(
+        title="Tiny title", url="https://example.com/tiny", snippet="Snip", published="2026-08-01"
+    )
+    with (
+        patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tinyfish")),
+        patch("sophie_bot.modules.ai.utils.research.search_tinyfish", AsyncMock(return_value=[tiny_result])) as mock,
+    ):
+        sources = await search_web_for_research(-100123, "query", 5)
+
+    mock.assert_awaited_once_with("query", 5)
+    assert sources == [
+        ResearchSource(title="Tiny title", url="https://example.com/tiny", snippet="Snip", published="2026-08-01")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_search_web_for_research_requires_a_tinyfish_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(CONFIG, "tinyfish_api_key", "")
+    with (
+        patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tinyfish")),
+        pytest.raises(SophieException, match="Research requires a configured TinyFish API key"),
+    ):
+        await search_web_for_research(-100123, "query", 5)
+
+
+@pytest.mark.asyncio
+async def test_search_web_for_research_supports_only_kagi_and_tinyfish() -> None:
+    with (
+        patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tavily")),
+        pytest.raises(SophieException, match="Set ai_search_provider to kagi or tinyfish"),
+    ):
+        await search_web_for_research(-100123, "query", 5)
+
+
+@pytest.mark.asyncio
+async def test_search_web_for_research_keeps_kagi_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(CONFIG, "kagi_api_key", "kagi-key")
+    kagi_result = KagiSearchResult(title="Kagi title", url="https://example.com/kagi", snippet="Snip", published=None)
+    with (
+        patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="kagi")),
+        patch("sophie_bot.modules.ai.utils.research.search_kagi", AsyncMock(return_value=[kagi_result])),
+    ):
+        sources = await search_web_for_research(-100123, "query", 5)
+
+    assert sources == [
+        ResearchSource(title="Kagi title", url="https://example.com/kagi", snippet="Snip", published=None)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_search_tinyfish_maps_fields_truncates_and_sends_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
+    captured: dict[str, object] = {}
+
+    def fake_async_client() -> _FakeTinyFishAsyncClient:
+        return _FakeTinyFishAsyncClient(_FakeTinyFishResponse(payload), captured)
+
+    payload = {
+        "results": [
+            {"title": "First", "url": "https://example.com/1", "snippet": "S", "date": "2026-08-01"},
+            {"title": "Second", "url": "https://example.com/2"},
+            {"title": "Third", "url": "https://example.com/3"},
+        ]
+    }
+    monkeypatch.setattr("sophie_bot.modules.ai.agent_tools.tinyfish_search.httpx2.AsyncClient", fake_async_client)
+
+    results = await search_tinyfish("telegram bot framework", 2)
+
+    assert captured["url"] == "https://api.search.tinyfish.ai"
+    assert captured["params"] == {"query": "telegram bot framework"}
+    assert captured["headers"] == {"X-API-Key": "tf-key"}
+    assert results == [
+        TinyFishSearchResult(title="First", url="https://example.com/1", snippet="S", published="2026-08-01"),
+        TinyFishSearchResult(title="Second", url="https://example.com/2", snippet=None, published=None),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_search_tinyfish_propagates_http_errors_for_retry_classification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
+
+    def failing_async_client() -> _FakeTinyFishAsyncClient:
+        return _FakeTinyFishAsyncClient(_FailingTinyFishResponse(), {})
+
+    monkeypatch.setattr("sophie_bot.modules.ai.agent_tools.tinyfish_search.httpx2.AsyncClient", failing_async_client)
+
+    with pytest.raises(httpx2.HTTPError):
+        await search_tinyfish("query", 5)

@@ -34,6 +34,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, search_kagi
+from sophie_bot.modules.ai.agent_tools.tinyfish_search import TinyFishSearchResult, search_tinyfish
 from sophie_bot.modules.ai.json_schemas.research import (
     ResearchDecision,
     ResearchFinalResponse,
@@ -53,7 +54,7 @@ from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 
-_RESEARCH_SEARCH_PROVIDER_KAGI: Final[str] = "kagi"
+_RESEARCH_SEARCH_PROVIDERS: Final[frozenset[str]] = frozenset({"kagi", "tinyfish"})
 _RESEARCH_MARKDOWN_FILENAME_FALLBACK: Final[str] = "research"
 _RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 
@@ -136,12 +137,28 @@ def _source_from_kagi(result: KagiSearchResult) -> ResearchSource:
     )
 
 
+def _source_from_tinyfish(result: TinyFishSearchResult) -> ResearchSource:
+    return ResearchSource(
+        title=result.title,
+        url=result.url,
+        snippet=result.snippet,
+        published=result.published,
+    )
+
+
 async def search_web_for_research(chat_tid: int, query: str, limit: int) -> list[ResearchSource]:
     search_provider = str(await get_value("ai_search_provider", chat_tid=chat_tid)).lower()
-    if search_provider != _RESEARCH_SEARCH_PROVIDER_KAGI:
+    if search_provider not in _RESEARCH_SEARCH_PROVIDERS:
         raise SophieException(
-            _("Research currently supports the Kagi search provider. Set ai_search_provider to kagi to use it.")
+            _(
+                "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
+            )
         )
+    if search_provider == "tinyfish":
+        if not CONFIG.tinyfish_api_key:
+            raise SophieException(_("Research requires a configured TinyFish API key."))
+        results = await search_tinyfish(query, limit)
+        return [_source_from_tinyfish(result) for result in results]
     if not CONFIG.kagi_api_key:
         raise SophieException(_("Research requires a configured Kagi API key."))
 
