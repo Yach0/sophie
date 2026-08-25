@@ -95,6 +95,18 @@ def _model_http_error(status_code: int = 503) -> ModelHTTPError:
     )
 
 
+def test_capture_ai_error_flushes_before_returning_reference_id(
+    sentry_events: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    flushed: list[float] = []
+    monkeypatch.setattr(sentry_sdk, "flush", lambda *, timeout: flushed.append(timeout))
+
+    event_id = capture_ai_error(_model_http_error(), AIErrorContext(operation="agent", model_name="openai/gpt-5"))
+
+    assert event_id == sentry_events[0]["event_id"]
+    assert flushed == [2.0]
+
+
 def test_capture_ai_error_tags_and_groups_by_model_and_status(sentry_events: list[dict[str, Any]]) -> None:
     context = AIErrorContext(operation="agent", model_name="openai/gpt-5")
 
