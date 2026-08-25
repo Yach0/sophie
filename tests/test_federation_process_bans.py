@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, User
 
 from sophie_bot.constants import FEDERATION_EXPORT_TTL_DAYS, FEDERATION_TASK_STALE_AFTER_MINUTES
@@ -21,6 +22,7 @@ from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatu
 from sophie_bot.modules.federations.schedules.cleanup_tasks import CleanupOldTasks
 from sophie_bot.modules.federations.schedules.process_bans import ProcessFederationBans
 from sophie_bot.modules.federations.utils.task_failure import build_task_failed_doc
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_EDIT_NOT_FOUND
 
 BANNER_TID = 900_001
 TARGET_TID = 900_002
@@ -129,6 +131,41 @@ async def test_ban_task_edits_reply_with_banner_name(db_init: Any, monkeypatch: 
     assert reloaded is not None
     assert reloaded.status == TaskStatus.COMPLETED
     assert reloaded.banned_count == 2
+
+
+@pytest.mark.asyncio
+async def test_silent_ban_deletes_reply_only_after_final_edit(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The in-progress reply must survive until propagation edits it with the result."""
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=0)
+    task.silent = True
+    await task.save()
+
+    schedule_deletion = Mock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.schedule_message_deletion",
+        schedule_deletion,
+    )
+
+    await ProcessFederationBans().handle()
+
+    assert "Propagating" not in _edited_text(edit_message)
+    schedule_deletion.assert_called_once_with(REPLY_CHAT_TID, [REPLY_MESSAGE_ID])
+
+
+@pytest.mark.asyncio
+async def test_deleted_progress_reply_is_resent(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    task, edit_message = await _make_ban_task(monkeypatch)
+    edit_message.side_effect = TelegramBadRequest(method=None, message=MSG_TO_EDIT_NOT_FOUND)  # type: ignore[arg-type]
+    send_message = AsyncMock(return_value=Mock(message_id=4343))
+    monkeypatch.setattr("sophie_bot.modules.federations.schedules.process_bans.bot.send_message", send_message)
+
+    await ProcessFederationBans().handle()
+
+    send_message.assert_awaited_once()
+    reloaded = await FederationTask.get(task.id)
+    assert reloaded is not None
+    assert reloaded.status == TaskStatus.COMPLETED
+    assert reloaded.reply_message_id == 4343
 
 
 @pytest.mark.asyncio
