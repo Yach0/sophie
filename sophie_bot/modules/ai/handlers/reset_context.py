@@ -10,6 +10,7 @@ from sophie_bot.modules.ai.callbacks import AIResetContext
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_RESET
 from sophie_bot.modules.ai.utils.cache_messages import reset_messages
+from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -37,6 +38,7 @@ class AIContextReset(SophieMessageHandler):
 
     async def handle(self) -> Any:
         await reset_messages(self.connection.tid)
+        await reset_tool_exchanges(self.connection.tid)
 
         if self.connection.db_model:
             await AIMemoryModel.clear(self.connection.db_model.iid)

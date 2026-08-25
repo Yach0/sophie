@@ -47,6 +47,8 @@ FeatureType = Literal[
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
     "ai_chatbot_history_max_age_minutes",
+    "ai_chatbot_tool_history",
+    "ai_chatbot_tool_history_max_chars",
     "ai_translations",
     "ai_moderation",
     "ai_moderation_reasons",
@@ -287,6 +289,10 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_tool_calls_limit": _feature(6),
     "ai_chatbot_response_tokens_limit": _feature(2048),
     "ai_chatbot_history_max_age_minutes": _feature(30),
+    # Replays previous tool calls and their results into the chatbot history, so a follow-up
+    # question reuses what was already looked up instead of repeating the same search.
+    "ai_chatbot_tool_history": _feature(False),
+    "ai_chatbot_tool_history_max_chars": _feature(4000),
     "ai_translations": _feature(True),
     "ai_moderation": _feature(True),
     "ai_moderation_reasons": _feature(True),
