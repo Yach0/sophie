@@ -1,6 +1,7 @@
 REPLIED_NOT_FOUND = "message to be replied not found"
 CAN_NOT_BE_DELETED = "message can't be deleted"
 MSG_TO_DEL_NOT_FOUND = "message to delete not found"
+MSG_TO_EDIT_NOT_FOUND = "message to edit not found"
 MSG_TEXT_EMPTY = "message text is empty"
 USER_ALREADY_PARTICIPANT = "USER_ALREADY_PARTICIPANT"
 MSG_NOT_MODIFIED = "message is not modified"

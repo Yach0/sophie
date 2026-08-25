@@ -143,8 +143,8 @@ class FederationBanHandler(FederationCommandHandler):
             reply_not_found=lambda: self.event.answer(doc.to_html()),
         )
 
-        if silent and reply_msg:
-            messages_to_delete = [self.event.message_id, reply_msg.message_id]
+        if silent:
+            messages_to_delete = [self.event.message_id]
             if self.event.reply_to_message:
                 messages_to_delete.append(self.event.reply_to_message.message_id)
             schedule_message_deletion(self.event.chat.id, messages_to_delete)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import partial
 
 from beanie.odm.operators.find.comparison import In
 
@@ -17,9 +18,28 @@ from sophie_bot.modules.federations.utils.ban_docs import (
 )
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
+
+
+async def send_replacement(task: FederationTask, chat_id: int, text: str) -> None:
+    message = await bot.send_message(chat_id, text)
+    task.reply_message_id = message.message_id
+
+
+async def _edit_or_resend_reply(task: FederationTask, text: str) -> None:
+    if task.reply_chat_id and task.reply_message_id:
+        await common_try(
+            bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+            edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+        )
+
+
+def schedule_silent_reply_deletion(task: FederationTask) -> None:
+    if task.silent and task.reply_chat_id and task.reply_message_id:
+        schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
 
 
 class ProcessFederationBans:
@@ -57,11 +77,14 @@ class ProcessFederationBans:
                 await self._process_unban(task, federation)
 
             await self._update_status(task, TaskStatus.COMPLETED)
+            schedule_silent_reply_deletion(task)
         except Exception as err:
             # Mark FAILED and surface it instead of leaving the reply on "Propagating…".
             # FAILED tasks are kept indefinitely so the cause can be found and the task re-done.
             await self._update_status(task, TaskStatus.FAILED, error_message=str(err))
             await notify_task_failed(task, str(err))
+            await task.save()
+            schedule_silent_reply_deletion(task)
             raise
 
     async def _process_ban(self, task: FederationTask, federation: Federation) -> None:
@@ -76,7 +99,8 @@ class ProcessFederationBans:
             # The ban record is gone (e.g. the user was unbanned before this ran) - nothing to do.
             # Edit the queued reply to a terminal state so it doesn't stay on "Propagating…".
             log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
-            await self._edit_reply(task, build_ban_superseded_doc().to_html())
+            text = build_ban_superseded_doc().to_html()
+            await _edit_or_resend_reply(task, text)
             return
 
         banned_count = await FederationBanService.ban_user_in_federation_chats(
@@ -110,7 +134,8 @@ class ProcessFederationBans:
             lazy_ban_count=lazy_ban_count,
             banner_anonymous=task.banner_anonymous,
         )
-        await self._edit_reply(task, reply_doc.to_html())
+        text = reply_doc.to_html()
+        await _edit_or_resend_reply(task, text)
 
         total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
@@ -146,7 +171,8 @@ class ProcessFederationBans:
             unbanner_name,
             unbanned_count=unbanned_count,
         )
-        await self._edit_reply(task, reply_doc.to_html())
+        text = reply_doc.to_html()
+        await _edit_or_resend_reply(task, text)
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
         await FederationManageService.post_federation_log(federation, log_text, bot)
@@ -175,13 +201,6 @@ class ProcessFederationBans:
         gating the edit on this is what left replies stuck on "Propagating…" forever.
         """
         return await ChatModel.get_by_tid(target_user_id) or ChatModel.user_from_id(target_user_id)
-
-    @staticmethod
-    async def _edit_reply(task: FederationTask, text: str) -> None:
-        """Edit the original reply with the final result, tolerating a deleted message."""
-        if not task.reply_chat_id or not task.reply_message_id:
-            return
-        await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
 
     @staticmethod
     async def _update_status(
