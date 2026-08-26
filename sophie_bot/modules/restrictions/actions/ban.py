@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.restrictions.actions.base import BaseRestrictionModernAction
 from sophie_bot.modules.restrictions.utils import ban_user
-from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import N_
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -27,7 +27,7 @@ class BanModernAction(BaseRestrictionModernAction[BanActionDataModel]):
 
     action_name: ClassVar[str] = "ban_user"
     action_log_event: ClassVar[LogEvent] = LogEvent.USER_BANNED
-    auto_banned_text: ClassVar[str | LazyProxy] = l_("User {user} was automatically banned based on a filter action")
+    auto_banned_text: ClassVar[str] = N_("User {user} was automatically banned based on a filter action")
     settings_key: ClassVar[str] = "change_ban_duration"
     settings_title = l_("Change ban duration")
 
