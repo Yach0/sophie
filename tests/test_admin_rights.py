@@ -80,6 +80,7 @@ def build_admin_member(tid: int, **permissions: bool) -> ChatMemberAdministrator
         "can_post_stories": False,
         "can_edit_stories": False,
         "can_delete_stories": False,
+        "can_send_welcome_messages": False,
     }
     granted.update(permissions)
     return ChatMemberAdministrator(
