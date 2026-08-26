@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import io
 import types as typing_types
+from collections.abc import Iterable
 from io import BufferedReader, BytesIO
 from typing import TYPE_CHECKING, BinaryIO
 
@@ -15,6 +15,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 if TYPE_CHECKING:
+    from av.audio.frame import AudioFrame
     from av.audio.resampler import AudioResampler
 
 # Try to import av - if not available, video transcription will be disabled
@@ -25,6 +26,37 @@ try:
 except ImportError:
     AV_AVAILABLE = False
     _av_module: typing_types.ModuleType = None  # ty: ignore[invalid-assignment]
+
+
+def _encode_audio_frames_as_ogg(frames: Iterable[AudioFrame]) -> bytes:
+    output_buffer = BytesIO()
+
+    with _av_module.open(output_buffer, mode="w", format="ogg") as output_container:
+        output_audio_stream = output_container.add_stream("libopus", rate=24000)
+        output_audio_stream.layout = "mono"
+        resampler: AudioResampler = _av_module.audio.resampler.AudioResampler(  # type: ignore[possibly-missing-attribute]
+            format="s16",
+            layout="mono",
+            rate=24000,
+        )
+
+        for frame in frames:
+            # Source timestamps can jump backwards after MP4 edits or concatenation. The
+            # transcription output is continuous audio, so make the resampler derive its
+            # own monotonic timestamps from the sample sequence.
+            frame.pts = None
+            for resampled_frame in resampler.resample(frame):
+                for packet in output_audio_stream.encode(resampled_frame):
+                    output_container.mux(packet)
+
+        for resampled_frame in resampler.resample(None):
+            for packet in output_audio_stream.encode(resampled_frame):
+                output_container.mux(packet)
+
+        for packet in output_audio_stream.encode():
+            output_container.mux(packet)
+
+    return output_buffer.getvalue()
 
 
 async def extract_audio_from_video(video: Video | VideoNote) -> bytes | None:
@@ -64,47 +96,13 @@ async def extract_audio_from_video(video: Video | VideoNote) -> bytes | None:
     video_bytes = downloaded_video.read()
 
     try:
-        input_buffer = io.BytesIO(video_bytes)
-        output_buffer = io.BytesIO()
+        with _av_module.open(BytesIO(video_bytes), mode="r") as input_container:
+            audio_stream = next((stream for stream in input_container.streams if stream.type == "audio"), None)
+            if audio_stream is None:
+                log.debug("No audio stream found in video")
+                return None
 
-        input_container = _av_module.open(input_buffer, mode="r")
-
-        audio_stream = next((stream for stream in input_container.streams if stream.type == "audio"), None)
-        if audio_stream is None:
-            log.debug("No audio stream found in video")
-            return None
-
-        # Create output container in memory
-        output_container = _av_module.open(output_buffer, mode="w", format="ogg")
-
-        # Add audio stream to output
-        output_audio_stream = output_container.add_stream("libopus", rate=24000)
-
-        # Resample and encode audio
-        resampler: AudioResampler = _av_module.audio.resampler.AudioResampler(  # type: ignore[possibly-missing-attribute]
-            format="s16",
-            layout="mono",
-            rate=24000,
-        )
-
-        for frame in input_container.decode(audio_stream):
-            # Resample frame (only process audio frames)
-            if isinstance(frame, _av_module.audio.frame.AudioFrame):
-                resampled_frames = resampler.resample(frame)
-
-                for resampled_frame in resampled_frames:
-                    # Encode and mux
-                    for packet in output_audio_stream.encode(resampled_frame):
-                        output_container.mux(packet)
-
-        # Flush encoder
-        for packet in output_audio_stream.encode():
-            output_container.mux(packet)
-
-        output_container.close()
-        input_container.close()
-
-        audio_bytes = output_buffer.getvalue()
+            audio_bytes = _encode_audio_frames_as_ogg(input_container.decode(audio_stream))
 
         if len(audio_bytes) == 0:
             log.debug("Extracted audio is empty")
@@ -112,8 +110,8 @@ async def extract_audio_from_video(video: Video | VideoNote) -> bytes | None:
 
         return audio_bytes
 
-    except Exception as e:  # noqa: BLE001  # media decode boundary: any PyAV/codec failure degrades to no-audio
-        log.error("Audio extraction failed", error=str(e))
+    except Exception as error:  # noqa: BLE001  # media decode boundary: any PyAV/codec failure degrades to no-audio
+        log.error("Audio extraction failed", error=str(error))
         return None
 
 
