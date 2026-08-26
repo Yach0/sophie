@@ -87,7 +87,8 @@ async def test_op_ff_feature_name_shows_full_value(test_client: TestClient) -> N
     )
 
     assert "ai_proactive_replies_prompt" in response_text
-    assert "Be very conservative" in response_text
+    assert "Use balanced judgment" in response_text
+    assert "Never duplicate an existing AI reply" in response_text
     assert "..." not in response_text
 
 
