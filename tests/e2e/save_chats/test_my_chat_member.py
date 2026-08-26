@@ -151,6 +151,7 @@ class TestMyChatMember:
             can_pin_messages=True,
             can_post_stories=True,
             can_edit_stories=True,
+            can_send_welcome_messages=False,
             can_delete_stories=True,
             can_manage_topics=True,
         )
