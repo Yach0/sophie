@@ -3,10 +3,14 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+import httpx2
 import pytest
 from aiogram.types import Message
+from openai import InternalServerError
 from openai.types.moderation import Moderation
+from tenacity import wait_none
 
+from sophie_bot.modules.ai.utils import ai_errors
 from sophie_bot.modules.ai.utils.message_history import convert_to_openai_moderation_format
 from sophie_bot.modules.ai.utils.moderation import ModerationCategory, check_moderator
 from sophie_bot.modules.ai.utils.moderation.providers.openai import OpenAIModerationProvider
@@ -144,6 +148,30 @@ async def test_empty_results_not_flagged() -> None:
         result = await check_moderator(_make_message())
 
     assert result.flagged is False
+
+
+async def test_openai_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    scores = dict.fromkeys(_DEFAULTS, 0.0)
+    category_scores = SimpleNamespace(model_dump=lambda by_alias=False: dict(scores))
+    response = SimpleNamespace(results=[SimpleNamespace(category_scores=category_scores)])
+    raw_response = httpx2.Response(
+        503,
+        request=httpx2.Request("POST", "https://api.openai.com/v1/moderations"),
+    )
+    create = AsyncMock(
+        side_effect=[InternalServerError("Service unavailable", response=raw_response, body=None), response]
+    )
+    client = SimpleNamespace(moderations=SimpleNamespace(create=create))
+    monkeypatch.setattr(ai_errors, "AI_REQUEST_RETRY_WAIT", wait_none())
+
+    with patch(
+        "sophie_bot.modules.ai.utils.moderation.providers.openai.get_openai_client",
+        new=AsyncMock(return_value=client),
+    ):
+        result = await check_moderator(_make_message())
+
+    assert result.flagged is False
+    assert create.await_count == 2
 
 
 async def test_threshold_flag_overrides_openai_default() -> None:

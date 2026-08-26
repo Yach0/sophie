@@ -3,13 +3,17 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from aiogram.types import Message
+from mistralai.client.errors import SDKError
+from tenacity import wait_none
 
 from sophie_bot.db.models.ai.ai_moderator import DetectionLevel
 from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
 from sophie_bot.modules.ai.handlers.aimoderator import _build_doc, _build_keyboard
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
+from sophie_bot.modules.ai.utils import ai_errors
 from sophie_bot.modules.ai.utils.moderation import (
     MODERATION_CATEGORIES_TRANSLATES,
     ModerationCategory,
@@ -123,6 +127,27 @@ async def test_moderation_no_scores_not_flagged() -> None:
 
     assert result.flagged is False
     assert result.scores == {}
+
+
+async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    response = _make_moderation_response(dict.fromkeys(_MISTRAL_DEFAULTS, 0.0))
+    raw_response = httpx.Response(
+        503,
+        request=httpx.Request("POST", "https://api.mistral.ai/v1/chat/moderations"),
+        text="Service unavailable",
+    )
+    moderate = AsyncMock(side_effect=[SDKError("API error occurred", raw_response), response])
+    client = SimpleNamespace(classifiers=SimpleNamespace(moderate_chat_async=moderate))
+    monkeypatch.setattr(ai_errors, "AI_REQUEST_RETRY_WAIT", wait_none())
+
+    with patch(
+        "sophie_bot.modules.ai.utils.moderation.providers.mistral.get_mistral_client",
+        new=AsyncMock(return_value=client),
+    ):
+        result = await check_moderator(_make_message())
+
+    assert result.flagged is False
+    assert moderate.await_count == 2
 
 
 # --- DetectionLevel ---

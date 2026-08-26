@@ -7,6 +7,7 @@ from mistralai.client.models.moderationobject import ModerationObject
 from mistralai.client.models.moderationresponse import ModerationResponse
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
@@ -50,9 +51,12 @@ class MistralModerationProvider:
     async def classify(self, history: AIMessageHistory) -> dict[str, float]:
         moderation_messages = cast(ChatModerationRequestInputs3, convert_to_moderation_format(history.to_moderation))
         client = await get_mistral_client()
-        response: ModerationResponse = await client.classifiers.moderate_chat_async(
-            inputs=moderation_messages,
-            model=MISTRAL_MODERATION_MODEL,
+        response: ModerationResponse = await run_ai_request_with_retries(
+            lambda: client.classifiers.moderate_chat_async(
+                inputs=moderation_messages,
+                model=MISTRAL_MODERATION_MODEL,
+            ),
+            AIErrorContext(operation="moderation", model_name=MISTRAL_MODERATION_MODEL),
         )
         if not response.results:
             return {}
