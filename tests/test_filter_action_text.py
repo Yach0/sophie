@@ -20,5 +20,9 @@ def test_filter_action_text_renders_single_modern_action() -> None:
     assert str(rendered) == "X Example"
 
 
-def test_filter_action_text_describes_legacy_filter_without_actions() -> None:
+def test_filter_action_text_renders_legacy_action_without_modern_actions() -> None:
+    assert filter_action_text("legacy_action", []) == "legacy_action"
+
+
+def test_filter_action_text_describes_empty_legacy_filter_without_actions() -> None:
     assert filter_action_text(None, []) == "No actions configured"

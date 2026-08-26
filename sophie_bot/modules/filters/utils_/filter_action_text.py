@@ -13,6 +13,8 @@ def get_modern_action_text(action: ModernActionABC) -> str:
 
 def filter_action_text(_action: str | None, actions: list[str] | None) -> StfuElement | LazyProxy | str:
     if not actions:
+        if _action:
+            return _action
         return _("No actions configured")
 
     if len(actions) == 1:
