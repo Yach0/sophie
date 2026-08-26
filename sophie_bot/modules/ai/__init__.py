@@ -13,8 +13,6 @@ from sophie_bot.modules.ai.handlers.aimoderator import AIModeratorCategoryToggle
 from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
     AutoTranslateLanguageHandler,
-    AutoTranslateRawCodeHandler,
-    AutoTranslateRawHandler,
 )
 from sophie_bot.modules.ai.handlers.feature_setting import AIChatSummariesSetting, AINoteTitlesSetting
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
@@ -102,8 +100,6 @@ module_manifest = ModuleManifest(
         AIModeratorCategoryToggle,
         AIAutotrans,
         AutoTranslateLanguageHandler,
-        AutoTranslateRawHandler,
-        AutoTranslateRawCodeHandler,
         AIChatSummariesSetting,
         AINoteTitlesSetting,
         AIFilterAddHandler,
