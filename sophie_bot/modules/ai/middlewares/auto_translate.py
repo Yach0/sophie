@@ -62,7 +62,13 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
                 log.debug("AiAutoTranslateMiddleware: Voice message - Translating anyway!")
                 await AiTranslate(event, **data)
 
-            if should_auto_translate_text(text_to_detect, lang_code_to_language(i18n.current_locale_iso_639_1)):
+            excluded_languages = {
+                lang_code_to_language(language_code)
+                for language_code in await AIAutotranslateModel.get_excluded_languages(chat_db.iid)
+            }
+            if should_auto_translate_text(
+                text_to_detect, lang_code_to_language(i18n.current_locale_iso_639_1), excluded_languages
+            ):
                 log.debug("AiAutoTranslateMiddleware: Detected another language, translating!")
                 await AiTranslate(event, **data)
 

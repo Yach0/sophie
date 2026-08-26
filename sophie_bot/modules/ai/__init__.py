@@ -12,6 +12,7 @@ from sophie_bot.modules.ai.handlers.aimode import AIModeSelectCallback, AIModeSe
 from sophie_bot.modules.ai.handlers.aimoderator import AIModeratorCategoryToggle, AIModeratorSetting
 from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
+    AutoTranslateLanguageHandler,
 )
 from sophie_bot.modules.ai.handlers.feature_setting import AIChatSummariesSetting, AINoteTitlesSetting
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
@@ -98,6 +99,7 @@ module_manifest = ModuleManifest(
         AIModeratorSetting,
         AIModeratorCategoryToggle,
         AIAutotrans,
+        AutoTranslateLanguageHandler,
         AIChatSummariesSetting,
         AINoteTitlesSetting,
         AIFilterAddHandler,
