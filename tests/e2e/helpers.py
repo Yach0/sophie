@@ -91,6 +91,7 @@ _ADMIN_RIGHTS = (
     "can_invite_users",
     "can_post_stories",
     "can_edit_stories",
+    "can_send_welcome_messages",
     "can_delete_stories",
     "can_pin_messages",
     "can_manage_topics",
