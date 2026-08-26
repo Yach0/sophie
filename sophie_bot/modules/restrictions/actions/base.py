@@ -76,7 +76,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
 
     action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
-    auto_banned_text: ClassVar[str | LazyProxy]
+    auto_banned_text: ClassVar[str]
     settings_key: ClassVar[str]
     settings_title: ClassVar[LazyProxy]
 
@@ -135,7 +135,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
         doc = Doc(
             Title(_("Filter action")),
             Template(
-                _(str(self.auto_banned_text)),
+                _(self.auto_banned_text),
                 user=UserLink(message.from_user.id, message.from_user.first_name),
             ),
         )

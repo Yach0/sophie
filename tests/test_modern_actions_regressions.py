@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from babel.messages.extract import extract_from_file
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.filters.api.utils import build_filter_action_catalog
@@ -14,7 +16,11 @@ from sophie_bot.modules.filters.utils_.handle_action import (
 )
 from sophie_bot.modules.notes.utils import send as send_module
 from sophie_bot.modules.purges.magic_handlers.modern_filter import DelMsgModern
+from sophie_bot.modules.restrictions.actions import ban as ban_action_module
+from sophie_bot.modules.restrictions.actions import mute as mute_action_module
+from sophie_bot.modules.restrictions.actions.ban import BanActionDataModel, BanModernAction
 from sophie_bot.modules.restrictions.actions.kick import KickModernAction
+from sophie_bot.modules.restrictions.actions.mute import MuteActionDataModel, MuteModernAction
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
 from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
@@ -49,6 +55,64 @@ def test_build_filter_action_catalog_handles_dataless_actions() -> None:
 
     assert {item.name for item in catalog} == {"send_rules", "kick_user", "delmsg"}
     assert all(item.data_schema is None for item in catalog)
+
+
+@pytest.mark.parametrize(
+    ("action", "action_data", "expected_text"),
+    [
+        (
+            BanModernAction(),
+            BanActionDataModel(ban_duration=None),
+            "was automatically banned based on a filter action",
+        ),
+        (
+            MuteModernAction(),
+            MuteActionDataModel(mute_duration=None),
+            "was automatically muted based on a filter action",
+        ),
+    ],
+    ids=("ban", "mute"),
+)
+@pytest.mark.asyncio
+async def test_restriction_filter_action_translates_plain_message_id(
+    action: BanModernAction | MuteModernAction,
+    action_data: BanActionDataModel | MuteActionDataModel,
+    expected_text: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    restriction_func = AsyncMock(return_value=True)
+    monkeypatch.setattr(action, "restriction_func", restriction_func)
+
+    result = await action.handle(
+        _make_message(),
+        {"i18n": SimpleNamespace(current_locale="en_US")},
+        action_data,
+    )
+
+    assert isinstance(action.auto_banned_text, str)
+    assert result is not None
+    result_html = result.to_html()
+    assert 'tg://user?id=777">Vasya</a>' in result_html
+    assert expected_text in result_html
+    restriction_func.assert_awaited_once_with(-100123, 777, until_date=None)
+
+
+@pytest.mark.parametrize(
+    ("module_file", "message_id"),
+    [
+        (ban_action_module.__file__, BanModernAction.auto_banned_text),
+        (mute_action_module.__file__, MuteModernAction.auto_banned_text),
+    ],
+    ids=("ban", "mute"),
+)
+def test_restriction_filter_action_message_id_is_extractable(module_file: str, message_id: str) -> None:
+    extracted_message_ids = {
+        messages
+        for _line_number, messages, _comments, _context in extract_from_file("python", Path(module_file))
+        if isinstance(messages, str)
+    }
+
+    assert message_id in extracted_message_ids
 
 
 @pytest.mark.asyncio

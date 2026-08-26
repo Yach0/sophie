@@ -117,6 +117,14 @@ def gettext(*args: Any, **kwargs: Any) -> str:
     return get_i18n().gettext(*args, **kwargs)
 
 
+def gettext_noop(message: str) -> str:
+    """Mark a message for extraction without translating it eagerly."""
+    return message
+
+
+N_ = gettext_noop
+
+
 class LazyProxy(BabelLazyProxy):
     # `abc.ABCMeta` checks every class attribute for the `__isabstractmethod__` marker.
     # `babel.support.LazyProxy` resolves missing attributes via `__getattr__`, which would
