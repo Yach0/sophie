@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Final
 
 from sophie_bot.modules.ai.utils.ai_clients import get_openai_client
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_openai_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
@@ -89,7 +90,10 @@ class OpenAIModerationProvider:
             return {}
 
         client = await get_openai_client()
-        response = await client.moderations.create(model=OPENAI_MODERATION_MODEL, input=inputs)
+        response = await run_ai_request_with_retries(
+            lambda: client.moderations.create(model=OPENAI_MODERATION_MODEL, input=inputs),
+            AIErrorContext(operation="moderation", model_name=OPENAI_MODERATION_MODEL),
+        )
         if not response.results:
             return {}
 
