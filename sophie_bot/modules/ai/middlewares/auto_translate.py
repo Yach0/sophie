@@ -9,7 +9,7 @@ from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.handlers.translate import AiTranslate
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.detect_lang import should_auto_translate_text
-from sophie_bot.shared.lang_detect import lang_code_to_language
+from sophie_bot.shared.lang_detect import detect_languages, lang_code_to_language
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import I18nNew
 from sophie_bot.utils.logger import log
@@ -62,7 +62,18 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
                 log.debug("AiAutoTranslateMiddleware: Voice message - Translating anyway!")
                 await AiTranslate(event, **data)
 
-            if should_auto_translate_text(text_to_detect, lang_code_to_language(i18n.current_locale_iso_639_1)):
+            excluded_languages = {
+                lang_code_to_language(language_code)
+                for language_code in await AIAutotranslateModel.get_excluded_languages(chat_db.iid)
+            }
+            detected_languages = detect_languages(text_to_detect)
+            if detected_languages:
+                await AIAutotranslateModel.record_recent_language(
+                    chat_db, detected_languages[0].language.iso_code_639_1.name.lower()
+                )
+            if should_auto_translate_text(
+                text_to_detect, lang_code_to_language(i18n.current_locale_iso_639_1), excluded_languages
+            ):
                 log.debug("AiAutoTranslateMiddleware: Detected another language, translating!")
                 await AiTranslate(event, **data)
 
