@@ -27,7 +27,7 @@ class FilterSaveHandler(SophieCallbackQueryHandler):
             GroupOrConnectedFilter(),
         )
 
-    async def save_filter(self, filter_setup: FilterInSetupType):
+    async def save_filter(self, filter_setup: FilterInSetupType) -> None:
         # Update instead of save
         if filter_setup.oid:
             filter_model = await FiltersModel.get_by_id(ObjectId(filter_setup.oid))
@@ -49,6 +49,9 @@ class FilterSaveHandler(SophieCallbackQueryHandler):
             filter_item: FilterInSetupType = await FilterInSetupType.get_filter(self.state)
         except ValueError:
             return await self.event.answer(_("Continuing setup is only possible by the same user who started it."))
+
+        if not filter_item.actions:
+            return await self.event.answer(_("No actions configured"))
 
         # Check
         if not await validate_filter_handler(self.event, filter_item.handler.keyword, self.connection, filter_item.oid):

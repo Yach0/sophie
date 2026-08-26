@@ -4,6 +4,7 @@ from stfu_tg.doc import Element as StfuElement
 from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
 
 
 def get_modern_action_text(action: ModernActionABC) -> str:
@@ -12,7 +13,7 @@ def get_modern_action_text(action: ModernActionABC) -> str:
 
 def filter_action_text(_action: str | None, actions: list[str] | None) -> StfuElement | LazyProxy | str:
     if not actions:
-        raise TypeError("No action provided for filter_action_text")
+        return _("No actions configured")
 
     if len(actions) == 1:
         return get_modern_action_text(ALL_MODERN_ACTIONS[actions[0]])

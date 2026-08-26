@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_text
 
 
@@ -22,6 +20,5 @@ def test_filter_action_text_renders_single_modern_action() -> None:
     assert str(rendered) == "X Example"
 
 
-def test_filter_action_text_requires_actions() -> None:
-    with pytest.raises(TypeError, match="No action provided"):
-        filter_action_text(None, None)
+def test_filter_action_text_describes_legacy_filter_without_actions() -> None:
+    assert filter_action_text(None, []) == "No actions configured"
