@@ -27,3 +27,11 @@ def test_should_auto_translate_text_ignores_english_false_positives(text: str) -
 )
 def test_should_auto_translate_text_allows_confident_foreign_text(text: str) -> None:
     assert should_auto_translate_text(text.lower(), lang_code_to_language("en"))
+
+
+def test_should_auto_translate_text_ignores_excluded_source_language() -> None:
+    assert not should_auto_translate_text(
+        "guten morgen wie geht es dir",
+        lang_code_to_language("en"),
+        {lang_code_to_language("de")},
+    )

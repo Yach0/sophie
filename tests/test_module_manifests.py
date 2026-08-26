@@ -13,7 +13,7 @@ from sophie_bot.modules import ModuleManifest, get_module_manifest
     [
         ("disabling", 6),
         ("notes", 13),
-        ("ai", 27),
+        ("ai", 28),
         ("help", 7),
         ("privacy", 2),
         ("locks", 8),

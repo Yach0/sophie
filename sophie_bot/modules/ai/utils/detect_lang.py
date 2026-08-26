@@ -20,7 +20,9 @@ def _normalize_auto_translate_detection_text(text: str) -> str:
     return " ".join(_URL_RE.sub(" ", text).split())
 
 
-def should_auto_translate_text(text: str, target_language: Language) -> bool:
+def should_auto_translate_text(
+    text: str, target_language: Language, excluded_languages: set[Language] | None = None
+) -> bool:
     """Return whether auto-translate should send text to the AI translator.
 
     Auto translation should be conservative because a false positive is noisy and also
@@ -40,6 +42,8 @@ def should_auto_translate_text(text: str, target_language: Language) -> bool:
         return False
 
     top_confidence = confidences[0]
+    if excluded_languages and top_confidence.language in excluded_languages:
+        return False
     target_confidence = confidence_for_language(confidences, target_language)
     confidence_gap = top_confidence.value - target_confidence.value
 
