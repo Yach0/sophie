@@ -11,6 +11,7 @@ RECENT_LANGUAGES_LIMIT = 10
 
 class AIAutotranslateModel(Document):
     chat: Link[ChatModel]
+    enabled: bool = True
     excluded_languages: set[str] = Field(default_factory=set)
     recent_languages: list[str] = Field(default_factory=list)
 
@@ -19,16 +20,17 @@ class AIAutotranslateModel(Document):
 
     @staticmethod
     async def get_state(chat_id: PydanticObjectId) -> bool:
-        return bool(await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat_id))
+        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat_id)
+        return getattr(model, "enabled", True) if model else False
 
     @staticmethod
     async def set_state(chat: ChatModel, new_state: bool):
         model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.iid)
-        if model and not new_state:
-            return await model.delete()
-        if model:
-            return model
-        return await AIAutotranslateModel(chat=chat).save()
+        if not model:
+            model = AIAutotranslateModel(chat=chat, enabled=new_state)
+        else:
+            model.enabled = new_state
+        return await model.save()
 
     @staticmethod
     async def get_excluded_languages(chat_id: PydanticObjectId) -> set[str]:
