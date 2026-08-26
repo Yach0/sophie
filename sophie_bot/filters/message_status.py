@@ -9,9 +9,7 @@ class NoArgs(Filter):
         self.no_args = no_args
 
     async def __call__(self, message: types.Message):
-        text = message.text or ""
-        if len(text.split(" ")) <= 1:
-            return True
+        return len((message.text or "").split(" ")) <= 1
 
 
 class HasArgs(Filter):
@@ -21,6 +19,4 @@ class HasArgs(Filter):
         self.has_args = has_args
 
     async def __call__(self, message: types.Message):
-        text = message.text or ""
-        if len(text.split(" ")) > 1:
-            return True
+        return len((message.text or "").split(" ")) > 1
