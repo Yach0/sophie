@@ -42,7 +42,7 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
         return False
 
     capabilities = await resolve_chat_capabilities(chat_db)
-    return capabilities.moderator
+    return capabilities.ai_enabled
 
 
 async def generate_restriction_reason(

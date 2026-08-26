@@ -192,8 +192,8 @@ async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_versio
     assert ent["chatbot"].model == "ent/chat"
     # No entertainment filters model and no fallback → the cell is present but empty.
     assert ent["filters"].model is None
-    # A purpose the mode cannot use is absent entirely (the panel renders it as "—").
-    assert "moderation_reason" not in ent
+    # AI reasons are available in every enabled group mode, though no model was configured here.
+    assert ent["moderation_reason"].model is None
     assert "sophie_inspect" not in ent
     assert resolution.per_mode["support"]["summary"].model == "support/summary"
     # Only the help mode may inspect Sophie's source.

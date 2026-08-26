@@ -993,3 +993,36 @@ def test_expand_wildcard_roles_is_idempotent() -> None:
     assert {(role["mode"], role["purpose"]) for role in once} == {(role["mode"], role["purpose"]) for role in twice}
     # Only the help mode may inspect, so the single global role lands on exactly one mode.
     assert once == [{"mode": "sophie_help", "purpose": "sophie_inspect"}]
+
+
+def _enable_entertainment_reasons_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260826_102429_enable_ai_reasons_in_entertainment_mode")
+
+
+def test_enable_entertainment_reasons_copies_role_settings_and_is_idempotent() -> None:
+    add_role = _enable_entertainment_reasons_migration()._add_entertainment_reason_role
+    original = [
+        {
+            "mode": "support",
+            "purpose": "moderation_reason",
+            "service_tier": "flex",
+            "reasoning_effort": "low",
+            "priority": 2,
+        }
+    ]
+
+    migrated = add_role(original)
+
+    assert migrated[-1] == {**original[0], "mode": "entertainment"}
+    assert add_role(migrated) == migrated
+
+
+def test_enable_entertainment_reasons_rollback_removes_only_target_role() -> None:
+    migration = _enable_entertainment_reasons_migration()
+    original = [
+        {"mode": "support", "purpose": "moderation_reason"},
+        {"mode": "entertainment", "purpose": "moderation_reason"},
+        {"mode": "entertainment", "purpose": "summary"},
+    ]
+
+    assert migration._remove_entertainment_reason_role(original) == [original[0], original[2]]
