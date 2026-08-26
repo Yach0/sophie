@@ -11,17 +11,17 @@ _DEFAULT_PROACTIVE_BATCH_SIZE: Final[int] = 30
 _DEFAULT_PROACTIVE_WINDOW_SECONDS: Final[int] = 180
 _DEFAULT_PROACTIVE_MAX_ANSWERS: Final[int] = 1
 _DEFAULT_PROACTIVE_MAX_REACTIONS: Final[int] = 1
-_DEFAULT_PROACTIVE_MIN_MESSAGES: Final[int] = 30
+_DEFAULT_PROACTIVE_MIN_MESSAGES: Final[int] = 12
 _MAX_PROACTIVE_DECISION_ANSWERS: Final[int] = 1
 _MAX_PROACTIVE_DECISION_REACTIONS: Final[int] = 2
 _DEFAULT_PROACTIVE_PROMPT: Final[str] = (
-    "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited "
-    "into the conversation, someone asks an open question that Sophie can help with, or there is a very strong "
-    "natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, "
-    "moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre "
-    "answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly "
-    "needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in "
-    "every topic."
+    "Use balanced judgment about whether Sophie should join the conversation. Reply when there is a natural, useful, "
+    "or funny opportunity, including a clear invitation or an open question Sophie can help with. Do not force a "
+    "reply: skip generic chatter, arguments, moderation/admin topics, stale topics, or messages that have already "
+    "moved on. Never duplicate an existing AI reply, bypass safety requirements, or answer unsafe requests. Prefer "
+    "no action when a reply would be awkward or mediocre. If answering, be brief: 1-2 short sentences, casual, no "
+    "long explanations or lists unless explicitly needed. React only when the reaction is obviously appropriate and "
+    "lightweight, and never try to participate in every topic."
 )
 
 _DEFAULT_RESEARCH_MAX_ROUNDS: Final[int] = 3

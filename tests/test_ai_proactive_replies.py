@@ -55,11 +55,15 @@ def test_normalize_reaction_emoji_falls_back_for_invalid_reactions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_settings_clamps_decision_action_caps(db_init: object) -> None:
+async def test_get_settings_uses_more_frequent_safe_defaults(db_init: object) -> None:
     settings = await _get_settings(-1001234567891)
 
+    assert settings.min_messages == 12
     assert settings.max_answers == 1
     assert settings.max_reactions == 1
+    assert "Use balanced judgment" in settings.prompt
+    assert "Never duplicate" in settings.prompt
+    assert "unsafe requests" in settings.prompt
 
 
 def test_limit_actions_respects_answer_and_reaction_caps() -> None:

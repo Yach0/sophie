@@ -362,14 +362,14 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_proactive_replies": _feature(False),
     "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_proactive_replies_prompt": _feature(
-        "Be very conservative. Most batches should result in no action. Only answer if Sophie was clearly invited into the conversation, someone asks an open question that Sophie can help with, or there is a very strong natural opportunity for a short useful/funny reply. Do not answer generic chatter, small talk, arguments, moderation/admin topics, old topics, or messages that already moved on. Prefer no action over a mediocre answer. If answering, be brief: 1-2 short sentences, casual, no long explanations, no lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight. Never try to participate in every topic."
+        "Use balanced judgment about whether Sophie should join the conversation. Reply when there is a natural, useful, or funny opportunity, including a clear invitation or an open question Sophie can help with. Do not force a reply: skip generic chatter, arguments, moderation/admin topics, stale topics, or messages that have already moved on. Never duplicate an existing AI reply, bypass safety requirements, or answer unsafe requests. Prefer no action when a reply would be awkward or mediocre. If answering, be brief: 1-2 short sentences, casual, no long explanations or lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight, and never try to participate in every topic."
     ),
     "ai_proactive_replies_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_proactive_replies_batch_size": _feature(30),
     "ai_proactive_replies_window_seconds": _feature(180),
     "ai_proactive_replies_max_answers": _feature(1),
     "ai_proactive_replies_max_reactions": _feature(1),
-    "ai_proactive_replies_min_messages": _feature(30),
+    "ai_proactive_replies_min_messages": _feature(12),
     "ai_research": _feature(False),
     "ai_research_model": _feature("", _AI_MODEL_FEATURE),
     # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
