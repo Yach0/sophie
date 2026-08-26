@@ -1,15 +1,14 @@
 from typing import Any
 
 from aiogram import Router
-from aiogram.types import CallbackQuery, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from babel.messages import Message
 
 from sophie_bot.config import CONFIG
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.utils import flags
-from sophie_bot.utils.handlers import SophieBaseHandler
+from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -17,7 +16,7 @@ from ..callbacks import PrivacyMenuCallback
 
 
 @flags.help(description=l_("Shows the privacy policy of the bot"))
-class PrivacyMenu(SophieBaseHandler[Message | CallbackQuery]):
+class PrivacyMenu(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router) -> None:
         router.message.register(cls, CMDFilter("privacy"), ChatTypeFilter("private"))
@@ -37,7 +36,4 @@ class PrivacyMenu(SophieBaseHandler[Message | CallbackQuery]):
         if callback_data and callback_data.back_to_start:
             buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start"))
 
-        if isinstance(self.event, CallbackQuery):
-            await self.event.message.edit_text(text=text, reply_markup=buttons.as_markup())  # type: ignore
-        else:
-            await self.event.reply(text, reply_markup=buttons.as_markup())  # type: ignore
+        await self.answer(text, reply_markup=buttons.as_markup())
