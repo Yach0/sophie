@@ -1026,3 +1026,31 @@ def test_enable_entertainment_reasons_rollback_removes_only_target_role() -> Non
     ]
 
     assert migration._remove_entertainment_reason_role(original) == [original[0], original[2]]
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
+    migration = importlib.import_module(
+        "sophie_bot.db.migrations.20260827_205248_backfill_chat_admin_welcome_messages"
+    )
+    backfill_chat_admin_welcome_messages = migration.backfill_chat_admin_welcome_messages
+    from sophie_bot.db.models.chat_admin import ChatAdminModel
+
+    collection = ChatAdminModel.get_pymongo_collection()
+    await collection.delete_many({})
+
+    # Insert legacy document lacking can_send_welcome_messages
+    await collection.insert_one({
+        "member": {
+            "status": "administrator",
+            "user": {"id": 123456, "is_bot": False, "first_name": "Admin"},
+            "can_be_edited": False,
+        }
+    })
+
+    # Forward backfills False
+    modified = await backfill_chat_admin_welcome_messages(collection)
+    assert modified == 1
+    doc = await collection.find_one({"member.status": "administrator"})
+    assert doc is not None
+    assert doc["member"]["can_send_welcome_messages"] is False
