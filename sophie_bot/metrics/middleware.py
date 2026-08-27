@@ -59,8 +59,7 @@ class MetricsMiddleware(BaseMiddleware):
         command_status = "ok"
 
         try:
-            result = await handler(event, data)
-            return result
+            return await handler(event, data)
 
         except Exception as e:
             command_status = "error"
