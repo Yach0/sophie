@@ -126,7 +126,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             doc += " "
             doc += msg
 
-        if not len(doc):
+        if not doc:
             return sent_message_ids
 
         async def send_message():
