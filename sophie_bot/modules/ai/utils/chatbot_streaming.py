@@ -234,11 +234,20 @@ class ChatbotMessageStreamer:
         except TelegramAPIError:
             if self.mode == StreamMode.RICH_EDIT:
                 return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
-            return await self.source_message.reply(
-                doc.to_html(),
-                disable_web_page_preview=True,
-                **reply_kwargs,
-            )
+            try:
+                return await self.source_message.reply(
+                    doc.to_html(),
+                    disable_web_page_preview=True,
+                    **reply_kwargs,
+                )
+            except TelegramAPIError:
+                return await self.source_message.bot.send_message(  # ty: ignore[unresolved-attribute]
+                    chat_id=self.source_message.chat.id,
+                    text=doc.to_html(),
+                    disable_web_page_preview=True,
+                    message_thread_id=self.source_message.message_thread_id,
+                    **reply_kwargs,
+                )
 
     # ── Private helpers ────────────────────────────────────────────────────────
 
