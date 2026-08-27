@@ -294,11 +294,11 @@ msgstr ""
 msgid "No commands in this module."
 msgstr ""
 
-#: sophie_bot/modules/ai/filters/ai_mode.py:63
+#: sophie_bot/modules/ai/filters/ai_mode.py:65
 msgid "The AI features are currently disabled for this chat."
 msgstr ""
 
-#: sophie_bot/modules/ai/filters/ai_mode.py:64
+#: sophie_bot/modules/ai/filters/ai_mode.py:66
 #, python-brace-format
 msgid "Please use \"{cmd}\" to pick an AI mode."
 msgstr ""
@@ -1004,19 +1004,19 @@ msgstr ""
 msgid "Research"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:65
+#: sophie_bot/modules/ai/utils/ai_errors.py:67
 msgid "The AI request failed. Please try again in a moment."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:249
+#: sophie_bot/modules/ai/utils/ai_errors.py:257
 msgid "🤖 AI request failed"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:260
+#: sophie_bot/modules/ai/utils/ai_errors.py:268
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:264
+#: sophie_bot/modules/ai/utils/ai_errors.py:272
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr ""
@@ -1992,7 +1992,7 @@ msgstr ""
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:56
 #: sophie_bot/modules/connections/handlers/connect_dm.py:113
-#: sophie_bot/modules/connections/handlers/connect_group.py:43
+#: sophie_bot/modules/connections/handlers/connect_group.py:46
 #: sophie_bot/modules/connections/handlers/start_connect.py:48
 msgid "You are not allowed to connect to this chat."
 msgstr ""
@@ -2009,20 +2009,28 @@ msgstr ""
 msgid "Connects to the current chat."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:53
+#: sophie_bot/modules/connections/handlers/connect_group.py:34
+msgid "Bots and anonymous admins cannot connect to chats. Please use your personal account."
+msgstr ""
+
+#: sophie_bot/modules/connections/handlers/connect_group.py:56
 msgid "You are connected! Check your DM with Sophie."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:55
+#: sophie_bot/modules/connections/handlers/connect_group.py:58
 msgid "Open DM"
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:61
+#: sophie_bot/modules/connections/handlers/connect_group.py:64
 msgid "You must start the bot in DM first to connect. Once you initialize connection with Sophie, you'll be connected."
 msgstr ""
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:67
+#: sophie_bot/modules/connections/handlers/connect_group.py:70
 msgid "Start Sophie"
+msgstr ""
+
+#: sophie_bot/modules/connections/handlers/connect_group.py:79
+msgid "Bots cannot receive private messages. Please use your personal account to connect."
 msgstr ""
 
 #: sophie_bot/modules/connections/handlers/disconnect.py:16
