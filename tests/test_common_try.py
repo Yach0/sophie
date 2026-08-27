@@ -12,6 +12,7 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
     MSG_TOO_LONG,
     NO_TEXT_IN_MSG_TO_EDIT,
     REPLIED_NOT_FOUND,
+    REPLY_MESSAGE_INVALID,
 )
 
 
@@ -41,6 +42,7 @@ async def test_common_try_returns_successful_result() -> None:
     "message",
     [
         REPLIED_NOT_FOUND,
+        REPLY_MESSAGE_INVALID,
         CAN_NOT_BE_DELETED,
         MSG_TO_DEL_NOT_FOUND,
         MSG_TEXT_EMPTY,
@@ -68,6 +70,27 @@ async def test_common_try_uses_reply_not_found_fallback() -> None:
         return fallback_result()
 
     result = await common_try(raises_bad_request(REPLIED_NOT_FOUND), reply_not_found=make_fallback)  # type: ignore[arg-type]
+
+    assert result == "fallback"
+    assert fallback_called is True
+
+
+@pytest.mark.asyncio
+async def test_common_try_uses_reply_not_found_fallback_for_reply_message_invalid() -> None:
+    fallback_called = False
+
+    async def fallback_result() -> str:
+        nonlocal fallback_called
+        fallback_called = True
+        return "fallback"
+
+    def make_fallback() -> object:
+        return fallback_result()
+
+    result = await common_try(
+        raises_bad_request(f"Bad Request: {REPLY_MESSAGE_INVALID}"),
+        reply_not_found=make_fallback,
+    )  # type: ignore[arg-type]
 
     assert result == "fallback"
     assert fallback_called is True
