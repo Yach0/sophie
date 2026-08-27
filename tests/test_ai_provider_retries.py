@@ -74,3 +74,22 @@ def test_ai_provider_exceptions_cover_both_http_stacks(http: Any) -> None:
         raise http.ConnectError("connection refused")
     except AI_PROVIDER_EXCEPTIONS:
         pass
+
+
+def test_mistral_sdk_error_status_code_retryability() -> None:
+    from mistralai.client.errors import SDKError
+
+    request = httpx.Request("POST", "https://api.mistral.ai/v1/chat/moderations")
+    response_503 = httpx.Response(503, request=request, text="upstream connect error")
+    error_503 = SDKError("API error occurred", response_503)
+
+    response_400 = httpx.Response(400, request=request, text="bad request")
+    error_400 = SDKError("API error occurred", response_400)
+
+    assert is_retryable_ai_provider_error(error_503)
+    assert not is_retryable_ai_provider_error(error_400)
+
+    try:
+        raise error_503
+    except AI_PROVIDER_EXCEPTIONS:
+        pass
