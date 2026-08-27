@@ -7,6 +7,7 @@ from typing import Any, Final, Literal, cast
 import httpx
 import httpx2
 import sentry_sdk
+from mistralai.client.errors import MistralError
 from openai import OpenAIError
 from pydantic_ai.exceptions import (
     FallbackExceptionGroup,
@@ -42,6 +43,7 @@ AI_PROVIDER_EXCEPTIONS: Final[tuple[type[Exception], ...]] = (
     UsageLimitExceeded,
     *_HTTP_ERRORS,
     OpenAIError,
+    MistralError,
     TimeoutError,
 )
 AI_REQUEST_RETRY_ATTEMPTS: Final = 5
@@ -101,6 +103,12 @@ def _get_status_code(error: BaseException) -> int | None:
         return error.status_code
     if isinstance(error, _HTTP_STATUS_ERRORS):
         return error.response.status_code
+
+    raw_response = getattr(error, "raw_response", None)
+    if raw_response is not None:
+        status_code = getattr(raw_response, "status_code", None)
+        if isinstance(status_code, int):
+            return status_code
 
     status_code = getattr(error, "status_code", None)
     if isinstance(status_code, int):
