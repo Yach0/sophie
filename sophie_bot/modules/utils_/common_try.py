@@ -43,6 +43,7 @@ _IGNORED_BAD_REQUEST_ERRORS = (
     CHAT_WRITE_FORBIDDEN,
 )
 
+
 async def common_try(
     to_try: COROUTINE_TYPE,
     reply_not_found: CALLBACK_COROUTINE_TYPE | None = None,
