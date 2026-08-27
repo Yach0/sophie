@@ -50,6 +50,25 @@ async def test_rich_sender_uses_rich_payload() -> None:
 
 
 @pytest.mark.asyncio
+async def test_rich_sender_uses_regular_send_for_reply_keyboard() -> None:
+    send_rich_message = AsyncMock()
+    reply = AsyncMock(return_value=SimpleNamespace())
+    message = SimpleNamespace(
+        chat=SimpleNamespace(id=1),
+        message_id=2,
+        message_thread_id=None,
+        bot=SimpleNamespace(send_rich_message=send_rich_message),
+        reply=reply,
+    )
+    reply_markup = SimpleNamespace()
+
+    await ai_send.send_ai_rich_message(message, Doc("answer"), reply_markup=reply_markup)
+
+    reply.assert_awaited_once_with("answer", disable_web_page_preview=True, reply_markup=reply_markup)
+    send_rich_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_rich_sender_propagates_telegram_errors() -> None:
     error = _RichFailure()
     message = SimpleNamespace(

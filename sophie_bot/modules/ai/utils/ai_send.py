@@ -16,6 +16,11 @@ async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) 
     Everything the AI sends goes through here so its header renders as a table and users can reply
     to it, which is how a reply continues the conversation.
     """
+    # Bot API returns reply keyboards as ``rich_message.blocks`` entries, but aiogram 3.31
+    # cannot validate that response shape. Send the keyboard-bearing reply through the regular API.
+    if reply_kwargs.get("reply_markup") is not None:
+        return await message.reply(doc.to_html(), disable_web_page_preview=True, **reply_kwargs)
+
     try:
         return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
             chat_id=message.chat.id,
