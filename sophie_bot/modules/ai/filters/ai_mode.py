@@ -9,6 +9,7 @@ from stfu_tg import Doc, Italic, Template
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, resolve_chat_capabilities
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -57,11 +58,13 @@ class AICapabilityFilter(Filter):
             return True
 
         if not capabilities.ai_enabled and not self.quiet:
-            await message.reply(
-                str(
-                    Doc(
-                        _("The AI features are currently disabled for this chat."),
-                        Template(_('Please use "{cmd}" to pick an AI mode.'), cmd=Italic("/aimode")),
+            await common_try(
+                message.reply(
+                    str(
+                        Doc(
+                            _("The AI features are currently disabled for this chat."),
+                            Template(_('Please use "{cmd}" to pick an AI mode.'), cmd=Italic("/aimode")),
+                        )
                     )
                 )
             )
