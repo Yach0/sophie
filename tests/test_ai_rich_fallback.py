@@ -99,3 +99,22 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
     await proactive_replies._answer_message(1, chat, target)
 
     rich_sender.assert_awaited_once_with(1, doc, reply_to_message_id=7, message_thread_id=None)
+
+
+@pytest.mark.asyncio
+async def test_send_ai_rich_message_to_chat_normalizes_reply_to_message_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    send_rich_mock = AsyncMock(return_value=SimpleNamespace(message_id=42))
+    monkeypatch.setattr(ai_send.bot, "send_rich_message", send_rich_mock)
+
+    await ai_send.send_ai_rich_message_to_chat(
+        chat_id=12345,
+        doc=Doc("Hello rich"),
+        reply_to_message_id=999,
+        message_thread_id=10,
+    )
+
+    send_rich_mock.assert_awaited_once()
+    kwargs = send_rich_mock.call_args.kwargs
+    assert kwargs["chat_id"] == 12345
+    assert kwargs["message_thread_id"] == 10
+    assert kwargs["reply_parameters"].message_id == 999
