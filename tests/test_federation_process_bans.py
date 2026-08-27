@@ -368,3 +368,22 @@ def test_build_task_failed_doc_includes_error() -> None:
 
 def test_build_task_failed_doc_without_error() -> None:
     assert "retry later" in build_task_failed_doc().to_html()
+
+
+@pytest.mark.asyncio
+async def test_reply_edit_flood_control_does_not_fail_ban_task(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from aiogram.exceptions import TelegramRetryAfter
+
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2)
+    edit_message.side_effect = TelegramRetryAfter(
+        method=None, message="Too Many Requests: retry after 36", retry_after=36  # type: ignore[arg-type]
+    )
+
+    await ProcessFederationBans().handle()
+
+    reloaded = await FederationTask.get(task.id)
+    assert reloaded is not None
+    assert reloaded.status == TaskStatus.COMPLETED
+    assert reloaded.banned_count == 2

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from functools import partial
 
+from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.db.models import ChatModel
@@ -31,10 +32,25 @@ async def send_replacement(task: FederationTask, chat_id: int, text: str) -> Non
 
 async def _edit_or_resend_reply(task: FederationTask, text: str) -> None:
     if task.reply_chat_id and task.reply_message_id:
-        await common_try(
-            bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-            edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
-        )
+        try:
+            await common_try(
+                bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
+                edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+            )
+        except TelegramRetryAfter as err:
+            log.warning(
+                "Telegram flood control exceeded while editing federation reply",
+                retry_after=err.retry_after,
+                task_id=str(task.id),
+                chat_id=task.reply_chat_id,
+            )
+        except TelegramAPIError as err:
+            log.warning(
+                "Telegram API error while editing federation reply",
+                error=str(err),
+                task_id=str(task.id),
+                chat_id=task.reply_chat_id,
+            )
 
 
 def schedule_silent_reply_deletion(task: FederationTask) -> None:
