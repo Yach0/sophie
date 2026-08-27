@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiogram.exceptions import TelegramForbiddenError
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -29,7 +29,10 @@ class ConnectGroupCmd(SophieMessageHandler):
         return (CMDFilter("connect"), ChatTypeFilter("group", "supergroup"))
 
     async def handle(self):
-        if not self.event.from_user:
+        if not self.event.from_user or self.event.from_user.is_bot:
+            await self.event.reply(
+                _("Bots and anonymous admins cannot connect to chats. Please use your personal account.")
+            )
             return
         user_id = self.event.from_user.id
         chat_id = self.event.chat.id
@@ -70,3 +73,10 @@ class ConnectGroupCmd(SophieMessageHandler):
                     ]
                 ),
             )
+        except TelegramBadRequest as err:
+            if "USER_BOT_TO_BOT_DISABLED" in err.message:
+                await self.event.reply(
+                    _("Bots cannot receive private messages. Please use your personal account to connect.")
+                )
+                return
+            raise

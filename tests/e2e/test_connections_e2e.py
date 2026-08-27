@@ -114,3 +114,15 @@ async def test_non_admin_cannot_connect_when_disabled(test_client: TestClient) -
 
     assert any("not allowed" in (request.text or "").lower() for request in requests)
     assert await _connected_chat_tid(stranger.user.id) is None
+
+
+@pytest.mark.asyncio
+async def test_connect_in_group_from_bot_is_rejected(test_client: TestClient) -> None:
+    from aiogram.types import User
+
+    _admin, group, _model = await _connectable_group(test_client, username="botgroup", title="Bot Connect Group")
+    bot_user = User(id=next_user_id(), is_bot=True, first_name="OtherBot", username="other_bot")
+
+    requests = await test_client.send_command(command="connect", chat=group, from_user=bot_user)
+
+    assert any("Bots and anonymous admins cannot connect" in (request.text or "") for request in requests)
