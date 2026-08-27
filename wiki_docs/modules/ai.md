@@ -36,7 +36,7 @@ icon: ✨
 | --- | --- | --- | --- |
 | `/aimode` | - | Select what the AI does in this chat |  |
 | `/aimoderator` | - | Tune what the AI moderator detects in this chat |  |
-| `/aiautotranslate` `/autotranslate` | `<?New status>` `<?Language code>` | Controls AI Auto translator |  |
+| `/aiautotranslate` `/autotranslate` | `<?New status>` | Controls AI Auto translator |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries |  |
 | `/ai_note_titles` | `<?New status>` | Controls AI note title generation |  |
 | `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |

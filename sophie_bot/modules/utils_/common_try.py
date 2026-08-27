@@ -31,7 +31,17 @@ IGNORED_EXCEPTIONS = (TelegramNotFound, TelegramForbiddenError, TelegramMigrateT
 
 
 _REPLY_NOT_FOUND_ERRORS = (REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID)
-
+_IGNORED_BAD_REQUEST_ERRORS = (
+    *_REPLY_NOT_FOUND_ERRORS,
+    CAN_NOT_BE_DELETED,
+    MSG_TO_DEL_NOT_FOUND,
+    MSG_TEXT_EMPTY,
+    MSG_NOT_MODIFIED,
+    NO_TEXT_IN_MSG_TO_EDIT,
+    MSG_TOO_LONG,
+    INVALID_BUTTON_URL,
+    CHAT_WRITE_FORBIDDEN,
+)
 
 async def common_try(
     to_try: COROUTINE_TYPE,
@@ -51,32 +61,8 @@ async def common_try(
         if edit_not_found and MSG_TO_EDIT_NOT_FOUND in err.message:
             log.debug("common_try: Message to edit not found, trying to execute edit_not_found")
             return await common_try(to_try=edit_not_found())
-        if any(err_text in err.message for err_text in _REPLY_NOT_FOUND_ERRORS):
-            log.debug("common_try: Reply not found, ignoring")
-            return None
-        if CAN_NOT_BE_DELETED in err.message:
-            log.debug("common_try: Message can't be deleted, ignoring")
-            return None
-        if MSG_TO_DEL_NOT_FOUND in err.message:
-            log.debug("common_try: Message to delete not found, ignoring")
-            return None
-        if MSG_TEXT_EMPTY in err.message:
-            log.debug("common_try: Message text is empty, ignoring")
-            return None
-        if MSG_NOT_MODIFIED in err.message:
-            log.debug("common_try: Message is not modified, ignoring")
-            return None
-        if NO_TEXT_IN_MSG_TO_EDIT in err.message:
-            log.debug("common_try: No text in message to edit, ignoring")
-            return None
-        if MSG_TOO_LONG in err.message:
-            log.warning("common_try: Message is too long, ignoring")
-            return None
-        if INVALID_BUTTON_URL in err.message:
-            log.warning("common_try: Invalid inline keyboard button URL, ignoring", error=str(err))
-            return None
-        if CHAT_WRITE_FORBIDDEN in err.message:
-            log.debug("common_try: Chat write forbidden, ignoring")
+        if any(err_text in err.message for err_text in _IGNORED_BAD_REQUEST_ERRORS):
+            log.debug("common_try: Ignored expected bad request", error=str(err))
             return None
         log.warning("common_try: Unknown TelegramBadRequest exception, re-raising", error=str(err))
         raise
