@@ -15,7 +15,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules import LoadedModuleRegistry, load_modules
 from sophie_bot.runtime import BotModeRuntime, RestModeRuntime, SchedulerModeRuntime
 from sophie_bot.services.bot import get_bot_runtime
-from sophie_bot.services.db import init_db
+from sophie_bot.services.db import init_db, repair_legacy_database_data
 from sophie_bot.services.migrations import run_migrations
 from sophie_bot.utils.logger import log
 
@@ -23,6 +23,7 @@ from sophie_bot.utils.logger import log
 async def init_database() -> None:
     """Initialize database connection, run migrations, then sync indexes."""
     await init_db(skip_indexes=True)
+    await repair_legacy_database_data()
     await run_migrations()
 
     # After migrations are done, sync indexes

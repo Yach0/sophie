@@ -18,28 +18,18 @@ Impact:
 
 from __future__ import annotations
 
-from typing import Any
-
 from beanie import free_fall_migration
+from pymongo.asynchronous.client_session import AsyncClientSession
 
 from sophie_bot.db.models.chat_admin import ChatAdminModel
-
-
-async def backfill_chat_admin_welcome_messages(chat_admin: Any, session: Any = None) -> int:
-    """Backfill missing can_send_welcome_messages field on administrator members."""
-    result = await chat_admin.update_many(
-        {"member.status": "administrator", "member.can_send_welcome_messages": {"$exists": False}},
-        {"$set": {"member.can_send_welcome_messages": False}},
-        session=session,
-    )
-    return result.modified_count
+from sophie_bot.services.db import backfill_chat_admin_welcome_messages
 
 
 class Forward:
     """Backfill missing can_send_welcome_messages field on administrator members."""
 
     @free_fall_migration(document_models=[ChatAdminModel])
-    async def backfill(self, session) -> None:
+    async def backfill(self, session: AsyncClientSession | None) -> None:
         await backfill_chat_admin_welcome_messages(ChatAdminModel.get_pymongo_collection(), session=session)
 
 
@@ -47,5 +37,5 @@ class Backward:
     """No rollback: newly saved documents may legitimately have can_send_welcome_messages=False."""
 
     @free_fall_migration(document_models=[ChatAdminModel])
-    async def noop(self, session) -> None:
+    async def noop(self, session: AsyncClientSession | None) -> None:
         del session
