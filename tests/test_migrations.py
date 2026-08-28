@@ -7,7 +7,6 @@ from types import ModuleType
 
 import pytest
 from bson import DBRef, ObjectId
-from pydantic import ValidationError
 
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
@@ -1068,8 +1067,9 @@ async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
         )
     ).inserted_id
 
-    with pytest.raises(ValidationError, match="can_send_welcome_messages"):
-        await ChatAdminModel.get(legacy_id)
+    legacy_doc = await collection.find_one({"_id": legacy_id})
+    assert legacy_doc is not None
+    assert "can_send_welcome_messages" not in legacy_doc["member"]
 
     # Forward backfills False
     modified = await backfill_chat_admin_welcome_messages(collection)
@@ -1083,3 +1083,43 @@ async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
 
     # Startup can safely repeat the repair after the migration has already run.
     assert await backfill_chat_admin_welcome_messages(collection) == 0
+
+
+def _raw_chat_admin_welcome_messages_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20260828_105536_raw_backfill_chat_admin_welcome_messages")
+
+
+def test_raw_chat_admin_migration_is_discoverable_without_models() -> None:
+    migration = _raw_chat_admin_welcome_messages_migration()
+    migration_path = Path(migration.__file__ or "")
+
+    assert migration_path.name in {path.name for path in migration_path.parent.glob("[0-9]*.py")}
+    assert migration.Forward.backfill.document_models == []
+    assert migration.Backward.noop.document_models == []
+
+
+@pytest.mark.usefixtures("db_init")
+async def test_raw_chat_admin_migration_repairs_only_missing_field() -> None:
+    migration = _raw_chat_admin_welcome_messages_migration()
+    collection = ChatAdminModel.get_pymongo_collection()
+    await collection.delete_many({})
+
+    legacy_id = await collection.insert_one(
+        {
+            "member": {"status": "administrator"},
+            "marker": "legacy",
+        }
+    )
+    current_id = await collection.insert_one(
+        {
+            "member": {"status": "administrator", "can_send_welcome_messages": True},
+            "marker": "current",
+        }
+    )
+    other_id = await collection.insert_one({"member": {"status": "member"}, "marker": "other"})
+
+    await migration.Forward.backfill.run(session=None)
+
+    assert (await collection.find_one({"_id": legacy_id.inserted_id}))["member"]["can_send_welcome_messages"] is False
+    assert (await collection.find_one({"_id": current_id.inserted_id}))["member"]["can_send_welcome_messages"] is True
+    assert "can_send_welcome_messages" not in (await collection.find_one({"_id": other_id.inserted_id}))["member"]
