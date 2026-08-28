@@ -7,9 +7,11 @@ from types import ModuleType
 
 import pytest
 from bson import DBRef, ObjectId
+from pydantic import ValidationError
 
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.db.models.disabling import DisablingModel
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.db.models.filters import FiltersModel
@@ -1030,23 +1032,44 @@ def test_enable_entertainment_reasons_rollback_removes_only_target_role() -> Non
 
 @pytest.mark.usefixtures("db_init")
 async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
-    migration = importlib.import_module(
-        "sophie_bot.db.migrations.20260827_205248_backfill_chat_admin_welcome_messages"
-    )
+    migration = importlib.import_module("sophie_bot.db.migrations.20260827_205248_backfill_chat_admin_welcome_messages")
     backfill_chat_admin_welcome_messages = migration.backfill_chat_admin_welcome_messages
-    from sophie_bot.db.models.chat_admin import ChatAdminModel
 
     collection = ChatAdminModel.get_pymongo_collection()
     await collection.delete_many({})
 
+    chat = await _seed_chat(-1000000000101)
+    user = await _seed_chat(1000000000101)
+
     # Insert legacy document lacking can_send_welcome_messages
-    await collection.insert_one({
-        "member": {
-            "status": "administrator",
-            "user": {"id": 123456, "is_bot": False, "first_name": "Admin"},
-            "can_be_edited": False,
-        }
-    })
+    legacy_id = (
+        await collection.insert_one(
+            {
+                "chat": DBRef("chats", chat.id),
+                "user": DBRef("chats", user.id),
+                "member": {
+                    "status": "administrator",
+                    "user": {"id": user.tid, "is_bot": False, "first_name": "Admin"},
+                    "can_be_edited": False,
+                    "is_anonymous": False,
+                    "can_manage_chat": True,
+                    "can_delete_messages": False,
+                    "can_manage_video_chats": False,
+                    "can_restrict_members": False,
+                    "can_promote_members": False,
+                    "can_change_info": False,
+                    "can_invite_users": False,
+                    "can_post_stories": False,
+                    "can_edit_stories": False,
+                    "can_delete_stories": False,
+                },
+                "last_updated": datetime.now(UTC),
+            }
+        )
+    ).inserted_id
+
+    with pytest.raises(ValidationError, match="can_send_welcome_messages"):
+        await ChatAdminModel.get(legacy_id)
 
     # Forward backfills False
     modified = await backfill_chat_admin_welcome_messages(collection)
@@ -1054,3 +1077,9 @@ async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
     doc = await collection.find_one({"member.status": "administrator"})
     assert doc is not None
     assert doc["member"]["can_send_welcome_messages"] is False
+    repaired_admin = await ChatAdminModel.get(legacy_id)
+    assert repaired_admin is not None
+    assert repaired_admin.member.can_send_welcome_messages is False
+
+    # Startup can safely repeat the repair after the migration has already run.
+    assert await backfill_chat_admin_welcome_messages(collection) == 0
