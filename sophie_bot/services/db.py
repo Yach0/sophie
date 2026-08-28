@@ -35,11 +35,6 @@ async def backfill_chat_admin_welcome_messages(
     return result.modified_count
 
 
-async def repair_legacy_database_data() -> None:
-    """Apply idempotent repairs required before persisted models can be loaded."""
-    await backfill_chat_admin_welcome_messages(get_collection("chat_admin"))
-
-
 async def init_db(skip_indexes: bool | None = None) -> None:
     """Initialize Beanie and register migration tracking."""
     if skip_indexes is None:
