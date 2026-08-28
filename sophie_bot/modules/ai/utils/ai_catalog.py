@@ -63,7 +63,7 @@ MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
             AIModelPurpose.research,
         }
     ),
-    AIMode.sophie_help: frozenset({AIModelPurpose.chatbot, AIModelPurpose.sophie_inspect}),
+    AIMode.sophie_help: frozenset({AIModelPurpose.chatbot, AIModelPurpose.translation, AIModelPurpose.sophie_inspect}),
 }
 
 # The modes that resolve catalog models, in display order. Excludes ``disabled`` (runs no AI).
