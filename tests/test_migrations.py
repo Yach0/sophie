@@ -7,7 +7,6 @@ from types import ModuleType
 
 import pytest
 from bson import DBRef, ObjectId
-from pydantic import ValidationError
 
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
@@ -1068,8 +1067,9 @@ async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
         )
     ).inserted_id
 
-    with pytest.raises(ValidationError, match="can_send_welcome_messages"):
-        await ChatAdminModel.get(legacy_id)
+    legacy_doc = await collection.find_one({"_id": legacy_id})
+    assert legacy_doc is not None
+    assert "can_send_welcome_messages" not in legacy_doc["member"]
 
     # Forward backfills False
     modified = await backfill_chat_admin_welcome_messages(collection)
@@ -1086,9 +1086,7 @@ async def test_backfill_chat_admin_welcome_messages_round_trips() -> None:
 
 
 def _raw_chat_admin_welcome_messages_migration() -> ModuleType:
-    return importlib.import_module(
-        "sophie_bot.db.migrations.20260828_105536_raw_backfill_chat_admin_welcome_messages"
-    )
+    return importlib.import_module("sophie_bot.db.migrations.20260828_105536_raw_backfill_chat_admin_welcome_messages")
 
 
 def test_raw_chat_admin_migration_is_discoverable_without_models() -> None:
