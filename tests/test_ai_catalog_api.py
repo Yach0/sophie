@@ -12,7 +12,6 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIModelPurpose,
     AIModelRole,
 )
-from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.api import catalog
 from sophie_bot.modules.ai.api.catalog_schemas import (
     ModelCreate,
@@ -20,7 +19,7 @@ from sophie_bot.modules.ai.api.catalog_schemas import (
     ProviderCreate,
     ProviderUpdate,
 )
-from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, mode_allows, resolve_roles
+from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_roles
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 
@@ -36,11 +35,6 @@ def _no_version_bump():
 async def _clear() -> None:
     await AICatalogProviderModel.delete_all()
     await AICatalogModelModel.delete_all()
-
-
-async def test_auto_translation_is_available_in_every_enabled_ai_mode() -> None:
-    for mode in AIMode:
-        assert mode_allows(mode, AIModelPurpose.translation) is (mode is not AIMode.disabled)
 
 
 async def test_create_provider_refuses_a_duplicate_name(_no_version_bump) -> None:
@@ -260,7 +254,7 @@ async def test_meta_scopes_purposes_to_each_mode(_no_version_bump) -> None:
     assert set(meta.modes) == set(meta.mode_purposes)
     assert "summary" not in meta.mode_purposes["sophie_pm"]
     assert "filters" not in meta.mode_purposes["sophie_pm"]
-    assert meta.mode_purposes["sophie_help"] == ["chatbot", "translation", "sophie_inspect"]
+    assert meta.mode_purposes["sophie_help"] == ["chatbot", "sophie_inspect"]
     assert "sophie_inspect" not in meta.mode_purposes["support"]
 
 
