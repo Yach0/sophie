@@ -51,10 +51,7 @@ class GetNote(SophieMessageHandler):
 
         # Reply
         # TODO: Handle chat topics!
-        if self.event.reply_to_message:
-            reply_to = self.event.reply_to_message.message_id
-        else:
-            reply_to = self.event.message_id
+        reply_to = self.event.reply_to_message.message_id if self.event.reply_to_message else self.event.message_id
 
         sent_messages: list[Message] = []
         message = await send_saveable(
@@ -120,10 +117,7 @@ class HashtagGetNote(SophieMessageHandler):
 
         # Reply
         # TODO: Handle chat topics!
-        if self.event.reply_to_message:
-            reply_to = self.event.reply_to_message.message_id
-        else:
-            reply_to = self.event.message_id
+        reply_to = self.event.reply_to_message.message_id if self.event.reply_to_message else self.event.message_id
 
         chat: ChatConnection = self.data["connection"]
         track_note_retrieved(
