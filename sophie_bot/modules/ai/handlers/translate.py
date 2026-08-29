@@ -206,10 +206,15 @@ class AiTranslate(SophieMessageHandler):
         log.debug("AiTranslate", ai_context=ai_context.history_debug())
 
         model_plan = await get_chat_translations_model_plan(
-            self.connection.db_model.iid, chat_tid=self.connection.db_model.tid
+            self.connection.db_model.iid,
+            chat_tid=self.connection.db_model.tid,
+            mode=self.data.get("ai_mode"),
         )
         service_tier = await resolve_chat_service_tier(
-            AIModelPurpose.translation, self.connection.db_model.iid, self.event.chat.id
+            AIModelPurpose.translation,
+            self.connection.db_model.iid,
+            self.event.chat.id,
+            mode=self.data.get("ai_mode"),
         )
 
         try:
