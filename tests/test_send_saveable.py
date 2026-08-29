@@ -6,7 +6,9 @@ from typing import Any
 import pytest
 from aiogram.enums import ContentType
 from aiogram.methods import SendVideo, SendVideoNote, SendVoice
+from stfu_tg import Bold
 
+from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.db.models.notes_buttons import Button
@@ -173,3 +175,48 @@ async def test_send_saveable_allows_long_text_without_media(monkeypatch: pytest.
     )
 
     assert len(emitted) == 1
+
+
+@pytest.mark.asyncio
+async def test_send_saveable_measures_text_after_html_parsing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """HTML tags do not count toward Telegram's post-entity-parsing text limit."""
+    emitted = _capture_emitted(monkeypatch)
+    text = f"<b>{'a' * (TELEGRAM_MESSAGE_LENGTH_LIMIT - 1)}</b>"
+
+    await send_module.send_saveable(
+        message=None,
+        send_to=-100123,
+        saveable=Saveable(text=text, version=2),
+    )
+
+    assert emitted[0].text == text
+
+
+@pytest.mark.asyncio
+async def test_send_saveable_omits_title_when_note_fills_message_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Retrieval decoration must not make an otherwise valid saved note unretrievable."""
+    emitted = _capture_emitted(monkeypatch)
+    text = "a" * TELEGRAM_MESSAGE_LENGTH_LIMIT
+
+    await send_module.send_saveable(
+        message=None,
+        send_to=-100123,
+        saveable=Saveable(text=text, version=2),
+        title=Bold("Note title"),
+    )
+
+    assert emitted[0].text == text
+
+
+@pytest.mark.asyncio
+async def test_send_saveable_keeps_title_when_rendered_text_fits(monkeypatch: pytest.MonkeyPatch) -> None:
+    emitted = _capture_emitted(monkeypatch)
+
+    await send_module.send_saveable(
+        message=None,
+        send_to=-100123,
+        saveable=Saveable(text="Note text", version=2),
+        title=Bold("Note title"),
+    )
+
+    assert emitted[0].text == "<b>Note title</b>\nNote text"

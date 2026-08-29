@@ -1,4 +1,4 @@
-from typing import Final
+from html.parser import HTMLParser
 
 from aiogram.enums import ContentType
 from aiogram.methods import (
@@ -20,6 +20,7 @@ from aiogram.types import (
 )
 from stfu_tg.doc import Element
 
+from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils._random_parser import parse_random_text
@@ -32,8 +33,22 @@ from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
-# Kept below Telegram's 4096 so the rendered title and fillings cannot push the send over.
-TEXT_LENGTH_LIMIT: Final[int] = 4090
+
+class _TelegramHTMLTextLengthParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.length = 0
+
+    def handle_data(self, data: str) -> None:
+        self.length += len(data)
+
+
+def _telegram_text_length(text: str) -> int:
+    """Return the text length Telegram applies after parsing HTML entities."""
+    parser = _TelegramHTMLTextLengthParser()
+    parser.feed(text)
+    parser.close()
+    return parser.length
 
 
 def _build_input_media(note_file: NoteFile, caption: str | None) -> MediaUnion:
@@ -175,9 +190,6 @@ async def send_saveable(
     # Process fillings
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)
 
-    # Add title
-    text = (str(title) + "\n" if title else "") + text
-
     # Apply random choice sections (%%%...%%%)
     if text:
         text = parse_random_text(text)
@@ -185,9 +197,17 @@ async def send_saveable(
     text_limit = (
         MEDIA_CAPTION_LENGTH_LIMIT
         if single_file and MEDIA_SPECS[single_file.type].supports_caption
-        else TEXT_LENGTH_LIMIT
+        else TELEGRAM_MESSAGE_LENGTH_LIMIT
     )
-    if len(text) > text_limit:
+
+    # The title is retrieval-time decoration and was not part of the saved note's length
+    # validation. Preserve the note itself when adding the title would exceed Telegram's limit.
+    if title:
+        titled_text = f"{title.to_html()}\n{text}"
+        if _telegram_text_length(titled_text) <= text_limit:
+            text = titled_text
+
+    if _telegram_text_length(text) > text_limit:
         raise SophieException(_("The text is too long"))
 
     # Media group (album): more than one stored file → send via sendMediaGroup
