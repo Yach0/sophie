@@ -127,12 +127,13 @@ async def test_delete_warn_button_removes_the_warning(test_client: TestClient) -
 
     markup = _last_markup(warn_requests)
     assert markup is not None
-    delete_button = next(
+    delete_button_candidates = (
         button
         for row in markup.inline_keyboard
         for button in row
         if (button.callback_data or "").startswith("del_warn")
     )
+    delete_button = next(delete_button_candidates)
 
     bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
     warn_message = MessageFactory.create(text="⚠️ User warned", from_user=bot_user, chat=group, reply_markup=markup)
@@ -147,12 +148,13 @@ async def test_delete_warn_button_rejects_non_admin(test_client: TestClient) -> 
     warn_requests = await test_client.send_command(command="warn", from_user=admin, args=str(target_id), chat=group)
     markup = _last_markup(warn_requests)
     assert markup is not None
-    delete_data = next(
+    delete_data_candidates = (
         button.callback_data
         for row in markup.inline_keyboard
         for button in row
         if (button.callback_data or "").startswith("del_warn")
     )
+    delete_data = next(delete_data_candidates)
 
     stranger = test_client.create_user(user_id=next_user_id(), first_name="Stranger", username="warn_clicker")
     await test_client.send_message(text="init", from_user=stranger.user, chat=group)
@@ -177,12 +179,13 @@ async def test_resetwarns_confirm_clears_all_warnings(test_client: TestClient) -
     )
     markup = _last_markup(reset_requests)
     assert markup is not None
-    confirm_data = next(
+    confirm_data_candidates = (
         button.callback_data
         for row in markup.inline_keyboard
         for button in row
         if (button.callback_data or "").startswith("reset_warns")
     )
+    confirm_data = next(confirm_data_candidates)
     assert confirm_data == ResetWarnsCallback(user_tid=target_id).pack()
 
     bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)

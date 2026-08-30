@@ -109,11 +109,12 @@ async def test_unlockall_clears_every_lock_after_confirm(test_client: TestClient
     assert {"text", "url"} <= await _locked_types(group.id)
 
     prompt_requests = await test_client.send_command(command="unlockall", from_user=admin, chat=group)
-    markup_data = next(
+    markup_data_candidates = (
         request.params.get("reply_markup")
         for request in reversed(prompt_requests)
         if request.params.get("reply_markup")
     )
+    markup_data = next(markup_data_candidates)
     markup = InlineKeyboardMarkup.model_validate(markup_data)
     confirm_data = UnlockAllCallback(user_id=admin.id).pack()
     assert any(button.callback_data == confirm_data for row in markup.inline_keyboard for button in row), (
