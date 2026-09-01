@@ -4,6 +4,7 @@ from typing import Any
 from aiogram.handlers import ErrorHandler
 from aiogram.types import Chat, Update
 
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.error.utils.backoff import compute_error_signature, should_notify
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
@@ -89,8 +90,13 @@ class SophieErrorHandler(ErrorHandler):
         if isinstance(exception, SophieException) and exception.sentry_event_id:
             return exception.sentry_event_id
 
-        # Prefer capturing the active system exception to preserve full traceback
+        # Prefer capturing the active system exception to preserve full traceback. An AI failure
+        # may have been raised from the provider exception after its contextual capture failed; in
+        # that case capture the provider exception rather than the wrapper.
         sys_exc = sys.exception()
         if isinstance(sys_exc, Exception):
-            return capture_sentry(sys_exc)
+            exception = sys_exc
+        cause = exception.__cause__
+        if isinstance(exception, AIRequestFailed) and isinstance(cause, Exception):
+            exception = cause
         return capture_sentry(exception)

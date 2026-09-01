@@ -252,6 +252,21 @@ def test_error_handler_reuses_an_already_captured_event_id(sentry_events: list[d
     assert sentry_events == []
 
 
+def test_error_handler_captures_ai_failure_cause_when_contextual_capture_failed(
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    try:
+        try:
+            raise _model_http_error()
+        except ModelHTTPError as error:
+            raise AIRequestFailed(None) from error
+    except AIRequestFailed as failure:
+        event_id = SophieErrorHandler.capture_sentry(failure)
+
+    assert event_id is not None
+    assert sentry_events[0]["exception"]["values"][0]["type"] == "ModelHTTPError"
+
+
 def test_error_handler_still_captures_exceptions_nobody_reported(sentry_events: list[dict[str, Any]]) -> None:
     assert SophieErrorHandler.capture_sentry(SophieException("boom")) is not None
     assert len(sentry_events) == 1
