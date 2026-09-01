@@ -159,6 +159,7 @@ class AiTranslate(SophieMessageHandler):
                 or reply_to_message.sticker
                 or reply_to_message.animation
                 or reply_to_message.video
+                or reply_to_message.video_note
             )
         )
 
@@ -177,7 +178,13 @@ class AiTranslate(SophieMessageHandler):
 
         # AI Context
         ai_context = AIMessageHistory()
-        if reply_to_message and (reply_to_message.photo or reply_to_message.sticker or reply_to_message.animation):
+        if reply_to_message and (
+            reply_to_message.photo
+            or reply_to_message.sticker
+            or reply_to_message.animation
+            or reply_to_message.video
+            or reply_to_message.video_note
+        ):
             ai_context.add_system(
                 Template(
                     _("If applicable, translate the photo to {language_name}"), language_name=language_name
