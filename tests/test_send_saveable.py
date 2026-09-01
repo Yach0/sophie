@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from aiogram.enums import ContentType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import SendVideo, SendVideoNote, SendVoice
 
 from sophie_bot.db.models.button_action import ButtonAction
@@ -53,6 +54,29 @@ async def test_send_saveable_forwards_message_thread_id(monkeypatch: pytest.Monk
     assert result is not None
     assert emitted[0].message_thread_id == 987
     assert emitted[0].reply_markup.inline_keyboard == []
+
+
+@pytest.mark.asyncio
+async def test_send_saveable_ignores_bot_not_admin_without_retrying_reply(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: list[object] = []
+
+    async def raise_bot_not_admin(self: object, bot: object) -> None:
+        attempts.append(self)
+        raise TelegramBadRequest(method=None, message="Bad Request: BOT_NOT_ADMIN")  # type: ignore[arg-type]
+
+    monkeypatch.setattr("aiogram.methods.base.TelegramMethod.emit", raise_bot_not_admin)
+
+    result = await send_module.send_saveable(
+        message=None,
+        send_to=-100123,
+        saveable=Saveable(text="Welcome", version=2),
+        reply_to=123,
+    )
+
+    assert result is None
+    assert len(attempts) == 1
 
 
 @pytest.mark.asyncio

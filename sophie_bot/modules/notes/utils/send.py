@@ -1,6 +1,7 @@
 from typing import Final
 
 from aiogram.enums import ContentType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import (
     SendMediaGroup,
     SendMessage,
@@ -28,6 +29,7 @@ from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
+from sophie_bot.modules.utils_.telegram_exceptions import BOT_NOT_ADMIN
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -235,7 +237,12 @@ async def send_saveable(
         kwargs.pop("reply_parameters", None)
         return await to_try(**kwargs)
 
-    sent = await common_try(to_try=to_try(**kwargs), reply_not_found=reply_not_found)
+    try:
+        sent = await common_try(to_try=to_try(**kwargs), reply_not_found=reply_not_found)
+    except TelegramBadRequest as error:
+        if BOT_NOT_ADMIN not in error.message:
+            raise
+        sent = None
     if collect_sent is not None and isinstance(sent, Message):
         collect_sent.append(sent)
 
