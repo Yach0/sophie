@@ -7,12 +7,15 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 from datetime import date
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiogram.types import PhotoSize, Video
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
+from aiogram_test_framework.factories import ChatFactory, MessageFactory
+from pydantic_ai.messages import BinaryContent
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
@@ -21,7 +24,7 @@ from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageView,
 )
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
-from tests.e2e.helpers import grant_admin
+from tests.e2e.helpers import grant_admin, send_reply_command
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -346,6 +349,79 @@ async def test_translate_success(test_client: TestClient) -> None:
     assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text, (
         f"Expected origin language info in response, got: {response_text}"
     )
+
+
+@pytest.mark.asyncio
+async def test_translate_replied_video_includes_thumbnail_and_audio(test_client: TestClient) -> None:
+    """The /translate command should pass both parts of a replied video to the AI."""
+    group_chat = ChatFactory.create_group(chat_id=-1002900000048, title="Translate Video Group")
+    user_wrapper = test_client.create_user(user_id=929000048, first_name="VideoUser", username="video_user")
+
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    replied_video = MessageFactory.create(text="placeholder", from_user=user_wrapper.user, chat=group_chat).model_copy(
+        update={
+            "text": None,
+            "video": Video(
+                file_id="video-file-id",
+                file_unique_id="video-unique-id",
+                width=1280,
+                height=720,
+                duration=10,
+                thumbnail=PhotoSize(
+                    file_id="thumbnail-file-id",
+                    file_unique_id="thumbnail-unique-id",
+                    width=320,
+                    height=180,
+                ),
+            ),
+        }
+    )
+    mock_ai_result = SimpleNamespace(
+        output=SimpleNamespace(
+            translated_text="Translated video speech",
+            origin_language_name="English",
+            origin_language_emoji="\ud83c\uddec\ud83c\udde7",
+            needs_translation=True,
+            translation_explanations=None,
+        )
+    )
+    run_task = AsyncMock(return_value=mock_ai_result)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.run_structured_task", run_task))
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
+                AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.utils.message_history.bot.download",
+                AsyncMock(return_value=BytesIO(b"thumbnail-bytes")),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.utils.message_history.transform_video_to_text",
+                AsyncMock(return_value="spoken words"),
+            )
+        )
+        requests = await send_reply_command(
+            test_client,
+            command="translate",
+            from_user=user_wrapper.user,
+            group=group_chat,
+            replied=replied_video,
+        )
+
+    assert requests, "Bot should respond to /translate on a replied video"
+    ai_context = run_task.await_args.args[2]
+    assert any(
+        isinstance(content, BinaryContent) and content.data == b"thumbnail-bytes" for content in ai_context.prompt
+    )
+    assert any("spoken words" in content for content in ai_context.prompt if isinstance(content, str))
 
 
 @pytest.mark.asyncio
