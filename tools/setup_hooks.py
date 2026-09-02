@@ -19,21 +19,12 @@ set -e
 # Get the top-level directory of the current worktree
 WORKTREE_DIR="$(git rev-parse --show-toplevel)"
 
-# Check if we're in a worktree (not the main repo)
+# In git worktrees, .git is a file referencing the gitdir; in the main repository, it is a directory.
 GIT_DIR="$(git rev-parse --git-dir)"
 IS_WORKTREE=false
 
-# If .git is a file (not a directory), we're in a worktree
 if [ -f "$GIT_DIR" ]; then
     IS_WORKTREE=true
-fi
-
-# Also check if this is a worktree by looking at git worktree list
-if git worktree list --porcelain 2>/dev/null | grep -q "^worktree $WORKTREE_DIR$"; then
-    # Check if this is NOT the main worktree
-    if ! git rev-parse --git-common 2>/dev/null | grep -q "^$WORKTREE_DIR"; then
-        IS_WORKTREE=true
-    fi
 fi
 
 # Only run sync if we're in a worktree
