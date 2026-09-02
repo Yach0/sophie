@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
 
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.proactive_replies import (
     ProactiveAction,
     ProactiveDecision,
     ProactiveReplySettings,
+    _build_answer_history,
     _get_recent_candidates,
     _get_settings,
     _limit_actions,
@@ -86,6 +89,23 @@ def test_limit_actions_respects_answer_and_reaction_caps() -> None:
         ("react", 2),
         ("answer", 3),
     ]
+
+
+@pytest.mark.asyncio
+async def test_proactive_answer_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(AIMessageHistory, "add_from_cache", AsyncMock())
+    target = MessageType(
+        user_id=1,
+        message_id=2,
+        text="hello",
+        username="Alice",
+        reply_to_user_id=3,
+        reply_to_username="Bob",
+    )
+
+    history = await _build_answer_history(-100, target)
+
+    assert history.prompt == ["Alice (reply to Bob): hello"]
 
 
 @pytest.mark.asyncio

@@ -63,7 +63,7 @@ class AIUserMessageFormatter:
         name = cls.sanitize_name(name)
         if reply_to_user:
             reply_to_user = cls.sanitize_name(reply_to_user)
-            text = f"From {name}, as reply to {reply_to_user}: {text}"
+            name = f"{name} ({_('reply to')} {reply_to_user})"
 
         return f"{name}: {text}"
 
@@ -235,7 +235,11 @@ class AIMessageHistory:
         user = await ChatModel.get_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
         from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
-        return AIUserMessageFormatter.user_message(msg.text, from_user_name)
+        return AIUserMessageFormatter.user_message(
+            msg.text,
+            from_user_name,
+            reply_to_user=msg.reply_to_user_name,
+        )
 
     def _fold_trailing_requests(self) -> None:
         """Move trailing unanswered user turns out of the history and into the context block."""
@@ -278,7 +282,15 @@ class AIMessageHistory:
 
         from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
         return ModelRequest(
-            parts=[UserPromptPart(content=AIUserMessageFormatter.user_message(msg.text, from_user_name))]
+            parts=[
+                UserPromptPart(
+                    content=AIUserMessageFormatter.user_message(
+                        msg.text,
+                        from_user_name,
+                        reply_to_user=msg.reply_to_user_name,
+                    )
+                )
+            ]
         )
 
     async def add_from_cache(

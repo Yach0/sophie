@@ -283,7 +283,11 @@ async def _build_answer_history(chat_tid: int, target_message: MessageType) -> A
     history.add_system(proactive_answer_prompt.to_md())
     await history.add_from_cache(chat_tid)
     username = target_message.username or str(target_message.user_id)
-    prompt_text = AIUserMessageFormatter.user_message(target_message.text, username)
+    prompt_text = AIUserMessageFormatter.user_message(
+        target_message.text,
+        username,
+        reply_to_user=target_message.reply_to_user_name,
+    )
     history.prompt = [cast(UserContent, prompt_text)]
     return history
 
