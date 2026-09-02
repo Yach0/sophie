@@ -15,7 +15,13 @@ import pytest
 from aiogram.types import Message
 from pydantic_ai.models import Model
 
-from sophie_bot.modules.ai.utils.ai_header import AI_HEADER_LABEL, AI_HEADER_SEPARATOR
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_HEADER_LABEL,
+    AI_HEADER_SEPARATOR,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+)
 from sophie_bot.modules.ai.utils.ai_progress import (
     AI_PROGRESS_CUSTOM_EMOJI_IDS,
     AI_PROGRESS_DEFAULT_CUSTOM_EMOJI_ID,
@@ -154,9 +160,7 @@ async def test_placeholder_emoji_stays_the_same_on_every_edit(monkeypatch: pytes
 async def test_random_emoji_flag_applies_without_the_thinking_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
     """The flag picks the placeholder emoji; whether the thinking text is shown is a separate flag."""
     message = _message()
-    streamer = await _streamer_with_flags(
-        message, monkeypatch, ai_chatbot_streaming=True, ai_chatbot_random_emoji=True
-    )
+    streamer = await _streamer_with_flags(message, monkeypatch, ai_chatbot_streaming=True, ai_chatbot_random_emoji=True)
 
     assert streamer is not None
     streamer.throttle_seconds = 0
@@ -177,3 +181,21 @@ async def test_finished_reply_header_carries_the_table_and_the_battery(monkeypat
     assert AI_HEADER_SEPARATOR in text
     assert BATTERY_EMOJI in text
     assert "50%" in text
+
+
+def test_simple_header_is_inline_and_omits_table_status() -> None:
+    header = build_ai_header("simple", "gpt-5.5", ai_credit_header(50))
+
+    assert header is not None
+    text = build_ai_message_doc("simple", header, "Hello").to_html()
+    assert text.startswith("✨ <tg-emoji")
+    assert "50% Hello" in text
+    assert "gpt-5.5" not in text
+    assert "\nHello" not in text
+
+
+def test_disabled_header_leaves_only_the_body() -> None:
+    header = build_ai_header("disable", "gpt-5.5", ai_credit_header(50))
+
+    assert header is None
+    assert build_ai_message_doc("disable", header, "Hello").to_html() == "Hello"

@@ -14,6 +14,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
+from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
@@ -111,13 +112,20 @@ class ResearchCmd(SophieMessageHandler):
             log.warning("research: SophieException during workflow", error=str(exc))
             await self.event.reply(str(exc))
             return
+        header_style = await get_ai_header_style("chatbot", self.event.chat.id)
         header = await build_chatbot_header(
             self.connection.db_model.iid,
             result.model,
             result.message_history,
+            header_style,
         )
         current_locale = self.data["i18n"].current_locale
         return await progress_message.send_final(
             self.event,
-            build_research_doc(result.response, header=header, current_locale=current_locale),
+            build_research_doc(
+                result.response,
+                header=header,
+                header_style=header_style,
+                current_locale=current_locale,
+            ),
         )

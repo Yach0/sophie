@@ -13,21 +13,26 @@ from stfu_tg import (
     PreformattedHTML,
     Section,
     Template,
-    Title,
 )
+from stfu_tg.doc import Element
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_translations_model_plan,
     resolve_chat_service_tier,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+    get_ai_header_style,
+)
 from sophie_bot.modules.ai.utils.ai_progress import (
     ai_progress_line,
     random_ai_progress_custom_emoji_id,
@@ -83,20 +88,22 @@ async def _resolve_translation_input(event: Message, data: dict) -> tuple[str, b
 
 
 def _build_translate_reply_doc(
-    translated,
+    translated: AITranslateResponseSchema,
     language_name: str,
     is_autotranslate: bool,
     is_voice: bool,
-    quota_header,
+    quota_header: Element | None,
+    header_style: AIHeaderStyle,
 ) -> Doc:
     """Format the translation response document."""
-    return Doc(
-        HList(
-            Title(AI_GENERATED_TEXT),
-            _("Auto Translator") if is_autotranslate else _("Translator"),
-            f"({_('Voice')})" if is_voice else None,
-            quota_header,
-        ),
+    status = HList(
+        _("Auto Translator") if is_autotranslate else _("Translator"),
+        f"({_('Voice')})" if is_voice else None,
+    )
+    header = build_ai_header(header_style, status, quota_header or "")
+    return build_ai_message_doc(
+        header_style,
+        header,
         (
             Bold(
                 Template(
@@ -258,6 +265,14 @@ class AiTranslate(SophieMessageHandler):
             quota_percentage = int((quota_info.remaining_credits / quota_info.total_credits) * 100)
             quota_header = ai_credit_header(quota_percentage)
 
-        doc = _build_translate_reply_doc(translated, language_name, is_autotranslate, is_voice, quota_header)
+        header_style = await get_ai_header_style("translation", self.event.chat.id)
+        doc = _build_translate_reply_doc(
+            translated,
+            language_name,
+            is_autotranslate,
+            is_voice,
+            quota_header,
+            header_style,
+        )
 
         await _edit_or_reply(self.event, progress_message, text=str(doc))
