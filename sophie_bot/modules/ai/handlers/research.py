@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any, cast
 
 from aiogram import Bot
@@ -50,15 +51,13 @@ class ResearchProgressMessage:
     async def update(self, stage: ResearchProgressStage) -> None:
         text = random_research_progress_text(stage)
         suffix = research_progress_suffix(stage)
-        try:
+        with suppress(TelegramAPIError):
             await self.bot.edit_message_text(
                 text=Doc(ai_progress_line(text, self.emoji_id, suffix)).to_html(),
                 chat_id=self.message.chat.id,
                 message_id=self.message.message_id,
                 disable_web_page_preview=True,
             )
-        except TelegramAPIError:
-            pass
 
     async def send_final(self, source_message: Message, doc: Doc) -> Message:
         try:
