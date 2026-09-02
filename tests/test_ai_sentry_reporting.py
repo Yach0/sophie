@@ -270,3 +270,34 @@ def test_error_handler_captures_ai_failure_cause_when_contextual_capture_failed(
 def test_error_handler_still_captures_exceptions_nobody_reported(sentry_events: list[dict[str, Any]]) -> None:
     assert SophieErrorHandler.capture_sentry(SophieException("boom")) is not None
     assert len(sentry_events) == 1
+
+
+def test_ai_provider_exceptions_include_tool_failed_error() -> None:
+    from pydantic_ai.exceptions import AgentRunError, ToolFailedError, ToolRetryError, UserError
+
+    from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS
+
+    assert ToolFailedError in AI_PROVIDER_EXCEPTIONS
+    # Control flow and programmer errors must not be routed through provider failover
+    assert AgentRunError not in AI_PROVIDER_EXCEPTIONS
+    assert ToolRetryError not in AI_PROVIDER_EXCEPTIONS
+    assert UserError not in AI_PROVIDER_EXCEPTIONS
+
+def test_init_sentry_includes_pydantic_ai_integration(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
+
+    from sophie_bot.services import sentry
+
+    captured_integrations: list[Any] = []
+
+    def mock_init(*args: Any, **kwargs: Any) -> None:
+        captured_integrations.extend(kwargs.get("integrations", []))
+
+    monkeypatch.setattr(sentry.CONFIG, "sentry_url", "https://public@sentry.invalid/1")
+    monkeypatch.setattr(sentry_sdk, "init", mock_init)
+
+    sentry.init_sentry()
+
+    pydantic_ai_integrations = [i for i in captured_integrations if isinstance(i, PydanticAIIntegration)]
+    assert len(pydantic_ai_integrations) == 1
+    assert pydantic_ai_integrations[0].handled_tool_call_exceptions is False

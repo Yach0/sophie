@@ -859,7 +859,7 @@ msgid ""
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:231
+#: sophie_bot/modules/ai/handlers/translate.py:236
 msgid "Error generating translation"
 msgstr ""
 
@@ -998,25 +998,25 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:360
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:366
 #: sophie_bot/modules/ai/utils/research.py:384
 #: sophie_bot/modules/ai/utils/research.py:517
 msgid "Research"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:67
+#: sophie_bot/modules/ai/utils/ai_errors.py:69
 msgid "The AI request failed. Please try again in a moment."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:257
+#: sophie_bot/modules/ai/utils/ai_errors.py:259
 msgid "🤖 AI request failed"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:268
+#: sophie_bot/modules/ai/utils/ai_errors.py:270
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:272
+#: sophie_bot/modules/ai/utils/ai_errors.py:274
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr ""
