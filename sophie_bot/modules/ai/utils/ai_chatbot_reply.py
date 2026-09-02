@@ -7,10 +7,13 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
+from pymongo.errors import PyMongoError
+from redis.exceptions import RedisError
 from sentry_sdk.ai import set_conversation_id
 from stfu_tg import BlockQuote, Doc, Section
 from stfu_tg.doc import Element
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.metrics import track_ai_conversation
@@ -54,6 +57,7 @@ from sophie_bot.modules.ai.utils.research import build_research_markdown_file, r
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 __all__ = ("CHATBOT_TOOLS", "ChatbotMessageStreamer", "ai_chatbot_reply")
 
@@ -62,8 +66,6 @@ def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode:
     if debug_mode:
         return True
     if "^llm_debug" in (user_text or message.text or ""):
-        from sophie_bot.config import CONFIG
-
         from_user = message.from_user
         return from_user is not None and from_user.id in CONFIG.operators
     return False
@@ -317,7 +319,10 @@ async def ai_chatbot_reply(
         model = result.served_model or model
 
         if result.usage:
-            await charge_ai_usage(connection.db_model.iid, AI_FEATURE_CHATBOT, model, result.usage)
+            try:
+                await charge_ai_usage(connection.db_model.iid, AI_FEATURE_CHATBOT, model, result.usage)
+            except (PyMongoError, RedisError) as err:
+                log.warning("Failed to charge AI usage for chatbot", error=str(err))
 
         header = await _build_chatbot_header(connection, model, result.message_history)
         research_response = (
@@ -355,7 +360,11 @@ async def ai_chatbot_reply(
         await remember_chatbot_tool_history(
             message.chat.id, final_message.message_id, result.message_history, previous_history
         )
-
         if research_response is not None:
-            await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))
+            try:
+                await final_message.reply_document(
+                    build_research_markdown_file(research_response), caption=_("Research")
+                )
+            except TelegramAPIError as err:
+                log.warning("Failed to send research document", error=str(err))
         return final_message
