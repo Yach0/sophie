@@ -20,7 +20,9 @@ class FeatureFlagFilter(BaseFilter):
         if message is None:
             return False
 
-        chat_tid = connection.tid if connection is not None else message.chat.id if isinstance(message, Message) else None
+        chat_tid = (
+            connection.tid if connection is not None else message.chat.id if isinstance(message, Message) else None
+        )
 
         flag_enabled = await is_enabled(self.feature, chat_tid=chat_tid)
         return flag_enabled == self.enabled
