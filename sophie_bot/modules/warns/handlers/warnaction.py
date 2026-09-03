@@ -3,10 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
-from stfu_tg import Doc, Section, Template, VList
+from stfu_tg import Button, ButtonRow, Buttons, Doc, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models.warns import WarnSettingsModel
@@ -38,13 +36,7 @@ class WarnActionRenderer:
                 continue
 
             description = action_meta.description(convert_action_data_to_model(action_meta, action.data))
-            parts.append(
-                Template(
-                    "{icon} {description}",
-                    icon=action_meta.icon,
-                    description=description,
-                )
-            )
+            parts.append(Template("{icon} {description}", icon=action_meta.icon, description=description))
 
         if not parts:
             return _("No actions configured")
@@ -64,47 +56,34 @@ class WarnActionRenderer:
         return _("Ban the user (default)")
 
     @staticmethod
-    async def render_warnaction_view(chat_iid: PydanticObjectId) -> tuple[str, Any]:
-        """Render the warnaction view text and keyboard.
-
-        Returns (text_html, reply_markup)
-        """
+    async def render_warnaction_view(chat_iid: PydanticObjectId) -> tuple[Doc, None]:
+        """Render the warning action view with embedded rich buttons."""
         settings = await WarnSettingsModel.get_or_create(chat_iid)
-
         each_warn_text = WarnActionRenderer.format_actions(settings.on_each_warn_actions)
-
-        # Show configured actions or default for max warns
-        if settings.on_max_warn_actions:
-            max_warn_text = WarnActionRenderer.format_actions(settings.on_max_warn_actions)
-        else:
-            max_warn_text = WarnActionRenderer.get_default_max_warn_text()
-
+        max_warn_text = (
+            WarnActionRenderer.format_actions(settings.on_max_warn_actions)
+            if settings.on_max_warn_actions
+            else WarnActionRenderer.get_default_max_warn_text()
+        )
         doc = Doc(
-            Section(
-                each_warn_text,
-                title=_("On each warn"),
+            Section(each_warn_text, title=_("On each warn")),
+            Section(max_warn_text, title=_("On exceeding warnings")),
+            Buttons(
+                ButtonRow(
+                    Button(
+                        _("Configure on each warn"),
+                        callback_data=ACWCoreCallback(mod="warn_action_each", op="show").pack(),
+                    )
+                ),
+                ButtonRow(
+                    Button(
+                        _("Configure on warnings exceeding"),
+                        callback_data=ACWCoreCallback(mod="warn_action_max", op="show").pack(),
+                    )
+                ),
             ),
-            Section(
-                max_warn_text,
-                title=_("On exceeding warnings"),
-            ),
         )
-
-        builder = InlineKeyboardBuilder()
-        builder.row(
-            InlineKeyboardButton(
-                text=_("Configure on each warn"),
-                callback_data=ACWCoreCallback(mod="warn_action_each", op="show").pack(),
-            )
-        )
-        builder.row(
-            InlineKeyboardButton(
-                text=_("Configure on warnings exceeding"),
-                callback_data=ACWCoreCallback(mod="warn_action_max", op="show").pack(),
-            )
-        )
-
-        return doc.to_html(), builder.as_markup()
+        return doc, None
 
 
 @flags.help(description=l_("Configures warn actions."))
@@ -115,5 +94,5 @@ class WarnActionHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         chat_iid = self.connection.db_model.iid
-        text, markup = await WarnActionRenderer.render_warnaction_view(chat_iid)
-        await self.event.reply(text, reply_markup=markup)
+        document, markup = await WarnActionRenderer.render_warnaction_view(chat_iid)
+        await self.answer_rich(document, reply_markup=markup)

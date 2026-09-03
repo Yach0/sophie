@@ -29,6 +29,7 @@ _K_CHAT_IID = "acw_chat_iid"
 _K_STARTED_AT = "acw_started_at"
 _K_ACTION_NAME = "acw_action_name"
 _K_ACTION_DATA = "acw_action_data"
+_K_DRAFT = "acw_draft"
 _SETUP_CONTEXT_KEYS = (
     "action_setup_name",
     "action_setup_chat_tid",
@@ -94,15 +95,25 @@ class WizardState:
             data[_K_MODULE] = module_name
             data[_K_CHAT_IID] = str(chat_iid)
             data[_K_STARTED_AT] = time.time()
-            data.pop(_K_ACTION_NAME, None)
             data.pop(_K_ACTION_DATA, None)
+            data.pop(_K_DRAFT, None)
             await self._state.update_data(**data)
 
     async def clear(self) -> None:
         """Clear all ACW session keys from FSM data."""
         data = await self._state.get_data()
-        for key in (_K_MODULE, _K_CHAT_IID, _K_STARTED_AT, _K_ACTION_NAME, _K_ACTION_DATA):
+        for key in (_K_MODULE, _K_CHAT_IID, _K_STARTED_AT, _K_ACTION_NAME, _K_ACTION_DATA, _K_DRAFT):
             data.pop(key, None)
+        await self._state.update_data(**data)
+
+    async def start_session(self, module_name: str, chat_iid: PydanticObjectId, draft: dict[str, Any]) -> None:
+        """Start a fresh session and store its aggregate draft."""
+        await self.clear()
+        data = await self._state.get_data()
+        data[_K_MODULE] = module_name
+        data[_K_CHAT_IID] = str(chat_iid)
+        data[_K_STARTED_AT] = time.time()
+        data[_K_DRAFT] = _sanitize_for_json(draft)
         await self._state.update_data(**data)
 
     async def replace_setup_context(self, **kwargs: Any) -> None:
@@ -157,12 +168,23 @@ class WizardState:
         action_data = data.get(_K_ACTION_DATA)
         return chat_iid, action_name, action_data
 
+    async def set_draft(self, draft: dict[str, Any]) -> None:
+        """Replace the JSON-safe aggregate draft for the active session."""
+        data = await self._state.get_data()
+        data[_K_DRAFT] = _sanitize_for_json(draft)
+        await self._state.update_data(**data)
+
+    async def get_draft(self) -> dict[str, Any] | None:
+        """Return the aggregate draft when the session is active."""
+        data = await self._state.get_data()
+        draft = data.get(_K_DRAFT)
+        return dict(draft) if isinstance(draft, dict) else None
+
     async def has_staged_changes(self, module_name: str, chat_iid: PydanticObjectId) -> bool:
-        """Return True if there is staged action data for this module and chat."""
+        """Return True if an aggregate draft exists for this module and chat."""
         if not await self.is_active(module_name, chat_iid):
             return False
-        staged_chat_iid, action_name, _ = await self.get_staged()
-        return bool(action_name) and (staged_chat_iid == chat_iid)
+        return await self.get_draft() is not None
 
     # -- FSM state delegation ------------------------------------------------
 
