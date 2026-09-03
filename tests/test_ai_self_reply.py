@@ -31,6 +31,13 @@ def test_simple_header_is_detected_and_removed_without_losing_multiline_body() -
     assert cut_titlebar(text) == "Hello\nsecond line"
 
 
+def test_simple_header_without_battery_preserves_body_starting_with_percentage() -> None:
+    text = "✨ 🔋\n100% of the work is complete"
+
+    assert is_ai_message(text)
+    assert cut_titlebar(text) == "100% of the work is complete"
+
+
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
     text = "A header-free answer\nwith another line"
 

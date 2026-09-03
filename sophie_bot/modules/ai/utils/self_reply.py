@@ -61,7 +61,10 @@ def is_ai_message(text: str) -> bool:
 
 
 def cut_titlebar(text: str) -> str:
-    simple_match = re.match(rf"^{re.escape(AI_SIMPLE_HEADER_PREFIX)}(?: \d+%)?(?: |$)", text)
+    simple_match = re.match(
+        rf"^{re.escape(AI_SIMPLE_HEADER_PREFIX)}(?: \d+% (?=\S)|\n|$)",
+        text,
+    )
     if simple_match:
         return text[simple_match.end() :]
 
