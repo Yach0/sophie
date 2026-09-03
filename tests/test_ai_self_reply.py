@@ -38,6 +38,13 @@ def test_simple_header_without_battery_preserves_body_starting_with_percentage()
     assert cut_titlebar(text) == "100% of the work is complete"
 
 
+def test_simple_footer_is_removed_after_multiline_body() -> None:
+    text = "✨ Response text\nMight be many lines\n123\n🔋 90%"
+
+    assert is_ai_message(text)
+    assert cut_titlebar(text) == "Response text\nMight be many lines\n123"
+
+
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
     text = "A header-free answer\nwith another line"
 

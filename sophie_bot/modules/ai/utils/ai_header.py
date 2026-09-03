@@ -62,7 +62,7 @@ def build_ai_header(
     if style == "disable":
         return None
     if style == "simple":
-        return HList(AI_EMOJI, battery or "🔋", divider=" ")
+        return battery or "🔋"
     return ai_table_header(status, battery)
 
 
@@ -71,7 +71,7 @@ def build_ai_message_doc(style: AIHeaderStyle, header: Element | None, *body: El
     if header is None:
         return body_doc
     if style == "simple":
-        return Doc(HList(header, body_doc, divider=" "))
+        return Doc(HList(AI_EMOJI, body_doc, divider=" "), "\n", header)
     return Doc(header, body_doc)
 
 

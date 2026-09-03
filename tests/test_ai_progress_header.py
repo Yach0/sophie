@@ -188,8 +188,10 @@ def test_simple_header_is_inline_and_omits_table_status() -> None:
 
     assert header is not None
     text = build_ai_message_doc("simple", header, "Hello").to_html()
-    assert text.startswith("✨ <tg-emoji")
-    assert "50% Hello" in text
+    assert text.startswith("✨ Hello")
+    assert "Hello" in text
+    assert "50%" in text
+    assert text.rfind("50%") > text.find("Hello")
     assert "gpt-5.5" not in text
     assert "\nHello" not in text
 
