@@ -18,6 +18,7 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
+from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import run_ai_text
@@ -337,9 +338,18 @@ async def _answer_message(chat_tid: int, chat: ChatModel, target_message: Messag
     model = result.served_model or model
     if result.usage:
         await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, model, result.usage)
-    header = await build_chatbot_header(chat.iid, model, result.message_history)
+    header_style = await get_ai_header_style("proactive_replies", chat_tid)
+    header = await build_chatbot_header(chat.iid, model, result.message_history, header_style)
     output_text = truncate_output(header, str(result.output))
-    doc = await build_reply_doc(header, output_text, model, result, False, chat_tid=chat_tid)
+    doc = await build_reply_doc(
+        header,
+        output_text,
+        model,
+        result,
+        False,
+        chat_tid=chat_tid,
+        header_style=header_style,
+    )
     _log_proactive_info(
         "Proactive AI answer send started",
         chat_id=chat_tid,

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import re
+
 from aiogram.types import Message
 
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
-from sophie_bot.modules.ai.utils.ai_header import AI_HEADER_LABEL, AI_HEADER_SEPARATOR
+from sophie_bot.modules.ai.utils.ai_header import AI_HEADER_LABEL, AI_HEADER_SEPARATOR, AI_SIMPLE_HEADER_PREFIX
 from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 
 
@@ -45,6 +48,10 @@ def is_ai_message(text: str) -> bool:
     first_line = text.split("\n", 1)[0].strip()
     if first_line == AI_HEADER_LABEL or first_line.startswith(AI_HEADER_LABEL + AI_HEADER_SEPARATOR):
         return True
+    if first_line == AI_SIMPLE_HEADER_PREFIX or first_line.startswith(AI_SIMPLE_HEADER_PREFIX + " "):
+        return True
+    if first_line.startswith(AI_EMOJI + " ") and "\n" in text:
+        return text.rsplit("\n", 1)[-1].startswith("🔋 ")
 
     # An answer still being generated has no header yet — it is a plain progress line, and replying
     # to it has to continue the conversation just like replying to the finished message does.
@@ -57,5 +64,18 @@ def is_ai_message(text: str) -> bool:
 
 
 def cut_titlebar(text: str) -> str:
-    lines = text.split("\n")
-    return lines[1] if len(lines) > 1 else ""
+    simple_footer_match = re.match(rf"^{re.escape(AI_EMOJI)} (.+)\n+🔋 \d+%$", text, re.DOTALL)
+    if simple_footer_match:
+        return simple_footer_match.group(1)
+
+    simple_match = re.match(
+        rf"^{re.escape(AI_SIMPLE_HEADER_PREFIX)}(?: \d+% (?=\S)|\n|$)",
+        text,
+    )
+    if simple_match:
+        return text[simple_match.end() :]
+
+    first_line, separator, body = text.partition("\n")
+    if is_ai_message(first_line):
+        return body.lstrip("\n") if separator else ""
+    return text

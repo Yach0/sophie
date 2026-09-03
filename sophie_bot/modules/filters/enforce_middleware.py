@@ -12,7 +12,12 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.ai.utils.ai_filter_texts import AI_FILTER_STATUS
-from sophie_bot.modules.ai.utils.ai_header import ai_table_header
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    build_ai_header,
+    build_ai_message_doc,
+    get_ai_header_style,
+)
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.filters.fsm import FilterEditFSM
 from sophie_bot.modules.filters.types.modern_action_abc import ActionResult
@@ -105,11 +110,14 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return them instead of text, so they only contribute their IDs and stay out of the doc.
         """
         sent_message_ids: list[int] = []
-        doc = Doc()
+        header_style: AIHeaderStyle = await get_ai_header_style("filters", message.chat.id) if ai_matched else "disable"
+        header = None
         if ai_matched:
             # An AI filter decided this, so the reply carries the AI header and can be replied to
             # like any other AI message to carry on the conversation.
-            doc += ai_table_header(str(AI_FILTER_STATUS))
+            header = build_ai_header(header_style, str(AI_FILTER_STATUS))
+
+        body = Doc()
 
         for msg in messages:
             if isinstance(msg, Message):
@@ -123,11 +131,13 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                     sent_message_ids.extend(sent.message_id for sent in sent_messages)
                     continue
 
-            doc += " "
-            doc += msg
+            body += " "
+            body += msg
 
-        if not len(doc):
+        if not len(body):
             return sent_message_ids
+
+        doc = build_ai_message_doc(header_style, header, body)
 
         async def send_message():
             return await bot.send_message(chat_id=message.chat.id, text=doc.to_html())

@@ -498,6 +498,25 @@ def test_build_summary_doc_renders_lines() -> None:
     assert 'href="https://t.me/c/1234567890/100"' in html
 
 
+def test_build_summary_doc_uses_inline_simple_header() -> None:
+    doc = _build_summary_doc(-1001234567890, date(2026, 5, 3), "General overview", [], "simple")
+
+    html = doc.to_html()
+
+    assert html.startswith("✨ 🔋 ")
+    assert "\nChat history" not in html
+    assert "Chat history" in html
+
+
+def test_build_summary_doc_can_disable_ai_header() -> None:
+    doc = _build_summary_doc(-1001234567890, date(2026, 5, 3), "General overview", [], "disable")
+
+    html = doc.to_html()
+
+    assert not html.startswith("✨")
+    assert "Chat history" in html
+
+
 def test_build_summary_doc_orders_lines_by_first_message_time() -> None:
     doc = _build_summary_doc(
         -1001234567890,
@@ -609,9 +628,7 @@ def test_build_summary_transcript_plain_keeps_ids_usernames_and_timestamps() -> 
     transcript = build_summary_transcript(_transcript_sample(), anonymize=False)
 
     assert transcript.text.splitlines()[0] == "[id=45201] [2026-05-03T08:00:00+00:00] [alice] hello there"
-    assert transcript.messages_by_reference == {
-        message.message_id: message for message in _transcript_sample()
-    }
+    assert transcript.messages_by_reference == {message.message_id: message for message in _transcript_sample()}
 
 
 def test_build_summary_transcript_renders_placeholder_for_missing_timestamp() -> None:

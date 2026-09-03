@@ -10,7 +10,12 @@ from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_table_header
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+)
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, apply_mention_usernames, resolve_mentions
@@ -53,7 +58,8 @@ async def build_chatbot_header(
     chat_iid: PydanticObjectId,
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
-) -> Element:
+    style: AIHeaderStyle = "table",
+) -> Element | None:
     """The header of a *finished* AI message.
 
     Only built once generation completed: the status names what the run actually did and the battery
@@ -70,7 +76,7 @@ async def build_chatbot_header(
         )
         battery = ai_credit_header(percentage)
 
-    return ai_table_header(status, battery)
+    return build_ai_header(style, status, battery)
 
 
 def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
@@ -91,8 +97,8 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
     )
 
 
-def truncate_output(header: Element, output_text: str) -> str:
-    length = len(output_text) + len(header.to_html())
+def truncate_output(header: Element | None, output_text: str) -> str:
+    length = len(output_text) + (len(header.to_html()) if header is not None else 0)
     if length > 4000:
         return output_text[:4000] + "..."
     return output_text
@@ -104,13 +110,14 @@ def build_truncated_note() -> Doc:
 
 
 async def build_reply_doc(
-    header: Element,
+    header: Element | None,
     output_text: str,
     model: Model | None,
     result: AIAgentResult[Any] | None,
     explicit_debug_mode: bool,
     chat_tid: int | None,
     mention_index: MentionIndex | None = None,
+    header_style: AIHeaderStyle = "table",
 ) -> Doc:
     # The single rendering chokepoint for both streamed drafts and the final message, so mention
     # resolution happens here — before Markdown is rendered, which keeps escaping STFU's job.
@@ -119,7 +126,7 @@ async def build_reply_doc(
         if mention_index is None
         else resolve_mentions(output_text, mention_index)
     )
-    doc = Doc(header, ai_markdown_to_doc(resolved_text))
+    doc = build_ai_message_doc(header_style, header, ai_markdown_to_doc(resolved_text))
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "
         doc += build_debug_doc(model, result)
