@@ -8,6 +8,7 @@ from babel.dates import format_date, format_time
 from beanie import PydanticObjectId
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url, VList
 
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatModel
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
@@ -149,6 +150,14 @@ def _build_summary_doc(
         Template(_("Chat history of {today}"), today=format_date(summary_date, format="long", locale=current_locale))
     )
     header = build_ai_header(header_style, title)
+    if header_style == "simple":
+        return Doc(
+            HList(AI_EMOJI, header, title, divider=" "),
+            overview,
+            " ",
+            BlockQuote(rendered_lines, expandable=True),
+        )
+
     return build_ai_message_doc(
         header_style,
         header,

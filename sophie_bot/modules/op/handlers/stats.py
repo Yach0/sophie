@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template
+from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 
 from sophie_bot.config import CONFIG
 from sophie_bot.filters.cmd import CMDFilter
@@ -14,6 +14,7 @@ from sophie_bot.services.migrations import get_migration_status
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.versions import SOPHIE_BRANCH, SOPHIE_COMMIT, SOPHIE_VERSION
 
@@ -33,43 +34,46 @@ async def get_system_stats() -> Doc:
 
     doc += Section(
         Italic(CONFIG.environment),
-        Bold(f"Debug mode: {CONFIG.debug_mode}") if CONFIG.debug_mode != "off" else None,
-        KeyValue("Version", Italic(SOPHIE_VERSION)),
-        KeyValue("Commit", Code(SOPHIE_COMMIT)),
-        KeyValue("Branch", Italic(SOPHIE_BRANCH)),
-        KeyValue("Webhooks", Code(CONFIG.webhooks_port)) if CONFIG.webhooks_enable else "Long-polling mode",
-        title="Environment",
+        (Template(_("Debug mode: {mode}"), mode=CONFIG.debug_mode) if CONFIG.debug_mode != "off" else None),
+        KeyValue(_("Version"), Italic(SOPHIE_VERSION)),
+        KeyValue(_("Commit"), Code(SOPHIE_COMMIT)),
+        KeyValue(_("Branch"), Italic(SOPHIE_BRANCH)),
+        KeyValue(_("Webhooks"), Code(CONFIG.webhooks_port)) if CONFIG.webhooks_enable else _("Long-polling mode"),
+        title=_("Environment"),
     )
 
-    technical_section = Section(title="Technical info")
+    technical_section = Section(title=_("Technical info"))
 
     local_db = await db.command("dbstats")
     if "fsTotalSize" in local_db:
         technical_section += KeyValue(
-            "Database size",
+            _("Database size"),
             Template(
-                "{db_size}, free {db_free}",
+                _("{db_size}, free {db_free}"),
                 db_size=Code(convert_size(local_db["dataSize"])),
                 db_free=Code(convert_size(local_db["fsTotalSize"] - local_db["fsUsedSize"])),
             ),
         )
     else:
         technical_section += KeyValue(
-            "Database size",
+            _("Database size"),
             Template(
-                "{db_size}, free {db_free}",
+                _("{db_size}, free {db_free}"),
                 db_size=Code(convert_size(local_db["storageSize"])),
                 db_free=Code(convert_size(536870912 - local_db["storageSize"])),
             ),
         )
 
-    technical_section += KeyValue("Redis keys", Code(await aredis.dbsize()))
+    technical_section += KeyValue(_("Redis keys"), Code(await aredis.dbsize()))
 
-    technical_section += KeyValue("Modules", Template("{modules} loaded", modules=Code(len(LOADED_MODULES))))
     technical_section += KeyValue(
-        "Legacy modules",
+        _("Modules"),
+        Template(_("{modules} loaded"), modules=Code(len(LOADED_MODULES))),
+    )
+    technical_section += KeyValue(
+        _("Legacy modules"),
         Template(
-            "{cmds} total commands registered, in {modules} modules",
+            _("{cmds} total commands registered, in {modules} modules"),
             cmds=Code(len(get_all_cmds_raw())),
             modules=Code(len(LOADED_MODULES)),
         ),
@@ -79,9 +83,9 @@ async def get_system_stats() -> Doc:
     migration_status = await get_migration_status()
     if migration_status["status"] == "ok":
         technical_section += KeyValue(
-            "Migrations",
+            _("Migrations"),
             Template(
-                "{total} total, {applied} applied, {pending} pending",
+                _("{total} total, {applied} applied, {pending} pending"),
                 total=Code(migration_status["total"]),
                 applied=Code(migration_status["applied"]),
                 pending=Code(migration_status["pending"]),

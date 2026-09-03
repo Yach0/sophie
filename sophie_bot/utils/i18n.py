@@ -2,7 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from re import compile
-from typing import Any, ClassVar, cast
+from typing import Any, cast
 
 from aiogram.utils.i18n import I18n
 from babel.core import Locale
@@ -30,18 +30,18 @@ class LocaleStats:
 
 
 class I18nNew(I18n):
-    babels: ClassVar[dict[str, Locale]] = {}
-    stats: ClassVar[dict[str, LocaleStats | None]] = {}
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.babels: dict[str, Locale] = {}
+        self.stats: dict[str, LocaleStats | None] = {}
 
         log.debug("Loading locales additional data...")
         for locale in self.locales:
             babel = self.babel(locale)
             self.babels[locale] = babel
             self.stats[locale] = self.parse_stats(locale)
-            if not self.stats[locale]:
+            stats_path = Path(self.path) / locale / "stats.txt"
+            if stats_path.exists() and self.stats[locale] is None:
                 log.debug(f"! Can't parse stats for locale {locale}!")
 
         # add en
@@ -85,7 +85,7 @@ class I18nNew(I18n):
         return self.locale_display(self.current_locale_babel)
 
     def get_locale_stats(self, locale_code: str) -> LocaleStats | None:
-        return self.stats[locale_code]
+        return self.stats.get(locale_code)
 
     def get_current_locale_stats(self) -> LocaleStats | None:
         return self.get_locale_stats(self.ctx_locale.get())
@@ -94,15 +94,15 @@ class I18nNew(I18n):
         return self.ctx_locale.get() == self.default_locale
 
     @staticmethod
-    def to_iso_639_1(lang_code: str):
+    def to_iso_639_1(lang_code: str) -> str:
         return lang_code.split("_", 1)[0]
 
     @property
     def locales_iso_639_1(self) -> tuple[str, ...]:
-        return tuple(self.to_iso_639_1(lang_code) for lang_code in self.available_locales)
+        return tuple(dict.fromkeys(self.to_iso_639_1(lang_code) for lang_code in self.available_locales))
 
     @property
-    def current_locale_iso_639_1(self):
+    def current_locale_iso_639_1(self) -> str:
         return self.to_iso_639_1(self.current_locale)
 
 

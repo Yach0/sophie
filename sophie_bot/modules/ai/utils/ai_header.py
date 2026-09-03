@@ -58,7 +58,7 @@ def build_ai_header(
     style: AIHeaderStyle,
     status: Element | str = "",
     battery: Element | str = "",
-) -> Element | None:
+) -> Element | str | None:
     if style == "disable":
         return None
     if style == "simple":
@@ -66,7 +66,7 @@ def build_ai_header(
     return ai_table_header(status, battery)
 
 
-def build_ai_message_doc(style: AIHeaderStyle, header: Element | None, *body: Element | str | None) -> Doc:
+def build_ai_message_doc(style: AIHeaderStyle, header: Element | str | None, *body: Element | str | None) -> Doc:
     body_doc = Doc(*body)
     if header is None:
         return body_doc

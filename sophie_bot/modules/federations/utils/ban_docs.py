@@ -82,7 +82,7 @@ def build_ban_log_doc(
         ),
         KeyValue(_("By"), banner_name),
         Template(
-            "User banned in {banned_count} out of {total_chats} chats in the federation",
+            _("User banned in {banned_count} out of {total_chats} chats in the federation"),
             banned_count=banned_count,
             total_chats=total_chats,
         ),

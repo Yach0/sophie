@@ -59,7 +59,7 @@ async def build_chatbot_header(
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
     style: AIHeaderStyle = "table",
-) -> Element | None:
+) -> Element | str | None:
     """The header of a *finished* AI message.
 
     Only built once generation completed: the status names what the run actually did and the battery
@@ -97,8 +97,9 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
     )
 
 
-def truncate_output(header: Element | None, output_text: str) -> str:
-    length = len(output_text) + (len(header.to_html()) if header is not None else 0)
+def truncate_output(header: Element | str | None, output_text: str) -> str:
+    header_html = header.to_html() if isinstance(header, Element) else str(header or "")
+    length = len(output_text) + len(header_html)
     if length > 4000:
         return output_text[:4000] + "..."
     return output_text
@@ -110,7 +111,7 @@ def build_truncated_note() -> Doc:
 
 
 async def build_reply_doc(
-    header: Element | None,
+    header: Element | str | None,
     output_text: str,
     model: Model | None,
     result: AIAgentResult[Any] | None,

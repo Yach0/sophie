@@ -97,7 +97,7 @@ async def _build_chatbot_header(
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
     style: AIHeaderStyle,
-) -> Element | None:
+) -> Element | str | None:
     return await build_chatbot_header(connection.db_model.iid, model, message_history, style)
 
 
@@ -120,7 +120,7 @@ def _truncate_to_boundary(text: str, max_length: int) -> str:
 
 
 async def _build_fitting_reply_doc(
-    header: Element | None,
+    header: Element | str | None,
     output_text: str,
     model: Model | None,
     result: AIAgentResult[str] | None,
