@@ -370,7 +370,7 @@ msgid "Ask Sophie a question"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:42
-#: sophie_bot/modules/ai/handlers/research.py:104
+#: sophie_bot/modules/ai/handlers/research.py:103
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr ""
 
@@ -793,16 +793,16 @@ msgstr ""
 msgid "The AI mode has been exited."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:45
+#: sophie_bot/modules/ai/handlers/research.py:46
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:84
 msgid "Starting the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:80
+#: sophie_bot/modules/ai/handlers/research.py:79
 msgid "Research topic"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/research.py:82
+#: sophie_bot/modules/ai/handlers/research.py:81
 msgid "Research a topic using multistage web search and return a summary with sources"
 msgstr ""
 
@@ -843,23 +843,23 @@ msgstr ""
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:168
+#: sophie_bot/modules/ai/handlers/translate.py:169
 msgid "Please provide text to translate."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:183
+#: sophie_bot/modules/ai/handlers/translate.py:190
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:198
+#: sophie_bot/modules/ai/handlers/translate.py:205
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:236
+#: sophie_bot/modules/ai/handlers/translate.py:243
 msgid "Error generating translation"
 msgstr ""
 
@@ -3949,7 +3949,7 @@ msgstr ""
 
 #: sophie_bot/modules/help/__init__.py:46
 #: sophie_bot/modules/help/handlers/help_group.py:27
-#: sophie_bot/modules/help/handlers/pm_modules.py:72
+#: sophie_bot/modules/help/handlers/pm_modules.py:84
 #: sophie_bot/modules/help/handlers/start_group.py:34
 #: sophie_bot/modules/help/handlers/start_pm.py:54
 msgid "Help"
@@ -3975,56 +3975,56 @@ msgstr ""
 msgid "The help information available in the private messages with Sophie"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:27
+#: sophie_bot/modules/help/handlers/pm_modules.py:40
 msgid "Shows help overview for all modules"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:61
-#: sophie_bot/modules/help/handlers/pm_modules.py:127
+#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:139
 #: sophie_bot/modules/privacy/handlers/privacy.py:37
 msgid "⬅️ Back"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:65
+#: sophie_bot/modules/help/handlers/pm_modules.py:77
 #, python-brace-format
 msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:85
 msgid "There are three ways to find your way around Sophie:"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:75
+#: sophie_bot/modules/help/handlers/pm_modules.py:87
 msgid "📖 The wiki"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:75
+#: sophie_bot/modules/help/handlers/pm_modules.py:87
 msgid "detailed information on every feature"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:76
+#: sophie_bot/modules/help/handlers/pm_modules.py:88
 msgid "🧩 The modules below — a quick overview of the commands in each one"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:77
+#: sophie_bot/modules/help/handlers/pm_modules.py:89
 msgid "💬 Sophie herself — ask her how to use her, in your own words"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:95
+#: sophie_bot/modules/help/handlers/pm_modules.py:91
+msgid "Select a module to get help with"
+msgstr ""
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:109
 msgid "Module not found"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:113
+#: sophie_bot/modules/help/handlers/pm_modules.py:127
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr ""
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:121
-msgid "📖 Look the module's wiki page for more information"
-msgstr ""
-
-#: sophie_bot/modules/help/handlers/pm_modules.py:123
-msgid "📖 Wiki page"
+#: sophie_bot/modules/help/handlers/pm_modules.py:135
+msgid "📖 Wiki page with more info"
 msgstr ""
 
 #: sophie_bot/modules/help/handlers/set_lang_legacy.py:30
@@ -6815,7 +6815,7 @@ msgstr ""
 msgid "Action configured successfully!"
 msgstr ""
 
-#: sophie_bot/modules/utils_/reply_or_edit.py:14
+#: sophie_bot/modules/utils_/reply_or_edit.py:13
 #: sophie_bot/utils/handlers.py:89 sophie_bot/utils/handlers.py:108
 #: sophie_bot/utils/handlers.py:117
 msgid "The message is inaccessible. Please write the command again"
