@@ -20,6 +20,7 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, AIRetryCallback, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import (
     AIAgentResult,
@@ -95,8 +96,9 @@ async def _build_chatbot_header(
     connection: ChatConnection,
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
-) -> Element:
-    return await build_chatbot_header(connection.db_model.iid, model, message_history)
+    style: AIHeaderStyle,
+) -> Element | None:
+    return await build_chatbot_header(connection.db_model.iid, model, message_history, style)
 
 
 def _truncate_to_boundary(text: str, max_length: int) -> str:
@@ -118,12 +120,13 @@ def _truncate_to_boundary(text: str, max_length: int) -> str:
 
 
 async def _build_fitting_reply_doc(
-    header: Element,
+    header: Element | None,
     output_text: str,
     model: Model | None,
     result: AIAgentResult[str] | None,
     explicit_debug_mode: bool,
     chat_tid: int,
+    header_style: AIHeaderStyle = "table",
 ) -> Doc:
     fitted_output_text = output_text
     mention_index = await resolve_mention_index(chat_tid) if "@" in output_text else None
@@ -136,6 +139,7 @@ async def _build_fitting_reply_doc(
             explicit_debug_mode,
             chat_tid=chat_tid,
             mention_index=mention_index,
+            header_style=header_style,
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
@@ -157,6 +161,7 @@ async def _build_fitting_reply_doc(
         explicit_debug_mode,
         chat_tid=chat_tid,
         mention_index=mention_index,
+        header_style=header_style,
     )
 
 
@@ -324,7 +329,8 @@ async def ai_chatbot_reply(
             except (PyMongoError, RedisError) as err:
                 log.warning("Failed to charge AI usage for chatbot", error=str(err))
 
-        header = await _build_chatbot_header(connection, model, result.message_history)
+        header_style = await get_ai_header_style("chatbot", message.chat.id)
+        header = await _build_chatbot_header(connection, model, result.message_history, header_style)
         research_response = (
             retrieve_latest_research_response(result.message_history)
             if await is_enabled("ai_chatbot_research_quote", chat_tid=message.chat.id)
@@ -338,6 +344,7 @@ async def ai_chatbot_reply(
             result,
             explicit_debug_mode,
             chat_tid=message.chat.id,
+            header_style=header_style,
         )
         # Appended to the doc rather than to the text, so the length-fitting loop above cannot eat
         # it — a truncated reply is exactly the case where the loop is shrinking hardest.

@@ -12,6 +12,12 @@ from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatMode
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    build_ai_header,
+    build_ai_message_doc,
+    get_ai_header_style,
+)
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
@@ -129,16 +135,24 @@ def _build_summary_line_doc(chat_tid: int, line: AIChatSummaryLine, current_loca
     )
 
 
-def _build_summary_doc(chat_tid: int, summary_date: date, overview: str, lines: list[AIChatSummaryLine]) -> Doc:
+def _build_summary_doc(
+    chat_tid: int,
+    summary_date: date,
+    overview: str,
+    lines: list[AIChatSummaryLine],
+    header_style: AIHeaderStyle = "table",
+) -> Doc:
     current_locale = get_i18n().current_locale
     sorted_lines = sorted(lines, key=lambda line: line.first_message_at)
     rendered_lines = VList(*[_build_summary_line_doc(chat_tid, line, current_locale) for line in sorted_lines])
-    return Doc(
-        Title(
-            Template(
-                _("Chat history of {today}"), today=format_date(summary_date, format="long", locale=current_locale)
-            )
-        ),
+    title = Title(
+        Template(_("Chat history of {today}"), today=format_date(summary_date, format="long", locale=current_locale))
+    )
+    header = build_ai_header(header_style, title)
+    return build_ai_message_doc(
+        header_style,
+        header,
+        title if header_style != "table" else None,
         overview,
         " ",
         BlockQuote(rendered_lines, expandable=True),
@@ -237,7 +251,11 @@ class GenerateChatSummaries:
 
     @staticmethod
     async def send_summary(chat_tid: int, summary_date: date, overview: str, lines: list[AIChatSummaryLine]) -> None:
-        await bot.send_message(chat_tid, _build_summary_doc(chat_tid, summary_date, overview, lines).to_html())
+        header_style = await get_ai_header_style("summary", chat_tid)
+        await bot.send_message(
+            chat_tid,
+            _build_summary_doc(chat_tid, summary_date, overview, lines, header_style).to_html(),
+        )
 
     async def process_chat(
         self,
