@@ -241,6 +241,31 @@ async def test_run_ai_stream_concatenates_text_from_every_round(no_stream_deboun
     assert "Let me check the docs." in streamed_text
 
 
+async def test_run_ai_stream_forces_latest_text_before_a_tool_call() -> None:
+    callback_order: list[tuple[str, str]] = []
+
+    async def on_text_stream(text: str) -> None:
+        callback_order.append(("text", text))
+
+    async def on_tool_call(tool_name: str) -> None:
+        callback_order.append(("tool", tool_name))
+
+    agent = FakeEventAgent(
+        events=[*text_round("Let me check ", "the docs."), tool_call("sophie_help")],
+        final_output="Let me check the docs.",
+    )
+
+    await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="How does antiflood work?",
+        on_text_stream=on_text_stream,
+        on_tool_call=on_tool_call,
+    )
+
+    tool_index = callback_order.index(("tool", "sophie_help"))
+    assert callback_order[tool_index - 1] == ("text", "Let me check the docs.")
+
+
 async def test_run_ai_stream_routes_thinking_away_from_the_answer(no_stream_debounce: None) -> None:
     streamed_text: list[str] = []
     streamed_reasoning: list[str] = []

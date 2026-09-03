@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
@@ -65,3 +66,63 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
     # Whitespace collapsed, and a blank update never costs an edit.
     response_message.edit_text.assert_awaited_once()
     assert "The user is asking about antiflood." in _edited_text(response_message)
+
+
+@pytest.mark.asyncio
+async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
+    response_message = SimpleNamespace(edit_text=AsyncMock())
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        header=Doc("Initial"),
+        mode=StreamMode.HTML_EDIT,
+        throttle_seconds=60,
+        tool_thinking_texts={"lookup": ("Looking it up...",)},
+    )
+    streamer.response_message = cast(Message, response_message)
+
+    await streamer.stream("Let me check")
+    await streamer.stream("Let me check the docs.")
+    await streamer.update_thinking_for_tool("lookup")
+
+    assert response_message.edit_text.await_count == 2
+    assert "Looking it up..." in _edited_text(response_message)
+    assert "Let me check the docs." in _edited_text(response_message)
+
+
+@pytest.mark.asyncio
+async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
+    response_message = SimpleNamespace(edit_text=AsyncMock())
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        header=Doc("Initial"),
+        mode=StreamMode.HTML_EDIT,
+        throttle_seconds=0.01,
+    )
+    streamer.response_message = cast(Message, response_message)
+
+    await streamer.stream("First draft")
+    await streamer.stream("Latest draft")
+    assert response_message.edit_text.await_count == 1
+
+    await asyncio.sleep(0.02)
+
+    assert response_message.edit_text.await_count == 2
+    assert "Latest draft" in _edited_text(response_message)
+
+
+@pytest.mark.asyncio
+async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> None:
+    response_message = SimpleNamespace(edit_text=AsyncMock())
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        header=Doc("Initial"),
+        mode=StreamMode.HTML_EDIT,
+        throttle_seconds=0,
+        tool_thinking_texts={"lookup": ("Looking it up...",)},
+    )
+    streamer.response_message = cast(Message, response_message)
+
+    await streamer.update_thinking_for_tool("lookup")
+    await streamer.update_thinking_for_tool("lookup")
+
+    response_message.edit_text.assert_awaited_once()
