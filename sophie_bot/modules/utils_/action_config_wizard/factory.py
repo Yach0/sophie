@@ -11,6 +11,7 @@ from .callbacks import ACWCoreCallback, ACWSettingCallback
 from .config import ActionWizardConfig
 from .context import _ACTION_WIZARD_CONFIGS
 from .message import _ACWSetupHandler, _ACWWizardHandler
+from .state import ActionConfigFSM
 
 
 def create_action_config_system(
@@ -23,55 +24,51 @@ def create_action_config_system(
     type[SophieBaseHandler[Any]],
     type[SophieBaseHandler[Any]],
 ]:
-    """Create a complete set of handler classes from a single config."""
-
+    """Create handlers sharing one config and one aggregate draft."""
     _ACTION_WIZARD_CONFIGS[cfg.module_name] = cfg
-
     wizard_cls = type(
         "ACWWizard",
         (_ACWWizardHandler,),
-        {
-            "cfg": cfg,
-            "filters": staticmethod(lambda: (cfg.command_filter, cfg.admin_filter)),
-        },
+        {"cfg": cfg, "filters": staticmethod(lambda: (cfg.command_filter, cfg.admin_filter, *cfg.extra_filters))},
     )
-
     callback_cls = type(
         "ACWCallback",
         (_ACWCallbackHandler,),
         {
             "cfg": cfg,
-            "filters": staticmethod(lambda: (ACWCoreCallback.filter(F.mod == cfg.callback_prefix), cfg.admin_filter)),
+            "filters": staticmethod(
+                lambda: (ACWCoreCallback.filter(F.mod == cfg.callback_prefix), cfg.admin_filter, *cfg.extra_filters)
+            ),
         },
     )
-
     setup_cls = type(
         "ACWSetup",
         (_ACWSetupHandler,),
         {
             "cfg": cfg,
+            "filters": staticmethod(lambda: (ActionConfigFSM.interactive_setup, cfg.admin_filter, *cfg.extra_filters)),
         },
     )
-
     settings_cls = type(
         "ACWSettings",
         (_ACWSettingsHandler,),
         {
             "cfg": cfg,
             "filters": staticmethod(
-                lambda: (ACWSettingCallback.filter(F.mod == cfg.callback_prefix), cfg.admin_filter)
+                lambda: (ACWSettingCallback.filter(F.mod == cfg.callback_prefix), cfg.admin_filter, *cfg.extra_filters)
             ),
         },
     )
-
     done_cls = type("ACWDone", (_ACWNoOpHandler,), {})
     cancel_cls = type("ACWCancel", (_ACWNoOpHandler,), {})
-
-    return (
-        cast(type[SophieBaseHandler[Any]], wizard_cls),
-        cast(type[SophieBaseHandler[Any]], callback_cls),
-        cast(type[SophieBaseHandler[Any]], setup_cls),
-        cast(type[SophieBaseHandler[Any]], done_cls),
-        cast(type[SophieBaseHandler[Any]], cancel_cls),
-        cast(type[SophieBaseHandler[Any]], settings_cls),
+    return cast(
+        tuple[
+            type[SophieBaseHandler[Any]],
+            type[SophieBaseHandler[Any]],
+            type[SophieBaseHandler[Any]],
+            type[SophieBaseHandler[Any]],
+            type[SophieBaseHandler[Any]],
+            type[SophieBaseHandler[Any]],
+        ],
+        (wizard_cls, callback_cls, setup_cls, done_cls, cancel_cls, settings_cls),
     )

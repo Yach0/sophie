@@ -33,3 +33,16 @@ class ToggleFilterSilentCallback(CallbackData, prefix="filter_toggle_silent"):
 
 class SaveFilterCallback(CallbackData, prefix="save_filter"):
     pass
+
+
+class FilterManagementCallback(CallbackData, prefix="filter_manage"):
+    operation: str
+    oid: str
+
+
+class FilterDeleteConfirmCallback(CallbackData, prefix="filter_delete_confirm"):
+    oid: str
+
+
+class FiltersPageCallback(CallbackData, prefix="filters_page"):
+    page: int

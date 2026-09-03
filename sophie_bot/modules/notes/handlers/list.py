@@ -1,21 +1,27 @@
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from ass_tg.types import OptionalArg, TextArg
 from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 
-from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.db.models import NoteModel
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.ai.utils.ai_quota import check_quota
+from sophie_bot.modules.notes.callbacks import NotesPageCallback
 from sophie_bot.modules.notes.utils.list import format_notes_list
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
-from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.pagination import PaginationContext, build_pagination_row, paginate
 
 LIST_CMDS = ("notes", "saved", "notelist")
+_PAGE_SIZE = 8
+_SCOPE = "notes"
 
 
 @flags.args(search=OptionalArg(TextArg(l_("?Search notes"))))
@@ -37,55 +43,94 @@ class NotesList(SophieMessageHandler):
         return await common_try(self.event.reply(text), reply_not_found=send_message)
 
     async def handle(self) -> Any:
-        to_search: str | None = self.data.get("search")
-        connection = self.connection
-
-        rag_search_allowed = (
-            to_search
-            and await is_enabled("notes_rag_list_search", chat_tid=connection.tid)
-            and await is_enabled("ai_chatbot", chat_tid=connection.tid)
-        )
-        if rag_search_allowed:
-            from sophie_bot.modules.ai.utils.ai_quota import check_quota
-
-            quota_result = await check_quota(connection.db_model.iid)
-            rag_search_allowed = quota_result.allowed
-
-        if rag_search_allowed:
-            assert to_search is not None
-            notes = await semantic_search_notes(connection.db_model.iid, to_search)
-        else:
-            notes = await NoteModel.get_chat_notes(connection.db_model.iid)
-            if to_search:
-                notes = [note for note in notes if any(to_search in name for name in note.names)]
-
-        if to_search and not notes:
-            return await self._reply_or_send(
-                str(
-                    Template(
-                        _("No notes found by the provided search pattern {pattern} in {chat_name}."),
-                        pattern=Italic(to_search),
-                        chat_name=Italic(connection.title),
-                    )
-                )
-            )
+        search: str | None = self.data.get("search")
+        state = self.data.get("state")
+        if state is not None:
+            await PaginationContext(state).start(_SCOPE, {"search": search})
+        notes = await _query_notes(self.connection.db_model.iid, self.connection.tid, search)
         if not notes:
-            return await self._reply_or_send(
-                str(Template(_("No notes found in {chat_name}."), chat_name=Italic(connection.title)))
+            return await self._reply_or_send(_empty_notes_text(search, self.connection.title))
+        return await self._reply_or_send(_notes_page_text(self.connection.title, search, paginate(notes, _PAGE_SIZE)))
+
+
+class NotesPageHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (NotesPageCallback.filter(),)
+
+    async def handle(self) -> Any:
+        callback: CallbackQuery = self.event
+        context = PaginationContext(self.state)
+        params = await context.get(_SCOPE)
+        if params is None:
+            await callback.answer(_("This list has expired. Please run the command again."), show_alert=True)
+            return
+        search = params.get("search")
+        if search is not None and not isinstance(search, str):
+            await callback.answer(_("This list has expired. Please run the command again."), show_alert=True)
+            return
+        notes = await _query_notes(self.connection.db_model.iid, self.connection.tid, search)
+        if not notes:
+            if callback.message and isinstance(callback.message, Message):
+                await callback.message.edit_text(_empty_notes_text(search, self.connection.title))
+            await context.clear(_SCOPE)
+            await callback.answer()
+            return
+        page = paginate(notes, _PAGE_SIZE, self.data["callback_data"].page)
+        if callback.message and isinstance(callback.message, Message):
+            await callback.message.edit_text(
+                _notes_page_text(self.connection.title, search, page),
+                reply_markup=_notes_navigation(page),
             )
+        await callback.answer()
 
-        doc = Doc(
-            Section(
-                KeyValue(_("Search pattern"), Italic(to_search)) if to_search else None,
-                format_notes_list(notes),
-                title=Template(_("Notes in {chat_name}"), chat_name=connection.title).to_html(),
-            ),
-            " ",
+
+async def _query_notes(chat_iid: Any, chat_tid: int, search: str | None) -> list[NoteModel]:
+    rag_allowed = (
+        search
+        and await is_enabled("notes_rag_list_search", chat_tid=chat_tid)
+        and await is_enabled("ai_chatbot", chat_tid=chat_tid)
+    )
+    if rag_allowed:
+        quota_result = await check_quota(chat_iid)
+        rag_allowed = quota_result.allowed
+    if rag_allowed:
+        assert search is not None
+        return await semantic_search_notes(chat_iid, search)
+    notes = await NoteModel.get_chat_notes(chat_iid)
+    return [note for note in notes if not search or any(search in name for name in note.names)]
+
+
+def _empty_notes_text(search: str | None, chat_title: str) -> str:
+    if search:
+        return str(
             Template(
-                _("Use {cmd} to retrieve a note. Example: {cmd_example}"),
-                cmd=Italic(_("#(Note name)")),
-                cmd_example=Code(f"#{notes[0].names[0]}"),
-            ),
+                _("No notes found by the provided search pattern {pattern} in {chat_name}."),
+                pattern=Italic(search),
+                chat_name=Italic(chat_title),
+            )
         )
+    return str(Template(_("No notes found in {chat_name}."), chat_name=Italic(chat_title)))
 
-        return await self.event.reply(str(doc))
+
+def _notes_page_text(chat_title: str, search: str | None, page: Any) -> str:
+    page_notes = list(page.items)
+    doc = Doc(
+        Section(
+            KeyValue(_("Search pattern"), Italic(search)) if search else None,
+            format_notes_list(page_notes),
+            title=Template(_("Notes in {chat_name}"), chat_name=chat_title).to_html(),
+        ),
+        " ",
+        Template(
+            _("Use {cmd} to retrieve a note. Example: {cmd_example}"),
+            cmd=Italic(_("#(Note name)")),
+            cmd_example=Code(f"#{page_notes[0].names[0]}"),
+        ),
+    )
+    return str(doc)
+
+
+def _notes_navigation(page: Any) -> InlineKeyboardMarkup | None:
+    buttons = build_pagination_row(page, lambda page_number: NotesPageCallback(page=page_number))
+    return InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None

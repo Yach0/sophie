@@ -232,7 +232,7 @@ msgstr ""
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:86
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:96
 #: sophie_bot/modules/notes/handlers/save.py:81
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:159
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:140
 msgid "Description"
 msgstr ""
 
@@ -1549,11 +1549,11 @@ msgstr ""
 msgid "Failed to download video file"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/action_config.py:25
+#: sophie_bot/modules/antiflood/action_config.py:28
 msgid "Antiflood Action Configuration"
 msgstr ""
 
-#: sophie_bot/modules/antiflood/action_config.py:26
+#: sophie_bot/modules/antiflood/action_config.py:29
 msgid "Antiflood action configured successfully!"
 msgstr ""
 
@@ -1597,6 +1597,9 @@ msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:48
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:78
+#: sophie_bot/modules/filters/handlers/filters_list.py:140
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:60
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:103
 msgid "Actions"
 msgstr ""
 
@@ -1983,7 +1986,7 @@ msgstr ""
 #: sophie_bot/modules/promotes/handlers/promote.py:152
 #: sophie_bot/modules/restrictions/handlers/base.py:139
 #: sophie_bot/modules/restrictions/services/silent.py:45
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:38
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:32
 #: sophie_bot/modules/utils_/status_handler.py:49
 #: sophie_bot/modules/utils_/status_handler.py:72
 #: sophie_bot/modules/utils_/status_handler.py:128
@@ -2814,8 +2817,8 @@ msgstr ""
 #: sophie_bot/modules/federations/handlers/delete.py:35
 #: sophie_bot/modules/filters/handlers/action_select.py:50
 #: sophie_bot/modules/filters/handlers/actions_list.py:69
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:332
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:195
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:310
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:157
 msgid "❌ Cancel"
 msgstr ""
 
@@ -3489,21 +3492,62 @@ msgstr ""
 msgid "❌ The task has been failed, I will tag it as failed and retry later."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:85
-#: sophie_bot/modules/filters/handlers/filter_del.py:52
+#: sophie_bot/modules/filters/__init__.py:69
+#: sophie_bot/modules/filters/handlers/filter_del.py:58
 msgid "Filters"
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:89
+#: sophie_bot/modules/filters/__init__.py:73
 msgid "Filters allows to invoke different actions for different messages."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:90
+#: sophie_bot/modules/filters/__init__.py:74
 msgid "For example muting the users when they mention crypto."
 msgstr ""
 
-#: sophie_bot/modules/filters/__init__.py:92
+#: sophie_bot/modules/filters/__init__.py:76
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
+msgstr ""
+
+#: sophie_bot/modules/filters/action_config.py:15
+msgid "Filter configuration"
+msgstr ""
+
+#: sophie_bot/modules/filters/action_config.py:16
+msgid "Filter saved."
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:55
+#: sophie_bot/modules/filters/filter_wizard.py:74
+msgid "Filter handler is missing."
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:61
+msgid "Filter handler is invalid."
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:63
+#: sophie_bot/modules/filters/handlers/filter_save.py:66
+#: sophie_bot/modules/filters/utils_/filter_action_text.py:18
+#: sophie_bot/modules/warns/handlers/warnaction.py:30
+#: sophie_bot/modules/warns/handlers/warnaction.py:42
+msgid "No actions configured"
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:87
+msgid "The filter could not be found."
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:103
+msgid "Handler"
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:106
+msgid "🔇 Silent mode: On"
+msgstr ""
+
+#: sophie_bot/modules/filters/filter_wizard.py:106
+msgid "🔊 Silent mode: Off"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/action_change_setting_confirm.py:59
@@ -3513,8 +3557,8 @@ msgstr ""
 #: sophie_bot/modules/filters/handlers/actions_list.py:38
 #: sophie_bot/modules/filters/handlers/actions_list_to_remove.py:35
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:45
-#: sophie_bot/modules/filters/handlers/filter_save.py:51
-#: sophie_bot/modules/filters/handlers/filter_toggle_silent.py:29
+#: sophie_bot/modules/filters/handlers/filter_save.py:64
+#: sophie_bot/modules/filters/handlers/filter_toggle_silent.py:38
 msgid "Continuing setup is only possible by the same user who started it."
 msgstr ""
 
@@ -3547,17 +3591,15 @@ msgid "⬅️ Do not remove actions (Back)"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:52
-#: sophie_bot/modules/filters/handlers/filter_new.py:51
 msgid "New filter"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:53
-#: sophie_bot/modules/filters/handlers/filter_new.py:52
 msgid "Handles"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_confirm.py:88
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:78
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:53
 msgid "➕ Add another action"
 msgstr ""
 
@@ -3573,97 +3615,144 @@ msgstr ""
 msgid "🔊 Silent mode: off"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:24
+#: sophie_bot/modules/filters/handlers/filter_del.py:25
 msgid "Deletes a filter"
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:25
-#: sophie_bot/modules/filters/handlers/filter_del.py:40
-#: sophie_bot/modules/filters/handlers/filter_new.py:38
+#: sophie_bot/modules/filters/handlers/filter_del.py:38
+#: sophie_bot/modules/filters/handlers/filter_new.py:34
 msgid "Text to match"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:39
+#: sophie_bot/modules/filters/handlers/filter_del.py:38
 msgid "?Filter index"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:46
+#: sophie_bot/modules/filters/handlers/filter_del.py:44
+#: sophie_bot/modules/filters/handlers/filters_list.py:178
+msgid "Delete"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filter_del.py:52
 #, python-brace-format
 msgid "There are multiple filters with keyword {keyword}!"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:55
-#, python-brace-format
-msgid "Please specify the filter index using {cmd} command."
+#: sophie_bot/modules/filters/handlers/filter_del.py:60
+msgid "Choose the filter to delete using the buttons below."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:57
-#, python-brace-format
-msgid "For example: {cmd}"
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/filter_del.py:71
+#: sophie_bot/modules/filters/handlers/filter_del.py:74
 #, python-brace-format
 msgid "The filter with keyword {keyword} does not exist!"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:72
+#: sophie_bot/modules/filters/handlers/filter_del.py:75
 #, python-brace-format
 msgid "Please check the available filters using {cmd} command."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_del.py:89
-#, python-brace-format
-msgid "🗑 The filter with keyword {keyword} was deleted!"
+#: sophie_bot/modules/filters/handlers/filter_del.py:81
+msgid "Filter index is out of range."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_edit.py:21
+#: sophie_bot/modules/filters/handlers/filter_del.py:89
+#, python-brace-format
+msgid "The filter {keyword} was deleted."
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filter_edit.py:24
 msgid "Edits filter settings"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_edit.py:34
+#: sophie_bot/modules/filters/handlers/filter_edit.py:37
 msgid "Filter's keyword"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_edit.py:45
+#: sophie_bot/modules/filters/handlers/filter_edit.py:46
 #, python-brace-format
 msgid "Filter with handler {handler} can not be found! Check all filters using {cmd} command"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_new.py:24
+#: sophie_bot/modules/filters/handlers/filter_new.py:21
 msgid "Adds a new filter"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_save.py:54
-#: sophie_bot/modules/filters/utils_/filter_action_text.py:18
-#: sophie_bot/modules/warns/handlers/warnaction.py:32
-#: sophie_bot/modules/warns/handlers/warnaction.py:50
-msgid "No actions configured"
-msgstr ""
-
-#: sophie_bot/modules/filters/handlers/filter_save.py:62
+#: sophie_bot/modules/filters/handlers/filter_save.py:58
+#: sophie_bot/modules/filters/handlers/filter_save.py:71
 #, python-brace-format
 msgid "Filter on {keyword} was saved."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:16
+#: sophie_bot/modules/filters/handlers/filters_list.py:37
 msgid "Lists all filters in the chat"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:26
-msgid "There are no filters in this chat!"
+#: sophie_bot/modules/filters/handlers/filters_list.py:80
+#: sophie_bot/modules/filters/handlers/filters_list.py:112
+msgid "Filter not found."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:34
+#: sophie_bot/modules/filters/handlers/filters_list.py:94
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:47
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:75
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:171
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:179
+msgid "Invalid callback data"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:119
+msgid "Filter deleted."
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:121
+#, python-brace-format
+msgid "🗑 The filter with keyword {keyword} was deleted!"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:135
+#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:115
+#: sophie_bot/modules/warns/action_config.py:29
+msgid "Message not found."
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:139
+#, python-brace-format
+msgid "Delete filter {handler}?"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:144
+msgid "🗑 Delete"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:155
+#: sophie_bot/modules/warns/handlers/reset_all_warns.py:34
+#: sophie_bot/modules/warns/handlers/reset_warns.py:50
+msgid "Cancel"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:165
+msgid ""
+"There are no filters in this chat!\n"
+"Use /addfilter <handler> to create one."
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:176
+msgid "Edit"
+msgstr ""
+
+#: sophie_bot/modules/filters/handlers/filters_list.py:184
 #, python-brace-format
 msgid "Filters in {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:38
+#: sophie_bot/modules/filters/handlers/filters_list.py:186
 msgid "Additionally rules from 'Antiflood' module can be enforced."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:39
+#: sophie_bot/modules/filters/handlers/filters_list.py:187
 msgid "Additionally rules from 'Locks' module can be enforced."
 msgstr ""
 
@@ -4680,19 +4769,19 @@ msgstr ""
 msgid "Message deleted"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:75
+#: sophie_bot/modules/notes/__init__.py:76
 msgid "Notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:77
+#: sophie_bot/modules/notes/__init__.py:78
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:81
+#: sophie_bot/modules/notes/__init__.py:82
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:84
+#: sophie_bot/modules/notes/__init__.py:85
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
@@ -4765,39 +4854,44 @@ msgstr ""
 msgid "This note no longer exists."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:21
+#: sophie_bot/modules/notes/handlers/list.py:27
 msgid "?Search notes"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:22
+#: sophie_bot/modules/notes/handlers/list.py:28
 msgid "Lists available notes."
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/list.py:66
+#: sophie_bot/modules/notes/handlers/list.py:70
+msgid "This list has expired. Please run the command again."
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/list.py:108
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:74
+#: sophie_bot/modules/notes/handlers/list.py:113
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:79
+#: sophie_bot/modules/notes/handlers/list.py:120
 msgid "Search pattern"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:81
+#: sophie_bot/modules/notes/handlers/list.py:122
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:85
+#: sophie_bot/modules/notes/handlers/list.py:126
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:86
+#: sophie_bot/modules/notes/handlers/list.py:127
 msgid "#(Note name)"
 msgstr ""
 
@@ -6551,16 +6645,6 @@ msgstr ""
 msgid "Current state {state} is cleared."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:55
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:67
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:79
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:105
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:121
-#: sophie_bot/modules/warns/action_config.py:35
-msgid "Message not found."
-msgstr ""
-
 #: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:34
 #: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:51
 #: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:71
@@ -6676,142 +6760,141 @@ msgstr ""
 msgid "Sophie can't tell who you are while you're posting anonymously. Turn off anonymous mode and try again."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:49
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:64
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:76
-msgid "Invalid callback data"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:71
-msgid "Action removed."
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:82
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:118
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:253
-msgid "Invalid action"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:163
-msgid "Saved"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:172
-msgid "Action configuration cancelled."
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:173
-msgid "Cancelled"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:203
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:260
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:309
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:79
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:96
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:137
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:175
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:189
 msgid "State management not available"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:215
-msgid "Action setup not properly configured"
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:83
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:100
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:290
+msgid "Action not found."
 msgstr ""
 
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:87
+msgid "Action removed."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:92
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:129
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:133
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:282
+msgid "Invalid action"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:142
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:194
 #: sophie_bot/modules/utils_/action_config_wizard/callback.py:226
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:94
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:126
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:182
-msgid "🔙 Back"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:280
-msgid "Invalid setting"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:287
-msgid "Setting configuration not available"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/callback.py:321
-msgid "Setting setup not properly configured"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:77
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:286
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:79
 #: sophie_bot/utils/errors.py:50
 msgid "Setup session expired. Please start again."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:93
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:142
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:145
+msgid "Only one action can be configured."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:148
+msgid "The maximum number of actions has been reached."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:204
+msgid "Saved"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:213
+msgid "Action configuration cancelled."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:214
+msgid "Cancelled"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:243
+msgid "Action setup not properly configured"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:257
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:77
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:110
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:172
+msgid "🔙 Back"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/callback.py:295
+msgid "Setting configuration not available"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:69
 #: sophie_bot/utils/errors.py:45
 msgid "Setup data not found. Please try again."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:100
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:149
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:75
 #: sophie_bot/utils/errors.py:55
 msgid "Invalid chat context. Please restart the setup."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:106
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:97
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:102
 #: sophie_bot/utils/errors.py:65
 msgid "Invalid action configuration."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:155
-#: sophie_bot/utils/errors.py:60
-msgid "Invalid action."
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:169
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:142
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:148
 #: sophie_bot/utils/errors.py:70
 msgid "Invalid setting."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/message.py:175
+#: sophie_bot/modules/utils_/action_config_wizard/message.py:155
 #: sophie_bot/utils/errors.py:75
 msgid "Setting configuration not available."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:63
-msgid "Current Action"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:70
-msgid "✅ Save"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:80
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:53
 msgid "➕ Add action"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:82
-msgid "🔄 Change action"
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:63
+msgid "Options"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:131
-msgid "Select an action to add:"
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:69
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:165
+msgid "✅ Done"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:137
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:103
+msgid "No actions available."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:106
 #, python-brace-format
 msgid "Default action: {icon} {title}"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:158
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:139
 msgid "Action configured"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:160
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:141
 msgid "Action Configuration Complete"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:175
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:143
+msgid "Settings"
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:149
 msgid "🗑️ Delete this action"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:189
-msgid "✅ Done"
-msgstr ""
-
-#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:203
+#: sophie_bot/modules/utils_/action_config_wizard/renderer.py:175
 msgid "Action configured successfully!"
 msgstr ""
 
@@ -6876,16 +6959,16 @@ msgstr ""
 msgid "You can set a max warning limit and an action to take when the limit is reached."
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:46
+#: sophie_bot/modules/warns/action_config.py:50
 msgid "⚙️ Warn Actions - On Each Warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:47
-#: sophie_bot/modules/warns/action_config.py:73
+#: sophie_bot/modules/warns/action_config.py:51
+#: sophie_bot/modules/warns/action_config.py:74
 msgid "Warn action configured successfully!"
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:72
+#: sophie_bot/modules/warns/action_config.py:73
 msgid "⚠️ Warn Actions - On Max Warns Exceeded"
 msgstr ""
 
@@ -6950,11 +7033,6 @@ msgstr ""
 msgid "Confirm"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/reset_all_warns.py:34
-#: sophie_bot/modules/warns/handlers/reset_warns.py:50
-msgid "Cancel"
-msgstr ""
-
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:38
 msgid "Are you sure you want to reset ALL warnings in this chat?"
 msgstr ""
@@ -7015,32 +7093,32 @@ msgstr ""
 msgid "Delete warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:60
+#: sophie_bot/modules/warns/handlers/warnaction.py:52
 #, python-brace-format
 msgid "{icon} {title} (default)"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:64
+#: sophie_bot/modules/warns/handlers/warnaction.py:56
 msgid "Ban the user (default)"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:85
+#: sophie_bot/modules/warns/handlers/warnaction.py:69
 msgid "On each warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:89
+#: sophie_bot/modules/warns/handlers/warnaction.py:70
 msgid "On exceeding warnings"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:96
+#: sophie_bot/modules/warns/handlers/warnaction.py:74
 msgid "Configure on each warn"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:102
+#: sophie_bot/modules/warns/handlers/warnaction.py:80
 msgid "Configure on warnings exceeding"
 msgstr ""
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:110
+#: sophie_bot/modules/warns/handlers/warnaction.py:89
 msgid "Configures warn actions."
 msgstr ""
 
@@ -7536,8 +7614,20 @@ msgstr ""
 msgid "Messages with dice rolls"
 msgstr ""
 
+#: sophie_bot/utils/errors.py:60
+msgid "Invalid action."
+msgstr ""
+
 #: sophie_bot/utils/errors.py:106
 #, python-brace-format
 msgid "Invalid {action} duration, please try again."
+msgstr ""
+
+#: sophie_bot/utils/pagination.py:85
+msgid "◀️ Previous"
+msgstr ""
+
+#: sophie_bot/utils/pagination.py:92
+msgid "Next ▶️"
 msgstr ""
 
