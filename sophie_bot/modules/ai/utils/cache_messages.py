@@ -27,6 +27,14 @@ class MessageType(BaseModel):
     proactively_answered: bool = False
     proactively_reacted: bool = False
 
+    @property
+    def reply_to_user_name(self) -> str | None:
+        if self.reply_to_username:
+            return self.reply_to_username
+        if self.reply_to_user_id is not None:
+            return str(self.reply_to_user_id)
+        return None
+
 
 def get_message_cache_key(chat_id: int) -> str:
     """Builds the Redis key for storing messages of a given chat."""

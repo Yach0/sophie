@@ -1,19 +1,49 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+import pytest
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
+from sophie_bot.modules.ai.utils import message_history
 from sophie_bot.modules.ai.utils.cache_messages import MessageType
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
 
 
-def test_user_message_formatter_sanitizes_names_and_replies() -> None:
+def test_user_message_formatter_localizes_and_sanitizes_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(message_history, "_", lambda text: "Antwort auf" if text == "reply to" else text)
+
     rendered = AIUserMessageFormatter.user_message(
         "hello",
         name="<Alice!>",
         reply_to_user="Bob@example",
     )
 
-    assert rendered == "Alice: From Alice, as reply to Bobexample: hello"
+    assert rendered == "Alice (Antwort auf Bobexample): hello"
+
+
+@pytest.mark.asyncio
+async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    cached = MessageType(
+        user_id=1,
+        message_id=2,
+        text="hello",
+        reply_to_user_id=3,
+        reply_to_username="Bob",
+    )
+    monkeypatch.setattr(
+        message_history.ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice"))
+    )
+    monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
+
+    transformed = await AIMessageHistory._cache_transform_msg(10, cached)
+    history = AIMessageHistory()
+    context_line = await history._format_context_line(10, cached)
+
+    assert isinstance(transformed, ModelRequest)
+    assert transformed.parts[0].content == "Alice (reply to Bob): hello"
+    assert context_line == "Alice (reply to Bob): hello"
 
 
 def test_message_history_adds_system_custom_and_debug_output() -> None:
