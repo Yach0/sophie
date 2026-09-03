@@ -198,7 +198,7 @@ async def _generate_chatbot_result(
             deps=run_config.deps,
             usage_limits=run_config.usage_limits,
             request_options=run_config.request_options,
-            on_tool_call=on_tool_call,
+            on_before_tool_call=on_tool_call,
             on_reasoning_stream=on_reasoning_stream,
             on_retry=on_retry,
             stream_options=stream_options,
@@ -225,6 +225,7 @@ async def _send_chatbot_ai_failure_reply(
 ) -> Message:
     failure_message = ai_request_failed_message(error.sentry_event_id)
     if message_streamer and message_streamer.response_message is not None:
+        await message_streamer.stop()
         try:
             edited_message = await message_streamer.response_message.edit_text(
                 text=failure_message["text"],
@@ -282,13 +283,12 @@ async def ai_chatbot_reply(
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.chatbot, connection.db_model.iid, message.chat.id, mode
         )
-        tool_thinking, reasoning_enabled, continuation, partial_on_limit = await asyncio.gather(
-            is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id),
+        reasoning_enabled, continuation, partial_on_limit = await asyncio.gather(
             is_enabled("ai_chatbot_stream_reasoning", chat_tid=message.chat.id),
             is_enabled("ai_chatbot_stream_continuation", chat_tid=message.chat.id),
             is_enabled("ai_chatbot_partial_on_limit", chat_tid=message.chat.id),
         )
-        on_tool_call = message_streamer.update_thinking_for_tool if message_streamer and tool_thinking else None
+        on_tool_call = message_streamer.update_thinking_for_tool if message_streamer else None
         on_reasoning_stream = message_streamer.stream_reasoning if message_streamer and reasoning_enabled else None
         stream_options = ChatbotStreamOptions(continuation=continuation, partial_on_limit=partial_on_limit)
         try:

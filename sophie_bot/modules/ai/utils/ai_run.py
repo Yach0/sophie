@@ -335,11 +335,11 @@ class _StreamChannel:
     parts: _PartAccumulator = field(default_factory=_PartAccumulator)
     last_emit: float = 0.0
 
-    async def emit(self) -> None:
+    async def emit(self, *, force: bool = False) -> None:
         if self.callback is None:
             return
         now = time.monotonic()
-        if now - self.last_emit < _STREAM_DEBOUNCE_SECONDS:
+        if not force and now - self.last_emit < _STREAM_DEBOUNCE_SECONDS:
             return
         self.last_emit = now
         await self.callback(self.parts.render())
@@ -590,6 +590,7 @@ async def _stream_via_events[DepsT](
     effective_model: Model,
     on_text_stream: TextStreamCallback,
     on_reasoning_stream: TextStreamCallback | None,
+    on_before_tool_call: ToolCallCallback | None,
     on_tool_call: ToolCallCallback | None,
     seen_tool_names: set[str],
     partial_on_limit: bool,
@@ -650,6 +651,12 @@ async def _stream_via_events[DepsT](
                             reasoning.parts.end(content)
                             await reasoning.emit()
                         case FunctionToolCallEvent():
+                            # A tool may take much longer than the stream debounce. Push the full
+                            # narration through before execution starts so the user is not left
+                            # looking at an older partial draft throughout that wait.
+                            await text.emit(force=True)
+                            if on_before_tool_call is not None:
+                                await on_before_tool_call(event.part.tool_name)
                             await notify_tool_call(event.part.tool_name)
                         case AgentRunResultEvent():
                             output_text = text.parts.render()
@@ -687,6 +694,7 @@ async def _stream_via_run_stream[DepsT](
     run_kwargs: dict[str, Any],
     effective_model: Model,
     on_text_stream: TextStreamCallback,
+    on_before_tool_call: ToolCallCallback | None,
     on_tool_call: ToolCallCallback | None,
     seen_tool_names: set[str],
 ) -> _StreamOutcome:
@@ -699,7 +707,7 @@ async def _stream_via_run_stream[DepsT](
     first_token_seen = False
     chunk_count = 0
 
-    if on_tool_call is not None:
+    if on_before_tool_call is not None or on_tool_call is not None:
         notify_tool_call = _tool_call_notifier(on_tool_call, seen_tool_names)
 
         async def event_stream_handler(
@@ -708,6 +716,8 @@ async def _stream_via_run_stream[DepsT](
         ) -> None:
             async for event in events:
                 if isinstance(event, FunctionToolCallEvent):
+                    if on_before_tool_call is not None:
+                        await on_before_tool_call(event.part.tool_name)
                     await notify_tool_call(event.part.tool_name)
 
         run_kwargs["event_stream_handler"] = event_stream_handler
@@ -740,6 +750,7 @@ async def run_ai_stream[DepsT](
     usage_limits: UsageLimits | None = None,
     request_options: AIRequestOptions | None = None,
     model_settings: Mapping[str, object] | None = None,
+    on_before_tool_call: ToolCallCallback | None = None,
     on_tool_call: ToolCallCallback | None = None,
     on_reasoning_stream: TextStreamCallback | None = None,
     on_retry: AIRetryCallback | None = None,
@@ -768,6 +779,7 @@ async def run_ai_stream[DepsT](
                 run_stream_kwargs,
                 effective_model,
                 on_text_stream,
+                on_before_tool_call,
                 on_tool_call,
                 seen_tool_names,
             )
@@ -778,6 +790,7 @@ async def run_ai_stream[DepsT](
             effective_model,
             on_text_stream,
             on_reasoning_stream,
+            on_before_tool_call,
             on_tool_call,
             seen_tool_names,
             options.partial_on_limit,
