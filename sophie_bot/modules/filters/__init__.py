@@ -5,26 +5,29 @@ from fastapi import APIRouter
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest, get_module_manifest
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
 from .. import LOADED_MODULES
-from .action_config import FilterActionCallback, FilterActionSettings, FilterActionSetup
 from .api import api_router as filters_api_router
 from .enforce_middleware import EnforceFiltersMiddleware
+from .filter_wizard import (
+    FilterWizardCallbackHandler,
+    FilterWizardInputHandler,
+    FilterWizardToggleHandler,
+)
 from .handlers.filter_del import FilterDeleteHandler
 from .handlers.filter_edit import FilterEditHandler
 from .handlers.filter_new import FilterNewHandler
-from .handlers.filter_save import FilterSaveHandler
-from .handlers.filter_toggle_silent import FilterToggleSilentHandler
 from .handlers.filters_list import (
     FilterDeleteConfirmHandler,
-    FilterManagementHandler,
+    FilterDeletePromptHandler,
+    FilterEditFromListHandler,
     FiltersListHandler,
     FiltersPageHandler,
 )
-from .utils_.all_modern_actions import ALL_MODERN_ACTIONS
 
 __all__ = ("LOADED_MODULES", "api_router", "post_setup", "pre_setup", "router")
 
@@ -53,16 +56,15 @@ module_manifest = ModuleManifest(
     handlers=(
         FilterNewHandler,
         FilterEditHandler,
-        FilterActionCallback,
-        FilterActionSetup,
-        FilterActionSettings,
         FiltersListHandler,
         FiltersPageHandler,
-        FilterManagementHandler,
-        FilterDeleteHandler,
-        FilterSaveHandler,
-        FilterToggleSilentHandler,
+        FilterEditFromListHandler,
+        FilterDeletePromptHandler,
         FilterDeleteConfirmHandler,
+        FilterDeleteHandler,
+        FilterWizardToggleHandler,
+        FilterWizardCallbackHandler,
+        FilterWizardInputHandler,
     ),
     pre_setup=pre_setup,
     post_setup=post_setup,

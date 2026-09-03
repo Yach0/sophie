@@ -7,8 +7,8 @@ from aiogram.types import Message
 from stfu_tg import Bold, Doc
 
 from sophie_bot.constants import FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
-from sophie_bot.db.models.filters import FilterHandlerType, FilterInSetupType
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
+from sophie_bot.modules.filters.filter_wizard import FilterDraft
 
 
 def _message_stub(message_id: int) -> Message:
@@ -168,8 +168,6 @@ async def test_self_sent_message_is_not_rendered_into_reply_text(monkeypatch: py
 
 
 def test_silent_survives_setup_round_trip() -> None:
-    filter_setup = FilterInSetupType(handler=FilterHandlerType(keyword="spam"), actions={}, silent=True)
-
-    restored = FilterInSetupType.model_validate(filter_setup.model_dump(mode="json"))
-
+    filter_draft = FilterDraft(handler="spam", actions={}, silent=True)
+    restored = FilterDraft.model_validate(filter_draft.model_dump(mode="json"))
     assert restored.silent is True

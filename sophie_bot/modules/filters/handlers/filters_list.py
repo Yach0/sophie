@@ -1,5 +1,6 @@
 from typing import Any
 
+from aiogram import F
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from beanie import PydanticObjectId
@@ -7,22 +8,19 @@ from bson.errors import InvalidId
 from stfu_tg import Button, ButtonRow, Buttons, Doc, KeyValue, Section, Template
 
 from sophie_bot.db.models import FiltersModel
-from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
-from sophie_bot.modules.filters.action_config import _filter_cfg
 from sophie_bot.modules.filters.callbacks import (
     FilterDeleteConfirmCallback,
     FilterManagementCallback,
     FiltersPageCallback,
 )
-from sophie_bot.modules.filters.filter_wizard import start_filter_wizard
+from sophie_bot.modules.filters.filter_wizard import FILTER_WIZARD, FilterDraft
 from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_text
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.utils_.action_config_wizard.config import ActionWizardDraft
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit_rich
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
@@ -62,11 +60,12 @@ class FiltersPageHandler(SophieCallbackQueryHandler):
         await callback.answer()
 
 
-class FilterManagementHandler(SophieCallbackQueryHandler):
+class FilterEditFromListHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            FilterManagementCallback.filter(),
+            FilterManagementCallback.filter(F.operation == "edit"),
+            FeatureFlagFilter("action_config_wizard"),
             FeatureFlagFilter("filters"),
             UserRestricting(admin=True),
             GroupOrConnectedFilter(),
@@ -79,19 +78,28 @@ class FilterManagementHandler(SophieCallbackQueryHandler):
         if filter_model is None:
             await callback.answer(_("Filter not found."), show_alert=True)
             return
-        if data.operation == "edit":
-            setup = FilterInSetupType.from_model(filter_model)
-            draft = ActionWizardDraft(
-                actions=setup.actions,
-                metadata={"handler": setup.handler.keyword, "oid": setup.oid, "silent": setup.silent},
-            )
-            await start_filter_wizard(self, draft, _filter_cfg)
-            await callback.answer()
+        await FILTER_WIZARD.start(self, FilterDraft.from_model(filter_model))
+        await callback.answer()
+
+
+class FilterDeletePromptHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            FilterManagementCallback.filter(F.operation == "delete"),
+            FeatureFlagFilter("filters"),
+            UserRestricting(admin=True),
+            GroupOrConnectedFilter(),
+        )
+
+    async def handle(self) -> Any:
+        callback: CallbackQuery = self.event
+        data: FilterManagementCallback = self.data["callback_data"]
+        filter_model = await _get_owned_filter(self.connection.db_model.iid, data.oid)
+        if filter_model is None:
+            await callback.answer(_("Filter not found."), show_alert=True)
             return
-        if data.operation == "delete":
-            await _show_delete_confirmation(callback, filter_model)
-            return
-        await callback.answer(_("Invalid callback data"), show_alert=True)
+        await _show_delete_confirmation(callback, filter_model)
 
 
 class FilterDeleteConfirmHandler(SophieCallbackQueryHandler):
@@ -187,7 +195,7 @@ async def _render_filter_page(
     document += _("Additionally rules from 'Locks' module can be enforced.")
     document += Buttons(*button_rows)
 
-    navigation = build_pagination_row(page, lambda page_number: FiltersPageCallback(page=page_number))
+    navigation = build_pagination_row(page, lambda page_number: FiltersPageCallback(page=page_number).pack())
     markup: InlineKeyboardMarkup | None = None
     if navigation:
         markup = InlineKeyboardMarkup(inline_keyboard=[navigation])

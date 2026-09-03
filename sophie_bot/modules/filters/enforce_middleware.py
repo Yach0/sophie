@@ -19,8 +19,6 @@ from sophie_bot.modules.ai.utils.ai_header import (
     get_ai_header_style,
 )
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
-from sophie_bot.modules.filters.fsm import FilterEditFSM
-from sophie_bot.modules.filters.types.modern_action_abc import ActionResult
 from sophie_bot.modules.filters.utils_.handle_action import (
     get_effective_filter_actions,
     handle_effective_filter_action,
@@ -30,7 +28,9 @@ from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
+from sophie_bot.modules.utils_.wizard import WizardFSM
 from sophie_bot.services.bot import bot
+from sophie_bot.shared.actions import ActionResult
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
@@ -53,9 +53,8 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: not a group, dropping...")
             return True
 
-        # Check for the filter setup states
-        if state and FilterEditFSM.__name__ in (await state.get_state() or ""):
-            log.debug("EnforceFiltersMiddleware: filter setup state, dropping...")
+        if state and WizardFSM.__name__ in (await state.get_state() or ""):
+            log.debug("EnforceFiltersMiddleware: wizard input state, dropping...")
             return True
 
         # Check for the commands

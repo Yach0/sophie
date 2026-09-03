@@ -1,29 +1,15 @@
-"""Shared aggregate Action Config Wizard primitives."""
+from __future__ import annotations
 
-from typing import Any
-
-from .config import ActionWizardConfig, ActionWizardContext, ActionWizardDraft
-
-
-def create_action_config_system(
-    cfg: ActionWizardConfig,
-) -> tuple[
-    type[Any],
-    type[Any],
-    type[Any],
-    type[Any],
-    type[Any],
-    type[Any],
-]:
-    """Import and create generated handlers lazily to keep module imports acyclic."""
-    from .factory import create_action_config_system as create_system
-
-    return create_system(cfg)
-
+from .config import ActionDraft, ActionWizardConfig, model_action_wizard
+from .handlers import ActionWizardCallbackHandler, ActionWizardInputHandler, ActionWizardStartHandler
+from .wizard import ActionWizard
 
 __all__ = [
+    "ActionDraft",
+    "ActionWizard",
+    "ActionWizardCallbackHandler",
     "ActionWizardConfig",
-    "ActionWizardContext",
-    "ActionWizardDraft",
-    "create_action_config_system",
+    "ActionWizardInputHandler",
+    "ActionWizardStartHandler",
+    "model_action_wizard",
 ]

@@ -3,145 +3,115 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton
 from beanie import PydanticObjectId
 
-from sophie_bot.modules.utils_.action_config_wizard.config import ActionWizardConfig
-from sophie_bot.modules.utils_.action_config_wizard.context import (
-    _ACTION_WIZARD_CONFIGS,
-    get_active_setup_config,
-    get_interactive_setup_chat_iid_raw,
+from sophie_bot.modules.utils_.action_config_wizard.config import ActionDraft, ActionWizardConfig
+from sophie_bot.modules.utils_.action_config_wizard.views import render_home_view
+from sophie_bot.modules.utils_.wizard import (
+    WizardCallback,
+    WizardFSM,
+    WizardScopeFilter,
+    WizardSession,
+    WizardView,
+    build_wizard_navigation,
 )
-from sophie_bot.modules.utils_.action_config_wizard.renderer import WizardRenderer
-from sophie_bot.modules.utils_.action_config_wizard.state import WizardState
 
 
 class DummyFSMContext:
     def __init__(self) -> None:
-        self.data: dict[str, Any] = {}
+        self.data: dict[str, Any] = {"unrelated": "kept"}
         self.state: Any = None
 
     async def get_data(self) -> dict[str, Any]:
         return dict(self.data)
 
     async def update_data(self, **kwargs: Any) -> None:
-        self.data = dict(kwargs)
+        self.data.update(kwargs)
+
+    async def set_data(self, data: dict[str, Any]) -> None:
+        self.data = dict(data)
 
     async def set_state(self, state_value: Any) -> None:
         self.state = state_value
 
-    async def clear(self) -> None:
-        self.data = {}
-        self.state = None
-
-
-class DummyActionContext:
-    async def load(self, chat_iid: Any) -> Any:
-        del chat_iid
-        return None
-
-    async def validate(self, chat_iid: Any, draft: Any, event: Any = None, connection: Any = None) -> None:
-        del chat_iid, draft, event, connection
-
-    async def commit(self, chat_iid: Any, draft: Any, event: Any = None, connection: Any = None) -> None:
-        del chat_iid, draft, event, connection
-
-    def update_control(self, draft: Any, control_name: str) -> bool:
-        del draft, control_name
-        return False
-
-    def render_details(self, draft: Any) -> list[tuple[str, str]]:
-        del draft
-        return []
-
-    def render_controls(self, draft: Any, callback_prefix: str) -> list[list[Any]]:
-        del draft, callback_prefix
-        return []
-
 
 @pytest.mark.asyncio
-async def test_replace_setup_context_clears_stale_keys() -> None:
-    fsm_context = DummyFSMContext()
-    wizard_state = WizardState(fsm_context)  # type: ignore[arg-type]
+async def test_session_round_trip_uses_one_key_and_preserves_unrelated_state() -> None:
+    state = DummyFSMContext()
+    session = WizardSession(state, "filter_action")
     chat_iid = PydanticObjectId()
 
-    await wizard_state.replace_setup_context(
-        action_setup_name="ban_user",
-        action_setup_chat_tid=str(chat_iid),
-        action_setup_callback_prefix="warn_action_max",
-    )
-    await wizard_state.replace_setup_context(
-        setting_setup_action="ban_user",
-        setting_setup_setting_id="change_ban_duration",
-        setting_setup_chat_tid=str(chat_iid),
-        setting_setup_callback_prefix="warn_action_max",
-    )
+    await session.start(chat_iid, {"actions": {"kick_user": None}})
+    await session.start_input(action_name="ai_text")
 
-    state_data = await wizard_state.get_data()
+    assert set(state.data) == {"unrelated", "wizard"}
+    assert await session.get_draft() == {"actions": {"kick_user": None}}
+    assert await session.get_input_context() == {"action_name": "ai_text"}
+    assert await session.is_active(chat_iid)
+    assert state.state == WizardFSM.interactive_input
 
-    assert "action_setup_name" not in state_data
-    assert "action_setup_chat_tid" not in state_data
-    assert state_data["setting_setup_action"] == "ban_user"
-    assert state_data["setting_setup_chat_tid"] == str(chat_iid)
+    await session.clear_input()
+    assert set(state.data) == {"unrelated", "wizard"}
+    assert await session.get_input_context() is None
+    assert await session.get_draft() == {"actions": {"kick_user": None}}
+    assert await session.is_active(chat_iid)
+    assert state.state is None
 
-
-def test_setup_message_uses_rich_buttons() -> None:
-    document = WizardRenderer.rich_setup_message(
-        "Configure",
-        InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="Save", callback_data="save")],
-            ]
-        ),
-    )
-
-    rich_text = document.to_rich()
-
-    assert '<tg-button type="callback_data" data="save">Save</tg-button>' in rich_text
-
+    await session.clear()
+    assert state.data == {"unrelated": "kept"}
+    assert state.state is None
 
 @pytest.mark.asyncio
-async def test_aggregate_draft_is_replaced_and_cleared() -> None:
-    fsm_context = DummyFSMContext()
-    wizard_state = WizardState(fsm_context)  # type: ignore[arg-type]
-    chat_iid = PydanticObjectId()
+async def test_scope_filter_only_compares_scope_without_clearing_state() -> None:
+    state = DummyFSMContext()
+    state.data["wizard"] = {"scope": "warn_action_each"}
+    scope_filter = WizardScopeFilter("warn_action_each")
 
-    await wizard_state.start_session("filters", chat_iid, {"actions": {"mute": {}}, "metadata": {"handler": "spam"}})
-    assert await wizard_state.get_draft() == {"actions": {"mute": {}}, "metadata": {"handler": "spam"}}
-    await wizard_state.clear()
-    assert await wizard_state.get_draft() is None
-
-
-def test_get_interactive_setup_chat_iid_prefers_active_setting_context() -> None:
-    state_data = {
-        "action_setup_chat_tid": "stale-action-chat",
-        "setting_setup_action": "ban_user",
-        "setting_setup_chat_tid": "active-setting-chat",
-    }
-
-    assert get_interactive_setup_chat_iid_raw(state_data) == "active-setting-chat"
+    assert await scope_filter(state) is True
+    state.data["wizard"]["scope"] = "filter_action"
+    assert await scope_filter(state) is False
+    assert state.data["wizard"] == {"scope": "filter_action"}
 
 
-def test_get_active_setup_config_uses_state_module() -> None:
-    warns_each_cfg = ActionWizardConfig(
-        module_name="warns_each",
-        callback_prefix="warn_action_each",
-        wizard_title="Each",
-        success_message="Saved",
-        context=DummyActionContext(),  # type: ignore[arg-type]
-        command_filter=None,  # type: ignore[arg-type]
-        admin_filter=None,  # type: ignore[arg-type]
-    )
-    warns_max_cfg = ActionWizardConfig(
-        module_name="warns_max",
-        callback_prefix="warn_action_max",
-        wizard_title="Max",
-        success_message="Saved",
-        context=DummyActionContext(),  # type: ignore[arg-type]
-        command_filter=None,  # type: ignore[arg-type]
-        admin_filter=None,  # type: ignore[arg-type]
+def test_wizard_navigation_has_only_inline_navigation_controls() -> None:
+    pagination = [InlineKeyboardButton(text="Next", callback_data="page:1")]
+    markup = build_wizard_navigation(
+        pagination=pagination,
+        done_callback="done",
+        back_callback="back",
+        cancel_callback="cancel",
     )
 
-    _ACTION_WIZARD_CONFIGS["warns_max"] = warns_max_cfg
-    state_data = {"acw_module": "warns_max"}
-    assert get_active_setup_config(state_data, warns_each_cfg) is warns_max_cfg
+    assert markup is not None
+    assert [[button.callback_data for button in row] for row in markup.inline_keyboard] == [
+        ["page:1"],
+        ["done"],
+        ["back", "cancel"],
+    ]
+    assert [button.text for button in markup.inline_keyboard[1]] == ["✅ Done"]
+
+
+def test_action_draft_and_callback_contracts() -> None:
+    draft = ActionDraft(actions={"reply": {"text": "hello"}})
+    assert draft.model_dump(mode="json") == {"actions": {"reply": {"text": "hello"}}}
+    callback = WizardCallback(scope="filter_action", op="setting", arg="reply:reply_text")
+    assert WizardCallback.unpack(callback.pack()) == callback
+
+
+def test_home_view_keeps_rich_action_buttons_separate_from_inline_navigation() -> None:
+    config = ActionWizardConfig(
+        scope="test",
+        title="Test",
+        done_message="Saved",
+        max_actions=1,
+        draft_model=ActionDraft,
+        load_draft=None,
+        save_draft=lambda *_args: None,  # type: ignore[arg-type]
+    )
+    view = render_home_view(config, ActionDraft())
+    assert isinstance(view, WizardView)
+    assert view.markup is not None
+    assert not any(btn.text == "✅ Done" for row in view.markup.inline_keyboard for btn in row)
+    assert view.markup.inline_keyboard[-1][0].text == "❌ Cancel"
+    assert "➕ Set action" in view.doc.to_rich()

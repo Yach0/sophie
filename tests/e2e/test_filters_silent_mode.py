@@ -3,13 +3,12 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from aiogram.types import InlineKeyboardMarkup
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
-from sophie_bot.modules.filters.callbacks import SaveFilterCallback, ToggleFilterSilentCallback
+from sophie_bot.modules.utils_.wizard import WizardCallback
 from tests.e2e.helpers import grant_admin
 
 
@@ -18,7 +17,6 @@ async def _create_filter(test_client: TestClient, *, group_tid: int, user_tid: i
     user_wrapper = test_client.create_user(user_id=user_tid, first_name="SilentTarget", username="silent_target")
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group)
-
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
 
@@ -33,7 +31,6 @@ async def _create_filter(test_client: TestClient, *, group_tid: int, user_tid: i
         silent=silent,
     )
     await filter_item.insert()
-
     return group, user_wrapper, filter_item
 
 
@@ -50,12 +47,10 @@ async def test_silent_filter_schedules_deletion_of_trigger_and_reply(test_client
     ):
         requests = await test_client.send_message(text="this is spam content", from_user=user_wrapper.user, chat=group)
 
-    assert requests, "Silent filter should still send its reply"
+    assert requests
     schedule_mock.assert_called_once()
-
     chat_tid, message_ids = schedule_mock.call_args.args
     assert chat_tid == group.id
-    # The triggering message plus the bot's reply must both be queued for deletion
     assert len(message_ids) == 2
     assert schedule_mock.call_args.kwargs["delay_seconds"] == 30
 
@@ -77,56 +72,78 @@ async def test_non_silent_filter_does_not_schedule_deletion(test_client: TestCli
 
 
 @pytest.mark.asyncio
-async def test_editfilter_silent_toggle_persists_to_database(test_client: TestClient) -> None:
-    group, user_wrapper, filter_item = await _create_filter(
-        test_client, group_tid=-1002700000003, user_tid=927000003, silent=False, admin=True
-    )
+async def test_filter_wizard_real_silent_flow_persists_prompt_and_toggle(test_client: TestClient) -> None:
+    group = ChatFactory.create_group(chat_id=-1002700000003, title="Silent Wizard Group")
+    user_wrapper = test_client.create_user(user_id=927000003, first_name="Admin", username="silent_admin")
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group)
+    await grant_admin(group.id, user_wrapper.user.id)
+
+    requests = await test_client.send_message(text="/addfilter spam", from_user=user_wrapper.user, chat=group)
+    assert requests
+    initial_markup = requests[-1].reply_markup
+    assert initial_markup is not None
+    inline_buttons = [btn for row in initial_markup.get("inline_keyboard", []) for btn in row]
+    rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
+    assert WizardCallback(scope="filter_action", op="add").pack() in rich_html
+    assert any(btn.get("callback_data") == WizardCallback(scope="filter_action", op="cancel").pack() for btn in inline_buttons)
+    assert not any(btn.get("callback_data") == WizardCallback(scope="filter_action", op="done").pack() for btn in inline_buttons)
 
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
-
-    # The filter middleware only ignores commands for admins, and "/editfilter spam" contains the keyword
-    edit_requests = await test_client.send_message(text="/editfilter spam", from_user=user_wrapper.user, chat=group)
-    assert edit_requests, "/editfilter should render the filter confirm screen"
-
-    setup_message = MessageFactory.create(
-        text="Filter setup",
-        from_user=bot_user,
-        chat=group,
-        reply_markup=InlineKeyboardMarkup.model_validate(
-            {
-                "inline_keyboard": [
-                    [{"text": "🔊 Silent mode: off", "callback_data": ToggleFilterSilentCallback().pack()}]
-                ]
-            }
-        ),
-    )
-
+    wizard_message = MessageFactory.create(text="Filter setup", from_user=bot_user, chat=group)
     await test_client.send_callback(
-        ToggleFilterSilentCallback().pack(), from_user=user_wrapper.user, message=setup_message
+        WizardCallback(scope="filter_action", op="add").pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
     )
-    await test_client.send_callback(SaveFilterCallback().pack(), from_user=user_wrapper.user, message=setup_message)
+    await test_client.send_callback(
+        WizardCallback(scope="filter_action", op="select", arg="ai_text").pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
+    await test_client.send_message(text="contains crypto scams", from_user=user_wrapper.user, chat=group)
+    await test_client.send_callback(
+        WizardCallback(scope="filter_action", op="toggle", arg="silent").pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
+    await test_client.send_callback(
+        WizardCallback(scope="filter_action", op="done").pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
 
-    saved = await FiltersModel.get_by_id(filter_item.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    saved = await FiltersModel.get_by_keyword(chat.iid, "spam")
     assert saved is not None
-    assert saved.silent is True, "Toggling silent mode and saving should persist the flag"
+    assert saved.actions == {"ai_text": {"prompt": "contains crypto scams"}}
+    assert saved.silent is True
 
+    state = test_client.dispatcher.fsm.get_context(
+        bot=test_client.bot, chat_id=group.id, user_id=user_wrapper.user.id
+    )
+    fsm_data = await state.get_data()
+    assert "wizard" not in fsm_data
 
 @pytest.mark.asyncio
 async def test_editfilter_save_does_not_report_filter_as_its_own_duplicate(test_client: TestClient) -> None:
-    """Re-saving an edited filter must not trip the duplicate-handler check."""
     group, user_wrapper, _filter_item = await _create_filter(
         test_client, group_tid=-1002700000004, user_tid=927000004, silent=False, admin=True
     )
-
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
 
     await test_client.send_message(text="/editfilter spam", from_user=user_wrapper.user, chat=group)
-
     setup_message = MessageFactory.create(text="Filter setup", from_user=bot_user, chat=group)
-    save_requests = await test_client.send_callback(
-        SaveFilterCallback().pack(), from_user=user_wrapper.user, message=setup_message
+    requests = await test_client.send_callback(
+        WizardCallback(scope="filter_action", op="done").pack(),
+        from_user=user_wrapper.user,
+        message=setup_message,
     )
 
-    replies = " ".join(request.text or "" for request in save_requests)
-    assert "already exists" not in replies, "Editing a filter must not conflict with itself"
-    assert "was saved" in replies
+    messages_html = [
+        request.params.get("rich_message", {}).get("html", "")
+        for request in requests
+        if isinstance(request.params, dict)
+    ]
+    assert any("was saved" in html for html in messages_html)
+    assert not any("already exists" in html for html in messages_html)

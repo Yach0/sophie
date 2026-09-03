@@ -7,14 +7,11 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Code, Template
 
 from sophie_bot.db.models import FiltersModel
-from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
-from sophie_bot.modules.filters.action_config import _filter_cfg
-from sophie_bot.modules.filters.filter_wizard import start_filter_wizard
-from sophie_bot.modules.utils_.action_config_wizard.config import ActionWizardDraft
+from sophie_bot.modules.filters.filter_wizard import FILTER_WIZARD, FilterDraft
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -27,6 +24,7 @@ class FilterEditHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter("editfilter"),
+            FeatureFlagFilter("action_config_wizard"),
             FeatureFlagFilter("filters"),
             UserRestricting(admin=True),
             GroupOrConnectedFilter(),
@@ -49,9 +47,4 @@ class FilterEditHandler(SophieMessageHandler):
                     )
                 )
             )
-        filter_setup = FilterInSetupType.from_model(filter_item)
-        draft = ActionWizardDraft(
-            actions=filter_setup.actions,
-            metadata={"handler": filter_setup.handler.keyword, "oid": filter_setup.oid, "silent": filter_setup.silent},
-        )
-        await start_filter_wizard(self, draft, _filter_cfg)
+        await FILTER_WIZARD.start(self, FilterDraft.from_model(filter_item))

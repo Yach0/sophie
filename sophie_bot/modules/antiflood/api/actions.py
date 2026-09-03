@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 from sophie_bot.utils.api.auth import get_current_user
 
 router = APIRouter(prefix="/actions", tags=["actions"], dependencies=[Depends(get_current_user)])

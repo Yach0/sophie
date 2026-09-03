@@ -1,8 +1,8 @@
 from stfu_tg import Section, VList
 from stfu_tg.doc import Element as StfuElement
 
-from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
+from sophie_bot.shared.actions import ModernActionABC
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 

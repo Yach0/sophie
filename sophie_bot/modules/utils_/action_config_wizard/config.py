@@ -1,78 +1,83 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Protocol, Self
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
-from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import CallbackQuery
-from stfu_tg import Button
+from beanie import PydanticObjectId
+from pydantic import BaseModel, Field
 
+from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.shared.actions import ModernActionABC, StoredAction
 from sophie_bot.utils.i18n import LazyProxy
 
 if TYPE_CHECKING:
-    from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
+    from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 
 
-@dataclass
-class ActionWizardDraft:
-    """JSON-safe aggregate edited by one Action Config Wizard session."""
-
-    actions: dict[str, dict[str, Any] | None] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    def to_data(self) -> dict[str, Any]:
-        return {"actions": self.actions, "metadata": self.metadata}
-
-    @classmethod
-    def from_data(cls, data: dict[str, Any] | None) -> Self:
-        if not data:
-            return cls()
-        actions = data.get("actions", {})
-        metadata = data.get("metadata", {})
-        if not isinstance(actions, dict) or not isinstance(metadata, dict):
-            raise TypeError("Invalid action wizard draft")
-        return cls(actions=dict(actions), metadata=dict(metadata))
-
-    def replace_action(self, name: str, data: dict[str, Any] | None) -> None:
-        self.actions[name] = data
-
-    def remove_action(self, name: str) -> None:
-        self.actions.pop(name, None)
+class ActionDraft(BaseModel):
+    actions: dict[str, dict[str, Any] | None] = Field(default_factory=dict)
 
 
-class ActionWizardContext(Protocol):
-    """Persistence and context presentation adapter for an action wizard."""
-
-    async def load(self, chat_iid: Any) -> ActionWizardDraft: ...
-
-    async def validate(
-        self, chat_iid: Any, draft: ActionWizardDraft, event: Any = None, connection: Any = None
-    ) -> None: ...
-
-    async def commit(
-        self, chat_iid: Any, draft: ActionWizardDraft, event: Any = None, connection: Any = None
-    ) -> None: ...
-
-    def update_control(self, draft: ActionWizardDraft, control_name: str) -> bool: ...
-    def render_details(self, draft: ActionWizardDraft) -> list[tuple[str, str]]: ...
-
-    def render_controls(self, draft: ActionWizardDraft, callback_prefix: str) -> list[list[Button]]: ...
+@dataclass(frozen=True, slots=True)
+class ActionWizardConfig[DRAFT: ActionDraft]:
+    scope: str
+    title: str | LazyProxy
+    done_message: str | LazyProxy
+    max_actions: int
+    draft_model: type[DRAFT]
+    load_draft: Callable[[PydanticObjectId], Awaitable[DRAFT]] | None
+    save_draft: Callable[[PydanticObjectId, DRAFT, CallbackQuery, ChatConnection], Awaitable[None]]
+    action_filter: Callable[[ModernActionABC[Any]], bool] | None = None
+    on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None
 
 
-@dataclass(frozen=True)
-class ActionWizardConfig:
-    module_name: str
-    callback_prefix: str
-    wizard_title: str | LazyProxy
-    success_message: str | LazyProxy
-    context: ActionWizardContext
-    command_filter: CallbackType
-    admin_filter: CallbackType
+from sophie_bot.modules.utils_.action_config_wizard.wizard import ActionWizard
 
-    extra_filters: tuple[CallbackType, ...] = ()
-    allow_multiple_actions: bool = True
-    maximum_actions: int | None = None
-    default_action_name: str | None = None
-    action_filter: Callable[[ModernActionABC], bool] | None = None
-    on_back_render: Callable[[Any, CallbackQuery], Awaitable[None]] | None = field(default=None)
+
+def model_action_wizard(
+    *,
+    model_loader: Callable[[PydanticObjectId], Awaitable[Any]],
+    attribute: str,
+    scope: str,
+    title: str | LazyProxy,
+    done_message: str | LazyProxy,
+    max_actions: int,
+    action_filter: Callable[[ModernActionABC[Any]], bool] | None = None,
+    on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None,
+) -> ActionWizard[ActionDraft]:
+    if max_actions <= 0:
+        raise ValueError("max_actions must be positive")
+
+    async def load_draft(chat_iid: PydanticObjectId) -> ActionDraft:
+        model = await model_loader(chat_iid)
+        actions = getattr(model, attribute, []) or []
+        return ActionDraft(actions={action.name: action.data for action in actions})
+
+    async def save_draft(
+        chat_iid: PydanticObjectId,
+        draft: ActionDraft,
+        callback_query: CallbackQuery,
+        connection: ChatConnection,
+    ) -> None:
+        del callback_query, connection
+        if len(draft.actions) > max_actions:
+            raise ValueError(f"Draft exceeds maximum allowed actions ({max_actions})")
+        model = await model_loader(chat_iid)
+        setattr(model, attribute, [StoredAction(name=name, data=data) for name, data in draft.actions.items()])
+        await model.save()
+
+    config = ActionWizardConfig(
+        scope=scope,
+        title=title,
+        done_message=done_message,
+        max_actions=max_actions,
+        draft_model=ActionDraft,
+        load_draft=load_draft,
+        save_draft=save_draft,
+        action_filter=action_filter,
+        on_back=on_back,
+    )
+
+    return ActionWizard(config)

@@ -9,9 +9,8 @@ from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.modern_action_abc import (
+from sophie_bot.shared.actions import (
     ActionResult,
-    ActionSetupMessage,
     ActionSetupTryAgainException,
     ModernActionABC,
     ModernActionSetting,
@@ -40,10 +39,8 @@ async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) ->
     return SendNoteActionDataModel(notename=notename)
 
 
-async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    return ActionSetupMessage(
-        text=_("Please write the note name you want to send as a filter trigger."),
-    )
+async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Template(_("Please write the note name you want to send as a filter trigger."))
 
 
 class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):

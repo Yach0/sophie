@@ -10,9 +10,9 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.modules.utils_.action_config_wizard.callbacks import ACWCoreCallback
-from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
+from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.utils_.wizard import WizardCallback
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -35,7 +35,7 @@ class WarnActionRenderer:
             if not action_meta:
                 continue
 
-            description = action_meta.description(convert_action_data_to_model(action_meta, action.data))
+            description = action_meta.description(action_meta.load_data(action.data))
             parts.append(Template("{icon} {description}", icon=action_meta.icon, description=description))
 
         if not parts:
@@ -72,13 +72,13 @@ class WarnActionRenderer:
                 ButtonRow(
                     Button(
                         _("Configure on each warn"),
-                        callback_data=ACWCoreCallback(mod="warn_action_each", op="show").pack(),
+                        callback_data=WizardCallback(scope="warn_action_each", op="open").pack(),
                     )
                 ),
                 ButtonRow(
                     Button(
                         _("Configure on warnings exceeding"),
-                        callback_data=ACWCoreCallback(mod="warn_action_max", op="show").pack(),
+                        callback_data=WizardCallback(scope="warn_action_max", op="open").pack(),
                     )
                 ),
             ),
@@ -90,7 +90,11 @@ class WarnActionRenderer:
 class WarnActionHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("warnaction", "warn_action")), UserRestricting(can_restrict_members=True)
+        return (
+            CMDFilter(("warnaction", "warn_action")),
+            FeatureFlagFilter("action_config_wizard"),
+            UserRestricting(can_restrict_members=True),
+        )
 
     async def handle(self) -> Any:
         chat_iid = self.connection.db_model.iid

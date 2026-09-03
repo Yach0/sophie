@@ -9,8 +9,7 @@ from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
-from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import LazyProxy
@@ -65,9 +64,7 @@ class AntifloodInfoHandler(SophieMessageHandler):
                     continue
 
                 action_text = (
-                    action_meta.description(convert_action_data_to_model(action_meta, action.data))
-                    if action.data
-                    else action.name
+                    action_meta.description(action_meta.load_data(action.data)) if action.data else action.name
                 )
                 actions_list.append(f"{action_meta.icon} {action_meta.title}: {action_text}")
 
