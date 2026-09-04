@@ -10,6 +10,21 @@ from sophie_bot.db.models.chat import ChatType
 from sophie_bot.utils.logger import log
 
 
+def _locale_for_language(language_code: str, available_locales: tuple[str, ...]) -> str | None:
+    normalized_code = language_code.replace("-", "_")
+    if normalized_code in available_locales:
+        return normalized_code
+
+    language = normalized_code.split("_", 1)[0].lower()
+    candidates = tuple(locale for locale in available_locales if locale.split("_", 1)[0].lower() == language)
+    if not candidates:
+        return None
+
+    if CONFIG.default_locale in candidates:
+        return CONFIG.default_locale
+    return candidates[0]
+
+
 class LocalizationMiddleware(I18nMiddleware):
     async def get_locale(self, event: TelegramObject, data: dict[str, Any]) -> str:
         chat_in_db: ChatModel | None = data.get("chat_db")
@@ -25,7 +40,7 @@ class LocalizationMiddleware(I18nMiddleware):
         if chat_in_db.type is ChatType.private:
             user: User | None = getattr(event, "from_user", None)
             user_lang = user.language_code if user else None
-            if user_lang and user_lang in self.i18n.available_locales:
-                return user_lang
+            if user_lang and (locale := _locale_for_language(user_lang, self.i18n.available_locales)):
+                return locale
 
         return CONFIG.default_locale

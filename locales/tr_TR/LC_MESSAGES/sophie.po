@@ -1,3 +1,23 @@
+# Turkish (Türkiye) translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-09-03 18:41+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: tr_TR\n"
+"Language-Team: tr_TR <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
 #: sophie_bot/args/chats.py:28
 msgid "Could not find the requested Chat ID in the database."
 msgstr "Veritabanında istenen Sohbet ID'si bulunamadı."
@@ -19,7 +39,6 @@ msgstr "Sohbetler: 'Sohbet ID'leri (nümerik) / Kullanıcı Adları ( @ ile baş
 msgid "Chat ID"
 msgstr "Sohbet ID'si"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:129
 #: sophie_bot/args/chats.py:63 sophie_bot/args/users.py:82
 #: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
@@ -75,22 +94,18 @@ msgstr "Geçersiz kullanıcı kimliği."
 msgid "Could not find the requested User ID in the database."
 msgstr "Veritabanında istenen Kullanıcı ID'si bulunamadı."
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:120
 #: sophie_bot/args/users.py:74
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr "Kullanıcı: 'Kullanıcı ID (sayısal) / Kullanıcı adı (şu şekilde başlar: @) / Bahis (kullanıcılara bağlantılar)'"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:122
 #: sophie_bot/args/users.py:75
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr "Kullanıcılar: 'Kullanıcı ID'leri (sayısal) / Kullanıcı adları (şu şekilde başlar: @) / Bahisler (kullanıcılara bağlantılar)'"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:128
 #: sophie_bot/args/users.py:81
 msgid "User ID"
 msgstr "Kullanıcı ID"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:134
 #: sophie_bot/args/users.py:84
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "Bir kullanıcıya bağlantı, genellikle kullanıcı adı olmadan bir kullanıcı bahsi yaparak oluşturulur."
@@ -149,27 +164,27 @@ msgstr "Bağlı sohbet veritabanında bulunamadı. Bağlantınız kesildi ve ba�
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr "Bu sohbet odasına bağlanma izniniz artık yok. Bağlantınız kesildi."
 
-#: sophie_bot/modules/ai/__init__.py:120
+#: sophie_bot/modules/ai/__init__.py:122
 msgid "Sophie AI"
 msgstr "Sophie AI"
 
-#: sophie_bot/modules/ai/__init__.py:122
+#: sophie_bot/modules/ai/__init__.py:124
 msgid "Rainbow sparkles and shininess"
 msgstr "Gökkuşağı parıltıları ve parlaklık"
 
-#: sophie_bot/modules/ai/__init__.py:125
+#: sophie_bot/modules/ai/__init__.py:127
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr "Sophie, AI özelliklerini kullanmanın birçok yolunu destekler."
 
-#: sophie_bot/modules/ai/__init__.py:126
+#: sophie_bot/modules/ai/__init__.py:128
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr "Basit bir sohbet botundan otomatik bir çeviriye kadar. Eğlenin."
 
-#: sophie_bot/modules/ai/__init__.py:129
+#: sophie_bot/modules/ai/__init__.py:131
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Her sohbetin sınırlı bir aylık yapay zeka kotası olduğunu lütfen unutmayın."
 
-#: sophie_bot/modules/ai/__init__.py:130
+#: sophie_bot/modules/ai/__init__.py:132
 msgid "Use /aiusage to check your remaining quota."
 msgstr "Kalan kotanızı kontrol etmek için /aiusage kullanın."
 
@@ -319,11 +334,11 @@ msgstr "Komutlar"
 msgid "No commands in this module."
 msgstr "Bu modülde komut yok."
 
-#: sophie_bot/modules/ai/filters/ai_mode.py:63
+#: sophie_bot/modules/ai/filters/ai_mode.py:65
 msgid "The AI features are currently disabled for this chat."
 msgstr "Bu sohbet için AI Özellikleri geçici olarak devre dışıdır."
 
-#: sophie_bot/modules/ai/filters/ai_mode.py:64
+#: sophie_bot/modules/ai/filters/ai_mode.py:66
 #, python-brace-format
 msgid "Please use \"{cmd}\" to pick an AI mode."
 msgstr "Lütfen bir AI modu seçmek için \"{cmd}\" komutunu kullanın."
@@ -395,7 +410,7 @@ msgid "Ask Sophie a question"
 msgstr "Sophie'ye bir soru sor"
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:42
-#: sophie_bot/modules/ai/handlers/research.py:104
+#: sophie_bot/modules/ai/handlers/research.py:103
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr "AI kullanmak için sohbetten otomatik olarak bağlantınız kesildi."
 
@@ -471,28 +486,24 @@ msgid "🟢 Low"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:37
-#, fuzzy
 msgid "🟡 Medium"
-msgstr "Medya albümleri"
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:38
 msgid "🔴 High"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:46
-#, fuzzy
 msgid "Category"
-msgstr "sonra"
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:46
-#, fuzzy
 msgid "What it detects"
-msgstr "Sophie ne yapar"
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:60
-#, fuzzy
 msgid "AI Moderator"
-msgstr "✋ AI Moderatör"
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:61
 msgid "Sophie deletes messages that cross a category's detection level."
@@ -503,18 +514,34 @@ msgid "Press a category to walk it through Off, Low, Medium and High."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:96
-#, fuzzy
 msgid "Tune what the AI moderator detects in this chat"
-msgstr "Bu sohbette AI'nin ne yapacağını seçin"
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:123
-#, fuzzy
 msgid "Unknown category"
-msgstr "Bilinmeyen Sohbet"
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:14
+#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:34
 msgid "Controls AI Auto translator"
 msgstr "AI Otomatik tercümanını kontrol et"
+
+#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:46
+msgid "?Language code"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:62
+msgid "Invalid language code. Use a supported language code."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:66
+#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:100
+msgid "Languages excluded from auto-translation:"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/autotranslate_setting.py:95
+#: sophie_bot/modules/language/handlers/language.py:78
+msgid "Language not found."
+msgstr "Dil bulunamadı."
 
 #: sophie_bot/modules/ai/handlers/feature_setting.py:26
 msgid "Controls AI chat summaries"
@@ -806,24 +833,24 @@ msgstr "Sophie yardım moduna geçildi, Sophie'nin kullanımı hakkında istedi�
 msgid "The AI mode has been exited."
 msgstr "AI modu kapatıldı."
 
-#: sophie_bot/modules/ai/handlers/research.py:45
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:82
+#: sophie_bot/modules/ai/handlers/research.py:46
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:84
 msgid "Starting the research..."
 msgstr "Araştırma başlatılıyor..."
 
-#: sophie_bot/modules/ai/handlers/research.py:80
+#: sophie_bot/modules/ai/handlers/research.py:79
 msgid "Research topic"
 msgstr "Araştırma konusu"
 
-#: sophie_bot/modules/ai/handlers/research.py:82
+#: sophie_bot/modules/ai/handlers/research.py:81
 msgid "Research a topic using multistage web search and return a summary with sources"
 msgstr "Çok aşamalı web araması kullanarak bir konuyu araştırın ve kaynaklarla birlikte bir özet döndürün"
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:19
+#: sophie_bot/modules/ai/handlers/reset_context.py:20
 msgid "Reset the chat's AI context and AI memory"
 msgstr "Sohbetin AI bağlamını ve AI belleğini sıfırla"
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:45
+#: sophie_bot/modules/ai/handlers/reset_context.py:47
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 AI bağlamı ve AI belleği başarıyla sıfırlandı. AI şimdi temiz bir durumda çalışacak."
 
@@ -856,16 +883,16 @@ msgstr "Çevrilecek metin"
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Verilen (veya yanıtlanan) metni sohbetin seçilen diline çevirir. Ayrıca yanıtlanan sesli mesajı metne dönüştürür"
 
-#: sophie_bot/modules/ai/handlers/translate.py:168
+#: sophie_bot/modules/ai/handlers/translate.py:169
 msgid "Please provide text to translate."
 msgstr "Lütfen çevrilecek metni girin."
 
-#: sophie_bot/modules/ai/handlers/translate.py:183
+#: sophie_bot/modules/ai/handlers/translate.py:190
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Varsa, fotoğrafı {language_name}'a çevirin"
 
-#: sophie_bot/modules/ai/handlers/translate.py:198
+#: sophie_bot/modules/ai/handlers/translate.py:205
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -874,7 +901,7 @@ msgstr ""
 "Aşağıdaki metni {language_name} diline çevirin:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:231
+#: sophie_bot/modules/ai/handlers/translate.py:243
 msgid "Error generating translation"
 msgstr "Çeviri oluşturulurken hata oluştu"
 
@@ -985,17 +1012,14 @@ msgstr "Mesajın yazarı"
 msgid "Reason"
 msgid_plural "Reasons"
 msgstr[0] "Sebep"
-msgstr[1] "Sebep(ler)"
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:63
-#, fuzzy
 msgid "This message will be deleted shortly."
-msgstr "🤫 Eylem sessizdir, ilgili tüm mesajlar kısa süre içinde silinecektir"
+msgstr ""
 
 #: sophie_bot/modules/ai/middlewares/ai_timeout.py:37
-#, fuzzy
 msgid "The AI request took too long and was cancelled. Please try again."
-msgstr "AI isteği başarısız oldu. Lütfen bir süre sonra tekrar deneyin."
+msgstr ""
 
 #: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:124
 #, python-brace-format
@@ -1015,25 +1039,25 @@ msgstr "Telegram grup tartışmalarını yapılandırılmış konu başlıkları
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "AI özelliklerini kullanarak, Gizlilik Politikamıza (/privacy) ve kullanılan üçüncü parti AI hizmetlerine onay vermiş olursunuz."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:346
-#: sophie_bot/modules/ai/utils/research.py:382
-#: sophie_bot/modules/ai/utils/research.py:515
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:366
+#: sophie_bot/modules/ai/utils/research.py:384
+#: sophie_bot/modules/ai/utils/research.py:517
 msgid "Research"
 msgstr "Araştırma"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:65
+#: sophie_bot/modules/ai/utils/ai_errors.py:69
 msgid "The AI request failed. Please try again in a moment."
 msgstr "AI isteği başarısız oldu. Lütfen bir süre sonra tekrar deneyin."
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:243
+#: sophie_bot/modules/ai/utils/ai_errors.py:259
 msgid "🤖 AI request failed"
 msgstr "🤖 AI isteği başarısız oldu"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:254
+#: sophie_bot/modules/ai/utils/ai_errors.py:270
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "AI sağlayıcısı isteği tamamlamadı. Lütfen bir süre sonra tekrar deneyin."
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:258
+#: sophie_bot/modules/ai/utils/ai_errors.py:274
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr "Referans ID"
@@ -1148,206 +1172,210 @@ msgstr "Kullanım detaylarını kontrol etmek için {cmd} komutunu çalıştır�
 msgid "AI features are disabled till {date}."
 msgstr "Yapay zeka özellikleri {date} tarihine kadar devre dışı bırakıldı."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:22
+#: sophie_bot/modules/ai/utils/chatbot_context.py:23
 msgid "Prefer to use tables when comparing items"
 msgstr "Öğeleri karşılaştırırken tabloları kullanmayı tercih edin"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:22
+#: sophie_bot/modules/ai/utils/chatbot_context.py:23
 msgid "Do not use tables."
 msgstr "Tabloları kullanmayın."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:26
+#: sophie_bot/modules/ai/utils/chatbot_context.py:27
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr "Konuşma geçmişini yalnızca bağlam için kullan, ancak özellikle en son soruya yanıt ver."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:27
+#: sophie_bot/modules/ai/utils/chatbot_context.py:28
 msgid "Today is "
 msgstr "Bugün "
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:28
+#: sophie_bot/modules/ai/utils/chatbot_context.py:29
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr "Bilgi aramak için web arama aracını kullanabilirsiniz. Bilgi kaynaklarını bağlantı olarak ekleyin."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:36
+#: sophie_bot/modules/ai/utils/chatbot_context.py:37
 msgid "You can also save important things to the memory."
 msgstr "Önemli bilgileri belleğe de kaydedebilirsiniz."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:38
+#: sophie_bot/modules/ai/utils/chatbot_context.py:39
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
 msgstr "Eğer kullanıcı Sophie botunun kullanımıyla ilgili bir şey sorarsa, yardım bağlamını almak için `sophie_help` aracını çalıştırdığınızdan emin olun; bot bilgileri için interneti aramayın. Sophie hakkında olmayan sorular için bunu kullanmayın."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:40
+#: sophie_bot/modules/ai/utils/chatbot_context.py:41
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr "Kullanılabilir Sophie modülleri: {modules}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:44
+#: sophie_bot/modules/ai/utils/chatbot_context.py:45
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr "Basit web araması yerine karmaşık konuları araştırmak için araştırma aracını kullanabilirsiniz."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:50
+#: sophie_bot/modules/ai/utils/chatbot_context.py:49
+msgid "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_context.py:56
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr "Bu konuşma şu sohbette gerçekleşiyor: {chat_name}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:60
-#, fuzzy, python-brace-format
+#: sophie_bot/modules/ai/utils/chatbot_context.py:66
+#, python-brace-format
 msgid "{title} | users: {users} | excerpt: {excerpt}"
-msgstr "{title} | ilk mesaj #{message_id} | kullanıcılar: {users} | alıntı: {excerpt}"
+msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:62
+#: sophie_bot/modules/ai/utils/chatbot_context.py:68
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr "{title} | ilk mesaj #{message_id} | kullanıcılar: {users} | alıntı: {excerpt}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:74
+#: sophie_bot/modules/ai/utils/chatbot_context.py:80
 msgid "Recent chat summaries"
 msgstr "Son sohbet özetleri"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:85
+#: sophie_bot/modules/ai/utils/chatbot_context.py:91
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr "{notename} | başlık: {title} | içerik: {content}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:92
+#: sophie_bot/modules/ai/utils/chatbot_context.py:98
 msgid "Related chat notes with content."
 msgstr "İçerikli ilgili sohbet notları."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:96
+#: sophie_bot/modules/ai/utils/chatbot_context.py:102
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr "{notename} | başlık: {title}"
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:103
+#: sophie_bot/modules/ai/utils/chatbot_context.py:109
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr "İlgili sohbet notları. Not ayrıntıları yardımcı olursa, notename ile get_note_content kullanın."
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:110
+#: sophie_bot/modules/ai/utils/chatbot_context.py:116
 msgid "You have the following information in your memory"
 msgstr "Hafızada aşağıdaki bilgilere sahipsiniz"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:22
+#: sophie_bot/modules/ai/utils/chatbot_response.py:23
 msgid "Memory 💾"
 msgstr "Bellek 💾"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:23
+#: sophie_bot/modules/ai/utils/chatbot_response.py:24
 msgid "Forget 🗑"
 msgstr "Unut 🗑"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:24
+#: sophie_bot/modules/ai/utils/chatbot_response.py:25
 msgid "Help 📖"
 msgstr "Yardım 📖"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:25
+#: sophie_bot/modules/ai/utils/chatbot_response.py:26
 msgid "Sources 🧭"
 msgstr "Kaynaklar 🧭"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:26
 #: sophie_bot/modules/ai/utils/chatbot_response.py:27
 #: sophie_bot/modules/ai/utils/chatbot_response.py:28
+#: sophie_bot/modules/ai/utils/chatbot_response.py:29
 msgid "Search 🔍"
 msgstr "Ara 🔍"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:29
+#: sophie_bot/modules/ai/utils/chatbot_response.py:30
 msgid "Notes 🗒"
 msgstr "Notlar 🗒"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:30
+#: sophie_bot/modules/ai/utils/chatbot_response.py:31
 msgid "Note 🗒"
 msgstr "Not 🗒"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:31
+#: sophie_bot/modules/ai/utils/chatbot_response.py:32
 msgid "Research 🔎"
 msgstr "Araştır 🔎"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:102
+#: sophie_bot/modules/ai/utils/chatbot_response.py:103
 msgid "⚠️ Cut short — the reply hit its step limit."
 msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:36
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:41
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
-msgid "Searching the web..."
-msgstr "Web aranıyor..."
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:37
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:42
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:47
-#: sophie_bot/modules/ai/utils/research.py:81
-msgid "Looking it up online..."
-msgstr "Çevrimiçi bakılıyor..."
 
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:38
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:43
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:48
+msgid "Searching the web..."
+msgstr "Web aranıyor..."
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:39
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:44
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:49
+#: sophie_bot/modules/ai/utils/research.py:81
+msgid "Looking it up online..."
+msgstr "Çevrimiçi bakılıyor..."
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:40
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
 msgid "Browsing the internet..."
 msgstr "İnternet gözden geçiriliyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:53
 msgid "Updating memory..."
 msgstr "Bellek güncelleniyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:52
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
 msgid "Saving to memory..."
 msgstr "Belleğe kaydediliyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:57
 msgid "Removing from memory..."
 msgstr "Bellekten kaldırılıyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:56
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:58
 msgid "Forgetting..."
 msgstr "Unutuluyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:61
 msgid "Checking the documentation..."
 msgstr "Belgeleri kontrol ediyorum..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:60
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:62
 msgid "Looking up how Sophie works..."
 msgstr "Sophie'nin nasıl çalıştığını araştırıyorum..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:65
 msgid "Digging through my own sources..."
 msgstr "Kendi kaynaklarımı inceliyorum..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:64
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:66
 msgid "Reading my own code..."
 msgstr "Notu okuyorum..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:69
 msgid "Scanning notes..."
 msgstr "Notlar taranıyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:68
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:70
 msgid "Looking through notes..."
 msgstr "Notlar gözden geçiriliyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:73
 msgid "Reading note..."
 msgstr "Not okunuyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:72
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:74
 msgid "Fetching note content..."
 msgstr "Not içeriği alınıyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:77
 msgid "Saving note..."
 msgstr "Not kaydediliyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:76
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:78
 msgid "Writing to notes..."
 msgstr "Notlara yazılıyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:79
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:81
 msgid "Deleting note..."
 msgstr "Not siliniyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:80
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:82
 msgid "Removing note..."
 msgstr "Not kaldırılıyor..."
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:191
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:195
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(Yeniden deneme {attempt}/{total_attempts}...)"
@@ -1360,21 +1388,21 @@ msgstr "⚠️ Daha ayrıntılı yardım istiyorsanız, özel Sophie yardım mod
 msgid "Sophie help mode"
 msgstr "Sophie yardım modu"
 
-#: sophie_bot/modules/ai/utils/message_history.py:107
-#: sophie_bot/modules/ai/utils/message_history.py:109
+#: sophie_bot/modules/ai/utils/message_history.py:110
+#: sophie_bot/modules/ai/utils/message_history.py:112
 msgid "<No text provided>"
 msgstr "<Metin sağlanmadı>"
 
-#: sophie_bot/modules/ai/utils/message_history.py:160
+#: sophie_bot/modules/ai/utils/message_history.py:163
 msgid "Image is empty"
 msgstr "Görüntü boş."
 
-#: sophie_bot/modules/ai/utils/message_history.py:196
+#: sophie_bot/modules/ai/utils/message_history.py:199
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[Video transkripsiyonu: {text}]"
 
-#: sophie_bot/modules/ai/utils/message_history.py:256
+#: sophie_bot/modules/ai/utils/message_history.py:263
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr "Son sohbet mesajları (sadece bağlam — yalnızca en son mesaja cevap verin)"
 
@@ -1383,9 +1411,8 @@ msgid "🔞 Sexual"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/moderation/categories.py:28
-#, fuzzy
 msgid "💢 Hate"
-msgstr "Sohbet"
+msgstr ""
 
 #: sophie_bot/modules/ai/utils/moderation/categories.py:29
 msgid "⚔ Violence"
@@ -1400,9 +1427,8 @@ msgid "💔 Self-harm"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/moderation/categories.py:32
-#, fuzzy
 msgid "🩺 Health"
-msgstr "Redis Sağlığı"
+msgstr ""
 
 #: sophie_bot/modules/ai/utils/moderation/categories.py:33
 msgid "💰 Financial"
@@ -1452,7 +1478,7 @@ msgstr "Detaylı veya kişiye özel hukuki tavsiye içeren veya bu tür tavsiyel
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr "Tam isimler, adresler, telefon numaraları, sosyal güvenlik numaraları veya finansal hesap bilgileri gibi kişisel kimlik bilgilerini talep eden, paylaşan veya bunların verilmesini sağlamaya çalışan içerik."
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:276
+#: sophie_bot/modules/ai/utils/proactive_replies.py:277
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr "Bir Telegram grup sohbetine proaktif olarak katılıyorsunuz. Yanıtı zamanlı, samimi ve çok kısa tutun: 1-2 kısa cümle. Hedef mesaj açıkça istemedikçe uzun açıklamalar, madde listeleri veya araç benzeri ayrıntılar eklemeyin. Konu değişmişse veya yanıt zoraki olacaksa, her şeyi kapsamaya çalışmak yerine cevabı minimum tutun."
 
@@ -1500,45 +1526,43 @@ msgstr "Bulgular birleştiriliyor..."
 msgid "Preparing the final answer..."
 msgstr "Nihai cevap hazırlanıyor..."
 
-#: sophie_bot/modules/ai/utils/research.py:153
-#, fuzzy
+#: sophie_bot/modules/ai/utils/research.py:154
 msgid "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
-msgstr "Araştırma şu anda Kagi arama sağlayıcısını destekliyor. Kullanmak için ai_search_provider'ı kagi olarak ayarlayın."
+msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:157
-#, fuzzy
+#: sophie_bot/modules/ai/utils/research.py:159
 msgid "Research requires a configured TinyFish API key."
-msgstr "Araştırma yapılandırılmış bir Kagi API anahtarı gerektirir."
+msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:161
+#: sophie_bot/modules/ai/utils/research.py:163
 msgid "Research requires a configured Kagi API key."
 msgstr "Araştırma yapılandırılmış bir Kagi API anahtarı gerektirir."
 
-#: sophie_bot/modules/ai/utils/research.py:334
+#: sophie_bot/modules/ai/utils/research.py:336
 msgid "Research requires a saved chat context."
 msgstr "Araştırma kayıtlı bir sohbet bağlamı gerektirir."
 
-#: sophie_bot/modules/ai/utils/research.py:383
+#: sophie_bot/modules/ai/utils/research.py:385
 msgid "I could not find enough search results to research this topic."
 msgstr "Bu konuyu araştırmak için yeterli arama sonucu bulamadım."
 
-#: sophie_bot/modules/ai/utils/research.py:484
+#: sophie_bot/modules/ai/utils/research.py:486
 msgid "No snippet available."
 msgstr "Özet yok."
 
-#: sophie_bot/modules/ai/utils/research.py:506
+#: sophie_bot/modules/ai/utils/research.py:508
 msgid "Sources"
 msgstr "Kaynaklar"
 
-#: sophie_bot/modules/ai/utils/research.py:519
+#: sophie_bot/modules/ai/utils/research.py:521
 msgid "No sources."
 msgstr "Kaynak yok."
 
-#: sophie_bot/modules/ai/utils/research.py:526
+#: sophie_bot/modules/ai/utils/research.py:528
 msgid "Original request"
 msgstr "Orijinal istek"
 
-#: sophie_bot/modules/ai/utils/research.py:527
+#: sophie_bot/modules/ai/utils/research.py:529
 msgid "Research model"
 msgstr "Araştırma modeli"
 
@@ -1562,7 +1586,7 @@ msgstr ""
 msgid "Every transcript line starts with its message ID as [id=<id>], followed by the timestamp and the author. Reference source messages by those IDs."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/transform_video.py:62
+#: sophie_bot/modules/ai/utils/transform_video.py:94
 msgid "Failed to download video file"
 msgstr "Video dosyası indirilemedi"
 
@@ -1646,7 +1670,6 @@ msgstr "Eylemleri yapılandırmak için {cmd} kullanın"
 msgid "Action"
 msgid_plural "Actions"
 msgstr[0] "Eylem"
-msgstr[1] "Eylemler"
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:17
 msgid "Set the message count threshold for antiflood protection"
@@ -1864,8 +1887,8 @@ msgstr "🌐 Kullanıcı Topluluktan Yasaklandı"
 #: sophie_bot/modules/federations/handlers/info.py:59
 #: sophie_bot/modules/federations/handlers/info.py:75
 #: sophie_bot/modules/federations/handlers/unban.py:165
-#: sophie_bot/modules/federations/schedules/process_bans.py:72
-#: sophie_bot/modules/federations/schedules/process_bans.py:139
+#: sophie_bot/modules/federations/schedules/process_bans.py:111
+#: sophie_bot/modules/federations/schedules/process_bans.py:180
 #: sophie_bot/modules/federations/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/utils/ban_docs.py:79
 #: sophie_bot/modules/federations/utils/ban_docs.py:114
@@ -2009,7 +2032,7 @@ msgstr "Sohbet"
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:56
 #: sophie_bot/modules/connections/handlers/connect_dm.py:113
-#: sophie_bot/modules/connections/handlers/connect_group.py:43
+#: sophie_bot/modules/connections/handlers/connect_group.py:46
 #: sophie_bot/modules/connections/handlers/start_connect.py:48
 msgid "You are not allowed to connect to this chat."
 msgstr "Bu sohbete bağlanmanıza izin verilmiyor."
@@ -2026,21 +2049,29 @@ msgstr "Sohbet veritabanında bulunamadı."
 msgid "Connects to the current chat."
 msgstr "Geçerli sohbete bağlanır."
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:53
+#: sophie_bot/modules/connections/handlers/connect_group.py:34
+msgid "Bots and anonymous admins cannot connect to chats. Please use your personal account."
+msgstr ""
+
+#: sophie_bot/modules/connections/handlers/connect_group.py:56
 msgid "You are connected! Check your DM with Sophie."
 msgstr "Bağlandınız! Sophie ile DM'inizi kontrol edin."
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:55
+#: sophie_bot/modules/connections/handlers/connect_group.py:58
 msgid "Open DM"
 msgstr "DM'i Aç"
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:61
+#: sophie_bot/modules/connections/handlers/connect_group.py:64
 msgid "You must start the bot in DM first to connect. Once you initialize connection with Sophie, you'll be connected."
 msgstr "Bağlanmak için önce botu DM'de başlatmalısınız. Sophie ile bağlantıyı başlattığınızda, bağlanacaksınız."
 
-#: sophie_bot/modules/connections/handlers/connect_group.py:67
+#: sophie_bot/modules/connections/handlers/connect_group.py:70
 msgid "Start Sophie"
 msgstr "Sophie'yi Başlat"
+
+#: sophie_bot/modules/connections/handlers/connect_group.py:79
+msgid "Bots cannot receive private messages. Please use your personal account to connect."
+msgstr ""
 
 #: sophie_bot/modules/connections/handlers/disconnect.py:16
 msgid "Disconnects from the current chat."
@@ -2205,6 +2236,10 @@ msgstr "Bot işletimi sırasında oluşan hataları ve istisnaları işler."
 #: sophie_bot/modules/error/__init__.py:34
 msgid "Provides error reporting and recovery mechanisms."
 msgstr "Hata raporlama ve kurtarma mekanizmaları sağlar."
+
+#: sophie_bot/modules/error/handlers/crash_handler.py:7
+msgid "Crashing..."
+msgstr ""
 
 #: sophie_bot/modules/error/utils/error_message.py:25
 msgid "😞 I've got an error trying to process this update"
@@ -3473,6 +3508,11 @@ msgstr "Federasyon"
 msgid "By"
 msgstr "Tarafından"
 
+#: sophie_bot/modules/federations/utils/ban_docs.py:85
+#, python-brace-format
+msgid "User banned in {banned_count} out of {total_chats} chats in the federation"
+msgstr ""
+
 #: sophie_bot/modules/federations/utils/ban_docs.py:95
 msgid "Original message"
 msgstr "Orijinal mesaj"
@@ -3643,7 +3683,14 @@ msgstr "Handler {handler} olan filtre bulunamadı! Tüm filtreleri kontrol etmek
 msgid "Adds a new filter"
 msgstr "Yeni bir filtre ekler"
 
-#: sophie_bot/modules/filters/handlers/filter_save.py:59
+#: sophie_bot/modules/filters/handlers/filter_save.py:54
+#: sophie_bot/modules/filters/utils_/filter_action_text.py:18
+#: sophie_bot/modules/warns/handlers/warnaction.py:32
+#: sophie_bot/modules/warns/handlers/warnaction.py:50
+msgid "No actions configured"
+msgstr "Yapılandırılmış eylem yok"
+
+#: sophie_bot/modules/filters/handlers/filter_save.py:62
 #, python-brace-format
 msgid "Filter on {keyword} was saved."
 msgstr "Anahtar kelime {keyword} üzerinde filtre kaydedildi."
@@ -3961,7 +4008,7 @@ msgstr "Destek Sohbeti"
 
 #: sophie_bot/modules/help/__init__.py:46
 #: sophie_bot/modules/help/handlers/help_group.py:27
-#: sophie_bot/modules/help/handlers/pm_modules.py:72
+#: sophie_bot/modules/help/handlers/pm_modules.py:84
 #: sophie_bot/modules/help/handlers/start_group.py:34
 #: sophie_bot/modules/help/handlers/start_pm.py:54
 msgid "Help"
@@ -3987,57 +4034,57 @@ msgstr "Yardım mesajını gösterir"
 msgid "The help information available in the private messages with Sophie"
 msgstr "Sophie ile özel mesajlarda mevcut yardım bilgisi"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:27
+#: sophie_bot/modules/help/handlers/pm_modules.py:40
 msgid "Shows help overview for all modules"
 msgstr "Tüm modüller için yardım genel görünümünü gösterir"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:61
-#: sophie_bot/modules/help/handlers/pm_modules.py:127
-#: sophie_bot/modules/privacy/handlers/privacy.py:38
+#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:139
+#: sophie_bot/modules/privacy/handlers/privacy.py:37
 msgid "⬅️ Back"
 msgstr "⬅️ Geri"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:65
+#: sophie_bot/modules/help/handlers/pm_modules.py:77
 #, python-brace-format
 msgid "💬{ai_emoji} Chat with Sophie for help"
 msgstr "💬{ai_emoji} Yardım için Sophie ile sohbet edin"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:73
+#: sophie_bot/modules/help/handlers/pm_modules.py:85
 msgid "There are three ways to find your way around Sophie:"
 msgstr "Sophie'yi keşfetmenin üç yolu var:"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:75
+#: sophie_bot/modules/help/handlers/pm_modules.py:87
 msgid "📖 The wiki"
 msgstr "📖 Wiki"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:75
+#: sophie_bot/modules/help/handlers/pm_modules.py:87
 msgid "detailed information on every feature"
 msgstr "her özellik hakkında ayrıntılı bilgi"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:76
+#: sophie_bot/modules/help/handlers/pm_modules.py:88
 msgid "🧩 The modules below — a quick overview of the commands in each one"
 msgstr "🧩 Aşağıdaki modüller — her birindeki komutların kısa bir özeti"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:77
+#: sophie_bot/modules/help/handlers/pm_modules.py:89
 msgid "💬 Sophie herself — ask her how to use her, in your own words"
 msgstr "💬 Sophie'ye — onu nasıl kullanacağınızı kendi sözlerinizle sorun"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:95
+#: sophie_bot/modules/help/handlers/pm_modules.py:91
+msgid "Select a module to get help with"
+msgstr ""
+
+#: sophie_bot/modules/help/handlers/pm_modules.py:109
 msgid "Module not found"
 msgstr "Modül bulunamadı"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:113
+#: sophie_bot/modules/help/handlers/pm_modules.py:127
 #, python-brace-format
 msgid "Aliased commands from {module}"
 msgstr "{module} modülünden takma adlı komutlar"
 
-#: sophie_bot/modules/help/handlers/pm_modules.py:121
-msgid "📖 Look the module's wiki page for more information"
-msgstr "📖 Modülün wiki sayfasına daha fazla bilgi için bakın"
-
-#: sophie_bot/modules/help/handlers/pm_modules.py:123
-msgid "📖 Wiki page"
-msgstr "📖 Wiki sayfası"
+#: sophie_bot/modules/help/handlers/pm_modules.py:135
+msgid "📖 Wiki page with more info"
+msgstr ""
 
 #: sophie_bot/modules/help/handlers/set_lang_legacy.py:30
 msgid "Select your language:"
@@ -4130,10 +4177,6 @@ msgstr "Bu sohbette kullanmak istediğiniz dili seçin."
 #: sophie_bot/modules/language/handlers/language.py:116
 msgid "Help us translate!"
 msgstr "Çeviri konusunda bize yardımcı olun!"
-
-#: sophie_bot/modules/language/handlers/language.py:78
-msgid "Language not found."
-msgstr "Dil bulunamadı."
 
 #: sophie_bot/modules/language/handlers/language.py:96
 #, python-brace-format
@@ -4933,14 +4976,12 @@ msgid "⚠️ Only the first media of the album was saved"
 msgstr "⚠️ Albümün yalnızca ilk medyası kaydedildi"
 
 #: sophie_bot/modules/notes/handlers/status_cleannotes.py:12
-#, fuzzy
 msgid "Shows / changes the state of automatic notes cleanup."
-msgstr "Otomatik karşılama mesajları temizliğinin durumunu gösterir/değiştirir."
+msgstr ""
 
 #: sophie_bot/modules/notes/handlers/status_cleannotes.py:14
-#, fuzzy
 msgid "Automatic notes cleanup"
-msgstr "Otomatik karşılama mesajları temizliği"
+msgstr ""
 
 #: sophie_bot/modules/notes/magic_handlers/descriptions_scheduler.py:53
 #: sophie_bot/modules/notes/schedules/generate_ai_titles.py:25
@@ -5145,6 +5186,11 @@ msgstr "Bot yönetimi için sadece operatörler için komutlar ve araçlar sağl
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr "Sistem istatistiklerini, iş yönetimini ve diğer yönetimsel işlevleri içerir."
 
+#: sophie_bot/modules/op/handlers/buttons_test.py:30
+#, python-brace-format
+msgid "Buttons: {buttons}"
+msgstr ""
+
 #: sophie_bot/modules/op/handlers/captcha.py:17
 msgid "Generate a test emoji captcha"
 msgstr "Test emoji captcha oluştur"
@@ -5297,6 +5343,10 @@ msgstr "{feature} için rollout silindi."
 msgid "Rollout was not saved."
 msgstr "Rollout kaydedilmedi."
 
+#: sophie_bot/modules/op/handlers/list_jobs.py:22
+msgid "Awaiting jobs"
+msgstr ""
+
 #: sophie_bot/modules/op/handlers/op_debug.py:42
 #: sophie_bot/modules/op/handlers/op_debug.py:54
 #: sophie_bot/modules/op/handlers/op_debug.py:67
@@ -5422,14 +5472,17 @@ msgid "Unix time"
 msgstr "Unix zamanı"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:344
+#: sophie_bot/modules/op/handlers/stats.py:38
 msgid "Version"
 msgstr "Sürüm"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:345
+#: sophie_bot/modules/op/handlers/stats.py:39
 msgid "Commit"
 msgstr "Commit"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:346
+#: sophie_bot/modules/op/handlers/stats.py:40
 msgid "Branch"
 msgstr "Dal"
 
@@ -5438,6 +5491,7 @@ msgid "Instance"
 msgstr "Örnek"
 
 #: sophie_bot/modules/op/handlers/op_debug.py:348
+#: sophie_bot/modules/op/handlers/stats.py:42
 msgid "Environment"
 msgstr "Ortam"
 
@@ -5584,7 +5638,66 @@ msgstr "Yeni strateji"
 msgid "Preferred mode changed"
 msgstr "Tercih edilen mod değiştirildi"
 
-#: sophie_bot/modules/op/handlers/stats.py:95
+#: sophie_bot/modules/op/handlers/stats.py:37
+#, python-brace-format
+msgid "Debug mode: {mode}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:41
+msgid "Webhooks"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:41
+msgid "Long-polling mode"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:45
+msgid "Technical info"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:50
+#: sophie_bot/modules/op/handlers/stats.py:59
+msgid "Database size"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:52
+#: sophie_bot/modules/op/handlers/stats.py:61
+#, python-brace-format
+msgid "{db_size}, free {db_free}"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:67
+msgid "Redis keys"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:70
+msgid "Modules"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:71
+#, python-brace-format
+msgid "{modules} loaded"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:74
+msgid "Legacy modules"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:76
+#, python-brace-format
+msgid "{cmds} total commands registered, in {modules} modules"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:86
+msgid "Migrations"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:88
+#, python-brace-format
+msgid "{total} total, {applied} applied, {pending} pending"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stats.py:99
 msgid "Show bot statistics."
 msgstr "Bot istatistiklerini gösterir."
 
@@ -5920,6 +6033,10 @@ msgstr "Kolajlar ve slayt gösterileri"
 msgid "Show an operator-only STFU formatting gallery."
 msgstr "Yalnızca operatörlere özel STFU biçimlendirme galerisi göster."
 
+#: sophie_bot/modules/op/handlers/stop_jobs.py:24
+msgid "All scheduled jobs have been stopped."
+msgstr ""
+
 #: sophie_bot/modules/pins/__init__.py:18
 msgid "Pins"
 msgstr "Sabitlenmişler"
@@ -5988,15 +6105,15 @@ msgstr "Dışa aktarma başlatıldı, bu biraz zaman alabilir."
 msgid "Export is done."
 msgstr "Dışa aktarma tamamlandı."
 
-#: sophie_bot/modules/privacy/handlers/privacy.py:19
+#: sophie_bot/modules/privacy/handlers/privacy.py:18
 msgid "Shows the privacy policy of the bot"
 msgstr "Botun gizlilik politikasını gösterir"
 
-#: sophie_bot/modules/privacy/handlers/privacy.py:29
+#: sophie_bot/modules/privacy/handlers/privacy.py:28
 msgid "The privacy policy of the bot is available on our wiki page."
 msgstr "Botun gizlilik politikası wiki sayfamızda bulunmaktadır."
 
-#: sophie_bot/modules/privacy/handlers/privacy.py:32
+#: sophie_bot/modules/privacy/handlers/privacy.py:31
 msgid "Privacy Policy"
 msgstr "Gizlilik Politikası"
 
@@ -6595,6 +6712,35 @@ msgstr "❌ İptal edildi."
 msgid "The action was cancelled by {user}."
 msgstr "Eylem {user} tarafından iptal edildi."
 
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:26
+msgid "Please enter a number between 0 and 100."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:31
+#, python-brace-format, python-format
+msgid "The beta percentage has been set to {percentage}% for all new chats."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:44
+msgid "The chosen beta mode has been reset for all chats."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/stats.py:18
+msgid "New chats Beta percentage"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/stats.py:19
+msgid "Total beta chats"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/stats.py:20
+msgid "Calculated beta percentage"
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/stats.py:21
+msgid "Beta"
+msgstr ""
+
 #: sophie_bot/modules/users/__init__.py:24
 msgid "Users"
 msgstr "Kullanıcılar"
@@ -6689,6 +6835,37 @@ msgstr "Bu kullanıcı bu sohbette yöneticidir."
 #: sophie_bot/modules/users/handlers/info.py:89
 msgid "Shared Chats"
 msgstr "Paylaşılan Sohbetler"
+
+#: sophie_bot/modules/users/stats.py:11
+msgid "Total"
+msgstr ""
+
+#: sophie_bot/modules/users/stats.py:13 sophie_bot/modules/users/stats.py:25
+#: sophie_bot/modules/users/stats.py:40
+msgid "users"
+msgstr ""
+
+#: sophie_bot/modules/users/stats.py:15 sophie_bot/modules/users/stats.py:27
+#: sophie_bot/modules/users/stats.py:43
+msgid "groups"
+msgstr ""
+
+#: sophie_bot/modules/users/stats.py:19 sophie_bot/modules/users/stats.py:32
+#: sophie_bot/modules/users/stats.py:48
+msgid "channels"
+msgstr ""
+
+#: sophie_bot/modules/users/stats.py:23
+msgid "New (48h)"
+msgstr ""
+
+#: sophie_bot/modules/users/stats.py:37
+msgid "Active (48h)"
+msgstr ""
+
+#: sophie_bot/modules/users/stats.py:52
+msgid "Users (new)"
+msgstr ""
 
 #: sophie_bot/modules/utils_/acting_user.py:27
 msgid "Sophie can't tell who you are while you're posting anonymously. Turn off anonymous mode and try again."
@@ -7033,11 +7210,6 @@ msgstr "Bir yöneticiyi uyaramam."
 msgid "Delete warn"
 msgstr "Uyarıyı sil"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:32
-#: sophie_bot/modules/warns/handlers/warnaction.py:50
-msgid "No actions configured"
-msgstr "Yapılandırılmış eylem yok"
-
 #: sophie_bot/modules/warns/handlers/warnaction.py:60
 #, python-brace-format
 msgid "{icon} {title} (default)"
@@ -7246,29 +7418,27 @@ msgid "You are banned in the federation, so you cannot pass the authentication!"
 msgstr "Federasyonda yasaklısınız, bu yüzden kimlik doğrulamasını geçemezsiniz!"
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:21
-#, fuzzy
 msgid "Sets welcome security message."
-msgstr "Karşılama Güvenliği mesajı"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:43
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Welcome security message was saved in {chat_title}."
-msgstr "Katılma isteği mesajı {chat_title} içinde kaydedildi."
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:49
-#, fuzzy
 msgid "Deletes the welcome security message"
-msgstr "Karşılama Güvenliği mesajı"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:62
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Welcome security message in {chat_title} has not been set before"
-msgstr "{chat_title} içindeki katılma isteği mesajı daha önce yüklenmedi"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:72
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Welcome security message was reset to default in {chat_title}."
-msgstr "Katılma isteği mesajı {chat_title} 'de varsayılana sıfırlandı."
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:22
 msgid "Shows Welcome Security settings"
@@ -7303,9 +7473,9 @@ msgid "Use {cmd} to control Media restriction"
 msgstr "Medya kısıtlamasını kontrol etmek için {cmd} kullanın"
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Use {cmd} to set a custom Welcome Security message"
-msgstr "{cmd} kullanarak özel karşılama mesajını ayarlayın"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:76
 msgid "Welcome Security message"
@@ -7566,278 +7736,207 @@ msgstr "Zar atışları içeren mesajlar"
 msgid "Invalid {action} duration, please try again."
 msgstr "Geçersiz {action} süresi, lütfen tekrar deneyin."
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:33
 msgid "Examples"
 msgstr "Örnekler"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:61
 #, python-brace-format
 msgid "The argument {description} has an invalid type"
 msgstr "Argüman {description} geçersiz bir türe sahip"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:65
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:112
 msgid "Needed type"
 msgstr "Gerekli tür"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:108
 #, python-brace-format
 msgid "The required argument {description} wasn't provided!"
 msgstr "Gerekli argüman {description} sağlanmadı!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:156
 #, python-brace-format
 msgid "The argument {description} has an invalid formatting!"
 msgstr "Argüman {description} geçersiz bir biçimlendirmeye sahip!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:31
 #, python-brace-format
 msgid "Key-value of {}"
 msgstr "{} için anahtar-değer çifti"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:32
 #, python-brace-format
 msgid "Key-values of {}"
 msgstr "{} için anahtar-değer çiftleri"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:67
 #, python-brace-format
 msgid "The optional argument {name} must contain a value!"
 msgstr "Opsiyonel argüman {name} bir değer içermelidir!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:92
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:93
 msgid "Key-values"
 msgstr "Anahtar-değer çiftleri"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:46
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:59
 #, python-brace-format
 msgid "List of {}"
 msgstr "{} listesi"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:47
 #, python-brace-format
 msgid "Lists of {}"
 msgstr "{} listeleri"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:65
 #, python-brace-format
 msgid "The starting character {} of list wasn't found!"
 msgstr "Listenin başlangıç karakteri {} bulunamadı!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:73
 #, python-brace-format
 msgid "The ending character {} of list wasn't found!"
 msgstr "Listenin bitiş karakteri {} bulunamadı!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:77
 msgid "The list is empty!"
 msgstr "Liste boş!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:97
 msgid "➡️ The start prefix text of the lists cannot have the overlapping formatting"
 msgstr "➡️ Listelerin başlangıç önek metni örtüşen biçimlendirmeye sahip olamaz"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:153
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:171
 #, python-brace-format
 msgid "Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr "Argüman '{arg_text}' ayrıştırıldı, ancak ardından bilinmeyen bir metin var!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:157
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:175
 msgid "Please ensure you correctly divided all of arguments."
 msgstr "Lütfen tüm argümanları doğru bir şekilde böldüğünüzden emin olun."
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:20
 #, python-brace-format
 msgid "Optional {}"
 msgstr "Opsiyonel {}"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:21
 #, python-brace-format
 msgid "Optionals {}"
-msgstr "Opsiyoneller {}},{"
+msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:44
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:45
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:25
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:28
 msgid " or "
 msgstr " veya "
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:105
 msgid ", and "
 msgstr ", ve "
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:121
 msgid "Example syntax"
 msgstr "Örnek sözdizimi"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:24
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:27
 #, python-brace-format
 msgid "One of: {}"
 msgstr "Birinden: {}"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Word (string with no spaces)"
 msgstr "Kelime (boşluk içermeyen dize)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Words (strings with no spaces)"
 msgstr "Kelimeler (boşluk içermeyen dizeler)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integer (number)"
 msgstr "Tam sayı (sayı)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integers (numbers)"
 msgstr "Tam sayılar (sayılar)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Boolean (Yes / No value)"
 msgstr "Boolean (Evet / Hayır değeri)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Booleans (Yes / No values)"
 msgstr "Boolean'lar (Evet / Hayır değerleri)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:54
 msgid "True (can means Enabled or Yes)"
 msgstr "Doğru (Etkin veya Evet anlamına gelebilir)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:55
 msgid "False (can means Disabled or No)"
 msgstr "Yanlış (Devre dışı veya Hayır anlamına gelebilir)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text.py:18
 msgid "Text"
 msgstr "Metin"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:27
 #, python-brace-format
 msgid "➡️ The Argument should start with {}!"
 msgstr "➡️ Argument şunlarla başlamalı: {}!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:31
 #, python-brace-format
 msgid "⬅️️ The Argument should end with {}!"
 msgstr "⬅️️ Argument şunlarla bitmeli: {}!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:49
 msgid "➡️ The start text cannot have the overlapping formatting"
 msgstr "➡️ Başlangıç metni örtüşen biçimlendirmeye sahip olamaz"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:75
 #, python-brace-format
 msgid "➡️ Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr "➡️ Argument '{arg_text}' ayrıştırıldı, ancak ardından bilinmeyen bir metin var!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:91
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:95
 #, python-brace-format
 msgid "{} surrounded by {} and {}"
 msgstr "{} {} ve {} ile çevrilidir"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:107
 #, python-brace-format
 msgid "Surrounded by {} and {}"
 msgstr "{} {} ve {} ile çevrili"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "2 days"
 msgstr "2 gün"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "3 weeks and 2 days"
 msgstr "3 hafta ve 2 gün"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:46
 msgid "y"
 msgstr "y"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:48
 msgid "w"
 msgstr "w"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:50
 msgid "d"
 msgstr "g"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:52
 msgid "h"
 msgstr "s"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:54
 msgid "m"
 msgstr "dk"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:56
 msgid "s"
 msgstr "s"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action time"
 msgstr "Eylem süresi"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action times"
 msgstr "Eylem süreleri"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:68
 #, python-brace-format
 msgid "The duration is too small. It must be at least {minimum}."
 msgstr "Süre çok kısa. En az {minimum} olmalıdır."
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:71
 #, python-brace-format
 msgid "The duration is too large. It must be at most {maximum}."
 msgstr "Süre çok uzun. En fazla {maximum} olmalıdır."
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User ID (Numeric)"
 msgstr "Kullanıcı ID (Sayısal)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User IDs (Numeric)"
 msgstr "Kullanıcı ID'leri (Sayısal)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:37
 msgid "Username (starts with @)"
 msgstr "Kullanıcı adı (şu şekilde başlar: @)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:47
 msgid "Should start with a prefix"
 msgstr "Bir önek ile başlamalı"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:49
 msgid "Username is too short"
 msgstr "Kullanıcı adı çok kısa"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:51
 msgid "Username is too long"
 msgstr "Kullanıcı adı çok uzun"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mention (a link to user)"
 msgstr "Kullanıcı bahsi (kullanıcıya bir bağlantı)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mentions (links to users)"
 msgstr "Kullanıcı bahisleri (kullanıcılara bağlantılar)"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:99
 msgid "Should start with mention!"
 msgstr "Bahisle başlamalı!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:107
 msgid "Unexpected error while trying to get the user! Please report this in the support chat!"
 msgstr "Kullanıcıyı almaya çalışırken beklenmedik bir hata oluştu! Lütfen bunu destek sohbetinde bildirin!"
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:108
 msgid "Could not find the user mention"
 msgstr "Kullanıcı bahsini bulamadı"
 
@@ -7846,4 +7945,10 @@ msgstr "Kullanıcı bahsini bulamadı"
 
 #~ msgid "[Open DM with Sophie](btnsophieurl)"
 #~ msgstr "[Sophie ile DM Aç](btnsophieurl)"
+
+#~ msgid "📖 Look the module's wiki page for more information"
+#~ msgstr "📖 Modülün wiki sayfasına daha fazla bilgi için bakın"
+
+#~ msgid "📖 Wiki page"
+#~ msgstr "📖 Wiki sayfası"
 

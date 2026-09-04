@@ -26,3 +26,11 @@ def test_lazy_proxy_does_not_cache_values_between_contexts() -> None:
     selected_language["code"] = "uk_UA"
 
     assert str(proxy) == "translated:uk_UA"
+
+
+def test_missing_locale_stats_are_optional() -> None:
+    assert production_i18n.get_locale_stats("missing_LOCALE") is None
+
+
+def test_iso_locale_list_is_deduplicated() -> None:
+    assert len(production_i18n.locales_iso_639_1) == len(set(production_i18n.locales_iso_639_1))
