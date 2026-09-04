@@ -427,6 +427,11 @@ def _candidate_run_kwargs(
     resolved_model_settings = build_model_settings(
         model_settings, _candidate_request_options(request_options, candidate)
     )
+    resolved_model_settings = _with_hard_output_token_limit(
+        resolved_model_settings,
+        candidate.model.settings,
+        cast(UsageLimits | None, run_kwargs.get("usage_limits")),
+    )
     if resolved_model_settings is not None:
         candidate_kwargs["model_settings"] = resolved_model_settings
     # Leaving the model out keeps the agent on the one it was built with, so the common
@@ -434,6 +439,37 @@ def _candidate_run_kwargs(
     if candidate.model is not agent_model:
         candidate_kwargs["model"] = candidate.model
     return candidate_kwargs
+
+
+def _with_hard_output_token_limit(
+    model_settings: Mapping[str, object] | None,
+    default_model_settings: Mapping[str, object] | None,
+    usage_limits: UsageLimits | None,
+) -> dict[str, object] | None:
+    """Turn Sophie's output budget into the provider's own generation ceiling.
+
+    Pydantic AI checks ``output_tokens_limit`` from provider-reported usage. Some providers only
+    report that usage in their final stream event, so that check cannot stop a runaway response
+    while it is being generated. ``max_tokens`` is the shared model setting Pydantic AI translates
+    to each provider's native request field, making the provider end generation at the limit.
+
+    A lower model- or call-specific ceiling remains authoritative. This preserves intentional
+    provider settings while preventing any caller from raising the limit above Sophie's budget.
+    """
+    output_tokens_limit = usage_limits.output_tokens_limit if usage_limits is not None else None
+    if output_tokens_limit is None:
+        return dict(model_settings) if model_settings is not None else None
+
+    configured_limits = [
+        setting
+        for setting in (
+            (default_model_settings or {}).get("max_tokens"),
+            (model_settings or {}).get("max_tokens"),
+        )
+        if isinstance(setting, int) and setting > 0
+    ]
+    max_tokens = min([output_tokens_limit, *configured_limits])
+    return {**(model_settings or {}), "max_tokens": max_tokens}
 
 
 def _get_agent_model(agent: Agent[Any, Any]) -> Model:

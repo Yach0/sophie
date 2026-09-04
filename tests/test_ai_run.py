@@ -22,7 +22,7 @@ from pydantic_ai import (
 from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
 from pydantic_ai.messages import BinaryContent, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai.usage import RunUsage
+from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.modules.ai.utils import ai_run
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, is_retryable_ai_provider_error
@@ -85,6 +85,16 @@ class FakeRunResult:
         return [ModelResponse(parts=[TextPart(content=self.output)])]
 
 
+class FakeRunAgent:
+    def __init__(self, model: TestModel | None = None) -> None:
+        self.model = model or TestModel()
+        self.run_kwargs: dict[str, Any] | None = None
+
+    async def run(self, **kwargs: Any) -> FakeRunResult:
+        self.run_kwargs = kwargs
+        return FakeRunResult("hello")
+
+
 class FakeEventAgent:
     """Replays a scripted event stream through ``run_stream_events``."""
 
@@ -93,9 +103,12 @@ class FakeEventAgent:
         self.events = events
         self.final_output = final_output
         self.raises = raises
+        self.run_kwargs: dict[str, Any] | None = None
 
     @asynccontextmanager
-    async def run_stream_events(self, **_kwargs: Any) -> AsyncGenerator[AsyncIterable[Any]]:
+    async def run_stream_events(self, **kwargs: Any) -> AsyncGenerator[AsyncIterable[Any]]:
+        self.run_kwargs = kwargs
+
         async def stream() -> AsyncIterable[Any]:
             for event in self.events:
                 yield event
@@ -176,6 +189,19 @@ async def test_run_ai_structured_wraps_typed_output() -> None:
 
     assert result.output == StructuredOutput(value="ok")
     assert result.usage.total_tokens
+
+
+async def test_output_limit_caps_non_streaming_provider_requests_too() -> None:
+    agent = FakeRunAgent(TestModel(settings={"max_tokens": 11}))
+
+    await run_ai_text(
+        cast(Agent[Any, str], agent),
+        "Say hello",
+        usage_limits=UsageLimits(output_tokens_limit=37),
+    )
+
+    assert agent.run_kwargs is not None
+    assert agent.run_kwargs["model_settings"]["max_tokens"] == 11
 
 
 async def test_run_ai_stream_legacy_path_sends_cumulative_text_and_deduplicates_tools() -> None:
@@ -331,6 +357,41 @@ async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_st
             on_text_stream=on_text_stream,
             stream_options=ChatbotStreamOptions(partial_on_limit=False),
         )
+
+
+async def test_run_ai_stream_sends_output_limit_to_provider_as_generation_ceiling() -> None:
+    agent = FakeEventAgent(events=text_round("Bounded answer"), final_output="Bounded answer")
+
+    async def on_text_stream(_text: str) -> None:
+        return None
+
+    await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="Answer within the budget",
+        on_text_stream=on_text_stream,
+        usage_limits=UsageLimits(output_tokens_limit=37),
+    )
+
+    assert agent.run_kwargs is not None
+    assert agent.run_kwargs["model_settings"]["max_tokens"] == 37
+
+
+async def test_run_ai_stream_preserves_a_stricter_provider_generation_ceiling() -> None:
+    agent = FakeEventAgent(events=text_round("Short answer"), final_output="Short answer")
+
+    async def on_text_stream(_text: str) -> None:
+        return None
+
+    await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="Answer briefly",
+        on_text_stream=on_text_stream,
+        usage_limits=UsageLimits(output_tokens_limit=100),
+        model_settings={"max_tokens": 12, "temperature": 0},
+    )
+
+    assert agent.run_kwargs is not None
+    assert agent.run_kwargs["model_settings"] == {"max_tokens": 12, "temperature": 0}
 
 
 @pytest.fixture
