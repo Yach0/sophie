@@ -46,6 +46,24 @@ async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch)
     assert context_line == "Alice (reply to Bob): hello"
 
 
+@pytest.mark.asyncio
+async def test_cached_ai_history_uses_shared_message_text_representation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        message_history,
+        "message_text",
+        lambda message: "✨ AI | Help 📖 | 🔋 80%\nstored body",
+    )
+
+    transformed = await AIMessageHistory._cache_transform_msg(10, cached)
+
+    assert isinstance(transformed, ModelResponse)
+    assert transformed.parts[0].content == "stored body"
+
+
 def test_message_history_adds_system_custom_and_debug_output() -> None:
     history = AIMessageHistory()
 
