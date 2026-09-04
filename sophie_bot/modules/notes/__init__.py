@@ -20,7 +20,7 @@ from .handlers.delete import DelNote
 from .handlers.delete_all import DelAllNotesCallbackHandler, DelAllNotesHandler
 from .handlers.get import GetNote, HashtagGetNote
 from .handlers.legacy_button import LegacyStartNoteButton
-from .handlers.list import NotesList
+from .handlers.list import NotesList, NotesPageHandler
 from .handlers.pmnotes_handler import (
     PrivateNotesConnectHandler,
     PrivateNotesRedirectHandler,
@@ -62,6 +62,7 @@ module_manifest = ModuleManifest(
         PrivateNotesConnectHandler,
         PrivateNotesRedirectHandler,
         NotesList,
+        NotesPageHandler,
         GetNote,
         HashtagGetNote,
         DelNote,

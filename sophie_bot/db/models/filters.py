@@ -1,26 +1,15 @@
-from typing import Any, Optional, Self, TypeVar
+from __future__ import annotations
 
-from aiogram.fsm.context import FSMContext
+from typing import Any
+
 from beanie import Document
-from beanie.odm.operators.update.general import Set
 from bson import ObjectId
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from ._link_type import Link
 from .chat import ChatModel
 
 ACTION_DATA_DUMPED = dict[str, Any] | None
-ACTION_DATA = TypeVar("ACTION_DATA", bound=type[BaseModel] | None)
-
-
-class FilterActionType(BaseModel):
-    name: str
-    data: dict[str, Any] | None = None
-
-
-class FilterHandlerType(BaseModel):
-    # Right now only keyword as string
-    keyword: str
 
 
 class FiltersModel(Document):
@@ -49,15 +38,15 @@ class FiltersModel(Document):
         return self.version or 1
 
     @staticmethod
-    async def get_filters(chat_iid: ObjectId) -> list["FiltersModel"] | None:
+    async def get_filters(chat_iid: ObjectId) -> list[FiltersModel] | None:
         return await FiltersModel.find(FiltersModel.chat.id == chat_iid).to_list()
 
     @staticmethod
-    async def get_by_keyword(chat_iid: ObjectId, keyword: str) -> Optional["FiltersModel"]:
+    async def get_by_keyword(chat_iid: ObjectId, keyword: str) -> FiltersModel | None:
         return await FiltersModel.find_one(FiltersModel.chat.id == chat_iid, FiltersModel.handler == keyword)
 
     @staticmethod
-    async def get_all_by_keyword(chat_iid: ObjectId, keyword: str) -> list["FiltersModel"]:
+    async def get_all_by_keyword(chat_iid: ObjectId, keyword: str) -> list[FiltersModel]:
         return await FiltersModel.find(FiltersModel.chat.id == chat_iid, FiltersModel.handler == keyword).to_list()
 
     @staticmethod
@@ -80,56 +69,3 @@ class FiltersModel(Document):
         if not all_filters:
             return 0
         return sum(1 for filter_item in all_filters if filter_item.handler.startswith("ai:"))
-
-    async def update_fields(self, filters_setup: "FilterInSetupType"):
-        return await self.update(
-            Set(
-                {
-                    "handler": filters_setup.handler.keyword,
-                    "actions": filters_setup.actions,
-                    "silent": filters_setup.silent,
-                }
-            )
-        )
-
-
-class FilterInSetupType(BaseModel):
-    """Information about the filter, while being in the setup mode."""
-
-    oid: str | None = None  # Optional ObjectID of the FiltersModel object, if need to update, not save
-    handler: FilterHandlerType
-    actions: dict[str, ACTION_DATA_DUMPED]
-    silent: bool = False
-
-    @staticmethod
-    async def get_filter(state: FSMContext, data: dict[str, Any] | None = None) -> "FilterInSetupType":
-        if data and "filter_in_setup" in data:
-            return FilterInSetupType.model_validate(data["filter_in_setup"])
-
-        if filter_item := await state.get_value("filter_in_setup"):
-            return FilterInSetupType.model_validate(filter_item)
-
-        raise ValueError("No filter in setup")
-
-    async def set_filter_state(self, state: FSMContext) -> Self:
-        await state.update_data(filter_in_setup=self.model_dump(mode="json"))
-        return self
-
-    def to_model(self, chat: ChatModel | ObjectId) -> FiltersModel:
-        return FiltersModel(
-            chat=chat,
-            handler=self.handler.keyword,
-            version=2,
-            action=None,
-            actions=self.actions,
-            silent=self.silent,
-        )
-
-    @staticmethod
-    def from_model(model: FiltersModel) -> "FilterInSetupType":
-        return FilterInSetupType(
-            oid=str(model.id),
-            handler=FilterHandlerType(keyword=model.handler),
-            actions=model.actions,
-            silent=model.silent,
-        )

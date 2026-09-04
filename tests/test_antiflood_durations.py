@@ -11,13 +11,13 @@ from beanie import PydanticObjectId
 from fastapi import HTTPException
 
 from sophie_bot.db.models.antiflood import AntifloodModel
-from sophie_bot.db.models.filters import FilterActionType
 from sophie_bot.modules.antiflood.api.antiflood import ActionRequest
 from sophie_bot.modules.antiflood.domain import DEFAULT_MUTE_DURATION, get_action_duration
 from sophie_bot.modules.antiflood.middlewares.enforcer import AntifloodEnforcerMiddleware
 from sophie_bot.modules.restrictions.actions.ban import BanActionDataModel, BanModernAction
 from sophie_bot.modules.restrictions.actions.kick import KickModernAction
 from sophie_bot.modules.restrictions.actions.mute import MuteActionDataModel, MuteModernAction
+from sophie_bot.shared.actions import StoredAction
 
 CHAT_TID = -1001483164428
 USER_TID = 7860164386
@@ -39,7 +39,7 @@ def registered_actions() -> Iterator[None]:
 
 
 def _settings(name: str, data: dict[str, Any]) -> AntifloodModel:
-    return AntifloodModel(chat=PydanticObjectId(), actions=[FilterActionType(name=name, data=data)])
+    return AntifloodModel(chat=PydanticObjectId(), actions=[StoredAction(name=name, data=data)])
 
 
 def _flooding_message() -> SimpleNamespace:

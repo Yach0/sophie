@@ -1,24 +1,14 @@
 from typing import Any
 
-from aiogram.types import (
-    CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
-from stfu_tg import Bold, Doc, Italic, PreformattedHTML, Section, Template, Title
+from aiogram.types import CallbackQuery, Message
+from stfu_tg import Bold, Button, ButtonRow, Buttons, Doc, Italic, PreformattedHTML, Section, Template, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.modern_action_abc import (
-    ActionResult,
-    ActionSetupMessage,
-    ModernActionABC,
-    ModernActionSetting,
-)
+from sophie_bot.shared.actions import ActionResult, ModernActionABC, ModernActionSetting
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -30,11 +20,13 @@ async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -
     return await parse_saveable(event, event.html_text)
 
 
-async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    return ActionSetupMessage(
-        text=_("Now, please type the text you want to automatically send."),
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=_("Markup help"), url="https://google.com")]]
+async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Doc(
+        _("Now, please type the text you want to automatically send."),
+        Buttons(
+            ButtonRow(
+                Button(_("Markup help"), url="https://google.com"),
+            )
         ),
     )
 

@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.dispatcher.event.handler import CallableObject
-from aiogram.types import Chat, Message
+from aiogram.types import CallbackQuery, Chat, Message, User
 
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters import feature_flag
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.filters.is_connected import GroupOrConnectedFilter
 from sophie_bot.middlewares.connections import ChatConnection
 
 PRIVATE_CHAT_ID = 42
@@ -83,3 +85,23 @@ async def test_falls_back_to_event_chat_without_a_connection(monkeypatch: pytest
 
     assert result is True
     is_enabled_mock.assert_awaited_once_with("locks", chat_tid=PRIVATE_CHAT_ID)
+
+
+@pytest.mark.asyncio
+async def test_group_or_connected_filter_answers_disconnected_callback_safely() -> None:
+    callback = CallbackQuery.model_construct(
+        id="callback",
+        from_user=User(id=1, is_bot=False, first_name="User"),
+        chat_instance="instance",
+        message=_pm_message(),
+    )
+    answer = AsyncMock()
+
+    with patch.object(CallbackQuery, "answer", answer), pytest.raises(SkipHandler):
+        await GroupOrConnectedFilter()(
+            callback,
+            connection=None,
+            event_chat=callback.message.chat,
+        )
+
+    answer.assert_awaited_once()

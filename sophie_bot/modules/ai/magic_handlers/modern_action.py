@@ -17,8 +17,7 @@ from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
-from sophie_bot.modules.filters.types.modern_action_abc import (
-    ActionSetupMessage,
+from sophie_bot.shared.actions import (
     ActionSetupTryAgainException,
     ModernActionABC,
     ModernActionSetting,
@@ -45,14 +44,12 @@ async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -
     return AIReplyActionDataModel(prompt=prompt)
 
 
-async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    text = Doc(
+async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Doc(
         _("Please send me the AI instruction to proceed!"),
         _("The AI will try to remember the chat context and will respond accordingly!"),
         _("For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"),
-    ).to_html()
-
-    return ActionSetupMessage(text=text)
+    )
 
 
 class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):

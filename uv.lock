@@ -2245,8 +2245,8 @@ wheels = [
 
 [[package]]
 name = "stfu-tg"
-version = "4.2"
-source = { git = "https://gitlab.com/SophieBot/stf.git#732c7de67e6491a4f6f0193dbfe18936bb79e488" }
+version = "4.3"
+source = { git = "https://gitlab.com/SophieBot/stf.git#33e4f262370d7651e7d871d009409e010015ddab" }
 
 [[package]]
 name = "structlog"

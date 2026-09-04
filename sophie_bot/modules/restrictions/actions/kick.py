@@ -4,11 +4,11 @@ from stfu_tg.doc import Doc, Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
-from sophie_bot.modules.filters.types.modern_action_abc import ModernActionABC
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils import kick_user
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
+from sophie_bot.shared.actions import ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 

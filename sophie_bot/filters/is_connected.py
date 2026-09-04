@@ -3,7 +3,7 @@ from typing import Any
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatType
 from aiogram.filters import Filter
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 from stfu_tg import Doc
 
 from sophie_bot.filters.chat_status import ChatTypeFilter
@@ -17,9 +17,9 @@ class IsConnectedFilter(Filter):
         super().__init__()
 
     async def __call__(
-        self, message: Message, *args: Any, connection: ChatConnection | None = None, **kwargs: Any
+        self, event: Message | CallbackQuery, *args: Any, connection: ChatConnection | None = None, **kwargs: Any
     ) -> bool | dict[str, Any]:
-        return bool(connection and connection.is_connected and message.from_user)
+        return bool(connection and connection.is_connected and event.from_user)
 
 
 class GroupOrConnectedFilter(Filter):
@@ -30,20 +30,22 @@ class GroupOrConnectedFilter(Filter):
 
     """Filters cases when it's a group or connected to a group in PM."""
 
-    async def __call__(self, message: Message, *args: Any, **kwargs: Any) -> bool | dict[str, Any]:
-        if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP)(message, *args, **kwargs):
+    async def __call__(self, event: Message | CallbackQuery, *args: Any, **kwargs: Any) -> bool | dict[str, Any]:
+        if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP)(event, *args, **kwargs):
             return True
 
-        if await IsConnectedFilter(self.allow_abort)(message, *args, **kwargs):
+        if await IsConnectedFilter(self.allow_abort)(event, *args, **kwargs):
             return True
 
         if self.allow_abort:
-            await message.reply(
-                Doc(
-                    _("This command can only be used in a group or while being connected to a group in PM."),
-                    _("Refer to /help for more information about connections."),
-                ).to_html()
+            document = Doc(
+                _("This command can only be used in a group or while being connected to a group in PM."),
+                _("Refer to /help for more information about connections."),
             )
+            if isinstance(event, CallbackQuery):
+                await event.answer(document.to_html(), show_alert=True)
+            else:
+                await event.reply(document.to_html())
             raise SkipHandler
 
         return False

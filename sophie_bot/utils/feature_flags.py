@@ -96,6 +96,7 @@ FeatureType = Literal[
     "cleannotes",
     "filters",
     "filters_silent_mode",
+    "action_config_wizard",
     "antiflood",
     "locks",
     "greetings_ephemeral",
@@ -365,6 +366,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "cleannotes": _feature(False),
     "filters": _feature(True),
     "filters_silent_mode": _feature(True),
+    "action_config_wizard": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
     # Send the welcome only to the members it greets, so it never becomes chat clutter to clean up.

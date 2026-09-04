@@ -1,7 +1,7 @@
 """Migration: convert_antiflood_legacy_actions
 
 Description:
-    Converts legacy AntifloodModel action (string) to modern actions (list of FilterActionType).
+    Converts legacy AntifloodModel action (string) to modern actions (list of StoredAction).
 
 Affected Collections:
     - antiflood

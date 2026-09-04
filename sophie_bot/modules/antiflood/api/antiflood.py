@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 from sophie_bot.constants import ANTIFOOD_MAX_ACTIONS
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.filters import FilterActionType
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
+from sophie_bot.shared.actions import StoredAction
 from sophie_bot.utils.api.dependencies import RestrictAdminDep
 
 router = APIRouter(prefix="/antiflood", tags=["antiflood"])
@@ -136,7 +136,7 @@ async def update_antiflood_settings(
 
     settings.enabled = request.enabled
     settings.message_count = request.message_count
-    settings.actions = [FilterActionType(name=action.name, data=action.data) for action in request.actions]
+    settings.actions = [StoredAction(name=action.name, data=action.data) for action in request.actions]
 
     await settings.save()
 

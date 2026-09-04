@@ -120,6 +120,7 @@ WELCOMESECURITY_JOIN_TIMEOUT_MINUTES: Final[int] = 15
 
 # Maximum number of filter triggers per message
 FILTERS_MAX_TRIGGERS: Final[int] = 2
+FILTER_MAX_ACTIONS: Final[int] = FILTERS_MAX_TRIGGERS + 1
 
 # Antiflood limits
 ANTIFOOD_MAX_ACTIONS: Final[int] = 1  # Maximum number of actions allowed per chat

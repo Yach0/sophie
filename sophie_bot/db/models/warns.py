@@ -8,16 +8,16 @@ from pydantic import Field, field_validator
 
 from sophie_bot.constants import WARN_MAX_ACTIONS
 from sophie_bot.db.models._link_type import Link
+from sophie_bot.shared.actions import StoredAction
 
 from .chat import ChatModel
-from .filters import FilterActionType
 
 
 class WarnSettingsModel(Document):
     chat: Link[ChatModel]
     max_warns: int = Field(default=3, ge=2, le=10000)
-    on_each_warn_actions: list[FilterActionType] = Field(default_factory=list)
-    on_max_warn_actions: list[FilterActionType] = Field(default_factory=list)
+    on_each_warn_actions: list[StoredAction] = Field(default_factory=list)
+    on_max_warn_actions: list[StoredAction] = Field(default_factory=list)
 
     class Settings:
         name = "warn_settings"
@@ -49,9 +49,9 @@ class WarnSettingsModel(Document):
 
     @staticmethod
     def _upsert_action(
-        actions: list[FilterActionType], action_name: str, action_data: dict | None = None
-    ) -> list[FilterActionType]:
-        action = FilterActionType(name=action_name, data=action_data or {})
+        actions: list[StoredAction], action_name: str, action_data: dict | None = None
+    ) -> list[StoredAction]:
+        action = StoredAction(name=action_name, data=action_data or {})
         new_actions = list(actions)
 
         for index, existing in enumerate(new_actions):
