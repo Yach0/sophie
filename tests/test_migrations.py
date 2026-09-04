@@ -40,7 +40,7 @@ def test_convert_legacy_notes_to_html_update_converts_markdown_note() -> None:
         "$set": {
             "text": "<b>legacy</b> note",
             "parse_mode": "html",
-            "version": 2,
+            "version": 3,
             "legacy_markdown_text": "**legacy** note",
             "buttons": [],
             "legacy_buttons": [],
@@ -64,7 +64,7 @@ def test_convert_legacy_notes_to_html_update_extracts_legacy_buttons() -> None:
         "$set": {
             "text": "Menu",
             "parse_mode": "html",
-            "version": 2,
+            "version": 3,
             "legacy_markdown_text": "Menu\n[Open](btnurl:https://example.com)\n[Rules](btnrules)",
             "buttons": [
                 [{"text": "Open", "action": "url", "data": "https://example.com", "style": None}],
@@ -85,7 +85,7 @@ def test_convert_legacy_notes_to_html_update_extracts_buttons_from_html_v1_note(
     assert update == {
         "$set": {
             "text": "Menu\n",
-            "version": 2,
+            "version": 3,
             "buttons": [[{"text": "Delete", "action": "delmsg", "data": None, "style": None}]],
             "legacy_buttons": [],
         }
@@ -169,7 +169,7 @@ def test_convert_legacy_greetings_saveables_converts_markdown_and_buttons() -> N
             "note": {
                 "text": "<b>Welcome</b>",
                 "parse_mode": "html",
-                "version": 2,
+                "version": 3,
                 "legacy_markdown_text": "**Welcome**",
                 "buttons": [],
                 "legacy_buttons": [],
@@ -177,7 +177,7 @@ def test_convert_legacy_greetings_saveables_converts_markdown_and_buttons() -> N
             "security_note": {
                 "text": "Prove you are human",
                 "parse_mode": "html",
-                "version": 2,
+                "version": 3,
                 "legacy_markdown_text": "Prove you are human\n[I am not a robot](btnwelcomesecurity)",
                 # The captcha button is hard-added in code, so it is dropped here to avoid a duplicate.
                 "buttons": [],

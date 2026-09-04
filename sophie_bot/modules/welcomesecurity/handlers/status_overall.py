@@ -89,5 +89,7 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
             reply_to=self.event.message_id,
             additional_fillings=additional_fillings,
             connection=connection,
+            owner_chat_tid=self.event.chat.id,
             bot=self.services.bot,
+            redis=self.services.redis,
         )

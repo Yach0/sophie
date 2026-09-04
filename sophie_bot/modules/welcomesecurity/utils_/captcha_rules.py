@@ -2,6 +2,7 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
+from redis.asyncio import Redis
 from stfu_tg import Doc, Title
 
 from sophie_bot.db.models import RulesModel
@@ -19,6 +20,7 @@ async def captcha_send_rules(
     is_join_request: bool,
     *,
     bot: Bot,
+    redis: Redis,
 ) -> Message | bool | None:
     captcha = EmojiCaptcha()
     captcha.show_emoji("🪧")
@@ -37,16 +39,22 @@ async def captcha_send_rules(
         )
     )
 
-    if len(str(doc)) >= 1024 or rules.file:
-        # Captions can't be longer than 1024, send a normal message text instead this time
-        # Or a file
+    if (
+        getattr(rules, "rich_message", None)
+        or getattr(rules, "files", None)
+        or getattr(rules, "file", None)
+        or getattr(rules, "buttons", None)
+        or len(str(doc)) >= 1024
+    ):
         return await send_saveable(
             message,
             message.chat.id,
             rules,
             title=title,
             additional_keyboard=buttons.as_markup(),
+            owner_chat_tid=message.chat.id,
             bot=bot,
+            redis=redis,
         )
 
     return await send_captcha_message(

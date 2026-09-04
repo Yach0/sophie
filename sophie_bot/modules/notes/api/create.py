@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, status
 
-from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteModel
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
@@ -33,9 +33,12 @@ async def create_note(
         names=note_data.names,
         text=note_data.text,
         file=note_data.file,
+        files=note_data.files,
         buttons=note_data.buttons,
         parse_mode=note_data.parse_mode,
         preview=note_data.preview,
+        rich_message=note_data.rich_message,
+        version=CURRENT_SAVEABLE_VERSION,
         description=note_data.description,
         ai_description=note_data.ai_description,
         note_group=note_data.note_group,

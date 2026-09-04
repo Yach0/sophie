@@ -46,7 +46,15 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
                 )
             )
 
-        saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
+        saveable = await parse_saveable(
+            self.event,
+            raw_text,
+            offset=text_offset,
+            buttons=buttons,
+            owner_chat_tid=self.event.chat.id,
+            bot=self.services.bot,
+            redis=self.services.redis,
+        )
         await GreetingsModel.change_welcome_message(connection.db_model.iid, saveable)
 
         doc = Doc(
