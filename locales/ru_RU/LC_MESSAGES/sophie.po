@@ -963,8 +963,8 @@ msgid "AI Response"
 msgstr "Ответ AI"
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:63
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:38
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:42
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:39
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:43
 msgid "Reply to message"
 msgstr "Ответить на сообщение"
 
@@ -3890,7 +3890,7 @@ msgid "Please check your direct messages with me to complete verification and jo
 msgstr "Пожалуйста, проверьте свои личные сообщения со мной, чтобы завершить проверку и присоединиться к группе."
 
 #: sophie_bot/modules/greetings/default_welcome.py:32
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:45
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:46
 msgid "Open DM with Sophie"
 msgstr "Открыть ЛС с Софи"
 
@@ -4022,7 +4022,7 @@ msgstr "Сообщение приветствия"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:23
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:126
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:127
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 msgid "No chat rules, have fun!"
 msgstr "Нет правил чата, веселитесь!"
@@ -4798,7 +4798,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr "Заметки позволяют сохранять различные виды контента, от обычных текстовых сообщений до стикеров и аудиосообщений, а также поддерживают добавление встроенных кнопок сообщений."
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:29
+#: sophie_bot/modules/notes/handlers/get.py:30
 msgid "Note name"
 msgstr "Название заметки"
 
@@ -4849,11 +4849,11 @@ msgstr "Только инициатор может подтвердить уда
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 Все заметки ({removed_count}) были удалены в {chat_name}"
 
-#: sophie_bot/modules/notes/handlers/get.py:30
+#: sophie_bot/modules/notes/handlers/get.py:31
 msgid "Retrieve the note."
 msgstr "Получить заметку."
 
-#: sophie_bot/modules/notes/handlers/get.py:44
+#: sophie_bot/modules/notes/handlers/get.py:45
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "Не найдена ни одна заметка с именем {name}."
@@ -5034,27 +5034,27 @@ msgstr ""
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr "Вам необходимо обновить данные заметок чата. Сгенерируйте данные заметки из предоставленного текста заметки"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:25
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:26
 msgid "Now, please type the text you want to automatically send."
 msgstr "Теперь, пожалуйста, введите текст, который вы хотите автоматически отправить."
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:28
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:29
 msgid "Markup help"
 msgstr "Помощь по разметке"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:50
 msgid "Replies to the message with"
 msgstr "Ответы на сообщение с"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:51
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:52
 msgid "Replies to the message"
 msgstr "Ответы на сообщение"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:57
 msgid "Change reply text"
 msgstr "Изменить текст ответа"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:64
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:65
 msgid "Reply"
 msgstr "Ответить"
 
@@ -5226,31 +5226,39 @@ msgstr "Пожалуйста, попытайтесь уменьшить длин
 msgid "Note is too long."
 msgstr "Заметка слишком длинная."
 
-#: sophie_bot/modules/notes/utils/rich.py:132
+#: sophie_bot/modules/notes/utils/rich.py:141
 msgid "Thinking Rich blocks cannot be sent as final messages"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:398
+#: sophie_bot/modules/notes/utils/rich.py:412
+msgid "Rich button labels may contain only plain text, custom emoji, or date-time text"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:422
 msgid "Thinking Rich blocks cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:406
+#: sophie_bot/modules/notes/utils/rich.py:426
+msgid "Rich button rows must contain between 1 and 8 buttons"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:436
 msgid "Rich buttons must contain exactly one action"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:409
+#: sophie_bot/modules/notes/utils/rich.py:439
 msgid "Rich callback data is too long"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:428
+#: sophie_bot/modules/notes/utils/rich.py:459
 msgid "Rich buttons from an untrusted source cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:434
+#: sophie_bot/modules/notes/utils/rich.py:465
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:293
+#: sophie_bot/modules/notes/utils/send.py:355
 msgid "The text is too long"
 msgstr "Текст слишком длинный"
 
@@ -7352,7 +7360,7 @@ msgstr "Завершите эмодзи '{emoji_name}', чтобы заверш�
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ Неправильное решение. Пожалуйста, попробуйте еще раз."
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:40
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:41
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
 msgstr "Я не могу отправить капчу для верификации, потому что вы заблокировали Софи в личных сообщениях. Пожалуйста, разблокируйте меня, затем откройте ЛС ниже, чтобы продолжить."
 
@@ -7473,11 +7481,11 @@ msgstr ""
 msgid "Welcome Security message"
 msgstr "Сообщение безопасности приветствия"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:18
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:19
 msgid "Please read the chat rules"
 msgstr "Пожалуйста, прочтите правила группы"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:24
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:25
 msgid "I agree"
 msgstr "Принимаю"
 

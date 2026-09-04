@@ -20,7 +20,7 @@ from typing import Any
 
 from beanie import free_fall_migration
 
-from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteModel, SaveableParseMode
+from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_buttons
 
@@ -40,7 +40,7 @@ def convert_legacy_note_to_html_update(document: dict[str, Any]) -> dict[str, An
 
     normalized_text = text
     set_fields: dict[str, Any] = {
-        "version": CURRENT_SAVEABLE_VERSION,
+        "version": 2,
     }
 
     if should_convert_buttons:

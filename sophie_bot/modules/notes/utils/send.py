@@ -31,11 +31,7 @@ from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_butt
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
-from sophie_bot.modules.notes.utils.rich import (
-    render_rich_message,
-    rich_message_to_input,
-    strip_rich_buttons,
-)
+from sophie_bot.modules.notes.utils.rich import render_rich_message, rich_message_to_input, strip_rich_buttons
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
@@ -116,6 +112,53 @@ async def _send_rich_saveable(
 
 
 TEXT_LENGTH_LIMIT: Final[int] = 4090
+
+
+async def _send_text_chunks(
+    send_to: int,
+    text: str,
+    inline_markup: InlineKeyboardMarkup,
+    reply_to: int | None,
+    message_thread_id: int | None,
+    receiver_user_id: int | None,
+    collect_sent: list[Message] | None,
+) -> Message | None:
+    first_message: Message | None = None
+    text_chunks = [text[start : start + TEXT_LENGTH_LIMIT] for start in range(0, len(text), TEXT_LENGTH_LIMIT)]
+    for chunk_index, text_chunk in enumerate(text_chunks):
+        chunk_markup = inline_markup if chunk_index == 0 else None
+        has_reply = chunk_index == 0 and reply_to is not None
+
+        async def reply_not_found(
+            text_chunk: str = text_chunk,
+            chunk_markup: InlineKeyboardMarkup | None = chunk_markup,
+        ) -> Message:
+            return await SendMessage(
+                chat_id=send_to,
+                text=text_chunk,
+                reply_markup=chunk_markup,
+                link_preview_options=LinkPreviewOptions(is_disabled=True),
+                message_thread_id=message_thread_id,
+                receiver_user_id=receiver_user_id,
+            ).emit(bot)
+
+        sent = await common_try(
+            to_try=SendMessage(
+                chat_id=send_to,
+                text=text_chunk,
+                reply_markup=chunk_markup,
+                link_preview_options=LinkPreviewOptions(is_disabled=True),
+                reply_parameters=ReplyParameters(message_id=reply_to) if has_reply else None,
+                message_thread_id=message_thread_id,
+                receiver_user_id=receiver_user_id,
+            ).emit(bot),
+            reply_not_found=reply_not_found,
+        )
+        if first_message is None and isinstance(sent, Message):
+            first_message = sent
+        if collect_sent is not None and isinstance(sent, Message):
+            collect_sent.append(sent)
+    return first_message
 
 
 def _build_input_media(note_file: NoteFile, caption: str | None) -> MediaUnion:
@@ -212,9 +255,10 @@ async def send_saveable(
     connection: ChatConnection | None = None,
     user: User | None = None,
     message_thread_id: int | None = None,
-    collect_sent: list[Message] | None = None,
     receiver_user_id: int | None = None,
+    collect_sent: list[Message] | None = None,
     owner_chat_tid: int | None = None,
+    split_long_text: bool = False,
 ) -> Message | None:
     """Sends a saveable, returning its primary message.
 
@@ -240,7 +284,9 @@ async def send_saveable(
     # Extract buttons
     inline_markup = InlineKeyboardMarkup(inline_keyboard=[])
     if not raw:
-        chat_id_for_buttons = connection.db_model.tid if connection else (message.chat.id if message else send_to)
+        chat_id_for_buttons = owner_chat_tid or (
+            connection.db_model.tid if connection else (message.chat.id if message else send_to)
+        )
 
         inline_markup = render_buttons(saveable.buttons, chat_id_for_buttons)
 
@@ -255,11 +301,13 @@ async def send_saveable(
         if additional_keyboard:
             inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 
+    rich_enabled = False
     if saveable.rich_message is not None:
         rich_owner_chat_tid = owner_chat_tid or (
             connection.db_model.tid if connection else (message.chat.id if message else send_to)
         )
-        if await is_enabled("saveable_rich_messages", chat_tid=rich_owner_chat_tid):
+        rich_enabled = await is_enabled("saveable_rich_messages", chat_tid=rich_owner_chat_tid)
+        if rich_enabled:
             return await _send_rich_saveable(
                 send_to,
                 saveable,
@@ -283,6 +331,20 @@ async def send_saveable(
     # Apply random choice sections (%%%...%%%)
     if text:
         text = parse_random_text(text)
+    should_split_long_text = split_long_text or (saveable.rich_message is not None and not rich_enabled)
+    if should_split_long_text and len(text) > TEXT_LENGTH_LIMIT and not single_file:
+        visible_parser = _VisibleTitleParser()
+        visible_parser.feed(text)
+        text = visible_parser.text()
+        return await _send_text_chunks(
+            send_to,
+            text,
+            inline_markup,
+            reply_to,
+            message_thread_id,
+            receiver_user_id,
+            collect_sent,
+        )
 
     text_limit = (
         MEDIA_CAPTION_LENGTH_LIMIT

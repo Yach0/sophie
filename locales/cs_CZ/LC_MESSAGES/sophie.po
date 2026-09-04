@@ -964,8 +964,8 @@ msgid "AI Response"
 msgstr "AI odpověď"
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:63
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:38
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:42
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:39
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:43
 msgid "Reply to message"
 msgstr "Odpověz na zprávu"
 
@@ -3893,7 +3893,7 @@ msgid "Please check your direct messages with me to complete verification and jo
 msgstr "Zkontrolujte si s mou soukromé zprávy, aby jste dokončili ověření a připojili se ke skupině."
 
 #: sophie_bot/modules/greetings/default_welcome.py:32
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:45
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:46
 msgid "Open DM with Sophie"
 msgstr "Otevřít soukromou zprávu se Sophie"
 
@@ -4025,7 +4025,7 @@ msgstr "Uvítací zpráva"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:23
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:126
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:127
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 msgid "No chat rules, have fun!"
 msgstr "Není zde žádné pravidlo, bavte se!"
@@ -4801,7 +4801,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr "Poznámky umožňují ukládání různých typů obsahu, od běžných textových zpráv po nálepky a audio zprávy, poznámky také podporují přidávání inline tlačítek zpráv."
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:29
+#: sophie_bot/modules/notes/handlers/get.py:30
 msgid "Note name"
 msgstr "Název poznámky"
 
@@ -4852,11 +4852,11 @@ msgstr "Pouze iniciátor může potvrdit odstranění všech poznámek"
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 Všechny poznámky ({removed_count}) byly odstraněny v {chat_name}"
 
-#: sophie_bot/modules/notes/handlers/get.py:30
+#: sophie_bot/modules/notes/handlers/get.py:31
 msgid "Retrieve the note."
 msgstr "Získá poznámku."
 
-#: sophie_bot/modules/notes/handlers/get.py:44
+#: sophie_bot/modules/notes/handlers/get.py:45
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "Nebyla nalezena žádná poznámka s názvem {name}."
@@ -5037,27 +5037,27 @@ msgstr ""
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr "Musíte aktualizovat data poznámek chatu. Vygenerujte data poznámky z poskytnutého textu poznámky"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:25
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:26
 msgid "Now, please type the text you want to automatically send."
 msgstr "Nyní prosím napište text, který chcete automaticky posílat."
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:28
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:29
 msgid "Markup help"
 msgstr "Nápověda k formátování"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:50
 msgid "Replies to the message with"
 msgstr "Odpovědi na zprávu s"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:51
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:52
 msgid "Replies to the message"
 msgstr "Odpovědi na zprávu"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:57
 msgid "Change reply text"
 msgstr "Změňte text odpovědi"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:64
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:65
 msgid "Reply"
 msgstr "Odpovědět"
 
@@ -5229,31 +5229,39 @@ msgstr "Snažte se prosím zkrátit délku poznámky."
 msgid "Note is too long."
 msgstr "Poznámka je příliš dlouhá."
 
-#: sophie_bot/modules/notes/utils/rich.py:132
+#: sophie_bot/modules/notes/utils/rich.py:141
 msgid "Thinking Rich blocks cannot be sent as final messages"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:398
+#: sophie_bot/modules/notes/utils/rich.py:412
+msgid "Rich button labels may contain only plain text, custom emoji, or date-time text"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:422
 msgid "Thinking Rich blocks cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:406
+#: sophie_bot/modules/notes/utils/rich.py:426
+msgid "Rich button rows must contain between 1 and 8 buttons"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:436
 msgid "Rich buttons must contain exactly one action"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:409
+#: sophie_bot/modules/notes/utils/rich.py:439
 msgid "Rich callback data is too long"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:428
+#: sophie_bot/modules/notes/utils/rich.py:459
 msgid "Rich buttons from an untrusted source cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:434
+#: sophie_bot/modules/notes/utils/rich.py:465
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:293
+#: sophie_bot/modules/notes/utils/send.py:355
 msgid "The text is too long"
 msgstr "Text je příliš dlouhý"
 
@@ -7355,7 +7363,7 @@ msgstr "Dokončete emoji '{emoji_name}', abyste se dostali přes captcha a mohli
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ Nesprávné řešení. Prosím, zkuste to znovu."
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:40
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:41
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
 msgstr "Nemohu odeslat ověřovací captcha, protože jste zablokovali Sophie v přímých zprávách. Prosím, odblokujte mě a poté otevřete soukromou zprávu níže pro pokračování."
 
@@ -7476,11 +7484,11 @@ msgstr ""
 msgid "Welcome Security message"
 msgstr "Zpráva o bezpečnosti vítání"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:18
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:19
 msgid "Please read the chat rules"
 msgstr "Prosím, přečtěte si pravidla chatu"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:24
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:25
 msgid "I agree"
 msgstr "Souhlasím"
 

@@ -21,6 +21,7 @@ from sophie_bot.modules.notes.utils.combine import combine_saveables
 from sophie_bot.modules.notes.utils.rich import rich_message_has_media
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.utils import flags
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -123,37 +124,41 @@ class HashtagGetNote(SophieMessageHandler):
         reply_to = self.event.reply_to_message.message_id if self.event.reply_to_message else self.event.message_id
         sent_messages: list[Message] = []
         message: Message | None = None
-        if any(note.rich_message is not None for note in notes_to_stack):
-            for note in notes_to_stack:
-                sent = await send_saveable(
+        rich_enabled = await is_enabled("saveable_rich_messages", chat_tid=chat.tid)
+        try:
+            if rich_enabled and any(note.rich_message is not None for note in notes_to_stack):
+                for note in notes_to_stack:
+                    sent = await send_saveable(
+                        self.event,
+                        self.event.chat.id,
+                        note,
+                        title=self._get_note_title(note),
+                        reply_to=reply_to,
+                        connection=chat,
+                        message_thread_id=self.event.message_thread_id,
+                        owner_chat_tid=chat.tid,
+                        collect_sent=sent_messages,
+                    )
+                    message = message or sent
+            else:
+                saveable = combine_saveables(*((item, self._get_note_title(item)) for item in notes_to_stack))
+                message = await send_saveable(
                     self.event,
                     self.event.chat.id,
-                    note,
-                    title=self._get_note_title(note),
+                    saveable,
                     reply_to=reply_to,
+                    owner_chat_tid=chat.tid,
                     connection=chat,
                     message_thread_id=self.event.message_thread_id,
-                    owner_chat_tid=chat.tid,
                     collect_sent=sent_messages,
+                    split_long_text=not rich_enabled and any(note.rich_message is not None for note in notes_to_stack),
                 )
-                message = message or sent
-        else:
-            saveable = combine_saveables(*((item, self._get_note_title(item)) for item in notes_to_stack))
-            message = await send_saveable(
+        finally:
+            await clean_notes(
+                chat,
                 self.event,
-                self.event.chat.id,
-                saveable,
-                reply_to=reply_to,
-                owner_chat_tid=chat.tid,
-                connection=chat,
-                message_thread_id=self.event.message_thread_id,
-                collect_sent=sent_messages,
+                sent_messages,
+                request_is_standalone=is_standalone_hashtag_request(raw_text, matches),
             )
-        await clean_notes(
-            chat,
-            self.event,
-            sent_messages,
-            request_is_standalone=is_standalone_hashtag_request(raw_text, matches),
-        )
 
         return message

@@ -964,8 +964,8 @@ msgid "AI Response"
 msgstr "AI Yanıtı"
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:63
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:38
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:42
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:39
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:43
 msgid "Reply to message"
 msgstr "Mesaja cevap verin"
 
@@ -3890,7 +3890,7 @@ msgid "Please check your direct messages with me to complete verification and jo
 msgstr "Gruba katılmak için lütfen benimle olan özel mesajlarınızı kontrol edin."
 
 #: sophie_bot/modules/greetings/default_welcome.py:32
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:45
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:46
 msgid "Open DM with Sophie"
 msgstr "Sophie ile DM'yi aç"
 
@@ -4022,7 +4022,7 @@ msgstr "Karşılama Mesajı"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:23
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:126
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:127
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 msgid "No chat rules, have fun!"
 msgstr "Kural yok, eğlenin!"
@@ -4798,7 +4798,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr "Notlar, normal metin mesajlarından çıkartmalara ve sesli mesajlara kadar farklı türde içerikleri kaydetmeye olanak tanır, notlar ayrıca satır içi mesaj butonları eklemeyi destekler."
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:29
+#: sophie_bot/modules/notes/handlers/get.py:30
 msgid "Note name"
 msgstr "Not adı"
 
@@ -4849,11 +4849,11 @@ msgstr "Tüm notları silmeyi yalnızca başlatıcı onaylayabilir"
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 Tüm notlar ({removed_count}) {chat_name} içinde silindi"
 
-#: sophie_bot/modules/notes/handlers/get.py:30
+#: sophie_bot/modules/notes/handlers/get.py:31
 msgid "Retrieve the note."
 msgstr "Notu al."
 
-#: sophie_bot/modules/notes/handlers/get.py:44
+#: sophie_bot/modules/notes/handlers/get.py:45
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "{name} ismine sahip bir not bulunamadı."
@@ -5034,27 +5034,27 @@ msgstr ""
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr "Sohbet notlarının verilerini güncellemeniz gerekiyor. Not verilerini verilen not metninden oluşturun"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:25
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:26
 msgid "Now, please type the text you want to automatically send."
 msgstr "Şimdi, otomatik olarak göndermek istediğiniz metni yazın."
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:28
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:29
 msgid "Markup help"
 msgstr "Biçimlendirme yardımı"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:49
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:50
 msgid "Replies to the message with"
 msgstr "Mesaja şu ile cevap verir"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:51
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:52
 msgid "Replies to the message"
 msgstr "Mesajlara cevap veriyor"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:56
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:57
 msgid "Change reply text"
 msgstr "Cevap metnini değiştirin"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:64
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:65
 msgid "Reply"
 msgstr "Yanıtla"
 
@@ -5226,31 +5226,39 @@ msgstr "Lütfen notun uzunluğunu azaltmayı deneyin."
 msgid "Note is too long."
 msgstr "Not çok uzun."
 
-#: sophie_bot/modules/notes/utils/rich.py:132
+#: sophie_bot/modules/notes/utils/rich.py:141
 msgid "Thinking Rich blocks cannot be sent as final messages"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:398
+#: sophie_bot/modules/notes/utils/rich.py:412
+msgid "Rich button labels may contain only plain text, custom emoji, or date-time text"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:422
 msgid "Thinking Rich blocks cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:406
+#: sophie_bot/modules/notes/utils/rich.py:426
+msgid "Rich button rows must contain between 1 and 8 buttons"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:436
 msgid "Rich buttons must contain exactly one action"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:409
+#: sophie_bot/modules/notes/utils/rich.py:439
 msgid "Rich callback data is too long"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:428
+#: sophie_bot/modules/notes/utils/rich.py:459
 msgid "Rich buttons from an untrusted source cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:434
+#: sophie_bot/modules/notes/utils/rich.py:465
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:293
+#: sophie_bot/modules/notes/utils/send.py:355
 msgid "The text is too long"
 msgstr "Metin çok uzun"
 
@@ -7352,7 +7360,7 @@ msgstr "'{emoji_name}' emojisini tamamlayarak captcha işlemini tamamlayın ve {
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ Yanlış çözüm. Lütfen tekrar deneyin."
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:40
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:41
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
 msgstr "Doğrudan mesajlarda Sophie'yi engellediğiniz için doğrulama captcha'sını gönderemiyorum. Lütfen engellememi kaldırın, ardından devam etmek için aşağıdaki DM'yi açın."
 
@@ -7473,11 +7481,11 @@ msgstr ""
 msgid "Welcome Security message"
 msgstr "Karşılama Güvenliği mesajı"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:18
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:19
 msgid "Please read the chat rules"
 msgstr "Lütfen sohbet kurallarını okuyun."
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:24
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:25
 msgid "I agree"
 msgstr "Kabul ediyorum"
 

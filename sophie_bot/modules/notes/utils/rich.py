@@ -22,7 +22,6 @@ from aiogram.types import (
     RichMessageButton,
     RichTextButton,
     RichTextTextMention,
-    RichTextUnion,
 )
 from pydantic import BaseModel
 
@@ -93,12 +92,20 @@ def _largest_media_candidate(candidates: list[Any]) -> Any:
     )
 
 
-def _input_media(kind: str, media: Any, *, has_spoiler: bool | None = None) -> BaseModel:
+def _input_media(
+    kind: str,
+    media: Any,
+    *,
+    has_spoiler: bool | None = None,
+    extra_fields: dict[str, Any] | None = None,
+) -> BaseModel:
     media_type = _MEDIA_INPUT_TYPES[kind]
     fields = {field_name: None for field_name in media_type.model_fields if field_name not in {"type", "media"}}
     fields["media"] = media.file_id
     if has_spoiler is not None and "has_spoiler" in fields:
         fields["has_spoiler"] = has_spoiler
+    if extra_fields:
+        fields.update({field_name: value for field_name, value in extra_fields.items() if field_name in fields})
     return media_type.model_validate(fields)
 
 
@@ -112,16 +119,18 @@ def _convert_button(button: RichMessageButton) -> RichMessageButton:
     return button.model_copy(update={"text": _convert_text(button.text)})
 
 
-def _convert_text(text: RichTextUnion) -> RichTextUnion:
-    if isinstance(text, str):
+def _convert_text(text: Any) -> Any:
+    if text is None or isinstance(text, str):
         return text
     if isinstance(text, list):
         return [_convert_text(item) for item in text]
+    if isinstance(text, Mapping):
+        return {key: _convert_text(value) for key, value in text.items()}
     data = _model_data(text)
     if text.__class__.__name__ == "RichTextButton":
         data["button"] = _convert_button(cast("RichTextButton", text).button)
-    elif "text" in data and isinstance(data["text"], (BaseModel, list)):
-        data["text"] = _convert_text(data["text"])
+    elif hasattr(text, "text"):
+        data["text"] = _convert_text(text.text)
     text_type = text.__class__
     return text_type.model_validate(data)
 
@@ -141,6 +150,7 @@ def _convert_block(block: Any) -> InputRichBlockUnion:
                     "has_checkbox": item.has_checkbox,
                     "is_checked": item.is_checked,
                     "value": item.value,
+                    "type": item.type,
                 }.items()
                 if value is not None
             }
@@ -161,7 +171,11 @@ def _convert_block(block: Any) -> InputRichBlockUnion:
     elif block_name == "RichBlockTable":
         data["caption"] = _convert_text(block.caption) if block.caption else None
         data["cells"] = [
-            [cell.model_copy(update={"text": _convert_text(cell.text)}) for cell in row] for row in block.cells
+            [
+                cell.model_copy(update={"text": _convert_text(cell.text) if cell.text is not None else None})
+                for cell in row
+            ]
+            for row in block.cells
         ]
     elif block_name in {
         "RichBlockAnimation",
@@ -181,23 +195,24 @@ def _convert_block(block: Any) -> InputRichBlockUnion:
         }[block_name]
         source_media = getattr(block, field_name)
         kind = "voice_note" if field_name == "voice_note" else field_name
+        media_extra: dict[str, Any] = {}
         if kind == "photo":
             source_media = _largest_media_candidate(source_media)
-        elif kind == "video" and source_media.cover:
-            data["cover"] = _largest_media_candidate(source_media.cover).file_id
-        data[field_name] = _input_media(kind, source_media, has_spoiler=getattr(block, "has_spoiler", None))
-        data["caption"] = _convert_caption(block.caption)
-    if "caption" in data and block_name not in {
-        "RichBlockAnimation",
-        "RichBlockAudio",
-        "RichBlockDocument",
-        "RichBlockPhoto",
-        "RichBlockVideo",
-        "RichBlockVoiceNote",
-    }:
-        data["caption"] = (
-            _convert_caption(block.caption) if isinstance(block.caption, RichBlockCaption) else block.caption
+        elif kind == "video":
+            if source_media.cover:
+                media_extra["cover"] = _largest_media_candidate(source_media.cover).file_id
+            if source_media.start_timestamp is not None:
+                media_extra["start_timestamp"] = source_media.start_timestamp
+        data[field_name] = _input_media(
+            kind,
+            source_media,
+            has_spoiler=getattr(block, "has_spoiler", None),
+            extra_fields=media_extra,
         )
+
+    if "caption" in data:
+        caption = block.caption
+        data["caption"] = _convert_caption(caption) if isinstance(caption, RichBlockCaption) else _convert_text(caption)
 
     input_name = block_name.replace("RichBlock", "InputRichBlock", 1)
     input_type = getattr(__import__("aiogram.types", fromlist=[input_name]), input_name)
@@ -220,19 +235,18 @@ def _visible_text(value: Any) -> str:
         return _visible_text(value.text)
     if not isinstance(value, BaseModel):
         return str(value)
-
     name = value.__class__.__name__
-    data = _model_data(value)
     if name.startswith("RichText"):
         if name == "RichTextCustomEmoji":
-            return str(data.get("alternative_text") or "")
+            return str(value.alternative_text or "")
         if name == "RichTextButton":
             return _visible_text(value.button)
-        if name in {
-            "RichTextAnchor",
-        }:
+        if name == "RichTextAnchor":
             return ""
-        return _visible_text(data.get("text") or data.get("expression"))
+        if hasattr(value, "text"):
+            return _visible_text(value.text)
+        if hasattr(value, "expression"):
+            return str(value.expression)
     if name == "RichBlockListItem":
         return f"{value.label} {_visible_text(value.blocks)}"
     if name == "RichBlockTableCell":
@@ -252,24 +266,26 @@ def _visible_text(value: Any) -> str:
     }:
         media = next(
             (
-                data.get(field)
+                getattr(value, field, None)
                 for field in ("animation", "audio", "document", "photo", "video", "voice_note")
-                if data.get(field)
+                if getattr(value, field, None)
             ),
             None,
         )
+        if isinstance(media, list) and media:
+            media = _largest_media_candidate(media)
         media_label = getattr(media, "file_name", None) or name.removeprefix("RichBlock")
         return f"[{media_label}]" + (f" {_visible_text(value.caption)}" if value.caption else "")
-    if "blocks" in data:
-        return _visible_text(data["blocks"])
-    if "items" in data:
-        return _visible_text(data["items"])
-    if "cells" in data:
-        return _visible_text(data["cells"])
-    if "text" in data:
-        return _visible_text(data["text"])
-    if "caption" in data:
-        return _visible_text(data["caption"])
+    if hasattr(value, "blocks"):
+        return _visible_text(value.blocks)
+    if hasattr(value, "items"):
+        return _visible_text(value.items)
+    if hasattr(value, "cells"):
+        return _visible_text(value.cells)
+    if hasattr(value, "text"):
+        return _visible_text(value.text)
+    if hasattr(value, "caption"):
+        return _visible_text(value.caption)
     return ""
 
 
@@ -292,20 +308,21 @@ def _text_to_html(value: Any) -> str:
         return f'<a href="{html.escape(value.url, quote=True)}">{label}</a>'
     if name == "RichTextTextMention":
         return _text_to_html(value.text)
-    data = _model_data(value)
     if name == "RichTextButton":
         return _text_to_html(value.button)
-    nested = _text_to_html(data.get("text") or data.get("expression"))
+    if hasattr(value, "text"):
+        nested = _text_to_html(value.text)
+    elif hasattr(value, "expression"):
+        nested = _text_to_html(value.expression)
+    else:
+        nested = ""
     tags = {
         "RichTextBold": ("<b>", "</b>"),
         "RichTextItalic": ("<i>", "</i>"),
         "RichTextUnderline": ("<u>", "</u>"),
         "RichTextStrikethrough": ("<s>", "</s>"),
         "RichTextSpoiler": ("<tg-spoiler>", "</tg-spoiler>"),
-        "RichTextMarked": ("<mark>", "</mark>"),
         "RichTextCode": ("<code>", "</code>"),
-        "RichTextSubscript": ("<sub>", "</sub>"),
-        "RichTextSuperscript": ("<sup>", "</sup>"),
     }
     if name in tags:
         start, end = tags[name]
@@ -316,33 +333,28 @@ def _text_to_html(value: Any) -> str:
 def _block_to_html(block: Any) -> str:
     name = block.__class__.__name__
     if name == "RichBlockDivider":
-        return "<hr>"
+        return "\n---\n"
     if name == "RichBlockAnchor":
         return ""
-    data = _model_data(block)
     if name == "RichBlockList":
-        items = "".join(f"<li>{html.escape(item.label)}{_blocks_to_html(item.blocks)}</li>" for item in block.items)
-        return f"<ul>{items}</ul>"
+        return "\n".join(f"- {html.escape(item.label)} {_blocks_to_html(item.blocks)}".rstrip() for item in block.items)
     if name == "RichBlockTable":
-        rows = "".join(
-            "<tr>"
-            + "".join(
-                f"<{'th' if cell.is_header else 'td'}>{_text_to_html(cell.text)}</{'th' if cell.is_header else 'td'}>"
-                for cell in row
-            )
-            + "</tr>"
-            for row in block.cells
-        )
-        return f"<table>{rows}</table>" + (_text_to_html(block.caption) if block.caption else "")
+        rows = "\n".join(" | ".join(_text_to_html(cell.text) for cell in row) for row in block.cells)
+        return rows + (f"\n{_text_to_html(block.caption)}" if block.caption else "")
     if name == "RichBlockButtons":
         return " ".join(_text_to_html(button) for button in block.buttons)
-    if "blocks" in data:
+    if hasattr(block, "blocks"):
         inner = _blocks_to_html(block.blocks)
+        extras: list[str] = []
         if name == "RichBlockDetails":
-            return f"<details><summary>{_text_to_html(block.summary)}</summary>{inner}</details>"
+            extras.append(_text_to_html(block.summary))
+        if getattr(block, "caption", None):
+            extras.append(_text_to_html(block.caption))
+        if getattr(block, "credit", None):
+            extras.append(_text_to_html(block.credit))
         if "Quotation" in name:
-            return f"<blockquote>{inner}</blockquote>"
-        return inner
+            return "\n".join(f"&gt; {part}" for part in (inner, *extras) if part)
+        return "\n".join(part for part in (inner, *extras) if part)
     if name in {
         "RichBlockParagraph",
         "RichBlockSectionHeading",
@@ -353,13 +365,12 @@ def _block_to_html(block: Any) -> str:
     }:
         inner = _text_to_html(block.text)
         if name == "RichBlockSectionHeading":
-            return f"<h{max(1, min(6, int(block.size or 3)))}>{inner}</h{max(1, min(6, int(block.size or 3)))}>"
+            return f"<b>{inner}</b>"
         if name == "RichBlockPreformatted":
             return f"<pre>{inner}</pre>"
-        if name == "RichBlockFooter":
-            return f"<footer>{inner}</footer>"
         if "Quotation" in name:
-            return f"<blockquote>{inner}</blockquote>"
+            credit = _text_to_html(block.credit) if block.credit else ""
+            return "\n".join(f"&gt; {part}" for part in (inner, credit) if part)
         return inner
     if name in {
         "RichBlockAnimation",
@@ -371,9 +382,9 @@ def _block_to_html(block: Any) -> str:
         "RichBlockMap",
     }:
         return html.escape(_visible_text(block))
-    if data.get("caption"):
-        return _text_to_html(data["caption"])
-    return _text_to_html(data.get("text") or data.get("expression"))
+    return _text_to_html(
+        getattr(block, "caption", None) or getattr(block, "text", None) or getattr(block, "expression", None)
+    )
 
 
 def _walk_models(value: Any) -> list[BaseModel]:
@@ -389,14 +400,33 @@ def _walk_models(value: Any) -> list[BaseModel]:
     return []
 
 
+def _validate_rich_button_label(value: Any) -> None:
+    if isinstance(value, str):
+        return
+    if isinstance(value, list):
+        for item in value:
+            _validate_rich_button_label(item)
+        return
+    if isinstance(value, BaseModel) and value.__class__.__name__ in {"RichTextCustomEmoji", "RichTextDateTime"}:
+        return
+    raise ValueError(_("Rich button labels may contain only plain text, custom emoji, or date-time text"))
+
+
 def validate_rich_message_structure(message: RichMessage) -> None:
     """Validate the persisted Rich tree at the capture/API boundary."""
     for model in _walk_models(message):
         if model.model_extra:
             raise ValueError(f"Unknown fields in {model.__class__.__name__}")
-        if model.__class__.__name__ == "RichBlockThinking":
+        model_name = model.__class__.__name__
+        if model_name == "RichBlockThinking":
             raise ValueError(_("Thinking Rich blocks cannot be saved"))
-        if model.__class__.__name__ == "RichMessageButton":
+        if model_name == "RichBlockButtons":
+            buttons_block = cast(RichBlockButtons, model)
+            if not 1 <= len(buttons_block.buttons) <= 8:
+                raise ValueError(_("Rich button rows must contain between 1 and 8 buttons"))
+        if model_name == "RichMessageButton":
+            button = cast(RichMessageButton, model)
+            _validate_rich_button_label(button.text)
             actions = [
                 getattr(model, field_name)
                 for field_name in _BUTTON_ACTION_FIELDS
@@ -413,8 +443,9 @@ def is_trusted_rich_source(source_message: Any, bot_user_id: int | None) -> bool
     """Return whether Telegram proves the Rich source was authored by Sophie."""
     if source_message is None or bot_user_id is None:
         return False
-    if getattr(getattr(source_message, "from_user", None), "id", None) == bot_user_id:
-        return True
+    for attribute_name in ("from_user", "via_bot", "sender_business_bot"):
+        if getattr(getattr(source_message, attribute_name, None), "id", None) == bot_user_id:
+            return True
     origin_user = getattr(getattr(source_message, "forward_origin", None), "sender_user", None)
     return getattr(origin_user, "id", None) == bot_user_id
 
@@ -497,28 +528,44 @@ def render_rich_message(
                     mention_nodes.append(",")
                 mention_nodes.append(RichTextTextMention(text=mention_user.first_name, user=mention_user))
             for index, chunk in enumerate(chunks):
-                if chunk:
-                    parts.append(chunk)
+                rendered_chunk = parse_random_text(chunk)
+                if rendered_chunk:
+                    parts.append(rendered_chunk)
                 if index < len(chunks) - 1:
                     parts.extend(mention_nodes)
             return parts
         return parse_random_text(value)
 
+    def render_text_sequence(values: list[Any]) -> list[Any]:
+        rendered_values: list[Any] = []
+        for item in values:
+            rendered_item = render_value(item)
+            rendered_values.extend(rendered_item if isinstance(rendered_item, list) else [rendered_item])
+        return rendered_values
+
     def render_value(value: Any) -> Any:
         if isinstance(value, str):
             return render_plain(value)
         if isinstance(value, list):
-            rendered: list[Any] = []
-            for item in value:
-                item_rendered = render_value(item)
-                rendered.extend(item_rendered if isinstance(item_rendered, list) else [item_rendered])
-            return rendered
+            return [render_value(item) for item in value]
         if isinstance(value, BaseModel):
             updates: dict[str, Any] = {}
-            for field_name in ("text", "credit", "summary", "caption", "blocks", "items", "cells"):
+            model_name = value.__class__.__name__
+            if model_name == "RichTextButton":
+                updates["button"] = render_value(value.button)
+            elif model_name == "RichBlockButtons":
+                updates["buttons"] = [render_value(button) for button in value.buttons]
+            for field_name in ("text", "expression", "credit", "summary", "caption", "blocks", "items", "cells"):
                 field_value = getattr(value, field_name, None)
-                if isinstance(field_value, (BaseModel, list, str)):
+                if isinstance(field_value, (str, BaseModel)):
                     updates[field_name] = render_value(field_value)
+                elif isinstance(field_value, list):
+                    if field_name == "cells":
+                        updates[field_name] = [[render_value(cell) for cell in row] for row in field_value]
+                    elif field_name in {"text", "expression"}:
+                        updates[field_name] = render_text_sequence(field_value)
+                    elif field_name != "buttons":
+                        updates[field_name] = [render_value(item) for item in field_value]
             return value.model_copy(update=updates) if updates else value
         return value
 
@@ -550,3 +597,8 @@ def _blocks_to_html(blocks: list[Any]) -> str:
 def rich_message_to_html_fallback(message: RichMessage) -> str:
     """Project a RichMessage into readable ordinary HTML without callback payloads."""
     return _blocks_to_html(message.blocks)
+
+
+def rich_message_to_plain_text(message: RichMessage) -> str:
+    """Project a RichMessage to visible text without Telegram markup."""
+    return _visible_text(message)

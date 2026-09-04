@@ -1,3 +1,4 @@
+import html
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -59,7 +60,6 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
     async def handle(self) -> Any:
         chat_tid = self.event.chat.id
         user_tid = self.event.from_user.id
-        connection = self.connection
 
         async def _approve_request() -> None:
             try:
@@ -118,15 +118,16 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         if not muted:
             await _approve_request()
             return
-
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
-        rules = await RulesModel.get_rules(connection.db_model.iid)
+        rules = await RulesModel.get_rules(chat.iid)
+
         chat_title = getattr(chat, "first_name_or_title", None) or getattr(chat, "title", None) or str(chat.tid)
+        chat_nick = getattr(chat, "username", None) or chat_title
         additional_fillings = {
             "rules": rules.text or "" if rules else _("No chat rules, have fun!"),
             "chatid": str(chat.tid),
-            "chatname": chat_title,
-            "chatnick": getattr(chat, "username", None) or chat_title,
+            "chatname": html.escape(str(chat_title), quote=False),
+            "chatnick": html.escape(str(chat_nick), quote=False),
         }
 
         join_request_message_key = f"join_request_message:{chat.iid}:{user.iid}"

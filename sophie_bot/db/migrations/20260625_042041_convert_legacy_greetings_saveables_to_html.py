@@ -35,7 +35,7 @@ from beanie import free_fall_migration
 
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.greetings import GreetingsModel
-from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, SaveableParseMode
+from sophie_bot.db.models.notes import SaveableParseMode
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_buttons
@@ -74,7 +74,7 @@ def convert_legacy_saveable_to_html(saveable: dict[str, Any]) -> dict[str, Any] 
         return None
 
     converted = dict(saveable)
-    converted["version"] = CURRENT_SAVEABLE_VERSION
+    converted["version"] = 2
     normalized_text = text
 
     if should_convert_buttons:

@@ -125,7 +125,7 @@ async def parse_saveable(
         rich_source = message.reply_to_message
 
     if rich_source is not None:
-        if rich_source is not message and note_text:
+        if note_text:
             raise SophieException(
                 Section(
                     _("Rich messages cannot be combined with additional note text."),
