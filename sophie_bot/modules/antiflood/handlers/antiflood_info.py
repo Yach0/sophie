@@ -63,9 +63,7 @@ class AntifloodInfoHandler(SophieMessageHandler):
                 if not action_meta:
                     continue
 
-                action_text = (
-                    action_meta.description(action_meta.load_data(action.data)) if action.data else action.name
-                )
+                action_text = action_meta.description(action_meta.load_data(action.data))
                 actions_list.append(f"{action_meta.icon} {action_meta.title}: {action_text}")
 
             actions_text = "\n".join(actions_list)

@@ -10,6 +10,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionWizardCallbackHandler,
+    ActionWizardInputCleanupHandler,
     ActionWizardInputHandler,
     ActionWizardStartHandler,
     model_action_wizard,
@@ -71,4 +72,21 @@ class AntifloodActionInput(ActionWizardInputHandler):
         )
 
 
-__all__ = ["ANTIFLOOD_ACTION_WIZARD", "AntifloodActionCallback", "AntifloodActionInput", "AntifloodActionWizard"]
+class AntifloodActionInputCleanup(ActionWizardInputCleanupHandler):
+    wizard = ANTIFLOOD_ACTION_WIZARD
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WizardFSM.interactive_input,
+            WizardScopeFilter("antiflood_action"),
+        )
+
+
+__all__ = [
+    "ANTIFLOOD_ACTION_WIZARD",
+    "AntifloodActionCallback",
+    "AntifloodActionInput",
+    "AntifloodActionInputCleanup",
+    "AntifloodActionWizard",
+]

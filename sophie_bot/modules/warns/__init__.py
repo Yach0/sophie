@@ -5,9 +5,11 @@ from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.warns.action_config import (
     WarnEachActionCallback,
     WarnEachActionInput,
+    WarnEachActionInputCleanup,
     WarnEachActionWizard,
     WarnMaxActionCallback,
     WarnMaxActionInput,
+    WarnMaxActionInputCleanup,
     WarnMaxActionWizard,
 )
 from sophie_bot.modules.warns.api import api_router
@@ -51,9 +53,11 @@ module_manifest = ModuleManifest(
         WarnEachActionWizard,
         WarnEachActionCallback,
         WarnEachActionInput,
+        WarnEachActionInputCleanup,
         WarnMaxActionWizard,
         WarnMaxActionCallback,
         WarnMaxActionInput,
+        WarnMaxActionInputCleanup,
     ),
     title=l_("Warnings"),
     emoji="⚠️",

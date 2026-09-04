@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from secrets import token_urlsafe
 from typing import Any
 
 from aiogram.filters import BaseFilter
@@ -18,25 +19,29 @@ class WizardFSM(StatesGroup):
 
 
 class WizardSession:
-    def __init__(self, state: FSMContext, scope: str) -> None:
+    def __init__(self, state: FSMContext, scope: str, session_id: str | None = None) -> None:
         self.state = state
         self.scope = scope
+        self.session_id = session_id
 
-    async def start(self, chat_iid: PydanticObjectId, draft: dict[str, Any]) -> None:
-        await self.clear()
-        await self.state.update_data(
-            wizard={
-                "scope": self.scope,
-                "chat_iid": str(chat_iid),
-                "started_at": time.time(),
-                "draft": draft,
-            }
-        )
+    async def start(self, chat_iid: PydanticObjectId, draft: dict[str, Any]) -> str:
+        session_id = token_urlsafe(6)
+        data = await self.state.get_data()
+        data[_WIZARD_KEY] = {
+            "scope": self.scope,
+            "session_id": session_id,
+            "chat_iid": str(chat_iid),
+            "started_at": time.time(),
+            "draft": draft,
+        }
+        await self.state.set_data(data)
+        await self.state.set_state(None)
+        self.session_id = session_id
+        return session_id
 
     async def is_active(self, chat_iid: PydanticObjectId | None = None) -> bool:
-        data = await self.state.get_data()
-        wizard = data.get(_WIZARD_KEY)
-        if not isinstance(wizard, dict) or wizard.get("scope") != self.scope:
+        wizard = await self._owned_wizard()
+        if wizard is None:
             return False
         if chat_iid is not None and wizard.get("chat_iid") != str(chat_iid):
             return False
@@ -44,51 +49,74 @@ class WizardSession:
         return isinstance(started_at, (int, float)) and time.time() - started_at <= ACW_SESSION_TTL_SECONDS
 
     async def get_draft(self) -> dict[str, Any] | None:
-        data = await self.state.get_data()
-        wizard = data.get(_WIZARD_KEY)
-        if not isinstance(wizard, dict):
+        wizard = await self._owned_wizard()
+        if wizard is None:
             return None
         draft = wizard.get("draft")
         return dict(draft) if isinstance(draft, dict) else None
 
     async def set_draft(self, draft: dict[str, Any]) -> None:
-        data = await self.state.get_data()
-        wizard = data.get(_WIZARD_KEY)
-        if not isinstance(wizard, dict):
-            raise TypeError("No wizard session")
+        wizard = await self._require_owned_wizard()
         wizard["draft"] = draft
         await self.state.update_data(**{_WIZARD_KEY: wizard})
 
     async def start_input(self, **context: Any) -> None:
-        data = await self.state.get_data()
-        wizard = data.get(_WIZARD_KEY)
-        if not isinstance(wizard, dict):
-            raise TypeError("No wizard session")
+        wizard = await self._require_owned_wizard()
         wizard["input"] = context
         await self.state.update_data(**{_WIZARD_KEY: wizard})
         await self.state.set_state(WizardFSM.interactive_input)
 
     async def get_input_context(self) -> dict[str, Any] | None:
-        data = await self.state.get_data()
-        wizard = data.get(_WIZARD_KEY)
-        if not isinstance(wizard, dict):
+        wizard = await self._owned_wizard()
+        if wizard is None:
             return None
         context = wizard.get("input")
         return dict(context) if isinstance(context, dict) else None
 
-    async def clear_input(self) -> None:
-        data = await self.state.get_data()
-        wizard = data.get(_WIZARD_KEY)
-        if isinstance(wizard, dict):
-            wizard.pop("input", None)
-            await self.state.update_data(**{_WIZARD_KEY: wizard})
-        await self.state.set_state(None)
+    async def clear_input(self) -> bool:
+        wizard = await self._owned_wizard()
+        if wizard is None:
+            return False
+        wizard.pop("input", None)
+        await self.state.update_data(**{_WIZARD_KEY: wizard})
+        if await self.state.get_state() == WizardFSM.interactive_input.state:
+            await self.state.set_state(None)
+        return True
 
-    async def clear(self) -> None:
+    async def clear(self) -> bool:
+        wizard = await self._owned_wizard()
+        if wizard is None:
+            return False
         data = await self.state.get_data()
         data.pop(_WIZARD_KEY, None)
         await self.state.set_data(data)
-        await self.state.set_state(None)
+        if await self.state.get_state() == WizardFSM.interactive_input.state:
+            await self.state.set_state(None)
+        return True
+
+    def require_session_id(self) -> str:
+        if self.session_id is None:
+            raise TypeError("No wizard session identifier")
+        return self.session_id
+
+    async def _owned_wizard(self) -> dict[str, Any] | None:
+        data = await self.state.get_data()
+        wizard = data.get(_WIZARD_KEY)
+        if not isinstance(wizard, dict) or wizard.get("scope") != self.scope:
+            return None
+        stored_session_id = wizard.get("session_id")
+        if not isinstance(stored_session_id, str) or not stored_session_id:
+            return None
+        if self.session_id is not None and stored_session_id != self.session_id:
+            return None
+        self.session_id = stored_session_id
+        return wizard
+
+    async def _require_owned_wizard(self) -> dict[str, Any]:
+        wizard = await self._owned_wizard()
+        if wizard is None:
+            raise TypeError("No matching wizard session")
+        return wizard
 
 
 class WizardScopeFilter(BaseFilter):

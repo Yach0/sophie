@@ -23,6 +23,7 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit_rich
 from sophie_bot.utils import flags
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -36,11 +37,15 @@ _PAGE_SIZE = 8
 class FiltersListHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("filters"),)
+        return (
+            CMDFilter("filters"),
+            FeatureFlagFilter("filters"),
+            GroupOrConnectedFilter(),
+        )
 
     async def handle(self) -> Any:
         filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
-        await _render_filter_page(self.event, self.connection.title, filters, 0)
+        await _render_filter_page(self.event, self.connection.tid, self.connection.title, filters, 0)
 
 
 class FiltersPageHandler(SophieCallbackQueryHandler):
@@ -49,14 +54,19 @@ class FiltersPageHandler(SophieCallbackQueryHandler):
         return (
             FiltersPageCallback.filter(),
             FeatureFlagFilter("filters"),
-            UserRestricting(admin=True),
             GroupOrConnectedFilter(),
         )
 
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
         filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
-        await _render_filter_page(callback, self.connection.title, filters, self.data["callback_data"].page)
+        await _render_filter_page(
+            callback,
+            self.connection.tid,
+            self.connection.title,
+            filters,
+            self.data["callback_data"].page,
+        )
         await callback.answer()
 
 
@@ -167,7 +177,11 @@ async def _show_delete_confirmation(callback: CallbackQuery, filter_model: Filte
 
 
 async def _render_filter_page(
-    event: Message | CallbackQuery, chat_title: str | None, all_filters: list[FiltersModel], requested_page: int
+    event: Message | CallbackQuery,
+    chat_tid: int,
+    chat_title: str | None,
+    all_filters: list[FiltersModel],
+    requested_page: int,
 ) -> None:
     if not all_filters:
         document = Doc(_("There are no filters in this chat!\nUse /addfilter <handler> to create one."))
@@ -175,20 +189,24 @@ async def _render_filter_page(
         return
 
     page = paginate(all_filters, _PAGE_SIZE, requested_page)
+    edit_enabled = await is_enabled("action_config_wizard", chat_tid=chat_tid)
     button_rows: list[ButtonRow] = []
     rows: list[Any] = []
     for item in page.items:
         rows.append(KeyValue(item.handler, filter_action_text(item.action, list(item.actions.keys())), suffix=" -> "))
-        button_rows.append(
-            ButtonRow(
-                Button(_("Edit"), callback_data=FilterManagementCallback(operation="edit", oid=str(item.id)).pack()),
-                Button(
-                    _("Delete"),
-                    callback_data=FilterManagementCallback(operation="delete", oid=str(item.id)).pack(),
-                    style="danger",
-                ),
+        controls: list[Button] = []
+        if edit_enabled:
+            controls.append(
+                Button(_("Edit"), callback_data=FilterManagementCallback(operation="edit", oid=str(item.id)).pack())
+            )
+        controls.append(
+            Button(
+                _("Delete"),
+                callback_data=FilterManagementCallback(operation="delete", oid=str(item.id)).pack(),
+                style="danger",
             )
         )
+        button_rows.append(ButtonRow(*controls))
     document = Doc(Section(*rows, title=Template(_("Filters in {chat_name}"), chat_name=chat_title or "Unknown")))
     document += " "
     document += _("Additionally rules from 'Antiflood' module can be enforced.")

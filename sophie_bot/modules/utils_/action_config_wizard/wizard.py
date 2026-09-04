@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import Message
 from pydantic import BaseModel
 from stfu_tg import Template
 
@@ -21,29 +21,34 @@ from .views import (
 )
 
 
+class _WizardAlert(Exception):
+    pass
+
+
 class ActionWizard[DRAFT: ActionDraft]:
     def __init__(self, config: ActionWizardConfig[DRAFT]) -> None:
         self.config = config
 
-    def _session(self, handler: SophieBaseHandler[Any]) -> WizardSession:
-        return WizardSession(handler.state, self.config.scope)
+    def _session(self, handler: SophieBaseHandler[Any], session_id: str | None = None) -> WizardSession:
+        return WizardSession(handler.state, self.config.scope, session_id)
 
-    def render_home(self, draft: DRAFT) -> WizardView:
-        return render_home_view(self.config, draft)
+    async def render_home(self, handler: SophieBaseHandler[Any], draft: DRAFT, session_id: str) -> WizardView:
+        del handler
+        return render_home_view(self.config, draft, session_id)
 
     async def start(self, handler: SophieBaseHandler[Any], draft: DRAFT | None = None) -> None:
         chat_iid = handler.connection.db_model.iid
         if draft is None:
             draft = await self.config.load_draft(chat_iid) if self.config.load_draft else self.config.draft_model()
         session = self._session(handler)
-        await session.start(chat_iid, draft.model_dump(mode="json"))
-        view = self.render_home(draft)
+        session_id = await session.start(chat_iid, draft.model_dump(mode="json"))
+        view = await self.render_home(handler, draft, session_id)
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
     async def handle_callback(self, handler: SophieCallbackQueryHandler, callback: WizardCallback) -> None:
-        session = self._session(handler)
         callback_query = handler.event
         if callback.op == "open":
+            session = self._session(handler)
             if await session.is_active(handler.connection.db_model.iid):
                 if await session.get_input_context() is not None:
                     await session.clear_input()
@@ -52,43 +57,49 @@ class ActionWizard[DRAFT: ActionDraft]:
                 await callback_query.answer()
                 return
             if self.config.load_draft is None:
-                await self._alert(callback_query, _("Invalid callback data."))
+                await callback_query.answer(_("Invalid callback data."), show_alert=True)
                 return
             await self.start(handler)
             await callback_query.answer()
             return
 
-        if not await session.is_active(handler.connection.db_model.iid):
-            await session.clear()
-            await self._alert(callback_query, _("This session has expired. Please run the command again."))
+        session = self._session(handler, callback.session_id or None)
+        if not callback.session_id or not await session.is_active(handler.connection.db_model.iid):
+            await callback_query.answer(
+                _("This session has expired. Please run the command again."),
+                show_alert=True,
+            )
             return
 
         if await session.get_input_context() is not None:
             await session.clear_input()
         draft = await self._get_draft(session)
 
-        match callback.op:
-            case "home":
-                await self._render_home(handler, session, draft)
-            case "add":
-                await self._add(handler, session, draft, callback.arg)
-            case "select":
-                await self._select(handler, session, draft, callback.arg)
-            case "configure":
-                await self._configure(handler, callback.arg, draft)
-            case "setting":
-                await self._setting(handler, session, draft, callback.arg)
-            case "remove":
-                await self._remove(handler, session, draft, callback.arg)
-            case "done":
-                await self._done(handler, session, draft)
-            case "cancel":
-                await self._cancel(handler, session)
-            case "back":
-                await self._back(handler, session, draft)
-            case _:
-                await self._alert(callback_query, _("Invalid callback data."))
-                return
+        try:
+            match callback.op:
+                case "home":
+                    await self._render_home(handler, session, draft)
+                case "add":
+                    await self._add(handler, session, draft, callback.arg)
+                case "select":
+                    await self._select(handler, session, draft, callback.arg)
+                case "configure":
+                    await self._configure(handler, session, callback.arg, draft)
+                case "setting":
+                    await self._setting(handler, session, draft, callback.arg)
+                case "remove":
+                    await self._remove(handler, session, draft, callback.arg)
+                case "done":
+                    await self._done(handler, session, draft)
+                case "cancel":
+                    await self._cancel(handler, session)
+                case "back":
+                    await self._back(handler, session, draft)
+                case _:
+                    raise _WizardAlert(_("Invalid callback data."))
+        except _WizardAlert as error:
+            await callback_query.answer(str(error), show_alert=True)
+            return
         await callback_query.answer()
 
     async def handle_input(self, handler: SophieBaseHandler[Message]) -> None:
@@ -141,18 +152,23 @@ class ActionWizard[DRAFT: ActionDraft]:
         await session.clear_input()
         await self._render_home(handler, session, draft)
 
+    async def reject_input(self, handler: SophieBaseHandler[Message]) -> None:
+        session = self._session(handler)
+        await session.clear()
+        await handler.event.reply(_("This session has expired. Please run the command again."))
+
     async def _add(
         self, handler: SophieCallbackQueryHandler, session: WizardSession, draft: DRAFT, argument: str
     ) -> None:
+        session_id = session.require_session_id()
         if not argument:
-            view = render_add_action_view(self.config, draft)
+            view = render_add_action_view(self.config, draft, session_id)
         else:
             try:
                 page = int(argument)
-            except ValueError:
-                await self._alert(handler.event, _("Invalid callback data."))
-                return
-            view = render_add_action_view(self.config, draft, page)
+            except ValueError as error:
+                raise _WizardAlert(_("Invalid callback data.")) from error
+            view = render_add_action_view(self.config, draft, session_id, page)
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
     async def _select(
@@ -160,17 +176,15 @@ class ActionWizard[DRAFT: ActionDraft]:
     ) -> None:
         action = self._action(action_name)
         if action is None or not self._allowed(action):
-            await self._alert(handler.event, _("Unknown action."))
-            return
+            raise _WizardAlert(_("Unknown action."))
         if (action_name in draft.actions and self.config.max_actions > 1) or (
             self.config.max_actions > 1 and len(draft.actions) >= self.config.max_actions
         ):
-            await self._alert(handler.event, _("This action cannot be added."))
-            return
+            raise _WizardAlert(_("This action cannot be added."))
         if action.interactive_setup and action.interactive_setup.setup_message:
             await session.start_input(action_name=action_name)
             prompt = await action.interactive_setup.setup_message(handler.event, handler.data)
-            view = render_setup_prompt(self.config, prompt)
+            view = render_setup_prompt(self.config, prompt, session.require_session_id())
             await handler.answer_rich(view.doc, reply_markup=view.markup)
             return
         if self.config.max_actions == 1:
@@ -179,52 +193,52 @@ class ActionWizard[DRAFT: ActionDraft]:
         await session.set_draft(draft.model_dump(mode="json"))
         await self._render_home(handler, session, draft)
 
-    async def _configure(self, handler: SophieCallbackQueryHandler, action_name: str, draft: DRAFT) -> None:
+    async def _configure(
+        self, handler: SophieCallbackQueryHandler, session: WizardSession, action_name: str, draft: DRAFT
+    ) -> None:
         if action_name not in draft.actions or self._action(action_name) is None:
-            await self._alert(handler.event, _("Unknown action."))
-            return
-        view = render_action_settings_view(self.config, action_name, draft.actions[action_name])
+            raise _WizardAlert(_("Unknown action."))
+        view = render_action_settings_view(
+            self.config,
+            action_name,
+            draft.actions[action_name],
+            session.require_session_id(),
+        )
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
     async def _setting(
         self, handler: SophieCallbackQueryHandler, session: WizardSession, draft: DRAFT, argument: str
     ) -> None:
         if argument.count(":") != 1:
-            await self._alert(handler.event, _("Invalid callback data."))
-            return
+            raise _WizardAlert(_("Invalid callback data."))
         action_name, setting_id = argument.split(":", 1)
         action = self._action(action_name)
         if action is None or action_name not in draft.actions:
-            await self._alert(handler.event, _("Unknown action."))
-            return
+            raise _WizardAlert(_("Unknown action."))
         setting = action.settings(action.load_data(draft.actions[action_name])).get(setting_id)
         if setting is None or setting.setup_message is None:
-            await self._alert(handler.event, _("Unknown setting."))
-            return
+            raise _WizardAlert(_("Unknown setting."))
         await session.start_input(action_name=action_name, setting_id=setting_id)
         prompt = await setting.setup_message(handler.event, handler.data)
-        view = render_setup_prompt(self.config, prompt)
+        view = render_setup_prompt(self.config, prompt, session.require_session_id())
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
     async def _remove(
         self, handler: SophieCallbackQueryHandler, session: WizardSession, draft: DRAFT, action_name: str
     ) -> None:
         if action_name not in draft.actions:
-            await self._alert(handler.event, _("Unknown action."))
-            return
+            raise _WizardAlert(_("Unknown action."))
         del draft.actions[action_name]
         await session.set_draft(draft.model_dump(mode="json"))
         await self._render_home(handler, session, draft)
 
     async def _done(self, handler: SophieCallbackQueryHandler, session: WizardSession, draft: DRAFT) -> None:
-        if not draft.actions:
-            await self._alert(handler.event, _("No actions configured."))
-            return
+        if len(draft.actions) < self.config.min_actions:
+            raise _WizardAlert(_("No actions configured."))
         try:
             await self.config.save_draft(handler.connection.db_model.iid, draft, handler.event, handler.connection)
         except (ValueError, TypeError) as error:
-            await self._alert(handler.event, str(error))
-            return
+            raise _WizardAlert(str(error)) from error
         await session.clear()
         await handler.answer_rich(Template(self.config.done_message, keyword=getattr(draft, "handler", "")))
 
@@ -241,7 +255,7 @@ class ActionWizard[DRAFT: ActionDraft]:
 
     async def _render_home(self, handler: SophieBaseHandler[Any], session: WizardSession, draft: DRAFT) -> None:
         await session.set_draft(draft.model_dump(mode="json"))
-        view = self.render_home(draft)
+        view = await self.render_home(handler, draft, session.require_session_id())
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
     async def _get_draft(self, session: WizardSession) -> DRAFT:
@@ -256,10 +270,6 @@ class ActionWizard[DRAFT: ActionDraft]:
 
     def _dump_value(self, value: BaseModel | None) -> dict[str, Any] | None:
         return value.model_dump(mode="json") if isinstance(value, BaseModel) else None
-
-    @staticmethod
-    async def _alert(callback: CallbackQuery, text: str) -> None:
-        await callback.answer(text, show_alert=True)
 
 
 __all__ = ["ActionWizard"]

@@ -15,4 +15,5 @@ class DeleteAllNotesCallback(CallbackData, prefix="delete_all_notes"):
 
 
 class NotesPageCallback(CallbackData, prefix="notes_page"):
+    list_id: str
     page: int

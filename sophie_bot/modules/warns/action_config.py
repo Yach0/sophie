@@ -11,6 +11,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionWizardCallbackHandler,
+    ActionWizardInputCleanupHandler,
     ActionWizardInputHandler,
     ActionWizardStartHandler,
     model_action_wizard,
@@ -104,6 +105,17 @@ class WarnEachActionInput(ActionWizardInputHandler):
         return _input_filters("warn_action_each")
 
 
+class WarnEachActionInputCleanup(ActionWizardInputCleanupHandler):
+    wizard = WARN_EACH_ACTION_WIZARD
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WizardFSM.interactive_input,
+            WizardScopeFilter("warn_action_each"),
+        )
+
+
 class WarnMaxActionWizard(ActionWizardStartHandler):
     wizard = WARN_MAX_ACTION_WIZARD
 
@@ -128,13 +140,26 @@ class WarnMaxActionInput(ActionWizardInputHandler):
         return _input_filters("warn_action_max")
 
 
+class WarnMaxActionInputCleanup(ActionWizardInputCleanupHandler):
+    wizard = WARN_MAX_ACTION_WIZARD
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WizardFSM.interactive_input,
+            WizardScopeFilter("warn_action_max"),
+        )
+
+
 __all__ = [
     "WARN_EACH_ACTION_WIZARD",
     "WARN_MAX_ACTION_WIZARD",
     "WarnEachActionCallback",
     "WarnEachActionInput",
+    "WarnEachActionInputCleanup",
     "WarnEachActionWizard",
     "WarnMaxActionCallback",
     "WarnMaxActionInput",
+    "WarnMaxActionInputCleanup",
     "WarnMaxActionWizard",
 ]

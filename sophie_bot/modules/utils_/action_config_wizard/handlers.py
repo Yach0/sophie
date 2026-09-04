@@ -40,3 +40,14 @@ class ActionWizardInputHandler(SophieMessageHandler):
 
     async def handle(self) -> None:
         await self.wizard.handle_input(self)
+
+
+class ActionWizardInputCleanupHandler(SophieMessageHandler):
+    wizard: ActionWizard
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        raise NotImplementedError
+
+    async def handle(self) -> None:
+        await self.wizard.reject_input(self)

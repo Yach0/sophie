@@ -7,8 +7,9 @@ from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFa
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.modules.utils_.wizard import WizardCallback
+from sophie_bot.shared.actions import StoredAction
 from sophie_bot.utils.feature_flags import set_enabled
-from tests.e2e.helpers import grant_admin
+from tests.e2e.helpers import get_wizard_session_id, grant_admin
 
 
 @pytest.mark.asyncio
@@ -54,18 +55,24 @@ async def test_warnaction_configures_each_warn_action_through_wizard(test_client
         from_user=user_wrapper.user,
         message=wizard_message,
     )
+    session_id = await get_wizard_session_id(test_client, group_chat.id, user_wrapper.user.id)
     await test_client.send_callback(
-        WizardCallback(scope="warn_action_each", op="add").pack(),
+        WizardCallback(scope="warn_action_each", op="add", session_id=session_id).pack(),
         from_user=user_wrapper.user,
         message=wizard_message,
     )
     await test_client.send_callback(
-        WizardCallback(scope="warn_action_each", op="select", arg="kick_user").pack(),
+        WizardCallback(
+            scope="warn_action_each",
+            op="select",
+            session_id=session_id,
+            arg="kick_user",
+        ).pack(),
         from_user=user_wrapper.user,
         message=wizard_message,
     )
     await test_client.send_callback(
-        WizardCallback(scope="warn_action_each", op="done").pack(),
+        WizardCallback(scope="warn_action_each", op="done", session_id=session_id).pack(),
         from_user=user_wrapper.user,
         message=wizard_message,
     )
@@ -75,6 +82,48 @@ async def test_warnaction_configures_each_warn_action_through_wizard(test_client
     settings = await WarnSettingsModel.get_by_chat_iid(chat.iid)
     assert settings is not None
     assert [action.name for action in settings.on_each_warn_actions] == ["kick_user"]
+
+
+@pytest.mark.asyncio
+async def test_warnaction_can_save_removal_of_last_action(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002600000007, title="Warn Action Removal")
+    user_wrapper = test_client.create_user(user_id=926000007, first_name="WarnAdmin", username="warn_admin")
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert chat is not None
+    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings.on_each_warn_actions = [StoredAction(name="kick_user")]
+    await settings.save()
+
+    await test_client.send_command(command="warnaction", from_user=user_wrapper.user, chat=group_chat)
+    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
+    wizard_message = MessageFactory.create(text="Warn actions", from_user=bot_user, chat=group_chat)
+    await test_client.send_callback(
+        WizardCallback(scope="warn_action_each", op="open").pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
+    session_id = await get_wizard_session_id(test_client, group_chat.id, user_wrapper.user.id)
+    await test_client.send_callback(
+        WizardCallback(
+            scope="warn_action_each",
+            op="remove",
+            session_id=session_id,
+            arg="kick_user",
+        ).pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
+    await test_client.send_callback(
+        WizardCallback(scope="warn_action_each", op="done", session_id=session_id).pack(),
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
+
+    saved = await WarnSettingsModel.get_by_chat_iid(chat.iid)
+    assert saved is not None
+    assert saved.on_each_warn_actions == []
 
 
 @pytest.mark.asyncio
@@ -93,8 +142,9 @@ async def test_warnaction_wizard_parent_back_returns_overview(test_client: TestC
         from_user=user_wrapper.user,
         message=wizard_message,
     )
+    session_id = await get_wizard_session_id(test_client, group_chat.id, user_wrapper.user.id)
     requests = await test_client.send_callback(
-        WizardCallback(scope="warn_action_each", op="back").pack(),
+        WizardCallback(scope="warn_action_each", op="back", session_id=session_id).pack(),
         from_user=user_wrapper.user,
         message=wizard_message,
     )

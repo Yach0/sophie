@@ -15,6 +15,7 @@ from .api import api_router as filters_api_router
 from .enforce_middleware import EnforceFiltersMiddleware
 from .filter_wizard import (
     FilterWizardCallbackHandler,
+    FilterWizardInputCleanupHandler,
     FilterWizardInputHandler,
     FilterWizardToggleHandler,
 )
@@ -65,6 +66,7 @@ module_manifest = ModuleManifest(
         FilterWizardToggleHandler,
         FilterWizardCallbackHandler,
         FilterWizardInputHandler,
+        FilterWizardInputCleanupHandler,
     ),
     pre_setup=pre_setup,
     post_setup=post_setup,

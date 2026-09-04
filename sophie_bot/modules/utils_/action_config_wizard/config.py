@@ -29,6 +29,7 @@ class ActionWizardConfig[DRAFT: ActionDraft]:
     draft_model: type[DRAFT]
     load_draft: Callable[[PydanticObjectId], Awaitable[DRAFT]] | None
     save_draft: Callable[[PydanticObjectId, DRAFT, CallbackQuery, ChatConnection], Awaitable[None]]
+    min_actions: int = 0
     action_filter: Callable[[ModernActionABC[Any]], bool] | None = None
     on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None
 
@@ -44,11 +45,14 @@ def model_action_wizard(
     title: str | LazyProxy,
     done_message: str | LazyProxy,
     max_actions: int,
+    min_actions: int = 0,
     action_filter: Callable[[ModernActionABC[Any]], bool] | None = None,
     on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None,
 ) -> ActionWizard[ActionDraft]:
     if max_actions <= 0:
         raise ValueError("max_actions must be positive")
+    if min_actions < 0 or min_actions > max_actions:
+        raise ValueError("min_actions must be between zero and max_actions")
 
     async def load_draft(chat_iid: PydanticObjectId) -> ActionDraft:
         model = await model_loader(chat_iid)
@@ -73,6 +77,7 @@ def model_action_wizard(
         title=title,
         done_message=done_message,
         max_actions=max_actions,
+        min_actions=min_actions,
         draft_model=ActionDraft,
         load_draft=load_draft,
         save_draft=save_draft,

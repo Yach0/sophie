@@ -15,9 +15,14 @@ from .config import ActionDraft, ActionWizardConfig
 _PAGE_SIZE = 8
 
 
+def _callback(config: ActionWizardConfig[Any], session_id: str, op: str, arg: str = "") -> str:
+    return WizardCallback(scope=config.scope, op=op, session_id=session_id, arg=arg).pack()
+
+
 def render_home_view(
     config: ActionWizardConfig[Any],
     draft: ActionDraft,
+    session_id: str,
     *,
     header: Element | None = None,
     footer: Element | None = None,
@@ -30,39 +35,40 @@ def render_home_view(
 
     for action_name, action_data in draft.actions.items():
         action = ALL_MODERN_ACTIONS.get(action_name)
-        if action is None:
-            continue
-        data_model = action.load_data(action_data)
-        descriptions.append(
-            Template(
-                "{icon} {title}: {description}",
-                icon=action.icon,
-                title=action.title,
-                description=action.description(data_model),
-            )
-        )
-        settings = action.settings(data_model)
         controls: list[Button] = []
-        if settings or config.max_actions > 1:
-            controls.append(
-                Button(
-                    f"⚙️ {action.title}",
-                    callback_data=WizardCallback(scope=config.scope, op="configure", arg=action_name).pack(),
+        if action is None:
+            descriptions.append(Template(_("⚠️ Unknown action: {name}"), name=action_name))
+        else:
+            data_model = action.load_data(action_data)
+            descriptions.append(
+                Template(
+                    "{icon} {title}: {description}",
+                    icon=action.icon,
+                    title=action.title,
+                    description=action.description(data_model),
                 )
             )
-        if config.max_actions > 1:
+            if action.settings(data_model) or config.max_actions > 1:
+                controls.append(
+                    Button(
+                        f"⚙️ {action.title}",
+                        callback_data=_callback(config, session_id, "configure", action_name),
+                    )
+                )
+
+        if config.max_actions > 1 or config.min_actions == 0 or action is None:
             controls.append(
                 Button(
-                    "🗑️",
-                    callback_data=WizardCallback(scope=config.scope, op="remove", arg=action_name).pack(),
+                    _("🗑️ Remove action"),
+                    callback_data=_callback(config, session_id, "remove", action_name),
                     style="danger",
                 )
             )
-        else:
+        if config.max_actions == 1:
             controls.append(
                 Button(
                     _("Change action"),
-                    callback_data=WizardCallback(scope=config.scope, op="add").pack(),
+                    callback_data=_callback(config, session_id, "add"),
                 )
             )
         if controls:
@@ -75,14 +81,14 @@ def render_home_view(
 
     if len(draft.actions) < config.max_actions:
         label = _("➕ Set action") if config.max_actions == 1 and not draft.actions else _("➕ Add action")
-        rich_rows.append(ButtonRow(Button(label, callback_data=WizardCallback(scope=config.scope, op="add").pack())))
+        rich_rows.append(ButtonRow(Button(label, callback_data=_callback(config, session_id, "add"))))
     if rich_rows:
         elements.append(Buttons(*rich_rows))
     if footer is not None:
         elements.append(footer)
-    done_callback = WizardCallback(scope=config.scope, op="done").pack() if draft.actions else None
-    back_callback = WizardCallback(scope=config.scope, op="back").pack() if config.on_back else None
-    cancel_callback = WizardCallback(scope=config.scope, op="cancel").pack()
+    done_callback = _callback(config, session_id, "done") if len(draft.actions) >= config.min_actions else None
+    back_callback = _callback(config, session_id, "back") if config.on_back else None
+    cancel_callback = _callback(config, session_id, "cancel")
     markup = build_wizard_navigation(
         done_callback=done_callback,
         back_callback=back_callback,
@@ -91,7 +97,9 @@ def render_home_view(
     return WizardView(Doc(*elements), markup)
 
 
-def render_add_action_view(config: ActionWizardConfig[Any], draft: ActionDraft, requested_page: int = 0) -> WizardView:
+def render_add_action_view(
+    config: ActionWizardConfig[Any], draft: ActionDraft, session_id: str, requested_page: int = 0
+) -> WizardView:
     actions = [
         action
         for action in ALL_MODERN_ACTIONS.values()
@@ -103,7 +111,7 @@ def render_add_action_view(config: ActionWizardConfig[Any], draft: ActionDraft, 
         ButtonRow(
             Button(
                 f"{action.icon} {action.title}",
-                callback_data=WizardCallback(scope=config.scope, op="select", arg=action.name).pack(),
+                callback_data=_callback(config, session_id, "select", action.name),
             )
         )
         for action in page.items
@@ -115,18 +123,21 @@ def render_add_action_view(config: ActionWizardConfig[Any], draft: ActionDraft, 
         elements.append(Template(_("No additional actions available.")))
     pagination = build_pagination_row(
         page,
-        lambda page_number: WizardCallback(scope=config.scope, op="add", arg=str(page_number)).pack(),
+        lambda page_number: _callback(config, session_id, "add", str(page_number)),
     )
     markup = build_wizard_navigation(
         pagination=pagination,
-        back_callback=WizardCallback(scope=config.scope, op="home").pack(),
-        cancel_callback=WizardCallback(scope=config.scope, op="cancel").pack(),
+        back_callback=_callback(config, session_id, "home"),
+        cancel_callback=_callback(config, session_id, "cancel"),
     )
     return WizardView(Doc(*elements), markup)
 
 
 def render_action_settings_view(
-    config: ActionWizardConfig[Any], action_name: str, action_data: dict[str, Any] | None
+    config: ActionWizardConfig[Any],
+    action_name: str,
+    action_data: dict[str, Any] | None,
+    session_id: str,
 ) -> WizardView:
     action = ALL_MODERN_ACTIONS[action_name]
     data_model = action.load_data(action_data)
@@ -135,9 +146,7 @@ def render_action_settings_view(
         ButtonRow(
             Button(
                 f"{setting.icon} {setting.title}",
-                callback_data=WizardCallback(
-                    scope=config.scope, op="setting", arg=f"{action_name}:{setting_id}"
-                ).pack(),
+                callback_data=_callback(config, session_id, "setting", f"{action_name}:{setting_id}"),
             )
         )
         for setting_id, setting in action.settings(data_model).items()
@@ -147,7 +156,7 @@ def render_action_settings_view(
             ButtonRow(
                 Button(
                     _("🗑️ Remove action"),
-                    callback_data=WizardCallback(scope=config.scope, op="remove", arg=action_name).pack(),
+                    callback_data=_callback(config, session_id, "remove", action_name),
                     style="danger",
                 )
             )
@@ -155,15 +164,15 @@ def render_action_settings_view(
     if rows:
         elements.append(Buttons(*rows))
     markup = build_wizard_navigation(
-        back_callback=WizardCallback(scope=config.scope, op="home").pack(),
-        cancel_callback=WizardCallback(scope=config.scope, op="cancel").pack(),
+        back_callback=_callback(config, session_id, "home"),
+        cancel_callback=_callback(config, session_id, "cancel"),
     )
     return WizardView(Doc(*elements), markup)
 
 
-def render_setup_prompt(config: ActionWizardConfig[Any], prompt: Element) -> WizardView:
+def render_setup_prompt(config: ActionWizardConfig[Any], prompt: Element, session_id: str) -> WizardView:
     markup = build_wizard_navigation(
-        back_callback=WizardCallback(scope=config.scope, op="home").pack(),
-        cancel_callback=WizardCallback(scope=config.scope, op="cancel").pack(),
+        back_callback=_callback(config, session_id, "home"),
+        cancel_callback=_callback(config, session_id, "cancel"),
     )
     return WizardView(Doc(Title(_("Action setup")), prompt), markup)
