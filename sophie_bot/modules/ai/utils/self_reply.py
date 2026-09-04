@@ -28,9 +28,10 @@ def _rich_block_text(block: object) -> str:
     return ""
 
 
-def message_text(message: Message) -> str:
-    if message.text:
-        return message.text
+def message_text(message: Message | object) -> str:
+    text = getattr(message, "text", None)
+    if isinstance(text, str) and text:
+        return text
 
     rich = getattr(message, "rich_message", None)
     if rich is None:

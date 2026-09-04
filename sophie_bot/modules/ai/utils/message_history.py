@@ -35,7 +35,7 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     get_cached_messages,
 )
 from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.services.bot import bot
@@ -277,7 +277,8 @@ class AIMessageHistory:
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.user_id == CONFIG.bot_id:
-            text = cut_titlebar(msg.text) if is_ai_message(msg.text) else msg.text
+            stored_message_text = message_text(msg)
+            text = cut_titlebar(stored_message_text) if is_ai_message(stored_message_text) else stored_message_text
             return ModelResponse(parts=[TextPart(content=text)])
 
         from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
