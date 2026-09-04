@@ -41,7 +41,7 @@ class SetJoinRequestMessageHandler(SophieMessageHandler):
             raw_text,
             offset=text_offset,
             buttons=buttons,
-            owner_chat_tid=self.event.chat.id,
+            owner_chat_tid=connection.db_model.tid,
             bot=self.services.bot,
             redis=self.services.redis,
         )

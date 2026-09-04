@@ -22,6 +22,10 @@ class RestSaveable(BaseModel):
 
 
 def validate_rest_rich_payload(model: RestSaveable) -> RestSaveable:
+    if "file" in model.model_fields_set and "files" in model.model_fields_set:
+        raise ValueError("file and files cannot be supplied together")
+    if model.file is not None and model.files:
+        raise ValueError("file and files cannot be supplied together")
     if model.rich_message is None:
         return model
     validate_rich_message_api(model.rich_message)

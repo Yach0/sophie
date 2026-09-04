@@ -5,7 +5,7 @@ from beanie import PydanticObjectId
 from redis.asyncio import Redis
 from stfu_tg import Doc, Title
 
-from sophie_bot.db.models import RulesModel
+from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityRulesAgreeCB
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
@@ -38,7 +38,6 @@ async def captcha_send_rules(
             ).pack(),
         )
     )
-
     if (
         getattr(rules, "rich_message", None)
         or getattr(rules, "files", None)
@@ -46,13 +45,21 @@ async def captcha_send_rules(
         or getattr(rules, "buttons", None)
         or len(str(doc)) >= 1024
     ):
+        owner_chat = await ChatModel.get_by_iid(chat_iid)
+        if owner_chat is None:
+            raise ValueError("Protected chat was not found")
+        await bot.edit_message_reply_markup(
+            chat_id=message.chat.id,
+            message_id=message.message_id,
+            reply_markup=None,
+        )
         return await send_saveable(
             message,
             message.chat.id,
             rules,
             title=title,
             additional_keyboard=buttons.as_markup(),
-            owner_chat_tid=message.chat.id,
+            owner_chat_tid=owner_chat.tid,
             bot=bot,
             redis=redis,
         )
