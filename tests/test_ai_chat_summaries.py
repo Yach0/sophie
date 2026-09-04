@@ -498,12 +498,14 @@ def test_build_summary_doc_renders_lines() -> None:
     assert 'href="https://t.me/c/1234567890/100"' in html
 
 
-def test_build_summary_doc_uses_inline_simple_header() -> None:
+def test_build_summary_doc_places_simple_battery_after_body() -> None:
     doc = _build_summary_doc(-1001234567890, date(2026, 5, 3), "General overview", [], "simple")
 
     html = doc.to_html()
 
-    assert html.startswith("✨ 🔋 ")
+    assert html.startswith("✨ <b>[Chat history")
+    assert html.rstrip().endswith("🔋")
+    assert html.rfind("🔋") > html.find("General overview")
     assert "\nChat history" not in html
     assert "Chat history" in html
 
