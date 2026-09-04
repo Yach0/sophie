@@ -7,6 +7,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import gettext as _
 
 
 class StopJobsHandler(SophieMessageHandler):
@@ -20,4 +21,4 @@ class StopJobsHandler(SophieMessageHandler):
         for job in jobs:
             scheduler.remove_job(job.id)
 
-        await self.event.reply("All scheduled jobs have been stopped.")
+        await self.event.reply(_("All scheduled jobs have been stopped."))

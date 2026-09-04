@@ -8,6 +8,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.services.scheduler import scheduler
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import gettext as _
 
 
 class ListJobsHandler(SophieMessageHandler):
@@ -18,6 +19,6 @@ class ListJobsHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         jobs: list[Job] = scheduler.get_jobs()
 
-        doc = Section(VList(*(KeyValue(job.name, job.next_run_time) for job in jobs)), title="Awaiting jobs")
+        doc = Section(VList(*(KeyValue(job.name, job.next_run_time) for job in jobs)), title=_("Awaiting jobs"))
 
         await self.event.reply(doc.to_html())

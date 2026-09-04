@@ -1,295 +1,219 @@
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:33
 msgid "Examples"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:61
 #, python-brace-format
 msgid "The argument {description} has an invalid type"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:65
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:112
 msgid "Needed type"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:108
 #, python-brace-format
 msgid "The required argument {description} wasn't provided!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/exceptions.py:156
 #, python-brace-format
 msgid "The argument {description} has an invalid formatting!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:31
 #, python-brace-format
 msgid "Key-value of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:32
 #, python-brace-format
 msgid "Key-values of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:67
 #, python-brace-format
 msgid "The optional argument {name} must contain a value!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:92
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/keyvalue.py:93
 msgid "Key-values"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:46
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:59
 #, python-brace-format
 msgid "List of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:47
 #, python-brace-format
 msgid "Lists of {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:65
 #, python-brace-format
 msgid "The starting character {} of list wasn't found!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:73
 #, python-brace-format
 msgid "The ending character {} of list wasn't found!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:77
 msgid "The list is empty!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:97
 msgid "➡️ The start prefix text of the lists cannot have the overlapping formatting"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:153
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:171
 #, python-brace-format
 msgid "Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:157
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/lists.py:175
 msgid "Please ensure you correctly divided all of arguments."
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:20
 #, python-brace-format
 msgid "Optional {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:21
 #, python-brace-format
 msgid "Optionals {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:44
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:45
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:25
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:28
 msgid " or "
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:105
 msgid ", and "
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/logic.py:121
 msgid "Example syntax"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:24
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/one_of.py:27
 #, python-brace-format
 msgid "One of: {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Word (string with no spaces)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:13
 msgid "Words (strings with no spaces)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integer (number)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:33
 msgid "Integers (numbers)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Boolean (Yes / No value)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:49
 msgid "Booleans (Yes / No values)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:54
 msgid "True (can means Enabled or Yes)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/oneword.py:55
 msgid "False (can means Disabled or No)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text.py:18
 msgid "Text"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:27
 #, python-brace-format
 msgid "➡️ The Argument should start with {}!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:31
 #, python-brace-format
 msgid "⬅️️ The Argument should end with {}!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:49
 msgid "➡️ The start text cannot have the overlapping formatting"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:75
 #, python-brace-format
 msgid "➡️ Argument '{arg_text}' was parsed, but it has unknown text after it!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:91
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:95
 #, python-brace-format
 msgid "{} surrounded by {} and {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/text_rules.py:107
 #, python-brace-format
 msgid "Surrounded by {} and {}"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "2 days"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:35
 msgid "3 weeks and 2 days"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:46
 msgid "y"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:48
 msgid "w"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:50
 msgid "d"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:52
 msgid "h"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:54
 msgid "m"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:56
 msgid "s"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action time"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:63
 msgid "Action times"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:68
 #, python-brace-format
 msgid "The duration is too small. It must be at least {minimum}."
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/time_arg.py:71
 #, python-brace-format
 msgid "The duration is too large. It must be at most {maximum}."
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User ID (Numeric)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:17
 msgid "User IDs (Numeric)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:37
 msgid "Username (starts with @)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:47
 msgid "Should start with a prefix"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:49
 msgid "Username is too short"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:51
 msgid "Username is too long"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mention (a link to user)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:67
 msgid "User mentions (links to users)"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:99
 msgid "Should start with mention!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:107
 msgid "Unexpected error while trying to get the user! Please report this in the support chat!"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:108
 msgid "Could not find the user mention"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:120
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:122
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:128
 msgid "User ID"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:129
 msgid "Username"
 msgstr ""
 
-#: /home/yacha/Projects/Otty/sophie/libs/ass/ass_tg/types/user.py:134
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 

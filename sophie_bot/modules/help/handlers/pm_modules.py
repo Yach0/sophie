@@ -4,7 +4,20 @@ from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import Doc, Heading, ListItem, Paragraph, RichBlockQuote, Template, UnorderedList, Url
+from stfu_tg import (
+    Button,
+    ButtonRow,
+    Buttons,
+    Doc,
+    Heading,
+    ListItem,
+    Paragraph,
+    RichBlockQuote,
+    Template,
+    Title,
+    UnorderedList,
+    Url,
+)
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_EMOJI
@@ -41,22 +54,21 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         if (featured_module := modules.pop(CONFIG.help_featured_module, None)) is not None:
             modules[CONFIG.help_featured_module] = featured_module
 
+        module_buttons = [
+            Button(
+                f"{module.icon} {module.name}",
+                callback_data=PMHelpModule(
+                    module_name=module_name, back_to_start=bool(callback_data and callback_data.back_to_start)
+                ).pack(),
+            )
+            for module_name, module in modules.items()
+            if not module.exclude_public
+        ]
+        module_button_rows = [
+            ButtonRow(*module_buttons[row_start : row_start + 2]) for row_start in range(0, len(module_buttons), 2)
+        ]
+
         buttons = InlineKeyboardBuilder()
-
-        buttons.row(
-            *(
-                InlineKeyboardButton(
-                    text=f"{module.icon} {module.name}",
-                    callback_data=PMHelpModule(
-                        module_name=module_name, back_to_start=bool(callback_data and callback_data.back_to_start)
-                    ).pack(),
-                )
-                for module_name, module in modules.items()
-                if not module.exclude_public
-            ),
-            width=2,
-        )
-
         if callback_data and callback_data.back_to_start:
             buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start", style="primary"))
 
@@ -76,6 +88,8 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
                 ListItem(_("🧩 The modules below — a quick overview of the commands in each one")),
                 ListItem(_("💬 Sophie herself — ask her how to use her, in your own words")),
             ),
+            Title(_("Select a module to get help with"), level=5),
+            Buttons(*module_button_rows) if module_button_rows else None,
         )
 
         await self.answer_rich(doc, reply_markup=buttons.as_markup())
@@ -117,11 +131,9 @@ class PMModuleHelp(SophieCallbackQueryHandler):
         buttons = InlineKeyboardBuilder()
 
         if module.advertise_wiki_page:
-            doc += Paragraph(
-                Url(_("📖 Look the module's wiki page for more information"), CONFIG.wiki_modules_link + module_name)
+            doc += Buttons(
+                ButtonRow(Button(_("📖 Wiki page with more info"), url=CONFIG.wiki_modules_link + module_name))
             )
-            buttons.row(InlineKeyboardButton(text=_("📖 Wiki page"), url=CONFIG.wiki_modules_link + module_name))
-
         buttons.row(
             InlineKeyboardButton(
                 text=_("⬅️ Back"),

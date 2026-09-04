@@ -30,7 +30,7 @@ from sophie_bot.db.cache.locale import (
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.middlewares.localization import LocalizationMiddleware
+from sophie_bot.middlewares.localization import LocalizationMiddleware, _locale_for_language
 from sophie_bot.modules.language.handlers.language import LanguageCallbackHandler, SelectLangCb
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.services.i18n import i18n
@@ -219,6 +219,16 @@ async def test_middleware_falls_back_to_client_locale_in_private_chats(chats: _C
     )
 
     assert locale == "uk_UA"
+
+
+@pytest.mark.parametrize(
+    ("language_code", "expected_locale"),
+    (("uk", "uk_UA"), ("ru-RU", "ru_RU"), ("en", "en_US")),
+)
+def test_locale_fallback_normalizes_telegram_language_codes(language_code: str, expected_locale: str) -> None:
+    available_locales = ("en_GB", "en_US", "ru_RU", "uk_UA")
+
+    assert _locale_for_language(language_code, available_locales) == expected_locale
 
 
 # --- Cache behaviour ---

@@ -82,10 +82,10 @@ new_lang:
 
 extract_lang:
 	$(PYBABEL) extract -k "pl_:1,2" -k "p_:1,2" -k "l_:1" \
-	--add-comments="NOTE: " -o "$(LOCALES_DIR)/bot.pot" --omit-header --sort-by-file --no-wrap $(PROJECT_DIR)
+	--add-comments="NOTE: " -o "$(LOCALES_DIR)/bot.pot" --sort-by-file --no-wrap $(PROJECT_DIR)
 
 	$(PYBABEL) extract -k "pl_:1,2" -k "p_:1,2" -k "l_:1" \
-	--add-comments="NOTE: " -o "$(LOCALES_DIR)/ass.pot" --omit-header --sort-by-file --no-wrap "$(ASS_PATH)"
+	--add-comments="NOTE: " -o "$(LOCALES_DIR)/ass.pot" --omit-header --no-location --sort-by-file --no-wrap "$(ASS_PATH)"
 
 	# Merge
 	cp "$(LOCALES_DIR)/bot.pot" "$(LOCALES_DIR)/sophie.pot"
@@ -93,10 +93,10 @@ extract_lang:
 
 update_lang:
 	$(PYBABEL) update -d "$(LOCALES_DIR)" -D "sophie" -i "$(LOCALES_DIR)/sophie.pot" \
-	--ignore-pot-creation-date --omit-header --no-wrap
+	--ignore-pot-creation-date --no-wrap --no-fuzzy-matching
 
 compile_lang:
-	$(PYBABEL) compile -d "$(LOCALES_DIR)" -D "sophie" --use-fuzzy --statistics
+	$(PYBABEL) compile -d "$(LOCALES_DIR)" -D "sophie" --statistics
 
 
 new_locale:
@@ -192,7 +192,7 @@ setup_worktree:
 
 	@if [ -d "locales" ]; then \
 		echo "  → Compiling locale files..."; \
-		uv run pybabel compile -d "locales" -D "sophie" --use-fuzzy 2>&1 | grep -E "(translated|compiling)" || true; \
+		uv run pybabel compile -d "locales" -D "sophie" --statistics; \
 	fi
 
 	@if [ -f "Makefile" ] && ! grep -q "export PYTHONPATH" Makefile; then \

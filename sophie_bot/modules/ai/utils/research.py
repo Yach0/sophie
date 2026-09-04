@@ -511,7 +511,7 @@ def _build_research_sources_section(
 
 def build_research_doc(
     response: ResearchFinalResponse,
-    header: Element | None = None,
+    header: Element | str | None = None,
     header_style: AIHeaderStyle = "table",
     current_locale: str = "en_US",
 ) -> Doc:
