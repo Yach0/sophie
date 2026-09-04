@@ -157,6 +157,20 @@ async def grant_bot_admin(chat_tid: int, **rights: bool) -> ChatAdminModel:
     return await grant_admin(chat_tid, CONFIG.bot_id, **rights)
 
 
+async def get_wizard_session_id(test_client: TestClient, chat_tid: int, user_tid: int) -> str:
+    state = test_client.dispatcher.fsm.get_context(
+        bot=test_client.bot,
+        chat_id=chat_tid,
+        user_id=user_tid,
+    )
+    data = await state.get_data()
+    wizard = data.get("wizard")
+    assert isinstance(wizard, dict)
+    session_id = wizard.get("session_id")
+    assert isinstance(session_id, str) and session_id
+    return session_id
+
+
 async def _feed(test_client: TestClient, message: Message) -> list[CapturedRequest]:
     """Feed one message update through the dispatcher and return the requests it produced."""
     start = len(test_client.capture)

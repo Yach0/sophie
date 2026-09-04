@@ -3,9 +3,8 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.restrictions.actions.base import BaseRestrictionModernAction
-from sophie_bot.modules.utils_.action_config_wizard.helpers import convert_action_data_to_model
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 
 
 def resolve_action_duration(action_name: str, action_data: dict[str, Any] | None) -> timedelta | None:
@@ -19,4 +18,4 @@ def resolve_action_duration(action_name: str, action_data: dict[str, Any] | None
     if not isinstance(action, BaseRestrictionModernAction):
         return None
 
-    return action.get_duration(convert_action_data_to_model(action, action_data))
+    return action.get_duration(action.load_data(action_data))

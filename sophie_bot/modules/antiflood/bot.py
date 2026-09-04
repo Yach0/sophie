@@ -6,10 +6,8 @@ from aiogram import Router
 
 from sophie_bot.modules.antiflood.action_config import (
     AntifloodActionCallback,
-    AntifloodActionCancel,
-    AntifloodActionDone,
-    AntifloodActionSettings,
-    AntifloodActionSetup,
+    AntifloodActionInput,
+    AntifloodActionInputCleanup,
     AntifloodActionWizard,
 )
 from sophie_bot.modules.antiflood.handlers import (
@@ -28,10 +26,8 @@ handlers: tuple[type[SophieBaseHandler[Any]], ...] = (
     AntifloodSetCountHandler,
     AntifloodActionWizard,
     AntifloodActionCallback,
-    AntifloodActionSetup,
-    AntifloodActionDone,
-    AntifloodActionCancel,
-    AntifloodActionSettings,
+    AntifloodActionInput,
+    AntifloodActionInputCleanup,
 )
 
 

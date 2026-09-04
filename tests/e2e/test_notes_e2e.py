@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
+from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
@@ -295,7 +295,98 @@ async def test_notes_list_success(
     assert "faq" in response_text, f"Response should list 'faq' note, got: {response_text}"
 
 
-# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_notes_initial_page_has_navigation_and_preserves_search(test_client: TestClient) -> None:
+    user_wrapper, group_chat, chat_model = await _setup_group_and_user(
+        test_client,
+        chat_id=-1002800000050,
+        user_id=928000050,
+        group_title="Notes Navigation Group",
+        first_name="NavigationLister",
+        username="navigation_lister",
+    )
+    for note_index in range(1, 10):
+        await _save_note_directly(chat_model, (f"note{note_index}",), f"Note {note_index}")
+
+    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
+    requests = await test_client.send_command(
+        command="notes",
+        from_user=user_wrapper.user,
+        chat=group_chat,
+        args="note",
+    )
+    assert requests[-1].reply_markup is not None
+    inline_buttons = [
+        btn
+        for row in requests[-1].reply_markup.get("inline_keyboard", [])
+        for btn in row
+    ]
+    next_button = next(
+        (btn for btn in inline_buttons if "▶️" in btn.get("text", "") or btn.get("text") == "Next"),
+        None,
+    )
+    assert next_button is not None
+    next_callback_data = next_button.get("callback_data")
+    assert next_callback_data is not None
+
+    wizard_message = MessageFactory.create(text="Notes", from_user=bot_user, chat=group_chat)
+    next_requests = await test_client.send_callback(
+        next_callback_data,
+        from_user=user_wrapper.user,
+        message=wizard_message,
+    )
+    assert any("note9" in str(request.params) for request in next_requests)
+
+
+@pytest.mark.asyncio
+async def test_notes_pagination_keeps_each_list_search_context(test_client: TestClient) -> None:
+    user_wrapper, group_chat, chat_model = await _setup_group_and_user(
+        test_client,
+        chat_id=-1002800000051,
+        user_id=928000051,
+        group_title="Notes Concurrent Lists Group",
+        first_name="ConcurrentLister",
+        username="concurrent_lister",
+    )
+    for note_index in range(1, 10):
+        await _save_note_directly(chat_model, (f"alpha{note_index}",), f"Alpha {note_index}")
+        await _save_note_directly(chat_model, (f"beta{note_index}",), f"Beta {note_index}")
+
+    first_requests = await test_client.send_command(
+        command="notes",
+        from_user=user_wrapper.user,
+        chat=group_chat,
+        args="alpha",
+    )
+    first_buttons = [
+        button
+        for row in (first_requests[-1].reply_markup or {}).get("inline_keyboard", [])
+        for button in row
+    ]
+    first_next_callback = next(
+        button["callback_data"]
+        for button in first_buttons
+        if "▶️" in button.get("text", "") or button.get("text") == "Next"
+    )
+
+    await test_client.send_command(
+        command="notes",
+        from_user=user_wrapper.user,
+        chat=group_chat,
+        args="beta",
+    )
+    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
+    first_list_message = MessageFactory.create(text="Alpha notes", from_user=bot_user, chat=group_chat)
+    page_requests = await test_client.send_callback(
+        first_next_callback,
+        from_user=user_wrapper.user,
+        message=first_list_message,
+    )
+    rendered_text = "\n".join(request.text or "" for request in page_requests)
+
+    assert "alpha9" in rendered_text
+    assert "beta9" not in rendered_text
+
 # test_notes_list_empty
 # ---------------------------------------------------------------------------
 

@@ -4,15 +4,14 @@ from typing import Any
 from aiogram.types import Message
 
 from sophie_bot.db.models import FiltersModel
-from sophie_bot.modules.filters.types.modern_action_abc import ActionResult, ModernActionABC
-from sophie_bot.modules.filters.types.modern_action_data_types import ACTION_DATA_DUMPED
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
+from sophie_bot.shared.actions import ActionResult, ModernActionABC
 
 
 @dataclass(frozen=True)
 class EffectiveFilterAction:
     name: str
-    data: ACTION_DATA_DUMPED = None
+    data: dict[str, Any] | None = None
 
 
 def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFilterAction]:
@@ -26,12 +25,11 @@ def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFil
 
 
 async def _handle_modern_filter_action(
-    message: Message, action_name: str, data: dict[str, Any], filter_data: ACTION_DATA_DUMPED
+    message: Message, action_name: str, data: dict[str, Any], filter_data: dict[str, Any] | None
 ) -> ActionResult | None:
     action_item: ModernActionABC = ALL_MODERN_ACTIONS[action_name]
 
-    if filter_data and action_item.data_object:
-        filter_data = action_item.data_object(**filter_data)
+    filter_data = action_item.load_data(filter_data)
 
     return await action_item.execute(message, data, filter_data)
 

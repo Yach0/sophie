@@ -9,17 +9,15 @@ from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 from regex import regex
 
-from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTERS_MAX_TRIGGERS
+from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTER_MAX_ACTIONS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
 from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
+from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 
 from .schemas import FilterActionCatalogItem, FilterActionPayload, FilterActionResponse, FilterResponse
-
-MAX_FILTER_ACTIONS = FILTERS_MAX_TRIGGERS + 1
 
 
 async def get_chat_or_404(chat_iid: PydanticObjectId) -> ChatModel:
@@ -63,10 +61,10 @@ def _normalize_action_data(action_name: str, action_data: dict[str, Any]) -> dic
 def validate_filter_actions(actions: list[FilterActionPayload]) -> dict[str, dict[str, Any]]:
     if not actions:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Filter actions cannot be empty")
-    if len(actions) > MAX_FILTER_ACTIONS:
+    if len(actions) > FILTER_MAX_ACTIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Too many filter actions, maximum is {MAX_FILTER_ACTIONS}",
+            detail=f"Too many filter actions, maximum is {FILTER_MAX_ACTIONS}",
         )
 
     validated_actions: dict[str, dict[str, Any]] = {}

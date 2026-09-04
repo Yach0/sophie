@@ -7,9 +7,10 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.filters import FilterActionType, FiltersModel
+from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.modules.warns.utils import warn_user
+from sophie_bot.shared.actions import StoredAction
 
 
 @pytest.mark.asyncio
@@ -60,10 +61,10 @@ async def test_warn_user_executes_each_and_max_actions(test_client: TestClient) 
 
     settings = await WarnSettingsModel.get_or_create(chat.iid)
     settings.max_warns = 2
-    settings.on_each_warn_actions = [FilterActionType(name="kick_user", data={})]
+    settings.on_each_warn_actions = [StoredAction(name="kick_user", data={})]
     settings.on_max_warn_actions = [
-        FilterActionType(name="mute_user", data={}),
-        FilterActionType(name="ban_user", data={}),
+        StoredAction(name="mute_user", data={}),
+        StoredAction(name="ban_user", data={}),
     ]
     await settings.save()
 

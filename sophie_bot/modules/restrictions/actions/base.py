@@ -16,16 +16,15 @@ from stfu_tg.doc import Doc, Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
-from sophie_bot.modules.filters.types.modern_action_abc import (
-    ActionSetupMessage,
-    ActionSetupTryAgainException,
-    ModernActionABC,
-    ModernActionSetting,
-)
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.services.i18n import i18n
+from sophie_bot.shared.actions import (
+    ActionSetupTryAgainException,
+    ModernActionABC,
+    ModernActionSetting,
+)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
@@ -63,8 +62,8 @@ def make_duration_setup_confirm(
 
 
 def make_duration_setup_message(prompt_text: str) -> Any:
-    async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-        return ActionSetupMessage(text=prompt_text)
+    async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+        return Template(prompt_text)
 
     return setup_message
 

@@ -7,11 +7,11 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg import Code, Template
 
 from sophie_bot.db.models import FiltersModel
-from sophie_bot.db.models.filters import FilterInSetupType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.is_connected import GroupOrConnectedFilter
-from sophie_bot.modules.filters.handlers.filter_confirm import FilterConfirmHandler
+from sophie_bot.modules.filters.filter_wizard import FILTER_WIZARD, FilterDraft
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -24,21 +24,20 @@ class FilterEditHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter("editfilter"),
+            FeatureFlagFilter("action_config_wizard"),
+            FeatureFlagFilter("filters"),
             UserRestricting(admin=True),
             GroupOrConnectedFilter(),
         )
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
-        return {
-            "handler": TextArg(l_("Filter's keyword")),
-        }
+        return {"handler": TextArg(l_("Filter's keyword"))}
 
     async def handle(self) -> Any:
         keyword: str = self.data["handler"]
-
-        # Find an item
-        if not (filter_item := await FiltersModel.get_by_keyword(self.connection.db_model.iid, keyword)):
+        filter_item = await FiltersModel.get_by_keyword(self.connection.db_model.iid, keyword)
+        if filter_item is None:
             return await self.event.reply(
                 str(
                     Template(
@@ -48,8 +47,4 @@ class FilterEditHandler(SophieMessageHandler):
                     )
                 )
             )
-
-        filter_in_setup = FilterInSetupType.from_model(filter_item)
-        await filter_in_setup.set_filter_state(self.state)
-
-        return await FilterConfirmHandler(self.event, **self.data).handle()
+        await FILTER_WIZARD.start(self, FilterDraft.from_model(filter_item))

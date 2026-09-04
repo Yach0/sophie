@@ -20,8 +20,8 @@ icon: 🪄
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/addfilter` `/newfilter` | `<Text to match>` | Adds a new filter |  |
-| `/delfilter` | `<Text to match>` | Deletes a filter |  |
 | `/editfilter` | `<Filter's keyword>` | Edits filter settings |  |
+| `/delfilter` | `<Text to match>` | Deletes a filter |  |
 {.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)

@@ -8,14 +8,10 @@ from stfu_tg.doc import Element
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
-from sophie_bot.modules.filters.types.modern_action_abc import (
-    ActionSetupMessage,
-    ModernActionABC,
-    ModernActionSetting,
-)
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.warns.utils import warn_user
+from sophie_bot.shared.actions import ModernActionABC, ModernActionSetting
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -33,10 +29,8 @@ async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) ->
     return WarnActionDataModel(reason=reason)
 
 
-async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    return ActionSetupMessage(
-        text=_("Please write the warn reason."),
-    )
+async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Template(_("Please write the warn reason."))
 
 
 class WarnModernAction(ModernActionABC[WarnActionDataModel]):
