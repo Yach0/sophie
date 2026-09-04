@@ -40,4 +40,5 @@ class GetRulesHandler(SophieMessageHandler):
             title=title,
             reply_to=self.event.message_id,
             connection=connection,
+            owner_chat_tid=connection.db_model.tid,
         )

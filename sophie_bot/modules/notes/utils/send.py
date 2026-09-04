@@ -1,17 +1,21 @@
+from html.parser import HTMLParser
 from typing import Final
 
 from aiogram.enums import ContentType
 from aiogram.methods import (
     SendMediaGroup,
     SendMessage,
+    SendRichMessage,
     TelegramMethod,
 )
 from aiogram.types import (
+    EphemeralMessageParameters,
     InlineKeyboardMarkup,
     InputMediaAudio,
     InputMediaDocument,
     InputMediaPhoto,
     InputMediaVideo,
+    InputRichBlockSectionHeading,
     LinkPreviewOptions,
     MediaUnion,
     Message,
@@ -27,12 +31,90 @@ from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_butt
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
+from sophie_bot.modules.notes.utils.rich import (
+    render_rich_message,
+    rich_message_to_input,
+    strip_rich_buttons,
+)
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 # Kept below Telegram's 4096 so the rendered title and fillings cannot push the send over.
+
+
+class _VisibleTitleParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+    def text(self) -> str:
+        return "".join(self.parts).strip()
+
+
+async def _send_rich_saveable(
+    send_to: int,
+    saveable: Saveable,
+    *,
+    message: Message | None,
+    reply_to: int | None,
+    title: Element | None,
+    raw: bool,
+    inline_markup: InlineKeyboardMarkup,
+    message_thread_id: int | None,
+    receiver_user_id: int | None,
+    collect_sent: list[Message] | None,
+    additional_fillings: dict[str, str] | None,
+    user: User | None,
+) -> Message | None:
+    rich_source = saveable.rich_message
+    if rich_source is None:
+        return None
+    rich_message = render_rich_message(
+        rich_source,
+        source_message=message,
+        user=user or (message.from_user if message else None),
+        additional_fillings=additional_fillings,
+    )
+    if raw:
+        rich_message = strip_rich_buttons(rich_message)
+    input_rich = rich_message_to_input(rich_message)
+    if title:
+        title_parser = _VisibleTitleParser()
+        title_parser.feed(str(title))
+        title_text = title_parser.text()
+        if title_text and input_rich.blocks is not None:
+            input_rich.blocks.insert(0, InputRichBlockSectionHeading(text=title_text, size=3))
+
+    def build_method(with_reply: bool) -> SendRichMessage:
+        return SendRichMessage(
+            chat_id=send_to,
+            rich_message=input_rich,
+            reply_markup=inline_markup,
+            message_thread_id=message_thread_id,
+            reply_parameters=ReplyParameters(message_id=reply_to) if with_reply and reply_to else None,
+            ephemeral_message_parameters=(
+                EphemeralMessageParameters(receiver_user_id=receiver_user_id) if receiver_user_id is not None else None
+            ),
+        )
+
+    async def reply_not_found() -> Message:
+        return await build_method(False).emit(bot)
+
+    sent = await common_try(
+        to_try=build_method(True).emit(bot),
+        reply_not_found=reply_not_found,
+    )
+    if collect_sent is not None and isinstance(sent, Message):
+        collect_sent.append(sent)
+    return sent
+
+
 TEXT_LENGTH_LIMIT: Final[int] = 4090
 
 
@@ -132,6 +214,7 @@ async def send_saveable(
     message_thread_id: int | None = None,
     collect_sent: list[Message] | None = None,
     receiver_user_id: int | None = None,
+    owner_chat_tid: int | None = None,
 ) -> Message | None:
     """Sends a saveable, returning its primary message.
 
@@ -172,6 +255,25 @@ async def send_saveable(
         if additional_keyboard:
             inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 
+    if saveable.rich_message is not None:
+        rich_owner_chat_tid = owner_chat_tid or (
+            connection.db_model.tid if connection else (message.chat.id if message else send_to)
+        )
+        if await is_enabled("saveable_rich_messages", chat_tid=rich_owner_chat_tid):
+            return await _send_rich_saveable(
+                send_to,
+                saveable,
+                message=message,
+                reply_to=reply_to,
+                title=title,
+                raw=bool(raw),
+                inline_markup=inline_markup,
+                message_thread_id=message_thread_id,
+                receiver_user_id=receiver_user_id,
+                additional_fillings=additional_fillings,
+                user=user,
+                collect_sent=collect_sent,
+            )
     # Process fillings
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)
 

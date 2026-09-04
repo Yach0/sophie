@@ -36,7 +36,13 @@ class SetJoinRequestMessageHandler(SophieMessageHandler):
         raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
         buttons = ButtonsList.from_ass(raw_buttons)
 
-        saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons)
+        saveable = await parse_saveable(
+            self.event,
+            raw_text,
+            offset=text_offset,
+            buttons=buttons,
+            owner_chat_tid=self.event.chat.id,
+        )
         await GreetingsModel.change_join_request_message(connection.db_model.iid, saveable)
 
         doc = Doc(

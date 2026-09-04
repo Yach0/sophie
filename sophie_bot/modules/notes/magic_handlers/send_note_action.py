@@ -90,6 +90,7 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
                 note,
                 title=title,
                 reply_to=message.message_id,
+                owner_chat_tid=note.chat_tid,
                 collect_sent=sent_messages,
             )
         )

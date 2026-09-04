@@ -29,11 +29,20 @@ async def captcha_send_rules(message: Message, rules: RulesModel, chat_iid: Pyda
         )
     )
 
-    if len(str(doc)) >= 1024 or rules.file:
-        # Captions can't be longer than 1024, send a normal message text instead this time
-        # Or a file
+    if (
+        getattr(rules, "rich_message", None)
+        or getattr(rules, "files", None)
+        or getattr(rules, "file", None)
+        or getattr(rules, "buttons", None)
+        or len(str(doc)) >= 1024
+    ):
         return await send_saveable(
-            message, message.chat.id, rules, title=title, additional_keyboard=buttons.as_markup()
+            message,
+            message.chat.id,
+            rules,
+            title=title,
+            additional_keyboard=buttons.as_markup(),
+            owner_chat_tid=message.chat.id,
         )
 
     return await send_captcha_message(message, captcha, str(doc), reply_markup=buttons.as_markup())

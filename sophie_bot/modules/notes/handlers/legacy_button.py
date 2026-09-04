@@ -64,4 +64,5 @@ class LegacyStartNoteButton(SophieMessageHandler):
             title=title,
             reply_to=message.message_id,
             connection=note_connection,
+            owner_chat_tid=note.chat_tid,
         )

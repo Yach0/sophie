@@ -17,7 +17,7 @@ async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -
     if isinstance(event, CallbackQuery):
         raise TypeError("This handlers setup_confirm can only be used with messages")
 
-    return await parse_saveable(event, event.html_text)
+    return await parse_saveable(event, event.html_text, owner_chat_tid=event.chat.id)
 
 
 async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
@@ -63,7 +63,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
     async def handle(self, message: Message, data: dict, filter_data: Saveable) -> ActionResult | None:
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
 
-        if filter_data.buttons or filter_data.file or filter_data.files:
+        if filter_data.rich_message is not None or filter_data.buttons or filter_data.file or filter_data.files:
             # We have to send the note separately; every sent message is returned so the
             # caller knows what the bot produced (silent filters delete them afterwards).
             sent_messages: list[Message] = []
@@ -74,6 +74,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
                     filter_data,
                     title=title,
                     reply_to=message.message_id,
+                    owner_chat_tid=message.chat.id,
                     collect_sent=sent_messages,
                 )
             )

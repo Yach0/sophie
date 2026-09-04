@@ -5,17 +5,19 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-from aiogram import Router
+from aiogram import Router, types
 from aiogram.types import Chat, Message, MessageEntity, Update, User
 from aiogram.utils.text_decorations import HtmlDecoration
 from aiogram_test_framework import TestClient
 
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.notes.utils import parse as parse_module
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 
 E2E_PARSE_RAW_COMMAND = "e2e_parse_saveable_raw"
 E2E_PARSE_HTML_COMMAND = "e2e_parse_saveable_html"
+E2E_PARSE_RICH_COMMAND = "e2e_parse_saveable_rich"
 TEST_ROUTER = Router(name="parse_saveable_e2e_router")
 
 
@@ -80,6 +82,7 @@ def _build_private_message(
     message_id: int,
     text: str,
     entities: list[MessageEntity] | None = None,
+    rich_message: Any | None = None,
 ) -> Update:
     user_chat = Chat(id=user_id, type="private", first_name=f"User{user_id}", username=f"user_{user_id}")
     from_user = User(id=user_id, is_bot=False, first_name=f"User{user_id}", username=f"user_{user_id}")
@@ -91,6 +94,7 @@ def _build_private_message(
         from_user=from_user,
         text=text,
         entities=entities,
+        rich_message=rich_message,
     )
     return Update(update_id=update_id, message=message)
 
@@ -143,6 +147,17 @@ async def e2e_parse_saveable_html_handler(message: Message) -> None:
         allow_reply_message=False,
         buttons=ButtonsList(),
         offset=content_offset,
+    )
+    await message.reply(saveable.text or "<EMPTY>")
+
+@TEST_ROUTER.message(CMDFilter(E2E_PARSE_RICH_COMMAND))
+async def e2e_parse_saveable_rich_handler(message: Message) -> None:
+    saveable = await parse_saveable(
+        message=message,
+        text=None,
+        allow_reply_message=False,
+        buttons=ButtonsList(),
+        owner_chat_tid=message.chat.id,
     )
     await message.reply(saveable.text or "<EMPTY>")
 
@@ -257,3 +272,29 @@ async def test_parse_saveable_e2e_plain_text_stays_plain(
     response_text = _extract_last_response_text(requests)
 
     assert response_text == content_text
+
+@pytest.mark.asyncio
+async def test_parse_saveable_e2e_captures_rich_fallback(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(parse_module, "is_enabled", lambda *_args, **_kwargs: _enabled())
+
+    async def _enabled() -> bool:
+        return True
+
+    rich_message = types.RichMessage(
+        blocks=[types.RichBlockParagraph(text=types.RichTextBold(text="Rich content"))]
+    )
+    update = _build_private_message(
+        user_id=920005,
+        update_id=990005,
+        message_id=700005,
+        text=f"/{E2E_PARSE_RICH_COMMAND}",
+        rich_message=rich_message,
+    )
+
+    requests = await _new_requests_for_update(test_client, update)
+    response_text = _extract_last_response_text(requests)
+
+    assert response_text == "<b>Rich content</b>"

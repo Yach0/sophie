@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Annotated, Any, Optional
 
 from aiogram.enums import ContentType
+from aiogram.types import RichMessage
 from beanie import Document, Indexed, PydanticObjectId
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.find.evaluation import Text
@@ -28,7 +29,7 @@ class SaveableParseMode(Enum):
     html = "html"
 
 
-CURRENT_SAVEABLE_VERSION = 2
+CURRENT_SAVEABLE_VERSION = 3
 
 
 class Saveable(BaseModel):
@@ -42,6 +43,7 @@ class Saveable(BaseModel):
 
     parse_mode: SaveableParseMode | None = SaveableParseMode.html
     preview: bool | None = False
+    rich_message: RichMessage | None = None
 
     version: int | None = 1
 

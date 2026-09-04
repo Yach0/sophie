@@ -142,6 +142,7 @@ FeatureType = Literal[
     "ai_entertainment_monthly_credits",
     "fban_anonymous_admin",
     "connection_webapp_notice",
+    "saveable_rich_messages",
 ]
 
 
@@ -423,6 +424,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "fban_anonymous_admin": _feature(False),
     # Announces the /connection deprecation; stays off until the replacement webapp is deployed.
     "connection_webapp_notice": _feature(False),
+    "saveable_rich_messages": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

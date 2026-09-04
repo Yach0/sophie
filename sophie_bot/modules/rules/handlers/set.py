@@ -28,11 +28,17 @@ class SetRulesHandler(SophieMessageHandler):
         connection = self.connection
         content: str = self.data["content"]
 
-        saveable = await parse_saveable(self.event, content)
+        saveable = await parse_saveable(self.event, content, owner_chat_tid=self.event.chat.id)
 
         # `content` is optional because the rules may come from a replied message instead,
         # so emptiness can only be judged once both sources have been parsed.
-        if not saveable.text and not saveable.file and not saveable.files:
+        if (
+            not saveable.text
+            and not saveable.rich_message
+            and not saveable.file
+            and not saveable.files
+            and not saveable.buttons
+        ):
             return await self.event.reply(
                 _("Please provide the rules text, or reply to the message you want to set as the rules.")
             )

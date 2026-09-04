@@ -98,7 +98,7 @@ async def test_save_note_success(
     saved_note = await NoteModel.find_one(NoteModel.chat_tid == chat_model.tid)
     assert saved_note is not None
     assert saved_note.parse_mode == SaveableParseMode.html
-    assert saved_note.version == 2
+    assert saved_note.version == 3
 
 
 # ---------------------------------------------------------------------------

@@ -12,9 +12,11 @@ from regex import regex
 from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTER_MAX_ACTIONS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
+from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, Saveable
 from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
+from sophie_bot.modules.notes.utils.rich import rich_message_to_html_fallback, validate_rich_message_api
 from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 
 from .schemas import FilterActionCatalogItem, FilterActionPayload, FilterActionResponse, FilterResponse
@@ -49,7 +51,16 @@ def _normalize_action_data(action_name: str, action_data: dict[str, Any]) -> dic
 
     try:
         validated_data = action.data_object(**payload)
-    except ValidationError as exc:
+        if isinstance(validated_data, Saveable) and validated_data.rich_message is not None:
+            validate_rich_message_api(validated_data.rich_message)
+            fallback = rich_message_to_html_fallback(validated_data.rich_message)
+            if validated_data.text not in (None, "", fallback):
+                raise ValueError("text must match the Rich message fallback")
+            validated_data.text = fallback
+            validated_data.file = None
+            validated_data.files = []
+            validated_data.version = CURRENT_SAVEABLE_VERSION
+    except (ValidationError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid action data for '{action_name}': {exc}",

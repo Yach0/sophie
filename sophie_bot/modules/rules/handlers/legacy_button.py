@@ -42,4 +42,5 @@ class LegacyRulesButton(SophieMessageHandler):
             title=title,
             reply_to=self.event.message_id,
             connection=self.connection,
+            owner_chat_tid=self.connection.db_model.tid,
         )

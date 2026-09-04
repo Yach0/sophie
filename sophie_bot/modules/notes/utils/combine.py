@@ -1,7 +1,7 @@
 from stfu_tg import Doc, PreformattedHTML
 from stfu_tg.doc import Element
 
-from sophie_bot.db.models.notes import Saveable, SaveableParseMode
+from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, Saveable, SaveableParseMode
 
 
 def combine_saveables(*items: tuple[Saveable, Element]) -> Saveable:
@@ -19,4 +19,5 @@ def combine_saveables(*items: tuple[Saveable, Element]) -> Saveable:
         file=items[0][0].file,
         files=items[0][0].files,
         parse_mode=SaveableParseMode.html,
+        version=CURRENT_SAVEABLE_VERSION,
     )

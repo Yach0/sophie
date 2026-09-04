@@ -121,7 +121,13 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
         rules = await RulesModel.get_rules(connection.db_model.iid)
-        additional_fillings = {"rules": rules.text or "" if rules else _("No chat rules, have fun!")}
+        chat_title = getattr(chat, "first_name_or_title", None) or getattr(chat, "title", None) or str(chat.tid)
+        additional_fillings = {
+            "rules": rules.text or "" if rules else _("No chat rules, have fun!"),
+            "chatid": str(chat.tid),
+            "chatname": chat_title,
+            "chatnick": getattr(chat, "username", None) or chat_title,
+        }
 
         join_request_message_key = f"join_request_message:{chat.iid}:{user.iid}"
         try:
@@ -132,6 +138,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
                 join_request_saveable,
                 additional_fillings=additional_fillings,
                 user=self.event.from_user,
+                owner_chat_tid=chat_tid,
             )
         except CaptchaDMBlockedError:
             sent_message = await send_dm_unblock_message(chat_tid)

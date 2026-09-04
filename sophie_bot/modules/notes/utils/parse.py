@@ -15,7 +15,14 @@ from sophie_bot.modules.notes.utils.media import (
     MEDIA_SPECS,
     PARSABLE_CONTENT_TYPES,
 )
+from sophie_bot.modules.notes.utils.rich import (
+    rich_message_to_html_fallback,
+    validate_rich_message_source,
+    validate_rich_message_structure,
+)
+from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -23,13 +30,10 @@ def extract_file_info(message: Message) -> NoteFile | None:
     if message.content_type not in PARSABLE_CONTENT_TYPES:
         return None
 
-    # Get file ID from the parsable fields
     attr = getattr(message, message.content_type, None)
-
     if not attr:
         return None
 
-    # Photos are lists
     if isinstance(attr, list):
         attr = attr[-1]
 
@@ -38,6 +42,12 @@ def extract_file_info(message: Message) -> NoteFile | None:
 
 
 def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[list[Button]]]:
+    rich_message = getattr(message, "rich_message", None)
+    if rich_message is not None:
+        reply_markup = getattr(message, "reply_markup", None)
+        buttons = parse_message_buttons(reply_markup) if reply_markup else []
+        return rich_message_to_html_fallback(rich_message), None, buttons
+
     if message.content_type not in (*PARSABLE_CONTENT_TYPES, ContentType.TEXT):
         raise SophieException(
             Section(
@@ -48,55 +58,100 @@ def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[li
 
     reply_markup = getattr(message, "reply_markup", None)
     buttons = parse_message_buttons(reply_markup) if reply_markup else []
-
-    # aiogram's html_text property emits <tg-emoji emoji_id=...> but Telegram expects emoji-id (hyphenated),
-    # so we fix the attribute name to ensure custom emoji render correctly.
     return tg_emoji_workaround(message.html_text), extract_file_info(message), buttons
+
+
+async def _rich_saveable(
+    source_message: Message,
+    *,
+    owner_chat_tid: int | None,
+    buttons: ButtonsList,
+) -> Saveable:
+    if not await is_enabled("saveable_rich_messages", chat_tid=owner_chat_tid):
+        raise SophieException(
+            Section(
+                _("This message type is not supported for notes yet."),
+                title=_("Reply message content is not parsable as the note."),
+            )
+        )
+
+    rich_message = source_message.rich_message
+    if rich_message is None:
+        raise ValueError("Rich source disappeared while parsing")
+    try:
+        validate_rich_message_structure(rich_message)
+        validate_rich_message_source(source_message, bot_user_id=getattr(bot, "id", None))
+    except ValueError as exc:
+        raise SophieException(Section(str(exc), title=_("Rich message cannot be saved."))) from exc
+
+    source_markup = getattr(source_message, "reply_markup", None)
+    if source_markup:
+        buttons.extend(parse_message_buttons(source_markup))
+    return Saveable(
+        text=rich_message_to_html_fallback(rich_message),
+        file=None,
+        files=[],
+        buttons=buttons,
+        rich_message=rich_message,
+        version=CURRENT_SAVEABLE_VERSION,
+    )
 
 
 async def parse_saveable(
     message: Message,
     text: str | None,
-    allow_reply_message=True,
+    allow_reply_message: bool = True,
     buttons: ButtonsList | None = None,
     offset: int = 0,
     album: list[Message] | None = None,
+    *,
+    owner_chat_tid: int | None = None,
 ) -> Saveable:
-    """Parses the given message and returns common note props to save.
-
-    ``album`` is the aggregated media-group messages (from the media-group middleware).
-    When it holds more than one item the note stores every media file in ``files`` and
-    leaves ``file`` unset; text/buttons still come from the representative message.
-    """
-    # TODO: Make its own exception for notes saving
+    """Parse a Telegram message into the shared ordinary or Rich Saveable contract."""
     note_text = text
     initial_note_text = text
-    replied_buttons = []
+    replied_buttons: list[list[Button]] = []
     files: list[NoteFile] = []
+
+    rich_source: Message | None = None
+    if getattr(message, "rich_message", None) is not None:
+        rich_source = message
+    elif (
+        allow_reply_message
+        and message.reply_to_message
+        and not message.reply_to_message.forum_topic_created
+        and getattr(message.reply_to_message, "rich_message", None) is not None
+    ):
+        rich_source = message.reply_to_message
+
+    if rich_source is not None:
+        if rich_source is not message and note_text:
+            raise SophieException(
+                Section(
+                    _("Rich messages cannot be combined with additional note text."),
+                    title=_("Rich message cannot be saved."),
+                )
+            )
+        rich_buttons = buttons if buttons is not None else ButtonsList()
+        return await _rich_saveable(rich_source, owner_chat_tid=owner_chat_tid or message.chat.id, buttons=rich_buttons)
 
     if allow_reply_message and message.reply_to_message and not message.reply_to_message.forum_topic_created:
         replied_message_text, file_data, replied_buttons = parse_reply_message(message.reply_to_message)
-
         if replied_message_text and note_text:
             note_text = f"{replied_message_text}\n{note_text}"
         elif replied_message_text:
             note_text = replied_message_text
-
     else:
         file_data = extract_file_info(message)
 
-    # Album (media group): gather a file from every item. This supersedes the single
-    # `file_data` grabbed above (album[0] is the representative message itself).
     if album and len(album) > 1:
         files = [note_file for note_file in (extract_file_info(item) for item in album) if note_file]
         if files:
             file_data = None
 
-    # Parse buttons (only when there's text to parse; file-only notes are allowed)
     if note_text and buttons is None:
         note_text, buttons = await parse_buttons_list_from_message(message, note_text, offset=offset)
 
-    # If not specifically added
     if buttons is None:
         buttons = ButtonsList()
 
@@ -109,16 +164,11 @@ async def parse_saveable(
         note_text = tg_emoji_workaround(note_text)
 
     buttons.extend(replied_buttons)
-
-    # A caption-carrying media note is capped far lower than a plain message; rejecting it
-    # here keeps an over-long note from being saved and then failing on every retrieval.
     text_limit = (
         MEDIA_CAPTION_LENGTH_LIMIT
         if file_data and MEDIA_SPECS[file_data.type].supports_caption
         else TELEGRAM_MESSAGE_LENGTH_LIMIT
     )
-
-    # TODO: Length of the message with or without HTML entities??
     if len(note_text or "") > text_limit:
         raise SophieException(
             Section(

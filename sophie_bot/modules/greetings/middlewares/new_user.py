@@ -134,6 +134,7 @@ class NewUserMiddleware(BaseMiddleware):
                 chat_rules,
                 user=new_member,
                 additional_keyboard=security_keyboard.as_markup(),
+                owner_chat_tid=chat_db.tid,
                 receiver_user_id=user.tid if user else None,
             )
 
@@ -227,11 +228,17 @@ class NewUserMiddleware(BaseMiddleware):
                             cleanservice_enabled,
                             chat_rules,
                             user=member,
+                            owner_chat_tid=chat_db.tid,
                             receiver_user_id=member.id,
                         )
                 else:
                     sent_message = await send_welcome(
-                        event, welcome_saveable, cleanservice_enabled, chat_rules, user=new_member
+                        event,
+                        welcome_saveable,
+                        cleanservice_enabled,
+                        chat_rules,
+                        user=new_member,
+                        owner_chat_tid=chat_db.tid,
                     )
 
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:

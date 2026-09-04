@@ -21,6 +21,7 @@ from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_button
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
 from sophie_bot.modules.notes.utils.parse import parse_saveable
+from sophie_bot.modules.notes.utils.rich import rich_message_has_media
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -64,15 +65,22 @@ class SaveNote(SophieMessageHandler):
         album: list[Message] | None = self.data.get("album")
 
         try:
-            saveable = await parse_saveable(self.event, raw_text, offset=text_offset, buttons=buttons, album=album)
+            saveable = await parse_saveable(
+                self.event,
+                raw_text,
+                offset=text_offset,
+                buttons=buttons,
+                album=album,
+                owner_chat_tid=self.event.chat.id,
+            )
         except SophieException as exc:
             log.warning("SaveNote: validation failed", error="\n".join(str(doc) for doc in exc.docs))
             await self.event.reply("\n".join(str(doc) for doc in exc.docs))
             return
-
         is_created = await self.save(saveable, notenames, connection.db_model.iid, self.event.from_user.id, self.data)
+
         track_note_saved(
-            has_media=bool(saveable.file or saveable.files),
+            has_media=bool(saveable.file or saveable.files or rich_message_has_media(saveable.rich_message)),
             chat_type=self.event.chat.type,
         )
 
@@ -122,6 +130,7 @@ class SaveNote(SophieMessageHandler):
             "buttons": saveable_dump["buttons"],
             "parse_mode": saveable_dump["parse_mode"],
             "preview": saveable_dump["preview"],
+            "rich_message": saveable_dump["rich_message"],
             "version": saveable_dump["version"],
         }
 

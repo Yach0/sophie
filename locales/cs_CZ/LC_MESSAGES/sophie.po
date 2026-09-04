@@ -271,7 +271,7 @@ msgstr "Ikona"
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:86
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:96
-#: sophie_bot/modules/notes/handlers/save.py:81
+#: sophie_bot/modules/notes/handlers/save.py:89
 msgid "Description"
 msgstr "Popis"
 
@@ -1022,17 +1022,17 @@ msgstr ""
 msgid "The AI request took too long and was cancelled. Please try again."
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:131
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:130
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr "{time} - {emoji} {title}, {users}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:150
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:149
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr "Historie chatu ze dne {today}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:215
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:207
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr "Shrňte diskuse skupiny Telegram do strukturovaných tematických řádků."
 
@@ -3907,7 +3907,7 @@ msgstr "Pozdravovací zprávy"
 
 #: sophie_bot/modules/greetings/handlers/set_join_request.py:20
 #: sophie_bot/modules/greetings/handlers/status_greetings.py:20
-#: sophie_bot/modules/notes/handlers/save.py:35
+#: sophie_bot/modules/notes/handlers/save.py:36
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/text_with_buttons_arg.py:14
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 #: sophie_bot/modules/rules/handlers/set.py:20
@@ -3919,21 +3919,21 @@ msgstr "Obsah"
 msgid "Sets join request message."
 msgstr "Nastaví zprávu pro žádost o připojení."
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:43
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:49
 #, python-brace-format
 msgid "Join request message was saved in {chat_title}."
 msgstr "Zpráva s žádostí o připojení byla uložena v {chat_title}."
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:49
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:55
 msgid "Deletes the join request message"
 msgstr "Odstraní zprávu s žádostí o připojení"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:62
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:68
 #, python-brace-format
 msgid "Join request message in {chat_title} has not been set before"
 msgstr "Zpráva s žádostí o připojení v {chat_title} nebyla předtím nastavena"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:72
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:78
 #, python-brace-format
 msgid "Join request message was reset to default in {chat_title}."
 msgstr "Zpráva s žádostí o připojení byla resetována na výchozí v {chat_title}."
@@ -3963,17 +3963,17 @@ msgstr "Nastaví uvítací zprávu."
 msgid "Please the '{cmd}' to control the welcome status."
 msgstr "Prosím použijte '{cmd}' pro ovládání stavu vítání."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:54
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:60
 #, python-brace-format
 msgid "Welcome message was successfully updated in {chat_title}."
 msgstr "Uvítací zpráva byla úspěšně aktualizována v {chat_title}."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:56
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:62
 #, python-brace-format
 msgid "Use {cmd} to retrieve the welcome message."
 msgstr "Použijte {cmd} pro načtení uvítací zprávy."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:63
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:69
 #, python-brace-format
 msgid "⚠️ Please note, that the welcome messages are currently disabled in the chat, use '{cmd}' to enable it."
 msgstr "⚠️ Prosím vezměte na vědomí, že uvítací zprávy jsou v chatu aktuálně zakázány, použijte '{cmd}' pro jejich povolení."
@@ -4024,8 +4024,8 @@ msgid "Welcome Message"
 msgstr "Uvítací zpráva"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
-#: sophie_bot/modules/greetings/utils/send_welcome.py:22
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:124
+#: sophie_bot/modules/greetings/utils/send_welcome.py:23
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:126
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 msgid "No chat rules, have fun!"
 msgstr "Není zde žádné pravidlo, bavte se!"
@@ -4801,7 +4801,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr "Poznámky umožňují ukládání různých typů obsahu, od běžných textových zpráv po nálepky a audio zprávy, poznámky také podporují přidávání inline tlačítek zpráv."
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:28
+#: sophie_bot/modules/notes/handlers/get.py:29
 msgid "Note name"
 msgstr "Název poznámky"
 
@@ -4852,11 +4852,11 @@ msgstr "Pouze iniciátor může potvrdit odstranění všech poznámek"
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 Všechny poznámky ({removed_count}) byly odstraněny v {chat_name}"
 
-#: sophie_bot/modules/notes/handlers/get.py:29
+#: sophie_bot/modules/notes/handlers/get.py:30
 msgid "Retrieve the note."
 msgstr "Získá poznámku."
 
-#: sophie_bot/modules/notes/handlers/get.py:43
+#: sophie_bot/modules/notes/handlers/get.py:44
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "Nebyla nalezena žádná poznámka s názvem {name}."
@@ -4985,42 +4985,42 @@ msgstr "zakázáno"
 msgid "PrivateNotes have been {status} in {chat}."
 msgstr "Soukromé poznámky byly {status} v {chat}."
 
-#: sophie_bot/modules/notes/handlers/save.py:33
-#: sophie_bot/modules/notes/handlers/save.py:80
+#: sophie_bot/modules/notes/handlers/save.py:34
+#: sophie_bot/modules/notes/handlers/save.py:88
 msgid "Note names"
 msgstr "Názvy poznámek"
 
-#: sophie_bot/modules/notes/handlers/save.py:34
+#: sophie_bot/modules/notes/handlers/save.py:35
 msgid "?Description"
 msgstr "?Popis"
 
-#: sophie_bot/modules/notes/handlers/save.py:37
+#: sophie_bot/modules/notes/handlers/save.py:38
 msgid "Save the note."
 msgstr "Uloží poznámku."
 
-#: sophie_bot/modules/notes/handlers/save.py:60
+#: sophie_bot/modules/notes/handlers/save.py:61
 msgid "Please provide at least one valid note name."
 msgstr "Prosím uveďte alespoň jedno platné jméno poznámky."
 
-#: sophie_bot/modules/notes/handlers/save.py:82
+#: sophie_bot/modules/notes/handlers/save.py:90
 msgid "Note was successfully created"
 msgstr "Poznámka byla úspěšně vytvořena"
 
-#: sophie_bot/modules/notes/handlers/save.py:82
+#: sophie_bot/modules/notes/handlers/save.py:90
 msgid "Note was successfully updated"
 msgstr "Poznámka byla úspěšně aktualizována"
 
-#: sophie_bot/modules/notes/handlers/save.py:84
+#: sophie_bot/modules/notes/handlers/save.py:92
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
 msgstr "Použijte {cmd} pro načtení této poznámky."
 
-#: sophie_bot/modules/notes/handlers/save.py:94
+#: sophie_bot/modules/notes/handlers/save.py:102
 #, python-brace-format
 msgid "To save the whole album, send it with {cmd} in the caption instead."
 msgstr "Pokud chcete uložit celé album, pošlete ho s {cmd} v popisku."
 
-#: sophie_bot/modules/notes/handlers/save.py:97
+#: sophie_bot/modules/notes/handlers/save.py:105
 msgid "⚠️ Only the first media of the album was saved"
 msgstr "⚠️ Bylo uloženo pouze první médium alba"
 
@@ -5194,28 +5194,66 @@ msgstr "Tlačítka nejsou platná."
 msgid "Local chat"
 msgstr "Místní chat"
 
-#: sophie_bot/modules/notes/utils/parse.py:44
+#: sophie_bot/modules/notes/utils/parse.py:54
 msgid "Please check the notes documentation for the list of the allowed content types."
 msgstr "Zkontrolujte prosím dokumentaci k poznámkám pro seznam povolených typů obsahu."
 
-#: sophie_bot/modules/notes/utils/parse.py:45
+#: sophie_bot/modules/notes/utils/parse.py:55
+#: sophie_bot/modules/notes/utils/parse.py:74
 msgid "Reply message content is not parsable as the note."
 msgstr "Obsah odpovědní zprávy nelze zpracovat jako poznámku."
 
-#: sophie_bot/modules/notes/utils/parse.py:125
+#: sophie_bot/modules/notes/utils/parse.py:73
+msgid "This message type is not supported for notes yet."
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/parse.py:85
+#: sophie_bot/modules/notes/utils/parse.py:132
+msgid "Rich message cannot be saved."
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/parse.py:131
+msgid "Rich messages cannot be combined with additional note text."
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/parse.py:175
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr "Maximální délka poznámky je {limit} znaků."
 
-#: sophie_bot/modules/notes/utils/parse.py:126
+#: sophie_bot/modules/notes/utils/parse.py:176
 msgid "Please try to reduce the length of note."
 msgstr "Snažte se prosím zkrátit délku poznámky."
 
-#: sophie_bot/modules/notes/utils/parse.py:127
+#: sophie_bot/modules/notes/utils/parse.py:177
 msgid "Note is too long."
 msgstr "Poznámka je příliš dlouhá."
 
-#: sophie_bot/modules/notes/utils/send.py:191
+#: sophie_bot/modules/notes/utils/rich.py:132
+msgid "Thinking Rich blocks cannot be sent as final messages"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:398
+msgid "Thinking Rich blocks cannot be saved"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:406
+msgid "Rich buttons must contain exactly one action"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:409
+msgid "Rich callback data is too long"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:428
+msgid "Rich buttons from an untrusted source cannot be saved"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:434
+msgid "Bot-bound Rich buttons are not accepted by the API"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/send.py:293
 msgid "The text is too long"
 msgstr "Text je příliš dlouhý"
 
@@ -6677,11 +6715,11 @@ msgstr "🗑 Pravidla chatu byla resetována."
 msgid "Sets chat rules"
 msgstr "Nastaví pravidla chatu"
 
-#: sophie_bot/modules/rules/handlers/set.py:37
+#: sophie_bot/modules/rules/handlers/set.py:43
 msgid "Please provide the rules text, or reply to the message you want to set as the rules."
 msgstr "Prosím uveďte text pravidel nebo odpovězte na zprávu, kterou chcete nastavit jako pravidla."
 
-#: sophie_bot/modules/rules/handlers/set.py:45
+#: sophie_bot/modules/rules/handlers/set.py:51
 #, python-brace-format
 msgid "🪧 Rules have been set in {chat_name} successfully."
 msgstr "🪧 Pravidla byla v {chat_name} úspěšně nastavena."
@@ -7378,21 +7416,21 @@ msgstr "Jste zabanováni ve federaci, takže nemůžete projít ověřením!"
 msgid "Sets welcome security message."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:49
 #, python-brace-format
 msgid "Welcome security message was saved in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:49
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:55
 msgid "Deletes the welcome security message"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:62
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:68
 #, python-brace-format
 msgid "Welcome security message in {chat_title} has not been set before"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:72
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:78
 #, python-brace-format
 msgid "Welcome security message was reset to default in {chat_title}."
 msgstr ""
@@ -7438,20 +7476,6 @@ msgstr ""
 msgid "Welcome Security message"
 msgstr "Zpráva o bezpečnosti vítání"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_done.py:31
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:45
-msgid "You're all set, and can now participate in the conversation"
-msgstr "Jste připraveni a nyní se můžete zúčastnit konverzace"
-
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_done.py:36
-#, python-brace-format
-msgid "Due to group's security policy, you were restricted to send media for the next {time}"
-msgstr "V důsledku bezpečnostní politiky skupiny jste byli omezeni v odesílání médií na příštích {time}"
-
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_done.py:43
-msgid "Back to the group"
-msgstr "Zpět do skupiny"
-
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:18
 msgid "Please read the chat rules"
 msgstr "Prosím, přečtěte si pravidla chatu"
@@ -7459,6 +7483,10 @@ msgstr "Prosím, přečtěte si pravidla chatu"
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:24
 msgid "I agree"
 msgstr "Souhlasím"
+
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:45
+msgid "You're all set, and can now participate in the conversation"
+msgstr "Jste připraveni a nyní se můžete zúčastnit konverzace"
 
 #: sophie_bot/shared/lock_constants.py:15
 msgid "Blocks all message types"
@@ -8055,4 +8083,10 @@ msgstr "Nepodařilo se najít zmínku o uživateli"
 
 #~ msgid "Action configured successfully!"
 #~ msgstr "Akce byla úspěšně nakonfigurována!"
+
+#~ msgid "Due to group's security policy, you were restricted to send media for the next {time}"
+#~ msgstr "V důsledku bezpečnostní politiky skupiny jste byli omezeni v odesílání médií na příštích {time}"
+
+#~ msgid "Back to the group"
+#~ msgstr "Zpět do skupiny"
 

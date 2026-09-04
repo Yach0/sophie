@@ -46,6 +46,7 @@ class SendRulesAction(ModernActionABC[None]):
                 title=title,
                 reply_to=message.message_id,
                 connection=connection,
+                owner_chat_tid=connection.db_model.tid,
                 collect_sent=sent_messages,
             )
         )
