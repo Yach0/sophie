@@ -62,7 +62,7 @@ def build_ai_header(
     if style == "disable":
         return None
     if style == "simple":
-        return battery or "🔋"
+        return HList(battery or "🔋")
     return ai_table_header(status, battery)
 
 
