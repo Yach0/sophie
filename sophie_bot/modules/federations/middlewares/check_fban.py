@@ -45,7 +45,9 @@ class FedBanMiddleware(BaseMiddleware):
             return False
 
         # Skip automatic enforcement for admins and globally whitelisted users.
-        if await is_user_globally_whitelisted(user_id) or await is_user_admin(chat_db.iid, user_db.iid):
+        if await is_user_globally_whitelisted(user_id, redis=data["services"].redis) or await is_user_admin(
+            chat_db.iid, user_db.iid
+        ):
             return False
 
         # Check if user is banned in this federation or subscription chain

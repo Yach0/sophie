@@ -129,7 +129,12 @@ class NewUserMiddleware(BaseMiddleware):
         *,
         services: ApplicationServices,
     ) -> Message | None:
-        muted_users = await ws_on_new_users_mute(new_users, chat_db, bot=services.bot)
+        muted_users = await ws_on_new_users_mute(
+            new_users,
+            chat_db,
+            bot=services.bot,
+            redis=services.redis,
+        )
 
         # If no users were welcomesecurity muted, fall back to the normal welcome flow.
         if not any(muted_users):
@@ -271,6 +276,7 @@ class NewUserMiddleware(BaseMiddleware):
                                 new_user.tid,
                                 welcome_mute_time,
                                 bot=data["services"].bot,
+                                redis=data["services"].redis,
                             )
                             for new_user in human_users
                         )

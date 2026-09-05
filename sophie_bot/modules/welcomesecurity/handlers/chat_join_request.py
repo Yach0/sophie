@@ -77,7 +77,9 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
                 raise
 
         # Admins and globally whitelisted users bypass Welcome Security.
-        if await is_user_globally_whitelisted(user_tid) or await is_user_admin(chat_tid, user_tid):
+        if await is_user_globally_whitelisted(user_tid, redis=self.services.redis) or await is_user_admin(
+            chat_tid, user_tid
+        ):
             # Approve immediately
             await _approve_request()
             return
@@ -114,7 +116,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             return
 
         # Mute the user (similar to ws_on_new_user)
-        muted = await ws_on_new_user(user, chat, is_join_request=True)
+        muted = await ws_on_new_user(user, chat, is_join_request=True, redis=self.services.redis)
         if not muted:
             await _approve_request()
             return

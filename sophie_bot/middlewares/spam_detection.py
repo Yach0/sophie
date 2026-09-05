@@ -45,7 +45,7 @@ class SpamDetectionMiddleware(BaseMiddleware):
         if not user_id or not chat_db:
             return
 
-        if await is_user_globally_whitelisted(user_id):
+        if await is_user_globally_whitelisted(user_id, redis=data["services"].redis):
             return
 
         try:

@@ -1,4 +1,5 @@
 from aiogram import Bot
+from redis.asyncio import Redis
 
 from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeMute
@@ -19,6 +20,7 @@ async def ws_on_user_passed(
     welcomemute: WelcomeMute,
     *,
     bot: Bot,
+    redis: Redis,
 ) -> bool:
     """
     Function when user successfully passed the welcomesecurity
@@ -39,6 +41,7 @@ async def ws_on_user_passed(
             user.tid,
             on_time=convert_timedelta_or_str(welcomemute.time),
             bot=bot,
+            redis=redis,
         )
     else:
         await execute_restriction(

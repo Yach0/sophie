@@ -12,6 +12,7 @@ from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.utils_.get_user import UnionUser, get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
@@ -34,6 +35,7 @@ class BaseWhitelistHandler(SophieMessageHandler):
     def filters(cls) -> tuple[CallbackType, ...]:
         return (
             CMDFilter(cls.command),
+            FeatureFlagFilter("global_user_whitelist"),
             ChatTypeFilter("group", "supergroup"),
             UserRestricting(can_restrict_members=True),
         )

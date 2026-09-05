@@ -35,7 +35,9 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         if not await is_enabled("locks", chat_tid=message.chat.id, redis=data["services"].redis):
             return await handler(event, data)
-        if await is_user_globally_whitelisted(message.from_user.id) or await is_user_admin(
+        if await is_user_globally_whitelisted(
+            message.from_user.id, redis=data["services"].redis
+        ) or await is_user_admin(
             message.chat.id, message.from_user.id
         ):
             return await handler(event, data)

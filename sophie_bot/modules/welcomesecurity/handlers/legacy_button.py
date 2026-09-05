@@ -103,7 +103,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
 
-        is_whitelisted = await is_user_globally_whitelisted(user_db.tid)
+        is_whitelisted = await is_user_globally_whitelisted(user_db.tid, redis=self.services.redis)
         if is_whitelisted or await is_user_admin(chat_id, user_db.iid):
             # Only drop the pending WS record once the unmute succeeds; otherwise the admin
             # would be left muted with no record to re-enter this flow and retry.

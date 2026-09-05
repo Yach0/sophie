@@ -109,7 +109,7 @@ class AiModeratorMiddleware(BaseMiddleware):
             if not event.from_user:
                 return await handler(event, data)
 
-            if await is_user_globally_whitelisted(event.from_user.id):
+            if await is_user_globally_whitelisted(event.from_user.id, redis=data["services"].redis):
                 return await handler(event, data)
 
             if CONFIG.debug_mode == "off" and await is_user_admin(chat_db.tid, event.from_user.id):

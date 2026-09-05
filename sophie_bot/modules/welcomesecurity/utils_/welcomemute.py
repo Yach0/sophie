@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from aiogram import Bot
+from redis.asyncio import Redis
 
 from sophie_bot.modules.restrictions.utils.restrictions import (
     execute_restriction,
@@ -18,8 +19,9 @@ async def on_welcomemute(
     on_time: str | timedelta,
     *,
     bot: Bot,
+    redis: Redis,
 ) -> bool:
-    if await is_user_globally_whitelisted(user_id):
+    if await is_user_globally_whitelisted(user_id, redis=redis):
         return False
     return (
         await execute_restriction(

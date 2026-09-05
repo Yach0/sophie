@@ -37,7 +37,7 @@ class ReactionLocksEnforcerMiddleware(BaseMiddleware):
         chat_tid = event.chat.id
         if not await is_enabled("locks", chat_tid=chat_tid, redis=data["services"].redis):
             return await handler(event, data)
-        if await is_user_globally_whitelisted(event.user.id):
+        if await is_user_globally_whitelisted(event.user.id, redis=data["services"].redis):
             return await handler(event, data)
 
         chat = await ChatModel.get_by_tid(chat_tid)

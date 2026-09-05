@@ -40,7 +40,9 @@ class LockMutedUsers(BaseMiddleware):
 
         log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
 
-        if await is_user_globally_whitelisted(user_db.tid) or await is_user_admin(chat_db.tid, user_db.tid):
+        if await is_user_globally_whitelisted(user_db.tid, redis=data["services"].redis) or await is_user_admin(
+            chat_db.tid, user_db.tid
+        ):
             return False
 
         ws_user = await WSUserModel.is_user(user_db.iid, chat_db.iid)

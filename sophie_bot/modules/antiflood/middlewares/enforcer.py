@@ -236,7 +236,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         # Skip admins and globally whitelisted users.
         if not message.from_user:
             return await handler(event, data)
-        if await is_user_globally_whitelisted(message.from_user.id) or await is_user_admin(
+        if await is_user_globally_whitelisted(message.from_user.id, redis=self.services.redis) or await is_user_admin(
             message.chat.id, message.from_user.id
         ):
             await self._set_last_user(message.chat.id, message.from_user.id)

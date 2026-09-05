@@ -50,7 +50,9 @@ class CommunityBanMiddleware(BaseMiddleware):
             return False
 
         # Skip automatic enforcement for admins and globally whitelisted users.
-        if await is_user_globally_whitelisted(user_id) or await is_user_admin(chat_db.iid, user_db.iid):
+        if await is_user_globally_whitelisted(user_id, redis=data["services"].redis) or await is_user_admin(
+            chat_db.iid, user_db.iid
+        ):
             return False
 
         ban = await CommunityBanService.is_user_banned(community.community_tid, user_id)
