@@ -222,6 +222,7 @@ async def test_unmute_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: As
     assert permissions.can_send_polls is True
     assert permissions.can_send_other_messages is True
     assert permissions.can_add_web_page_previews is True
+    assert permissions.can_invite_users is True
 
 
 @pytest.mark.asyncio
