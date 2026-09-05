@@ -9,6 +9,7 @@ from babel.dates import format_date, format_time
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup
+from sophie_bot.modules.ai.schedules import generate_chat_summaries
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import (
     GenerateChatSummaries,
     _build_message_url,
@@ -498,16 +499,83 @@ def test_build_summary_doc_renders_lines() -> None:
     assert 'href="https://t.me/c/1234567890/100"' in html
 
 
+def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
+    doc = _build_summary_doc(
+        -1001234567890,
+        date(2026, 5, 3),
+        "Overview <with details>",
+        [
+            AIChatSummaryLine(
+                emoji="💡",
+                title="Topic <one>",
+                first_message_id=100,
+                first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
+                usernames=["alice&bob"],
+                source_excerpt="first",
+            )
+        ],
+    )
+
+    rich_html = doc.to_rich()
+
+    assert "<h1>Chat history of May 3, 2026</h1>" in rich_html
+    assert "<ul><li>" in rich_html
+    assert "<blockquote" not in rich_html
+    assert "Topic &lt;one&gt;" in rich_html
+    assert "alice&amp;bob" in rich_html
+    assert "Overview &lt;with details&gt;" in rich_html
+
+    table_html, _, body_html = rich_html.partition("</table>")
+    assert "<h1>" not in table_html
+    assert body_html.index("<h1>") < body_html.index("<ul>")
+
+
+@pytest.mark.asyncio
+async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) -> None:
+    rich_sender = AsyncMock()
+    monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
+    monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="table"))
+    summary_date = date(2026, 5, 3)
+    lines = [
+        AIChatSummaryLine(
+            emoji="💡",
+            title="Topic",
+            first_message_id=100,
+            first_message_at=datetime(2026, 5, 3, 8, 0, tzinfo=UTC),
+            usernames=["alice"],
+            source_excerpt="first",
+        )
+    ]
+
+    await GenerateChatSummaries.send_summary(-1001234567890, summary_date, "General overview", lines)
+
+    rich_sender.assert_awaited_once()
+    chat_tid, sent_doc = rich_sender.await_args.args
+    assert chat_tid == -1001234567890
+    assert (
+        sent_doc.to_rich()
+        == _build_summary_doc(
+            chat_tid,
+            summary_date,
+            "General overview",
+            lines,
+            "table",
+        ).to_rich()
+    )
+
+
 def test_build_summary_doc_places_simple_battery_after_body() -> None:
     doc = _build_summary_doc(-1001234567890, date(2026, 5, 3), "General overview", [], "simple")
 
     html = doc.to_html()
+    rich_html = doc.to_rich()
 
     assert html.startswith("✨ <b>[Chat history")
     assert html.rstrip().endswith("🔋")
     assert html.rfind("🔋") > html.find("General overview")
     assert "\nChat history" not in html
     assert "Chat history" in html
+    assert "<ul>" not in rich_html
 
 
 def test_build_summary_doc_can_disable_ai_header() -> None:
