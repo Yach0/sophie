@@ -27,6 +27,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -211,10 +212,12 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         if not settings or not settings.enabled:
             return await handler(event, data)
 
-        # Skip admins
+        # Skip admins and globally whitelisted users.
         if not message.from_user:
             return await handler(event, data)
-        if await is_user_admin(message.chat.id, message.from_user.id):
+        if await is_user_globally_whitelisted(message.from_user.id) or await is_user_admin(
+            message.chat.id, message.from_user.id
+        ):
             await self._set_last_user(message.chat.id, message.from_user.id)
             return await handler(event, data)
 

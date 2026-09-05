@@ -10,6 +10,7 @@ from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel, ValidationError
 from stfu_tg.doc import Element
 
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.logger import log
 
@@ -88,9 +89,11 @@ class ModernActionABC(ABC, Generic[ACTION_DATA]):  # noqa: UP046
     async def execute(self, message: Message, data: dict, filter_data: ACTION_DATA) -> ActionResult | None:
         from sophie_bot.modules.utils_.admin import is_user_admin
 
-        if self.skip_for_admins and message.from_user and await is_user_admin(message.chat.id, message.from_user.id):
-            log.debug("Modern action: the sender is an admin, skipping...", action=self.name)
-            return None
+        if self.skip_for_admins and message.from_user:
+            user_tid = message.from_user.id
+            if await is_user_globally_whitelisted(user_tid) or await is_user_admin(message.chat.id, user_tid):
+                log.debug("Modern action: the sender is exempt, skipping...", action=self.name)
+                return None
         return await self.handle(message, data, filter_data)
 
     def settings(self, data: ACTION_DATA) -> dict[str, ModernActionSetting]:

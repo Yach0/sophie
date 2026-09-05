@@ -18,6 +18,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.db.models.chat import UserInGroupModel
+from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.services.redis import aredis
 from tests.e2e.helpers import (
@@ -155,6 +156,23 @@ async def test_welcome_mute_restricts_new_member(test_client: TestClient) -> Non
         if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
     ]
     assert restricts, "welcome_mute should restrict the new member"
+
+
+@pytest.mark.asyncio
+async def test_welcome_mute_skips_globally_whitelisted_new_member(test_client: TestClient) -> None:
+    _adder, group = await _setup_group(test_client)
+    greetings = await _greetings(group.id)
+    await greetings.set_status_welcomemute(True, timedelta(hours=1))
+    newbie = User(id=next_user_id(), is_bot=False, first_name="Allowed Newbie")
+    await GlobalUserWhitelistModel.add_user(newbie.id)
+
+    requests = await join_group(test_client, group, newbie)
+
+    assert not [
+        request
+        for request in requests
+        if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
+    ]
 
 
 @pytest.mark.asyncio

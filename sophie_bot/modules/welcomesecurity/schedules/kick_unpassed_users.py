@@ -9,6 +9,7 @@ from sophie_bot.metrics.welcome import track_captcha_failed
 from sophie_bot.modules.restrictions.utils.restrictions import kick_user
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.logger import log
 
 
@@ -43,6 +44,10 @@ class KickUnpassedUsers:
                 "kick_unpassed_users: skipping ws_user due to missing linked user/group",
                 ws_user_tid=str(ws_user.id),
             )
+            await ws_user.delete()
+            return
+        if await is_user_globally_whitelisted(user.tid):
+            log.debug("kick_unpassed_users: removing exempt user from pending captcha", user=user.tid)
             await ws_user.delete()
             return
         if not await is_enabled("welcomecaptcha_autokick", chat_tid=group.tid):

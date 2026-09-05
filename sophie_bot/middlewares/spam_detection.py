@@ -11,6 +11,7 @@ from ussr import predict_message
 from sophie_bot.db.models.spam_match import SpamMatchModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.logger import log
 
 
@@ -40,6 +41,9 @@ class SpamDetectionMiddleware(BaseMiddleware):
         user_id = message.from_user.id if message.from_user else None
 
         if not user_id or not chat_db:
+            return
+
+        if await is_user_globally_whitelisted(user_id):
             return
 
         try:

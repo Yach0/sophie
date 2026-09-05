@@ -12,6 +12,7 @@ from sophie_bot.modules.locks.utils.cache import get_cached_locks
 from sophie_bot.modules.locks.utils.detect_lock import check_locks
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.logger import log
 
 
@@ -34,7 +35,9 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         if not await is_enabled("locks", chat_tid=message.chat.id):
             return await handler(event, data)
-        if await is_user_admin(message.chat.id, message.from_user.id):
+        if await is_user_globally_whitelisted(message.from_user.id) or await is_user_admin(
+            message.chat.id, message.from_user.id
+        ):
             return await handler(event, data)
         locked_types = await get_cached_locks(message.chat.id, chat_db.iid)
         if not locked_types:

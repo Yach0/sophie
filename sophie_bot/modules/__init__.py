@@ -138,6 +138,7 @@ MODULES = [
     "purges",
     "warns",
     "restrictions",
+    "whitelist",
     "reports",
     "pins",
     "ai",

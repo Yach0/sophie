@@ -9,6 +9,7 @@ from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.logger import log
 
 GROUP_CHAT_TYPES = ("group", "supergroup")
@@ -39,7 +40,7 @@ class LockMutedUsers(BaseMiddleware):
 
         log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
 
-        if await is_user_admin(chat_db.tid, user_db.tid):
+        if await is_user_globally_whitelisted(user_db.tid) or await is_user_admin(chat_db.tid, user_db.tid):
             return False
 
         ws_user = await WSUserModel.is_user(user_db.iid, chat_db.iid)

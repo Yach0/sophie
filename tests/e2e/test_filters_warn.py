@@ -5,9 +5,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
+from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
+from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.shared.actions import StoredAction
@@ -45,6 +47,36 @@ async def test_filter_warn_and_delete_message_warns_user(test_client: TestClient
 
     warns_count = await WarnModel.find_all().count()
     assert warns_count == 1
+
+
+@pytest.mark.asyncio
+async def test_filter_restrictive_actions_skip_globally_whitelisted_user(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002600000010, title="Whitelisted Filters Group")
+    user_wrapper = test_client.create_user(user_id=926000010, first_name="Allowed", username="allowed_target")
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert chat is not None
+    filter_item = FiltersModel(
+        chat=chat.iid,
+        handler="spam",
+        action=None,
+        actions={"warn_user": {"reason": "No spam"}, "delmsg": None, "mute_user": None},
+    )
+    await filter_item.insert()
+    await GlobalUserWhitelistModel.add_user(user_wrapper.user.id)
+
+    with patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])):
+        requests = await test_client.send_message(
+            text="this is spam content", from_user=user_wrapper.user, chat=group_chat
+        )
+
+    assert await WarnModel.find_all().count() == 0
+    assert not [
+        request
+        for request in requests
+        if request.request_type in {RequestType.DELETE_MESSAGE, RequestType.RESTRICT_CHAT_MEMBER}
+    ]
 
 
 @pytest.mark.asyncio

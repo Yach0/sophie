@@ -24,6 +24,7 @@ from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.services.bot import bot
 from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
 from sophie_bot.utils.logger import log
@@ -88,6 +89,9 @@ class AiModeratorMiddleware(BaseMiddleware):
                 return await handler(event, data)
 
             if not event.from_user:
+                return await handler(event, data)
+
+            if await is_user_globally_whitelisted(event.from_user.id):
                 return await handler(event, data)
 
             if CONFIG.debug_mode == "off" and await is_user_admin(chat_db.tid, event.from_user.id):
