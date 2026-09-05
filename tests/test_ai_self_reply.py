@@ -3,6 +3,8 @@ from types import SimpleNamespace
 
 from stfu_tg import Doc
 
+from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_thinking_text
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 
@@ -111,6 +113,35 @@ def test_message_text_reads_inline_simple_rich_message() -> None:
     assert text == "✨ 🔋 80% Answer"
     assert is_ai_message(text)
     assert cut_titlebar(text) == "Answer"
+
+
+def _compact_heading_ai_message() -> SimpleNamespace:
+    return SimpleNamespace(
+        text=None,
+        rich_message=SimpleNamespace(
+            blocks=[
+                SimpleNamespace(text="✨ "),
+                SimpleNamespace(text="Answer heading"),
+                SimpleNamespace(text="Answer body"),
+                SimpleNamespace(text="🔋 80%"),
+            ]
+        ),
+        from_user=SimpleNamespace(id=CONFIG.bot_id),
+    )
+
+
+def test_message_text_detects_simple_ai_message_split_by_rich_heading() -> None:
+    text = message_text(_compact_heading_ai_message())
+
+    assert text == "✨ \nAnswer heading\nAnswer body\n🔋 80%"
+    assert is_ai_message(text)
+    assert cut_titlebar(text) == "Answer heading\nAnswer body"
+
+
+async def test_reply_handler_accepts_ai_message_split_by_rich_heading() -> None:
+    message = SimpleNamespace(reply_to_message=_compact_heading_ai_message())
+
+    assert await AiReplyHandler.filter(message)
 
 
 def test_message_text_leaves_disabled_rich_message_body_unchanged() -> None:

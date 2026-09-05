@@ -51,7 +51,7 @@ def is_ai_message(text: str) -> bool:
         return True
     if first_line == AI_SIMPLE_HEADER_PREFIX or first_line.startswith(AI_SIMPLE_HEADER_PREFIX + " "):
         return True
-    if first_line.startswith(AI_EMOJI + " ") and "\n" in text:
+    if (first_line == AI_EMOJI or first_line.startswith(AI_EMOJI + " ")) and "\n" in text:
         return text.rsplit("\n", 1)[-1].startswith("🔋 ")
 
     # An answer still being generated has no header yet — it is a plain progress line, and replying
@@ -65,7 +65,11 @@ def is_ai_message(text: str) -> bool:
 
 
 def cut_titlebar(text: str) -> str:
-    simple_footer_match = re.match(rf"^{re.escape(AI_EMOJI)} (.+)\n+🔋 \d+%$", text, re.DOTALL)
+    simple_footer_match = re.match(
+        rf"^{re.escape(AI_EMOJI)}(?: *\n+| )(.+)\n+🔋 \d+%$",
+        text,
+        re.DOTALL,
+    )
     if simple_footer_match:
         return simple_footer_match.group(1)
 
