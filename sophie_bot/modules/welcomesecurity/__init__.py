@@ -31,6 +31,7 @@ from sophie_bot.modules.welcomesecurity.handlers.set_security_message import (
     SetSecurityMessageHandler,
 )
 from sophie_bot.modules.welcomesecurity.handlers.status_overall import (
+    WelcomeSecurityExpireHandler,
     WelcomeSecuritySettingsShowHandler,
 )
 from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import (
@@ -68,6 +69,7 @@ module_manifest = ModuleManifest(
         SetSecurityMessageHandler,
         DelSecurityMessageHandler,
         WelcomeSecuritySettingsShowHandler,
+        WelcomeSecurityExpireHandler,
         LegacyStableWSButtonRedirectHandler,
     ),
     pre_setup=pre_setup,

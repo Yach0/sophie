@@ -14,14 +14,17 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from aiogram.types import Message, User
 from aiogram_test_framework import TestClient
+from aiogram_test_framework.factories import MessageFactory, UserFactory
 from aiogram_test_framework.types import RequestType
 
+from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeSecurity
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
+    WelcomeSecurityExpireCB,
     WelcomeSecurityRulesAgreeCB,
 )
 from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
@@ -267,6 +270,41 @@ async def test_welcomecaptcha_command_persists(test_client: TestClient) -> None:
     assert chat is not None
     greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
     assert greetings.welcome_security is not None and greetings.welcome_security.enabled is True
+
+
+@pytest.mark.asyncio
+async def test_welcomecaptcha_command_configures_expiry(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="WS Expiry Cmd Group")
+    await grant_admin(group.id, admin.id)
+
+    requests = await test_client.send_command(command="welcomecaptcha", from_user=admin, args="6h", chat=group)
+
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    assert greetings.welcome_security is not None
+    assert greetings.welcome_security.enabled is True
+    assert greetings.welcome_security.expire == timedelta(hours=6)
+    assert any("6 hours" in (request.text or "") for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_welcomesecurity_expiry_button_persists_without_enabling_captcha(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="WS Expiry Button Group")
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+
+    bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    settings_message = MessageFactory.create(text="Welcome Security", from_user=bot_user, chat=group)
+    callback = WelcomeSecurityExpireCB(seconds=int(timedelta(hours=12).total_seconds())).pack()
+
+    await test_client.send_callback(callback, from_user=admin, message=settings_message)
+
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    assert greetings.welcome_security is not None
+    assert greetings.welcome_security.enabled is False
+    assert greetings.welcome_security.expire == timedelta(hours=12)
 
 
 @pytest.mark.asyncio

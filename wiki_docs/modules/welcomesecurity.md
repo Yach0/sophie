@@ -13,7 +13,7 @@ icon: 🛡️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/welcomecaptcha` `/enablewelcomecaptcha` | `<?New status>` | Shows / changes the state of Welcome Captcha. |  |
+| `/welcomecaptcha` `/enablewelcomecaptcha` | `<?New status or expiry time>` | Shows / changes Welcome Captcha and its expiry time. |  |
 | `/welcomerestrict` | `<?New status or restrict time>` | Shows / changes the state of Welcome Restrict (Media restricting). |  |
 | `/setwelcomesecurity` | `<Content>` | Sets welcome security message. |  |
 | `/delwelcomesecurity` | - | Deletes the welcome security message |  |

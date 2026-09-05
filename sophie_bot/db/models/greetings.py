@@ -117,11 +117,19 @@ class GreetingsModel(Document):
             self.clean_welcome.last_msg = msg_id
         return await self.save()
 
-    async def set_status_welcomesecurity(self, new_state: bool) -> "GreetingsModel":
+    async def set_status_welcomesecurity(
+        self,
+        new_state: bool,
+        expire: timedelta | None = None,
+    ) -> "GreetingsModel":
         if not self.welcome_security:
-            self.welcome_security = WelcomeSecurity(enabled=new_state)
+            self.welcome_security = WelcomeSecurity(
+                enabled=new_state, expire=expire or WELCOMESECURITY_EXPIRE_DEFAULT_TIME
+            )
         else:
             self.welcome_security.enabled = new_state
+            if expire is not None:
+                self.welcome_security.expire = expire
         return await self.save()
 
     async def set_status_welcomemute(self, new_state: bool, time: timedelta | None) -> "GreetingsModel":

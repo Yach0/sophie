@@ -1,9 +1,12 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from aiogram.exceptions import TelegramAPIError
 
-from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.greetings import (
+    WELCOMESECURITY_EXPIRE_DEFAULT_TIME,
+    GreetingsModel,
+)
 from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.metrics.welcome import track_captcha_failed
 from sophie_bot.modules.restrictions.utils.restrictions import kick_user
@@ -55,7 +58,13 @@ class KickUnpassedUsers:
         # Ensure added_at is timezone-aware
         if added_at.tzinfo is None:
             added_at = added_at.replace(tzinfo=UTC)
-        is_old_entry = datetime.now(UTC) - added_at > timedelta(hours=WELCOMESECURITY_KICK_TIMEOUT_HOURS)
+        greetings = await GreetingsModel.get_by_chat_iid(group.iid)
+        expiry = (
+            greetings.welcome_security.expire
+            if greetings.welcome_security and greetings.welcome_security.expire
+            else WELCOMESECURITY_EXPIRE_DEFAULT_TIME
+        )
+        is_old_entry = datetime.now(UTC) - added_at > expiry
         if not is_old_entry:
             log.debug("kick_unpassed_users: skipping ws_user, too young", ws_user_tid=str(ws_user.id))
             return
