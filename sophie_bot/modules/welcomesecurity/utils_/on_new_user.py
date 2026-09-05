@@ -9,9 +9,10 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.shared.actions import RestrictionAction
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 
 
-async def ws_on_new_user(new_user: ChatModel, chat: ChatModel, is_join_request: bool = False):
+async def ws_on_new_user(new_user: ChatModel, chat: ChatModel, is_join_request: bool = False) -> bool:
     """
     Function initializes welcomesecurity process internally.
     Returns whenever the user was muted.
@@ -20,8 +21,8 @@ async def ws_on_new_user(new_user: ChatModel, chat: ChatModel, is_join_request: 
     if new_user.is_bot:
         return False
 
-    # Check for admin permissions
-    if await is_user_admin(chat=chat.tid, user=new_user.tid):
+    # Admins and globally whitelisted users do not enter the captcha flow.
+    if await is_user_globally_whitelisted(new_user.tid) or await is_user_admin(chat=chat.tid, user=new_user.tid):
         return False
 
     # Add user to the welcomesecurity database

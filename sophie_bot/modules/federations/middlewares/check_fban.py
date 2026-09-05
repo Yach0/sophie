@@ -14,6 +14,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.actions import RestrictionAction
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -43,8 +44,8 @@ class FedBanMiddleware(BaseMiddleware):
         if not federation:
             return False
 
-        # Skip check for admins
-        if await is_user_admin(chat_db.iid, user_db.iid):
+        # Skip automatic enforcement for admins and globally whitelisted users.
+        if await is_user_globally_whitelisted(user_id) or await is_user_admin(chat_db.iid, user_db.iid):
             return False
 
         # Check if user is banned in this federation or subscription chain

@@ -9,6 +9,7 @@ from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
     convert_timedelta_or_str,
 )
 from sophie_bot.shared.actions import RestrictionAction
+from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 
 
 async def on_welcomemute(
@@ -18,6 +19,8 @@ async def on_welcomemute(
     *,
     bot: Bot,
 ) -> bool:
+    if await is_user_globally_whitelisted(user_id):
+        return False
     return (
         await execute_restriction(
             bot,

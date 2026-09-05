@@ -42,6 +42,7 @@ from sophie_bot.db.models.federations import (
     FederationTask,
 )
 from sophie_bot.db.models.filters import FiltersModel
+from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
 from sophie_bot.db.models.greetings import GreetingsModel
 from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.db.models.locks import LocksModel
@@ -103,6 +104,7 @@ models: list[type[Document]] = [
     OpDebugSnapshotModel,
     FeatureFlagOverride,
     SpamMatchModel,
+    GlobalUserWhitelistModel,
 ]
 
 __all__ = [
@@ -138,6 +140,7 @@ __all__ = [
     "FederationTask",
     "FiltersModel",
     "GlobalSettings",
+    "GlobalUserWhitelistModel",
     "GreetingsModel",
     "LanguageModel",
     "LocksModel",
