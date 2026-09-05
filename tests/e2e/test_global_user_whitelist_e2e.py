@@ -5,6 +5,7 @@ from aiogram_test_framework.factories import MessageFactory
 from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
+from sophie_bot.utils.feature_flags import set_enabled
 from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from tests.e2e.helpers import (
     create_test_user_and_group,
@@ -26,6 +27,7 @@ async def _setup(test_client: TestClient) -> tuple[object, object, object]:
 
 
 async def test_whitelist_and_unwhitelist_commands_update_global_state(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", True)
     admin, group, target = await _setup(test_client)
 
     added = await test_client.send_command(command="whitelist", from_user=admin, args=str(target.id), chat=group)
@@ -44,6 +46,7 @@ async def test_whitelist_and_unwhitelist_commands_update_global_state(test_clien
 
 
 async def test_whitelist_supports_reply_target(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", True)
     admin, group, target = await _setup(test_client)
     replied = MessageFactory.create(text="hello", from_user=target, chat=group)
 
@@ -53,6 +56,7 @@ async def test_whitelist_supports_reply_target(test_client: TestClient) -> None:
 
 
 async def test_whitelist_requires_group_admin_permission(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", True)
     regular, group, target = await _setup(test_client)
     await GlobalUserWhitelistModel.delete_all()
     non_admin = test_client.create_user(user_id=next_user_id(), first_name="Regular").user
@@ -68,6 +72,7 @@ async def test_whitelist_requires_group_admin_permission(test_client: TestClient
 
 
 async def test_direct_admin_ban_still_applies_to_whitelisted_user(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", True)
     admin, group, target = await _setup(test_client)
     await grant_bot_admin(group.id)
     await GlobalUserWhitelistModel.add_user(target.id)
@@ -76,3 +81,21 @@ async def test_direct_admin_ban_still_applies_to_whitelisted_user(test_client: T
 
     bans = [request for request in requests if request.request_type == RequestType.BAN_CHAT_MEMBER]
     assert bans and bans[0].params["user_id"] == target.id
+
+
+async def test_whitelist_commands_are_silent_when_feature_flag_disabled(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", False)
+    admin, group, target = await _setup(test_client)
+
+    whitelist_requests = await test_client.send_command(
+        command="whitelist", from_user=admin, args=str(target.id), chat=group
+    )
+    assert not whitelist_requests
+    assert await GlobalUserWhitelistModel.find_one(GlobalUserWhitelistModel.user_tid == target.id) is None
+
+    await GlobalUserWhitelistModel.add_user(target.id)
+    unwhitelist_requests = await test_client.send_command(
+        command="unwhitelist", from_user=admin, args=str(target.id), chat=group
+    )
+    assert not unwhitelist_requests
+    assert await GlobalUserWhitelistModel.find_one(GlobalUserWhitelistModel.user_tid == target.id) is not None

@@ -160,6 +160,7 @@ async def test_welcome_mute_restricts_new_member(test_client: TestClient) -> Non
 
 @pytest.mark.asyncio
 async def test_welcome_mute_skips_globally_whitelisted_new_member(test_client: TestClient) -> None:
+    await set_feature("global_user_whitelist", True)
     _adder, group = await _setup_group(test_client)
     greetings = await _greetings(group.id)
     await greetings.set_status_welcomemute(True, timedelta(hours=1))

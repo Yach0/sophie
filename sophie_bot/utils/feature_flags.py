@@ -99,6 +99,7 @@ FeatureType = Literal[
     "action_config_wizard",
     "antiflood",
     "locks",
+    "global_user_whitelist",
     "greetings_ephemeral",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
@@ -369,6 +370,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "action_config_wizard": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
+    "global_user_whitelist": _feature(False),
     # Send the welcome only to the members it greets, so it never becomes chat clutter to clean up.
     "greetings_ephemeral": _feature(False),
     "welcomecaptcha": _feature(True),

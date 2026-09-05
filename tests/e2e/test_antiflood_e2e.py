@@ -86,6 +86,7 @@ async def test_admin_is_exempt_from_antiflood(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_globally_whitelisted_user_is_exempt_from_antiflood(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", True)
     group, member = await _group_with_flood(test_client, message_count=2)
     await GlobalUserWhitelistModel.add_user(member.id)
 

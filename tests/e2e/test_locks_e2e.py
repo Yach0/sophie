@@ -17,6 +17,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, LocksModel
 from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
 from sophie_bot.modules.locks.callbacks import UnlockAllCallback
+from sophie_bot.utils.feature_flags import set_enabled
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
 
 
@@ -82,6 +83,7 @@ async def test_locked_message_from_admin_is_kept(test_client: TestClient) -> Non
 
 @pytest.mark.asyncio
 async def test_locked_message_from_globally_whitelisted_user_is_kept(test_client: TestClient) -> None:
+    await set_enabled("global_user_whitelist", True)
     admin, group, member = await _group_with_member(test_client)
     await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
     await GlobalUserWhitelistModel.add_user(member.id)
