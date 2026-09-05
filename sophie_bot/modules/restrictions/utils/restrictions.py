@@ -58,6 +58,7 @@ async def execute_restriction(
                         can_send_polls=True,
                         can_send_other_messages=True,
                         can_add_web_page_previews=True,
+                        can_invite_users=True,
                     ),
                 )
             case RestrictionAction.RESTRICT:
