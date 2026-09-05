@@ -11,7 +11,7 @@ from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.modules.filters.callbacks import FilterManagementCallback, FiltersPageCallback
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from sophie_bot.utils.feature_flags import set_enabled
-from tests.e2e.helpers import get_wizard_session_id, grant_admin
+from tests.e2e.helpers import get_wizard_session_id, grant_admin, next_group_id, next_user_id
 
 
 async def _create_filter(test_client: TestClient, *, group_tid: int, user_tid: int, silent: bool, admin: bool = False):
@@ -208,6 +208,65 @@ async def test_filter_list_pagination_is_available_to_non_admins(test_client: Te
     )
 
     assert any("filter9" in str(request.params) for request in page_requests)
+
+
+@pytest.mark.asyncio
+async def test_filter_list_pairs_each_item_with_its_buttons(test_client: TestClient) -> None:
+    group, user_wrapper, first_filter = await _create_filter(
+        test_client,
+        group_tid=next_group_id(),
+        user_tid=next_user_id(),
+        silent=False,
+    )
+    first_filter.handler = "first"
+    await first_filter.save()
+    second_filter = await FiltersModel(
+        chat=first_filter.chat,
+        handler="second",
+        action=None,
+        actions={"reply": {"text": "second reply"}},
+    ).insert()
+
+    requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
+
+    rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
+    first_item_start = rich_html.index("<b>first</b>")
+    first_row_start = rich_html.index("<tg-button-row", first_item_start)
+    first_row_end = rich_html.index("</tg-button-row>", first_row_start)
+    second_item_start = rich_html.index("<b>second</b>")
+    second_row_start = rich_html.index("<tg-button-row", second_item_start)
+    second_row_end = rich_html.index("</tg-button-row>", second_row_start)
+
+    assert first_item_start < first_row_start < first_row_end < second_item_start < second_row_start < second_row_end
+    assert str(first_filter.id) in rich_html[first_row_start:first_row_end]
+    assert str(second_filter.id) in rich_html[second_row_start:second_row_end]
+
+
+@pytest.mark.asyncio
+async def test_filter_list_rich_structure_escapes_items_before_button_rows(test_client: TestClient) -> None:
+    group, user_wrapper, first_filter = await _create_filter(
+        test_client,
+        group_tid=next_group_id(),
+        user_tid=next_user_id(),
+        silent=False,
+    )
+    first_filter.handler = "first <filter>"
+    await first_filter.save()
+    await FiltersModel(
+        chat=first_filter.chat,
+        handler="second & filter",
+        action=None,
+        actions={"reply": {"text": "second reply"}},
+    ).insert()
+
+    requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
+
+    rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
+    assert "<b>first &lt;filter&gt;</b>" in rich_html
+    assert "<b>second &amp; filter</b>" in rich_html
+    assert rich_html.count("<tg-button-row") == 2
+    assert rich_html.count("</tg-button-row>") == 2
+    assert "</tg-button-row>\n<b>second &amp; filter</b>" in rich_html
 
 
 @pytest.mark.asyncio

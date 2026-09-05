@@ -190,10 +190,8 @@ async def _render_filter_page(
 
     page = paginate(all_filters, _PAGE_SIZE, requested_page)
     edit_enabled = await is_enabled("action_config_wizard", chat_tid=chat_tid)
-    button_rows: list[ButtonRow] = []
     rows: list[Any] = []
     for item in page.items:
-        rows.append(KeyValue(item.handler, filter_action_text(item.action, list(item.actions.keys())), suffix=" -> "))
         controls: list[Button] = []
         if edit_enabled:
             controls.append(
@@ -206,12 +204,16 @@ async def _render_filter_page(
                 style="danger",
             )
         )
-        button_rows.append(ButtonRow(*controls))
+        rows.extend(
+            (
+                KeyValue(item.handler, filter_action_text(item.action, list(item.actions.keys())), suffix=" -> "),
+                Buttons(ButtonRow(*controls)),
+            )
+        )
     document = Doc(Section(*rows, title=Template(_("Filters in {chat_name}"), chat_name=chat_title or "Unknown")))
     document += " "
     document += _("Additionally rules from 'Antiflood' module can be enforced.")
     document += _("Additionally rules from 'Locks' module can be enforced.")
-    document += Buttons(*button_rows)
 
     navigation = build_pagination_row(page, lambda page_number: FiltersPageCallback(page=page_number).pack())
     markup: InlineKeyboardMarkup | None = None
