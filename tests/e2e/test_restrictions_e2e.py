@@ -14,7 +14,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.db.models.federations import Federation, FederationBan
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
 
@@ -154,3 +154,35 @@ async def test_kick_reports_failure_when_telegram_rejects_it(
     requests = await test_client.send_command(command="kick", from_user=admin_user, args=str(target_id), chat=group)
 
     assert any("failed to kick" in (request.text or "").lower() for request in requests)
+
+
+async def test_unmute_clears_pending_welcome_security_user_after_success(test_client: TestClient) -> None:
+    admin_user, group, target_id = await _setup_moderated_group(test_client)
+    target_model = await ChatModel.get_by_tid(target_id)
+    group_model = await ChatModel.get_by_tid(group.id)
+    assert target_model is not None and group_model is not None
+    await WSUserModel.ensure_user(target_model, group_model, is_join_request=False)
+
+    requests = await test_client.send_command(command="unmute", from_user=admin_user, args=str(target_id), chat=group)
+
+    assert any(request.request_type == _RESTRICT for request in requests)
+    assert await WSUserModel.is_user(target_model.iid, group_model.iid) is None
+
+
+async def test_unmute_preserves_pending_welcome_security_user_when_telegram_fails(
+    test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    admin_user, group, target_id = await _setup_moderated_group(test_client)
+    target_model = await ChatModel.get_by_tid(target_id)
+    group_model = await ChatModel.get_by_tid(group.id)
+    assert target_model is not None and group_model is not None
+    await WSUserModel.ensure_user(target_model, group_model, is_join_request=False)
+
+    async def _reject(*args: object, **kwargs: object) -> bool:
+        raise TelegramBadRequest(method=None, message="not enough rights")  # type: ignore[arg-type]
+
+    monkeypatch.setattr(test_client.bot, "restrict_chat_member", _reject)
+    requests = await test_client.send_command(command="unmute", from_user=admin_user, args=str(target_id), chat=group)
+
+    assert any("failed to unmute" in (request.text or "").lower() for request in requests)
+    assert await WSUserModel.is_user(target_model.iid, group_model.iid) is not None

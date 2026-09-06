@@ -5,6 +5,7 @@ from typing import ClassVar
 
 from aiogram.dispatcher.event.handler import CallbackType
 
+from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.logging.events import LogEvent
@@ -16,7 +17,17 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 async def _unmute_action(chat_tid: int, user_tid: int, until_date: timedelta | None) -> bool:
-    return await unmute_user(chat_tid, user_tid)
+    unmuted = await unmute_user(chat_tid, user_tid)
+    if not unmuted:
+        return False
+
+    user = await ChatModel.get_by_tid(user_tid)
+    group = await ChatModel.get_by_tid(chat_tid)
+    if user and group:
+        ws_user = await WSUserModel.is_user(user.iid, group.iid)
+        if ws_user and not ws_user.passed:
+            await WSUserModel.remove_user(user.iid, group.iid)
+    return True
 
 
 @flags.help(description=l_("Unmutes the user in the chat."))
