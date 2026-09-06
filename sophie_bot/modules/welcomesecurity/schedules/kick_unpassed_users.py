@@ -46,8 +46,15 @@ class KickUnpassedUsers:
             return
         if await is_user_group_whitelisted(group.tid, user.tid, redis=self.services.redis):
             await log_group_whitelist_exemption(group.tid, user.tid, "welcome_security_captcha_autokick")
-            log.debug("kick_unpassed_users: removing exempt user from pending captcha", user=user.tid)
-            await ws_user.delete()
+            result = await execute_restriction(
+                self.services.bot,
+                RestrictionAction.UNMUTE,
+                group.tid,
+                user.tid,
+            )
+            if result.applied:
+                log.debug("kick_unpassed_users: removing exempt user from pending captcha", user=user.tid)
+                await ws_user.delete()
             return
         if not await is_enabled(
             "welcomecaptcha_autokick",

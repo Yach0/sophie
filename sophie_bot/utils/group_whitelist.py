@@ -10,7 +10,6 @@ from uuid import uuid4
 from redis.asyncio import Redis
 from redis.exceptions import WatchError
 
-
 if TYPE_CHECKING:
     from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
     from sophie_bot.utils.feature_flags import FeatureType
@@ -43,6 +42,10 @@ def group_user_whitelist_cache_key(chat_tid: int, user_tid: int) -> str:
 
 def _group_user_whitelist_lock_key(chat_tid: int, user_tid: int) -> str:
     return f"{GROUP_USER_WHITELIST_CACHE_KEY_PREFIX}:lock:{chat_tid}:{user_tid}"
+
+
+def _group_user_whitelist_migration_lock_key(chat_tid: int) -> str:
+    return f"{GROUP_USER_WHITELIST_CACHE_KEY_PREFIX}:migration-lock:{chat_tid}"
 
 
 async def _release_group_user_whitelist_lock(lock_key: str, owner: str, *, redis: Redis) -> None:
@@ -98,6 +101,18 @@ async def _group_user_whitelist_locks(
         yield lock_owners
 
 
+@asynccontextmanager
+async def _group_user_whitelist_migration_locks(
+    *chat_tids: int,
+    redis: Redis,
+) -> AsyncIterator[None]:
+    lock_keys = sorted({_group_user_whitelist_migration_lock_key(chat_tid) for chat_tid in chat_tids})
+    async with AsyncExitStack() as stack:
+        for lock_key in lock_keys:
+            await stack.enter_async_context(_group_user_whitelist_lock(lock_key, redis=redis))
+        yield
+
+
 async def _cache_membership_if_lock_owned(
     lock_key: str,
     owner: str,
@@ -125,14 +140,18 @@ async def invalidate_group_user_whitelist_cache(chat_tid: int, user_tid: int, *,
 
 
 async def add_user_to_group_whitelist(chat_tid: int, user_tid: int, *, redis: Redis) -> bool:
-    async with _group_user_whitelist_locks((chat_tid, user_tid), redis=redis):
+    async with _group_user_whitelist_migration_locks(chat_tid, redis=redis), _group_user_whitelist_locks(
+        (chat_tid, user_tid), redis=redis
+    ):
         added = await _whitelist_model().add_user(chat_tid, user_tid)
         await invalidate_group_user_whitelist_cache(chat_tid, user_tid, redis=redis)
         return added
 
 
 async def remove_user_from_group_whitelist(chat_tid: int, user_tid: int, *, redis: Redis) -> bool:
-    async with _group_user_whitelist_locks((chat_tid, user_tid), redis=redis):
+    async with _group_user_whitelist_migration_locks(chat_tid, redis=redis), _group_user_whitelist_locks(
+        (chat_tid, user_tid), redis=redis
+    ):
         removed = await _whitelist_model().remove_user(chat_tid, user_tid)
         await invalidate_group_user_whitelist_cache(chat_tid, user_tid, redis=redis)
         return removed
@@ -140,19 +159,24 @@ async def remove_user_from_group_whitelist(chat_tid: int, user_tid: int, *, redi
 
 async def migrate_group_user_whitelist_chat(old_chat_tid: int, new_chat_tid: int, *, redis: Redis) -> None:
     whitelist_model = _whitelist_model()
-    entries = await whitelist_model.find({"chat_tid": old_chat_tid}).to_list()
-    for entry in entries:
-        user_tid = entry.user_tid
-        async with _group_user_whitelist_locks((old_chat_tid, user_tid), (new_chat_tid, user_tid), redis=redis):
-            old_entry = await whitelist_model.find_one({"chat_tid": old_chat_tid, "user_tid": user_tid})
-            if old_entry is not None:
-                await whitelist_model.add_user(new_chat_tid, user_tid)
-                await old_entry.delete()
+    async with _group_user_whitelist_migration_locks(old_chat_tid, new_chat_tid, redis=redis):
+        entries = await whitelist_model.find({"chat_tid": old_chat_tid}).to_list()
+        for entry in entries:
+            user_tid = entry.user_tid
+            async with _group_user_whitelist_locks(
+                (old_chat_tid, user_tid),
+                (new_chat_tid, user_tid),
+                redis=redis,
+            ):
+                old_entry = await whitelist_model.find_one({"chat_tid": old_chat_tid, "user_tid": user_tid})
+                if old_entry is not None:
+                    await whitelist_model.add_user(new_chat_tid, user_tid)
+                    await old_entry.delete()
 
-            async with redis.pipeline(transaction=True) as pipe:
-                pipe.delete(group_user_whitelist_cache_key(old_chat_tid, user_tid))
-                pipe.delete(group_user_whitelist_cache_key(new_chat_tid, user_tid))
-                await pipe.execute()
+                async with redis.pipeline(transaction=True) as pipe:
+                    pipe.delete(group_user_whitelist_cache_key(old_chat_tid, user_tid))
+                    pipe.delete(group_user_whitelist_cache_key(new_chat_tid, user_tid))
+                    await pipe.execute()
 
 
 async def is_user_group_whitelisted(chat_tid: int, user_tid: int, *, redis: Redis) -> bool:
