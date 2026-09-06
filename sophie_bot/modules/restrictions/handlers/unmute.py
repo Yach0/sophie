@@ -10,7 +10,6 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.restrictions.handlers.base import BaseRestrictionHandler, RestrictionActionFunc
 from sophie_bot.modules.restrictions.utils.restrictions import unmute_user
-from sophie_bot.modules.welcomesecurity.utils_.clear_pending_user import clear_pending_user
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -20,6 +19,9 @@ async def _unmute_action(chat_tid: int, user_tid: int, until_date: timedelta | N
     unmuted = await unmute_user(chat_tid, user_tid)
     if not unmuted:
         return False
+
+    # Import after module initialization to avoid the restrictions/Welcome Security cycle.
+    from sophie_bot.modules.welcomesecurity.utils_.clear_pending_user import clear_pending_user
 
     await clear_pending_user(user_tid, chat_tid)
     return True
