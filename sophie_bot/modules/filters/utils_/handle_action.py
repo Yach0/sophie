@@ -7,6 +7,7 @@ from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.shared.actions import ActionResult, ModernActionABC
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
 
 
@@ -38,7 +39,10 @@ async def _handle_modern_filter_action(
             message.chat.id,
             user_tid,
             redis=services.redis,
-        ) or await is_user_admin(message.chat.id, user_tid):
+        ):
+            await log_group_whitelist_exemption(message.chat.id, user_tid, "automated_actions")
+            return None
+        if await is_user_admin(message.chat.id, user_tid):
             log.debug(
                 "Modern action: the sender is exempt, skipping...",
                 action=definition.name,

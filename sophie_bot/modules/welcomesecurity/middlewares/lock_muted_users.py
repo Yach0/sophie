@@ -10,6 +10,7 @@ from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
 
 GROUP_CHAT_TYPES = ("group", "supergroup")
@@ -44,7 +45,15 @@ class LockMutedUsers(BaseMiddleware):
             chat_db.tid,
             user_db.tid,
             redis=data["services"].redis,
-        ) or await is_user_admin(chat_db.tid, user_db.tid):
+        ):
+            await log_group_whitelist_exemption(
+                chat_db.tid,
+                user_db.tid,
+                "welcome_security_pending_captcha_messages",
+            )
+            return False
+
+        if await is_user_admin(chat_db.tid, user_db.tid):
             return False
 
         ws_user = await WSUserModel.is_user(user_db.iid, chat_db.iid)

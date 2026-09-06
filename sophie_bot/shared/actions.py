@@ -29,13 +29,7 @@ class RestrictionResult:
     action: RestrictionAction
     applied: bool
 
-
-class StoredAction(BaseModel):
-    """Persisted action name and JSON data shared by action-owning models."""
-
-    name: str
-    data: dict[str, Any] | None = None
-
+StoredAction = stored_action.StoredAction
 
 @dataclass(frozen=True, slots=True)
 class ActionDefinition[ACTION_DATA: BaseModel | None]:

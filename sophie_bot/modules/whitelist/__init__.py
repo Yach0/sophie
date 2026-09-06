@@ -2,7 +2,13 @@ from aiogram import Router
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
-from sophie_bot.modules.whitelist.handlers import UnwhitelistUserHandler, WhitelistUserHandler
+from sophie_bot.modules.whitelist.handlers import (
+    UnwhitelistUserHandler,
+    WhitelistedUsersHandler,
+    WhitelistPageHandler,
+    WhitelistRemoveHandler,
+    WhitelistUserHandler,
+)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -11,7 +17,13 @@ router = Router(name="whitelist")
 module_manifest = ModuleManifest(
     name="whitelist",
     bot_router=router,
-    handlers=(WhitelistUserHandler, UnwhitelistUserHandler),
+    handlers=(
+        WhitelistUserHandler,
+        UnwhitelistUserHandler,
+        WhitelistedUsersHandler,
+        WhitelistPageHandler,
+        WhitelistRemoveHandler,
+    ),
     title=l_("Group whitelist"),
     emoji="🕊️",
     description=l_("Manage the group whitelist for automated moderation"),
@@ -31,4 +43,5 @@ module_manifest = ModuleManifest(
             ),
         )
     ),
+    advertise_wiki_page=True,
 )

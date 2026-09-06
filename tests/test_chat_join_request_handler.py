@@ -65,6 +65,7 @@ async def test_whitelisted_join_request_is_approved_when_captcha_enforcement_is_
 ) -> None:
     handler, approve, greetings = _join_request_handler(welcome_security_enabled=True)
     chat = SimpleNamespace(iid="chat_iid", tid=-100123)
+    log_exemption = AsyncMock()
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_admin",
@@ -86,10 +87,15 @@ async def test_whitelisted_join_request_is_approved_when_captcha_enforcement_is_
         "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_group_whitelisted",
         AsyncMock(return_value=True),
     )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.log_group_whitelist_exemption",
+        log_exemption,
+    )
 
     await handler.handle()
 
     approve.assert_awaited_once()
+    log_exemption.assert_awaited_once_with(-100123, 123456, "welcome_security_join_request_captcha")
 
 
 @pytest.mark.asyncio

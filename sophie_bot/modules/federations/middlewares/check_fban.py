@@ -15,6 +15,7 @@ from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -44,10 +45,10 @@ class FedBanMiddleware(BaseMiddleware):
         if not federation:
             return False
 
-        # Skip automatic enforcement for admins and users whitelisted in this group.
-        if await is_user_group_whitelisted(chat_id, user_id, redis=data["services"].redis) or await is_user_admin(
-            chat_db.iid, user_db.iid
-        ):
+        if await is_user_group_whitelisted(chat_id, user_id, redis=data["services"].redis):
+            await log_group_whitelist_exemption(chat_id, user_id, "federation_ban_enforcement")
+            return False
+        if await is_user_admin(chat_db.iid, user_db.iid):
             return False
 
         # Check if user is banned in this federation or subscription chain

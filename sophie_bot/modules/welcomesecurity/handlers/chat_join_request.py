@@ -24,6 +24,7 @@ from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDM
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -111,6 +112,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         # The group whitelist bypasses only active CAPTCHA enforcement. When Welcome
         # Security is disabled, join requests remain pending for manual approval above.
         if await is_user_group_whitelisted(chat_tid, user_tid, redis=self.services.redis):
+            await log_group_whitelist_exemption(chat_tid, user_tid, "welcome_security_join_request_captcha")
             await _approve_request()
             return
 

@@ -215,6 +215,8 @@ async def test_whitelisted_captcha_pass_unmutes_before_pending_removal(
 
     monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=False))
     monkeypatch.setattr(on_user_passed, "is_user_group_whitelisted", AsyncMock(return_value=True))
+    log_exemption = AsyncMock()
+    monkeypatch.setattr(on_user_passed, "log_group_whitelist_exemption", log_exemption)
     monkeypatch.setattr(on_user_passed, "execute_restriction", record_unmute)
     monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", record_removal)
     user = SimpleNamespace(tid=700_000_008, iid="user-iid")
@@ -231,4 +233,5 @@ async def test_whitelisted_captcha_pass_unmutes_before_pending_removal(
         )
         is True
     )
+    log_exemption.assert_awaited_once_with(group.tid, user.tid, "welcome_security_welcome_mute")
     assert events == ["unmute", "remove"]

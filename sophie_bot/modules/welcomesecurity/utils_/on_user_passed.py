@@ -13,6 +13,7 @@ from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 
 
 async def ws_on_user_passed(
@@ -34,6 +35,7 @@ async def ws_on_user_passed(
 
     # Unmute / restrict user
     if await is_user_group_whitelisted(group.tid, user.tid, redis=redis):
+        await log_group_whitelist_exemption(group.tid, user.tid, "welcome_security_welcome_mute")
         await execute_restriction(
             bot,
             RestrictionAction.UNMUTE,

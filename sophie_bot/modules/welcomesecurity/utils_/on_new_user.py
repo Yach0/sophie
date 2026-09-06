@@ -11,6 +11,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 
 
 async def ws_on_new_user(
@@ -28,10 +29,11 @@ async def ws_on_new_user(
     if new_user.is_bot:
         return False
 
-    # Admins and users on this group's whitelist do not enter the captcha flow.
-    if await is_user_group_whitelisted(chat.tid, new_user.tid, redis=redis) or await is_user_admin(
-        chat=chat.tid, user=new_user.tid
-    ):
+    if await is_user_group_whitelisted(chat.tid, new_user.tid, redis=redis):
+        await log_group_whitelist_exemption(chat.tid, new_user.tid, "welcome_security_captcha")
+        return False
+
+    if await is_user_admin(chat=chat.tid, user=new_user.tid):
         return False
 
     # Add user to the welcomesecurity database
