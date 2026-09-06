@@ -6,7 +6,7 @@ from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFa
 from aiogram_test_framework.types import CapturedRequest, RequestType
 from redis.asyncio import Redis
 
-from sophie_bot.db.models import ChatModel, GreetingsModel, WSUserModel
+from sophie_bot.db.models import ChatModel, GreetingsModel, GroupUserWhitelistModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeSecurity
 from sophie_bot.modules.whitelist.callbacks import WhitelistPageCallback, WhitelistRemoveCallback
 from sophie_bot.utils.group_whitelist import (
@@ -24,6 +24,7 @@ from tests.e2e.helpers import (
     send_reply_command,
     set_feature,
 )
+
 
 def _redis(test_client: TestClient) -> Redis:
     return test_client.dispatcher.workflow_data["services"].redis
@@ -190,11 +191,14 @@ async def test_whitelisted_paginates_and_admin_can_remove_current_group_user(tes
 
     removed_user_tid = WhitelistRemoveCallback.unpack(remove_callbacks[0]).user_tid
     removed_cache_key = group_user_whitelist_cache_key(group.id, removed_user_tid)
-    assert await is_user_group_whitelisted(
-        group.id,
-        removed_user_tid,
-        redis=_redis(test_client),
-    ) is True
+    assert (
+        await is_user_group_whitelisted(
+            group.id,
+            removed_user_tid,
+            redis=_redis(test_client),
+        )
+        is True
+    )
     remove_requests = await test_client.send_callback(remove_callbacks[0], from_user=admin, message=list_message)
 
     assert any(request.request_type == RequestType.ANSWER_CALLBACK_QUERY for request in remove_requests)

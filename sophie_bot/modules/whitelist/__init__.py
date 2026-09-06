@@ -16,7 +16,7 @@ router = Router(name="whitelist")
 
 module_manifest = ModuleManifest(
     name="whitelist",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         WhitelistUserHandler,
         UnwhitelistUserHandler,

@@ -21,7 +21,13 @@ def _join_request_handler(
         approve=approve,
     )
     connection = SimpleNamespace(db_model=SimpleNamespace(iid="connection_chat_iid"))
-    handler = ChatJoinRequestHandler(event, connection=connection, state=SimpleNamespace())
+    handler = ChatJoinRequestHandler(
+        event,
+        state=SimpleNamespace(),
+        context=SimpleNamespace(connection=connection),
+        dispatcher=object(),
+        services=SimpleNamespace(bot=object(), redis=object()),
+    )
     greetings = SimpleNamespace(
         welcome_security=SimpleNamespace(enabled=welcome_security_enabled),
     )

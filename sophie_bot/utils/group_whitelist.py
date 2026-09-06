@@ -95,9 +95,7 @@ async def _group_user_whitelist_locks(
     lock_owners: dict[str, str] = {}
     async with AsyncExitStack() as stack:
         for lock_key in lock_keys:
-            lock_owners[lock_key] = await stack.enter_async_context(
-                _group_user_whitelist_lock(lock_key, redis=redis)
-            )
+            lock_owners[lock_key] = await stack.enter_async_context(_group_user_whitelist_lock(lock_key, redis=redis))
         yield lock_owners
 
 
@@ -140,8 +138,9 @@ async def invalidate_group_user_whitelist_cache(chat_tid: int, user_tid: int, *,
 
 
 async def add_user_to_group_whitelist(chat_tid: int, user_tid: int, *, redis: Redis) -> bool:
-    async with _group_user_whitelist_migration_locks(chat_tid, redis=redis), _group_user_whitelist_locks(
-        (chat_tid, user_tid), redis=redis
+    async with (
+        _group_user_whitelist_migration_locks(chat_tid, redis=redis),
+        _group_user_whitelist_locks((chat_tid, user_tid), redis=redis),
     ):
         added = await _whitelist_model().add_user(chat_tid, user_tid)
         await invalidate_group_user_whitelist_cache(chat_tid, user_tid, redis=redis)
@@ -149,8 +148,9 @@ async def add_user_to_group_whitelist(chat_tid: int, user_tid: int, *, redis: Re
 
 
 async def remove_user_from_group_whitelist(chat_tid: int, user_tid: int, *, redis: Redis) -> bool:
-    async with _group_user_whitelist_migration_locks(chat_tid, redis=redis), _group_user_whitelist_locks(
-        (chat_tid, user_tid), redis=redis
+    async with (
+        _group_user_whitelist_migration_locks(chat_tid, redis=redis),
+        _group_user_whitelist_locks((chat_tid, user_tid), redis=redis),
     ):
         removed = await _whitelist_model().remove_user(chat_tid, user_tid)
         await invalidate_group_user_whitelist_cache(chat_tid, user_tid, redis=redis)

@@ -11,7 +11,6 @@ from aiogram.types import Message
 from pydantic import BaseModel, ValidationError
 from stfu_tg.doc import Element
 
-
 from sophie_bot.utils.i18n import LazyProxy
 
 
@@ -29,7 +28,13 @@ class RestrictionResult:
     action: RestrictionAction
     applied: bool
 
-StoredAction = stored_action.StoredAction
+
+class StoredAction(BaseModel):
+    """Persisted action name and JSON data shared by action-owning models."""
+
+    name: str
+    data: dict[str, Any] | None = None
+
 
 @dataclass(frozen=True, slots=True)
 class ActionDefinition[ACTION_DATA: BaseModel | None]:

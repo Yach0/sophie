@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -128,9 +129,7 @@ async def test_mutation_started_before_migration_is_transferred(
 
     monkeypatch.setattr(GroupUserWhitelistModel, "add_user", classmethod(paused_add_user))
 
-    mutation_task = asyncio.create_task(
-        add_user_to_group_whitelist(old_chat_tid, user_tid, redis=test_services.redis)
-    )
+    mutation_task = asyncio.create_task(add_user_to_group_whitelist(old_chat_tid, user_tid, redis=test_services.redis))
     await mutation_started.wait()
     migration_task = asyncio.create_task(
         migrate_group_user_whitelist_chat(old_chat_tid, new_chat_tid, redis=test_services.redis)
@@ -184,13 +183,9 @@ async def test_cache_miss_cannot_restore_stale_value_after_mutation(
     monkeypatch.setattr(group_whitelist, "is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr(test_services.redis, "set", observed_redis_set)
 
-    lookup_task = asyncio.create_task(
-        is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis)
-    )
+    lookup_task = asyncio.create_task(is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis))
     await lookup_started.wait()
-    mutation_task = asyncio.create_task(
-        add_user_to_group_whitelist(chat_tid, user_tid, redis=test_services.redis)
-    )
+    mutation_task = asyncio.create_task(add_user_to_group_whitelist(chat_tid, user_tid, redis=test_services.redis))
     await mutation_waiting_for_lock.wait()
 
     add_user.assert_not_awaited()
@@ -221,13 +216,9 @@ async def test_cache_miss_cannot_restore_present_value_after_removal(
     monkeypatch.setattr(GroupUserWhitelistModel, "remove_user", remove_user)
     monkeypatch.setattr(group_whitelist, "is_enabled", AsyncMock(return_value=True))
 
-    lookup_task = asyncio.create_task(
-        is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis)
-    )
+    lookup_task = asyncio.create_task(is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis))
     await lookup_started.wait()
-    mutation_task = asyncio.create_task(
-        remove_user_from_group_whitelist(chat_tid, user_tid, redis=test_services.redis)
-    )
+    mutation_task = asyncio.create_task(remove_user_from_group_whitelist(chat_tid, user_tid, redis=test_services.redis))
     await asyncio.sleep(0)
 
     remove_user.assert_not_awaited()
@@ -250,16 +241,21 @@ async def test_lock_release_does_not_delete_a_new_owners_lock(
     assert await test_services.redis.get(lock_key) == b"new-owner"
 
 
-async def test_whitelisted_captcha_pass_unmutes_before_pending_removal(
+@pytest.mark.parametrize("unmute_succeeded", [False, True])
+async def test_whitelisted_captcha_pass_removes_pending_only_after_successful_unmute(
     monkeypatch: pytest.MonkeyPatch,
+    unmute_succeeded: bool,
     test_services: ApplicationServices,
 ) -> None:
     events: list[str] = []
 
-    async def record_unmute(*args: object, **kwargs: object) -> bool:
+    async def record_unmute(*args: object, **kwargs: object) -> RestrictionResult:
         del args, kwargs
         events.append("unmute")
-        return True
+        return RestrictionResult(
+            action=RestrictionAction.UNMUTE,
+            applied=unmute_succeeded,
+        )
 
     async def record_removal(*args: object, **kwargs: object) -> object:
         del args, kwargs
@@ -287,7 +283,49 @@ async def test_whitelisted_captcha_pass_unmutes_before_pending_removal(
         is True
     )
     log_exemption.assert_awaited_once_with(group.tid, user.tid, "welcome_security_welcome_mute")
-    assert events == ["unmute", "remove"]
+    expected_events = ["unmute", "remove"] if unmute_succeeded else ["unmute"]
+    assert events == expected_events
+
+
+@pytest.mark.parametrize("welcome_mute_succeeded", [False, True])
+async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
+    monkeypatch: pytest.MonkeyPatch,
+    welcome_mute_succeeded: bool,
+    test_services: ApplicationServices,
+) -> None:
+    user = SimpleNamespace(tid=700_000_012, iid="user-iid")
+    group = SimpleNamespace(tid=-1_007_000_000_012, iid="group-iid")
+    welcome_mute_time = timedelta(hours=1)
+    welcome_mute = SimpleNamespace(enabled=True, time=welcome_mute_time)
+    on_welcome_mute = AsyncMock(return_value=welcome_mute_succeeded)
+    remove_user = AsyncMock()
+
+    monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=False))
+    monkeypatch.setattr(on_user_passed, "is_user_group_whitelisted", AsyncMock(return_value=False))
+    monkeypatch.setattr(on_user_passed, "on_welcomemute", on_welcome_mute)
+    monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", remove_user)
+
+    assert (
+        await on_user_passed.ws_on_user_passed(
+            user,
+            group,
+            welcome_mute,
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
+        is True
+    )
+    on_welcome_mute.assert_awaited_once_with(
+        group.tid,
+        user.tid,
+        on_time=welcome_mute_time,
+        bot=test_services.bot,
+        redis=test_services.redis,
+    )
+    if welcome_mute_succeeded:
+        remove_user.assert_awaited_once_with(user.iid, group.iid)
+    else:
+        remove_user.assert_not_awaited()
 
 
 @pytest.mark.parametrize("unmute_succeeded", [False, True])

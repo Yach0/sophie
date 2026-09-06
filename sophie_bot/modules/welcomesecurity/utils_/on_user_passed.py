@@ -36,14 +36,15 @@ async def ws_on_user_passed(
     # Unmute / restrict user
     if await is_user_group_whitelisted(group.tid, user.tid, redis=redis):
         await log_group_whitelist_exemption(group.tid, user.tid, "welcome_security_welcome_mute")
-        await execute_restriction(
+        result = await execute_restriction(
             bot,
             RestrictionAction.UNMUTE,
             group.tid,
             user.tid,
         )
+        restriction_succeeded = result.applied
     elif welcomemute.enabled and welcomemute.time:
-        await on_welcomemute(
+        restriction_succeeded = await on_welcomemute(
             group.tid,
             user.tid,
             on_time=convert_timedelta_or_str(welcomemute.time),
@@ -51,15 +52,17 @@ async def ws_on_user_passed(
             redis=redis,
         )
     else:
-        await execute_restriction(
+        result = await execute_restriction(
             bot,
             RestrictionAction.UNMUTE,
             group.tid,
             user.tid,
         )
+        restriction_succeeded = result.applied
 
     # Keep the pending record until the old CAPTCHA mute has been released or
     # replaced with the configured welcome restriction.
-    await WSUserModel.remove_user(user.iid, group.iid)
+    if restriction_succeeded:
+        await WSUserModel.remove_user(user.iid, group.iid)
 
     return True
