@@ -6,6 +6,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from .handlers.admincache import ResetAdminCache
 from .handlers.cancel import CancelState
 from .handlers.cancel_callback import CallbackActionCancelHandler, CancelCallbackHandler, TypedCancelCallbackHandler
+from .handlers.instance import InstanceStatus
 from .handlers.op_settings import ResetBetaChats, SetBetaPercentage
 from .stats import beta_stats
 
@@ -20,6 +21,7 @@ module_manifest = ModuleManifest(
         TypedCancelCallbackHandler,
         CallbackActionCancelHandler,
         ResetAdminCache,
+        InstanceStatus,
         SetBetaPercentage,
         ResetBetaChats,
         CancelState,
