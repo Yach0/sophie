@@ -9,10 +9,10 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
-from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.shared.actions import RestrictionAction, RestrictionResult, StoredAction
+from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
 from tests.e2e.helpers import set_feature
 
 
@@ -66,7 +66,11 @@ async def test_filter_restrictive_actions_skip_group_whitelisted_user(test_clien
         actions={"warn_user": {"reason": "No spam"}, "delmsg": None, "mute_user": None},
     )
     await filter_item.insert()
-    await GroupUserWhitelistModel.add_user(group_chat.id, user_wrapper.user.id)
+    await add_user_to_group_whitelist(
+        group_chat.id,
+        user_wrapper.user.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
 
     with patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])):
         requests = await test_client.send_message(

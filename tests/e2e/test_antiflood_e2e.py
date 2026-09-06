@@ -13,9 +13,9 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.antiflood import AntifloodModel
-from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from sophie_bot.shared.actions import StoredAction
+from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
 from tests.e2e.helpers import (
     create_test_user_and_group,
     get_wizard_session_id,
@@ -88,7 +88,11 @@ async def test_admin_is_exempt_from_antiflood(test_client: TestClient) -> None:
 async def test_group_whitelisted_user_is_exempt_from_antiflood(test_client: TestClient) -> None:
     await set_feature(test_client, "group_user_whitelist", True)
     group, member = await _group_with_flood(test_client, message_count=2)
-    await GroupUserWhitelistModel.add_user(group.id, member.id)
+    await add_user_to_group_whitelist(
+        group.id,
+        member.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
 
     restricts: list = []
     for index in range(4):

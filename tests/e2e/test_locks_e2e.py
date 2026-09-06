@@ -17,6 +17,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, LocksModel
 from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.modules.locks.callbacks import UnlockAllCallback
+from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
 from tests.e2e.helpers import (
     create_test_user_and_group,
     grant_admin,
@@ -92,12 +93,15 @@ async def test_locked_message_from_group_whitelisted_user_is_kept(test_client: T
     await set_feature(test_client, "group_user_whitelist", True)
     admin, group, member = await _group_with_member(test_client)
     await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
-    await GroupUserWhitelistModel.add_user(group.id, member.id)
+    await add_user_to_group_whitelist(
+        group.id,
+        member.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
 
     requests = await test_client.send_message(text="whitelisted users may speak", from_user=member, chat=group)
 
     assert not _deleted(requests)
-
 
 @pytest.mark.asyncio
 async def test_locked_message_is_deleted_when_user_is_whitelisted_only_elsewhere(test_client: TestClient) -> None:
