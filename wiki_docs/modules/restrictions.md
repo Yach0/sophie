@@ -24,6 +24,6 @@ icon: 🛑
 | `/smute` | `<User>` `<Reason>` | Silently mutes the user in the chat. Deletes messages after 10 seconds. | *Only in groups* |
 | `/tmute` | `<User>` `<Time (e.g., 2h, 7d, 2w)>` `<Reason>` | Temporarily mutes the user in the chat. |  |
 | `/stmute` `/tsmute` | `<User>` `<Time (e.g., 2h, 7d, 2w)>` `<Reason>` | Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds. | *Only in groups* |
-| `/unmute` | `<User>` `<Reason>` | Unmutes the user in the chat. | If the user has a pending Welcome Security CAPTCHA in this chat, successful manual unmute clears that pending record as a one-time bypass; Telegram failures leave it pending. |
+| `/unmute` | `<User>` `<Reason>` | Unmutes the user in the chat. | Also bypasses a current CAPTCHA for the user. |
 | `/unban` | `<User>` `<Reason>` | Unbans the user from the chat. |  |
 {.card-view-on-mobile}
