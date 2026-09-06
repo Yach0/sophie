@@ -9,7 +9,7 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
-from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.modules.warns.utils import warn_user
 from sophie_bot.shared.actions import RestrictionAction, RestrictionResult, StoredAction
@@ -51,8 +51,8 @@ async def test_filter_warn_and_delete_message_warns_user(test_client: TestClient
 
 
 @pytest.mark.asyncio
-async def test_filter_restrictive_actions_skip_globally_whitelisted_user(test_client: TestClient) -> None:
-    await set_feature(test_client, "global_user_whitelist", True)
+async def test_filter_restrictive_actions_skip_group_whitelisted_user(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
     group_chat = ChatFactory.create_group(chat_id=-1002600000010, title="Whitelisted Filters Group")
     user_wrapper = test_client.create_user(user_id=926000010, first_name="Allowed", username="allowed_target")
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
@@ -66,7 +66,7 @@ async def test_filter_restrictive_actions_skip_globally_whitelisted_user(test_cl
         actions={"warn_user": {"reason": "No spam"}, "delmsg": None, "mute_user": None},
     )
     await filter_item.insert()
-    await GlobalUserWhitelistModel.add_user(user_wrapper.user.id)
+    await GroupUserWhitelistModel.add_user(group_chat.id, user_wrapper.user.id)
 
     with patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])):
         requests = await test_client.send_message(

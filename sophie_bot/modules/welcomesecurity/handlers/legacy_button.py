@@ -25,7 +25,6 @@ from sophie_bot.modules.utils_.legacy_buttons import (
 )
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
 from sophie_bot.shared.actions import RestrictionAction
-from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
@@ -103,8 +102,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
 
-        is_whitelisted = await is_user_globally_whitelisted(user_db.tid, redis=self.services.redis)
-        if is_whitelisted or await is_user_admin(chat_id, user_db.iid):
+        if await is_user_admin(chat_id, user_db.iid):
             # Only drop the pending WS record once the unmute succeeds; otherwise the admin
             # would be left muted with no record to re-enter this flow and retry.
             if (
@@ -116,11 +114,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 )
             ).applied:
                 await WSUserModel.remove_user(user_db.iid, group_db.iid)
-            log.debug("LegacyWSButtonHandler: User is exempt, no need to pass WS", user=user_db.iid, group=group_db.iid)
-            if is_whitelisted:
-                return await self.event.reply(
-                    _("You are globally whitelisted, so you do not need to pass the authentication.")
-                )
+            log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
                 _("You already an admin in the chat, therefore you don't need to pass the authentication!")
             )

@@ -12,12 +12,15 @@ module_manifest = ModuleManifest(
     name="whitelist",
     bot_router=router,
     handlers=(WhitelistUserHandler, UnwhitelistUserHandler),
-    title=l_("Global User Whitelist"),
+    title=l_("Group whitelist"),
     emoji="🕊️",
-    description=l_("Manage global exemptions from automated moderation"),
+    description=l_("Manage the group whitelist for automated moderation"),
     info=LazyProxy(
         lambda: Doc(
-            l_("The global user whitelist exempts a Telegram user from Sophie's automated moderation in every chat."),
+            l_(
+                "The group whitelist exempts a Telegram user from Sophie's automated moderation "
+                "throughout the current group. Entries do not apply in other groups."
+            ),
             l_(
                 "It covers Welcome Security, locks, automated filters and actions, antiflood, spam detection, "
                 "AI moderation, and automatic federation or community ban checks."

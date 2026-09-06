@@ -148,7 +148,7 @@ class SaveChatsMiddleware(BaseMiddleware):
         logger.debug("SaveChatsMiddleware: Handling message", message_id=message.message_id, chat_id=message.chat.id)
         # Handle chat migrations
         # TODO: Make this update all data, so we won't need to call the next one
-        if await self._handle_migration(context, message):
+        if await self._handle_migration(context, message, services=data["services"]):
             return
 
         # Update current user and group
@@ -175,14 +175,23 @@ class SaveChatsMiddleware(BaseMiddleware):
         await self._handle_left_chat_member(message, chat)
 
     @staticmethod
-    async def _handle_migration(context: RequestContext, message: Message) -> bool:
+    async def _handle_migration(
+        context: RequestContext,
+        message: Message,
+        *,
+        services: ApplicationServices,
+    ) -> bool:
         if message.migrate_from_chat_id:
             logger.debug(
                 "SaveChatsMiddleware: Handling migration from chat",
                 old_id=message.migrate_from_chat_id,
                 new_id=message.chat.id,
             )
-            migrated_chat = await ChatModel.do_chat_migrate(old_id=message.migrate_from_chat_id, new_chat=message.chat)
+            migrated_chat = await ChatModel.do_chat_migrate(
+                old_id=message.migrate_from_chat_id,
+                new_chat=message.chat,
+                redis=services.redis,
+            )
             context.event_chat = migrated_chat
             context.target_chat = migrated_chat
             return True

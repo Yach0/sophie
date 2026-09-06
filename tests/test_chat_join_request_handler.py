@@ -10,6 +10,88 @@ from sophie_bot.modules.welcomesecurity.handlers.chat_join_request import ChatJo
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError
 
 
+def _join_request_handler(
+    *, welcome_security_enabled: bool
+) -> tuple[ChatJoinRequestHandler, AsyncMock, SimpleNamespace]:
+    approve = AsyncMock()
+    event = SimpleNamespace(
+        chat=SimpleNamespace(id=-100123),
+        from_user=SimpleNamespace(id=123456),
+        date=datetime.now(UTC),
+        approve=approve,
+    )
+    connection = SimpleNamespace(db_model=SimpleNamespace(iid="connection_chat_iid"))
+    handler = ChatJoinRequestHandler(event, connection=connection, state=SimpleNamespace())
+    greetings = SimpleNamespace(
+        welcome_security=SimpleNamespace(enabled=welcome_security_enabled),
+    )
+    return handler, approve, greetings
+
+
+@pytest.mark.asyncio
+async def test_whitelisted_join_request_stays_pending_when_welcome_security_is_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    handler, approve, greetings = _join_request_handler(welcome_security_enabled=False)
+    chat = SimpleNamespace(iid="chat_iid", tid=-100123)
+    is_whitelisted = AsyncMock(return_value=True)
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_admin",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.ChatModel.get_by_tid",
+        AsyncMock(return_value=chat),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.GreetingsModel.get_by_chat_iid",
+        AsyncMock(return_value=greetings),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_group_whitelisted",
+        is_whitelisted,
+    )
+
+    await handler.handle()
+
+    approve.assert_not_awaited()
+    is_whitelisted.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_whitelisted_join_request_is_approved_when_captcha_enforcement_is_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    handler, approve, greetings = _join_request_handler(welcome_security_enabled=True)
+    chat = SimpleNamespace(iid="chat_iid", tid=-100123)
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_admin",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.ChatModel.get_by_tid",
+        AsyncMock(return_value=chat),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.GreetingsModel.get_by_chat_iid",
+        AsyncMock(return_value=greetings),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_enabled",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_group_whitelisted",
+        AsyncMock(return_value=True),
+    )
+
+    await handler.handle()
+
+    approve.assert_awaited_once()
+
+
 @pytest.mark.asyncio
 async def test_chat_join_request_sends_unblock_message_without_sending_join_request_saveable(
     monkeypatch: pytest.MonkeyPatch,
@@ -31,6 +113,10 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_admin",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_user_group_whitelisted",
         AsyncMock(return_value=False),
     )
     monkeypatch.setattr(

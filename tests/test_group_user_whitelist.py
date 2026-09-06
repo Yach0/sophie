@@ -1,0 +1,234 @@
+from __future__ import annotations
+
+import asyncio
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock
+
+import pytest
+
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
+from sophie_bot.modules.welcomesecurity.utils_ import on_user_passed
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.utils import group_whitelist
+from sophie_bot.utils.feature_flags import delete_override, set_enabled
+from sophie_bot.utils.group_whitelist import (
+    GROUP_USER_WHITELIST_CACHE_TTL_SECONDS,
+    add_user_to_group_whitelist,
+    group_user_whitelist_cache_key,
+    is_user_group_whitelisted,
+    remove_user_from_group_whitelist,
+)
+
+
+async def test_group_whitelist_is_ignored_when_feature_is_disabled(
+    db_init: Any,
+    test_services: ApplicationServices,
+) -> None:
+    del db_init
+    chat_tid = -1_007_000_000_000
+    user_tid = 700_000_000
+    await GroupUserWhitelistModel.add_user(chat_tid, user_tid)
+
+    assert await is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis) is False
+
+
+async def test_group_whitelist_add_check_remove_is_idempotent(
+    db_init: Any,
+    test_services: ApplicationServices,
+) -> None:
+    del db_init
+    first_chat_tid = -1_007_000_000_001
+    second_chat_tid = -1_007_000_000_002
+    user_tid = 700_000_001
+    await set_enabled("group_user_whitelist", True, redis=test_services.redis)
+
+    try:
+        assert await is_user_group_whitelisted(first_chat_tid, user_tid, redis=test_services.redis) is False
+        assert await add_user_to_group_whitelist(first_chat_tid, user_tid, redis=test_services.redis) is True
+        assert await add_user_to_group_whitelist(first_chat_tid, user_tid, redis=test_services.redis) is False
+        assert await is_user_group_whitelisted(first_chat_tid, user_tid, redis=test_services.redis) is True
+        assert await is_user_group_whitelisted(second_chat_tid, user_tid, redis=test_services.redis) is False
+
+        assert await add_user_to_group_whitelist(second_chat_tid, user_tid, redis=test_services.redis) is True
+        assert await remove_user_from_group_whitelist(first_chat_tid, user_tid, redis=test_services.redis) is True
+        assert await remove_user_from_group_whitelist(first_chat_tid, user_tid, redis=test_services.redis) is False
+        assert await is_user_group_whitelisted(first_chat_tid, user_tid, redis=test_services.redis) is False
+        assert await is_user_group_whitelisted(second_chat_tid, user_tid, redis=test_services.redis) is True
+    finally:
+        await delete_override("group_user_whitelist", redis=test_services.redis)
+
+
+async def test_group_whitelist_membership_cache_avoids_duplicate_database_reads(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    chat_tid = -1_007_000_000_003
+    user_tid = 700_000_003
+    find_one = AsyncMock(return_value=object())
+    monkeypatch.setattr(GroupUserWhitelistModel, "find_one", find_one)
+    monkeypatch.setattr(group_whitelist, "is_enabled", AsyncMock(return_value=True))
+
+    assert await is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis) is True
+    assert await is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis) is True
+    find_one.assert_awaited_once()
+
+    cache_key = group_user_whitelist_cache_key(chat_tid, user_tid)
+    assert await test_services.redis.get(cache_key) == b"1"
+    assert 0 < await test_services.redis.ttl(cache_key) <= GROUP_USER_WHITELIST_CACHE_TTL_SECONDS
+
+
+async def test_group_whitelist_mutations_invalidate_membership_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    chat_tid = -1_007_000_000_004
+    user_tid = 700_000_004
+    cache_key = group_user_whitelist_cache_key(chat_tid, user_tid)
+    add_user = AsyncMock(return_value=True)
+    remove_user = AsyncMock(return_value=True)
+    monkeypatch.setattr(GroupUserWhitelistModel, "add_user", add_user)
+    monkeypatch.setattr(GroupUserWhitelistModel, "remove_user", remove_user)
+
+    await test_services.redis.set(cache_key, b"0")
+    assert await add_user_to_group_whitelist(chat_tid, user_tid, redis=test_services.redis) is True
+    assert await test_services.redis.get(cache_key) is None
+
+    await test_services.redis.set(cache_key, b"1")
+    assert await remove_user_from_group_whitelist(chat_tid, user_tid, redis=test_services.redis) is True
+    assert await test_services.redis.get(cache_key) is None
+
+
+async def test_cache_miss_cannot_restore_stale_value_after_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    chat_tid = -1_007_000_000_005
+    user_tid = 700_000_005
+    cache_key = group_user_whitelist_cache_key(chat_tid, user_tid)
+    lookup_started = asyncio.Event()
+    release_lookup = asyncio.Event()
+    mutation_waiting_for_lock = asyncio.Event()
+    lock_attempts = 0
+    redis_set = test_services.redis.set
+
+    async def observed_redis_set(*args: object, **kwargs: object) -> object:
+        nonlocal lock_attempts
+        if str(args[0]).endswith(f":lock:{chat_tid}:{user_tid}"):
+            lock_attempts += 1
+            if lock_attempts == 2:
+                mutation_waiting_for_lock.set()
+        return await redis_set(*args, **kwargs)
+
+    async def stale_find_one(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        lookup_started.set()
+        await release_lookup.wait()
+
+    add_user = AsyncMock(return_value=True)
+    monkeypatch.setattr(GroupUserWhitelistModel, "find_one", stale_find_one)
+    monkeypatch.setattr(GroupUserWhitelistModel, "add_user", add_user)
+    monkeypatch.setattr(group_whitelist, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(test_services.redis, "set", observed_redis_set)
+
+    lookup_task = asyncio.create_task(
+        is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis)
+    )
+    await lookup_started.wait()
+    mutation_task = asyncio.create_task(
+        add_user_to_group_whitelist(chat_tid, user_tid, redis=test_services.redis)
+    )
+    await mutation_waiting_for_lock.wait()
+
+    add_user.assert_not_awaited()
+    release_lookup.set()
+    assert await lookup_task is False
+    assert await mutation_task is True
+    assert await test_services.redis.get(cache_key) is None
+
+
+async def test_cache_miss_cannot_restore_present_value_after_removal(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    chat_tid = -1_007_000_000_007
+    user_tid = 700_000_007
+    cache_key = group_user_whitelist_cache_key(chat_tid, user_tid)
+    lookup_started = asyncio.Event()
+    release_lookup = asyncio.Event()
+
+    async def present_find_one(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        lookup_started.set()
+        await release_lookup.wait()
+        return object()
+
+    remove_user = AsyncMock(return_value=True)
+    monkeypatch.setattr(GroupUserWhitelistModel, "find_one", present_find_one)
+    monkeypatch.setattr(GroupUserWhitelistModel, "remove_user", remove_user)
+    monkeypatch.setattr(group_whitelist, "is_enabled", AsyncMock(return_value=True))
+
+    lookup_task = asyncio.create_task(
+        is_user_group_whitelisted(chat_tid, user_tid, redis=test_services.redis)
+    )
+    await lookup_started.wait()
+    mutation_task = asyncio.create_task(
+        remove_user_from_group_whitelist(chat_tid, user_tid, redis=test_services.redis)
+    )
+    await asyncio.sleep(0)
+
+    remove_user.assert_not_awaited()
+    release_lookup.set()
+    assert await lookup_task is True
+    assert await mutation_task is True
+    assert await test_services.redis.get(cache_key) is None
+
+
+async def test_lock_release_does_not_delete_a_new_owners_lock(
+    test_services: ApplicationServices,
+) -> None:
+    chat_tid = -1_007_000_000_006
+    user_tid = 700_000_006
+    lock_key = group_whitelist._group_user_whitelist_lock_key(chat_tid, user_tid)
+
+    async with group_whitelist._group_user_whitelist_lock(lock_key, redis=test_services.redis):
+        await test_services.redis.set(lock_key, b"new-owner")
+
+    assert await test_services.redis.get(lock_key) == b"new-owner"
+
+
+async def test_whitelisted_captcha_pass_unmutes_before_pending_removal(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    events: list[str] = []
+
+    async def record_unmute(*args: object, **kwargs: object) -> bool:
+        del args, kwargs
+        events.append("unmute")
+        return True
+
+    async def record_removal(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        events.append("remove")
+        return object()
+
+    monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=False))
+    monkeypatch.setattr(on_user_passed, "is_user_group_whitelisted", AsyncMock(return_value=True))
+    monkeypatch.setattr(on_user_passed, "execute_restriction", record_unmute)
+    monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", record_removal)
+    user = SimpleNamespace(tid=700_000_008, iid="user-iid")
+    group = SimpleNamespace(tid=-1_007_000_000_008, iid="group-iid")
+    welcome_mute = SimpleNamespace(enabled=True, time=None)
+
+    assert (
+        await on_user_passed.ws_on_user_passed(
+            user,
+            group,
+            welcome_mute,
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
+        is True
+    )
+    assert events == ["unmute", "remove"]

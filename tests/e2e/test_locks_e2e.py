@@ -15,9 +15,16 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, LocksModel
-from sophie_bot.db.models.global_user_whitelist import GlobalUserWhitelistModel
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.modules.locks.callbacks import UnlockAllCallback
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id, set_feature
+from tests.e2e.helpers import (
+    create_test_user_and_group,
+    grant_admin,
+    grant_bot_admin,
+    next_group_id,
+    next_user_id,
+    set_feature,
+)
 
 
 async def _group_with_member(test_client: TestClient) -> tuple[object, object, object]:
@@ -81,15 +88,27 @@ async def test_locked_message_from_admin_is_kept(test_client: TestClient) -> Non
 
 
 @pytest.mark.asyncio
-async def test_locked_message_from_globally_whitelisted_user_is_kept(test_client: TestClient) -> None:
-    await set_feature(test_client, "global_user_whitelist", True)
+async def test_locked_message_from_group_whitelisted_user_is_kept(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
     admin, group, member = await _group_with_member(test_client)
     await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
-    await GlobalUserWhitelistModel.add_user(member.id)
+    await GroupUserWhitelistModel.add_user(group.id, member.id)
 
     requests = await test_client.send_message(text="whitelisted users may speak", from_user=member, chat=group)
 
     assert not _deleted(requests)
+
+
+@pytest.mark.asyncio
+async def test_locked_message_is_deleted_when_user_is_whitelisted_only_elsewhere(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    admin, group, member = await _group_with_member(test_client)
+    await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
+    await GroupUserWhitelistModel.add_user(next_group_id(), member.id)
+
+    requests = await test_client.send_message(text="not whitelisted here", from_user=member, chat=group)
+
+    assert _deleted(requests)
 
 
 @pytest.mark.asyncio

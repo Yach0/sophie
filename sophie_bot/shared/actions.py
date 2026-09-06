@@ -11,6 +11,7 @@ from aiogram.types import Message
 from pydantic import BaseModel, ValidationError
 from stfu_tg.doc import Element
 
+
 from sophie_bot.utils.i18n import LazyProxy
 
 

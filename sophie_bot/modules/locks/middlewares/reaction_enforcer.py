@@ -13,7 +13,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.locks.utils.cache import get_cached_locks
 from sophie_bot.modules.locks.utils.lock_types import LockType
 from sophie_bot.utils.feature_flags import is_enabled
-from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.logger import log
 
 OUTSIDER_STATUSES = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
@@ -37,7 +37,7 @@ class ReactionLocksEnforcerMiddleware(BaseMiddleware):
         chat_tid = event.chat.id
         if not await is_enabled("locks", chat_tid=chat_tid, redis=data["services"].redis):
             return await handler(event, data)
-        if await is_user_globally_whitelisted(event.user.id, redis=data["services"].redis):
+        if await is_user_group_whitelisted(chat_tid, event.user.id, redis=data["services"].redis):
             return await handler(event, data)
 
         chat = await ChatModel.get_by_tid(chat_tid)

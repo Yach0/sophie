@@ -10,7 +10,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.shared.actions import RestrictionAction
-from sophie_bot.utils.global_whitelist import is_user_globally_whitelisted
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 
 
 async def ws_on_new_user(
@@ -28,8 +28,8 @@ async def ws_on_new_user(
     if new_user.is_bot:
         return False
 
-    # Admins and globally whitelisted users do not enter the captcha flow.
-    if await is_user_globally_whitelisted(new_user.tid, redis=redis) or await is_user_admin(
+    # Admins and users on this group's whitelist do not enter the captcha flow.
+    if await is_user_group_whitelisted(chat.tid, new_user.tid, redis=redis) or await is_user_admin(
         chat=chat.tid, user=new_user.tid
     ):
         return False

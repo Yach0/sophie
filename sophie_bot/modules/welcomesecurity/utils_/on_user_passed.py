@@ -12,6 +12,7 @@ from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
 )
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
 from sophie_bot.shared.actions import RestrictionAction
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 
 
 async def ws_on_user_passed(
@@ -31,11 +32,15 @@ async def ws_on_user_passed(
     if await is_user_admin(chat=group.tid, user=user.tid):
         return False
 
-    # Remove the user from the welcomesecurity database
-    await WSUserModel.remove_user(user.iid, group.iid)
-
     # Unmute / restrict user
-    if welcomemute.enabled and welcomemute.time:
+    if await is_user_group_whitelisted(group.tid, user.tid, redis=redis):
+        await execute_restriction(
+            bot,
+            RestrictionAction.UNMUTE,
+            group.tid,
+            user.tid,
+        )
+    elif welcomemute.enabled and welcomemute.time:
         await on_welcomemute(
             group.tid,
             user.tid,
@@ -50,5 +55,9 @@ async def ws_on_user_passed(
             group.tid,
             user.tid,
         )
+
+    # Keep the pending record until the old CAPTCHA mute has been released or
+    # replaced with the configured welcome restriction.
+    await WSUserModel.remove_user(user.iid, group.iid)
 
     return True
