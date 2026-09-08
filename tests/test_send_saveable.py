@@ -12,6 +12,7 @@ from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.notes.utils import send as send_module
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 
 
@@ -40,7 +41,10 @@ def _url_button(text: str, url: str) -> Button:
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_forwards_message_thread_id(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_forwards_message_thread_id(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     emitted = _capture_emitted(monkeypatch)
 
     result = await send_module.send_saveable(
@@ -48,7 +52,8 @@ async def test_send_saveable_forwards_message_thread_id(monkeypatch: pytest.Monk
         send_to=-100123,
         saveable=Saveable(text="Threaded note", version=2),
         message_thread_id=987,
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert result is not None
@@ -57,7 +62,10 @@ async def test_send_saveable_forwards_message_thread_id(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_video_note_uses_send_video_note(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_video_note_uses_send_video_note(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     """Regression: VIDEO_NOTE mapped to SendVideo, which has no `video_note` field.
 
     Building the method raised a pydantic ValidationError before any HTTP call, so
@@ -73,7 +81,8 @@ async def test_send_saveable_video_note_uses_send_video_note(monkeypatch: pytest
             file=NoteFile(id="vn-file-id", type=ContentType.VIDEO_NOTE),
             version=2,
         ),
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendVideoNote)
@@ -81,7 +90,10 @@ async def test_send_saveable_video_note_uses_send_video_note(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_video_keeps_caption_and_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_video_keeps_caption_and_buttons(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     """Regression: VIDEO was absent from SUPPORTS_CAPTION, so text and buttons were dropped."""
     emitted = _capture_emitted(monkeypatch)
 
@@ -94,7 +106,8 @@ async def test_send_saveable_video_keeps_caption_and_buttons(monkeypatch: pytest
             buttons=[[_url_button("Button", "https://example.com")]],
             version=2,
         ),
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendVideo)
@@ -104,7 +117,10 @@ async def test_send_saveable_video_keeps_caption_and_buttons(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_voice_keeps_caption_and_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_voice_keeps_caption_and_buttons(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     """Regression: VOICE was absent from SUPPORTS_CAPTION, so text and buttons were dropped."""
     emitted = _capture_emitted(monkeypatch)
 
@@ -117,7 +133,8 @@ async def test_send_saveable_voice_keeps_caption_and_buttons(monkeypatch: pytest
             buttons=[[_url_button("Button", "https://example.com")]],
             version=2,
         ),
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendVoice)
@@ -126,7 +143,10 @@ async def test_send_saveable_voice_keeps_caption_and_buttons(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_sticker_keeps_buttons_without_caption(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_sticker_keeps_buttons_without_caption(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     """Regression: reply_markup was gated on caption support, but sendSticker takes buttons."""
     emitted = _capture_emitted(monkeypatch)
 
@@ -139,7 +159,8 @@ async def test_send_saveable_sticker_keeps_buttons_without_caption(monkeypatch: 
             buttons=[[_url_button("Button", "https://example.com")]],
             version=2,
         ),
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert emitted[0].sticker == "sticker-file-id"
@@ -148,7 +169,10 @@ async def test_send_saveable_sticker_keeps_buttons_without_caption(monkeypatch: 
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_rejects_over_long_caption(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_rejects_over_long_caption(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     """Regression: the guard used the 4090 text limit, but a caption caps at 1024.
 
     Telegram answered MEDIA_CAPTION_TOO_LONG, which `common_try` re-raises, so every
@@ -165,14 +189,18 @@ async def test_send_saveable_rejects_over_long_caption(monkeypatch: pytest.Monke
                 file=NoteFile(id="photo-file-id", type=ContentType.PHOTO),
                 version=2,
             ),
-            bot=object(),
+            bot=test_services.bot,
+            redis=test_services.redis,
         )
 
     assert emitted == []
 
 
 @pytest.mark.asyncio
-async def test_send_saveable_allows_long_text_without_media(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_saveable_allows_long_text_without_media(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     """The 1024 cap applies to captions only; a plain text note keeps the message limit."""
     emitted = _capture_emitted(monkeypatch)
 
@@ -183,7 +211,8 @@ async def test_send_saveable_allows_long_text_without_media(monkeypatch: pytest.
             text="a" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
             version=2,
         ),
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert len(emitted) == 1

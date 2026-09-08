@@ -27,6 +27,7 @@ from sophie_bot.middlewares.media_group import MediaGroupAggregatorMiddleware, M
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import grant_admin
 
 CHAT_ID = -1002900000001
@@ -137,7 +138,7 @@ async def test_middleware_passes_through_when_flag_disabled(test_client: TestCli
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_collects_album_files() -> None:
+async def test_parse_saveable_collects_album_files(test_services: ApplicationServices) -> None:
     """parse_saveable stores a file per album item in `files` and leaves `file` unset."""
     album = [
         _photo_message(1, media_group_id="album-C", caption="save album Hello"),
@@ -145,7 +146,14 @@ async def test_parse_saveable_collects_album_files() -> None:
         _photo_message(3, media_group_id="album-C"),
     ]
 
-    saveable = await parse_saveable(album[0], text="Hello", buttons=ButtonsList(), album=album)
+    saveable = await parse_saveable(
+        album[0],
+        text="Hello",
+        buttons=ButtonsList(),
+        album=album,
+        bot=test_services.bot,
+        redis=test_services.redis,
+    )
 
     assert saveable.file is None, "Album notes must not set the single `file`"
     assert [note_file.id for note_file in saveable.files] == [
@@ -223,6 +231,7 @@ async def test_send_saveable_sends_media_group(test_client: TestClient, monkeypa
         send_to=CHAT_ID,
         saveable=_album_saveable(text="Album caption"),
         bot=test_client.bot,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
     )
 
     media_group_requests = test_client.capture.get_by_type(RequestType.SEND_MEDIA_GROUP)
@@ -247,6 +256,7 @@ async def test_send_saveable_single_photo_note(test_client: TestClient, monkeypa
         send_to=CHAT_ID,
         saveable=saveable,
         bot=test_client.bot,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
     )
 
     photo_requests = test_client.capture.get_by_type(RequestType.SEND_PHOTO)
@@ -280,6 +290,7 @@ async def test_send_saveable_album_buttons_go_to_followup(
         send_to=CHAT_ID,
         saveable=saveable,
         bot=test_client.bot,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
     )
 
     assert len(test_client.capture.get_by_type(RequestType.SEND_MEDIA_GROUP)) == 1, "Album should still be sent"
