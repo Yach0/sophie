@@ -19,3 +19,8 @@ def test_convert_timedelta_or_str_accepts_python_timedelta_string() -> None:
 def test_greeting_duration_models_use_timedelta_defaults() -> None:
     assert WelcomeMute().time == timedelta(hours=48)
     assert WelcomeSecurity().expire == timedelta(hours=48)
+
+
+def test_welcome_security_preserves_legacy_numeric_durations() -> None:
+    assert WelcomeSecurity(expire=172_800_000).expire == timedelta(hours=48)
+    assert WelcomeSecurity(expire=21_600.0).expire == timedelta(hours=6)
