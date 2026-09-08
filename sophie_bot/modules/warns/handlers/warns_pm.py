@@ -20,7 +20,7 @@ class WarnsPMHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         message: Message = self.event
-        user_iid = self.data["user_db"].id
+        user_iid = self.data["context"].actor.id
 
         # PM: List all warns across all chats
         warns = await WarnModel.find(WarnModel.user.id == user_iid).sort(WarnModel.date).to_list()

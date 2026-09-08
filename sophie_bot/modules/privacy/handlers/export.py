@@ -1,4 +1,3 @@
-from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,10 +17,6 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 VERSION = 6
 
-ExportCallable = Callable[[PydanticObjectId], Awaitable[dict[str, Any] | None]]
-
-EXPORTABLE_MODULES: list[ExportCallable] = []
-
 
 def text_to_buffered_file(text: str, filename: str = "data.txt") -> BufferedInputFile:
     return BufferedInputFile(text.encode(), filename=filename)
@@ -33,17 +28,20 @@ class TriggerExport(SophieBaseHandler[Message]):
     def register(cls, router: Router) -> None:
         router.message.register(cls, CMDFilter("export"), ChatTypeFilter("private"), UserRestricting(admin=True))
 
-    @staticmethod
-    async def get_data(chat_iid: PydanticObjectId) -> list[dict[str, Any]]:
-        return list(
-            filter(
-                None,
-                [await export_data(chat_iid) for export_data in EXPORTABLE_MODULES],
+    async def get_data(self, chat_iid: PydanticObjectId) -> list[dict[str, Any]]:
+        return [
+            exported
+            for export_data in self.services.modules.export_hooks
+            if (
+                exported := await export_data(
+                    chat_iid,
+                    services=self.services,
+                )
             )
-        )
+        ]
 
     async def handle(self) -> Any:
-        connection: ChatConnection = self.data["connection"]
+        connection: ChatConnection = self.connection
 
         await self.event.reply(_("Export is started, this may take a while."))
 

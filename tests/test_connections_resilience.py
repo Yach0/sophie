@@ -49,7 +49,10 @@ async def build_group_chat_model(chat_tid: int, title: str) -> ChatModel:
 
 
 @pytest.mark.asyncio
-async def test_connections_middleware_disconnects_dangling_chat_link(db_init: Any) -> None:
+async def test_connections_middleware_disconnects_dangling_chat_link(
+    db_init: Any,
+    test_services: object,
+) -> None:
     del db_init
     await ChatConnectionModel.delete_all()
     await ChatModel.delete_all()
@@ -66,12 +69,20 @@ async def test_connections_middleware_disconnects_dangling_chat_link(db_init: An
     middleware = ConnectionsMiddleware()
     event_chat = build_private_event_chat(user_tid=user_tid, first_name="The Untold")
     bot_mock = AsyncMock()
-    data: dict[str, Any] = {"event_chat": event_chat, "bot": bot_mock}
+    data: dict[str, Any] = {
+        "event_chat": event_chat,
+        "bot": bot_mock,
+        "context": SimpleNamespace(
+            event_chat=None,
+            connection=None,
+        ),
+        "services": test_services,
+    }
     original_get_by_user_tid = ChatConnectionModel.get_by_user_tid
     ChatConnectionModel.get_by_user_tid = AsyncMock(return_value=fake_connection_model)  # type: ignore[method-assign]
 
     async def mock_handler(_event: Any, payload: dict[str, Any]) -> str:
-        assert payload["connection"].is_connected is False
+        assert payload["context"].connection.is_connected is False
         return "handler_result"
 
     try:
@@ -134,7 +145,9 @@ async def test_cleanup_migration_repairs_dangling_connections(db_init: Any) -> N
 
 @pytest.mark.asyncio
 async def test_reconnecting_to_same_chat_does_not_duplicate_history(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
+    db_init: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
 ) -> None:
     del db_init
     await ChatConnectionModel.delete_all()
@@ -163,10 +176,14 @@ async def test_reconnecting_to_same_chat_does_not_duplicate_history(
 
     monkeypatch.setattr(ChatConnectionModel, "get_by_user_iid", fetch_connection)
 
-    await set_connected_chat(user_tid, first_group_tid)
-    await set_connected_chat(user_tid, second_group_tid)
+    await set_connected_chat(user_tid, first_group_tid, redis=test_redis)
+    await set_connected_chat(user_tid, second_group_tid, redis=test_redis)
     for _ in range(3):
-        await set_connected_chat(user_tid, first_group_tid)
+        await set_connected_chat(
+            user_tid,
+            first_group_tid,
+            redis=test_redis,
+        )
 
     stored_connection = await ChatConnectionModel.get(connection_iid)
     assert stored_connection is not None

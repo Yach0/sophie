@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
+from sophie_bot.modules.utils_.admin import get_user_adminships
 from sophie_bot.utils.api.auth import get_current_user
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -27,13 +27,7 @@ class GroupResponse(BaseModel):
 async def get_user_groups(
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> list[GroupResponse]:
-    admins = (
-        await ChatAdminModel.find(
-            ChatAdminModel.user.id == user.iid,
-        )
-        .find_many()
-        .to_list()
-    )
+    admins = await get_user_adminships(user)
 
     response = []
     for admin in admins:

@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from stfu_tg import Button, ButtonRow, Buttons, Doc, Section, Template, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardView, build_wizard_navigation
-from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.pagination import build_pagination_row, paginate
 
 from .config import ActionDraft, ActionWizardConfig
+from .spec import ActionWizardSpec
 
 _PAGE_SIZE = 8
 
@@ -23,7 +25,9 @@ def render_home_view(
     config: ActionWizardConfig[Any],
     draft: ActionDraft,
     session_id: str,
-    *,
+    definitions: Mapping[str, ActionDefinition[Any]],
+    handlers: Mapping[str, ModernActionABC[Any]],
+    specs: Mapping[str, ActionWizardSpec],
     header: Element | None = None,
     footer: Element | None = None,
 ) -> WizardView:
@@ -34,29 +38,31 @@ def render_home_view(
     descriptions: list[Element] = []
 
     for action_name, action_data in draft.actions.items():
-        action = ALL_MODERN_ACTIONS.get(action_name)
+        definition = definitions.get(action_name)
+        action = handlers.get(action_name)
         controls: list[Button] = []
-        if action is None:
+        if definition is None or action is None:
             descriptions.append(Template(_("⚠️ Unknown action: {name}"), name=action_name))
         else:
-            data_model = action.load_data(action_data)
+            data_model = definition.load_data(action_data)
             descriptions.append(
                 Template(
                     "{icon} {title}: {description}",
-                    icon=action.icon,
-                    title=action.title,
+                    icon=definition.icon,
+                    title=definition.title,
                     description=action.description(data_model),
                 )
             )
-            if action.settings(data_model) or config.max_actions > 1:
+            spec = specs.get(action_name)
+            if (spec is not None and spec.settings(data_model)) or config.max_actions > 1:
                 controls.append(
                     Button(
-                        f"⚙️ {action.title}",
+                        f"⚙️ {definition.title}",
                         callback_data=_callback(config, session_id, "configure", action_name),
                     )
                 )
 
-        if config.max_actions > 1 or config.min_actions == 0 or action is None:
+        if config.max_actions > 1 or config.min_actions == 0 or definition is None:
             controls.append(
                 Button(
                     _("🗑️ Remove action"),
@@ -98,23 +104,27 @@ def render_home_view(
 
 
 def render_add_action_view(
-    config: ActionWizardConfig[Any], draft: ActionDraft, session_id: str, requested_page: int = 0
+    config: ActionWizardConfig[Any],
+    draft: ActionDraft,
+    session_id: str,
+    definitions: Mapping[str, ActionDefinition[Any]],
+    requested_page: int = 0,
 ) -> WizardView:
-    actions = [
-        action
-        for action in ALL_MODERN_ACTIONS.values()
-        if (config.action_filter is None or config.action_filter(action))
-        and (config.max_actions == 1 or action.name not in draft.actions)
+    available_actions = [
+        definition
+        for definition in definitions.values()
+        if (config.action_filter is None or config.action_filter(definition))
+        and (config.max_actions == 1 or definition.name not in draft.actions)
     ]
-    page = paginate(actions, _PAGE_SIZE, requested_page)
+    page = paginate(available_actions, _PAGE_SIZE, requested_page)
     rows = [
         ButtonRow(
             Button(
-                f"{action.icon} {action.title}",
-                callback_data=_callback(config, session_id, "select", action.name),
+                f"{definition.icon} {definition.title}",
+                callback_data=_callback(config, session_id, "select", definition.name),
             )
         )
-        for action in page.items
+        for definition in page.items
     ]
     elements: list[Element] = [Title(_("Select an action")), Template(_("Choose an action from the list below:"))]
     if rows:
@@ -138,10 +148,19 @@ def render_action_settings_view(
     action_name: str,
     action_data: dict[str, Any] | None,
     session_id: str,
+    definitions: Mapping[str, ActionDefinition[Any]],
+    handlers: Mapping[str, ModernActionABC[Any]],
+    specs: Mapping[str, ActionWizardSpec],
 ) -> WizardView:
-    action = ALL_MODERN_ACTIONS[action_name]
-    data_model = action.load_data(action_data)
-    elements: list[Element] = [Title(f"{action.icon} {action.title}"), Template(action.description(data_model))]
+    definition = definitions[action_name]
+    action = handlers[action_name]
+    data_model = definition.load_data(action_data)
+    spec = specs.get(action_name)
+    settings = spec.settings(data_model) if spec is not None else {}
+    elements: list[Element] = [
+        Title(f"{definition.icon} {definition.title}"),
+        Template(action.description(data_model)),
+    ]
     rows = [
         ButtonRow(
             Button(
@@ -149,7 +168,7 @@ def render_action_settings_view(
                 callback_data=_callback(config, session_id, "setting", f"{action_name}:{setting_id}"),
             )
         )
-        for setting_id, setting in action.settings(data_model).items()
+        for setting_id, setting in settings.items()
     ]
     if config.max_actions > 1:
         rows.append(

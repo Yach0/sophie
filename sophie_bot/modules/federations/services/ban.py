@@ -5,9 +5,11 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import TypeVar
 
+from aiogram import Bot
 from beanie import PydanticObjectId
 from beanie.odm.fields import Link as BeanieLink
 from beanie.odm.operators.find.comparison import In
+from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
@@ -18,8 +20,10 @@ from sophie_bot.modules.federations.exceptions import FederationBanValidationErr
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.manage import FederationManageService
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
-from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
-from sophie_bot.modules.restrictions.utils.restrictions import unban_user as restrict_unban_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
+from sophie_bot.shared.actions import RestrictionAction
 
 ChatActionResultT = TypeVar("ChatActionResultT")
 
@@ -34,6 +38,8 @@ class FederationBanService:
         by_user_iid: PydanticObjectId,
         reason: str | None = None,
         original_message_text: str | None = None,
+        *,
+        redis: Redis,
     ) -> FederationBan:
         existing_ban = await FederationBan.find_one(
             FederationBan.fed_id == federation.fed_id, FederationBan.user_id == user_tid
@@ -59,11 +65,16 @@ class FederationBanService:
             original_message_text=original_message_text,
         )
         await ban.insert()
-        await FederationCacheService.incr_ban_count(federation.fed_id, 1)
+        await FederationCacheService.incr_ban_count(federation.fed_id, 1, redis=redis)
         track_federation_ban()
 
         await FederationBanService._invalidate_export_tasks(federation.fed_id)
-        await FederationCacheService.set_user_ban_status(federation.fed_id, user_tid, True)
+        await FederationCacheService.set_user_ban_status(
+            federation.fed_id,
+            user_tid,
+            True,
+            redis=redis,
+        )
         return ban
 
     @staticmethod
@@ -73,6 +84,8 @@ class FederationBanService:
         by_user_iid: PydanticObjectId,
         reason: str | None = None,
         original_message_text: str | None = None,
+        *,
+        redis: Redis,
     ) -> list[tuple[Federation, FederationBan]]:
         """Ban a user in federations that subscribe to the origin federation.
 
@@ -129,15 +142,25 @@ class FederationBanService:
                     origin_fed=origin_federation.fed_id,
                 )
                 await ban.insert()
-                await FederationCacheService.incr_ban_count(sub_fed.fed_id, 1)
-                await FederationCacheService.set_user_ban_status(sub_fed.fed_id, user_tid, True)
+                await FederationCacheService.incr_ban_count(sub_fed.fed_id, 1, redis=redis)
+                await FederationCacheService.set_user_ban_status(
+                    sub_fed.fed_id,
+                    user_tid,
+                    True,
+                    redis=redis,
+                )
                 results.append((sub_fed, ban))
 
         return results
 
     @staticmethod
     async def ban_user_in_federation_chats(
-        federation: Federation, ban: FederationBan, user_tid: int, current_chat_iid: PydanticObjectId | None = None
+        federation: Federation,
+        ban: FederationBan,
+        user_tid: int,
+        current_chat_iid: PydanticObjectId | None = None,
+        *,
+        bot: Bot,
     ) -> int:
         if not federation.chats and not current_chat_iid:
             return 0
@@ -164,8 +187,13 @@ class FederationBanService:
         async def ban_chat(chat: ChatModel) -> PydanticObjectId | None:
             if chat.iid not in detected_chat_iids:
                 return None
-            success = await restrict_ban_user(chat.tid, user_tid)
-            return chat.iid if success else None
+            result = await execute_restriction(
+                bot,
+                RestrictionAction.BAN,
+                chat.tid,
+                user_tid,
+            )
+            return chat.iid if result.applied else None
 
         banned_chat_iids = await FederationBanService._run_limited_chat_actions(chats, ban_chat)
 
@@ -181,7 +209,7 @@ class FederationBanService:
         return len(banned_chat_iids)
 
     @staticmethod
-    async def unban_user(fed_id: str, user_tid: int) -> tuple[bool, FederationBan | None]:
+    async def unban_user(fed_id: str, user_tid: int, *, redis: Redis) -> tuple[bool, FederationBan | None]:
         result = await FederationBan.find_one(FederationBan.fed_id == fed_id, FederationBan.user_id == user_tid)
         if not result:
             return False, None
@@ -192,9 +220,9 @@ class FederationBanService:
             return False, result
 
         await result.delete()
-        await FederationCacheService.incr_ban_count(fed_id, -1)
+        await FederationCacheService.incr_ban_count(fed_id, -1, redis=redis)
         await FederationBanService._invalidate_export_tasks(fed_id)
-        await FederationCacheService.set_user_ban_status(fed_id, user_tid, False)
+        await FederationCacheService.set_user_ban_status(fed_id, user_tid, False, redis=redis)
         return True, None
 
     @staticmethod
@@ -211,11 +239,13 @@ class FederationBanService:
         return await FederationBanService.is_user_banned(origin_fed_id, user_tid) is not None
 
     @staticmethod
-    async def unban_user_in_federation_chats(federation: Federation, user_tid: int) -> int:
-        return await FederationBanService.unban_user_in_federation_chats_with_subscribers(federation, user_tid)
+    async def unban_user_in_federation_chats(federation: Federation, user_tid: int, *, bot: Bot) -> int:
+        return await FederationBanService.unban_user_in_federation_chats_with_subscribers(federation, user_tid, bot=bot)
 
     @staticmethod
-    async def unban_user_in_federation_chats_with_subscribers(federation: Federation, user_tid: int) -> int:
+    async def unban_user_in_federation_chats_with_subscribers(
+        federation: Federation, user_tid: int, *, bot: Bot
+    ) -> int:
         chat_iids: set[PydanticObjectId] = set()
         if federation.chats:
             chat_iids.update(normalize_chat_iids([chat.to_ref() for chat in federation.chats]))
@@ -228,20 +258,34 @@ class FederationBanService:
         chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
 
         async def unban_chat(chat: ChatModel) -> bool:
-            return await restrict_unban_user(chat.tid, user_tid)
+            return (
+                await execute_restriction(
+                    bot,
+                    RestrictionAction.UNBAN,
+                    chat.tid,
+                    user_tid,
+                )
+            ).applied
 
         results = await FederationBanService._run_limited_chat_actions(chats, unban_chat)
         return sum(1 for result in results if result)
 
     @staticmethod
-    async def unban_user_in_chat_iids(chat_iids: list[object], user_tid: int) -> int:
+    async def unban_user_in_chat_iids(chat_iids: list[object], user_tid: int, *, bot: Bot) -> int:
         normalized_chat_iids = normalize_chat_iids(chat_iids)
         if not normalized_chat_iids:
             return 0
         chats = await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
 
         async def unban_chat(chat: ChatModel) -> bool:
-            return await restrict_unban_user(chat.tid, user_tid)
+            return (
+                await execute_restriction(
+                    bot,
+                    RestrictionAction.UNBAN,
+                    chat.tid,
+                    user_tid,
+                )
+            ).applied
 
         results = await FederationBanService._run_limited_chat_actions(chats, unban_chat)
         return sum(1 for result in results if result)
@@ -307,8 +351,10 @@ class FederationBanService:
         )
 
     @staticmethod
-    async def is_user_banned_in_chain(fed_id: str, user_tid: int) -> tuple[FederationBan, Federation] | None:
-        cached_status = await FederationCacheService.get_user_ban_status(fed_id, user_tid)
+    async def is_user_banned_in_chain(
+        fed_id: str, user_tid: int, *, redis: Redis
+    ) -> tuple[FederationBan, Federation] | None:
+        cached_status = await FederationCacheService.get_user_ban_status(fed_id, user_tid, redis=redis)
         if cached_status is False:
             return None
 
@@ -320,12 +366,12 @@ class FederationBanService:
         ).first_or_none()
 
         if ban:
-            await FederationCacheService.set_user_ban_status(fed_id, user_tid, True)
+            await FederationCacheService.set_user_ban_status(fed_id, user_tid, True, redis=redis)
             banning_fed = await FederationManageService.get_federation_by_id(ban.fed_id)
             if banning_fed:
                 return ban, banning_fed
         else:
-            await FederationCacheService.set_user_ban_status(fed_id, user_tid, False)
+            await FederationCacheService.set_user_ban_status(fed_id, user_tid, False, redis=redis)
 
         return None
 
@@ -352,10 +398,10 @@ class FederationBanService:
         return results
 
     @staticmethod
-    async def get_federation_ban_count(fed_id: str) -> int:
-        cached = await FederationCacheService.get_ban_count(fed_id)
+    async def get_federation_ban_count(fed_id: str, *, redis: Redis) -> int:
+        cached = await FederationCacheService.get_ban_count(fed_id, redis=redis)
         if cached is not None:
             return cached
         count = await FederationBan.find(FederationBan.fed_id == fed_id).count()
-        await FederationCacheService.set_ban_count(fed_id, count)
+        await FederationCacheService.set_ban_count(fed_id, count, redis=redis)
         return count

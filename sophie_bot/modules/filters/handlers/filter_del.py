@@ -52,7 +52,15 @@ class FilterDeleteHandler(SophieMessageHandler):
             Template(_("There are multiple filters with keyword {keyword}!"), keyword=Code(keyword)),
             Section(
                 *(
-                    KeyValue(index + 1, filter_action_text(item.action, list(item.actions.keys())), suffix=" -> ")
+                    KeyValue(
+                        index + 1,
+                        filter_action_text(
+                            item.action,
+                            list(item.actions),
+                            self.services.modules.actions,
+                        ),
+                        suffix=" -> ",
+                    )
                     for index, item in enumerate(items)
                 ),
                 title=_("Filters"),

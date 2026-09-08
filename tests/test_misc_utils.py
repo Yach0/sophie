@@ -67,10 +67,10 @@ async def test_use_chat_language_sets_and_resets_i18n_context(monkeypatch: pytes
         assert requested_chat_iid == chat_iid
         return "uk"
 
-    monkeypatch.setattr(chat_language, "get_chat_locale", fake_get_chat_locale)
+    locales = SimpleNamespace(get_chat_locale=fake_get_chat_locale)
     monkeypatch.setattr(chat_language, "i18n", fake_i18n)
 
-    async with UseChatLanguage(chat_iid) as context:
+    async with UseChatLanguage(chat_iid, locales=locales) as context:
         assert context.chat_iid == chat_iid
         assert fake_i18n.ctx_locale.set_values == ["uk"]
         assert fake_i18n.current_values == [fake_i18n]
@@ -88,11 +88,11 @@ async def test_use_chat_language_does_not_swallow_exceptions(monkeypatch: pytest
     async def fake_get_chat_locale(requested_chat_iid: PydanticObjectId) -> str:
         return "uk"
 
-    monkeypatch.setattr(chat_language, "get_chat_locale", fake_get_chat_locale)
+    locales = SimpleNamespace(get_chat_locale=fake_get_chat_locale)
     monkeypatch.setattr(chat_language, "i18n", fake_i18n)
 
     with pytest.raises(RuntimeError, match="boom"):
-        async with UseChatLanguage(chat_iid):
+        async with UseChatLanguage(chat_iid, locales=locales):
             raise RuntimeError("boom")
 
     # The locale context is still restored on the way out

@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from typing import Any
 
-from aiogram.types import TelegramObject, User
+from aiogram.types import TelegramObject, Update, User
 from aiogram.utils.i18n.middleware import I18nMiddleware
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.cache.locale import get_selected_locale
-from sophie_bot.db.models import ChatModel
+from sophie_bot.db.cache.locale import LocaleStore
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.utils.logger import log
 
 
@@ -26,14 +28,22 @@ def _locale_for_language(language_code: str, available_locales: tuple[str, ...])
 
 
 class LocalizationMiddleware(I18nMiddleware):
+    def __init__(self, locales: LocaleStore) -> None:
+        super().__init__(locales.i18n)
+        self.locales = locales
+
     async def get_locale(self, event: TelegramObject, data: dict[str, Any]) -> str:
-        chat_in_db: ChatModel | None = data.get("chat_db")
+        context: RequestContext | None = data.get("context")
+        if context is None:
+            return CONFIG.default_locale
+        actor_scoped = isinstance(event, Update) and any((event.callback_query, event.inline_query, event.poll_answer))
+        chat_in_db = context.actor if actor_scoped else context.event_chat
 
         if not chat_in_db:
             log.debug("LocalizationMiddleware: Chat cannot be found in this event, leaving locale to default")
             return CONFIG.default_locale
 
-        if selected_locale := await get_selected_locale(chat_in_db.iid):
+        if selected_locale := await self.locales.get_selected_locale(chat_in_db.iid):
             return selected_locale
 
         # Fallback to the locale the user's Telegram client reports, if we can render it

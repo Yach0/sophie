@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiogram import Router
 from stfu_tg import Doc
 
@@ -9,24 +11,22 @@ from sophie_bot.modules.purges.magic_handlers.modern_filter import DelMsgModern
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_DELETE_MESSAGE_BUTTON_PREFIX,
     LegacyButtonAction,
-    register_legacy_button_actions,
 )
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
-
-register_legacy_button_actions(LegacyButtonAction("delmsg", LEGACY_DELETE_MESSAGE_BUTTON_PREFIX))
 
 router = Router(name="purges")
 
 
 module_manifest = ModuleManifest(
     name="purges",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         DelMsgCmdHandler,
         PurgeMessagesHandler,
         LegacyDelMsgButton,
     ),
+    legacy_buttons=(LegacyButtonAction("delmsg", LEGACY_DELETE_MESSAGE_BUTTON_PREFIX),),
     title=l_("Purges"),
     emoji="🗑",
     description=l_("Delete messages in bulk"),

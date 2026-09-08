@@ -12,7 +12,7 @@ router = Router(name="promotes")
 
 module_manifest = ModuleManifest(
     name="promotes",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         PromoteUserHandler,
         DemoteUserHandler,

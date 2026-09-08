@@ -6,6 +6,7 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from beanie import PydanticObjectId
 from bson import DBRef
+from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import MAX_FEDERATION_NAME_LENGTH, MAX_FEDERATIONS_PER_USER
@@ -53,14 +54,14 @@ class FederationManageService:
         return await Federation.find(Federation.creator.id == creator_iid).to_list()
 
     @staticmethod
-    async def get_federation_for_chat(chat_iid: PydanticObjectId) -> Federation | None:
-        fed_id = await FederationCacheService.get_fed_id_for_chat(chat_iid)
+    async def get_federation_for_chat(chat_iid: PydanticObjectId, *, redis: Redis) -> Federation | None:
+        fed_id = await FederationCacheService.get_fed_id_for_chat(chat_iid, redis=redis)
         if fed_id:
             return await FederationManageService.get_federation_by_id(fed_id)
 
         federation = await Federation.find_one(Federation.chats == DBRef(ChatModel.Settings.name, chat_iid))
         if federation:
-            await FederationCacheService.set_fed_id_for_chat(chat_iid, federation.fed_id)
+            await FederationCacheService.set_fed_id_for_chat(chat_iid, federation.fed_id, redis=redis)
         return federation
 
     @staticmethod
@@ -68,6 +69,8 @@ class FederationManageService:
         fed_id_arg: str | None,
         connection: ChatConnection | None = None,
         user_id: int | None = None,
+        *,
+        redis: Redis,
     ) -> Federation:
         if fed_id_arg:
             federation = await FederationManageService.get_federation_by_id(fed_id_arg)
@@ -76,7 +79,7 @@ class FederationManageService:
             return federation
 
         if connection and (connection.is_connected or connection.type != ChatType.private):
-            federation = await FederationManageService.get_federation_for_chat(connection.db_model.iid)
+            federation = await FederationManageService.get_federation_for_chat(connection.db_model.iid, redis=redis)
             if federation:
                 return federation
             raise FederationContextError(_("This chat is not in any federation"))
@@ -102,7 +105,7 @@ class FederationManageService:
         return federation
 
     @staticmethod
-    async def delete_federation(federation: Federation) -> None:
+    async def delete_federation(federation: Federation, *, redis: Redis) -> None:
         await FederationBan.find(FederationBan.fed_id == federation.fed_id).delete()
 
         subscribing_federations = await FederationManageService.get_subscribing_federations(federation.fed_id)
@@ -112,7 +115,7 @@ class FederationManageService:
 
         if federation.chats:
             for chat in federation.chats:
-                await FederationCacheService.invalidate_federation_for_chat(chat.to_ref().id)
+                await FederationCacheService.invalidate_federation_for_chat(chat.to_ref().id, redis=redis)
         await federation.delete()
 
     @staticmethod

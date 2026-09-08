@@ -67,7 +67,7 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
             return
 
         # Check if the user is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["user_db"].iid):
+        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
             return await self.event.answer(_("You are not allowed to cancel this action!"))
 
         await self.state.clear()

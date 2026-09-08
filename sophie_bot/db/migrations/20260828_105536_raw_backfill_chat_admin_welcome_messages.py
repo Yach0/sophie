@@ -20,14 +20,20 @@ from beanie import free_fall_migration
 from pymongo.asynchronous.client_session import AsyncClientSession
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 
 class Forward:
     """Repair legacy administrator documents using a raw MongoDB update."""
 
     @free_fall_migration(document_models=[])
-    async def backfill(self, session: AsyncClientSession | None) -> None:
-        collection = get_collection("chat_admin")
+    async def backfill(
+        self,
+        session: AsyncClientSession | None,
+        *,
+        resources: MigrationResources,
+    ) -> None:
+        collection = get_collection(resources.database.database, "chat_admin")
         await collection.update_many(
             {
                 "member.status": "administrator",

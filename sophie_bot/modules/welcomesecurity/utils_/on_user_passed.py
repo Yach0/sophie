@@ -1,14 +1,25 @@
+from aiogram import Bot
+
 from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeMute
-from sophie_bot.modules.restrictions.utils.restrictions import unmute_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
     convert_timedelta_or_str,
 )
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
+from sophie_bot.shared.actions import RestrictionAction
 
 
-async def ws_on_user_passed(user: ChatModel, group: ChatModel, welcomemute: WelcomeMute) -> bool:
+async def ws_on_user_passed(
+    user: ChatModel,
+    group: ChatModel,
+    welcomemute: WelcomeMute,
+    *,
+    bot: Bot,
+) -> bool:
     """
     Function when user successfully passed the welcomesecurity
     Returns whenever the user was unmuted.
@@ -23,8 +34,18 @@ async def ws_on_user_passed(user: ChatModel, group: ChatModel, welcomemute: Welc
 
     # Unmute / restrict user
     if welcomemute.enabled and welcomemute.time:
-        await on_welcomemute(group.tid, user.tid, on_time=convert_timedelta_or_str(welcomemute.time))
+        await on_welcomemute(
+            group.tid,
+            user.tid,
+            on_time=convert_timedelta_or_str(welcomemute.time),
+            bot=bot,
+        )
     else:
-        await unmute_user(chat_tid=group.tid, user_tid=user.tid)
+        await execute_restriction(
+            bot,
+            RestrictionAction.UNMUTE,
+            group.tid,
+            user.tid,
+        )
 
     return True

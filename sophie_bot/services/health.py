@@ -14,10 +14,10 @@ from __future__ import annotations
 import asyncio
 import time
 
+from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from sophie_bot.config import CONFIG
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
 HEARTBEAT_TTL_SECONDS = 45
@@ -30,34 +30,34 @@ def _heartbeat_key(component: str) -> str:
     return f"{_KEY_PREFIX}{CONFIG.instance_name}:{component}"
 
 
-async def write_heartbeat(component: str) -> None:
+async def write_heartbeat(component: str, *, redis: Redis) -> None:
     """Write a fresh heartbeat timestamp for `component` with a TTL."""
-    await aredis.set(_heartbeat_key(component), int(time.time()), ex=HEARTBEAT_TTL_SECONDS)
+    await redis.set(_heartbeat_key(component), int(time.time()), ex=HEARTBEAT_TTL_SECONDS)
 
 
-async def write_heartbeat_guarded(component: str) -> None:
+async def write_heartbeat_guarded(component: str, *, redis: Redis) -> None:
     """Write a heartbeat, logging and swallowing redis errors so callers never fail.
 
     Used both by the background loop and by the scheduler job, so a redis outage
     surfaces as a warning rather than a crashed task or a recurring job exception.
     """
     try:
-        await write_heartbeat(component)
+        await write_heartbeat(component, redis=redis)
     except RedisError as error:
         log.warning("Heartbeat write failed", component=component, error=str(error))
 
 
-async def heartbeat_loop(component: str) -> None:
+async def heartbeat_loop(component: str, *, redis: Redis) -> None:
     """Write the heartbeat every interval forever; never crash on redis errors."""
     while True:
-        await write_heartbeat_guarded(component)
+        await write_heartbeat_guarded(component, redis=redis)
         await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
 
-async def check_heartbeat(component: str, max_age_seconds: int) -> bool:
+async def check_heartbeat(component: str, max_age_seconds: int, *, redis: Redis) -> bool:
     """Return True if `component` has a heartbeat no older than `max_age_seconds`."""
     try:
-        raw = await aredis.get(_heartbeat_key(component))
+        raw = await redis.get(_heartbeat_key(component))
     except RedisError as error:
         log.warning("Heartbeat read failed", component=component, error=str(error))
         return False

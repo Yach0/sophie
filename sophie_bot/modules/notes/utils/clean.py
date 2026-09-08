@@ -6,7 +6,7 @@ from aiogram.types import Message
 from sophie_bot.db.models.clean_notes import CleanNotesModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 
 FORMATTING_MODIFIERS: tuple[str, ...] = ("noformat", "?raw")
@@ -48,6 +48,7 @@ async def clean_notes(
     sent_messages: Sequence[Message],
     *,
     request_is_standalone: bool,
+    services: ApplicationServices,
 ) -> None:
     """Removes the previously sent note, and the request itself when it is a standalone one.
 
@@ -57,7 +58,11 @@ async def clean_notes(
     if message.chat.id != connection.tid:
         return
 
-    if not await is_enabled("cleannotes", chat_tid=connection.tid):
+    if not await is_enabled(
+        "cleannotes",
+        chat_tid=connection.tid,
+        redis=services.redis,
+    ):
         return
 
     db_model = await CleanNotesModel.get_by_chat_iid(connection.db_model.iid)
@@ -73,4 +78,9 @@ async def clean_notes(
     await db_model.new_messages([sent.message_id for sent in sent_messages])
 
     if to_delete:
-        await common_try(bot.delete_messages(chat_id=message.chat.id, message_ids=to_delete))
+        await common_try(
+            services.bot.delete_messages(
+                chat_id=message.chat.id,
+                message_ids=to_delete,
+            )
+        )

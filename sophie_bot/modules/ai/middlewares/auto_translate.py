@@ -22,7 +22,7 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        chat_db: ChatModel | None = data.get("chat_db", None)
+        chat_db: ChatModel | None = data["context"].event_chat
         i18n: I18nNew = data["i18n"]
 
         result = await handler(event, data)
@@ -30,13 +30,13 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
         if (
             chat_db
             and chat_db.type != ChatType.private
-            and await is_enabled("ai_translations", chat_tid=chat_db.tid)
+            and await is_enabled("ai_translations", chat_tid=chat_db.tid, redis=data["services"].redis)
             and (capabilities := data.get("ai_capabilities"))
             and capabilities.ai_enabled
             and isinstance(event, Message)
             and await AIAutotranslateModel.get_state(chat_db.iid)
         ):
-            quota_check = await check_quota(chat_db.iid)
+            quota_check = await check_quota(chat_db.iid, redis=data["services"].redis)
             if not quota_check.allowed:
                 return result
 

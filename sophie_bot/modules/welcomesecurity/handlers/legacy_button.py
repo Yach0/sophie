@@ -14,7 +14,9 @@ from sophie_bot.db.models import (
     WSUserModel,
 )
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
-from sophie_bot.modules.restrictions.utils.restrictions import unmute_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_WELCOME_SECURITY_BUTTON_PATTERN,
@@ -22,7 +24,7 @@ from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_WELCOME_SECURITY_STABLE_PREFIX,
 )
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
-from sophie_bot.services.bot import bot
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.handlers import (
     SophieCallbackQueryHandler,
     SophieMessageHandler,
@@ -48,13 +50,12 @@ class LegacyWSButtonHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (F.text.regexp(rf"/start {LEGACY_WELCOME_SECURITY_BUTTON_PREFIX}_(.*)"),)
 
-    @staticmethod
-    async def _user_is_still_in_group(user_db: ChatModel, group_db: ChatModel) -> bool:
+    async def _user_is_still_in_group(self, user_db: ChatModel, group_db: ChatModel) -> bool:
         if await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
             return True
 
         try:
-            member = await bot.get_chat_member(chat_id=group_db.tid, user_id=user_db.tid)
+            member = await self.services.bot.get_chat_member(chat_id=group_db.tid, user_id=user_db.tid)
         except TelegramBadRequest as err:
             log.warning(
                 "LegacyWSButtonHandler: failed to validate membership via Telegram",
@@ -86,7 +87,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         log.debug("LegacyWSButtonHandler: Handling WS button press", group=group_db.iid, chat_id=chat_id)
 
-        user_db: ChatModel = self.data["user_db"]
+        user_db: ChatModel = self.data["context"].actor
 
         ws_user = await WSUserModel.is_user(user_db.iid, group_db.iid)
         if not ws_user:
@@ -104,7 +105,14 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         if await is_user_admin(chat_id, user_db.iid):
             # Only drop the pending WS record once the unmute succeeds; otherwise the admin
             # would be left muted with no record to re-enter this flow and retry.
-            if await unmute_user(chat_tid=chat_id, user_tid=user_db.tid):
+            if (
+                await execute_restriction(
+                    self.services.bot,
+                    RestrictionAction.UNMUTE,
+                    chat_id,
+                    user_db.tid,
+                )
+            ).applied:
                 await WSUserModel.remove_user(user_db.iid, group_db.iid)
             log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
@@ -113,16 +121,23 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         # Check if banned
         try:
-            member = await bot.get_chat_member(chat_id=chat_id, user_id=user_db.tid)
+            member = await self.services.bot.get_chat_member(chat_id=chat_id, user_id=user_db.tid)
             if member.status == ChatMemberStatus.KICKED:
                 return await self.event.reply(_("You are banned in this chat, so you cannot pass the authentication!"))
         except TelegramBadRequest:
             pass
 
         # Check fedban
-        federation = await FederationManageService.get_federation_for_chat(group_db.iid)
+        federation = await FederationManageService.get_federation_for_chat(
+            group_db.iid,
+            redis=self.services.redis,
+        )
         if federation:
-            ban_info = await FederationBanService.is_user_banned_in_chain(federation.fed_id, user_db.tid)
+            ban_info = await FederationBanService.is_user_banned_in_chain(
+                federation.fed_id,
+                user_db.tid,
+                redis=self.services.redis,
+            )
             if ban_info:
                 return await self.event.reply(
                     _("You are banned in the federation, so you cannot pass the authentication!")

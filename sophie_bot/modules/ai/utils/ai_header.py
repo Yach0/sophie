@@ -1,5 +1,6 @@
 from typing import Final, Literal, cast
 
+from redis.asyncio import Redis
 from stfu_tg import Doc, HList, PreformattedHTML, RichTable, RichTableCell
 from stfu_tg.doc import Element
 
@@ -42,8 +43,15 @@ _HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
 }
 
 
-async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int) -> AIHeaderStyle:
-    return cast(AIHeaderStyle, await get_value(_HEADER_STYLE_FLAG_BY_PURPOSE[purpose], chat_tid=chat_tid))
+async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int, *, redis: Redis) -> AIHeaderStyle:
+    return cast(
+        AIHeaderStyle,
+        await get_value(
+            _HEADER_STYLE_FLAG_BY_PURPOSE[purpose],
+            chat_tid=chat_tid,
+            redis=redis,
+        ),
+    )
 
 
 def ai_table_header(status: Element | str = "", battery: Element | str = "") -> RichTable:

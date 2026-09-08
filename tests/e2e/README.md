@@ -35,14 +35,17 @@ tests start empty and never inherit each other's state — no hand-picked "globa
 ### Fixtures (`tests/e2e/conftest.py`)
 
 - `db_init` — Beanie initialised against the mock client (session scope)
-- `test_dispatcher` — a `Dispatcher` with all modules and middlewares loaded (session scope)
+- `test_dispatcher` — a `Dispatcher` with all modules, middlewares, and explicit
+  `ApplicationServices` loaded (session scope)
 - `test_client` — an aiogram-test-framework `TestClient`; its `capture` records outgoing requests
 - `clean_db` — autouse, empties the DB and FSM Redis after each test
 - `extra_router` — attach a test-only router for one test; it is detached on teardown
 
-Because handlers reach the bot and dispatcher through the `sophie_bot.services.bot` runtime
-proxies, and the `test_client` fixture points those proxies at the mock, tests never need to
-monkeypatch per-module `bot`/`dp` references.
+Handlers receive the bot, Redis client, locale store, deletion scheduler, and module registry
+through `ApplicationServices` in dispatcher workflow data. Event-specific chat, actor, and
+connection state lives in `RequestContext`. Tests that call handlers or services directly must
+pass those dependencies explicitly; do not patch module-level `bot`, dispatcher, Redis, or
+database globals.
 
 ### Helpers (`tests/e2e/helpers.py`)
 

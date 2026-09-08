@@ -5,6 +5,7 @@ from pydantic_ai import ModelRetry, RunContext, Tool
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.metrics import track_ai_tool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
+from sophie_bot.modules.utils_.admin import is_user_admin
 
 _MAX_MEMORY_LINES = 50
 _MAX_MEMORY_LINE_LENGTH = 500
@@ -43,7 +44,6 @@ async def forget_memory(ctx: RunContext[SophieAIToolContext], index: int) -> str
     Args:
         index: The 1-based memory index shown in the instructions.
     """
-    from sophie_bot.modules.utils_.admin import is_user_admin
 
     if ctx.deps.user_tid is None or not await is_user_admin(ctx.deps.chat_tid, ctx.deps.user_tid):
         raise ModelRetry(

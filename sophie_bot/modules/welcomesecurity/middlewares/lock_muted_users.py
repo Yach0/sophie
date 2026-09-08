@@ -27,14 +27,14 @@ class LockMutedUsers(BaseMiddleware):
         if not message.from_user or message.chat.type not in GROUP_CHAT_TYPES:
             return False
 
-        chat_db: ChatModel = data["chat_db"]
-        user_db: ChatModel | None = data.get("user_db")
+        chat_db: ChatModel = data["context"].event_chat
+        user_db: ChatModel | None = data["context"].actor
 
         # Absent for anonymous admins, who are exempt anyway
         if not user_db:
             return False
 
-        if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid):
+        if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid, redis=data["services"].redis):
             return False
 
         log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)

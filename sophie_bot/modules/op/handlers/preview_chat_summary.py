@@ -34,7 +34,12 @@ class OpRegenerateChatSummaryHandler(SophieMessageHandler):
             await self.event.reply(Doc(Title(_("Chat not found"))).to_html())
             return
 
-        await GenerateChatSummaries().process_chat(chat, summary_date, force=True, target_chat_tid=chat_tid)
+        await GenerateChatSummaries(self.services).process_chat(
+            chat,
+            summary_date,
+            force=True,
+            target_chat_tid=chat_tid,
+        )
         await self.event.reply(
             Doc(
                 Title(_("Chat summary regenerated")),

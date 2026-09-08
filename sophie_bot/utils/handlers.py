@@ -16,9 +16,10 @@ from ass_tg.types.base_abc import ArgFabric
 from stfu_tg.doc import Element
 
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit, reply_or_edit_rich
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -28,11 +29,27 @@ T = TypeVar("T")
 class SophieBaseHandler(BaseHandler[T], BaseHandlerMixin[T], ABC):
     async def answer_rich(self, doc: Element, **kwargs) -> Message | bool:
         """Reply, or edit the message a button was pressed on, rendering the doc as a rich message."""
-        return await reply_or_edit_rich(cast(Message | CallbackQuery, self.event), doc, **kwargs)
+        return await reply_or_edit_rich(
+            cast(Message | CallbackQuery, self.event),
+            doc,
+            bot=self.services.bot,
+            **kwargs,
+        )
+
+    @property
+    def services(self) -> ApplicationServices:
+        return self.data["services"]
+
+    @property
+    def context(self) -> RequestContext:
+        return self.data["context"]
 
     @property
     def connection(self) -> ChatConnection:
-        return self.data["connection"]
+        connection = self.context.connection
+        if connection is None:
+            raise RuntimeError(f"{type(self).__name__} requires a chat connection")
+        return connection
 
     @property
     def state(self) -> FSMContext:
@@ -116,15 +133,15 @@ class SophieMessageCallbackQueryHandler(SophieBaseHandler[Message | CallbackQuer
         if isinstance(self.event, InaccessibleMessage):
             raise SophieException(_("The message is inaccessible. Please write the command again"))
         if isinstance(self.event, CallbackQuery) and self.event.message:
-            return await bot.edit_message_media(
+            return await self.services.bot.edit_message_media(
                 media=InputMediaPhoto(media=f, caption=caption),
                 chat_id=self.event.message.chat.id,
                 message_id=self.event.message.message_id,
                 **kwargs,
             )
         if isinstance(self.event, Message):
-            return await bot.send_photo(chat_id=self.event.chat.id, photo=f, caption=caption, **kwargs)
+            return await self.services.bot.send_photo(chat_id=self.event.chat.id, photo=f, caption=caption, **kwargs)
         raise ValueError("answer_media: Wrong event type")
 
-    async def answer(self, text: Element | str, **kwargs) -> Message | bool:
+    async def answer(self, text: Element | str, **kwargs: Any) -> Message | bool | None:
         return await reply_or_edit(self.event, text, **kwargs)

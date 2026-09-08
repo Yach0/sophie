@@ -13,6 +13,7 @@ from sophie_bot.modules.federations.middlewares import check_fban
 from sophie_bot.modules.federations.middlewares.check_fban import FedBanMiddleware
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
+from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 
 
 async def build_chat_model(tid: int, title: str, chat_type: ChatType) -> ChatModel:
@@ -41,7 +42,9 @@ def build_message(chat_tid: int, user_tid: int) -> SimpleNamespace:
 
 @pytest.mark.asyncio
 async def test_repeated_messages_from_fbanned_user_do_not_duplicate_banned_chats(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
+    db_init: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: Any,
 ) -> None:
     del db_init
     await ChatModel.delete_all()
@@ -67,18 +70,40 @@ async def test_repeated_messages_from_fbanned_user_do_not_duplicate_banned_chats
     await ban.insert()
 
     # mongomock cannot match the `chats` DBRef predicate used by the real chat->federation lookup.
-    async def resolve_federation(_chat_iid: Any) -> Federation:
+    async def resolve_federation(
+        _chat_iid: Any,
+        *,
+        redis: object,
+    ) -> Federation:
         return federation
 
     monkeypatch.setattr(FederationManageService, "get_federation_for_chat", resolve_federation)
-    monkeypatch.setattr(check_fban, "ban_user", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        check_fban,
+        "execute_restriction",
+        AsyncMock(
+            return_value=RestrictionResult(
+                action=RestrictionAction.BAN,
+                applied=True,
+            )
+        ),
+    )
     monkeypatch.setattr(check_fban, "is_user_admin", AsyncMock(return_value=False))
 
     middleware = FedBanMiddleware()
-    data: dict[str, Any] = {"chat_db": group_chat, "user_db": fbanned_user}
+    data: dict[str, Any] = {
+        "context": SimpleNamespace(event_chat=group_chat, actor=fbanned_user),
+        "services": SimpleNamespace(redis=test_redis, bot=object()),
+    }
 
-    for _ in range(3):
-        assert await middleware.is_fbanned(build_message(chat_tid, user_tid), data) is True
+    for _index in range(3):
+        assert (
+            await middleware.is_fbanned(
+                build_message(chat_tid, user_tid),
+                data,
+            )
+            is True
+        )
 
     reloaded_ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id)
     assert reloaded_ban is not None

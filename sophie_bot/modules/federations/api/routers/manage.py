@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.modules.federations.services import FederationManageService
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.rest import get_services
 from sophie_bot.utils.api.auth import get_current_user
 
 from ..schemas import (
@@ -19,6 +21,7 @@ from ..schemas import (
 from .common import _require_federation_access, _require_federation_owner
 
 router = APIRouter()
+ServicesDep = Annotated[ApplicationServices, Depends(get_services)]
 
 
 def _federation_summary(federation: Federation) -> FederationSummaryResponse:
@@ -108,12 +111,13 @@ async def update_federation(
 async def delete_federation(
     fed_id: str,
     user: Annotated[ChatModel, Depends(get_current_user)],
+    services: ServicesDep,
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Federation not found")
     await _require_federation_owner(federation, user)
-    await FederationManageService.delete_federation(federation)
+    await FederationManageService.delete_federation(federation, redis=services.redis)
 
 
 @router.post("/{fed_id}/log_channel", status_code=status.HTTP_204_NO_CONTENT)

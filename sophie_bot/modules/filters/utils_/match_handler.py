@@ -18,8 +18,9 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
 from sophie_bot.modules.filters.utils_.extract_content import extract_message_content
+from sophie_bot.modules.locks.utils.detect_lock import check_locks
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -86,19 +87,29 @@ def _seconds_until_next_utc_day(now: datetime) -> int:
     return max(int((next_day - now).total_seconds()), 1)
 
 
-async def _feature_int(feature: FeatureType, chat_tid: int | None) -> int:
-    value = await get_value(feature, chat_tid=chat_tid)
+async def _feature_int(
+    feature: FeatureType,
+    chat_tid: int | None,
+    *,
+    services: ApplicationServices,
+) -> int:
+    value = await get_value(feature, chat_tid=chat_tid, redis=services.redis)
     return int(value) if isinstance(value, int) else 0
 
 
-async def consume_ai_filter_daily_quota(chat_tid: int, user_tid: int | None = None) -> bool:
+async def consume_ai_filter_daily_quota(
+    chat_tid: int,
+    user_tid: int | None = None,
+    *,
+    services: ApplicationServices,
+) -> bool:
     now = datetime.now(UTC)
     chat_rate_limit_key = _get_ai_filter_daily_chat_limit_key(chat_tid, now)
     daily_ttl = _seconds_until_next_utc_day(now)
-    chat_limit = await _feature_int("ai_filter_daily_chat_limit", chat_tid)
-    user_limit = await _feature_int("ai_filter_daily_user_limit", chat_tid)
+    chat_limit = await _feature_int("ai_filter_daily_chat_limit", chat_tid, services=services)
+    user_limit = await _feature_int("ai_filter_daily_user_limit", chat_tid, services=services)
 
-    async with aredis.pipeline() as pipe:
+    async with services.redis.pipeline() as pipe:
         pipe.incr(chat_rate_limit_key)
         pipe.expire(chat_rate_limit_key, daily_ttl)
         if user_tid is not None:
@@ -116,8 +127,17 @@ async def consume_ai_filter_daily_quota(chat_tid: int, user_tid: int | None = No
     return not (user_tid is not None and user_limit > 0 and user_daily_count > user_limit)
 
 
-async def _is_within_new_user_message_limit(user_in_group: UserInGroupModel, chat_tid: int) -> bool:
-    message_limit = await _feature_int("ai_filter_new_user_message_limit", chat_tid)
+async def _is_within_new_user_message_limit(
+    user_in_group: UserInGroupModel,
+    chat_tid: int,
+    *,
+    services: ApplicationServices,
+) -> bool:
+    message_limit = await _feature_int(
+        "ai_filter_new_user_message_limit",
+        chat_tid,
+        services=services,
+    )
     if message_limit <= 0:
         return False
 
@@ -140,6 +160,8 @@ async def match_ai_handler(
     prompt: str,
     user_in_group: UserInGroupModel | None = None,
     chat_iid: PydanticObjectId | None = None,
+    *,
+    services: ApplicationServices,
 ) -> bool:
     """
     Match a message against an AI-powered filter.
@@ -160,7 +182,7 @@ async def match_ai_handler(
     chat_tid = getattr(getattr(message, "chat", None), "id", None)
 
     # Check if AI filters feature is enabled
-    if not await is_enabled("ai_filters", chat_tid=chat_tid):
+    if not await is_enabled("ai_filters", chat_tid=chat_tid, redis=services.redis):
         log.debug("match_ai_handler: ai_filters feature flag is disabled, skipping AI evaluation")
         return False
 
@@ -180,11 +202,11 @@ async def match_ai_handler(
         )
         return False
 
-    if not await _is_within_new_user_message_limit(user_in_group, message.chat.id):
+    if not await _is_within_new_user_message_limit(user_in_group, message.chat.id, services=services):
         return False
 
     user_tid = message.from_user.id if message.from_user else None
-    if not await consume_ai_filter_daily_quota(message.chat.id, user_tid=user_tid):
+    if not await consume_ai_filter_daily_quota(message.chat.id, user_tid=user_tid, services=services):
         log.debug(
             "match_ai_handler: daily AI filter limit reached, skipping AI evaluation",
             chat_tid=message.chat.id,
@@ -194,10 +216,10 @@ async def match_ai_handler(
 
     try:
         # Extract message content (text and optional image)
-        text_content, image_data = await extract_message_content(message)
+        text_content, image_data = await extract_message_content(message, bot=services.bot)
 
         # Build the AI message history
-        history = AIMessageHistory()
+        history = AIMessageHistory(services=services)
 
         # Add system prompt
         system_prompt = _(
@@ -226,8 +248,17 @@ async def match_ai_handler(
             )
 
         # Run AI evaluation
-        model_plan = await get_chat_filters_model_plan(chat_iid, chat_tid)
-        service_tier = await resolve_chat_service_tier(AIModelPurpose.filters, chat_iid, chat_tid)
+        model_plan = await get_chat_filters_model_plan(
+            chat_iid,
+            chat_tid,
+            redis=services.redis,
+        )
+        service_tier = await resolve_chat_service_tier(
+            AIModelPurpose.filters,
+            chat_iid,
+            chat_tid,
+            redis=services.redis,
+        )
 
         result = await run_structured_task(
             AIStructuredTask(
@@ -239,6 +270,7 @@ async def match_ai_handler(
             user_tracking_id=chat_iid,
             chat_tid=chat_tid,
             service_tier=service_tier,
+            redis=services.redis,
         )
 
         log.debug(
@@ -262,17 +294,23 @@ async def match_filter_handler(
     user_in_group: UserInGroupModel | None = None,
     enable_lock_types: bool = True,
     chat_iid: PydanticObjectId | None = None,
+    *,
+    services: ApplicationServices,
 ) -> bool:
     """Match a message against different types of handlers (regex, exact, contains, AI)."""
     # AI-powered handler
     if handler.startswith("ai:"):
         log.debug(f"match_filter_handler: ai: {handler}")
         prompt = handler[3:]
-        return await match_ai_handler(message, prompt, user_in_group=user_in_group, chat_iid=chat_iid)
+        return await match_ai_handler(
+            message,
+            prompt,
+            user_in_group=user_in_group,
+            chat_iid=chat_iid,
+            services=services,
+        )
 
     if enable_lock_types and is_supported_lock_type(handler):
-        from sophie_bot.modules.locks.utils.detect_lock import check_locks
-
         return bool(await check_locks(message, {handler}))
 
     if not (message_text := message.caption or message.text or ""):

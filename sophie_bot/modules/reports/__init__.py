@@ -12,7 +12,7 @@ router = Router(name="reports")
 
 module_manifest = ModuleManifest(
     name="reports",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(ReportHandler,),
     title=l_("Reports"),
     emoji="📢",

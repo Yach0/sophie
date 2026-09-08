@@ -21,7 +21,7 @@ from pymongo.errors import PyMongoError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
+from sophie_bot.modules.utils_.admin import get_admin_record
 
 oauth2_scheme = HTTPBearer()
 logger = structlog.get_logger(__name__)
@@ -157,10 +157,7 @@ def rest_require_admin(permission: str | None = None, require_owner: bool = Fals
         if user.tid in CONFIG.operators:
             return user
 
-        admin = await ChatAdminModel.find_one(
-            ChatAdminModel.chat.id == chat_iid,
-            ChatAdminModel.user.id == user.iid,
-        )
+        admin = await get_admin_record(chat_iid, user)
         if not admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

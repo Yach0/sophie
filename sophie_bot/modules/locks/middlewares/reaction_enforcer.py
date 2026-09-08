@@ -34,14 +34,18 @@ class ReactionLocksEnforcerMiddleware(BaseMiddleware):
         if not event.user:
             return await handler(event, data)
         chat_tid = event.chat.id
-        if not await is_enabled("locks", chat_tid=chat_tid):
+        if not await is_enabled("locks", chat_tid=chat_tid, redis=data["services"].redis):
             return await handler(event, data)
 
         chat = await ChatModel.get_by_tid(chat_tid)
         if not chat:
             return await handler(event, data)
 
-        locked_types = await get_cached_locks(chat_tid, chat.iid)
+        locked_types = await get_cached_locks(
+            chat_tid,
+            chat.iid,
+            redis=data["services"].redis,
+        )
         if not locked_types or LockType.OUTSIDE_REACTION not in locked_types:
             return await handler(event, data)
 

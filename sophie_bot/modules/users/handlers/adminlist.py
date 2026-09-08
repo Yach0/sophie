@@ -1,12 +1,13 @@
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.types import ChatMemberAdministrator, ChatMemberOwner
 from stfu_tg import Section, Template, UserLink, VList
 
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.utils_.admin import get_chat_admins
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -28,12 +29,7 @@ class AdminListHandler(SophieMessageHandler):
         if not chat_model:
             return await self.event.reply(_("Chat not found."))
 
-        # Fetch admins from DB
-        # Note: ChatAdminModel stores admins. We need to fetch them.
-        # This mirrors the legacy behavior but uses the new DB structure.
-
-        admins_cursor = ChatAdminModel.find(ChatAdminModel.chat.id == chat_model.iid)
-        admins = await admins_cursor.to_list()
+        admins = await get_chat_admins(chat_model)
 
         admin_list_doc = []
         for admin_entry in admins:
@@ -52,7 +48,13 @@ class AdminListHandler(SophieMessageHandler):
                 continue
 
             # Check if anonymous admin
-            if admin_entry.member.is_anonymous:
+            if (
+                not isinstance(
+                    admin_entry.member,
+                    ChatMemberAdministrator | ChatMemberOwner,
+                )
+                or admin_entry.member.is_anonymous
+            ):
                 continue
 
             admin_list_doc.append(UserLink(user.tid, user.first_name_or_title))

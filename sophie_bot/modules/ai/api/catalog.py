@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from httpx2 import HTTPError
 
@@ -23,6 +25,8 @@ from sophie_bot.modules.ai.utils.ai_catalog import (
 )
 from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
 from sophie_bot.modules.ai.utils.ai_model_pricing import _openrouter_headers, _parse_price_per_million, ai_http_client
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.rest import get_services
 from sophie_bot.utils.api.auth import get_current_operator
 from sophie_bot.utils.feature_flags import _SERVICE_TIER_VALUES
 
@@ -98,8 +102,10 @@ async def get_meta() -> CatalogMeta:
 
 
 @router.get("/status", response_model=CatalogStatus)
-async def get_status() -> CatalogStatus:
-    current = await get_catalog()
+async def get_status(
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> CatalogStatus:
+    current = await get_catalog(redis=services.redis)
     return CatalogStatus(
         version=current.version,
         providers=len(current.providers),
@@ -124,8 +130,10 @@ def _resolved_model(current: AICatalog, mode: AIMode, purpose: AIModelPurpose) -
 
 
 @router.get("/resolution", response_model=CatalogResolution)
-async def get_resolution() -> CatalogResolution:
-    current = await get_catalog()
+async def get_resolution(
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> CatalogResolution:
+    current = await get_catalog(redis=services.redis)
 
     return CatalogResolution(
         modes=[mode.value for mode in CATALOG_MODES],
@@ -144,9 +152,11 @@ async def get_resolution() -> CatalogResolution:
 
 
 @router.post("/reload", response_model=CatalogStatus)
-async def reload_catalog() -> CatalogStatus:
+async def reload_catalog(
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> CatalogStatus:
     """Force this process to rebuild its snapshot now, rather than on the next version check."""
-    current = await load_catalog()
+    current = await load_catalog(redis=services.redis)
     return CatalogStatus(
         version=current.version,
         providers=len(current.providers),
@@ -164,18 +174,25 @@ async def list_providers() -> list[ProviderResponse]:
 
 
 @router.post("/providers", response_model=ProviderResponse, status_code=status.HTTP_201_CREATED)
-async def create_provider(data: ProviderCreate) -> ProviderResponse:
+async def create_provider(
+    data: ProviderCreate,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> ProviderResponse:
     if await AICatalogProviderModel.find_one(AICatalogProviderModel.name == data.name):
         raise HTTPException(status_code=409, detail="A provider with this name already exists")
 
     provider = AICatalogProviderModel(**data.model_dump())
     await provider.save()
-    await bump_version()
+    await bump_version(redis=services.redis)
     return _provider_response(provider)
 
 
 @router.put("/providers/{name:path}", response_model=ProviderResponse)
-async def update_provider(name: str, data: ProviderUpdate) -> ProviderResponse:
+async def update_provider(
+    name: str,
+    data: ProviderUpdate,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> ProviderResponse:
     provider = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == name)
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
@@ -187,17 +204,20 @@ async def update_provider(name: str, data: ProviderUpdate) -> ProviderResponse:
         setattr(provider, field, value)
 
     await provider.save()
-    await bump_version()
+    await bump_version(redis=services.redis)
     return _provider_response(provider)
 
 
 @router.delete("/providers/{name:path}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_provider(name: str) -> None:
+async def delete_provider(
+    name: str,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> None:
     provider = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == name)
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
     await provider.delete()
-    await bump_version()
+    await bump_version(redis=services.redis)
 
 
 # ── Models ─────────────────────────────────────────────────────────────────
@@ -209,18 +229,25 @@ async def list_models() -> list[ModelResponse]:
 
 
 @router.post("/models", response_model=ModelResponse, status_code=status.HTTP_201_CREATED)
-async def create_model(data: ModelCreate) -> ModelResponse:
+async def create_model(
+    data: ModelCreate,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> ModelResponse:
     if await AICatalogModelModel.find_one(AICatalogModelModel.name == data.name):
         raise HTTPException(status_code=409, detail="A model with this name already exists")
 
     model = AICatalogModelModel(**data.model_dump())
     await model.save()
-    await bump_version()
+    await bump_version(redis=services.redis)
     return _model_response(model)
 
 
 @router.put("/models/{name:path}", response_model=ModelResponse)
-async def update_model(name: str, data: ModelUpdate) -> ModelResponse:
+async def update_model(
+    name: str,
+    data: ModelUpdate,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> ModelResponse:
     model = await AICatalogModelModel.find_one(AICatalogModelModel.name == name)
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
@@ -229,17 +256,20 @@ async def update_model(name: str, data: ModelUpdate) -> ModelResponse:
         setattr(model, field, value)
 
     await model.save()
-    await bump_version()
+    await bump_version(redis=services.redis)
     return _model_response(model)
 
 
 @router.delete("/models/{name:path}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_model(name: str) -> None:
+async def delete_model(
+    name: str,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> None:
     model = await AICatalogModelModel.find_one(AICatalogModelModel.name == name)
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
     await model.delete()
-    await bump_version()
+    await bump_version(redis=services.redis)
 
 
 # ── Import / export ────────────────────────────────────────────────────────
@@ -270,7 +300,11 @@ async def export_catalog() -> CatalogExport:
 
 
 @router.post("/import", response_model=ImportResult)
-async def import_catalog(data: CatalogExport, replace: bool = False) -> ImportResult:
+async def import_catalog(
+    data: CatalogExport,
+    services: Annotated[ApplicationServices, Depends(get_services)],
+    replace: bool = False,
+) -> ImportResult:
     """Apply an exported set of models.
 
     Default is a merge: models are upserted by name and anything not in the file is left alone.
@@ -298,7 +332,7 @@ async def import_catalog(data: CatalogExport, replace: bool = False) -> ImportRe
             await AICatalogModelModel(**model.model_dump()).save()
             result.models_created += 1
 
-    await bump_version()
+    await bump_version(redis=services.redis)
     return result
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiogram import Router
 from stfu_tg import Doc
 
@@ -10,7 +12,6 @@ from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesActio
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_RULES_BUTTON_PREFIX,
     LegacyButtonAction,
-    register_legacy_button_actions,
 )
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -22,19 +23,18 @@ __all__ = ("api_router",)
 
 router = Router(name="rules")
 
-register_legacy_button_actions(LegacyButtonAction("rules", LEGACY_RULES_BUTTON_PREFIX))
-
 
 module_manifest = ModuleManifest(
     name="rules",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         SetRulesHandler,
         GetRulesHandler,
         ResetRulesHandler,
         LegacyRulesButton,
     ),
+    legacy_buttons=(LegacyButtonAction("rules", LEGACY_RULES_BUTTON_PREFIX),),
     title=l_("Rules"),
     emoji="🪧",
     description=l_("Set and display chat rules"),

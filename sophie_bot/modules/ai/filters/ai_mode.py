@@ -6,7 +6,7 @@ from aiogram.filters import Filter
 from aiogram.types import Message
 from stfu_tg import Doc, Italic, Template
 
-from sophie_bot.db.models import ChatModel
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities, resolve_chat_capabilities
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
@@ -37,9 +37,10 @@ class AICapabilityFilter(Filter):
     async def __call__(
         self,
         message: Message,
-        chat_db: ChatModel | None,
+        context: RequestContext,
         ai_capabilities: ModeCapabilities | None = None,
     ) -> bool | dict[str, Any]:
+        chat_db = context.event_chat
         if not chat_db:
             log.error("AICapabilityFilter: Chat not found in database, skipping")
             raise SkipHandler

@@ -323,12 +323,19 @@ class FeatureFlagsHandler(SophieMessageHandler):
             return await self._handle_rollout(feature, raw_value, chat_tid, rollout_percentage, days, rollout_bump)
 
         if not feature and raw_value is None:
-            states = await list_chat_overrides(chat_tid) if chat_tid is not None else await list_all()
-            rollouts = {} if chat_tid is not None else await list_rollouts()
+            states = (
+                await list_chat_overrides(chat_tid, redis=self.services.redis)
+                if chat_tid is not None
+                else await list_all(redis=self.services.redis)
+            )
+            rollouts = {} if chat_tid is not None else await list_rollouts(redis=self.services.redis)
             # Per-chat listing intentionally treats "Changed" as explicit chat-level overrides only.
             # Global overrides that affect this chat are still visible in the expanded "All" section.
             all_states = (
-                {feature_name: await get_value(feature_name, chat_tid=chat_tid) for feature_name in FEATURE_FLAGS}
+                {
+                    feature_name: await get_value(feature_name, chat_tid=chat_tid, redis=self.services.redis)
+                    for feature_name in FEATURE_FLAGS
+                }
                 if chat_tid is not None
                 else states
             )
@@ -347,7 +354,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
             return await self._reply_docs(_render_flag_list(changed_lines, all_lines, rollout_lines))
 
         if feature and raw_value is None and _is_feature_type(feature):
-            value = await get_value(feature, chat_tid=chat_tid)
+            value = await get_value(feature, chat_tid=chat_tid, redis=self.services.redis)
             return await self.event.reply(_render_full_value(feature, value))
 
         if not feature or raw_value is None:
@@ -358,7 +365,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
 
         if raw_value.strip().lower() == "unset":
             if chat_tid is not None:
-                await delete_chat_override(feature, chat_tid)
+                await delete_chat_override(feature, chat_tid, redis=self.services.redis)
                 return await self.event.reply(
                     Template(
                         _("{feature} override for chat {chat} deleted."),
@@ -366,7 +373,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
                         chat=chat_tid,
                     ).to_html()
                 )
-            await delete_override(feature)
+            await delete_override(feature, redis=self.services.redis)
             return await self.event.reply(
                 Template(
                     _("{feature} override deleted."),
@@ -379,8 +386,8 @@ class FeatureFlagsHandler(SophieMessageHandler):
             return await _reply_invalid_feature_value(self.event, feature, value)
 
         if chat_tid is not None:
-            await set_chat_override(feature, chat_tid, value)
-            current = await get_value(feature, chat_tid=chat_tid)
+            await set_chat_override(feature, chat_tid, value, redis=self.services.redis)
+            current = await get_value(feature, chat_tid=chat_tid, redis=self.services.redis)
             return await self.event.reply(
                 Template(
                     _("{feature} for chat {chat}: {value}"),
@@ -390,9 +397,13 @@ class FeatureFlagsHandler(SophieMessageHandler):
                 ).to_html()
             )
 
-        await set_value(feature, value)
+        await set_value(feature, value, redis=self.services.redis)
         # Read back for confirmation from the runtime backend.
-        current = await is_enabled(feature) if isinstance(value, bool) else await get_value(feature)
+        current = (
+            await is_enabled(feature, redis=self.services.redis)
+            if isinstance(value, bool)
+            else await get_value(feature, redis=self.services.redis)
+        )
         return await self.event.reply(
             Template(_("{feature}: {value}"), feature=Code(feature), value=Code(_stringify_value(current))).to_html()
         )
@@ -425,7 +436,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
             if rollout_bump is not None:
                 return await self.event.reply(_("Usage: /op_ff ^rollout_bump=<0-100> <feature>"))
 
-            rollouts = await list_rollouts()
+            rollouts = await list_rollouts(redis=self.services.redis)
             if not rollouts:
                 return await self.event.reply(_("No feature flag rollouts are set."))
             lines = [f"{feature_name}: {_render_rollout_value(rollout)}" for feature_name, rollout in rollouts.items()]
@@ -440,7 +451,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
             if days is not None:
                 return await self.event.reply(_("Usage: /op_ff ^days=<days> <feature> <value>"))
 
-            rollout = await get_rollout(feature)
+            rollout = await get_rollout(feature, redis=self.services.redis)
             if rollout is None:
                 return await self.event.reply(
                     Template(_("No rollout is set for {feature}."), feature=Code(feature)).to_html()
@@ -454,7 +465,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
             )
 
         if raw_value.strip().lower() == "unset":
-            await delete_rollout(feature)
+            await delete_rollout(feature, redis=self.services.redis)
             return await self.event.reply(Template(_("{feature} rollout deleted."), feature=Code(feature)).to_html())
 
         if rollout_percentage is _ROLLOUT_LIST_SENTINEL:
@@ -467,12 +478,12 @@ class FeatureFlagsHandler(SophieMessageHandler):
             return await _reply_invalid_feature_value(self.event, feature, value)
 
         if days is not None:
-            await set_timed_rollout(feature, days, value)
+            await set_timed_rollout(feature, days, value, redis=self.services.redis)
         else:
             percentage = cast(int, rollout_percentage)
-            await set_rollout(feature, percentage, value)
+            await set_rollout(feature, percentage, value, redis=self.services.redis)
 
-        current = await get_rollout(feature)
+        current = await get_rollout(feature, redis=self.services.redis)
         if current is None:
             return await self.event.reply(_("Rollout was not saved."))
         return await self.event.reply(
@@ -485,7 +496,7 @@ class FeatureFlagsHandler(SophieMessageHandler):
 
     async def _handle_rollout_bump(self, feature: FeatureType, percentage: int) -> Any:
         try:
-            rollout = await bump_rollout(feature, percentage)
+            rollout = await bump_rollout(feature, percentage, redis=self.services.redis)
         except ValueError:
             return await self.event.reply(
                 Template(_("No rollout is set for {feature}."), feature=Code(feature)).to_html()

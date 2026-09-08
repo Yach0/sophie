@@ -8,8 +8,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from sophie_bot.shared.actions import StoredAction
-from sophie_bot.utils.feature_flags import set_enabled
-from tests.e2e.helpers import get_wizard_session_id, grant_admin
+from tests.e2e.helpers import get_wizard_session_id, grant_admin, set_feature
 
 
 @pytest.mark.asyncio
@@ -26,7 +25,7 @@ async def test_warnaction_requires_restrict_admin_rights(test_client: TestClient
 
 @pytest.mark.asyncio
 async def test_warnaction_is_silent_when_wizard_flag_is_disabled(test_client: TestClient) -> None:
-    await set_enabled("action_config_wizard", False)
+    await set_feature(test_client, "action_config_wizard", False)
     try:
         group_chat = ChatFactory.create_group(chat_id=-1002600000005, title="Warn Action Disabled")
         user_wrapper = test_client.create_user(user_id=926000005, first_name="WarnAdmin", username="warn_admin")
@@ -36,7 +35,7 @@ async def test_warnaction_is_silent_when_wizard_flag_is_disabled(test_client: Te
         requests = await test_client.send_command(command="warnaction", from_user=user_wrapper.user, chat=group_chat)
         assert not requests
     finally:
-        await set_enabled("action_config_wizard", True)
+        await set_feature(test_client, "action_config_wizard", True)
 
 
 @pytest.mark.asyncio

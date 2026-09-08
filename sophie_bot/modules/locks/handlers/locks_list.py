@@ -54,7 +54,11 @@ class LocksListHandler(SophieMessageHandler):
             KeyValue(
                 Code(filter_item.handler),
                 Section(
-                    filter_action_text(filter_item.action, list(filter_item.actions.keys())),
+                    filter_action_text(
+                        filter_item.action,
+                        list(filter_item.actions),
+                        self.services.modules.actions,
+                    ),
                     title=get_lock_description(filter_item.handler),
                     title_postfix=" -> ",
                     title_underline=False,

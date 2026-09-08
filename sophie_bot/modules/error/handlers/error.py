@@ -63,7 +63,7 @@ class SophieErrorHandler(ErrorHandler):
 
         # Global exponential backoff via Redis: suppress repeated crash notifications
         signature = compute_error_signature(sys_exception)
-        notify = await should_notify(signature)
+        notify = await should_notify(signature, redis=self.data["services"].redis)
         if not notify:
             log.info("Suppressing error notification", signature=signature)
             return

@@ -1,3 +1,4 @@
+from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
@@ -11,7 +12,14 @@ from sophie_bot.modules.welcomesecurity.utils_.send_captcha import send_captcha_
 from sophie_bot.utils.i18n import gettext as _
 
 
-async def captcha_send_rules(message: Message, rules: RulesModel, chat_iid: PydanticObjectId, is_join_request: bool):
+async def captcha_send_rules(
+    message: Message,
+    rules: RulesModel,
+    chat_iid: PydanticObjectId,
+    is_join_request: bool,
+    *,
+    bot: Bot,
+) -> Message | bool | None:
     captcha = EmojiCaptcha()
     captcha.show_emoji("🪧")
 
@@ -33,7 +41,18 @@ async def captcha_send_rules(message: Message, rules: RulesModel, chat_iid: Pyda
         # Captions can't be longer than 1024, send a normal message text instead this time
         # Or a file
         return await send_saveable(
-            message, message.chat.id, rules, title=title, additional_keyboard=buttons.as_markup()
+            message,
+            message.chat.id,
+            rules,
+            title=title,
+            additional_keyboard=buttons.as_markup(),
+            bot=bot,
         )
 
-    return await send_captcha_message(message, captcha, str(doc), reply_markup=buttons.as_markup())
+    return await send_captcha_message(
+        message,
+        captcha,
+        str(doc),
+        reply_markup=buttons.as_markup(),
+        bot=bot,
+    )

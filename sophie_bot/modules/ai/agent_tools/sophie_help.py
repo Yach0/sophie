@@ -8,7 +8,6 @@ from stfu_tg.doc import Element
 from sophie_bot.config import CONFIG
 from sophie_bot.metrics import track_ai_tool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -47,8 +46,9 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
     if page:
         return _read_page(page)
 
+    help_modules = ctx.deps.services.modules.help_modules
     async with track_ai_tool("sophie_help"):
-        if not HELP_MODULES:
+        if not help_modules:
             return _("No modules found.")
 
         doc = Doc(
@@ -77,7 +77,7 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
         )
 
         modules_sections: list[Element] = []
-        for module_name, module_help in HELP_MODULES.items():
+        for module_name, module_help in help_modules.items():
             module_info_parts = [
                 KeyValue(_("Name"), str(module_help.name)),
                 KeyValue(_("Icon"), module_help.icon),

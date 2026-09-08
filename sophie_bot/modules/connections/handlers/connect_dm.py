@@ -15,6 +15,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.connections.utils.connection import (
     check_connection_permissions,
     get_connection_text,
@@ -47,7 +48,7 @@ class ConnectDMCmd(SophieMessageHandler):
     async def handle(self):
         if not self.event.from_user:
             return
-        user_db: ChatModel = self.data["user_db"]
+        user_db: ChatModel = self.data["context"].actor
 
         # If chat arg is provided
         if chat_arg := self.data.get("chat"):
@@ -62,7 +63,9 @@ class ConnectDMCmd(SophieMessageHandler):
         conn = await ChatConnectionModel.get_by_user_tid(self.event.from_user.id)
 
         obsolete_notice: str | LazyProxy | Element | None = (
-            CONNECTION_OBSOLETE_NOTICE if await is_enabled("connection_webapp_notice") else None
+            CONNECTION_OBSOLETE_NOTICE
+            if await is_enabled("connection_webapp_notice", redis=self.services.redis)
+            else None
         )
 
         doc = Doc(
@@ -87,9 +90,16 @@ class ConnectDMCmd(SophieMessageHandler):
         buttons.adjust(1)
         await self.event.reply(str(doc), reply_markup=buttons.as_markup())
 
-    async def do_connect(self, user_id: int, chat_id: int):
-        await set_connected_chat(user_id, chat_id)
-        text = await get_connection_text(chat_id)
+    async def do_connect(self, user_id: int, chat_id: int) -> None:
+        await set_connected_chat(user_id, chat_id, redis=self.services.redis)
+        connection = await ConnectionsMiddleware.get_chat_from_db(
+            chat_id,
+            is_connected=True,
+        )
+        if connection is not None:
+            self.context.connection = connection
+            self.context.target_chat = connection.db_model
+        text = await get_connection_text(chat_id, redis=self.services.redis)
         markup = get_disconnect_markup()
         await self.event.reply(str(text), reply_markup=markup)
 
@@ -100,7 +110,7 @@ class ConnectCallback(SophieCallbackQueryHandler):
         return (ConnectToChatCb.filter(),)
 
     async def handle(self):
-        user_db: ChatModel = self.data["user_db"]
+        user_db: ChatModel = self.data["context"].actor
         chat_tid = self.data["callback_data"].chat_id
 
         chat = await ChatModel.get_by_tid(chat_tid)
@@ -113,8 +123,15 @@ class ConnectCallback(SophieCallbackQueryHandler):
             await self.event.answer(_("You are not allowed to connect to this chat."), show_alert=True)
             return
 
-        await set_connected_chat(self.event.from_user.id, chat_tid)
-        text = await get_connection_text(chat_tid)
+        await set_connected_chat(self.event.from_user.id, chat_tid, redis=self.services.redis)
+        connection = await ConnectionsMiddleware.get_chat_from_db(
+            chat_tid,
+            is_connected=True,
+        )
+        if connection is not None:
+            self.context.connection = connection
+            self.context.target_chat = connection.db_model
+        text = await get_connection_text(chat_tid, redis=self.services.redis)
         markup = get_disconnect_markup()
 
         if self.event.message:

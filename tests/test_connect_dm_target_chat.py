@@ -11,6 +11,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.connections.handlers import connect_dm
 from sophie_bot.modules.connections.handlers.connect_dm import ConnectCallback, ConnectDMCmd
 
@@ -44,7 +45,7 @@ async def _build_scenario() -> tuple[ChatModel, ChatModel, ChatModel]:
 
 
 def _connected_to(chat: ChatModel) -> ChatConnection:
-    """What ConnectionsMiddleware puts in data['connection'] for a connected user: the CONNECTED CHAT."""
+    """Build the connected-chat value held by RequestContext."""
     return ChatConnection(
         type=chat.type,
         is_connected=True,
@@ -72,18 +73,32 @@ def permission_probe(monkeypatch: pytest.MonkeyPatch) -> list[tuple[PydanticObje
 
 @pytest.mark.asyncio
 async def test_connect_cmd_checks_permissions_for_the_user_not_the_connected_chat(
-    db_init: Any, permission_probe: list[tuple[PydanticObjectId, PydanticObjectId]]
+    db_init: Any,
+    permission_probe: list[tuple[PydanticObjectId, PydanticObjectId]],
+    test_redis: Any,
 ) -> None:
     del db_init
     user, chat_a, chat_b = await _build_scenario()
 
     event = SimpleNamespace(from_user=User(id=USER_TID, is_bot=False, first_name="Connector"), reply=AsyncMock())
-    handler = ConnectDMCmd(event, user_db=user, connection=_connected_to(chat_a), chat=chat_b)
+    handler = ConnectDMCmd(
+        event,
+        context=RequestContext(
+            actor=user,
+            connection=_connected_to(chat_a),
+        ),
+        services=SimpleNamespace(redis=test_redis),
+        chat=chat_b,
+    )
 
     await handler.handle()
 
     assert permission_probe == [(chat_b.iid, user.iid)]
-    connect_dm.set_connected_chat.assert_awaited_once_with(USER_TID, CHAT_B_TID)
+    connect_dm.set_connected_chat.assert_awaited_once_with(
+        USER_TID,
+        CHAT_B_TID,
+        redis=test_redis,
+    )
 
     replies = [call.args[0] for call in event.reply.await_args_list]
     assert not any("not allowed to connect" in reply for reply in replies), replies
@@ -91,7 +106,9 @@ async def test_connect_cmd_checks_permissions_for_the_user_not_the_connected_cha
 
 @pytest.mark.asyncio
 async def test_connect_callback_checks_permissions_for_the_user_not_the_connected_chat(
-    db_init: Any, permission_probe: list[tuple[PydanticObjectId, PydanticObjectId]]
+    db_init: Any,
+    permission_probe: list[tuple[PydanticObjectId, PydanticObjectId]],
+    test_redis: Any,
 ) -> None:
     del db_init
     user, chat_a, chat_b = await _build_scenario()
@@ -103,15 +120,22 @@ async def test_connect_callback_checks_permissions_for_the_user_not_the_connecte
     )
     handler = ConnectCallback(
         event,
-        user_db=user,
-        connection=_connected_to(chat_a),
+        context=RequestContext(
+            actor=user,
+            connection=_connected_to(chat_a),
+        ),
+        services=SimpleNamespace(redis=test_redis),
         callback_data=SimpleNamespace(chat_id=CHAT_B_TID),
     )
 
     await handler.handle()
 
     assert permission_probe == [(chat_b.iid, user.iid)]
-    connect_dm.set_connected_chat.assert_awaited_once_with(USER_TID, CHAT_B_TID)
+    connect_dm.set_connected_chat.assert_awaited_once_with(
+        USER_TID,
+        CHAT_B_TID,
+        redis=test_redis,
+    )
 
     alerts = [call.args[0] for call in event.answer.await_args_list]
     assert not any("not allowed to connect" in alert for alert in alerts), alerts

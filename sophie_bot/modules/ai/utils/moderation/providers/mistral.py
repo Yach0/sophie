@@ -5,6 +5,7 @@ from typing import Final, cast
 from mistralai.client.models.chatmoderationrequest import ChatModerationRequestInputs3
 from mistralai.client.models.moderationobject import ModerationObject
 from mistralai.client.models.moderationresponse import ModerationResponse
+from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
 from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
@@ -48,9 +49,14 @@ class MistralModerationProvider:
     name: str = "mistral"
     native_categories: tuple[NativeCategory, ...] = _NATIVE_CATEGORIES
 
-    async def classify(self, history: AIMessageHistory) -> dict[str, float]:
+    async def classify(
+        self,
+        history: AIMessageHistory,
+        *,
+        redis: Redis,
+    ) -> dict[str, float]:
         moderation_messages = cast(ChatModerationRequestInputs3, convert_to_moderation_format(history.to_moderation))
-        client = await get_mistral_client()
+        client = await get_mistral_client(redis=redis)
         response: ModerationResponse = await run_ai_request_with_retries(
             lambda: client.classifiers.moderate_chat_async(
                 inputs=moderation_messages,

@@ -6,11 +6,11 @@ from typing import cast
 
 import sentry_sdk
 from aiogram.types import Message
+from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
 _ELIGIBLE_KEY_TEMPLATE = "ai:proactive:{chat_tid}:eligible"
@@ -47,9 +47,14 @@ def is_candidate(message: MessageType) -> bool:
     )
 
 
-async def get_recent_candidates(chat_tid: int, settings: ProactiveReplySettings) -> tuple[MessageType, ...]:
+async def get_recent_candidates(
+    chat_tid: int,
+    settings: ProactiveReplySettings,
+    *,
+    redis: Redis,
+) -> tuple[MessageType, ...]:
     now = datetime.now(UTC)
-    messages = await get_cached_messages(chat_tid, now=now)
+    messages = await get_cached_messages(chat_tid, now=now, redis=redis)
     min_created_at = now - timedelta(seconds=settings.window_seconds)
     candidates = tuple(
         message
@@ -68,10 +73,16 @@ async def get_recent_candidates(chat_tid: int, settings: ProactiveReplySettings)
     return selected_candidates
 
 
-async def track_eligible_message(chat_tid: int, message: Message, settings: ProactiveReplySettings) -> int:
+async def track_eligible_message(
+    chat_tid: int,
+    message: Message,
+    settings: ProactiveReplySettings,
+    *,
+    redis: Redis,
+) -> int:
     key = eligible_key(chat_tid)
     cutoff_score = (datetime.now(UTC) - timedelta(seconds=settings.window_seconds)).timestamp()
-    async with aredis.pipeline(transaction=True) as pipe:
+    async with redis.pipeline(transaction=True) as pipe:
         await pipe.zadd(key, {str(message.message_id): message.date.timestamp()})  # type: ignore[misc]
         await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
         await pipe.expire(key, _PROCESSED_TTL_SECONDS, lt=True)
@@ -88,22 +99,30 @@ async def track_eligible_message(chat_tid: int, message: Message, settings: Proa
     return tracked_count
 
 
-async def clear_tracked_messages(chat_tid: int, messages: tuple[MessageType, ...]) -> None:
+async def clear_tracked_messages(
+    chat_tid: int,
+    messages: tuple[MessageType, ...],
+    *,
+    redis: Redis,
+) -> None:
     if not messages:
         return
     key = eligible_key(chat_tid)
-    await aredis.zrem(key, *(str(message.message_id) for message in messages))
+    await redis.zrem(key, *(str(message.message_id) for message in messages))
     log_proactive_info("Proactive AI tracked messages cleared", chat_id=chat_tid, message_count=len(messages))
 
 
-async def acquire_lock(chat_tid: int) -> bool:
+async def acquire_lock(chat_tid: int, *, redis: Redis) -> bool:
     acquired = bool(
-        await cast(Awaitable[bool | None], aredis.set(lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True))
+        await cast(
+            Awaitable[bool | None],
+            redis.set(lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True),
+        )
     )
     log_proactive_info("Proactive AI lock state resolved", chat_id=chat_tid, acquired=acquired)
     return acquired
 
 
-async def release_lock(chat_tid: int) -> None:
-    await aredis.delete(lock_key(chat_tid))
+async def release_lock(chat_tid: int, *, redis: Redis) -> None:
+    await redis.delete(lock_key(chat_tid))
     log_proactive_info("Proactive AI lock released", chat_id=chat_tid)

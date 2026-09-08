@@ -25,7 +25,7 @@ class PMNotesStatus(SophieMessageHandler):
         return CMDFilter(("pmnotes", "privatenotes")), ~ChatTypeFilter("private")
 
     async def handle(self) -> Any:
-        connection: ChatConnection = self.data["connection"]
+        connection: ChatConnection = self.connection
 
         if not connection.db_model:
             raise SophieException("Chat has no database model saved.")
@@ -62,7 +62,7 @@ class PMNotesControl(SophieMessageHandler):
 
     async def handle(self) -> Any:
         new_state: bool = self.data["new_state"]
-        connection: ChatConnection = self.data["connection"]
+        connection: ChatConnection = self.connection
 
         if not connection.db_model:
             raise SophieException("Chat has no database model saved.")

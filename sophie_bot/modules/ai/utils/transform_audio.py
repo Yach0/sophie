@@ -1,13 +1,14 @@
 from io import BufferedReader, BytesIO
 from typing import BinaryIO
 
+from aiogram import Bot
 from aiogram.types import Voice
+from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
-from sophie_bot.services.bot import bot
 
 
-async def transform_voice_to_text(voice: Voice) -> str:
+async def transform_voice_to_text(voice: Voice, *, bot: Bot, redis: Redis) -> str:
     downloaded_audio: BinaryIO | None = await bot.download(voice.file_id)
 
     if downloaded_audio is None:
@@ -19,7 +20,7 @@ async def transform_voice_to_text(voice: Voice) -> str:
 
     audio_bytes = BufferedReader(BytesIO(raw_bytes))
 
-    client = await get_mistral_client()
+    client = await get_mistral_client(redis=redis)
     resp = await client.audio.transcriptions.complete_async(
         model="voxtral-mini-latest",
         file={

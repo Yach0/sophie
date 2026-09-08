@@ -19,6 +19,7 @@ async def research_topic(ctx: RunContext[SophieAIToolContext], topic: str) -> Re
             topic,
             ctx.deps.connection,
             progress_callback=ctx.deps.research_progress_callback,
+            services=ctx.deps.services,
         )
 
 

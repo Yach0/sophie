@@ -50,7 +50,7 @@ class BaseLockToggleHandler(SophieMessageHandler):
         model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
         changed = await self._toggle_lock(model, lock_type)
 
-        await invalidate_locks_cache(connection.tid)
+        await invalidate_locks_cache(connection.tid, redis=self.services.redis)
 
         if changed:
             doc = Doc(

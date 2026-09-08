@@ -47,7 +47,7 @@ class FederationImportHandler(FederationCommandHandler):
             await self.event.reply(_("Please upload a CSV file (ending with .csv)."))
             return
 
-        user_db = await require_acting_user(self.event, self.data)
+        user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
 

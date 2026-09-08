@@ -1,13 +1,12 @@
-from types import ModuleType
+from __future__ import annotations
 
 from aiogram import Router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from sophie_bot.modes import SOPHIE_MODE
-from sophie_bot.modules import ModuleManifest
+from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
     LegacyButtonAction,
-    register_legacy_button_actions,
 )
 from sophie_bot.modules.welcomesecurity.handlers.captcha_confirm import (
     CaptchaConfirmHandler,
@@ -37,27 +36,28 @@ from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import (
     LockMutedUsers,
 )
 from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
-from sophie_bot.services.scheduler import scheduler
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 router = Router(name="welcomesecurity")
 
 
-register_legacy_button_actions(LegacyButtonAction("welcomesecurity", LEGACY_WELCOME_SECURITY_BUTTON_PREFIX))
-
-
-async def pre_setup() -> None:
+async def setup_bot(router: Router, _services: ApplicationServices) -> None:
     router.message.outer_middleware(LockMutedUsers())
 
 
-async def post_setup(_modules: dict[str, ModuleType]) -> None:
-    if SOPHIE_MODE == "scheduler":
-        scheduler.add_job(KickUnpassedUsers().handle, "interval", minutes=10, jobstore="ram")
+def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
+    scheduler.add_job(
+        track_scheduler_callback(KickUnpassedUsers(services).handle, services),
+        "interval",
+        minutes=10,
+        jobstore="ram",
+    )
 
 
 module_manifest = ModuleManifest(
     name="welcomesecurity",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         CaptchaGetHandler,
         LegacyWSButtonHandler,
@@ -70,8 +70,9 @@ module_manifest = ModuleManifest(
         WelcomeSecuritySettingsShowHandler,
         LegacyStableWSButtonRedirectHandler,
     ),
-    pre_setup=pre_setup,
-    post_setup=post_setup,
+    setup_bot=setup_bot,
+    setup_scheduler=setup_scheduler,
+    legacy_buttons=(LegacyButtonAction("welcomesecurity", LEGACY_WELCOME_SECURITY_BUTTON_PREFIX),),
     title=l_("Welcome Security"),
     emoji="🛡️",
     description=l_("Protect your chat from bots and verify new users"),

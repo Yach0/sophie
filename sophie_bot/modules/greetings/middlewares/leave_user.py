@@ -26,7 +26,7 @@ class LeaveUserMiddleware(BaseMiddleware):
                 # TODO: Delete chat data?
                 raise SkipHandler
 
-            chat_db = data["chat_db"]
+            chat_db = data["context"].event_chat
             db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
 
             # Cleanservice

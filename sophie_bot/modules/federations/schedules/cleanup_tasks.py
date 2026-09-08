@@ -9,6 +9,7 @@ from sophie_bot.constants import FEDERATION_EXPORT_TTL_DAYS, FEDERATION_TASK_STA
 from sophie_bot.db.models.federations import FederationTask
 from sophie_bot.db.models.federations_enums import TaskStatus
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.logger import log
 
 _ORPHANED_TASK_ERROR = "The scheduler stopped while the task was running"
@@ -17,13 +18,15 @@ _ORPHANED_TASK_ERROR = "The scheduler stopped while the task was running"
 class CleanupOldTasks:
     """Scheduler job that reaps orphaned federation tasks and expires finished ones."""
 
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
+
     async def handle(self) -> None:
         """Reap orphaned tasks, then clean up old completed ones."""
         await self._fail_orphaned_tasks()
         await self._delete_expired_tasks()
 
-    @staticmethod
-    async def _fail_orphaned_tasks() -> None:
+    async def _fail_orphaned_tasks(self) -> None:
         """Fail tasks whose worker died mid-run, so their message never hangs forever.
 
         Only PENDING tasks are ever picked up, so a task left in PROCESSING by a restarted
@@ -48,7 +51,11 @@ class CleanupOldTasks:
             task.error_message = _ORPHANED_TASK_ERROR
             task.completed_at = datetime.now(UTC)
             await task.save()
-            await notify_task_failed(task, _ORPHANED_TASK_ERROR)
+            await notify_task_failed(
+                task,
+                _ORPHANED_TASK_ERROR,
+                bot=self.services.bot,
+            )
 
         if orphaned:
             log.warning("Failed orphaned federation tasks", count=len(orphaned))

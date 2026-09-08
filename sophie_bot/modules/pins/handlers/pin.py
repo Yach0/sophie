@@ -7,7 +7,6 @@ from ass_tg.types import EqualsArg, OptionalArg
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS
-from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -42,7 +41,7 @@ class PinHandler(SophieMessageHandler):
         disable_notification = not loud
 
         try:
-            await bot.pin_chat_message(
+            await self.services.bot.pin_chat_message(
                 chat_id=message.chat.id,
                 message_id=message.reply_to_message.message_id,
                 disable_notification=disable_notification,

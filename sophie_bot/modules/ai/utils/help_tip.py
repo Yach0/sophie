@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiogram.enums import ChatType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
+from redis.asyncio import Redis
 from stfu_tg import Doc, Italic
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -22,7 +23,11 @@ def _used_help_tool(message_history: list[ModelRequest | ModelResponse]) -> bool
 
 
 async def should_offer_help_mode(
-    message: Message, mode: AIMode, message_history: list[ModelRequest | ModelResponse]
+    message: Message,
+    mode: AIMode,
+    message_history: list[ModelRequest | ModelResponse],
+    *,
+    redis: Redis,
 ) -> bool:
     """Whether to point the user at the Sophie-help assistant after a documentation answer.
 
@@ -31,7 +36,7 @@ async def should_offer_help_mode(
     """
     if mode is AIMode.sophie_help or not _used_help_tool(message_history):
         return False
-    return not await is_sophie_inspect_chat(message.chat.id)
+    return not await is_sophie_inspect_chat(message.chat.id, redis=redis)
 
 
 def build_help_mode_tip() -> Doc:

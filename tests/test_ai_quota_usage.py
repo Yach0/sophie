@@ -32,7 +32,7 @@ async def _create_chat(chat_tid: int, title: str) -> ChatModel:
 
 
 @pytest.mark.asyncio
-async def test_charge_ai_usage_weights_credits_by_model_price(db_init: object) -> None:
+async def test_charge_ai_usage_weights_credits_by_model_price(db_init: object, test_redis: object, test_services: object) -> None:
     cheap_chat = await _create_chat(-1001001, "Cheap")
     expensive_chat = await _create_chat(-1001002, "Expensive")
     usage = SimpleNamespace(total_tokens=200, request_tokens=100, response_tokens=100)
@@ -43,12 +43,8 @@ async def test_charge_ai_usage_weights_credits_by_model_price(db_init: object) -
             AsyncMock(side_effect=[(0.15, 0.60), (0.40, 4.00)]),
         )
 
-        await charge_ai_usage(
-            cheap_chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage
-        )
-        await charge_ai_usage(
-            expensive_chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="openai/gpt-5-mini"), usage
-        )
+        await charge_ai_usage(cheap_chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage, redis=test_redis)
+        await charge_ai_usage(expensive_chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="openai/gpt-5-mini"), usage, redis=test_redis)
 
     all_quotas = await AIQuotaModel.find_all().to_list()
     quotas_by_chat = {str(quota.chat.ref.id): quota for quota in all_quotas}
@@ -59,8 +55,10 @@ async def test_charge_ai_usage_weights_credits_by_model_price(db_init: object) -
 
 
 @pytest.mark.asyncio
-async def test_estimate_model_credit_cost_uses_openrouter_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_pricing_cache() -> dict[str, tuple[float | None, float | None]]:
+async def test_estimate_model_credit_cost_uses_openrouter_fallback(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+    async def fake_pricing_cache(
+        **kwargs: object,
+    ) -> dict[str, tuple[float | None, float | None]]:
         return {"custom/test-model": (0.30, 1.20)}
 
     monkeypatch.setattr(
@@ -68,12 +66,12 @@ async def test_estimate_model_credit_cost_uses_openrouter_fallback(monkeypatch: 
         fake_pricing_cache,
     )
 
-    credits = await estimate_model_credit_cost("custom/test-model", 200, 100, 100)
+    credits = await estimate_model_credit_cost("custom/test-model", 200, 100, 100, redis=test_redis)
     assert credits == 4
 
 
 @pytest.mark.asyncio
-async def test_checking_quota_resets_old_month_usage(db_init: object) -> None:
+async def test_checking_quota_resets_old_month_usage(db_init: object, test_redis: object, test_services: object) -> None:
     chat = await _create_chat(-1001003, "Reset")
     quota = AIQuotaModel(
         chat=chat,
@@ -90,7 +88,7 @@ async def test_checking_quota_resets_old_month_usage(db_init: object) -> None:
 
 
 @pytest.mark.asyncio
-async def test_quota_filter_notifies_only_once_per_period(db_init: object) -> None:
+async def test_quota_filter_notifies_only_once_per_period(db_init: object, test_redis: object, test_services: object) -> None:
     chat = await _create_chat(-1001004, "Exhausted")
     period_start = datetime.now(UTC).date().replace(day=1)
     period_end = datetime.now(UTC).date().replace(day=28) + timedelta(days=4)
@@ -117,7 +115,11 @@ async def test_quota_filter_notifies_only_once_per_period(db_init: object) -> No
         monkeypatch.setattr(
             "sophie_bot.modules.ai.filters.quota.AIQuotaModel.get_for_chat", AsyncMock(return_value=quota)
         )
-        await quota_filter(message, chat)
+        await quota_filter(
+            message,
+            SimpleNamespace(event_chat=chat),
+            test_services,
+        )
 
     with (
         pytest.MonkeyPatch.context() as monkeypatch,
@@ -135,7 +137,11 @@ async def test_quota_filter_notifies_only_once_per_period(db_init: object) -> No
         monkeypatch.setattr(
             "sophie_bot.modules.ai.filters.quota.AIQuotaModel.get_for_chat", AsyncMock(return_value=quota)
         )
-        await quota_filter(message, chat)
+        await quota_filter(
+            message,
+            SimpleNamespace(event_chat=chat),
+            test_services,
+        )
 
     assert message.reply.await_count == 1
     assert quota.exhausted_notified_period_start == period_start
@@ -143,13 +149,11 @@ async def test_quota_filter_notifies_only_once_per_period(db_init: object) -> No
 
 
 @pytest.mark.asyncio
-async def test_charge_ai_usage_records_requests_and_credits(db_init: object) -> None:
+async def test_charge_ai_usage_records_requests_and_credits(db_init: object, test_redis: object, test_services: object) -> None:
     chat = await _create_chat(-1001005, "Tracking")
     usage = SimpleNamespace(total_tokens=200, request_tokens=100, response_tokens=100)
 
-    await charge_ai_usage(
-        chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage
-    )
+    await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage, redis=test_redis)
 
     all_usages = await AIUsageModel.find_all().to_list()
     assert all_usages

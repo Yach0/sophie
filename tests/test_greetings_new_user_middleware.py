@@ -48,6 +48,21 @@ def _make_greetings(**overrides: Any) -> SimpleNamespace:
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
 
+def _data(
+    chat_db: object,
+    new_users: list[SimpleNamespace],
+    *,
+    bot: object | None = None,
+) -> dict[str, object]:
+    return {
+        "context": SimpleNamespace(event_chat=chat_db),
+        "new_users": new_users,
+        "services": SimpleNamespace(
+            bot=bot or object(),
+            redis=object(),
+        ),
+    }
+
 
 def _patch_common(monkeypatch: pytest.MonkeyPatch, greetings: SimpleNamespace, *, is_admin: bool) -> None:
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.Message", SimpleNamespace)
@@ -73,9 +88,18 @@ async def test_welcome_mute_restricts_the_new_member_not_the_adder(monkeypatch: 
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.on_welcomemute", on_welcomemute)
 
     with pytest.raises(SkipHandler):
-        await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
+        await NewUserMiddleware()(
+            AsyncMock(),
+            event,
+            _data(chat_db, new_users),
+        )
 
-    on_welcomemute.assert_awaited_once_with(CHAT_TID, JOINER_TID, "1h")
+    on_welcomemute.assert_awaited_once_with(
+        CHAT_TID,
+        JOINER_TID,
+        "1h",
+        bot=on_welcomemute.await_args.kwargs["bot"],
+    )
 
 
 @pytest.mark.asyncio
@@ -98,7 +122,11 @@ async def test_welcome_mute_restricts_every_joining_human(monkeypatch: pytest.Mo
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.on_welcomemute", on_welcomemute)
 
     with pytest.raises(SkipHandler):
-        await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
+        await NewUserMiddleware()(
+            AsyncMock(),
+            event,
+            _data(chat_db, new_users),
+        )
 
     muted_tids = sorted(call.args[1] for call in on_welcomemute.await_args_list)
     assert muted_tids == [JOINER_TID, 333]
@@ -119,7 +147,11 @@ async def test_welcome_fillings_resolve_to_the_joiner_not_the_adder(monkeypatch:
     monkeypatch.setattr("sophie_bot.modules.greetings.utils.send_welcome.send_saveable", send_saveable)
 
     with pytest.raises(SkipHandler):
-        await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
+        await NewUserMiddleware()(
+            AsyncMock(),
+            event,
+            _data(chat_db, new_users),
+        )
 
     assert send_saveable.await_args.kwargs["user"] is joiner
 
@@ -142,7 +174,11 @@ async def test_security_note_fillings_resolve_to_the_joiner(monkeypatch: pytest.
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.send_welcome", send_welcome)
 
     with pytest.raises(SkipHandler):
-        await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
+        await NewUserMiddleware()(
+            AsyncMock(),
+            event,
+            _data(chat_db, new_users),
+        )
 
     assert send_welcome.await_args.kwargs["user"] is joiner
 
@@ -159,9 +195,16 @@ async def test_join_request_joins_are_still_cleaned_up(monkeypatch: pytest.Monke
     handler = AsyncMock(return_value="handled")
     _patch_common(monkeypatch, greetings, is_admin=False)
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.NewUserMiddleware.is_join_request", AsyncMock(return_value=True))
-    monkeypatch.setattr(f"{MIDDLEWARE_PATH}.bot", SimpleNamespace(delete_messages=delete_messages))
 
-    result = await NewUserMiddleware()(handler, event, {"chat_db": chat_db, "new_users": new_users})
+    result = await NewUserMiddleware()(
+        handler,
+        event,
+        _data(
+            chat_db,
+            new_users,
+            bot=SimpleNamespace(delete_messages=delete_messages),
+        ),
+    )
 
     assert result == "handled"
     handler.assert_awaited_once()

@@ -14,7 +14,12 @@ async def sophie_inspect(ctx: RunContext[SophieAIToolContext], question: str) ->
         question: One specific question about Sophie's behaviour, in full, as the user asked it.
     """
     async with track_ai_tool("sophie_inspect"):
-        return await run_sophie_inspect(question, ctx.deps.chat_iid, ctx.deps.chat_tid)
+        return await run_sophie_inspect(
+            question,
+            ctx.deps.chat_iid,
+            ctx.deps.chat_tid,
+            services=ctx.deps.services,
+        )
 
 
 sophie_inspect_tool = Tool(

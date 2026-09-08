@@ -13,9 +13,9 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_core import PydanticSerializationError
+from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
 
@@ -116,26 +116,32 @@ def extract_tool_exchanges(
     return exchanges
 
 
-async def _trim_tool_history(chat_tid: int) -> None:
+async def _trim_tool_history(chat_tid: int, *, redis: Redis) -> None:
     key = tool_history_key(chat_tid)
-    raw_fields = await aredis.hkeys(key)  # type: ignore[misc]
+    raw_fields = await redis.hkeys(key)  # type: ignore[misc]
     message_ids = sorted(int(field) for raw_field in raw_fields if (field := _decode_field(raw_field)).isdigit())
     if len(message_ids) <= TOOL_HISTORY_RUN_LIMIT:
         return
-    await aredis.hdel(key, *(str(message_id) for message_id in message_ids[:-TOOL_HISTORY_RUN_LIMIT]))  # type: ignore[misc]
+    await redis.hdel(key, *(str(message_id) for message_id in message_ids[:-TOOL_HISTORY_RUN_LIMIT]))  # type: ignore[misc]
 
 
-async def store_tool_exchanges(chat_tid: int, message_id: int, exchanges: Sequence[ToolExchange]) -> None:
+async def store_tool_exchanges(
+    chat_tid: int,
+    message_id: int,
+    exchanges: Sequence[ToolExchange],
+    *,
+    redis: Redis,
+) -> None:
     """Persist the tool exchanges that produced the answer sent as ``message_id``."""
     if not exchanges:
         return
     key = tool_history_key(chat_tid)
     payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
-    async with aredis.pipeline(transaction=True) as pipe:
+    async with redis.pipeline(transaction=True) as pipe:
         await pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
         await pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
         await pipe.execute()
-    await _trim_tool_history(chat_tid)
+    await _trim_tool_history(chat_tid, redis=redis)
 
 
 def _parse_tool_exchanges(chat_tid: int, field: str, raw_payload: bytes | str) -> list[ToolExchange] | None:
@@ -154,10 +160,10 @@ def _parse_tool_exchanges(chat_tid: int, field: str, raw_payload: bytes | str) -
         return None
 
 
-async def get_tool_exchanges(chat_tid: int) -> dict[int, list[ToolExchange]]:
+async def get_tool_exchanges(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
     """Stored tool exchanges of a chat, keyed by the bot message the answer was sent as."""
     key = tool_history_key(chat_tid)
-    raw_exchanges = await aredis.hgetall(key)  # type: ignore[misc]
+    raw_exchanges = await redis.hgetall(key)  # type: ignore[misc]
 
     exchanges: dict[int, list[ToolExchange]] = {}
     unusable: list[str] = []
@@ -171,19 +177,19 @@ async def get_tool_exchanges(chat_tid: int) -> dict[int, list[ToolExchange]]:
 
     # Pruned right away so a poisoned entry costs one warning instead of one per reply.
     if unusable:
-        await aredis.hdel(key, *unusable)  # type: ignore[misc]
+        await redis.hdel(key, *unusable)  # type: ignore[misc]
     return exchanges
 
 
-async def reset_tool_exchanges(chat_tid: int) -> None:
+async def reset_tool_exchanges(chat_tid: int, *, redis: Redis) -> None:
     """Drops every stored tool exchange of a chat."""
-    await aredis.delete(tool_history_key(chat_tid))
+    await redis.delete(tool_history_key(chat_tid))
 
 
-async def load_chatbot_tool_history(chat_tid: int) -> dict[int, list[ToolExchange]]:
-    if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid):
+async def load_chatbot_tool_history(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
+    if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
         return {}
-    return await get_tool_exchanges(chat_tid)
+    return await get_tool_exchanges(chat_tid, redis=redis)
 
 
 async def remember_chatbot_tool_history(
@@ -191,6 +197,8 @@ async def remember_chatbot_tool_history(
     message_id: int,
     message_history: Sequence[ToolExchange],
     previous_history: Sequence[ToolExchange],
+    *,
+    redis: Redis,
 ) -> None:
     """Store the tool exchanges a finished chatbot run performed, excluding replayed ones.
 
@@ -198,15 +206,21 @@ async def remember_chatbot_tool_history(
     part the serializer cannot dump may only cost the next run its replay, never the request.
     """
     try:
-        if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid):
+        if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
             return
-        max_content_chars = int(await get_value("ai_chatbot_tool_history_max_chars", chat_tid=chat_tid))
+        max_content_chars = int(
+            await get_value(
+                "ai_chatbot_tool_history_max_chars",
+                chat_tid=chat_tid,
+                redis=redis,
+            )
+        )
         exchanges = extract_tool_exchanges(
             message_history,
             max_content_chars=max_content_chars,
             skip_tool_call_ids=collect_tool_call_ids(previous_history),
         )
-        await store_tool_exchanges(chat_tid, message_id, exchanges)
+        await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
     except (RedisError, PydanticSerializationError) as err:
         log.warning(
             "Failed to store the AI tool call history",

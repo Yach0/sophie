@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
+from typing import Any
 
 from sophie_bot.db.models.antiflood import AntifloodModel
-from sophie_bot.modules.filters.utils_.action_duration import resolve_action_duration
+from sophie_bot.shared.action_registry import resolve_action_duration
+from sophie_bot.shared.actions import ActionDefinition
 
 FLOOD_COUNT_KEY = "antiflood:count:{chat_id}:{user_id}"
 FLOOD_STATE_KEY = "antiflood:state:{chat_id}"
@@ -19,9 +22,12 @@ def get_action_name(settings: AntifloodModel) -> str:
     return DEFAULT_ACTION_NAME
 
 
-def get_action_duration(settings: AntifloodModel) -> timedelta | None:
+def get_action_duration(
+    settings: AntifloodModel,
+    actions: Mapping[str, ActionDefinition[Any]],
+) -> timedelta | None:
     if not settings.actions:
         return DEFAULT_MUTE_DURATION
 
     action = settings.actions[0]
-    return resolve_action_duration(action.name, action.data)
+    return resolve_action_duration(actions, action.name, action.data)

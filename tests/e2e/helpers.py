@@ -235,15 +235,21 @@ async def leave_group(test_client: TestClient, group: Chat, member: User) -> lis
     return await _feed(test_client, message)
 
 
-async def set_feature(feature: str, enabled: bool, *, chat_tid: int | None = None) -> None:
-    """Persist a real feature-flag override, instead of patching `is_enabled` at call sites.
-
-    A global override when `chat_tid` is None, otherwise a per-chat one. Both go through the
-    production setters so the Redis cache stays consistent. Cleared automatically between tests:
-    FeatureFlagOverride is a registered Beanie model that the autouse `clean_db` truncates, and
-    the cache lives on `aredis`, which `reset_redis` flushes.
-    """
+async def set_feature(
+    test_client: TestClient,
+    feature: str,
+    enabled: bool,
+    *,
+    chat_tid: int | None = None,
+) -> None:
+    """Persist an override through production storage and the client's Redis cache."""
+    redis = test_client.dispatcher.workflow_data["services"].redis
     if chat_tid is None:
-        await feature_flags.set_value(feature, enabled)
+        await feature_flags.set_value(feature, enabled, redis=redis)
     else:
-        await feature_flags.set_chat_override(feature, chat_tid, enabled)
+        await feature_flags.set_chat_override(
+            feature,
+            chat_tid,
+            enabled,
+            redis=redis,
+        )

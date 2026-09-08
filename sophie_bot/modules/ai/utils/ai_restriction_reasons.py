@@ -15,6 +15,7 @@ from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
 
@@ -29,7 +30,7 @@ class AIReasonResponse(BaseModel):
     )
 
 
-async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
+async def should_generate_ai_reason(chat_db: ChatModel, *, services: ApplicationServices) -> bool:
     """Check if AI reason generation should be used.
 
     Args:
@@ -38,7 +39,11 @@ async def should_generate_ai_reason(chat_db: ChatModel) -> bool:
     Returns:
         True if AI reason generation should be used
     """
-    if not await is_enabled("ai_moderation_reasons", chat_tid=chat_db.tid):
+    if not await is_enabled(
+        "ai_moderation_reasons",
+        chat_tid=chat_db.tid,
+        redis=services.redis,
+    ):
         return False
 
     capabilities = await resolve_chat_capabilities(chat_db)
@@ -49,6 +54,8 @@ async def generate_restriction_reason(
     chat_db: ChatModel,
     message_text: str | None = None,
     include_rules: bool = True,
+    *,
+    services: ApplicationServices,
 ) -> str | None:
     """Generate a reason for a restriction using AI.
 
@@ -60,7 +67,7 @@ async def generate_restriction_reason(
     Returns:
         The generated reason string, or None if generation failed or no message text provided
     """
-    if not await should_generate_ai_reason(chat_db):
+    if not await should_generate_ai_reason(chat_db, services=services):
         return None
 
     # Only generate reason if there's a message to analyze
@@ -78,11 +85,17 @@ async def generate_restriction_reason(
                 rules_text = f"\n\nGroup Rules:\n{rules_content}"
 
     # Build the prompt
-    reason_prompt = str(await get_value("ai_moderation_reason_prompt", chat_tid=chat_db.tid))
+    reason_prompt = str(
+        await get_value(
+            "ai_moderation_reason_prompt",
+            chat_tid=chat_db.tid,
+            redis=services.redis,
+        )
+    )
     prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text, base_prompt=reason_prompt)
 
     # Generate AI response
-    history = AIMessageHistory()
+    history = AIMessageHistory(services=services)
     history.add_system(
         "You are a moderation assistant for a Telegram group management bot. "
         "Generate concise, professional reasons for user restrictions."
@@ -92,10 +105,15 @@ async def generate_restriction_reason(
     try:
         result = await run_structured_task(
             AIStructuredTask(output_type=AIReasonResponse),
-            await get_moderation_reason_model_plan(chat_db.iid, chat_tid=chat_db.tid),
+            await get_moderation_reason_model_plan(
+                chat_db.iid,
+                chat_tid=chat_db.tid,
+                redis=services.redis,
+            ),
             history,
             chat_iid=chat_db.iid,
             chat_tid=chat_db.tid,
+            redis=services.redis,
         )
     except AIRequestFailed as err:
         log.warning(

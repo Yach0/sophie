@@ -1,11 +1,11 @@
-from types import ModuleType
+from __future__ import annotations
 
 from aiogram import Router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stfu_tg import Doc
 
 from sophie_bot.constants import AI_EMOJI
-from sophie_bot.modes import SOPHIE_MODE
-from sophie_bot.modules import ModuleManifest
+from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.aimode import AIModeSelectCallback, AIModeSetting
@@ -31,7 +31,10 @@ from sophie_bot.modules.ai.handlers.research import ResearchCmd
 from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
 from sophie_bot.modules.ai.handlers.translate import AiTranslate
 from sophie_bot.modules.ai.handlers.usage import AiUsage
-from sophie_bot.modules.ai.magic_handlers.modern_action import AIReplyAction
+from sophie_bot.modules.ai.magic_handlers.modern_action import (
+    AIReplyAction,
+    build_action_wizard_specs,
+)
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.middlewares.ai_status import AiStatusMiddleware
 from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
@@ -45,24 +48,22 @@ from sophie_bot.modules.ai.middlewares.cache_user_messages import (
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
 from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
-from sophie_bot.services.scheduler import scheduler
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 from .api import api_router
 
-__all__ = [
-    "api_router",
-    "pre_setup",
-    "router",
-]
+__all__ = ["api_router", "router"]
 
 router = Router(name="ai")
 
 
-async def pre_setup() -> None:
-    await load_catalog()
+async def initialize(services: ApplicationServices) -> None:
+    await load_catalog(redis=services.redis)
 
+
+async def setup_bot(router: Router, services: ApplicationServices) -> None:
     router.message.outer_middleware(CacheUserMessagesMiddleware())
     router.message.middleware(CacheBotMessagesMiddleware())
     router.message.outer_middleware(AiModeratorMiddleware())
@@ -71,22 +72,21 @@ async def pre_setup() -> None:
     router.message.outer_middleware(AiAutoTranslateMiddleware())
 
 
-async def post_setup(_modules: dict[str, ModuleType]) -> None:
-    if SOPHIE_MODE == "scheduler":
-        scheduler.add_job(
-            GenerateChatSummaries().handle,
-            "cron",
-            hour=23,
-            minute=30,
-            timezone="UTC",
-            jobstore="ram",
-        )
+def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
+    scheduler.add_job(
+        track_scheduler_callback(GenerateChatSummaries(services).handle, services),
+        "cron",
+        hour=23,
+        minute=30,
+        timezone="UTC",
+        jobstore="ram",
+    )
 
 
 module_manifest = ModuleManifest(
     name="ai",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         OpAIStatsHandler,
         OpAIPricesHandler,
@@ -117,8 +117,9 @@ module_manifest = ModuleManifest(
         AiPmHandle,
         AiCmd,
     ),
-    pre_setup=pre_setup,
-    post_setup=post_setup,
+    initialize=initialize,
+    setup_bot=setup_bot,
+    setup_scheduler=setup_scheduler,
     title=l_("Sophie AI"),
     emoji=AI_EMOJI,
     description=l_("Rainbow sparkles and shininess"),
@@ -133,4 +134,5 @@ module_manifest = ModuleManifest(
         )
     ),
     modern_actions=(AIReplyAction,),
+    build_action_wizards=build_action_wizard_specs,
 )

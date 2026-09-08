@@ -25,7 +25,7 @@ from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.summary_transcript import SummaryTranscript, build_summary_transcript
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.services.sentry_metrics import count_metric
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -198,17 +198,37 @@ def _track_summary_metrics(
 
 
 class GenerateChatSummaries:
-    @staticmethod
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
+
     async def generate_summary_groups(
-        transcript: SummaryTranscript, chat_iid: PydanticObjectId, chat_tid: int
+        self,
+        transcript: SummaryTranscript,
+        chat_iid: PydanticObjectId,
+        chat_tid: int,
     ) -> AIChatSummaryGroups:
-        history = AIMessageHistory()
-        instructions = str(await get_value("ai_chat_summaries_prompt", chat_tid=chat_tid))
+        history = AIMessageHistory(services=self.services)
+        instructions = str(
+            await get_value(
+                "ai_chat_summaries_prompt",
+                chat_tid=chat_tid,
+                redis=self.services.redis,
+            )
+        )
         history.add_system(_("You summarize Telegram group discussions into structured topic lines."))
         history.add_custom(_build_summary_prompt(transcript, instructions), name="Transcript")
 
-        model_plan = await get_chat_summary_model_plan(chat_iid, chat_tid=chat_tid)
-        service_tier = await resolve_chat_service_tier(AIModelPurpose.summary, chat_iid, chat_tid)
+        model_plan = await get_chat_summary_model_plan(
+            chat_iid,
+            chat_tid=chat_tid,
+            redis=self.services.redis,
+        )
+        service_tier = await resolve_chat_service_tier(
+            AIModelPurpose.summary,
+            chat_iid,
+            chat_tid,
+            redis=self.services.redis,
+        )
         result = await run_structured_task(
             AIStructuredTask(output_type=AIChatSummaryGroups, feature=AI_FEATURE_CHATBOT),
             model_plan,
@@ -216,6 +236,7 @@ class GenerateChatSummaries:
             chat_iid=chat_iid,
             chat_tid=chat_tid,
             service_tier=service_tier,
+            redis=self.services.redis,
         )
         return result.output
 
@@ -250,10 +271,15 @@ class GenerateChatSummaries:
         log.warning("generate_chat_summaries: discarding summary after failed retry", chat=chat.tid)
         return None
 
-    @staticmethod
-    async def send_summary(chat_tid: int, summary_date: date, overview: str, lines: list[AIChatSummaryLine]) -> None:
-        header_style = await get_ai_header_style("summary", chat_tid)
-        await bot.send_message(
+    async def send_summary(
+        self,
+        chat_tid: int,
+        summary_date: date,
+        overview: str,
+        lines: list[AIChatSummaryLine],
+    ) -> None:
+        header_style = await get_ai_header_style("summary", chat_tid, redis=self.services.redis)
+        await self.services.bot.send_message(
             chat_tid,
             _build_summary_doc(chat_tid, summary_date, overview, lines, header_style).to_html(),
         )
@@ -278,7 +304,12 @@ class GenerateChatSummaries:
 
         current_time = now or datetime.now(UTC)
         window_start, window_end = _build_summary_window(current_time)
-        cached_messages = await get_cached_messages_between(chat.tid, window_start, window_end)
+        cached_messages = await get_cached_messages_between(
+            chat.tid,
+            window_start,
+            window_end,
+            redis=self.services.redis,
+        )
         if len(cached_messages) < 3:
             log.debug(
                 "generate_chat_summaries: not enough messages, skipping",
@@ -289,7 +320,11 @@ class GenerateChatSummaries:
             )
             return
 
-        anonymize = await is_enabled("ai_summary_improved_privacy", chat_tid=chat.tid)
+        anonymize = await is_enabled(
+            "ai_summary_improved_privacy",
+            chat_tid=chat.tid,
+            redis=self.services.redis,
+        )
         transcript = build_summary_transcript(cached_messages, anonymize=anonymize)
         groups = await self.generate_verified_summary_groups(transcript, chat, strict=anonymize)
         if groups is None:
@@ -346,12 +381,16 @@ class GenerateChatSummaries:
         current_time = datetime.now(UTC)
         summary_date = current_time.date()
         async for chat in ForChats():
-            if not await is_enabled("ai_chat_summaries", chat_tid=chat.tid):
+            if not await is_enabled(
+                "ai_chat_summaries",
+                chat_tid=chat.tid,
+                redis=self.services.redis,
+            ):
                 log.debug("generate_chat_summaries: feature flag disabled, skipping chat", chat=chat.tid)
                 continue
             if not (await resolve_chat_capabilities(chat)).message_cache:
                 log.debug("generate_chat_summaries: AI disabled for chat, skipping", chat=chat.tid)
                 continue
 
-            async with UseChatLanguage(chat.iid):
+            async with UseChatLanguage(chat.iid, locales=self.services.locales):
                 await self.process_chat(chat, summary_date, now=current_time)

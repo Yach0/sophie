@@ -9,7 +9,7 @@ from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.shared.actions import ModernActionABC, StoredAction
+from sophie_bot.shared.actions import ActionDefinition, StoredAction
 from sophie_bot.utils.i18n import LazyProxy
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class ActionWizardConfig[DRAFT: ActionDraft]:
     load_draft: Callable[[PydanticObjectId], Awaitable[DRAFT]] | None
     save_draft: Callable[[PydanticObjectId, DRAFT, CallbackQuery, ChatConnection], Awaitable[None]]
     min_actions: int = 0
-    action_filter: Callable[[ModernActionABC[Any]], bool] | None = None
+    action_filter: Callable[[ActionDefinition[Any]], bool] | None = None
     on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None
 
 
@@ -46,7 +46,7 @@ def model_action_wizard(
     done_message: str | LazyProxy,
     max_actions: int,
     min_actions: int = 0,
-    action_filter: Callable[[ModernActionABC[Any]], bool] | None = None,
+    action_filter: Callable[[ActionDefinition[Any]], bool] | None = None,
     on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None,
 ) -> ActionWizard[ActionDraft]:
     if max_actions <= 0:

@@ -9,6 +9,8 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatTopicModel, UserInGroupModel
 from sophie_bot.db.models.communities import CommunityModel
+from sophie_bot.middlewares.request_context import RequestContext
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.community_api import (
     CommunityChangeKind,
     extract_community_change,
@@ -84,13 +86,18 @@ class SaveChatsMiddleware(BaseMiddleware):
             await ChatTopicModel.ensure_topic(group, message.message_thread_id, name)
 
     @staticmethod
-    async def save_community(message: Message, group: ChatModel):
+    async def save_community(
+        message: Message,
+        group: ChatModel,
+        *,
+        services: ApplicationServices,
+    ) -> None:
         """Record community membership from Bot API 10.2 community service messages.
 
         Mirrors ``save_topic``: builds Sophie's own community→chats registry passively,
         since Telegram exposes no way to enumerate a community's chats.
         """
-        if not await is_enabled("communities", chat_tid=group.tid):
+        if not await is_enabled("communities", chat_tid=group.tid, redis=services.redis):
             return
 
         change = extract_community_change(message)
@@ -98,7 +105,11 @@ class SaveChatsMiddleware(BaseMiddleware):
             return
 
         if change.kind is CommunityChangeKind.ADDED:
-            community = change.community or await fetch_chat_community(group.tid)
+            community = change.community or await fetch_chat_community(
+                group.tid,
+                bot=services.bot,
+                redis=services.redis,
+            )
             if community is None:
                 return
             logger.debug("SaveChatsMiddleware: Saving community", group=group.tid, community_id=community.id)
@@ -128,15 +139,20 @@ class SaveChatsMiddleware(BaseMiddleware):
         user_in_group = await UserInGroupModel.ensure_user_in_group(current_user, current_group)
         return current_user, user_in_group
 
-    async def handle_message(self, message: Message, data: dict[str, Any]):
+    async def handle_message(
+        self,
+        message: Message,
+        data: dict[str, Any],
+        context: RequestContext,
+    ) -> None:
         logger.debug("SaveChatsMiddleware: Handling message", message_id=message.message_id, chat_id=message.chat.id)
         # Handle chat migrations
         # TODO: Make this update all data, so we won't need to call the next one
-        if await self._handle_migration(data, message):
+        if await self._handle_migration(context, message):
             return
 
         # Update current user and group
-        chat, _user = await self._handle_private_and_group_message(data, message)
+        chat, _user = await self._handle_private_and_group_message(context, message)
 
         if message.chat.type not in ("group", "supergroup"):
             return
@@ -150,7 +166,7 @@ class SaveChatsMiddleware(BaseMiddleware):
         await self.save_topic(message, chat)
 
         # Communities (Bot API 10.2)
-        await self.save_community(message, chat)
+        await self.save_community(message, chat, services=data["services"])
 
         # New chat members
         data["new_users"] = await self._handle_new_chat_members(message, chat)
@@ -159,16 +175,16 @@ class SaveChatsMiddleware(BaseMiddleware):
         await self._handle_left_chat_member(message, chat)
 
     @staticmethod
-    async def _handle_migration(data: dict, message: Message):
+    async def _handle_migration(context: RequestContext, message: Message) -> bool:
         if message.migrate_from_chat_id:
             logger.debug(
                 "SaveChatsMiddleware: Handling migration from chat",
                 old_id=message.migrate_from_chat_id,
                 new_id=message.chat.id,
             )
-            data["chat_db"] = data["group_db"] = await ChatModel.do_chat_migrate(
-                old_id=message.migrate_from_chat_id, new_chat=message.chat
-            )
+            migrated_chat = await ChatModel.do_chat_migrate(old_id=message.migrate_from_chat_id, new_chat=message.chat)
+            context.event_chat = migrated_chat
+            context.target_chat = migrated_chat
             return True
         if message.migrate_to_chat_id:
             logger.debug(
@@ -178,23 +194,30 @@ class SaveChatsMiddleware(BaseMiddleware):
             )
             # Save the current (old) chat before migration
             current_group = await ChatModel.upsert_group(message.chat)
-            data["chat_db"] = data["group_db"] = current_group
+            context.event_chat = current_group
+            context.target_chat = current_group
             return True
         return False
 
-    async def _handle_private_and_group_message(self, data: dict, message: Message) -> tuple[ChatModel, ChatModel]:
+    async def _handle_private_and_group_message(
+        self, context: RequestContext, message: Message
+    ) -> tuple[ChatModel, ChatModel]:
         """Returns current group/chat model"""
         if message.chat.type == "private" and message.from_user:
             logger.debug("SaveChatsMiddleware: Handling private message", user_id=message.from_user.id)
             user = await ChatModel.upsert_user(message.from_user)
-            data["chat_db"] = data["user_db"] = user
+            context.event_chat = user
+            context.target_chat = user
+            context.actor = user
             return user, user
         logger.debug("SaveChatsMiddleware: Handling group message", chat_id=message.chat.id)
         current_group = await ChatModel.upsert_group(message.chat)
-        data["chat_db"] = data["group_db"] = current_group
+        context.event_chat = current_group
+        context.target_chat = current_group
 
-        current_user, data["user_in_group"] = await self.update_from_user(message, current_group)
-        data["user_db"] = current_user
+        current_user, user_in_group = await self.update_from_user(message, current_group)
+        context.actor = current_user
+        context.user_in_group = user_in_group
 
         return current_group, current_user or current_group
 
@@ -245,16 +268,21 @@ class SaveChatsMiddleware(BaseMiddleware):
             await self._delete_user_in_chat_by_user_id(message.left_chat_member.id, group)
 
     @staticmethod
-    async def save_from_user(data: dict):
+    async def save_from_user(data: dict[str, Any], context: RequestContext) -> None:
         if not (from_user := data.get("event_from_user")):
             return
 
         logger.debug("SaveChatsMiddleware: Saving from user", user_id=from_user.id)
         user = await ChatModel.upsert_user(from_user)
-        data["chat_db"] = data["user_db"] = user
+        context.actor = user
+        event_chat = data.get("event_chat")
+        if event_chat:
+            persisted_chat = await ChatModel.get_by_tid(event_chat.id)
+            context.event_chat = persisted_chat
+            context.target_chat = persisted_chat
 
     @staticmethod
-    async def save_chat_join_request(join_request: ChatJoinRequest, data: dict[str, Any]) -> None:
+    async def save_chat_join_request(join_request: ChatJoinRequest, context: RequestContext) -> None:
         logger.debug(
             "SaveChatsMiddleware: Saving chat join request",
             chat_id=join_request.chat.id,
@@ -262,8 +290,9 @@ class SaveChatsMiddleware(BaseMiddleware):
         )
         chat = await ChatModel.upsert_group(join_request.chat)
         user = await ChatModel.upsert_user(join_request.from_user)
-        data["chat_db"] = data["group_db"] = chat
-        data["user_db"] = user
+        context.event_chat = chat
+        context.target_chat = chat
+        context.actor = user
 
     @staticmethod
     async def save_my_chat_member(event: ChatMemberUpdated) -> bool:
@@ -291,16 +320,18 @@ class SaveChatsMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         logger.debug("SaveChatsMiddleware: Incoming update", update_id=event.update_id)
+        context = RequestContext()
+        data["context"] = context
         if event.message:
-            await self.handle_message(event.message, data)
+            await self.handle_message(event.message, data, context)
         elif event.edited_message:
-            await self.handle_message(event.edited_message, data)
+            await self.handle_message(event.edited_message, data, context)
         elif event.edited_channel_post:
-            await self.handle_message(event.edited_channel_post, data)
+            await self.handle_message(event.edited_channel_post, data, context)
         elif any((event.callback_query, event.inline_query, event.poll_answer)):
-            await self.save_from_user(data)
+            await self.save_from_user(data, context)
         elif event.chat_join_request:
-            await self.save_chat_join_request(event.chat_join_request, data)
+            await self.save_chat_join_request(event.chat_join_request, context)
         elif event.my_chat_member:
             _continue = await self.save_my_chat_member(event.my_chat_member)
 

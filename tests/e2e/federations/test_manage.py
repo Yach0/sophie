@@ -330,7 +330,7 @@ async def test_delete_federation_via_service(test_client: TestClient) -> None:
     fed_id = federation.fed_id
 
     # Delete via service
-    await FederationManageService.delete_federation(federation)
+    await FederationManageService.delete_federation(federation, redis=test_client.dispatcher.workflow_data["services"].redis)
 
     deleted = await FederationManageService.get_federation_by_id(fed_id)
     assert deleted is None, "Federation should be deleted from the database"

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from babel.messages.extract import extract_from_file
@@ -24,6 +24,7 @@ from sophie_bot.modules.restrictions.actions.mute import MuteActionDataModel, Mu
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
 from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
+from sophie_bot.shared.actions import RestrictionResult
 
 # Actions typed ModernActionABC[None]: they take no data, so data_object must resolve to None
 # rather than raising AttributeError.
@@ -40,20 +41,45 @@ def _make_message(chat_tid: int = -100123, user_tid: int = 777, chat_title: str 
         caption=None,
         reply=AsyncMock(),
     )
+def _warn_action_data(message: SimpleNamespace) -> dict[str, Any]:
+    action = WarnModernAction()
+    return {
+        "context": SimpleNamespace(
+            event_chat=SimpleNamespace(tid=message.chat.id, iid="chat_iid"),
+            actor=SimpleNamespace(tid=777, iid="user_iid"),
+        ),
+        "services": SimpleNamespace(
+            modules=SimpleNamespace(
+                actions={action.definition.name: action.definition},
+                action_handlers={action.definition.name: action},
+            )
+        ),
+    }
 
 
-@pytest.mark.parametrize("action_cls", DATALESS_ACTIONS, ids=lambda cls: cls.name)
+
+
+@pytest.mark.parametrize(
+    "action_cls",
+    DATALESS_ACTIONS,
+    ids=lambda action_class: action_class.definition.name,
+)
 def test_dataless_actions_expose_data_object(action_cls: type) -> None:
-    assert action_cls().data_object is None
+    assert action_cls.definition.data_object is None
 
 
 def test_build_filter_action_catalog_handles_dataless_actions() -> None:
-    actions = {action.name: action for action in (cls() for cls in DATALESS_ACTIONS)}
+    actions = {
+        action_class.definition.name: action_class.definition
+        for action_class in DATALESS_ACTIONS
+    }
+    catalog = build_filter_action_catalog(actions)
 
-    with patch("sophie_bot.modules.filters.api.utils.ALL_MODERN_ACTIONS", actions):
-        catalog = build_filter_action_catalog()
-
-    assert {item.name for item in catalog} == {"send_rules", "kick_user", "delmsg"}
+    assert {item.name for item in catalog} == {
+        "send_rules",
+        "kick_user",
+        "delmsg",
+    }
     assert all(item.data_schema is None for item in catalog)
 
 
@@ -80,22 +106,31 @@ async def test_restriction_filter_action_translates_plain_message_id(
     expected_text: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    restriction_func = AsyncMock(return_value=True)
-    monkeypatch.setattr(action, "restriction_func", restriction_func)
-
+    execute_restriction_mock = AsyncMock(
+        return_value=RestrictionResult(
+            action=action.definition.restriction_action,
+            applied=True,
+        )
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.restrictions.actions.base.execute_restriction",
+        execute_restriction_mock,
+    )
     result = await action.handle(
         _make_message(),
-        {"i18n": SimpleNamespace(current_locale="en_US")},
+        {
+            "context": SimpleNamespace(event_chat=None),
+            "i18n": SimpleNamespace(current_locale="en_US"),
+            "services": SimpleNamespace(bot=object()),
+        },
         action_data,
     )
-
-    assert isinstance(action.auto_banned_text, str)
     assert result is not None
     result_html = result.to_html()
     assert 'tg://user?id=777">Vasya</a>' in result_html
     assert expected_text in result_html
-    restriction_func.assert_awaited_once_with(-100123, 777, until_date=None)
 
+    execute_restriction_mock.assert_awaited_once()
 
 @pytest.mark.parametrize(
     ("module_file", "message_id"),
@@ -119,7 +154,10 @@ def test_restriction_filter_action_message_id_is_extractable(module_file: str, m
 async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) -> None:
     warn_user_mock = AsyncMock(return_value=(1, 3, None, SimpleNamespace(id="warn_iid")))
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
-    monkeypatch.setattr("sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
+        AsyncMock(return_value=True),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
         AsyncMock(return_value=SimpleNamespace(tid=1234, iid="bot_iid")),
@@ -131,21 +169,14 @@ async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.log_event", AsyncMock())
 
     message = _make_message()
-    data: dict[str, Any] = {
-        "chat_db": SimpleNamespace(tid=message.chat.id, iid="chat_iid"),
-        "user_db": SimpleNamespace(tid=777, iid="user_iid"),
-    }
+    data = _warn_action_data(message)
 
-    with patch(
-        "sophie_bot.modules.filters.utils_.handle_action.ALL_MODERN_ACTIONS",
-        {"warn_user": WarnModernAction()},
-    ):
-        result = await handle_effective_filter_action(
-            message,
-            EffectiveFilterAction(name="warn_user", data={"reason": None}),
-            data,
-            SimpleNamespace(id="filter_iid"),
-        )
+    result = await handle_effective_filter_action(
+        message,
+        EffectiveFilterAction(name="warn_user", data={"reason": None}),
+        data,
+        SimpleNamespace(id="filter_iid"),
+    )
 
     assert result is None
     warn_user_mock.assert_not_awaited()
@@ -155,10 +186,12 @@ async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) 
 async def test_warn_filter_action_still_warns_non_admins(monkeypatch: pytest.MonkeyPatch) -> None:
     warn_user_mock = AsyncMock(return_value=(1, 3, None, SimpleNamespace(id="warn_iid")))
     bot_db = SimpleNamespace(tid=1234, iid="bot_iid")
-    target_db = SimpleNamespace(tid=777, iid="user_iid")
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
-    monkeypatch.setattr("sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=False))
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
+        AsyncMock(return_value=False),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
         AsyncMock(return_value=bot_db),
@@ -169,21 +202,14 @@ async def test_warn_filter_action_still_warns_non_admins(monkeypatch: pytest.Mon
     )
 
     message = _make_message()
-    data: dict[str, Any] = {
-        "chat_db": SimpleNamespace(tid=message.chat.id, iid="chat_iid"),
-        "user_db": target_db,
-    }
+    data = _warn_action_data(message)
 
-    with patch(
-        "sophie_bot.modules.filters.utils_.handle_action.ALL_MODERN_ACTIONS",
-        {"warn_user": WarnModernAction()},
-    ):
-        result = await handle_effective_filter_action(
-            message,
-            EffectiveFilterAction(name="warn_user", data={"reason": None}),
-            data,
-            SimpleNamespace(id="filter_iid"),
-        )
+    result = await handle_effective_filter_action(
+        message,
+        EffectiveFilterAction(name="warn_user", data={"reason": None}),
+        data,
+        SimpleNamespace(id="filter_iid"),
+    )
 
     assert result is not None
     warn_user_mock.assert_awaited_once()
@@ -199,28 +225,24 @@ async def test_warn_action_data_survives_the_admin_gate(monkeypatch: pytest.Monk
         return 1, 3, None, SimpleNamespace(id="warn_iid")
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", fake_warn_user)
-    monkeypatch.setattr("sophie_bot.modules.utils_.admin.check_user_admin_permissions", AsyncMock(return_value=False))
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
+        AsyncMock(return_value=False),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
         AsyncMock(return_value=SimpleNamespace(tid=1234, iid="bot_iid")),
     )
 
     message = _make_message()
-    data: dict[str, Any] = {
-        "chat_db": SimpleNamespace(tid=message.chat.id, iid="chat_iid"),
-        "user_db": SimpleNamespace(tid=777, iid="user_iid"),
-    }
+    data = _warn_action_data(message)
 
-    with patch(
-        "sophie_bot.modules.filters.utils_.handle_action.ALL_MODERN_ACTIONS",
-        {"warn_user": WarnModernAction()},
-    ):
-        await handle_effective_filter_action(
-            message,
-            EffectiveFilterAction(name="warn_user", data={"reason": "No links"}),
-            data,
-            SimpleNamespace(id="filter_iid"),
-        )
+    await handle_effective_filter_action(
+        message,
+        EffectiveFilterAction(name="warn_user", data={"reason": "No links"}),
+        data,
+        SimpleNamespace(id="filter_iid"),
+    )
 
     assert captured["reason"] == "No links"
 
@@ -248,7 +270,14 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
     message = _make_message()
     connection = SimpleNamespace(db_model=SimpleNamespace(iid="chat_iid", tid=message.chat.id))
 
-    result = await SendRulesAction().handle(message, {"connection": connection}, None)
+    result = await SendRulesAction().handle(
+        message,
+        {
+            "context": SimpleNamespace(connection=connection),
+            "services": SimpleNamespace(bot=object()),
+        },
+        None,
+    )
 
     # The rules are sent as their own message, so the action reports what it sent
     # instead of returning text for the caller to aggregate.
@@ -271,7 +300,11 @@ async def test_set_rules_rejects_empty_content(monkeypatch: pytest.MonkeyPatch) 
     message.reply_to_message = None
     connection = SimpleNamespace(db_model=SimpleNamespace(iid="chat_iid", tid=message.chat.id), title="Sophie Chat")
 
-    handler = SetRulesHandler(message, connection=connection, content=None)
+    handler = SetRulesHandler(
+        message,
+        context=SimpleNamespace(connection=connection),
+        content=None,
+    )
     await handler.handle()
 
     set_rules_mock.assert_not_awaited()

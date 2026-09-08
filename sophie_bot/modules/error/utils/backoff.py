@@ -8,8 +8,6 @@ from typing import Final
 from redis.asyncio import Redis as AsyncRedis
 from redis.exceptions import RedisError
 
-from sophie_bot.services.redis import aredis
-
 # Redis-based global exponential backoff for error notifications
 # Schedule: allow -> suppress 1m -> allow -> suppress 2m -> 4m -> 8m ... capped at 1h
 
@@ -68,7 +66,12 @@ async def _allow(client: AsyncRedis, key: str, now: float, step: int, *, is_firs
     return True
 
 
-async def should_notify(signature: str, now: float | None = None) -> bool:
+async def should_notify(
+    signature: str,
+    now: float | None = None,
+    *,
+    redis: AsyncRedis,
+) -> bool:
     """Determine whether we should send a chat error notification for this error signature.
 
     Global across all instances via Redis. On any Redis failure, be silent (return False).
@@ -77,7 +80,7 @@ async def should_notify(signature: str, now: float | None = None) -> bool:
         now = time.time()
 
     key = f"{_PREFIX}{signature}"
-    client: AsyncRedis = aredis
+    client = redis
 
     try:
         # Load and decode current state (hgetall returns {} for missing keys)

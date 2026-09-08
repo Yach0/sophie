@@ -8,6 +8,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.filters import CommandStart
 
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.connections.utils.connection import (
     check_connection_permissions,
     get_connection_text,
@@ -47,8 +48,15 @@ class StartConnectHandler(SophieMessageHandler):
         if not await check_connection_permissions(chat_db.iid, user_db.iid):
             return await self.event.reply(_("You are not allowed to connect to this chat."))
 
-        await set_connected_chat(user_tid, chat_tid)
-        text = await get_connection_text(chat_tid)
+        await set_connected_chat(user_tid, chat_tid, redis=self.services.redis)
+        connection = await ConnectionsMiddleware.get_chat_from_db(
+            chat_tid,
+            is_connected=True,
+        )
+        if connection is not None:
+            self.context.connection = connection
+            self.context.target_chat = connection.db_model
+        text = await get_connection_text(chat_tid, redis=self.services.redis)
         markup = get_disconnect_markup()
 
         await self.event.reply(str(text), reply_markup=markup)

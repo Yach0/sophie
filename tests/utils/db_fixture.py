@@ -7,7 +7,6 @@ eliminating the duplication across conftest.py files.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
 
 from beanie import init_beanie
 
@@ -15,19 +14,11 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import models
 from tests.utils.mongo_mock import AsyncMongoMockClient
 
-# One mock client for the whole test process, with `pymongo.AsyncMongoClient` patched at
-# import time. Beanie binds collections onto the model *classes*, so a second client plus a
-# second `init_beanie` would silently rebind every model for the rest of the session and
-# leave earlier fixtures cleaning up a database nobody reads. Importing this module is what
-# guarantees the patch is in place before `sophie_bot.services.db` builds its client.
+# Beanie binds collections onto model classes, so the test process shares one explicit
+# mock owner and initializes it once.
 MOCK_MONGO = AsyncMongoMockClient()
-_PATCHER = patch("pymongo.AsyncMongoClient", return_value=MOCK_MONGO)
-_PATCHER.start()
 
 
-def stop_mongo_patch() -> None:
-    """Restore the real ``pymongo.AsyncMongoClient``. Call once, at session teardown."""
-    _PATCHER.stop()
 
 
 async def initialize_beanie(mock_client: AsyncMongoMockClient = MOCK_MONGO) -> Any:

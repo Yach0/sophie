@@ -27,8 +27,7 @@ from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.telegram_exceptions import REPLY_MESSAGE_INVALID
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_users_mute
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
-from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -54,7 +53,13 @@ class NewUserMiddleware(BaseMiddleware):
         return time_diff > timedelta(minutes=WELCOMESECURITY_JOIN_TIMEOUT_MINUTES)
 
     @staticmethod
-    async def cleanup(db_item: GreetingsModel, message: Message, sent_message: Message | None) -> GreetingsModel:
+    async def cleanup(
+        db_item: GreetingsModel,
+        message: Message,
+        sent_message: Message | None,
+        *,
+        services: ApplicationServices,
+    ) -> GreetingsModel:
         to_delete: list[int] = []
 
         # Clean service
@@ -72,7 +77,7 @@ class NewUserMiddleware(BaseMiddleware):
 
         # TODO: Handle exceptions
         if to_delete:
-            await common_try(bot.delete_messages(chat_id=message.chat.id, message_ids=to_delete))
+            await common_try(services.bot.delete_messages(chat_id=message.chat.id, message_ids=to_delete))
 
         # Save the new one
         return db_item
@@ -100,11 +105,16 @@ class NewUserMiddleware(BaseMiddleware):
             raise
 
     @staticmethod
-    async def is_join_request(chat_db: ChatModel, user_db: ChatModel) -> bool:
+    async def is_join_request(
+        chat_db: ChatModel,
+        user_db: ChatModel,
+        *,
+        services: ApplicationServices,
+    ) -> bool:
         key = f"chat_ws_join_request:{chat_db.iid}:{user_db.iid}"
-        join_request = await aredis.get(key)
+        join_request = await services.redis.get(key)
         if join_request:
-            await aredis.delete(key)
+            await services.redis.delete(key)
         return bool(join_request)
 
     @staticmethod
@@ -116,8 +126,10 @@ class NewUserMiddleware(BaseMiddleware):
         new_member: User,
         cleanservice_enabled: bool,
         chat_rules: RulesModel | None,
+        *,
+        services: ApplicationServices,
     ) -> Message | None:
-        muted_users = await ws_on_new_users_mute(new_users, chat_db)
+        muted_users = await ws_on_new_users_mute(new_users, chat_db, bot=services.bot)
 
         # If no users were welcomesecurity muted, fall back to the normal welcome flow.
         if not any(muted_users):
@@ -135,9 +147,14 @@ class NewUserMiddleware(BaseMiddleware):
                 user=new_member,
                 additional_keyboard=security_keyboard.as_markup(),
                 receiver_user_id=user.tid if user else None,
+                bot=services.bot,
             )
 
-        if await is_enabled("welcomecaptcha_ephemeral", chat_tid=chat_db.tid):
+        if await is_enabled(
+            "welcomecaptcha_ephemeral",
+            chat_tid=chat_db.tid,
+            redis=services.redis,
+        ):
             # One prompt per new member, visible only to them. Nothing is left in the chat, so
             # nothing is recorded for the cleanup that deletes the prompt once the captcha passes.
             sent = [await send_to(user) for user, muted in zip(new_users, muted_users) if muted]
@@ -146,7 +163,10 @@ class NewUserMiddleware(BaseMiddleware):
         sent_message = await send_to(None)
         # Save sent message to cleanup it later
         if sent_message and len(muted_users) == 1:
-            await aredis.set(f"chat_ws_message:{chat_db.iid}:{new_users[0].iid}", sent_message.message_id)
+            await services.redis.set(
+                f"chat_ws_message:{chat_db.iid}:{new_users[0].iid}",
+                sent_message.message_id,
+            )
 
         return sent_message
 
@@ -164,7 +184,7 @@ class NewUserMiddleware(BaseMiddleware):
 
             adder_id = event.from_user.id
             chat_id: int = event.chat.id
-            chat_db: ChatModel = data["chat_db"]
+            chat_db: ChatModel = data["context"].event_chat
             new_users: list[ChatModel] = data["new_users"]
 
             # Bot was added to the chat
@@ -179,12 +199,12 @@ class NewUserMiddleware(BaseMiddleware):
             # service message still has to be cleaned up like any other join.
             is_from_join_request = False
             for user in new_users:
-                if await self.is_join_request(chat_db, user):
+                if await self.is_join_request(chat_db, user, services=data["services"]):
                     is_from_join_request = True
                     break
 
             if is_from_join_request:
-                await self.cleanup(db_item, event, None)
+                await self.cleanup(db_item, event, None, services=data["services"])
                 return await handler(event, data)
 
             # Sanity check
@@ -203,7 +223,9 @@ class NewUserMiddleware(BaseMiddleware):
             sent_message: Message | None = None
 
             chat_rules = await RulesModel.get_rules(chat_db.iid)
-            welcomecaptcha_enabled = await is_enabled("welcomecaptcha", chat_tid=chat_db.tid)
+            welcomecaptcha_enabled = await is_enabled(
+                "welcomecaptcha", chat_tid=chat_db.tid, redis=data["services"].redis
+            )
 
             # The origin user of the message is admin could indite:
             # 1. Chat owner joined the chat back
@@ -215,7 +237,7 @@ class NewUserMiddleware(BaseMiddleware):
                 or (db_item.welcome_security and db_item.welcome_security.enabled and welcomecaptcha_enabled)
             ) or (not db_item.welcome_disabled and is_adder_admin):
                 welcome_saveable: Saveable = db_item.note or get_default_welcome_message(bool(chat_rules))
-                if await is_enabled("greetings_ephemeral", chat_tid=chat_db.tid):
+                if await is_enabled("greetings_ephemeral", chat_tid=chat_db.tid, redis=data["services"].redis):
                     # One greeting per member, visible only to them and filled with their own name.
                     # None of them is in the chat, so none is handed to the clean-welcome cleanup.
                     for member in event.new_chat_members:
@@ -228,16 +250,30 @@ class NewUserMiddleware(BaseMiddleware):
                             chat_rules,
                             user=member,
                             receiver_user_id=member.id,
+                            bot=data["services"].bot,
                         )
                 else:
                     sent_message = await send_welcome(
-                        event, welcome_saveable, cleanservice_enabled, chat_rules, user=new_member
+                        event,
+                        welcome_saveable,
+                        cleanservice_enabled,
+                        chat_rules,
+                        user=new_member,
+                        bot=data["services"].bot,
                     )
 
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:
                     welcome_mute_time = db_item.welcome_mute.time
                     await asyncio.gather(
-                        *(on_welcomemute(chat_id, new_user.tid, welcome_mute_time) for new_user in human_users)
+                        *(
+                            on_welcomemute(
+                                chat_id,
+                                new_user.tid,
+                                welcome_mute_time,
+                                bot=data["services"].bot,
+                            )
+                            for new_user in human_users
+                        )
                     )
 
             elif (
@@ -251,11 +287,23 @@ class NewUserMiddleware(BaseMiddleware):
                 # Otherwise, use normal captcha
                 if human_users and not event.chat.join_by_request:
                     sent_message = await self.on_captcha(
-                        event, db_item, chat_db, human_users, new_member, cleanservice_enabled, chat_rules
+                        event,
+                        db_item,
+                        chat_db,
+                        human_users,
+                        new_member,
+                        cleanservice_enabled,
+                        chat_rules,
+                        services=data["services"],
                     )
 
             # Cleanup
-            await self.cleanup(db_item, event, sent_message)
+            await self.cleanup(
+                db_item,
+                event,
+                sent_message,
+                services=data["services"],
+            )
 
             # Skip handler
             raise SkipHandler

@@ -17,7 +17,7 @@ from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatu
 from sophie_bot.metrics.federation import track_federation_import_completed
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -54,7 +54,12 @@ class BanValidationError(ValueError):
     """Raised when ban validation fails."""
 
 
-async def _send_import_result(task: FederationTask, federation: Federation) -> None:
+async def _send_import_result(
+    task: FederationTask,
+    federation: Federation,
+    *,
+    services: ApplicationServices,
+) -> None:
     """Format and send the import result notification."""
     try:
         status_text = _("✅ Import completed successfully")
@@ -72,7 +77,7 @@ async def _send_import_result(task: FederationTask, federation: Federation) -> N
             doc += KeyValue(_("Error"), task.error_message)
 
         chat = await task.chat.fetch()
-        await bot.send_message(chat.tid, doc.to_html())
+        await services.bot.send_message(chat.tid, doc.to_html())
     except TelegramBadRequest as e:
         log.error("Failed to send import completion notification", task_id=str(task.id), error=str(e))
 
@@ -169,7 +174,11 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
 
         if pending_bans:
             await FederationBan.insert_many(pending_bans)
-            await FederationCacheService.incr_ban_count(federation.fed_id, len(pending_bans))
+            await FederationCacheService.incr_ban_count(
+                federation.fed_id,
+                len(pending_bans),
+                redis=processor.services.redis,
+            )
             pending_bans.clear()
 
     return {"imported_count": imported_count, "failed_count": failed_count, "federation": federation}
@@ -177,6 +186,9 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
 
 class ProcessFederationImports:
     """Scheduler job to process federation ban list imports."""
+
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
 
     async def handle(self) -> None:
         """Process all pending import tasks."""
@@ -214,22 +226,21 @@ class ProcessFederationImports:
                 task, TaskStatus.COMPLETED, imported_count=imported_count, failed_count=failed_count
             )
             track_federation_import_completed(items_imported=imported_count, items_failed=failed_count)
-            await _send_import_result(task, federation)
+            await _send_import_result(task, federation, services=self.services)
 
         except Exception as err:
             error_message = str(err)
             await self._update_task_status(task, TaskStatus.FAILED, error_message)
-            await notify_task_failed(task, error_message)
+            await notify_task_failed(task, error_message, bot=self.services.bot)
             raise
 
-    @staticmethod
-    async def _download_and_parse_csv(file_id: str) -> csv.DictReader:
+    async def _download_and_parse_csv(self, file_id: str) -> csv.DictReader:
         """Download CSV file and parse it into a DictReader."""
-        file = await bot.get_file(file_id)
+        file = await self.services.bot.get_file(file_id)
         if not file.file_path:
             raise CSVDownloadError("Failed to get file path from Telegram")
 
-        downloaded_bytes = await bot.download_file(file.file_path)
+        downloaded_bytes = await self.services.bot.download_file(file.file_path)
         if not downloaded_bytes:
             raise CSVDownloadError("Failed to download file from Telegram")
 

@@ -11,7 +11,7 @@ __all__ = ["api_router"]
 
 module_manifest = ModuleManifest(
     name="logging",
-    api_router=api_router,
+    api_router_factory=lambda: api_router,
     title=l_("Logging"),
     emoji="📋",
     description=l_("Log chat events and actions"),

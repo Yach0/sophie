@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from sophie_bot.modules.welcomesecurity.handlers.legacy_button import LegacyWSButtonHandler
+from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 
 
 @pytest.mark.asyncio
@@ -17,9 +18,12 @@ async def test_legacy_ws_button_allows_join_request_user_without_group_membershi
     group_db = SimpleNamespace(iid="group_iid")
     ws_user = SimpleNamespace(is_join_request=True)
     greetings = SimpleNamespace(welcome_security=SimpleNamespace(enabled=True))
+    bot = AsyncMock()
+    bot.get_chat_member.return_value = SimpleNamespace(status="member")
 
     monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.bot.get_chat_member",
+        bot,
+        "get_chat_member",
         AsyncMock(return_value=SimpleNamespace(status="member")),
     )
     monkeypatch.setattr(
@@ -53,7 +57,12 @@ async def test_legacy_ws_button_allows_join_request_user_without_group_membershi
         captcha_handle,
     )
 
-    handler = LegacyWSButtonHandler(message, user_db=user_db, state=SimpleNamespace())
+    handler = LegacyWSButtonHandler(
+        message,
+        context=SimpleNamespace(actor=user_db),
+        services=SimpleNamespace(bot=bot, redis=object()),
+        state=SimpleNamespace(),
+    )
 
     await handler.handle()
 
@@ -70,6 +79,7 @@ async def test_legacy_ws_button_unmutes_admin_user(
     user_db = SimpleNamespace(iid="user_iid", tid=123)
     group_db = SimpleNamespace(iid="group_iid", tid=-100123)
     ws_user = SimpleNamespace(is_join_request=True)
+    bot = AsyncMock()
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.ChatModel.get_by_tid",
@@ -88,10 +98,15 @@ async def test_legacy_ws_button_unmutes_admin_user(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.remove_user",
         remove_user,
     )
-    unmute_user = AsyncMock(return_value=True)
+    execute_restriction = AsyncMock(
+        return_value=RestrictionResult(
+            action=RestrictionAction.UNMUTE,
+            applied=True,
+        )
+    )
     monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.unmute_user",
-        unmute_user,
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.execute_restriction",
+        execute_restriction,
     )
     captcha_handle = AsyncMock(return_value=None)
     monkeypatch.setattr(
@@ -99,12 +114,22 @@ async def test_legacy_ws_button_unmutes_admin_user(
         captcha_handle,
     )
 
-    handler = LegacyWSButtonHandler(message, user_db=user_db, state=SimpleNamespace())
+    handler = LegacyWSButtonHandler(
+        message,
+        context=SimpleNamespace(actor=user_db),
+        services=SimpleNamespace(bot=bot, redis=object()),
+        state=SimpleNamespace(),
+    )
 
     await handler.handle()
 
     remove_user.assert_awaited_once_with(user_db.iid, group_db.iid)
-    unmute_user.assert_awaited_once_with(chat_tid=group_db.tid, user_tid=user_db.tid)
+    execute_restriction.assert_awaited_once_with(
+        bot,
+        RestrictionAction.UNMUTE,
+        group_db.tid,
+        user_db.tid,
+    )
     assert captcha_handle.await_count == 0
     assert reply.await_count == 1
 
@@ -118,6 +143,7 @@ async def test_legacy_ws_button_keeps_ws_record_when_admin_unmute_fails(
     user_db = SimpleNamespace(iid="user_iid", tid=123)
     group_db = SimpleNamespace(iid="group_iid", tid=-100123)
     ws_user = SimpleNamespace(is_join_request=True)
+    bot = AsyncMock()
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.ChatModel.get_by_tid",
@@ -136,17 +162,32 @@ async def test_legacy_ws_button_keeps_ws_record_when_admin_unmute_fails(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.remove_user",
         remove_user,
     )
-    unmute_user = AsyncMock(return_value=False)
+    execute_restriction = AsyncMock(
+        return_value=RestrictionResult(
+            action=RestrictionAction.UNMUTE,
+            applied=False,
+        )
+    )
     monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.unmute_user",
-        unmute_user,
+        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.execute_restriction",
+        execute_restriction,
     )
 
-    handler = LegacyWSButtonHandler(message, user_db=user_db, state=SimpleNamespace())
+    handler = LegacyWSButtonHandler(
+        message,
+        context=SimpleNamespace(actor=user_db),
+        services=SimpleNamespace(bot=bot, redis=object()),
+        state=SimpleNamespace(),
+    )
 
     await handler.handle()
 
     # Unmute failed, so the WS record must survive to allow a retry.
-    unmute_user.assert_awaited_once_with(chat_tid=group_db.tid, user_tid=user_db.tid)
+    execute_restriction.assert_awaited_once_with(
+        bot,
+        RestrictionAction.UNMUTE,
+        group_db.tid,
+        user_db.tid,
+    )
     assert remove_user.await_count == 0
     assert reply.await_count == 1

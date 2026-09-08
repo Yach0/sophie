@@ -40,14 +40,17 @@ def _apply_ai_patches(stack: ExitStack) -> None:
     stack.enter_context(patch("sophie_bot.modules.ai.utils.message_history.is_enabled", AsyncMock(return_value=False)))
 
 
-def _history_capture(prompts: list[list[Any]]) -> HistoryCapture:
+def _history_capture(
+    prompts: list[list[Any]],
+    services: object,
+) -> HistoryCapture:
     async def capture(
         message: Message,
         connection: object,
         user_text: str | None = None,
         **kwargs: Any,
     ) -> None:
-        history = AIMessageHistory()
+        history = AIMessageHistory(services=services)
         await history.add_from_message(message, custom_text=user_text)
         prompts.append(history.prompt)
 
@@ -89,7 +92,15 @@ async def test_ai_command_builds_reply_title_and_preserves_non_reply(
 
     with ExitStack() as stack:
         _apply_ai_patches(stack)
-        stack.enter_context(patch("sophie_bot.modules.ai.handlers.ai_cmd.ai_chatbot_reply", _history_capture(prompts)))
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.ai_cmd.ai_chatbot_reply",
+                _history_capture(
+                    prompts,
+                    test_client.dispatcher.workflow_data["services"],
+                ),
+            )
+        )
         await _feed_message(test_client, command)
 
     assert prompts
@@ -113,7 +124,15 @@ async def test_reply_to_ai_without_command_builds_reply_title(test_client: TestC
 
     with ExitStack() as stack:
         _apply_ai_patches(stack)
-        stack.enter_context(patch("sophie_bot.modules.ai.handlers.reply.ai_chatbot_reply", _history_capture(prompts)))
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.reply.ai_chatbot_reply",
+                _history_capture(
+                    prompts,
+                    test_client.dispatcher.workflow_data["services"],
+                ),
+            )
+        )
         await _feed_message(test_client, follow_up)
 
     assert prompts

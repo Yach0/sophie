@@ -8,17 +8,14 @@ from __future__ import annotations
 
 import re
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from aiogram import Bot
+from aiogram.types import Sticker
 from pydantic import BaseModel
+from redis.asyncio import Redis
 
-from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
-
-if TYPE_CHECKING:
-    from aiogram.types import Sticker
-
 
 TG_EMOJI_PATTERN = re.compile(r'<tg-emoji\s+emoji-id="(\d+)"', re.IGNORECASE)
 
@@ -109,6 +106,10 @@ def _sticker_to_resolved_media(sticker: Sticker) -> ResolvedMedia:
 
 
 class TelegramMediaService:
+    def __init__(self, bot: Bot, redis: Redis) -> None:
+        self.bot = bot
+        self.redis = redis
+
     @staticmethod
     def _metadata_cache_key(identifier: str) -> str:
         return f"{CACHE_PREFIX}meta:{identifier}"
@@ -117,10 +118,9 @@ class TelegramMediaService:
     def _file_path_cache_key(file_id: str) -> str:
         return f"{CACHE_PREFIX}path:{file_id}"
 
-    @staticmethod
-    async def _get_cached_metadata(identifier: str) -> ResolvedMedia | None:
-        key = TelegramMediaService._metadata_cache_key(identifier)
-        data = await aredis.get(key)
+    async def _get_cached_metadata(self, identifier: str) -> ResolvedMedia | None:
+        key = self._metadata_cache_key(identifier)
+        data = await self.redis.get(key)
         if data:
             import ujson
 
@@ -130,26 +130,22 @@ class TelegramMediaService:
                 log.warning("Failed to deserialize cached media metadata", identifier=identifier)
         return None
 
-    @staticmethod
-    async def _cache_metadata(identifier: str, media: ResolvedMedia) -> None:
-        key = TelegramMediaService._metadata_cache_key(identifier)
-        await aredis.set(key, media.model_dump_json(), ex=METADATA_CACHE_TTL)
+    async def _cache_metadata(self, identifier: str, media: ResolvedMedia) -> None:
+        key = self._metadata_cache_key(identifier)
+        await self.redis.set(key, media.model_dump_json(), ex=METADATA_CACHE_TTL)
 
-    @staticmethod
-    async def _get_cached_file_path(file_id: str) -> str | None:
-        key = TelegramMediaService._file_path_cache_key(file_id)
-        data = await aredis.get(key)
+    async def _get_cached_file_path(self, file_id: str) -> str | None:
+        key = self._file_path_cache_key(file_id)
+        data = await self.redis.get(key)
         if data:
             return data.decode() if isinstance(data, bytes) else data
         return None
 
-    @staticmethod
-    async def _cache_file_path(file_id: str, file_path: str) -> None:
-        key = TelegramMediaService._file_path_cache_key(file_id)
-        await aredis.set(key, file_path, ex=FILE_PATH_CACHE_TTL)
+    async def _cache_file_path(self, file_id: str, file_path: str) -> None:
+        key = self._file_path_cache_key(file_id)
+        await self.redis.set(key, file_path, ex=FILE_PATH_CACHE_TTL)
 
-    @staticmethod
-    async def resolve_custom_emojis(custom_emoji_ids: list[str]) -> ResolveResult:
+    async def resolve_custom_emojis(self, custom_emoji_ids: list[str]) -> ResolveResult:
         if not custom_emoji_ids:
             return ResolveResult(resolved={}, unresolved=[])
 
@@ -159,7 +155,7 @@ class TelegramMediaService:
         ids_to_fetch: list[str] = []
 
         for emoji_id in unique_ids:
-            cached = await TelegramMediaService._get_cached_metadata(emoji_id)
+            cached = await self._get_cached_metadata(emoji_id)
             if cached:
                 resolved[emoji_id] = cached
             else:
@@ -170,14 +166,14 @@ class TelegramMediaService:
 
             for batch in batches:
                 try:
-                    stickers = await bot.get_custom_emoji_stickers(custom_emoji_ids=batch)
+                    stickers = await self.bot.get_custom_emoji_stickers(custom_emoji_ids=batch)
 
                     fetched_ids = set()
                     for sticker in stickers:
                         if sticker.custom_emoji_id:
                             media = _sticker_to_resolved_media(sticker)
                             resolved[sticker.custom_emoji_id] = media
-                            await TelegramMediaService._cache_metadata(sticker.custom_emoji_id, media)
+                            await self._cache_metadata(sticker.custom_emoji_id, media)
                             fetched_ids.add(sticker.custom_emoji_id)
 
                     for emoji_id in batch:
@@ -191,19 +187,18 @@ class TelegramMediaService:
 
         return ResolveResult(resolved=resolved, unresolved=unresolved)
 
-    @staticmethod
-    async def resolve_sticker_from_file_id(file_id: str) -> ResolvedMedia | None:
-        cached = await TelegramMediaService._get_cached_metadata(file_id)
+    async def resolve_sticker_from_file_id(self, file_id: str) -> ResolvedMedia | None:
+        cached = await self._get_cached_metadata(file_id)
         if cached:
             return cached
 
         try:
-            file_info = await bot.get_file(file_id)
+            file_info = await self.bot.get_file(file_id)
             if not file_info.file_path:
                 log.warning("File path not found for sticker", file_id=file_id)
                 return None
 
-            await TelegramMediaService._cache_file_path(file_id, file_info.file_path)
+            await self._cache_file_path(file_id, file_info.file_path)
 
             return ResolvedMedia(
                 kind=MediaKind.STICKER,
@@ -225,8 +220,7 @@ class TelegramMediaService:
             log.error("Failed to resolve sticker file", file_id=file_id, error=str(e))
             return None
 
-    @staticmethod
-    async def resolve_stickers_from_objects(stickers: list[Sticker]) -> dict[str, ResolvedMedia]:
+    async def resolve_stickers_from_objects(self, stickers: list[Sticker]) -> dict[str, ResolvedMedia]:
         resolved: dict[str, ResolvedMedia] = {}
 
         for sticker in stickers:
@@ -234,30 +228,28 @@ class TelegramMediaService:
             identifier = sticker.custom_emoji_id or sticker.file_id
             if identifier:
                 resolved[identifier] = media
-                await TelegramMediaService._cache_metadata(identifier, media)
+                await self._cache_metadata(identifier, media)
 
         return resolved
 
-    @staticmethod
-    async def get_file_path(file_id: str) -> str | None:
-        cached_path = await TelegramMediaService._get_cached_file_path(file_id)
+    async def get_file_path(self, file_id: str) -> str | None:
+        cached_path = await self._get_cached_file_path(file_id)
         if cached_path:
             return cached_path
 
         try:
-            file_info = await bot.get_file(file_id)
+            file_info = await self.bot.get_file(file_id)
             if file_info.file_path:
-                await TelegramMediaService._cache_file_path(file_id, file_info.file_path)
+                await self._cache_file_path(file_id, file_info.file_path)
                 return file_info.file_path
         except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, resolution unavailable
             log.error("Failed to get file path", file_id=file_id, error=str(e))
 
         return None
 
-    @staticmethod
-    async def download_file(file_path: str) -> bytes | None:
+    async def download_file(self, file_path: str) -> bytes | None:
         try:
-            content = await bot.download_file(file_path)
+            content = await self.bot.download_file(file_path)
             if content:
                 return content.read()
         except Exception as e:  # noqa: BLE001  # boundary: Telegram API failure, download unavailable
@@ -265,8 +257,8 @@ class TelegramMediaService:
 
         return None
 
-    @staticmethod
     async def resolve_media(
+        self,
         custom_emoji_ids: list[str] | None = None,
         sticker_file_ids: list[str] | None = None,
     ) -> ResolveResult:
@@ -274,19 +266,19 @@ class TelegramMediaService:
         unresolved: list[str] = []
 
         if custom_emoji_ids:
-            emoji_result = await TelegramMediaService.resolve_custom_emojis(custom_emoji_ids)
+            emoji_result = await self.resolve_custom_emojis(custom_emoji_ids)
             resolved.update(emoji_result.resolved)
             unresolved.extend(emoji_result.unresolved)
 
         if sticker_file_ids:
             unique_sticker_ids = list(dict.fromkeys(sticker_file_ids))
             for file_id in unique_sticker_ids:
-                cached = await TelegramMediaService._get_cached_metadata(file_id)
+                cached = await self._get_cached_metadata(file_id)
                 if cached:
                     resolved[file_id] = cached
                     continue
 
-                sticker_media = await TelegramMediaService.resolve_sticker_from_file_id(file_id)
+                sticker_media = await self.resolve_sticker_from_file_id(file_id)
                 if sticker_media:
                     resolved[file_id] = sticker_media
                 else:
@@ -300,22 +292,20 @@ class TelegramMediaService:
             return []
         return list(dict.fromkeys(TG_EMOJI_PATTERN.findall(text)))
 
-    @staticmethod
-    async def resolve_media_from_texts(texts: list[str | None]) -> ResolveResult:
+    async def resolve_media_from_texts(self, texts: list[str | None]) -> ResolveResult:
         all_emoji_ids: list[str] = []
         for text in texts:
-            all_emoji_ids.extend(TelegramMediaService.extract_custom_emoji_ids(text))
+            all_emoji_ids.extend(self.extract_custom_emoji_ids(text))
 
         if not all_emoji_ids:
             return ResolveResult(resolved={}, unresolved=[])
 
         unique_ids = list(dict.fromkeys(all_emoji_ids))
-        return await TelegramMediaService.resolve_custom_emojis(unique_ids)
+        return await self.resolve_custom_emojis(unique_ids)
 
-    @staticmethod
-    async def resolve_sticker_set(set_name: str) -> dict[str, Any]:
+    async def resolve_sticker_set(self, set_name: str) -> dict[str, Any]:
         try:
-            sticker_set = await bot.get_sticker_set(set_name)
+            sticker_set = await self.bot.get_sticker_set(set_name)
 
             stickers_data: list[ResolvedMedia] = []
             for sticker in sticker_set.stickers:

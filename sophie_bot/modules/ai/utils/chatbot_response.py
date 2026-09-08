@@ -5,6 +5,7 @@ from typing import Any, cast
 from beanie import PydanticObjectId
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models import Model
+from redis.asyncio import Redis
 from stfu_tg import BlockQuote, Doc, HList, Italic, KeyValue, Section
 from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
@@ -59,6 +60,8 @@ async def build_chatbot_header(
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
     style: AIHeaderStyle = "table",
+    *,
+    redis: Redis,
 ) -> Element | str | None:
     """The header of a *finished* AI message.
 
@@ -70,7 +73,7 @@ async def build_chatbot_header(
     status: Element | str = HList(*status_items, divider=", ") if status_items else model.model_name
 
     battery: Element | str = ""
-    if quota_info := await get_quota_info(chat_iid):
+    if quota_info := await get_quota_info(chat_iid, redis=redis):
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
@@ -119,11 +122,17 @@ async def build_reply_doc(
     chat_tid: int | None,
     mention_index: MentionIndex | None = None,
     header_style: AIHeaderStyle = "table",
+    *,
+    redis: Redis,
 ) -> Doc:
     # The single rendering chokepoint for both streamed drafts and the final message, so mention
     # resolution happens here — before Markdown is rendered, which keeps escaping STFU's job.
     resolved_text = (
-        await apply_mention_usernames(output_text, chat_tid)
+        await apply_mention_usernames(
+            output_text,
+            chat_tid,
+            redis=redis,
+        )
         if mention_index is None
         else resolve_mentions(output_text, mention_index)
     )

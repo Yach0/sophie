@@ -34,7 +34,7 @@ class FederationBanListHandler(FederationCommandHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        user_db = await require_acting_user(self.event, self.data)
+        user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
 
@@ -45,7 +45,7 @@ class FederationBanListHandler(FederationCommandHandler):
             await self.event.reply(_("You don't have permission to view ban lists in this federation."))
             return
 
-        ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id)
+        ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id, redis=self.services.redis)
 
         if ban_count == 0:
             await self.event.reply(

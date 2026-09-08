@@ -9,16 +9,14 @@ from sophie_bot.services.sentry_metrics import set_gauge_metric
 from sophie_bot.utils.logger import log
 
 
-async def start_background_tasks() -> None:
-    """Start background tasks for metrics collection"""
-
-    # Start event loop lag monitoring
-    asyncio.create_task(_monitor_event_loop_lag())
-
-    # Start system metrics collection
-    asyncio.create_task(_collect_system_metrics())
-
+def start_background_tasks() -> set[asyncio.Task[object]]:
+    """Start metrics loops and return their lifetime handles."""
+    tasks: set[asyncio.Task[object]] = {
+        asyncio.create_task(_monitor_event_loop_lag()),
+        asyncio.create_task(_collect_system_metrics()),
+    }
     log.info("Started metrics background tasks")
+    return tasks
 
 
 async def _monitor_event_loop_lag() -> None:

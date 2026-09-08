@@ -9,7 +9,6 @@ from ass_tg.types.base_abc import ArgFabric
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.services.bot import bot
 from sophie_bot.utils.emoji_banner import EmojiBanner
 from sophie_bot.utils.handlers import SophieMessageHandler
 
@@ -34,4 +33,4 @@ class OpBannerHandler(SophieMessageHandler):
         color: str | None = self.data.get("color")
 
         img = EmojiBanner.render(emojis, text, color=color)
-        await bot.send_photo(chat_id=self.event.chat.id, photo=BufferedInputFile(img, "banner.jpeg"))
+        await self.services.bot.send_photo(chat_id=self.event.chat.id, photo=BufferedInputFile(img, "banner.jpeg"))

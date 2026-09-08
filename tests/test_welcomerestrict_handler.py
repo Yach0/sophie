@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -52,12 +53,14 @@ def _handler(greetings_model: GreetingsModel, i18n: Any, **data: Any) -> EnableW
     chat: ChatModel = greetings_model.chat  # type: ignore[assignment]
     return EnableWelcomeMute(
         event,
-        connection=ChatConnection(
-            type=ChatType.supergroup,
-            is_connected=False,
-            tid=chat.tid,
-            title=chat.first_name_or_title,
-            db_model=chat,
+        context=SimpleNamespace(
+            connection=ChatConnection(
+                type=ChatType.supergroup,
+                is_connected=False,
+                tid=chat.tid,
+                title=chat.first_name_or_title,
+                db_model=chat,
+            )
         ),
         i18n=i18n,
         **data,

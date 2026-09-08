@@ -1,25 +1,41 @@
+from __future__ import annotations
+
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from typing import Any
 
 from beanie import init_beanie
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.client_session import AsyncClientSession
 from pymongo.asynchronous.collection import AsyncCollection
+from pymongo.asynchronous.database import AsyncDatabase
 
-from sophie_bot.config import CONFIG
+from sophie_bot.config import Config
 from sophie_bot.db.models import models
 
-async_mongo: AsyncMongoClient = AsyncMongoClient(CONFIG.mongo_host, CONFIG.mongo_port)
-db = async_mongo[CONFIG.mongo_db]
+
+@dataclass(slots=True)
+class DatabaseResources:
+    mongo: AsyncMongoClient
+    database: AsyncDatabase
+    initialization_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    initialized: bool = False
 
 
-def get_collection(name: str) -> AsyncCollection[dict[str, Any]]:
-    """Collection handle resolved at call time.
+@asynccontextmanager
+async def open_database(config: Config) -> AsyncIterator[DatabaseResources]:
+    mongo = AsyncMongoClient(config.mongo_host, config.mongo_port)
+    try:
+        resources = DatabaseResources(mongo=mongo, database=mongo[config.mongo_db])
+        yield resources
+    finally:
+        await mongo.close()
 
-    Migrations that touch collections with no Document model use this: unlike the module-level
-    ``db``, it goes through whatever client ``async_mongo`` currently points at, which is what
-    tests patch.
-    """
-    return async_mongo[CONFIG.mongo_db][name]
+
+def get_collection(database: AsyncDatabase, name: str) -> AsyncCollection[dict[str, Any]]:
+    return database[name]
 
 
 async def backfill_chat_admin_welcome_messages(
@@ -35,14 +51,14 @@ async def backfill_chat_admin_welcome_messages(
     return result.modified_count
 
 
-async def init_db(skip_indexes: bool | None = None) -> None:
-    """Initialize Beanie and register migration tracking."""
+async def init_db(database: AsyncDatabase, *, config: Config, skip_indexes: bool | None = None) -> None:
+    """Initialize Beanie against the explicitly owned database."""
     if skip_indexes is None:
-        skip_indexes = CONFIG.mongo_skip_indexes
+        skip_indexes = config.mongo_skip_indexes
 
     await init_beanie(
-        database=db,
+        database=database,
         document_models=models,
-        allow_index_dropping=CONFIG.mongo_allow_index_dropping,
+        allow_index_dropping=config.mongo_allow_index_dropping,
         skip_indexes=skip_indexes,
     )
