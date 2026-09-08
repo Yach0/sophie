@@ -18,6 +18,7 @@ from sophie_bot.modules.ai.utils.moderation.thresholds import (
     resolve_level_multipliers,
     resolve_thresholds,
 )
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.logger import log
 
@@ -38,8 +39,18 @@ class ModerationResult:
         return bool(self.triggered)
 
 
-async def get_moderation_provider(chat_tid: int | None = None) -> ModerationProvider:
-    name = str(await get_value("ai_moderation_provider", chat_tid=chat_tid))
+async def get_moderation_provider(
+    chat_tid: int | None = None,
+    *,
+    services: ApplicationServices,
+) -> ModerationProvider:
+    name = str(
+        await get_value(
+            "ai_moderation_provider",
+            chat_tid=chat_tid,
+            redis=services.redis,
+        )
+    )
     provider = _PROVIDERS.get(name)
     if provider is None:
         log.warning("Unknown AI moderation provider, falling back", provider=name, fallback=_DEFAULT_PROVIDER)
@@ -51,17 +62,19 @@ async def check_moderator(
     message: Message,
     settings: AIModeratorModel | None = None,
     chat_tid: int | None = None,
+    *,
+    services: ApplicationServices,
 ) -> ModerationResult:
-    history = AIMessageHistory()
+    history = AIMessageHistory(services=services)
     await history.add_from_message(message, normalize_texts=True)
 
-    provider = await get_moderation_provider(chat_tid)
-    scores = await provider.classify(history)
+    provider = await get_moderation_provider(chat_tid, services=services)
+    scores = await provider.classify(history, redis=services.redis)
     if not scores:
         return ModerationResult(triggered=frozenset(), triggered_native=frozenset(), scores={})
 
-    thresholds = await resolve_thresholds(provider, chat_tid)
-    multipliers = await resolve_level_multipliers(chat_tid)
+    thresholds = await resolve_thresholds(provider, chat_tid, redis=services.redis)
+    multipliers = await resolve_level_multipliers(chat_tid, redis=services.redis)
 
     # The chat's detection level scales the score rather than the threshold, so one category can be
     # made more or less sensitive without disturbing the operator-tuned per-provider thresholds.

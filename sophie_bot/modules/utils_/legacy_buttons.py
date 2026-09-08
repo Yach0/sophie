@@ -21,13 +21,6 @@ class LegacyButtonAction:
     payload_prefix: str
 
 
-LEGACY_BUTTON_ACTIONS: dict[str, str] = {}
-
-
-def register_legacy_button_actions(*actions: LegacyButtonAction) -> None:
-    LEGACY_BUTTON_ACTIONS.update({action.action: action.payload_prefix for action in actions})
-
-
 def build_legacy_start_payload(payload_prefix: str, chat_tid: int, argument: str = "") -> str:
     if argument:
         return f"{payload_prefix}_{argument}_{chat_tid}"

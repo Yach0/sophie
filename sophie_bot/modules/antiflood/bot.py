@@ -16,6 +16,7 @@ from sophie_bot.modules.antiflood.handlers import (
     EnableAntifloodHandler,
 )
 from sophie_bot.modules.antiflood.middlewares.enforcer import AntifloodEnforcerMiddleware
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.handlers import SophieBaseHandler
 
 router = Router(name="antiflood")
@@ -31,5 +32,5 @@ handlers: tuple[type[SophieBaseHandler[Any]], ...] = (
 )
 
 
-async def setup_bot_transport() -> None:
-    router.message.outer_middleware(AntifloodEnforcerMiddleware())
+async def setup_bot_transport(router: Router, services: ApplicationServices) -> None:
+    router.message.outer_middleware(AntifloodEnforcerMiddleware(services))

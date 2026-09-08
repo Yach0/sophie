@@ -28,7 +28,7 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
         callback_data: DeleteWarnCallback = self.data["callback_data"]
 
         # Check if the user who clicked the button is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["user_db"].iid):
+        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
             await callback.answer(_("Only admins can delete warns!"), show_alert=True)
             return
 
@@ -42,7 +42,7 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
                 {"warn_id": str(callback_data.warn_iid)},
             )
             await callback.answer(_("Warning deleted!"))
-            admin = self.data["user_db"]
+            admin = self.data["context"].actor
             doc = Doc(
                 Title(_("✅ Warning deleted")),
                 Section(
@@ -71,7 +71,7 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
         callback_data: ResetWarnsCallback = self.data["callback_data"]
 
         # Check if the user who clicked the button is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["user_db"].iid):
+        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
             await callback.answer(_("Only admins can reset warns!"), show_alert=True)
             return
 
@@ -112,7 +112,7 @@ class ResetAllWarnsCallbackHandler(SophieCallbackQueryHandler):
             return
 
         # Check if the user who clicked the button is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["user_db"].iid):
+        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
             await callback.answer(_("Only admins can reset all warns!"), show_alert=True)
             return
 

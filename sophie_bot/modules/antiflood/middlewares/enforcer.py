@@ -20,12 +20,11 @@ from sophie_bot.modules.antiflood.domain import (
     get_action_name,
 )
 from sophie_bot.modules.restrictions.utils.restrictions import (
-    ban_user,
-    kick_user,
-    mute_user,
+    execute_restriction,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -33,6 +32,9 @@ from sophie_bot.utils.logger import log
 
 class AntifloodEnforcerMiddleware(BaseMiddleware):
     """Middleware that enforces antiflood protection in group chats."""
+
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
 
     @staticmethod
     def _is_message_valid(message: Message) -> bool:
@@ -57,33 +59,33 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
     async def _get_flood_count(self, chat_id: int, user_id: int) -> int:
         """Get current message count for user in chat."""
         key = self._get_count_key(chat_id, user_id)
-        count = await aredis.get(key)
+        count = await self.services.redis.get(key)
         return int(count) if count else 0
 
     async def _increment_flood_count(self, chat_id: int, user_id: int) -> int:
         """Increment and return user's message count."""
         key = self._get_count_key(chat_id, user_id)
-        count = await cast(Awaitable[int], aredis.incr(key))
+        count = await cast(Awaitable[int], self.services.redis.incr(key))
         # Set expiration on first increment
         if count == 1:
-            await aredis.expire(key, FLOOD_WINDOW_SECONDS)
+            await self.services.redis.expire(key, FLOOD_WINDOW_SECONDS)
         return int(count)
 
     async def _reset_flood_count(self, chat_id: int, user_id: int) -> None:
         """Reset user's message count."""
         key = self._get_count_key(chat_id, user_id)
-        await aredis.delete(key)
+        await self.services.redis.delete(key)
 
     async def _get_last_user(self, chat_id: int) -> int | None:
         """Get ID of last user who sent a message in the chat."""
         key = self._get_state_key(chat_id)
-        user_id = await aredis.get(key)
+        user_id = await self.services.redis.get(key)
         return int(user_id) if user_id else None
 
     async def _set_last_user(self, chat_id: int, user_id: int) -> None:
         """Set the last user who sent a message in the chat."""
         key = self._get_state_key(chat_id)
-        await aredis.set(key, user_id)
+        await self.services.redis.set(key, user_id)
 
     async def _execute_action(self, message: Message, settings: AntifloodModel) -> bool:
         """Execute configured antiflood action. Returns True if action succeeded."""
@@ -93,18 +95,30 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         user_id = message.from_user.id
 
         action_name = get_action_name(settings)
-        duration = get_action_duration(settings)
+        duration = get_action_duration(settings, self.services.modules.actions)
 
         log.info(f"Antiflood triggered: executing {action_name} on user {user_id} in chat {chat_id}")
 
-        if action_name == "ban_user":
-            return await ban_user(chat_id, user_id, until_date=duration)
-        if action_name == "kick_user":
-            return await kick_user(chat_id, user_id)
-        if action_name == "mute_user":
-            return await mute_user(chat_id, user_id, until_date=duration)
-        log.warning(f"Unknown antiflood action: {action_name}")
-        return False
+        try:
+            action = RestrictionAction(action_name)
+        except ValueError:
+            log.warning(f"Unknown antiflood action: {action_name}")
+            return False
+        if action not in {
+            RestrictionAction.BAN,
+            RestrictionAction.KICK,
+            RestrictionAction.MUTE,
+        }:
+            log.warning(f"Unknown antiflood action: {action_name}")
+            return False
+        result = await execute_restriction(
+            self.services.bot,
+            action,
+            chat_id,
+            user_id,
+            until_date=duration,
+        )
+        return result.applied
 
     def _get_action_text(self, settings: AntifloodModel) -> str:
         """Get human-readable action text."""
@@ -140,7 +154,10 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
 
         # Notify the chat
         action_text = self._get_action_text(settings)
-        action_duration = get_action_duration(settings)
+        action_duration = get_action_duration(
+            settings,
+            self.services.modules.actions,
+        )
         doc = Doc(
             Title(_("⚠️ Antiflood")),
             _("User has been restricted for flooding."),
@@ -197,13 +214,17 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         # Get chat from database
-        chat_db: ChatModel | None = data.get("chat_db")
+        chat_db: ChatModel | None = data["context"].event_chat
         if not chat_db:
             chat_db = await ChatModel.get_by_tid(message.chat.id)
             if not chat_db:
                 return await handler(event, data)
 
-        if not await is_enabled("antiflood", chat_tid=chat_db.tid):
+        if not await is_enabled(
+            "antiflood",
+            chat_tid=chat_db.tid,
+            redis=self.services.redis,
+        ):
             return await handler(event, data)
 
         # Get antiflood settings for this chat

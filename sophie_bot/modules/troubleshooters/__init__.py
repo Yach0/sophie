@@ -14,7 +14,7 @@ router = Router(name="troubleshooters")
 
 module_manifest = ModuleManifest(
     name="troubleshooters",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         CancelCallbackHandler,
         TypedCancelCallbackHandler,

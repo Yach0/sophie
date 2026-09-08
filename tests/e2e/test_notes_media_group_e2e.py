@@ -75,7 +75,21 @@ async def test_middleware_aggregates_album_into_single_handler_call(test_client:
     updates = [_photo_update(index, _photo_message(index, media_group_id="album-A")) for index in range(1, 4)]
 
     with patch("sophie_bot.middlewares.media_group.is_enabled", AsyncMock(return_value=True)):
-        await asyncio.gather(*(middleware(handler, update, {"bot": test_client.bot}) for update in updates))
+        await asyncio.gather(
+            *(
+                middleware(
+                    handler,
+                    update,
+                    {
+                        "bot": test_client.bot,
+                        "services": test_client.dispatcher.workflow_data[
+                            "services"
+                        ],
+                    },
+                )
+                for update in updates
+            )
+        )
 
     non_empty_albums = [album for album in albums_seen if album]
     assert len(non_empty_albums) == 1, f"Handler should fire once with the album, got {albums_seen}"
@@ -98,7 +112,21 @@ async def test_middleware_passes_through_when_flag_disabled(test_client: TestCli
     updates = [_photo_update(index, _photo_message(index, media_group_id="album-B")) for index in range(1, 4)]
 
     with patch("sophie_bot.middlewares.media_group.is_enabled", AsyncMock(return_value=False)):
-        await asyncio.gather(*(middleware(handler, update, {"bot": test_client.bot}) for update in updates))
+        await asyncio.gather(
+            *(
+                middleware(
+                    handler,
+                    update,
+                    {
+                        "bot": test_client.bot,
+                        "services": test_client.dispatcher.workflow_data[
+                            "services"
+                        ],
+                    },
+                )
+                for update in updates
+            )
+        )
 
     assert call_count == 3, "Every item should reach the handler when the feature is disabled"
 
@@ -190,7 +218,12 @@ def _album_saveable(text: str = "", buttons: list[list[Any]] | None = None) -> S
 async def test_send_saveable_sends_media_group(test_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """An album note is sent as a single sendMediaGroup with the caption on the first item."""
 
-    await send_saveable(message=None, send_to=CHAT_ID, saveable=_album_saveable(text="Album caption"))
+    await send_saveable(
+        message=None,
+        send_to=CHAT_ID,
+        saveable=_album_saveable(text="Album caption"),
+        bot=test_client.bot,
+    )
 
     media_group_requests = test_client.capture.get_by_type(RequestType.SEND_MEDIA_GROUP)
     assert len(media_group_requests) == 1, "Exactly one sendMediaGroup should be emitted"
@@ -209,7 +242,12 @@ async def test_send_saveable_single_photo_note(test_client: TestClient, monkeypa
 
     saveable = Saveable(text="A caption", file=NoteFile(id="single-photo", type=ContentType.PHOTO))
 
-    await send_saveable(message=None, send_to=CHAT_ID, saveable=saveable)
+    await send_saveable(
+        message=None,
+        send_to=CHAT_ID,
+        saveable=saveable,
+        bot=test_client.bot,
+    )
 
     photo_requests = test_client.capture.get_by_type(RequestType.SEND_PHOTO)
     assert len(photo_requests) == 1, "A single photo note should emit exactly one sendPhoto"
@@ -225,11 +263,24 @@ async def test_send_saveable_album_buttons_go_to_followup(
     """Album notes with buttons emit the album, then a follow-up message carrying the buttons."""
 
     saveable = _album_saveable(
-        text="With buttons",
-        buttons=[[Button(text="Docs", action=ButtonAction.url, data="https://example.com")]],
+        text="Album caption",
+        buttons=[
+            [
+                Button(
+                    text="Docs",
+                    action=ButtonAction.url,
+                    data="https://example.com",
+                )
+            ]
+        ],
     )
 
-    await send_saveable(message=None, send_to=CHAT_ID, saveable=saveable)
+    await send_saveable(
+        message=None,
+        send_to=CHAT_ID,
+        saveable=saveable,
+        bot=test_client.bot,
+    )
 
     assert len(test_client.capture.get_by_type(RequestType.SEND_MEDIA_GROUP)) == 1, "Album should still be sent"
 

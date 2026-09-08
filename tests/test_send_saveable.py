@@ -48,6 +48,7 @@ async def test_send_saveable_forwards_message_thread_id(monkeypatch: pytest.Monk
         send_to=-100123,
         saveable=Saveable(text="Threaded note", version=2),
         message_thread_id=987,
+        bot=object(),
     )
 
     assert result is not None
@@ -67,7 +68,12 @@ async def test_send_saveable_video_note_uses_send_video_note(monkeypatch: pytest
     await send_module.send_saveable(
         message=None,
         send_to=-100123,
-        saveable=Saveable(text="", file=NoteFile(id="vn-file-id", type=ContentType.VIDEO_NOTE), version=2),
+        saveable=Saveable(
+            text="",
+            file=NoteFile(id="vn-file-id", type=ContentType.VIDEO_NOTE),
+            version=2,
+        ),
+        bot=object(),
     )
 
     assert isinstance(emitted[0], SendVideoNote)
@@ -88,6 +94,7 @@ async def test_send_saveable_video_keeps_caption_and_buttons(monkeypatch: pytest
             buttons=[[_url_button("Button", "https://example.com")]],
             version=2,
         ),
+        bot=object(),
     )
 
     assert isinstance(emitted[0], SendVideo)
@@ -110,6 +117,7 @@ async def test_send_saveable_voice_keeps_caption_and_buttons(monkeypatch: pytest
             buttons=[[_url_button("Button", "https://example.com")]],
             version=2,
         ),
+        bot=object(),
     )
 
     assert isinstance(emitted[0], SendVoice)
@@ -131,6 +139,7 @@ async def test_send_saveable_sticker_keeps_buttons_without_caption(monkeypatch: 
             buttons=[[_url_button("Button", "https://example.com")]],
             version=2,
         ),
+        bot=object(),
     )
 
     assert emitted[0].sticker == "sticker-file-id"
@@ -156,6 +165,7 @@ async def test_send_saveable_rejects_over_long_caption(monkeypatch: pytest.Monke
                 file=NoteFile(id="photo-file-id", type=ContentType.PHOTO),
                 version=2,
             ),
+            bot=object(),
         )
 
     assert emitted == []
@@ -169,7 +179,11 @@ async def test_send_saveable_allows_long_text_without_media(monkeypatch: pytest.
     await send_module.send_saveable(
         message=None,
         send_to=-100123,
-        saveable=Saveable(text="a" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), version=2),
+        saveable=Saveable(
+            text="a" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
+            version=2,
+        ),
+        bot=object(),
     )
 
     assert len(emitted) == 1

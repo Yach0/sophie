@@ -52,13 +52,14 @@ class PrivateNotesConnectHandler(SophieMessageHandler):
         chat_id = command_start.chat_id
 
         # Connect to the chat
-        await set_connected_chat(user_id, chat_id)
+        await set_connected_chat(user_id, chat_id, redis=self.services.redis)
         if not (connection := await ConnectionsMiddleware.get_chat_from_db(chat_id, is_connected=True)):
             return await self.event.reply(
                 _("Chat not found in the database. Please try to disconnect and connect again.")
             )
 
-        self.data["connection"] = connection
+        self.context.connection = connection
+        self.context.target_chat = connection.db_model
 
         doc = Doc(
             Bold(Template(_("Connected to chat {chat_name} successfully!"), chat_name=connection.title)),

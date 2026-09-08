@@ -12,6 +12,7 @@ from typing import Any, Final
 
 from mistralai.client.sdk import Mistral
 from openai import AsyncOpenAI
+from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
 from sophie_bot.utils.logger import log
@@ -26,8 +27,8 @@ _MISSING_OPENAI_KEY: Final[str] = "unset"
 _clients: dict[tuple[str, str], Any] = {}
 
 
-async def _api_key(provider_name: str) -> str:
-    provider = (await get_catalog()).providers.get(provider_name)
+async def _api_key(provider_name: str, *, redis: Redis) -> str:
+    provider = (await get_catalog(redis=redis)).providers.get(provider_name)
     if provider is None or not provider.api_key:
         log.warning(
             "No API key in the AI catalog for this provider; its requests will fail",
@@ -45,11 +46,19 @@ def _cached(provider_name: str, api_key: str, build) -> Any:
     return _clients[cache_key]
 
 
-async def get_mistral_client() -> Mistral:
-    api_key = await _api_key(MISTRAL_PROVIDER_NAME)
-    return _cached(MISTRAL_PROVIDER_NAME, api_key, lambda: Mistral(api_key=api_key))
+async def get_mistral_client(*, redis: Redis) -> Mistral:
+    api_key = await _api_key(MISTRAL_PROVIDER_NAME, redis=redis)
+    return _cached(
+        MISTRAL_PROVIDER_NAME,
+        api_key,
+        lambda: Mistral(api_key=api_key),
+    )
 
 
-async def get_openai_client() -> AsyncOpenAI:
-    api_key = await _api_key(OPENAI_PROVIDER_NAME)
-    return _cached(OPENAI_PROVIDER_NAME, api_key, lambda: AsyncOpenAI(api_key=api_key or _MISSING_OPENAI_KEY))
+async def get_openai_client(*, redis: Redis) -> AsyncOpenAI:
+    api_key = await _api_key(OPENAI_PROVIDER_NAME, redis=redis)
+    return _cached(
+        OPENAI_PROVIDER_NAME,
+        api_key,
+        lambda: AsyncOpenAI(api_key=api_key or _MISSING_OPENAI_KEY),
+    )

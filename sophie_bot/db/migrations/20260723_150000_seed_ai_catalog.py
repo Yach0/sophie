@@ -23,6 +23,7 @@ from beanie import free_fall_migration
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 _OPENROUTER = "openrouter"
 
@@ -104,14 +105,14 @@ class Forward:
     """Insert the providers and models the code used to hardcode."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        providers = get_collection("ai_catalog_provider")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        providers = get_collection(resources.database.database, "ai_catalog_provider")
         for provider in _providers():
             await providers.update_one(
                 {"name": provider["name"]}, {"$setOnInsert": provider}, upsert=True, session=session
             )
 
-        models = get_collection("ai_catalog_model")
+        models = get_collection(resources.database.database, "ai_catalog_model")
         for model in _MODELS:
             document = {"supports_reasoning": True, "enabled": True, "api_name": None, "extra_params": None, **model}
             await models.update_one(
@@ -125,6 +126,6 @@ class Backward:
     """Drop the catalog; the previous code carried these definitions in source."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        await get_collection("ai_catalog_model").drop(session=session)
-        await get_collection("ai_catalog_provider").drop(session=session)
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        await get_collection(resources.database.database, "ai_catalog_model").drop(session=session)
+        await get_collection(resources.database.database, "ai_catalog_provider").drop(session=session)

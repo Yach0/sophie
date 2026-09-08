@@ -34,19 +34,32 @@ _RANDOM_EMOJI_ID = AI_PROGRESS_CUSTOM_EMOJI_IDS[-1]
 
 
 class _IsEnabled(Protocol):
-    async def __call__(self, name: str, chat_tid: int | None = None) -> bool: ...
+    async def __call__(
+        self,
+        name: str,
+        chat_tid: int | None = None,
+        **kwargs: Any,
+    ) -> bool: ...
 
 
 def _flags(**enabled: bool) -> _IsEnabled:
-    async def is_enabled(name: str, chat_tid: int | None = None) -> bool:
-        del chat_tid
+    async def is_enabled(
+        name: str,
+        chat_tid: int | None = None,
+        **kwargs: Any,
+    ) -> bool:
+        del chat_tid, kwargs
         return enabled.get(name, False)
 
     return is_enabled
 
 
-async def _get_value(name: str, chat_tid: int | None = None) -> float:
-    del name, chat_tid
+async def _get_value(
+    name: str,
+    chat_tid: int | None = None,
+    **kwargs: Any,
+) -> float:
+    del name, chat_tid, kwargs
     return 0.5
 
 
@@ -77,24 +90,38 @@ def _assert_plain_progress(text: str) -> None:
     assert BATTERY_EMOJI not in text
 
 
-async def _streamer_with_flags(message: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, **flags: bool) -> Any:
+async def _streamer_with_flags(
+    message: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+    **flags: bool,
+) -> Any:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.is_enabled", _flags(**flags))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.get_value", _get_value)
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_progress_custom_emoji_id",
         lambda: _RANDOM_EMOJI_ID,
     )
-    return await build_message_streamer(cast(Message, message), _model(), False)
+    return await build_message_streamer(
+        cast(Message, message),
+        _model(),
+        False,
+        redis=test_redis,
+    )
 
 
 @pytest.mark.asyncio
-async def test_thinking_placeholder_is_not_a_table_row(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_thinking_placeholder_is_not_a_table_row(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
 
     message = _message()
     streamer = await _streamer_with_flags(
-        message, monkeypatch, ai_chatbot_thinking_message=True, ai_chatbot_streaming=True
+        message,
+        monkeypatch,
+        test_redis,
+        ai_chatbot_thinking_message=True,
+        ai_chatbot_streaming=True,
     )
 
     assert streamer is not None
@@ -103,13 +130,18 @@ async def test_thinking_placeholder_is_not_a_table_row(monkeypatch: pytest.Monke
 
 
 @pytest.mark.asyncio
-async def test_streaming_placeholder_shows_no_battery(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_streaming_placeholder_shows_no_battery(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     """Streaming without the thinking placeholder still must not spend a battery reading early."""
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
 
     message = _message()
-    streamer = await _streamer_with_flags(message, monkeypatch, ai_chatbot_streaming=True)
+    streamer = await _streamer_with_flags(
+        message,
+        monkeypatch,
+        test_redis,
+        ai_chatbot_streaming=True,
+    )
 
     assert streamer is not None
     _assert_plain_progress(message.reply.await_args.args[0])
@@ -117,7 +149,7 @@ async def test_streaming_placeholder_shows_no_battery(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
-async def test_progress_updates_stay_plain(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_progress_updates_stay_plain(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
 
@@ -127,6 +159,7 @@ async def test_progress_updates_stay_plain(monkeypatch: pytest.MonkeyPatch) -> N
         header=cast(Any, "Initial"),
         mode=StreamMode.HTML_EDIT,
         throttle_seconds=0,
+        redis=test_redis,
     )
     streamer.response_message = cast(Message, response_message)
 
@@ -139,11 +172,15 @@ async def test_progress_updates_stay_plain(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 @pytest.mark.asyncio
-async def test_placeholder_emoji_stays_the_same_on_every_edit(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_placeholder_emoji_stays_the_same_on_every_edit(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     """Without the random-emoji flag the placeholder keeps one emoji instead of flickering."""
     message = _message()
     streamer = await _streamer_with_flags(
-        message, monkeypatch, ai_chatbot_thinking_message=True, ai_chatbot_streaming=True
+        message,
+        monkeypatch,
+        test_redis,
+        ai_chatbot_thinking_message=True,
+        ai_chatbot_streaming=True,
     )
 
     assert streamer is not None
@@ -157,10 +194,16 @@ async def test_placeholder_emoji_stays_the_same_on_every_edit(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_random_emoji_flag_applies_without_the_thinking_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_random_emoji_flag_applies_without_the_thinking_placeholder(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     """The flag picks the placeholder emoji; whether the thinking text is shown is a separate flag."""
     message = _message()
-    streamer = await _streamer_with_flags(message, monkeypatch, ai_chatbot_streaming=True, ai_chatbot_random_emoji=True)
+    streamer = await _streamer_with_flags(
+        message,
+        monkeypatch,
+        test_redis,
+        ai_chatbot_streaming=True,
+        ai_chatbot_random_emoji=True,
+    )
 
     assert streamer is not None
     streamer.throttle_seconds = 0
@@ -171,10 +214,10 @@ async def test_random_emoji_flag_applies_without_the_thinking_placeholder(monkey
 
 
 @pytest.mark.asyncio
-async def test_finished_reply_header_carries_the_table_and_the_battery(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_finished_reply_header_carries_the_table_and_the_battery(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", _quota())
 
-    header = await build_chatbot_header(cast(Any, "chat-iid"), _model(), [])
+    header = await build_chatbot_header(cast(Any, "chat-iid"), _model(), [], redis=test_redis)
 
     text = header.to_html()
     assert AI_HEADER_LABEL in text

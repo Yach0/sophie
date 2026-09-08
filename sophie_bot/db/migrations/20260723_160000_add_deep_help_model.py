@@ -18,6 +18,7 @@ Rollback:
 from beanie import free_fall_migration
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 _MODEL_NAME = "openai/gpt-5.6-luna"
 _ROLE = {"mode": None, "purpose": "sophie_inspect"}
@@ -29,8 +30,8 @@ class Forward:
     """Give the deep_help purpose a model, without disturbing one already in the catalog."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        models = get_collection("ai_catalog_model")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        models = get_collection(resources.database.database, "ai_catalog_model")
         await models.update_one(
             {"name": _MODEL_NAME},
             {
@@ -54,7 +55,7 @@ class Backward:
     """Drop only the role: the model may have been given other purposes since."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        await get_collection("ai_catalog_model").update_one(
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        await get_collection(resources.database.database, "ai_catalog_model").update_one(
             {"name": _MODEL_NAME}, {"$pull": {"roles": _ROLE}}, session=session
         )

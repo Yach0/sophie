@@ -3,7 +3,7 @@ from typing import Self
 
 from beanie import PydanticObjectId
 
-from sophie_bot.db.cache.locale import get_chat_locale
+from sophie_bot.db.cache.locale import LocaleStore
 from sophie_bot.services.i18n import i18n
 
 
@@ -12,11 +12,12 @@ class UseChatLanguage:
 
     chat_iid: PydanticObjectId
 
-    def __init__(self, chat_iid: PydanticObjectId):
+    def __init__(self, chat_iid: PydanticObjectId, *, locales: LocaleStore) -> None:
         self.chat_iid = chat_iid
+        self.locales = locales
 
     async def __aenter__(self) -> Self:
-        chat_language = await get_chat_locale(self.chat_iid)
+        chat_language = await self.locales.get_chat_locale(self.chat_iid)
 
         self.ctx_token = i18n.ctx_locale.set(chat_language)
         self.token = i18n.set_current(i18n)

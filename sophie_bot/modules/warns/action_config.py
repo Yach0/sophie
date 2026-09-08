@@ -17,7 +17,7 @@ from sophie_bot.modules.utils_.action_config_wizard import (
     model_action_wizard,
 )
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardFSM, WizardScopeFilter
-from sophie_bot.shared.actions import ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -25,7 +25,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from .handlers.warnaction import WarnActionRenderer
 
 
-def warn_action_filter(action: ModernActionABC) -> bool:
+def warn_action_filter(action: ActionDefinition) -> bool:
     return action.allow_warns
 
 
@@ -33,7 +33,11 @@ async def _on_warn_action_back(handler: SophieCallbackQueryHandler, callback_que
     if not callback_query.message or not isinstance(callback_query.message, Message):
         await callback_query.answer(_("Message not found."))
         return
-    document, markup = await WarnActionRenderer.render_warnaction_view(handler.connection.db_model.iid)
+    document, markup = await WarnActionRenderer.render_warnaction_view(
+        handler.connection.db_model.iid,
+        handler.services.modules.actions,
+        handler.services.modules.action_handlers,
+    )
     await handler.answer_rich(document, reply_markup=markup)
 
 

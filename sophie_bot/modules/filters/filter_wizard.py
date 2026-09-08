@@ -102,7 +102,11 @@ class FilterWizard(ActionWizard[FilterDraft]):
     ) -> WizardView:
         header = Section(KeyValue(_("Handler"), draft.handler), title=_("Handler"))
         footer: Section | None = None
-        if await is_enabled("filters_silent_mode", chat_tid=handler.connection.tid):
+        if await is_enabled(
+            "filters_silent_mode",
+            chat_tid=handler.connection.tid,
+            redis=handler.services.redis,
+        ):
             toggle_text = _("🔇 Silent mode: On") if draft.silent else _("🔊 Silent mode: Off")
             footer = Section(
                 Buttons(
@@ -120,7 +124,16 @@ class FilterWizard(ActionWizard[FilterDraft]):
                 ),
                 title=_("Filter settings"),
             )
-        return render_home_view(self.config, draft, session_id, header=header, footer=footer)
+        return render_home_view(
+            self.config,
+            draft,
+            session_id,
+            handler.services.modules.actions,
+            handler.services.modules.action_handlers,
+            handler.services.modules.action_wizards,
+            header=header,
+            footer=footer,
+        )
 
     async def toggle(self, handler: SophieCallbackQueryHandler, callback: WizardCallback) -> None:
         session = WizardSession(handler.state, self.config.scope, callback.session_id or None)

@@ -130,4 +130,10 @@ class AiPmHandle(SophieMessageHandler):
         keyboard = _build_keyboard(await is_help_mode(self.data["state"]))
 
         self.data["ai_msg_cache"] = True
-        return await ai_chatbot_reply(self.event, self.connection, mode=self.data["ai_mode"], reply_markup=keyboard)
+        return await ai_chatbot_reply(
+            self.event,
+            self.connection,
+            mode=self.data["ai_mode"],
+            services=self.services,
+            reply_markup=keyboard,
+        )

@@ -11,7 +11,6 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
-from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -40,7 +39,7 @@ class SubscribeFederationHandler(FederationCommandHandler):
 
         # Get federation for current chat
         chat_iid = self.connection.db_model.iid
-        federation = await FederationManageService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
             return
@@ -84,7 +83,7 @@ class SubscribeFederationHandler(FederationCommandHandler):
             target_fed_name=target_fed.fed_name,
             target_fed_id=target_fed.fed_id,
         ).to_html()
-        await FederationManageService.post_federation_log(federation, log_text, bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.bot)
 
 
 @flags.help(description=l_("Unsubscribe federation from another federation"))
@@ -110,7 +109,7 @@ class UnsubscribeFederationHandler(FederationCommandHandler):
 
         # Get federation for current chat
         chat_iid = self.connection.db_model.iid
-        federation = await FederationManageService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
             return
@@ -154,4 +153,4 @@ class UnsubscribeFederationHandler(FederationCommandHandler):
             target_fed_name=target_fed.fed_name,
             target_fed_id=target_fed.fed_id,
         ).to_html()
-        await FederationManageService.post_federation_log(federation, log_text, bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.bot)

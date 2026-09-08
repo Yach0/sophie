@@ -162,12 +162,19 @@ def test_regex_special_characters_in_display_names_are_literal() -> None:
 @pytest.fixture
 def _enabled_with(monkeypatch: pytest.MonkeyPatch) -> Any:
     def _install(*candidates: MentionCandidate, enabled: bool = True) -> None:
-        async def fake_is_enabled(feature: str, chat_tid: int | None = None) -> bool:
+        async def fake_is_enabled(
+            feature: str,
+            chat_tid: int | None = None,
+            **kwargs: Any,
+        ) -> bool:
             assert feature == "ai_chatbot_mention_usernames"
             assert chat_tid == CHAT_TID
             return enabled
 
-        async def fake_collect(chat_tid: int) -> tuple[MentionCandidate, ...]:
+        async def fake_collect(
+            chat_tid: int,
+            **kwargs: Any,
+        ) -> tuple[MentionCandidate, ...]:
             assert chat_tid == CHAT_TID
             return candidates
 
@@ -177,7 +184,7 @@ def _enabled_with(monkeypatch: pytest.MonkeyPatch) -> Any:
     return _install
 
 
-async def _render(text: str) -> str:
+async def _render(text: str, test_redis: object) -> str:
     doc = await build_reply_doc(
         HEADER,
         text,
@@ -185,33 +192,37 @@ async def _render(text: str) -> str:
         result=None,
         explicit_debug_mode=False,
         chat_tid=CHAT_TID,
+        redis=test_redis,
     )
     return doc.to_html()
 
 
 @pytest.mark.asyncio
-async def test_rendered_reply_contains_the_resolved_username(_enabled_with: Any) -> None:
+async def test_rendered_reply_contains_the_resolved_username(_enabled_with: Any, test_redis: object, test_services: object) -> None:
     _enabled_with(MentionCandidate(display_names=("John Smith", "John"), username="john_s"))
-    html = await _render("Hey @John Smith, done!")
+    html = await _render("Hey @John Smith, done!", test_redis)
     assert "@john_s" in html
     assert "@John Smith" not in html
 
 
 @pytest.mark.asyncio
-async def test_display_name_with_markup_characters_is_replaced_and_escaped(_enabled_with: Any) -> None:
+async def test_display_name_with_markup_characters_is_replaced_and_escaped(_enabled_with: Any, test_redis: object, test_services: object) -> None:
     # A display name is attacker-controlled text; replacing it must not smuggle raw HTML through,
     # and the surrounding text must still be escaped by the renderer.
     _enabled_with(MentionCandidate(display_names=("<b>Bold</b> & Co",), username="bold_co"))
-    html = await _render("Hi @<b>Bold</b> & Co, see <i>this</i>")
+    html = await _render(
+        "Hi @<b>Bold</b> & Co, see <i>this</i>",
+        test_redis,
+    )
     assert "@bold_co" in html
     assert "<b>Bold</b>" not in html
     assert "&lt;i&gt;this&lt;/i&gt;" in html
 
 
 @pytest.mark.asyncio
-async def test_markdown_formatting_around_a_mention_survives(_enabled_with: Any) -> None:
+async def test_markdown_formatting_around_a_mention_survives(_enabled_with: Any, test_redis: object, test_services: object) -> None:
     _enabled_with(MentionCandidate(display_names=("Maria",), username="maria99"))
-    html = await _render("**bold** and @Maria and `@Maria`")
+    html = await _render("**bold** and @Maria and `@Maria`", test_redis)
     assert "@maria99" in html
     assert "<b>bold</b>" in html
     # The mention inside the code span keeps the display name.
@@ -222,33 +233,40 @@ async def test_markdown_formatting_around_a_mention_survives(_enabled_with: Any)
 
 
 @pytest.mark.asyncio
-async def test_disabled_flag_leaves_the_reply_untouched(_enabled_with: Any) -> None:
+async def test_disabled_flag_leaves_the_reply_untouched(_enabled_with: Any, test_redis: object, test_services: object) -> None:
     _enabled_with(MentionCandidate(display_names=("John",), username="john_s"), enabled=False)
-    assert await apply_mention_usernames("Hey @John", CHAT_TID) == "Hey @John"
+    assert await apply_mention_usernames("Hey @John", CHAT_TID, redis=test_redis) == "Hey @John"
 
 
 @pytest.mark.asyncio
-async def test_enabled_flag_resolves_the_mention(_enabled_with: Any) -> None:
+async def test_enabled_flag_resolves_the_mention(_enabled_with: Any, test_redis: object, test_services: object) -> None:
     _enabled_with(MentionCandidate(display_names=("John",), username="john_s"))
-    assert await apply_mention_usernames("Hey @John", CHAT_TID) == "Hey @john_s"
+    assert await apply_mention_usernames("Hey @John", CHAT_TID, redis=test_redis) == "Hey @john_s"
 
 
 @pytest.mark.asyncio
-async def test_resolve_mention_index_collects_candidates_once(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_resolve_mention_index_collects_candidates_once(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     calls = 0
 
-    async def fake_collect(chat_tid: int) -> tuple[MentionCandidate, ...]:
+    async def fake_collect(
+        chat_tid: int,
+        **kwargs: Any,
+    ) -> tuple[MentionCandidate, ...]:
         nonlocal calls
         calls += 1
         return (MentionCandidate(display_names=("John",), username="john_s"),)
 
-    async def fake_is_enabled(feature: str, chat_tid: int | None = None) -> bool:
+    async def fake_is_enabled(
+        feature: str,
+        chat_tid: int | None = None,
+        **kwargs: Any,
+    ) -> bool:
         return True
 
     monkeypatch.setattr(mention_usernames, "collect_mention_candidates", fake_collect)
     monkeypatch.setattr(mention_usernames, "is_enabled", fake_is_enabled)
 
-    index = await resolve_mention_index(CHAT_TID)
+    index = await resolve_mention_index(CHAT_TID, redis=test_redis)
     assert index is not None
     assert resolve_mentions("@John", index) == "@john_s"
     assert resolve_mentions("Again @John", index) == "Again @john_s"
@@ -256,22 +274,20 @@ async def test_resolve_mention_index_collects_candidates_once(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_text_without_an_at_sign_never_touches_the_flag_or_the_cache(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_text_without_an_at_sign_never_touches_the_flag_or_the_cache(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     async def explode(*args: Any, **kwargs: Any) -> Any:
         raise AssertionError("must not be reached")
 
     monkeypatch.setattr(mention_usernames, "is_enabled", explode)
     monkeypatch.setattr(mention_usernames, "collect_mention_candidates", explode)
 
-    assert await apply_mention_usernames("no mentions here", CHAT_TID) == "no mentions here"
-    assert await apply_mention_usernames("@John", None) == "@John"
-    assert await apply_mention_usernames("", CHAT_TID) == ""
+    assert await apply_mention_usernames("no mentions here", CHAT_TID, redis=test_redis) == "no mentions here"
+    assert await apply_mention_usernames("@John", None, redis=test_redis) == "@John"
+    assert await apply_mention_usernames("", CHAT_TID, redis=test_redis) == ""
 
 
 @pytest.mark.asyncio
-async def test_flag_defaults_to_off() -> None:
+async def test_flag_defaults_to_off(test_redis: object, test_services: object) -> None:
     from sophie_bot.utils import feature_flags
 
     assert feature_flags.get_default_value("ai_chatbot_mention_usernames") is False
@@ -292,7 +308,7 @@ class _FakeUser:
 
 
 @pytest.mark.asyncio
-async def test_collect_candidates_uses_the_message_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_collect_candidates_uses_the_message_cache(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     users = {
         11: _FakeUser("John", "Smith", "john_s"),
         12: _FakeUser("Maria", None, "maria99"),
@@ -310,7 +326,7 @@ async def test_collect_candidates_uses_the_message_cache(monkeypatch: pytest.Mon
     monkeypatch.setattr(mention_usernames, "get_cached_messages", fake_cached_messages)
     monkeypatch.setattr(mention_usernames.ChatModel, "get_by_tid", fake_get_by_tid)
 
-    candidates = await collect_mention_candidates(CHAT_TID)
+    candidates = await collect_mention_candidates(CHAT_TID, redis=test_redis)
 
     assert candidates == (
         MentionCandidate(display_names=("John Smith", "John"), username="john_s"),
@@ -319,9 +335,9 @@ async def test_collect_candidates_uses_the_message_cache(monkeypatch: pytest.Mon
 
 
 @pytest.mark.asyncio
-async def test_collect_candidates_without_cached_messages(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_collect_candidates_without_cached_messages(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     async def fake_cached_messages(chat_tid: int, **kwargs: Any) -> tuple[MessageType, ...]:
         return ()
 
     monkeypatch.setattr(mention_usernames, "get_cached_messages", fake_cached_messages)
-    assert await collect_mention_candidates(CHAT_TID) == ()
+    assert await collect_mention_candidates(CHAT_TID, redis=test_redis) == ()

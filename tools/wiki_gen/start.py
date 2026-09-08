@@ -1,48 +1,26 @@
 import asyncio
-from unittest.mock import patch
-
-from aiogram import Dispatcher
 
 from sophie_bot.config import CONFIG
-from sophie_bot.modules import load_modules
+from sophie_bot.modules import discover_modules
+from sophie_bot.modules.help.utils.extract_info import build_help_catalog
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, get_default_value
 from sophie_bot.utils.logger import log
+from tools.wiki_gen.generate_pages import generate_wiki_pages
 
 
-class RedisStub:
-    async def hget(self, key: str, field: str) -> bytes | None:
-        from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _serialize_value, get_default_value
-
-        if field in FEATURE_FLAGS:
-            return _serialize_value(get_default_value(field)).encode()
-        return None
-
-    async def hset(self, key: str, field: str, value: str) -> int:
-        return 0
-
-    async def get(self, key: str) -> bytes | None:
-        return None
-
-    async def incr(self, key: str) -> int:
-        return 0
+async def _generate_wiki() -> None:
+    registry = discover_modules(["*"], CONFIG.modules_not_load)
+    feature_defaults = {
+        feature: get_default_value(feature) for feature in FEATURE_FLAGS
+    }
+    await build_help_catalog(registry, feature_defaults)
+    await generate_wiki_pages(registry.help_modules)
 
 
-# We need to patch the databases in order to be able to run this in CI without them.
-@patch("redis.asyncio.Redis")
-@patch("redis.StrictRedis")
-def generate_wiki(mock_redis, mock_aredis):
-    mock_aredis.return_value = RedisStub()
-    mock_redis.return_value = RedisStub()
-
+def generate_wiki() -> None:
+    """Generate help pages from import-only module metadata."""
     log.info("Starting wiki generation task...")
-    dp = Dispatcher()
-
-    CONFIG.mode = "nostart"
-
-    asyncio.run(load_modules(dp, ["*"], CONFIG.modules_not_load))
-
-    from tools.wiki_gen.generate_pages import generate_wiki_pages
-
-    asyncio.run(generate_wiki_pages())
+    asyncio.run(_generate_wiki())
 
 
 if __name__ == "__main__":

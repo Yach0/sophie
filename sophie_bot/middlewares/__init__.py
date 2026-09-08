@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from aiogram import Dispatcher
 from aiogram.fsm.middleware import FSMContextMiddleware
 from aiogram.utils.i18n import ConstI18nMiddleware
@@ -12,90 +14,73 @@ from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.middlewares.disabling import DisablingMiddleware
 from sophie_bot.middlewares.localization import LocalizationMiddleware
 from sophie_bot.middlewares.logic import OrMiddleware
-from sophie_bot.middlewares.media_group import (
-    MediaGroupAggregatorMiddleware,
-    RedisMediaGroupAggregator,
-)
+from sophie_bot.middlewares.media_group import MediaGroupAggregatorMiddleware, RedisMediaGroupAggregator
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 from sophie_bot.middlewares.sentry_tracing import SentryTracingMiddleware
 from sophie_bot.middlewares.spam_detection import SpamDetectionMiddleware
-from sophie_bot.services.bot import get_bot_runtime, redis
-from sophie_bot.services.i18n import i18n
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.logger import log
 
-# Global metrics instance - will be set during initialization
-_metrics_middleware = None
 
-localization_middleware = LocalizationMiddleware(i18n)
-try_localization_middleware = OrMiddleware(localization_middleware, ConstI18nMiddleware("en_US", i18n))
-
-
-def set_metrics_middleware(middleware) -> None:
-    """Set the metrics middleware instance"""
-    global _metrics_middleware
-    _metrics_middleware = middleware
-    log.info("Metrics middleware set")
+def create_try_localization_middleware(services: ApplicationServices) -> OrMiddleware:
+    localization = LocalizationMiddleware(services.locales)
+    return OrMiddleware(
+        localization,
+        ConstI18nMiddleware(services.locales.default_locale, services.locales.i18n),
+    )
 
 
-def enable_middlewares(dispatcher: Dispatcher | None = None) -> None:
-    active_dispatcher = dispatcher or get_bot_runtime().dispatcher
-
+def enable_middlewares(
+    dispatcher: Dispatcher,
+    services: ApplicationServices,
+    metrics_middleware: Any | None = None,
+) -> None:
     if CONFIG.debug_mode in ("normal", "high"):
         from .debug import EventSeparatorMiddleware
 
-        active_dispatcher.update.outer_middleware(EventSeparatorMiddleware())
+        dispatcher.update.outer_middleware(EventSeparatorMiddleware())
 
     if CONFIG.debug_mode == "high":
         from .debug import UpdateDebugMiddleware
 
-        active_dispatcher.update.middleware(UpdateDebugMiddleware())
+        dispatcher.update.middleware(UpdateDebugMiddleware())
 
-    # Media-group aggregator must run before the FSM middleware: that middleware holds a
-    # per-(chat, user, thread) isolation lock, and all items of one album share that key.
-    # Running inside the lock would deadlock the aggregator's delay-loop (later album items
-    # could never join the buffered group). Insert it right before FSMContextMiddleware.
-    outer_middlewares = active_dispatcher.update.outer_middleware._middlewares
+    # Album aggregation must precede FSM isolation or sibling album updates deadlock.
+    outer_middlewares = dispatcher.update.outer_middleware._middlewares
     fsm_index = next(
-        (index for index, middleware in enumerate(outer_middlewares) if isinstance(middleware, FSMContextMiddleware)),
-        len(outer_middlewares),
+        index for index, middleware in enumerate(outer_middlewares) if isinstance(middleware, FSMContextMiddleware)
     )
     outer_middlewares.insert(
         fsm_index,
-        MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(redis)),
+        MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(services.redis)),
     )
 
-    # Register outermost among inner middlewares (before localization) so the Sentry
-    # transaction wraps all per-update work + handler, but runs after the media-group
-    # aggregator to keep album-collection idle time out of the transaction duration.
     if CONFIG.sentry_url:
-        active_dispatcher.update.middleware(SentryTracingMiddleware())
+        dispatcher.update.middleware(SentryTracingMiddleware())
 
-    active_dispatcher.update.middleware(localization_middleware)
+    dispatcher.update.middleware(LocalizationMiddleware(services.locales))
 
-    # Register metrics middleware if enabled
-    if CONFIG.metrics_enable and _metrics_middleware:
-        active_dispatcher.update.middleware(_metrics_middleware)
+    if CONFIG.metrics_enable and metrics_middleware is not None:
+        dispatcher.update.middleware(metrics_middleware)
         log.info("Metrics middleware registered")
 
     if CONFIG.proxy_enable:
         log.info("Enabled Proxy!")
-        active_dispatcher.update.middleware(BetaMiddleware())
+        dispatcher.update.middleware(BetaMiddleware())
 
-    active_dispatcher.message.middleware(ArgsMiddleware(i18n=i18n))
-
-    active_dispatcher.update.outer_middleware(SaveChatsMiddleware())
-    active_dispatcher.update.middleware(AdmincacheMiddleware())
-    active_dispatcher.update.middleware(SpamDetectionMiddleware())
-
-    active_dispatcher.update.middleware(ConnectionsMiddleware())
-    active_dispatcher.message.middleware(DisablingMiddleware())
+    dispatcher.message.middleware(ArgsMiddleware(i18n=services.locales.i18n))
+    dispatcher.update.outer_middleware(SaveChatsMiddleware())
+    dispatcher.update.middleware(AdmincacheMiddleware())
+    dispatcher.update.middleware(SpamDetectionMiddleware())
+    dispatcher.update.middleware(ConnectionsMiddleware())
+    dispatcher.message.middleware(DisablingMiddleware())
 
     if CONFIG.debug_mode == "high":
         from .debug import DataDebugMiddleware, HandlerDebugMiddleware
 
-        active_dispatcher.update.middleware(DataDebugMiddleware())
-        active_dispatcher.update.middleware(HandlerDebugMiddleware())
+        dispatcher.update.middleware(DataDebugMiddleware())
+        dispatcher.update.middleware(HandlerDebugMiddleware())
 
     if CONFIG.memory_debug:
-        active_dispatcher.update.middleware(TracemallocMiddleware())
+        dispatcher.update.middleware(TracemallocMiddleware())

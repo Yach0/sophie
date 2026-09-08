@@ -10,7 +10,6 @@ from babel.dates import format_date
 from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.args.users import SophieUserArg
-from sophie_bot.db.cache.locale import get_chat_locale
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.db.models.federations import FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType
@@ -20,9 +19,12 @@ from sophie_bot.modules.federations.services import FederationBanService, Federa
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.federations.utils.ban_docs import build_unban_reply_doc
-from sophie_bot.modules.restrictions.utils.restrictions import unban_user as restrict_unban_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -76,7 +78,11 @@ class FederationUnbanHandler(FederationCommandHandler):
             return
 
         # Attempt unban (removes the DB record - the FedBan middleware stops blocking immediately)
-        was_unbanned, subscription_ban = await FederationBanService.unban_user(federation.fed_id, user.tid)
+        was_unbanned, subscription_ban = await FederationBanService.unban_user(
+            federation.fed_id,
+            user.tid,
+            redis=self.services.redis,
+        )
         if not was_unbanned:
             if subscription_ban and subscription_ban.origin_fed:
                 await self._handle_subscription_ban_error(subscription_ban, user)
@@ -104,7 +110,14 @@ class FederationUnbanHandler(FederationCommandHandler):
         # Unban in the current chat right away; the scheduler propagates to the rest.
         immediate_chat_unbanned = False
         if chat_part_of_federation:
-            immediate_chat_unbanned = await restrict_unban_user(self.event.chat.id, user.tid)
+            immediate_chat_unbanned = (
+                await execute_restriction(
+                    self.services.bot,
+                    RestrictionAction.UNBAN,
+                    self.event.chat.id,
+                    user.tid,
+                )
+            ).applied
 
         # Immediate (in-progress) response; the scheduler edits it with the final counts.
         doc = build_unban_reply_doc(
@@ -156,7 +169,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             return
 
         # Format ban date
-        locale_name = await get_chat_locale(self.connection.db_model.iid)
+        locale_name = await self.services.locales.get_chat_locale(self.connection.db_model.iid)
         ban_date = format_date(subscription_ban.time.date(), "short", locale=locale_name)
 
         # Get banner user info - by is now a Link

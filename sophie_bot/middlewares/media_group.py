@@ -233,7 +233,7 @@ class MediaGroupAggregatorMiddleware(BaseMiddleware):
 
         # Only aggregate when the feature is enabled for this chat. Otherwise fall
         # back to per-item behavior, keeping today's dispatch unchanged.
-        if not await is_enabled("notes_media_groups", chat_tid=message.chat.id):
+        if not await is_enabled("notes_media_groups", chat_tid=message.chat.id, redis=data["services"].redis):
             return await handler(event, data)
 
         bot = cast(Bot, data.get("bot"))

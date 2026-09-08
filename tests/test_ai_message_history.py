@@ -24,7 +24,7 @@ def test_user_message_formatter_localizes_and_sanitizes_reply_title(monkeypatch:
 
 
 @pytest.mark.asyncio
-async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     cached = MessageType(
         user_id=1,
         message_id=2,
@@ -37,8 +37,8 @@ async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch)
     )
     monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
 
-    transformed = await AIMessageHistory._cache_transform_msg(10, cached)
-    history = AIMessageHistory()
+    history = AIMessageHistory(services=test_services)
+    transformed = await history._cache_transform_msg(10, cached)
     context_line = await history._format_context_line(10, cached)
 
     assert isinstance(transformed, ModelRequest)
@@ -47,9 +47,7 @@ async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.asyncio
-async def test_cached_ai_history_uses_shared_message_text_representation(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_cached_ai_history_uses_shared_message_text_representation(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
     monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     monkeypatch.setattr(
@@ -58,14 +56,18 @@ async def test_cached_ai_history_uses_shared_message_text_representation(
         lambda message: "✨ AI | Help 📖 | 🔋 80%\nstored body",
     )
 
-    transformed = await AIMessageHistory._cache_transform_msg(10, cached)
+    transformed = await AIMessageHistory(
+        services=test_services
+    )._cache_transform_msg(10, cached)
 
     assert isinstance(transformed, ModelResponse)
     assert transformed.parts[0].content == "stored body"
 
 
-def test_message_history_adds_system_custom_and_debug_output() -> None:
-    history = AIMessageHistory()
+def test_message_history_adds_system_custom_and_debug_output(
+    test_services: object,
+) -> None:
+    history = AIMessageHistory(services=test_services)
 
     history.add_system("system prompt")
     history.add_custom("user prompt", name="Tester")
@@ -78,8 +80,10 @@ def test_message_history_adds_system_custom_and_debug_output() -> None:
     assert "current prompt" in rendered
 
 
-def test_message_history_moderation_extracts_text_roles() -> None:
-    history = AIMessageHistory()
+def test_message_history_moderation_extracts_text_roles(
+    test_services: object,
+) -> None:
+    history = AIMessageHistory(services=test_services)
     history.add_system("system prompt")
     history.add_custom("user prompt", name="Tester")
     history.message_history.append(ModelResponse(parts=[TextPart(content="assistant reply")]))
@@ -109,8 +113,10 @@ def test_is_ai_dialogue_classifies_background_vs_conversation() -> None:
     assert AIMessageHistory._is_ai_dialogue(_cached_message("just chatting")) is False
 
 
-def test_fold_trailing_requests_moves_dangling_user_turns_to_context() -> None:
-    history = AIMessageHistory()
+def test_fold_trailing_requests_moves_dangling_user_turns_to_context(
+    test_services: object,
+) -> None:
+    history = AIMessageHistory(services=test_services)
     history.message_history = [
         ModelResponse(parts=[TextPart(content="Sophie reply")]),
         ModelRequest(parts=[UserPromptPart(content="Alice: first")]),
@@ -127,8 +133,10 @@ def test_fold_trailing_requests_moves_dangling_user_turns_to_context() -> None:
     assert history.context_lines == ["Alice: first", "Bob: second"]
 
 
-def test_apply_context_block_prepends_reference_only_context() -> None:
-    history = AIMessageHistory()
+def test_apply_context_block_prepends_reference_only_context(
+    test_services: object,
+) -> None:
+    history = AIMessageHistory(services=test_services)
     history.context_lines = ["Alice: first", "Bob: second"]
     history.prompt = ["Carol: latest question"]
 
@@ -143,8 +151,10 @@ def test_apply_context_block_prepends_reference_only_context() -> None:
     assert history.prompt[1] == "Carol: latest question"
 
 
-def test_apply_context_block_is_noop_without_context() -> None:
-    history = AIMessageHistory()
+def test_apply_context_block_is_noop_without_context(
+    test_services: object,
+) -> None:
+    history = AIMessageHistory(services=test_services)
     history.prompt = ["Carol: latest question"]
 
     history.apply_context_block()

@@ -81,36 +81,36 @@ pytestmark = pytest.mark.usefixtures("db_init", "mock_history", "mock_convert")
 # --- check_moderator ---
 
 
-async def test_moderation_not_flagged() -> None:
+async def test_moderation_not_flagged(test_redis: object, test_services: object) -> None:
     scores = {key: threshold - 0.1 for key, threshold in _MISTRAL_DEFAULTS.items()}
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=test_services)
 
     assert result.flagged is False
     assert result.triggered == frozenset()
 
 
-async def test_moderation_flagged_sexual() -> None:
+async def test_moderation_flagged_sexual(test_redis: object, test_services: object) -> None:
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = _MISTRAL_DEFAULTS["sexual"] + 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=test_services)
 
     assert result.flagged is True
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
     assert result.triggered_native == frozenset({"sexual"})
 
 
-async def test_moderation_flagged_multiple_categories() -> None:
+async def test_moderation_flagged_multiple_categories(test_redis: object, test_services: object) -> None:
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["violence_and_threats"] = _MISTRAL_DEFAULTS["violence_and_threats"] + 0.1
     scores["hate_and_discrimination"] = _MISTRAL_DEFAULTS["hate_and_discrimination"] + 0.2
     scores["pii"] = _MISTRAL_DEFAULTS["pii"] + 0.3
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=test_services)
 
     assert result.triggered == frozenset(
         {
@@ -121,15 +121,15 @@ async def test_moderation_flagged_multiple_categories() -> None:
     )
 
 
-async def test_moderation_no_scores_not_flagged() -> None:
+async def test_moderation_no_scores_not_flagged(test_redis: object, test_services: object) -> None:
     with _mistral_returning(None):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=test_services)
 
     assert result.flagged is False
     assert result.scores == {}
 
 
-async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     response = _make_moderation_response(dict.fromkeys(_MISTRAL_DEFAULTS, 0.0))
     raw_response = httpx.Response(
         503,
@@ -144,7 +144,7 @@ async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.Monk
         "sophie_bot.modules.ai.utils.moderation.providers.mistral.get_mistral_client",
         new=AsyncMock(return_value=client),
     ):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=test_services)
 
     assert result.flagged is False
     assert moderate.await_count == 2
@@ -153,34 +153,34 @@ async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.Monk
 # --- DetectionLevel ---
 
 
-async def test_moderation_off_disables_category() -> None:
+async def test_moderation_off_disables_category(test_redis: object, test_services: object) -> None:
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = 1.0
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.OFF))
+        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.OFF), services=test_services)
 
     assert result.flagged is False
 
 
-async def test_moderation_high_lowers_threshold() -> None:
+async def test_moderation_high_lowers_threshold(test_redis: object, test_services: object) -> None:
     normal = _MISTRAL_DEFAULTS["sexual"]
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = normal - 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH))
+        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH), services=test_services)
 
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
 
 
-async def test_moderation_low_raises_threshold() -> None:
+async def test_moderation_low_raises_threshold(test_redis: object, test_services: object) -> None:
     normal = _MISTRAL_DEFAULTS["sexual"]
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = normal + 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.LOW))
+        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.LOW), services=test_services)
 
     assert result.flagged is False
 
@@ -188,78 +188,78 @@ async def test_moderation_low_raises_threshold() -> None:
 # --- feature flags ---
 
 
-async def test_thresholds_come_from_flags() -> None:
+async def test_thresholds_come_from_flags(test_redis: object, test_services: object) -> None:
     provider = MistralModerationProvider()
 
-    thresholds = await resolve_thresholds(provider, None)
+    thresholds = await resolve_thresholds(provider, None, redis=test_redis)
     assert thresholds["sexual"] == _MISTRAL_DEFAULTS["sexual"]
 
-    await set_value("ai_moderation_threshold_mistral_sexual", 0.05)
+    await set_value("ai_moderation_threshold_mistral_sexual", 0.05, redis=test_redis)
     try:
-        thresholds = await resolve_thresholds(provider, None)
+        thresholds = await resolve_thresholds(provider, None, redis=test_redis)
         assert thresholds["sexual"] == pytest.approx(0.05)
     finally:
-        await set_value("ai_moderation_threshold_mistral_sexual", _MISTRAL_DEFAULTS["sexual"])
+        await set_value("ai_moderation_threshold_mistral_sexual", _MISTRAL_DEFAULTS["sexual"], redis=test_redis)
 
 
-async def test_threshold_chat_override_flags_low_score() -> None:
+async def test_threshold_chat_override_flags_low_score(test_redis: object, test_services: object) -> None:
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = 0.1
 
     with _mistral_returning(scores):
-        assert (await check_moderator(_make_message(), chat_tid=_CHAT_TID)).flagged is False
+        assert (await check_moderator(_make_message(), chat_tid=_CHAT_TID, services=test_services)).flagged is False
 
-        await set_chat_override("ai_moderation_threshold_mistral_sexual", _CHAT_TID, 0.05)
-        result = await check_moderator(_make_message(), chat_tid=_CHAT_TID)
+        await set_chat_override("ai_moderation_threshold_mistral_sexual", _CHAT_TID, 0.05, redis=test_redis)
+        result = await check_moderator(_make_message(), chat_tid=_CHAT_TID, services=test_services)
 
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
 
 
-async def test_level_multipliers_come_from_flags() -> None:
-    multipliers = await resolve_level_multipliers(None)
+async def test_level_multipliers_come_from_flags(test_redis: object, test_services: object) -> None:
+    multipliers = await resolve_level_multipliers(None, redis=test_redis)
     assert multipliers == {DetectionLevel.LOW: 0.7, DetectionLevel.NORMAL: 1.0, DetectionLevel.HIGH: 1.3}
 
-    await set_value("ai_moderation_level_high_multiplier", 3.0)
+    await set_value("ai_moderation_level_high_multiplier", 3.0, redis=test_redis)
     try:
-        assert (await resolve_level_multipliers(None))[DetectionLevel.HIGH] == pytest.approx(3.0)
+        assert (await resolve_level_multipliers(None, redis=test_redis))[DetectionLevel.HIGH] == pytest.approx(3.0)
     finally:
-        await set_value("ai_moderation_level_high_multiplier", 1.3)
+        await set_value("ai_moderation_level_high_multiplier", 1.3, redis=test_redis)
 
 
-async def test_level_multiplier_scales_the_score() -> None:
+async def test_level_multiplier_scales_the_score(test_redis: object, test_services: object) -> None:
     # 0.3 misses the 0.5 threshold even at HIGH's default 1.3x, and clears it once HIGH scales by 3.
     scores = dict.fromkeys(_MISTRAL_DEFAULTS, 0.0)
     scores["sexual"] = 0.3
     settings = _make_settings(sexual=DetectionLevel.HIGH)
 
     with _mistral_returning(scores):
-        assert (await check_moderator(_make_message(), settings=settings)).flagged is False
+        assert (await check_moderator(_make_message(), settings=settings, services=test_services)).flagged is False
 
-        await set_value("ai_moderation_level_high_multiplier", 3.0)
+        await set_value("ai_moderation_level_high_multiplier", 3.0, redis=test_redis)
         try:
-            result = await check_moderator(_make_message(), settings=settings)
+            result = await check_moderator(_make_message(), settings=settings, services=test_services)
         finally:
-            await set_value("ai_moderation_level_high_multiplier", 1.3)
+            await set_value("ai_moderation_level_high_multiplier", 1.3, redis=test_redis)
 
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
 
 
-async def test_provider_flag_selects_backend() -> None:
-    assert (await get_moderation_provider()).name == "mistral"
+async def test_provider_flag_selects_backend(test_redis: object, test_services: object) -> None:
+    assert (await get_moderation_provider(services=test_services)).name == "mistral"
 
-    await set_value("ai_moderation_provider", "openai")
+    await set_value("ai_moderation_provider", "openai", redis=test_redis)
     try:
-        assert (await get_moderation_provider()).name == "openai"
+        assert (await get_moderation_provider(services=test_services)).name == "openai"
     finally:
-        await set_value("ai_moderation_provider", "mistral")
+        await set_value("ai_moderation_provider", "mistral", redis=test_redis)
 
 
-async def test_unknown_provider_falls_back_to_mistral() -> None:
-    await set_value("ai_moderation_provider", "nonsense")
+async def test_unknown_provider_falls_back_to_mistral(test_redis: object, test_services: object) -> None:
+    await set_value("ai_moderation_provider", "nonsense", redis=test_redis)
     try:
-        assert (await get_moderation_provider()).name == "mistral"
+        assert (await get_moderation_provider(services=test_services)).name == "mistral"
     finally:
-        await set_value("ai_moderation_provider", "mistral")
+        await set_value("ai_moderation_provider", "mistral", redis=test_redis)
 
 
 # --- the /aimoderator picker ---
@@ -309,34 +309,39 @@ def _notice_message() -> AsyncMock:
     return message
 
 
-async def _send_notice() -> tuple[str, AsyncMock]:
+async def _send_notice(
+    test_services: object,
+) -> tuple[str, AsyncMock]:
     schedule_mock = MagicMock()
     send_mock = AsyncMock(return_value=SimpleNamespace(message_id=777))
 
     with (
-        patch("sophie_bot.modules.ai.middlewares.ai_moderator.bot.send_message", send_mock),
-        patch("sophie_bot.modules.ai.middlewares.ai_moderator.schedule_message_deletion", schedule_mock),
+        patch.object(test_services.bot, "send_message", send_mock),
+        patch.object(test_services.deletions, "schedule", schedule_mock),
     ):
         await AiModeratorMiddleware._triggered(
-            _notice_message(), frozenset({ModerationCategory.SEXUAL}), _CHAT_TID
+            _notice_message(),
+            frozenset({ModerationCategory.SEXUAL}),
+            _CHAT_TID,
+            services=test_services,
         )
 
     return send_mock.call_args.kwargs["text"], schedule_mock
 
 
-async def test_notice_announces_and_schedules_its_own_deletion() -> None:
-    text, schedule_mock = await _send_notice()
+async def test_notice_announces_and_schedules_its_own_deletion(test_redis: object, test_services: object) -> None:
+    text, schedule_mock = await _send_notice(test_services)
 
     assert "deleted shortly" in text
     schedule_mock.assert_called_once_with(_CHAT_TID, [777], delay_seconds=30)
 
 
-async def test_notice_stays_when_delay_flag_is_zero() -> None:
-    await set_value("ai_moderation_notice_delete_after_seconds", 0)
+async def test_notice_stays_when_delay_flag_is_zero(test_redis: object, test_services: object) -> None:
+    await set_value("ai_moderation_notice_delete_after_seconds", 0, redis=test_redis)
     try:
-        text, schedule_mock = await _send_notice()
+        text, schedule_mock = await _send_notice(test_services)
     finally:
-        await set_value("ai_moderation_notice_delete_after_seconds", 30)
+        await set_value("ai_moderation_notice_delete_after_seconds", 30, redis=test_redis)
 
     assert "deleted shortly" not in text
     schedule_mock.assert_not_called()

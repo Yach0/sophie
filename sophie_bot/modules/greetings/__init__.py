@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiogram import Router
 
 from sophie_bot.modules import ModuleManifest
@@ -20,19 +22,20 @@ from sophie_bot.modules.greetings.handlers.status_overall import (
 )
 from sophie_bot.modules.greetings.middlewares.leave_user import LeaveUserMiddleware
 from sophie_bot.modules.greetings.middlewares.new_user import NewUserMiddleware
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 router = Router(name="greetings")
 
 
-async def pre_setup() -> None:
+async def setup_bot(router: Router, _services: ApplicationServices) -> None:
     router.message.outer_middleware(LeaveUserMiddleware())
     router.message.outer_middleware(NewUserMiddleware())
 
 
 module_manifest = ModuleManifest(
     name="greetings",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         EnableWelcomeHandlerABC,
         SetWelcomeMessageHandler,
@@ -42,7 +45,7 @@ module_manifest = ModuleManifest(
         CleanServiceHandlerABC,
         CleanWelcomeHandlerABC,
     ),
-    pre_setup=pre_setup,
+    setup_bot=setup_bot,
     title=l_("Greetings"),
     emoji="🙋‍♂️",
     description=l_("Welcome new users to your chat"),

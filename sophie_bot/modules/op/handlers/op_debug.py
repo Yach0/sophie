@@ -7,16 +7,19 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from urllib.parse import urlsplit, urlunsplit
 
+from aiogram.enums import ChatType
 from aiogram.types import Message
+from redis.asyncio import Redis
 from stfu_tg import BlockQuote, Bold, Code, Doc, Italic, KeyValue, Section, Title
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.op_debug_snapshot import OpDebugSnapshotModel
+from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modes import SOPHIE_MODE
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS, get_default_value, list_all
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -160,8 +163,16 @@ def _extract_reply_context(message: Message) -> list[str]:
     return lines
 
 
-async def _collect_chat_history(chat_id: int) -> tuple[list[Section], list[dict[str, Any]]]:
-    messages: tuple[MessageType, ...] = await get_cached_messages(chat_id, limit=_MESSAGE_HISTORY_LIMIT)
+async def _collect_chat_history(
+    chat_id: int,
+    *,
+    redis: Redis,
+) -> tuple[list[Section], list[dict[str, Any]]]:
+    messages: tuple[MessageType, ...] = await get_cached_messages(
+        chat_id,
+        limit=_MESSAGE_HISTORY_LIMIT,
+        redis=redis,
+    )
     lines: list[str] = []
     history_data: list[dict[str, Any]] = []
 
@@ -224,14 +235,17 @@ async def _collect_operator_notes(message: Message) -> tuple[list[Section], list
     )
 
 
-async def _collect_error_backoff() -> tuple[Section, dict[str, Any]]:
-    raw_keys = await aredis.keys(f"{_ERROR_SIGNATURE_PREFIX}*")
+async def _collect_error_backoff(*, redis: Redis) -> tuple[Section, dict[str, Any]]:
+    raw_keys = await redis.keys(f"{_ERROR_SIGNATURE_PREFIX}*")
     signature_rows: list[tuple[float, str]] = []
     signature_data_list: list[dict[str, Any]] = []
 
     for raw_key in raw_keys:
         signature_key = _decode_redis_value(raw_key)
-        raw_hash = cast(Mapping[bytes | str, bytes | str | int | float], await aredis.hgetall(signature_key))
+        raw_hash = cast(
+            Mapping[bytes | str, bytes | str | int | float],
+            await redis.hgetall(signature_key),
+        )
         signature_data = _decode_hash(raw_hash)
         last_seen_at = signature_data.get("last_seen_at")
         try:
@@ -272,8 +286,8 @@ async def _collect_error_backoff() -> tuple[Section, dict[str, Any]]:
     return Section(*section_items, title=l_("Error Backoff")), backoff_data
 
 
-async def _collect_feature_flags() -> tuple[Section, dict[str, Any]]:
-    states = await list_all()
+async def _collect_feature_flags(*, redis: Redis) -> tuple[Section, dict[str, Any]]:
+    states = await list_all(redis=redis)
     lines: list[str] = []
     flags_data: dict[str, Any] = {}
 
@@ -297,10 +311,10 @@ async def _collect_feature_flags() -> tuple[Section, dict[str, Any]]:
     )
 
 
-async def _collect_redis_health() -> tuple[Section, dict[str, Any]]:
-    ping_result = await aredis.ping()
-    db_size = await aredis.dbsize()
-    raw_keys = await aredis.keys(_SOPHIE_KEY_PREFIX)
+async def _collect_redis_health(*, redis: Redis) -> tuple[Section, dict[str, Any]]:
+    ping_result = await redis.ping()
+    db_size = await redis.dbsize()
+    raw_keys = await redis.keys(_SOPHIE_KEY_PREFIX)
     key_groups = Counter(_redis_key_group(raw_key) for raw_key in raw_keys)
     group_lines = [f"{group}: {count}" for group, count in sorted(key_groups.items())]
 
@@ -385,14 +399,19 @@ def _collect_chat_context(message: Message) -> tuple[Section, dict[str, Any], in
 
 async def _collect_debug_context(
     message: Message,
+    *,
+    services: ApplicationServices,
 ) -> None:
     """Shared flow: collect diagnostic context, persist snapshot, reply."""
     system_section, system_data = _collect_system_context()
     chat_section, chat_data, operator_id, operator_name = _collect_chat_context(message)
-    redis_section, redis_data = await _collect_redis_health()
-    backoff_section, backoff_data = await _collect_error_backoff()
-    flags_section, flags_data = await _collect_feature_flags()
-    history_sections, history_data = await _collect_chat_history(message.chat.id)
+    redis_section, redis_data = await _collect_redis_health(redis=services.redis)
+    backoff_section, backoff_data = await _collect_error_backoff(redis=services.redis)
+    flags_section, flags_data = await _collect_feature_flags(redis=services.redis)
+    history_sections, history_data = await _collect_chat_history(
+        message.chat.id,
+        redis=services.redis,
+    )
     notes_sections, notes_data = await _collect_operator_notes(message)
 
     snapshot = OpDebugSnapshotModel(
@@ -421,11 +440,7 @@ async def _collect_debug_context(
 class OpDebugHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:
-        from aiogram.enums import ChatType
-
-        from sophie_bot.filters.chat_status import ChatTypeFilter
-
         return (CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(ChatType.PRIVATE))
 
     async def handle(self) -> None:
-        await _collect_debug_context(self.event)
+        await _collect_debug_context(self.event, services=self.services)

@@ -33,7 +33,7 @@ class GetNote(SophieMessageHandler):
         return (CMDFilter("get"),)
 
     async def handle(self) -> Any:
-        chat: ChatConnection = self.data["connection"]
+        chat: ChatConnection = self.connection
 
         note_name: str = self.data["notename"].removeprefix("#")
         note = await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
@@ -64,6 +64,7 @@ class GetNote(SophieMessageHandler):
             connection=chat,
             message_thread_id=self.event.message_thread_id,
             collect_sent=sent_messages,
+            bot=self.services.bot,
         )
         track_note_retrieved(
             trigger="command",
@@ -75,6 +76,7 @@ class GetNote(SophieMessageHandler):
             self.event,
             sent_messages,
             request_is_standalone=is_standalone_command_request(self.data.get("command"), note_name),
+            services=self.services,
         )
 
         return message
@@ -89,7 +91,7 @@ class HashtagGetNote(SophieMessageHandler):
         return (F.text.regexp(HashtagGetNote.hashtag_filter_pattern),)
 
     async def _fine_note(self, note_name: str) -> NoteModel | None:
-        chat: ChatConnection = self.data["connection"]
+        chat: ChatConnection = self.connection
         return await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
 
     @staticmethod
@@ -119,7 +121,7 @@ class HashtagGetNote(SophieMessageHandler):
         # TODO: Handle chat topics!
         reply_to = self.event.reply_to_message.message_id if self.event.reply_to_message else self.event.message_id
 
-        chat: ChatConnection = self.data["connection"]
+        chat: ChatConnection = self.connection
         track_note_retrieved(
             trigger="hashtag",
             has_media=any(bool(n.model_dump().get("file")) for n in notes_to_stack),
@@ -134,12 +136,14 @@ class HashtagGetNote(SophieMessageHandler):
             connection=chat,
             message_thread_id=self.event.message_thread_id,
             collect_sent=sent_messages,
+            bot=self.services.bot,
         )
         await clean_notes(
             chat,
             self.event,
             sent_messages,
             request_is_standalone=is_standalone_hashtag_request(raw_text, matches),
+            services=self.services,
         )
 
         return message

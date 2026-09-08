@@ -197,13 +197,17 @@ class AIFilterAddHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         prompt: str = self.data["prompt"].strip()
-        history = AIMessageHistory()
-        base_prompt = str(await get_value("ai_filter_suggestions_prompt", chat_tid=self.event.chat.id))
+        history = AIMessageHistory(services=self.services)
+        base_prompt = str(
+            await get_value("ai_filter_suggestions_prompt", chat_tid=self.event.chat.id, redis=self.services.redis)
+        )
         history.add_system(_build_system_prompt(base_prompt))
         history.prompt = [prompt]
 
         model_plan = await get_chat_default_model_plan(
-            self.connection.db_model.iid, chat_tid=self.connection.db_model.tid
+            self.connection.db_model.iid,
+            chat_tid=self.connection.db_model.tid,
+            redis=self.services.redis,
         )
 
         try:
@@ -216,6 +220,7 @@ class AIFilterAddHandler(SophieMessageHandler):
                 history,
                 chat_iid=self.connection.db_model.iid,
                 chat_tid=self.event.chat.id,
+                redis=self.services.redis,
             )
             suggestions = _validate_suggestions(result.output.suggestions)
         except AIRequestFailed as err:

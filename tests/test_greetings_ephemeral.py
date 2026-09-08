@@ -16,6 +16,11 @@ def _chat(tid: int, iid: str) -> SimpleNamespace:
 async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[SimpleNamespace]):
     chat_db = _chat(-100123, "chat-iid")
     message = SimpleNamespace(chat=SimpleNamespace(id=-100123), message_id=1, message_thread_id=None, from_user=None)
+    redis_set = AsyncMock()
+    services = SimpleNamespace(
+        bot=object(),
+        redis=SimpleNamespace(set=redis_set),
+    )
 
     with (
         patch(
@@ -27,7 +32,6 @@ async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[Si
             "sophie_bot.modules.greetings.middlewares.new_user.send_welcome",
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
         ) as send_welcome,
-        patch("sophie_bot.modules.greetings.middlewares.new_user.aredis.set", AsyncMock()) as redis_set,
     ):
         await NewUserMiddleware.on_captcha(
             message,
@@ -37,6 +41,7 @@ async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[Si
             SimpleNamespace(id=1),
             cleanservice_enabled=False,
             chat_rules=None,
+            services=services,
         )
 
     return send_welcome, redis_set
@@ -100,7 +105,11 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
     for chat_model, member in zip(new_users, members):
         chat_model.is_bot = member.is_bot
 
-    async def flag(feature: str, chat_tid: int | None = None) -> bool:
+    async def flag(
+        feature: str,
+        chat_tid: int | None = None,
+        **_kwargs: object,
+    ) -> bool:
         return ephemeral if feature == "greetings_ephemeral" else False
 
     with (
@@ -121,7 +130,18 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
         ) as send_welcome,pytest.raises(SkipHandler)
     ):
-        await NewUserMiddleware()(AsyncMock(), event, {"chat_db": chat_db, "new_users": new_users})
+        await NewUserMiddleware()(
+            AsyncMock(),
+            event,
+            {
+                "context": SimpleNamespace(event_chat=chat_db),
+                "new_users": new_users,
+                "services": SimpleNamespace(
+                    bot=object(),
+                    redis=object(),
+                ),
+            },
+        )
 
     return send_welcome, cleanup
 

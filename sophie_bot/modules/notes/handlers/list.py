@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from ass_tg.types import OptionalArg, TextArg
 from beanie import PydanticObjectId
 from pydantic import BaseModel, ValidationError
+from redis.asyncio import Redis
 from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 
 from sophie_bot.db.models import NoteModel
@@ -62,7 +63,12 @@ class NotesList(SophieMessageHandler):
     async def handle(self) -> Any:
         search: str | None = self.data.get("search")
         state = self.data.get("state")
-        notes = await _query_notes(self.connection.db_model.iid, self.connection.tid, search)
+        notes = await _query_notes(
+            self.connection.db_model.iid,
+            self.connection.tid,
+            search,
+            redis=self.services.redis,
+        )
         if not notes:
             return await self._reply_or_send(_empty_notes_text(search, self.connection.title))
 
@@ -98,7 +104,12 @@ class NotesPageHandler(SophieCallbackQueryHandler):
             await callback.answer(_("This list has expired. Please run the command again."), show_alert=True)
             return
 
-        notes = await _query_notes(context.chat_iid, context.chat_tid, context.search)
+        notes = await _query_notes(
+            context.chat_iid,
+            context.chat_tid,
+            context.search,
+            redis=self.services.redis,
+        )
         if not notes:
             if callback.message and isinstance(callback.message, Message):
                 await callback.message.edit_text(_empty_notes_text(context.search, context.chat_title))
@@ -164,14 +175,20 @@ async def _remove_notes_context(state: Any, list_id: str) -> None:
     await state.set_data(data)
 
 
-async def _query_notes(chat_iid: Any, chat_tid: int, search: str | None) -> list[NoteModel]:
+async def _query_notes(
+    chat_iid: Any,
+    chat_tid: int,
+    search: str | None,
+    *,
+    redis: Redis,
+) -> list[NoteModel]:
     rag_allowed = (
         search
-        and await is_enabled("notes_rag_list_search", chat_tid=chat_tid)
-        and await is_enabled("ai_chatbot", chat_tid=chat_tid)
+        and await is_enabled("notes_rag_list_search", chat_tid=chat_tid, redis=redis)
+        and await is_enabled("ai_chatbot", chat_tid=chat_tid, redis=redis)
     )
     if rag_allowed:
-        quota_result = await check_quota(chat_iid)
+        quota_result = await check_quota(chat_iid, redis=redis)
         rag_allowed = quota_result.allowed
     if rag_allowed:
         assert search is not None

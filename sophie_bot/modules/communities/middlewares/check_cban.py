@@ -8,9 +8,12 @@ from aiogram.types import Message, TelegramObject
 from stfu_tg import Template, UserLink
 
 from sophie_bot.modules.communities.services import CommunityBanService, CommunityManageService
-from sophie_bot.modules.restrictions.utils.restrictions import ban_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -27,21 +30,21 @@ class CommunityBanMiddleware(BaseMiddleware):
         if not message.from_user:
             return False
 
-        chat_db = data.get("chat_db")
-        user_db = data.get("user_db")
+        chat_db = data["context"].event_chat
+        user_db = data["context"].actor
         if not chat_db or not user_db:
             return False
         if chat_db.community_tid is None:
             return False
 
-        if not await is_enabled("communities", chat_tid=chat_db.tid):
+        if not await is_enabled("communities", chat_tid=chat_db.tid, redis=data["services"].redis):
             return False
 
         user_id = user_db.tid
         user_name = message.from_user.first_name
         chat_id = chat_db.tid
 
-        community = await CommunityManageService.get_community_for_chat(chat_db)
+        community = await CommunityManageService.get_community_for_chat(chat_db, services=data["services"])
         if not community:
             return False
 
@@ -55,7 +58,14 @@ class CommunityBanMiddleware(BaseMiddleware):
 
         log.debug(f"Enforcing cban on {user_id} in {chat_id}")
 
-        if not await ban_user(chat_id, user_id):
+        if not (
+            await execute_restriction(
+                data["services"].bot,
+                RestrictionAction.BAN,
+                chat_id,
+                user_id,
+            )
+        ).applied:
             return True
 
         doc = Template(

@@ -43,9 +43,8 @@ class TestPrivateMessageHandling:
 
         # Assert
         assert result == "handler_result"
-        assert "chat_db" in base_data
-        assert "user_db" in base_data
-        assert base_data["chat_db"] == base_data["user_db"]
+        context = base_data["context"]
+        assert context.event_chat == context.actor
 
         # Verify user was created in database
         db_user = await ChatModel.find_one(ChatModel.tid == 123456789)

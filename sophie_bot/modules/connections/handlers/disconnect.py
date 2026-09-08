@@ -5,6 +5,7 @@ from stfu_tg import Bold, Template
 
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
 from sophie_bot.modules.connections.utils.constants import CONNECTION_DISCONNECT_TEXT
 from sophie_bot.utils import flags
@@ -39,7 +40,12 @@ class DisconnectCmd(SophieMessageHandler):
             return
 
         user_id = self.event.from_user.id
-        await set_connected_chat(user_id, None)
+        await set_connected_chat(user_id, None, redis=self.services.redis)
+        self.context.connection = await ConnectionsMiddleware.get_current_chat_info(
+            self.event.chat,
+            self.context.event_chat,
+        )
+        self.context.target_chat = self.context.event_chat
         await self.event.reply(
             str(
                 Template(

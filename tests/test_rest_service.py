@@ -5,11 +5,9 @@ from typing import ClassVar, Self
 
 import pytest
 from fakeredis import FakeAsyncRedis
-from fastapi import APIRouter
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
-from sophie_bot.services import rest
 from sophie_bot.services.rest import (
     GLOBAL_RATE_LIMIT,
     GLOBAL_RATE_WINDOW,
@@ -18,7 +16,6 @@ from sophie_bot.services.rest import (
     RequestSizeLimitMiddleware,
     SecurityHeadersMiddleware,
     create_app,
-    init_api_routers,
 )
 
 
@@ -31,6 +28,7 @@ def make_request(
     method: str = "GET",
     body: bytes = b"",
     path: str = "/api/test",
+    services: object | None = None,
 ) -> SimpleNamespace:
     async def request_body() -> bytes:
         return body
@@ -41,6 +39,11 @@ def make_request(
         body=request_body,
         url=SimpleNamespace(path=path),
         client=SimpleNamespace(host="203.0.113.55"),
+        app=SimpleNamespace(
+            state=SimpleNamespace(
+                services=services,
+            )
+        ),
     )
 
 
@@ -117,13 +120,23 @@ class FakeI18n:
 
 
 @pytest.mark.asyncio
-async def test_i18n_middleware_uses_supported_accept_language(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_i18n_middleware_uses_supported_accept_language() -> None:
     fake_i18n = FakeI18n()
     middleware = I18nMiddleware(dummy_app)
-    monkeypatch.setattr(rest, "i18n", fake_i18n)
-    monkeypatch.setattr(rest.CONFIG, "default_locale", "en")
+    services = SimpleNamespace(
+        locales=SimpleNamespace(
+            i18n=fake_i18n,
+            default_locale="en",
+        )
+    )
 
-    response = await middleware.dispatch(make_request(headers={"accept-language": "uk-UA, en;q=0.8"}), ok_response)
+    response = await middleware.dispatch(
+        make_request(
+            headers={"accept-language": "uk-UA, en;q=0.8"},
+            services=services,
+        ),
+        ok_response,
+    )
 
     assert response.status_code == 200
     assert fake_i18n.used_locales == ["uk"]
@@ -169,26 +182,33 @@ class FakeRedis:
 
 
 @pytest.mark.asyncio
-async def test_global_rate_limit_skips_exempt_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_global_rate_limit_skips_exempt_paths() -> None:
     pipeline = FakePipeline(current_count=GLOBAL_RATE_LIMIT + 1)
     fake_redis = FakeRedis(pipeline)
     middleware = GlobalRateLimitMiddleware(dummy_app)
-    monkeypatch.setattr(rest, "aredis", fake_redis)
 
-    response = await middleware.dispatch(make_request(path="/health"), ok_response)
+    response = await middleware.dispatch(
+        make_request(
+            path="/health",
+            services=SimpleNamespace(redis=fake_redis),
+        ),
+        ok_response,
+    )
 
     assert response.status_code == 200
     assert pipeline.incr_keys == []
 
 
 @pytest.mark.asyncio
-async def test_global_rate_limit_records_allowed_request(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_global_rate_limit_records_allowed_request() -> None:
     pipeline = FakePipeline(current_count=GLOBAL_RATE_LIMIT)
     fake_redis = FakeRedis(pipeline)
     middleware = GlobalRateLimitMiddleware(dummy_app)
-    monkeypatch.setattr(rest, "aredis", fake_redis)
 
-    response = await middleware.dispatch(make_request(), ok_response)
+    response = await middleware.dispatch(
+        make_request(services=SimpleNamespace(redis=fake_redis)),
+        ok_response,
+    )
 
     expected_key = "global_rate_limit:203.0.113.55"
     assert response.status_code == 200
@@ -199,13 +219,15 @@ async def test_global_rate_limit_records_allowed_request(monkeypatch: pytest.Mon
 
 
 @pytest.mark.asyncio
-async def test_global_rate_limit_rejects_request_over_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_global_rate_limit_rejects_request_over_limit() -> None:
     pipeline = FakePipeline(current_count=GLOBAL_RATE_LIMIT + 1)
     fake_redis = FakeRedis(pipeline, ttl_result=9)
     middleware = GlobalRateLimitMiddleware(dummy_app)
-    monkeypatch.setattr(rest, "aredis", fake_redis)
 
-    response = await middleware.dispatch(make_request(), ok_response)
+    response = await middleware.dispatch(
+        make_request(services=SimpleNamespace(redis=fake_redis)),
+        ok_response,
+    )
 
     assert response.status_code == 429
     assert response.headers["Retry-After"] == "9"
@@ -214,34 +236,32 @@ async def test_global_rate_limit_rejects_request_over_limit(monkeypatch: pytest.
 
 
 @pytest.mark.asyncio
-async def test_global_rate_limit_does_not_extend_window_on_subsequent_requests(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_global_rate_limit_does_not_extend_window_on_subsequent_requests() -> None:
     fake_redis = FakeAsyncRedis()
     middleware = GlobalRateLimitMiddleware(dummy_app)
-    monkeypatch.setattr(rest, "aredis", fake_redis)
+    request = make_request(services=SimpleNamespace(redis=fake_redis))
     key = "global_rate_limit:203.0.113.55"
 
-    await middleware.dispatch(make_request(), ok_response)
+    await middleware.dispatch(request, ok_response)
     # fakeredis has no advanceable clock; shrinking the TTL stands in for elapsed time.
     await fake_redis.expire(key, 10)
-    await middleware.dispatch(make_request(), ok_response)
+    await middleware.dispatch(request, ok_response)
 
     assert await fake_redis.ttl(key) <= 10
     await fake_redis.aclose()
 
 
 @pytest.mark.asyncio
-async def test_global_rate_limit_rejected_request_does_not_extend_window(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_global_rate_limit_rejected_request_does_not_extend_window() -> None:
     fake_redis = FakeAsyncRedis()
     middleware = GlobalRateLimitMiddleware(dummy_app)
-    monkeypatch.setattr(rest, "aredis", fake_redis)
+    request = make_request(services=SimpleNamespace(redis=fake_redis))
     key = "global_rate_limit:203.0.113.55"
 
     await fake_redis.set(key, GLOBAL_RATE_LIMIT)
     await fake_redis.expire(key, 10)
 
-    response = await middleware.dispatch(make_request(), ok_response)
+    response = await middleware.dispatch(request, ok_response)
 
     assert response.status_code == 429
     # A 429 must not push the window back, otherwise the client can never escape the lockout.
@@ -250,32 +270,27 @@ async def test_global_rate_limit_rejected_request_does_not_extend_window(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_global_rate_limit_fails_open_on_redis_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_global_rate_limit_fails_open_on_redis_errors() -> None:
     pipeline = FakePipeline(current_count=0, execute_error=RuntimeError("redis down"))
     fake_redis = FakeRedis(pipeline)
     middleware = GlobalRateLimitMiddleware(dummy_app)
     GlobalRateLimitMiddleware._redis_failure_count = 0
-    monkeypatch.setattr(rest, "aredis", fake_redis)
 
-    response = await middleware.dispatch(make_request(), ok_response)
+    response = await middleware.dispatch(
+        make_request(services=SimpleNamespace(redis=fake_redis)),
+        ok_response,
+    )
 
     assert response.status_code == 200
     assert GlobalRateLimitMiddleware._redis_failure_count == 1
 
 
-def test_create_app_adds_expected_middleware_and_init_api_routers_includes_router() -> None:
+def test_create_app_adds_expected_middleware_and_health_route() -> None:
     app = create_app()
-    router = APIRouter(prefix="/unit-test")
-
-    @router.get("/ping")
-    async def ping() -> dict[str, bool]:
-        return {"ok": True}
-
-    init_api_routers(app, [router])
 
     middleware_classes = {middleware.cls for middleware in app.user_middleware}
     assert I18nMiddleware in middleware_classes
     assert SecurityHeadersMiddleware in middleware_classes
     assert GlobalRateLimitMiddleware in middleware_classes
     assert RequestSizeLimitMiddleware in middleware_classes
-    assert app.url_path_for("ping") == "/unit-test/ping"
+    assert app.url_path_for("health_check") == "/health"

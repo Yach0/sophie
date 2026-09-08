@@ -3,10 +3,11 @@ from __future__ import annotations
 from asyncio import gather
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import BinaryIO, cast
+from typing import BinaryIO
 
+from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message
+from aiogram.types import Message
 from mistralai.client.models.assistantmessage import AssistantMessage
 from mistralai.client.models.systemmessage import SystemMessage
 from mistralai.client.models.usermessage import UserMessage
@@ -23,13 +24,13 @@ from pydantic_ai.messages import (
     UserContent,
     UserPromptPart,
 )
+from redis.asyncio import Redis
 from stfu_tg import Doc, HList, KeyValue, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -38,7 +39,8 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
-from sophie_bot.services.bot import bot
+from sophie_bot.modules.utils_.admin import get_admin_record
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -68,8 +70,19 @@ class AIUserMessageFormatter:
         return f"{name}: {text}"
 
 
-async def _admin_context_name(chat_tid: int, user_tid: int, name: str, is_group: bool) -> str:
-    if not is_group or not await is_enabled("ai_chatbot_admin_status", chat_tid=chat_tid):
+async def _admin_context_name(
+    chat_tid: int,
+    user_tid: int,
+    name: str,
+    is_group: bool,
+    *,
+    services: ApplicationServices,
+) -> str:
+    if not is_group or not await is_enabled(
+        "ai_chatbot_admin_status",
+        chat_tid=chat_tid,
+        redis=services.redis,
+    ):
         return name
 
     chat_model = await ChatModel.get_by_tid(chat_tid)
@@ -79,10 +92,7 @@ async def _admin_context_name(chat_tid: int, user_tid: int, name: str, is_group:
     if chat_model.type not in {ChatType.group, ChatType.supergroup}:
         return name
 
-    admin = await ChatAdminModel.find_one(
-        ChatAdminModel.chat.id == chat_model.iid,
-        ChatAdminModel.user.id == user_model.iid,
-    )
+    admin = await get_admin_record(chat_model, user_model)
     if not admin:
         return name
 
@@ -93,8 +103,7 @@ async def _admin_context_name(chat_tid: int, user_tid: int, name: str, is_group:
     else:
         return name
 
-    admin_member = cast(ChatMemberAdministrator | ChatMemberOwner, admin.member)
-    custom_title = admin_member.custom_title
+    custom_title = admin.member.custom_title
     if custom_title:
         return f"{name} [{role} - {custom_title}]"
     return f"{name} [{role}]"
@@ -124,6 +133,9 @@ async def _build_message_parts(
     from_user_name: str,
     replied_user_name: str | None,
     disable_name: bool,
+    *,
+    bot: Bot,
+    redis: Redis,
 ) -> list[UserContent]:
     """Build the list of message parts for the AI context."""
     prompt: list[UserContent] = []
@@ -171,7 +183,11 @@ async def _build_message_parts(
 
     # Voice
     if message.voice:
-        voice_text = await transform_voice_to_text(message.voice)
+        voice_text = await transform_voice_to_text(
+            message.voice,
+            bot=bot,
+            redis=redis,
+        )
         prompt.append(voice_text)
         # TODO: Cache message somehow again?
 
@@ -194,7 +210,11 @@ async def _build_message_parts(
 
         # Transcribe video audio
         if video:
-            video_transcription = await transform_video_to_text(video)
+            video_transcription = await transform_video_to_text(
+                video,
+                bot=bot,
+                redis=redis,
+            )
             if video_transcription:
                 prompt.append(str(Template(_("[Video transcription: {text}]"), text=video_transcription)))
 
@@ -210,7 +230,8 @@ class AIMessageHistory:
     prompt: list[UserContent]
     context_lines: list[str]
 
-    def __init__(self):
+    def __init__(self, *, services: ApplicationServices) -> None:
+        self.services = services
         self.message_history = []
         self.prompt = []
         self.context_lines = []
@@ -234,7 +255,13 @@ class AIMessageHistory:
     async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
         user = await ChatModel.get_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
-        from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
+        from_user_name = await _admin_context_name(
+            chat_id,
+            msg.user_id,
+            first_name,
+            is_group=True,
+            services=self.services,
+        )
         return AIUserMessageFormatter.user_message(
             msg.text,
             from_user_name,
@@ -270,8 +297,7 @@ class AIMessageHistory:
         self.prompt = [context_block, *self.prompt]
         self.context_lines = []
 
-    @staticmethod
-    async def _cache_transform_msg(chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
+    async def _cache_transform_msg(self, chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
         """Transforms a message from the cache to a message that can be sent to the AI."""
         user = await ChatModel.get_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
@@ -281,7 +307,13 @@ class AIMessageHistory:
             text = cut_titlebar(stored_message_text) if is_ai_message(stored_message_text) else stored_message_text
             return ModelResponse(parts=[TextPart(content=text)])
 
-        from_user_name = await _admin_context_name(chat_id, msg.user_id, first_name, is_group=True)
+        from_user_name = await _admin_context_name(
+            chat_id,
+            msg.user_id,
+            first_name,
+            is_group=True,
+            services=self.services,
+        )
         return ModelRequest(
             parts=[
                 UserPromptPart(
@@ -314,7 +346,12 @@ class AIMessageHistory:
         They are replayed right before that answer, so the model can reuse what it already looked up
         instead of running the same searches again.
         """
-        messages = await get_cached_messages(chat_id, limit=limit, max_age=max_age)
+        messages = await get_cached_messages(
+            chat_id,
+            limit=limit,
+            max_age=max_age,
+            redis=self.services.redis,
+        )
         exchanges = tool_exchanges or {}
 
         if not fold_background:
@@ -364,10 +401,19 @@ class AIMessageHistory:
             message.chat.id,
             message.from_user.id,
             message.from_user.full_name,
-            message.chat.type in {"group", "supergroup"},
+            message.chat.type != "private",
+            services=self.services,
         )
         prompt.extend(
-            await _build_message_parts(message, message_text, from_user_name, replied_user_name, disable_name)
+            await _build_message_parts(
+                message,
+                message_text,
+                from_user_name,
+                replied_user_name,
+                disable_name,
+                bot=self.services.bot,
+                redis=self.services.redis,
+            )
         )
 
         self.prompt = prompt

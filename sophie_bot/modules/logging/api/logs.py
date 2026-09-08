@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.db.models.log import LogModel
 from sophie_bot.modules.logging.events import LOG_EVENT_STRINGS
+from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.utils.api.auth import get_current_user
 
 router = APIRouter(prefix="/logging", tags=["logging"])
@@ -41,10 +41,7 @@ async def get_chat_logs(
     if user.tid == target_chat.tid:
         is_allowed = True
     else:
-        admin = await ChatAdminModel.find_one(
-            ChatAdminModel.chat.id == target_chat.iid,
-            ChatAdminModel.user.id == user.iid,
-        )
+        admin = await get_admin_record(target_chat, user)
         if admin:
             is_allowed = True
 

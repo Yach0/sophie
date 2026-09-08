@@ -20,9 +20,11 @@ from sophie_bot.modules.communities.services import CommunityBanService, Communi
 from sophie_bot.modules.communities.utils.ban_docs import build_ban_reply_doc
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.restrictions.utils.logging import extract_offending_message_text
-from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -55,7 +57,7 @@ class CommunityBanHandler(SophieMessageHandler):
             return
 
         current_chat = self.connection.db_model
-        community = await CommunityManageService.get_community_for_chat(current_chat)
+        community = await CommunityManageService.get_community_for_chat(current_chat, services=self.services)
         if not community:
             await self.event.reply(_("This chat is not part of a community."))
             return
@@ -85,6 +87,7 @@ class CommunityBanHandler(SophieMessageHandler):
                 current_chat,
                 message_text=original_message_text,
                 include_rules=True,
+                services=self.services,
             )
             if ai_reason:
                 reason = ai_reason
@@ -100,7 +103,14 @@ class CommunityBanHandler(SophieMessageHandler):
             return
 
         # Ban in the current chat right away so a spamming user is stopped on the spot.
-        immediate_chat_banned = await restrict_ban_user(self.event.chat.id, user_tid)
+        immediate_chat_banned = (
+            await execute_restriction(
+                self.services.bot,
+                RestrictionAction.BAN,
+                self.event.chat.id,
+                user_tid,
+            )
+        ).applied
         if immediate_chat_banned:
             existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
             if current_chat.iid not in existing_chat_iids:
@@ -130,7 +140,7 @@ class CommunityBanHandler(SophieMessageHandler):
             messages_to_delete = [self.event.message_id, reply_msg.message_id]
             if self.event.reply_to_message:
                 messages_to_delete.append(self.event.reply_to_message.message_id)
-            schedule_message_deletion(self.event.chat.id, messages_to_delete)
+            self.services.deletions.schedule(self.event.chat.id, messages_to_delete)
 
         # Propagate the ban across the rest of the community in the scheduler.
         await CommunityTask(

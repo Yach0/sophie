@@ -49,8 +49,11 @@ async def test_warn_handler_falls_back_to_send_message_when_reply_target_is_miss
     handler = WarnHandler(
         message,
         bot=bot,
-        connection=connection,
-        user_db=admin_user,
+        context=SimpleNamespace(
+            connection=connection,
+            actor=admin_user,
+        ),
+        services=SimpleNamespace(),
         reason="no promotion allowed here read /rules",
     )
 

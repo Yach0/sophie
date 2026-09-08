@@ -4,6 +4,7 @@ from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException
 
 from sophie_bot.db.models.notes import NoteModel
+from sophie_bot.services.rest import ServicesDep
 from sophie_bot.services.telegram_media import TelegramMediaService
 from sophie_bot.utils.api.dependencies import ChatDep, ReadAdminDep
 
@@ -16,11 +17,13 @@ router = APIRouter()
 async def list_notes(
     chat: ChatDep,
     user: ReadAdminDep,
+    services: ServicesDep,
 ) -> NotesListResponse:
     notes = await NoteModel.get_chat_notes(chat.iid)
 
     texts = [note.text for note in notes]
-    media_result = await TelegramMediaService.resolve_media_from_texts(texts)
+    media_service = TelegramMediaService(services.bot, services.redis)
+    media_result = await media_service.resolve_media_from_texts(texts)
 
     note_responses = [NoteResponse.from_model(note, media_result.resolved) for note in notes]
 
@@ -32,11 +35,13 @@ async def get_note(
     chat: ChatDep,
     note_id: PydanticObjectId,
     user: ReadAdminDep,
+    services: ServicesDep,
 ) -> NoteResponse:
     note = await NoteModel.get(note_id)
     if not note or (note.chat and note.chat.ref.id != chat.iid) or (not note.chat and note.chat_tid != chat.tid):
         raise HTTPException(status_code=404, detail="Note not found")
 
-    media_result = await TelegramMediaService.resolve_media_from_texts([note.text])
+    media_service = TelegramMediaService(services.bot, services.redis)
+    media_result = await media_service.resolve_media_from_texts([note.text])
 
     return NoteResponse.from_model(note, media_result.resolved)

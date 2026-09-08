@@ -386,6 +386,7 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
         )
     )
     run_task = AsyncMock(return_value=mock_ai_result)
+    services = test_client.dispatcher.workflow_data["services"]
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -397,8 +398,9 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
             )
         )
         stack.enter_context(
-            patch(
-                "sophie_bot.modules.ai.utils.message_history.bot.download",
+            patch.object(
+                services.bot,
+                "download",
                 AsyncMock(return_value=BytesIO(b"thumbnail-bytes")),
             )
         )

@@ -7,7 +7,6 @@ import pytest
 from fakeredis import FakeAsyncRedis
 from fastapi import HTTPException
 
-from sophie_bot.utils.api import rate_limiter
 from sophie_bot.utils.api.rate_limiter import get_client_ip, rate_limit
 
 RATE_LIMIT_KEY = "rate_limit:/api/test:203.0.113.10"
@@ -59,9 +58,19 @@ def make_request(
     headers: dict[str, str] | None = None,
     client_host: str | None = "203.0.113.10",
     path: str = "/api/test",
+    redis: object | None = None,
 ) -> SimpleNamespace:
     client = SimpleNamespace(host=client_host) if client_host else None
-    return SimpleNamespace(headers=headers or {}, client=client, url=SimpleNamespace(path=path))
+    return SimpleNamespace(
+        headers=headers or {},
+        client=client,
+        url=SimpleNamespace(path=path),
+        app=SimpleNamespace(
+            state=SimpleNamespace(
+                services=SimpleNamespace(redis=redis),
+            )
+        ),
+    )
 
 
 def test_get_client_ip_prefers_real_ip_header() -> None:
@@ -99,12 +108,11 @@ def test_get_client_ip_falls_back_to_unknown_without_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_records_request_in_redis(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_rate_limit_records_request_in_redis() -> None:
     pipeline = FakePipeline(execute_result=[2])
     redis = FakeRedis(pipeline=pipeline)
-    monkeypatch.setattr(rate_limiter, "aredis", redis)
 
-    await rate_limit(make_request(), limit=3, window=45)
+    await rate_limit(make_request(redis=redis), limit=3, window=45)
 
     expected_key = "rate_limit:/api/test:203.0.113.10"
     assert pipeline.incr_keys == [expected_key]
@@ -114,13 +122,12 @@ async def test_rate_limit_records_request_in_redis(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_raises_with_retry_after_when_limit_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_rate_limit_raises_with_retry_after_when_limit_exceeded() -> None:
     pipeline = FakePipeline(execute_result=[4])
     redis = FakeRedis(pipeline=pipeline, ttl_result=12)
-    monkeypatch.setattr(rate_limiter, "aredis", redis)
 
     with pytest.raises(HTTPException) as exc_info:
-        await rate_limit(make_request(), limit=3, window=60)
+        await rate_limit(make_request(redis=redis), limit=3, window=60)
 
     assert exc_info.value.status_code == 429
     assert exc_info.value.detail == "Too many requests"
@@ -129,38 +136,35 @@ async def test_rate_limit_raises_with_retry_after_when_limit_exceeded(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_fails_open_when_pipeline_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_rate_limit_fails_open_when_pipeline_errors() -> None:
     pipeline = FakePipeline(execute_error=RuntimeError("redis unavailable"))
     redis = FakeRedis(pipeline=pipeline)
-    monkeypatch.setattr(rate_limiter, "aredis", redis)
 
-    await rate_limit(make_request(), limit=1, window=60)
+    await rate_limit(make_request(redis=redis), limit=1, window=60)
 
     assert redis.ttl_keys == []
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_fails_open_when_ttl_lookup_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_rate_limit_fails_open_when_ttl_lookup_errors() -> None:
     pipeline = FakePipeline(execute_result=[2])
     redis = FakeRedis(pipeline=pipeline, ttl_error=RuntimeError("ttl failed"))
-    monkeypatch.setattr(rate_limiter, "aredis", redis)
 
-    await rate_limit(make_request(), limit=1, window=60)
+    await rate_limit(make_request(redis=redis), limit=1, window=60)
 
     assert redis.ttl_keys == ["rate_limit:/api/test:203.0.113.10"]
 
 
 @pytest.fixture
-async def real_redis(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[FakeAsyncRedis]:
+async def real_redis() -> AsyncIterator[FakeAsyncRedis]:
     redis = FakeAsyncRedis()
-    monkeypatch.setattr(rate_limiter, "aredis", redis)
     yield redis
     await redis.aclose()
 
 
 @pytest.mark.asyncio
 async def test_rate_limit_allowed_request_does_not_extend_window(real_redis: FakeAsyncRedis) -> None:
-    request = make_request()
+    request = make_request(redis=real_redis)
     await rate_limit(request, limit=3, window=60)
 
     # fakeredis has no advanceable clock; shrinking the TTL stands in for elapsed time.
@@ -172,7 +176,7 @@ async def test_rate_limit_allowed_request_does_not_extend_window(real_redis: Fak
 
 @pytest.mark.asyncio
 async def test_rate_limit_rejected_request_does_not_extend_window(real_redis: FakeAsyncRedis) -> None:
-    request = make_request()
+    request = make_request(redis=real_redis)
     for _attempt in range(3):
         await rate_limit(request, limit=3, window=60)
 
@@ -187,7 +191,7 @@ async def test_rate_limit_rejected_request_does_not_extend_window(real_redis: Fa
 
 @pytest.mark.asyncio
 async def test_rate_limit_counter_resets_after_window_expires(real_redis: FakeAsyncRedis) -> None:
-    request = make_request()
+    request = make_request(redis=real_redis)
     for _attempt in range(4):
         with contextlib.suppress(HTTPException):
             await rate_limit(request, limit=3, window=60)

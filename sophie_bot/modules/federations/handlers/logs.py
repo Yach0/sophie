@@ -40,13 +40,13 @@ class SetFederationLogHandler(SophieMessageHandler):
 
         # Get federation for this chat
         chat_iid = connection.db_model.iid
-        federation = await FederationManageService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
 
         # Check if user is federation owner
-        user_db = await require_acting_user(self.event, self.data)
+        user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
 
@@ -119,13 +119,13 @@ class UnsetFederationLogHandler(SophieMessageHandler):
 
         # Get federation for this chat
         chat_iid = connection.db_model.iid
-        federation = await FederationManageService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
 
         # Check if user is federation owner
-        user_db = await require_acting_user(self.event, self.data)
+        user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
 

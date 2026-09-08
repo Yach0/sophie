@@ -24,6 +24,7 @@ Rollback:
 from beanie import free_fall_migration
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 # Frozen copy of the capability matrix (sophie_bot.modules.ai.utils.ai_catalog.MODE_PURPOSES) as of
 # this migration. Kept literal so a later change to the matrix cannot retro-alter this migration.
@@ -74,8 +75,8 @@ def _expand_roles(roles: list[dict]) -> list[dict]:
 
 class Forward:
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        collection = get_collection("ai_catalog_model")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        collection = get_collection(resources.database.database, "ai_catalog_model")
         async for model in collection.find({}, session=session):
             await collection.update_one(
                 {"_id": model["_id"]},
@@ -86,8 +87,8 @@ class Forward:
 
 class Backward:
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        collection = get_collection("ai_catalog_model")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        collection = get_collection(resources.database.database, "ai_catalog_model")
         async for model in collection.find({}, session=session):
             collapsed: list[dict] = []
             globals_seen: set[str] = set()

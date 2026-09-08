@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel
-
-from sophie_bot.services.redis import aredis
+from redis.asyncio import Redis
 
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
@@ -54,6 +53,7 @@ async def cache_message(
     created_at: datetime,
     username: str | None,
     *,
+    redis: Redis,
     message_thread_id: int | None = None,
     handled_by_ai: bool = False,
     eligible_for_proactive_ai: bool = True,
@@ -93,17 +93,17 @@ async def cache_message(
     message_score = created_at.timestamp()
     cutoff_score = _build_cutoff(created_at).timestamp()
 
-    async with aredis.pipeline(transaction=True) as pipe:
+    async with redis.pipeline(transaction=True) as pipe:
         await pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
         await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
         await pipe.expire(key, 86400 * 2, lt=True)
         await pipe.execute()
 
 
-async def reset_messages(chat_id: int) -> None:
+async def reset_messages(chat_id: int, *, redis: Redis) -> None:
     """Resets the cached messages for a given chat."""
     key = get_message_cache_key(chat_id)
-    await aredis.delete(key)
+    await redis.delete(key)
 
 
 def _parse_cached_message(raw_message: object) -> MessageType | None:
@@ -112,10 +112,16 @@ def _parse_cached_message(raw_message: object) -> MessageType | None:
     return MessageType.model_validate_json(raw_message)
 
 
-async def get_cached_messages_between(chat_id: int, start_at: datetime, end_at: datetime) -> tuple[MessageType, ...]:
+async def get_cached_messages_between(
+    chat_id: int,
+    start_at: datetime,
+    end_at: datetime,
+    *,
+    redis: Redis,
+) -> tuple[MessageType, ...]:
     """Retrieve cached messages in a given inclusive time window."""
     key = get_message_cache_key(chat_id)
-    raw_messages = await aredis.zrangebyscore(  # type: ignore[misc]
+    raw_messages = await redis.zrangebyscore(  # type: ignore[misc]
         key, start_at.timestamp(), end_at.timestamp()
     )
     messages = [message for raw_message in raw_messages if (message := _parse_cached_message(raw_message))]
@@ -130,6 +136,8 @@ async def get_cached_messages(
     now: datetime | None = None,
     limit: int | None = None,
     max_age: timedelta | None = None,
+    *,
+    redis: Redis,
 ) -> tuple[MessageType, ...]:
     """Retrieves and parses cached messages for a given chat.
 
@@ -140,7 +148,7 @@ async def get_cached_messages(
     start_at = _build_cutoff(current_time)
     if max_age is not None:
         start_at = max(start_at, current_time - max_age)
-    messages = await get_cached_messages_between(chat_id, start_at, current_time)
+    messages = await get_cached_messages_between(chat_id, start_at, current_time, redis=redis)
     if limit is None:
         return messages
     start_index = max(len(messages) - limit, 0)

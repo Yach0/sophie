@@ -25,7 +25,10 @@ from sophie_bot.modules.warns.handlers import (
     WarnsPMHandler,
 )
 from sophie_bot.modules.warns.handlers.warn import WarnHandler
-from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
+from sophie_bot.modules.warns.magic_handlers.modern_action import (
+    WarnModernAction,
+    build_action_wizard_specs,
+)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -37,8 +40,8 @@ router = Router(name="warns")
 
 module_manifest = ModuleManifest(
     name="warns",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         WarnHandler,
         WarnsGroupHandler,
@@ -68,4 +71,5 @@ module_manifest = ModuleManifest(
         )
     ),
     modern_actions=(WarnModernAction,),
+    build_action_wizards=build_action_wizard_specs,
 )

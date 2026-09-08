@@ -24,24 +24,31 @@ Rollback:
 from beanie import free_fall_migration
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 
 class Forward:
     """Derive one AI mode per chat from the old enabled/moderator documents."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        enabled_chats = await get_collection("ai_enabled").distinct("chat", session=session)
-        moderated_chats = set(await get_collection("ai_moderator").distinct("chat", {"enabled": True}, session=session))
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        enabled_chats = await get_collection(resources.database.database, "ai_enabled").distinct(
+            "chat", session=session
+        )
+        moderated_chats = set(
+            await get_collection(resources.database.database, "ai_moderator").distinct(
+                "chat", {"enabled": True}, session=session
+            )
+        )
 
         documents = [
             {"chat": chat, "mode": "moderation" if chat in moderated_chats else "support"} for chat in enabled_chats
         ]
         if documents:
-            await get_collection("ai_mode").insert_many(documents, session=session)
+            await get_collection(resources.database.database, "ai_mode").insert_many(documents, session=session)
 
-        await get_collection("ai_enabled").drop(session=session)
-        await get_collection("ai_provider").drop(session=session)
+        await get_collection(resources.database.database, "ai_enabled").drop(session=session)
+        await get_collection(resources.database.database, "ai_provider").drop(session=session)
 
         print(f"Migrated {len(documents)} chats to AI modes")
 
@@ -50,9 +57,13 @@ class Backward:
     """Recreate ai_enabled from every chat whose mode is not disabled."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        enabled_chats = await get_collection("ai_mode").distinct("chat", {"mode": {"$ne": "disabled"}}, session=session)
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        enabled_chats = await get_collection(resources.database.database, "ai_mode").distinct(
+            "chat", {"mode": {"$ne": "disabled"}}, session=session
+        )
         if enabled_chats:
-            await get_collection("ai_enabled").insert_many([{"chat": chat} for chat in enabled_chats], session=session)
+            await get_collection(resources.database.database, "ai_enabled").insert_many(
+                [{"chat": chat} for chat in enabled_chats], session=session
+            )
 
-        await get_collection("ai_mode").drop(session=session)
+        await get_collection(resources.database.database, "ai_mode").drop(session=session)

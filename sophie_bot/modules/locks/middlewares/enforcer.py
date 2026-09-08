@@ -29,14 +29,18 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         if not message.from_user:
             return await handler(event, data)
-        chat_db = data.get("chat_db")
+        chat_db = data["context"].event_chat
         if not chat_db:
             return await handler(event, data)
-        if not await is_enabled("locks", chat_tid=message.chat.id):
+        if not await is_enabled("locks", chat_tid=message.chat.id, redis=data["services"].redis):
             return await handler(event, data)
         if await is_user_admin(message.chat.id, message.from_user.id):
             return await handler(event, data)
-        locked_types = await get_cached_locks(message.chat.id, chat_db.iid)
+        locked_types = await get_cached_locks(
+            message.chat.id,
+            chat_db.iid,
+            redis=data["services"].redis,
+        )
         if not locked_types:
             return await handler(event, data)
         # When the media-group middleware aggregated an album, `message` is only the

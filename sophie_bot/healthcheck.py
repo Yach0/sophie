@@ -16,6 +16,7 @@ import httpx2
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.health import HEARTBEAT_TTL_SECONDS, check_heartbeat
+from sophie_bot.services.redis import create_redis
 
 HTTP_TIMEOUT_SECONDS = 5.0
 
@@ -62,9 +63,13 @@ async def _check_rest() -> tuple[bool, str]:
 
 
 async def _check_heartbeat_mode(component: str) -> tuple[bool, str]:
-    if await check_heartbeat(component, HEARTBEAT_TTL_SECONDS):
-        return True, f"{component}: heartbeat fresh"
-    return False, f"{component}: heartbeat missing or stale"
+    redis = create_redis(CONFIG)
+    try:
+        if await check_heartbeat(component, HEARTBEAT_TTL_SECONDS, redis=redis):
+            return True, f"{component}: heartbeat fresh"
+        return False, f"{component}: heartbeat missing or stale"
+    finally:
+        await redis.aclose()
 
 
 async def _run() -> tuple[bool, str]:

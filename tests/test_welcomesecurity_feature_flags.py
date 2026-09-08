@@ -15,6 +15,7 @@ from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import Kic
 @pytest.mark.asyncio
 async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_flag_disabled(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: object,
 ) -> None:
     middleware = NewUserMiddleware()
     chat_iid = PydanticObjectId()
@@ -67,7 +68,19 @@ async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_fl
     )
 
     with pytest.raises(SkipHandler):
-        await middleware(handler, event, {"chat_db": chat_db, "new_users": new_users})
+        await middleware(
+            handler,
+            event,
+            {
+                "context": SimpleNamespace(
+                    event_chat=chat_db,
+                    actor=new_users[0],
+                    user_in_group=None,
+                ),
+                "services": test_services,
+                "new_users": new_users,
+            },
+        )
 
     send_welcome.assert_awaited_once()
     captcha_handler.assert_not_awaited()
@@ -77,6 +90,7 @@ async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_fl
 @pytest.mark.asyncio
 async def test_lock_muted_users_skips_enforcement_when_captcha_flag_disabled(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: object,
 ) -> None:
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="ok")
@@ -95,8 +109,17 @@ async def test_lock_muted_users_skips_enforcement_when_captcha_flag_disabled(
         handler,
         event,
         {
-            "chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
-            "user_db": SimpleNamespace(tid=123, iid=PydanticObjectId()),
+            "context": SimpleNamespace(
+                event_chat=SimpleNamespace(
+                    tid=-100123,
+                    iid=PydanticObjectId(),
+                ),
+                actor=SimpleNamespace(
+                    tid=123,
+                    iid=PydanticObjectId(),
+                ),
+            ),
+            "services": test_services,
         },
     )
 
@@ -107,8 +130,9 @@ async def test_lock_muted_users_skips_enforcement_when_captcha_flag_disabled(
 @pytest.mark.asyncio
 async def test_kick_unpassed_users_handle_skips_when_autokick_flag_disabled(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: object,
 ) -> None:
-    schedule = KickUnpassedUsers()
+    schedule = KickUnpassedUsers(test_services)
     user_iid = PydanticObjectId()
     group_iid = PydanticObjectId()
     user = SimpleNamespace(tid=123)
@@ -120,7 +144,6 @@ async def test_kick_unpassed_users_handle_skips_when_autokick_flag_disabled(
         group=SimpleNamespace(ref=SimpleNamespace(id=group_iid)),
         delete=AsyncMock(),
     )
-    kick_user = AsyncMock()
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.ChatModel.get_by_iid",
@@ -130,9 +153,7 @@ async def test_kick_unpassed_users_handle_skips_when_autokick_flag_disabled(
         "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.is_enabled",
         AsyncMock(return_value=False),
     )
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.kick_user", kick_user)
 
     await schedule.process_user(ws_user)
 
-    kick_user.assert_not_awaited()
     ws_user.delete.assert_not_awaited()

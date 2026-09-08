@@ -12,7 +12,6 @@ from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_tool_history import load_chatbot_tool_history
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
-from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -32,19 +31,34 @@ def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, 
 
 async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIMode) -> Doc:
     capabilities = get_capabilities(mode)
-    chat_name_enabled = await is_enabled("ai_chatbot_chat_name", chat_tid=context.chat_tid)
+    chat_name_enabled = await is_enabled(
+        "ai_chatbot_chat_name",
+        chat_tid=context.chat_tid,
+        redis=context.services.redis,
+    )
     context_doc = Doc(
         _("You can also save important things to the memory.") if capabilities.memory else None,
         _(
             "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
         ),
-        Template(_("Available Sophie modules: {modules}"), modules=HList(*HELP_MODULES.keys())),
+        Template(
+            _("Available Sophie modules: {modules}"),
+            modules=HList(*context.services.modules.help_modules),
+        ),
     )
 
-    if await is_enabled("ai_research", chat_tid=context.chat_tid):
+    if await is_enabled(
+        "ai_research",
+        chat_tid=context.chat_tid,
+        redis=context.services.redis,
+    ):
         context_doc += _("You can use the research tool to research complicated topics instead of plain web search.")
 
-    if await is_enabled("ai_chatbot_tool_history", chat_tid=context.chat_tid):
+    if await is_enabled(
+        "ai_chatbot_tool_history",
+        chat_tid=context.chat_tid,
+        redis=context.services.redis,
+    ):
         context_doc += _(
             "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
         )
@@ -57,11 +71,19 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
                 chat_name=chat_model.first_name_or_title,
             )
 
-    if await is_enabled("ai_system_prompt_summaries", chat_tid=context.chat_tid):
+    if await is_enabled(
+        "ai_system_prompt_summaries",
+        chat_tid=context.chat_tid,
+        redis=context.services.redis,
+    ):
         summary_lines = await AIChatSummaryModel.get_recent_lines(context.chat_iid)
         if summary_lines:
             # The message ID lets the provider correlate the summary back to the real chat.
-            hide_message_ids = await is_enabled("ai_summary_improved_privacy", chat_tid=context.chat_tid)
+            hide_message_ids = await is_enabled(
+                "ai_summary_improved_privacy",
+                chat_tid=context.chat_tid,
+                redis=context.services.redis,
+            )
             summary_template = (
                 _("{title} | users: {users} | excerpt: {excerpt}")
                 if hide_message_ids
@@ -79,11 +101,17 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
             ]
             context_doc += Section(VList(*rendered_summaries), title=_("Recent chat summaries"))
 
-    if context.user_text and await is_enabled("ai_notes_related_system_prompt", chat_tid=context.chat_tid):
+    if context.user_text and await is_enabled(
+        "ai_notes_related_system_prompt",
+        chat_tid=context.chat_tid,
+        redis=context.services.redis,
+    ):
         related_notes = await semantic_search_notes(context.chat_iid, context.user_text, limit=5)
         if related_notes:
             include_note_content = await is_enabled(
-                "ai_notes_related_system_prompt_full_content", chat_tid=context.chat_tid
+                "ai_notes_related_system_prompt_full_content",
+                chat_tid=context.chat_tid,
+                redis=context.services.redis,
             )
             if include_note_content:
                 rendered_related_notes = [
@@ -127,8 +155,18 @@ _SYSTEM_PROMPT_FLAG_BY_MODE: Mapping[AIMode, FeatureType] = {AIMode.sophie_help:
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
     mode = context.mode
     prompt_flag = _SYSTEM_PROMPT_FLAG_BY_MODE.get(mode, "ai_chatbot_system_prompt")
-    system_prompt = str(await get_value(prompt_flag, chat_tid=context.chat_tid))
-    tables_enabled = await is_enabled("ai_chatbot_tables", chat_tid=context.chat_tid)
+    system_prompt = str(
+        await get_value(
+            prompt_flag,
+            chat_tid=context.chat_tid,
+            redis=context.services.redis,
+        )
+    )
+    tables_enabled = await is_enabled(
+        "ai_chatbot_tables",
+        chat_tid=context.chat_tid,
+        redis=context.services.redis,
+    )
     instruction_doc = _base_chatbot_instruction_doc(
         system_prompt, datetime.datetime.now(datetime.UTC), tables_enabled=tables_enabled
     )
@@ -137,15 +175,21 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
 
 
 async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> AIMessageHistory:
-    history = AIMessageHistory()
-    max_age_minutes = int(await get_value("ai_chatbot_history_max_age_minutes", chat_tid=context.chat_tid))
+    history = AIMessageHistory(services=context.services)
+    max_age_minutes = int(
+        await get_value(
+            "ai_chatbot_history_max_age_minutes",
+            chat_tid=context.chat_tid,
+            redis=context.services.redis,
+        )
+    )
     max_age = datetime.timedelta(minutes=max_age_minutes) if max_age_minutes > 0 else None
     await history.add_from_cache(
         context.chat_tid,
         limit=CHATBOT_CACHE_MESSAGE_LIMIT,
         fold_background=True,
         max_age=max_age,
-        tool_exchanges=await load_chatbot_tool_history(context.chat_tid),
+        tool_exchanges=await load_chatbot_tool_history(context.chat_tid, redis=context.services.redis),
     )
     await history.add_from_message(message, custom_text=context.user_text)
     history.apply_context_block()

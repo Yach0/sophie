@@ -3,7 +3,8 @@
 import importlib
 from datetime import UTC, datetime
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
+from typing import Any, cast
 
 import pytest
 from bson import DBRef, ObjectId
@@ -17,7 +18,10 @@ from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.services.db import get_collection
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.migrations import (
+    MigrationResources,
+    _bind_migration_resources,
+)
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _serialize_value
 
 
@@ -460,7 +464,10 @@ async def _seed_chat(chat_tid: int) -> ChatModel:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone() -> None:
+async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """Backward must not touch chats that were already on "auto" before Forward ran.
 
     "auto" is AIProviderModel.provider's default, so it is by far the largest population.
@@ -469,12 +476,12 @@ async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone() -> N
     version: `already_auto` comes back as "zai".
     """
     migration = _zai_provider_migration()
-    providers = get_collection("ai_provider")
+    providers = get_collection(db_init, "ai_provider")
 
     migrated_id = (await providers.insert_one({"provider": "zai"})).inserted_id
     already_auto_id = (await providers.insert_one({"provider": "auto"})).inserted_id
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     assert (await providers.find_one({"_id": migrated_id}))["provider"] == "auto"
 
@@ -487,7 +494,10 @@ async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone() -> N
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_summary_model_gpt55_backward_leaves_pre_existing_new_model_alone() -> None:
+async def test_summary_model_gpt55_backward_leaves_pre_existing_new_model_alone(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """Backward must not touch documents that were already on the new default summary model.
 
     "openai/gpt-5.5" is constants.DEFAULT_AI_SUMMARY_MODEL, so documents carry it by default
@@ -495,12 +505,12 @@ async def test_summary_model_gpt55_backward_leaves_pre_existing_new_model_alone(
     this test fails against that version.
     """
     migration = _summary_model_gpt55_migration()
-    providers = get_collection("ai_provider")
+    providers = get_collection(db_init, "ai_provider")
 
     migrated_id = (await providers.insert_one({"summary_model": "openai/gpt-5.4"})).inserted_id
     already_new_id = (await providers.insert_one({"summary_model": "openai/gpt-5.5"})).inserted_id
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     assert (await providers.find_one({"_id": migrated_id}))["summary_model"] == "openai/gpt-5.5"
 
@@ -645,7 +655,9 @@ async def test_link_orphaned_notes_backward_keeps_genuine_sophie_attribution() -
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice() -> None:
+async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice(
+    db_init: Any,
+) -> None:
     """Backward must not unset a summary model the owner chose explicitly.
 
     Forward only backfilled documents missing the field, but the previous Backward `$unset`
@@ -653,7 +665,7 @@ async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice() -> 
     test fails.
     """
     migration = importlib.import_module("sophie_bot.db.migrations.20260504_210000_add_ai_summary_model")
-    collection = get_collection("ai_provider")
+    collection = get_collection(db_init, "ai_provider")
 
     chosen_id = (await collection.insert_one({"summary_model": "openai/gpt-5.4"})).inserted_id
 
@@ -664,7 +676,9 @@ async def test_add_ai_summary_model_backward_keeps_deliberate_gpt54_choice() -> 
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_feature_flags_backward_never_drops_an_override_it_did_not_restore() -> None:
+async def test_feature_flags_backward_never_drops_an_override_it_did_not_restore(
+    test_redis: object,
+) -> None:
     """Backward must not delete overrides it declined to write back to Redis.
 
     The previous Backward skipped any feature absent from FEATURE_FLAGS and then dropped the
@@ -679,14 +693,27 @@ async def test_feature_flags_backward_never_drops_an_override_it_did_not_restore
     live = await FeatureFlagOverride(feature=live_feature, chat_tid=None, value=True).insert()
     unrestorable = await FeatureFlagOverride(feature="flag_with_null_value", chat_tid=None, value=None).insert()
 
-    await migration.Backward.rollback.run(None)
+    resources = cast(
+        MigrationResources,
+        SimpleNamespace(redis=test_redis),
+    )
+    await _bind_migration_resources(
+        migration.Backward.rollback,
+        resources,
+    ).run(None)
 
     # Restored to Redis, so removing the row is safe.
     assert await collection.find_one({"_id": live.id}) is None
-    assert await aredis.hget(migration._REDIS_KEY, live_feature) == _serialize_value(True).encode()
+    assert await test_redis.hget(
+        migration._REDIS_KEY,
+        live_feature,
+    ) == _serialize_value(True).encode()
 
     # A retired flag's override is still restored, and its row is only removed once it is.
-    assert await aredis.hget(migration._REDIS_KEY, "retired_flag_no_longer_declared") == _serialize_value(True).encode()
+    assert await test_redis.hget(
+        migration._REDIS_KEY,
+        "retired_flag_no_longer_declared",
+    ) == _serialize_value(True).encode()
     assert await collection.find_one({"_id": retired.id}) is None
 
     # Nothing to write back, so the row is kept rather than destroyed.
@@ -716,10 +743,27 @@ if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 
 
-async def _reset_collections(*names: str) -> None:
+async def _reset_collections(
+    db_init: Any,
+    *names: str,
+) -> None:
     """db_init is session-scoped, so collections carry over between tests."""
     for name in names:
-        await get_collection(name).delete_many({})
+        await get_collection(db_init, name).delete_many({})
+
+async def _run_migration(
+    controller: Any,
+    db_init: Any,
+    test_redis: object,
+) -> None:
+    resources = cast(
+        MigrationResources,
+        SimpleNamespace(
+            database=SimpleNamespace(database=db_init),
+            redis=test_redis,
+        ),
+    )
+    await _bind_migration_resources(controller, resources).run(None)
 
 
 def _ai_mode_migration() -> ModuleType:
@@ -731,21 +775,24 @@ def _ai_catalog_migration() -> ModuleType:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_ai_settings_to_mode_derives_one_mode_per_chat() -> None:
+async def test_ai_settings_to_mode_derives_one_mode_per_chat(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """A chat's old enabled/moderator pair decides its mode; chats with neither stay disabled."""
     migration = _ai_mode_migration()
     enabled, moderator, modes = (
-        get_collection("ai_enabled"),
-        get_collection("ai_moderator"),
-        get_collection("ai_mode"),
+        get_collection(db_init, "ai_enabled"),
+        get_collection(db_init, "ai_moderator"),
+        get_collection(db_init, "ai_mode"),
     )
-    await _reset_collections("ai_enabled", "ai_moderator", "ai_mode")
+    await _reset_collections(db_init, "ai_enabled", "ai_moderator", "ai_mode")
     plain_chat, moderated_chat, off_chat = ObjectId(), ObjectId(), ObjectId()
 
     await enabled.insert_many([{"chat": plain_chat}, {"chat": moderated_chat}])
     await moderator.insert_many([{"chat": moderated_chat, "enabled": True}, {"chat": off_chat, "enabled": True}])
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     stored = {document["chat"]: document["mode"] async for document in modes.find({})}
     assert stored == {plain_chat: "support", moderated_chat: "moderation"}
@@ -754,15 +801,18 @@ async def test_ai_settings_to_mode_derives_one_mode_per_chat() -> None:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_ai_settings_to_mode_backward_restores_only_enabled_chats() -> None:
+async def test_ai_settings_to_mode_backward_restores_only_enabled_chats(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     migration = _ai_mode_migration()
-    modes, enabled = get_collection("ai_mode"), get_collection("ai_enabled")
-    await _reset_collections("ai_enabled", "ai_mode")
+    modes, enabled = get_collection(db_init, "ai_mode"), get_collection(db_init, "ai_enabled")
+    await _reset_collections(db_init, "ai_enabled", "ai_mode")
     support_chat, disabled_chat = ObjectId(), ObjectId()
 
     await modes.insert_many([{"chat": support_chat, "mode": "support"}, {"chat": disabled_chat, "mode": "disabled"}])
 
-    await migration.Backward.migrate.run(None)
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
 
     restored = [document["chat"] async for document in enabled.find({})]
     assert restored == [support_chat]
@@ -770,20 +820,23 @@ async def test_ai_settings_to_mode_backward_restores_only_enabled_chats() -> Non
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_seed_ai_catalog_is_idempotent_and_keeps_operator_edits() -> None:
+async def test_seed_ai_catalog_is_idempotent_and_keeps_operator_edits(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """Re-running the seed must not duplicate entries nor overwrite a rotated key."""
     migration = _ai_catalog_migration()
-    providers, models = get_collection("ai_catalog_provider"), get_collection("ai_catalog_model")
-    await _reset_collections("ai_catalog_provider", "ai_catalog_model")
+    providers, models = get_collection(db_init, "ai_catalog_provider"), get_collection(db_init, "ai_catalog_model")
+    await _reset_collections(db_init, "ai_catalog_provider", "ai_catalog_model")
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     seeded_models = await models.count_documents({})
     assert seeded_models == len(migration._MODELS)
     assert await providers.count_documents({"name": "openrouter"}) == 1
 
     await providers.update_one({"name": "openrouter"}, {"$set": {"api_key": "rotated-by-operator"}})
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     assert await models.count_documents({}) == seeded_models
     assert (await providers.find_one({"name": "openrouter"}))["api_key"] == "rotated-by-operator"
@@ -805,14 +858,18 @@ def _vendor_sdk_keys_migration() -> ModuleType:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_vendor_sdk_keys_are_copied_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vendor_sdk_keys_are_copied_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    db_init: Any,
+    test_redis: object,
+) -> None:
     migration = _vendor_sdk_keys_migration()
-    providers = get_collection("ai_catalog_provider")
-    await _reset_collections("ai_catalog_provider")
+    providers = get_collection(db_init, "ai_catalog_provider")
+    await _reset_collections(db_init, "ai_catalog_provider")
     monkeypatch.setattr(migration.CONFIG, "mistral_api_key", "env-mistral-key")
     monkeypatch.setattr(migration.CONFIG, "openai_api_key", "env-openai-key")
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     stored = {document["name"]: document async for document in providers.find({})}
     assert stored["mistral"]["api_key"] == "env-mistral-key"
@@ -821,17 +878,21 @@ async def test_vendor_sdk_keys_are_copied_from_the_environment(monkeypatch: pyte
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_vendor_sdk_keys_seed_is_idempotent_and_keeps_operator_edits(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vendor_sdk_keys_seed_is_idempotent_and_keeps_operator_edits(
+    monkeypatch: pytest.MonkeyPatch,
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """An operator who rotated a key with /op_aiprovider must not have the env value put back."""
     migration = _vendor_sdk_keys_migration()
-    providers = get_collection("ai_catalog_provider")
-    await _reset_collections("ai_catalog_provider")
+    providers = get_collection(db_init, "ai_catalog_provider")
+    await _reset_collections(db_init, "ai_catalog_provider")
     monkeypatch.setattr(migration.CONFIG, "mistral_api_key", "env-mistral-key")
     monkeypatch.setattr(migration.CONFIG, "openai_api_key", None)
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
     await providers.update_one({"name": "mistral"}, {"$set": {"api_key": "rotated-by-operator"}})
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     assert await providers.count_documents({}) == len(migration._PROVIDER_NAMES)
     assert (await providers.find_one({"name": "mistral"}))["api_key"] == "rotated-by-operator"
@@ -840,14 +901,17 @@ async def test_vendor_sdk_keys_seed_is_idempotent_and_keeps_operator_edits(monke
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_vendor_sdk_keys_backward_removes_only_its_own_rows() -> None:
+async def test_vendor_sdk_keys_backward_removes_only_its_own_rows(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     migration = _vendor_sdk_keys_migration()
-    providers = get_collection("ai_catalog_provider")
-    await _reset_collections("ai_catalog_provider")
+    providers = get_collection(db_init, "ai_catalog_provider")
+    await _reset_collections(db_init, "ai_catalog_provider")
     await providers.insert_one({"name": "openrouter", "kind": "openrouter", "api_key": "keep-me"})
 
-    await migration.Forward.migrate.run(None)
-    await migration.Backward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
 
     remaining = [document["name"] async for document in providers.find({})]
     assert remaining == ["openrouter"]
@@ -858,22 +922,25 @@ def _sophie_inspect_model_migration() -> ModuleType:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_sophie_inspect_model_role_is_added_without_disturbing_an_existing_entry() -> None:
+async def test_sophie_inspect_model_role_is_added_without_disturbing_an_existing_entry(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     migration = _sophie_inspect_model_migration()
-    models = get_collection("ai_catalog_model")
-    await _reset_collections("ai_catalog_model")
+    models = get_collection(db_init, "ai_catalog_model")
+    await _reset_collections(db_init, "ai_catalog_model")
 
     await models.insert_one(
         {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [{"mode": "support", "purpose": "chatbot"}]}
     )
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     stored = await models.find_one({"name": migration._MODEL_NAME})
     assert {"mode": "support", "purpose": "chatbot"} in stored["roles"]
     assert migration._ROLE in stored["roles"]
 
-    await migration.Backward.migrate.run(None)
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
 
     stored = await models.find_one({"name": migration._MODEL_NAME})
     # Backward drops only its own role: the model may serve other purposes by now.
@@ -881,17 +948,20 @@ async def test_sophie_inspect_model_role_is_added_without_disturbing_an_existing
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_sophie_inspect_migration_replaces_the_role_it_used_to_write() -> None:
+async def test_sophie_inspect_migration_replaces_the_role_it_used_to_write(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """It shipped once under the tool's old name; a database that ran it then must converge."""
     migration = _sophie_inspect_model_migration()
-    models = get_collection("ai_catalog_model")
-    await _reset_collections("ai_catalog_model")
+    models = get_collection(db_init, "ai_catalog_model")
+    await _reset_collections(db_init, "ai_catalog_model")
 
     await models.insert_one(
         {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [migration._LEGACY_ROLE]}
     )
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     stored = await models.find_one({"name": migration._MODEL_NAME})
     assert stored["roles"] == [migration._ROLE]
@@ -902,11 +972,14 @@ def _rename_deep_help_migration() -> ModuleType:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_rename_deep_help_role_converges_a_stale_catalog() -> None:
+async def test_rename_deep_help_role_converges_a_stale_catalog(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     """A database that ran the seed before the tool was renamed holds a role the enum now rejects."""
     migration = _rename_deep_help_migration()
-    models = get_collection("ai_catalog_model")
-    await _reset_collections("ai_catalog_model")
+    models = get_collection(db_init, "ai_catalog_model")
+    await _reset_collections(db_init, "ai_catalog_model")
 
     await models.insert_many(
         [
@@ -920,7 +993,7 @@ async def test_rename_deep_help_role_converges_a_stale_catalog() -> None:
         ]
     )
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     a = await models.find_one({"name": "a/model"})
     b = await models.find_one({"name": "b/model"})
@@ -938,22 +1011,25 @@ def _seed_research_migration() -> ModuleType:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_seed_research_role_adds_an_any_mode_research_role() -> None:
+async def test_seed_research_role_adds_an_any_mode_research_role(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     migration = _seed_research_migration()
-    models = get_collection("ai_catalog_model")
-    await _reset_collections("ai_catalog_model")
+    models = get_collection(db_init, "ai_catalog_model")
+    await _reset_collections(db_init, "ai_catalog_model")
     await models.insert_one(
         {"name": migration._MODEL_NAME, "provider": "openrouter", "roles": [{"mode": None, "purpose": "summary"}]}
     )
 
-    await migration.Forward.migrate.run(None)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     stored = await models.find_one({"name": migration._MODEL_NAME})
     assert migration._ROLE in stored["roles"]
     # The existing role is left alone.
     assert {"mode": None, "purpose": "summary"} in stored["roles"]
 
-    await migration.Backward.migrate.run(None)
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
     stored = await models.find_one({"name": migration._MODEL_NAME})
     assert migration._ROLE not in stored["roles"]
 
@@ -1099,7 +1175,10 @@ def test_raw_chat_admin_migration_is_discoverable_without_models() -> None:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_raw_chat_admin_migration_repairs_only_missing_field() -> None:
+async def test_raw_chat_admin_migration_repairs_only_missing_field(
+    db_init: Any,
+    test_redis: object,
+) -> None:
     migration = _raw_chat_admin_welcome_messages_migration()
     collection = ChatAdminModel.get_pymongo_collection()
     await collection.delete_many({})
@@ -1118,7 +1197,17 @@ async def test_raw_chat_admin_migration_repairs_only_missing_field() -> None:
     )
     other_id = await collection.insert_one({"member": {"status": "member"}, "marker": "other"})
 
-    await migration.Forward.backfill.run(session=None)
+    resources = cast(
+        MigrationResources,
+        SimpleNamespace(
+            database=SimpleNamespace(database=db_init),
+            redis=test_redis,
+        ),
+    )
+    await _bind_migration_resources(
+        migration.Forward.backfill,
+        resources,
+    ).run(session=None)
 
     assert (await collection.find_one({"_id": legacy_id.inserted_id}))["member"]["can_send_welcome_messages"] is False
     assert (await collection.find_one({"_id": current_id.inserted_id}))["member"]["can_send_welcome_messages"] is True

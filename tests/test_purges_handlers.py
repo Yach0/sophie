@@ -38,13 +38,18 @@ async def test_purge_deletes_only_the_replied_message_and_newer(monkeypatch: pyt
     event = _make_event(message_id=105, reply_message_id=100, reply_age=timedelta(minutes=5))
     delete_messages = AsyncMock(return_value=True)
 
-    monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.bot.delete_messages", delete_messages)
-    monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.bot.send_message", AsyncMock())
+    completion = SimpleNamespace(delete=AsyncMock())
+    services = SimpleNamespace(
+        bot=SimpleNamespace(
+            delete_messages=delete_messages,
+            send_message=AsyncMock(return_value=completion),
+        )
+    )
     monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.track_purge", lambda count: None)
     monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.log_event", AsyncMock())
     monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.sleep", AsyncMock())
 
-    await PurgeMessagesHandler(event).handle()
+    await PurgeMessagesHandler(event, services=services).handle()
 
     deleted: list[int] = []
     for call in delete_messages.await_args_list:
@@ -62,10 +67,12 @@ async def test_purge_refuses_when_replied_message_is_older_than_48_hours(
     delete_messages = AsyncMock(return_value=True)
     log_event = AsyncMock()
 
-    monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.bot.delete_messages", delete_messages)
+    services = SimpleNamespace(
+        bot=SimpleNamespace(delete_messages=delete_messages)
+    )
     monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.log_event", log_event)
 
-    await PurgeMessagesHandler(event).handle()
+    await PurgeMessagesHandler(event, services=services).handle()
 
     assert delete_messages.await_count == 0
     assert log_event.await_count == 0
@@ -80,10 +87,12 @@ async def test_delete_refuses_when_replied_message_is_older_than_48_hours(
     delete_messages = AsyncMock(return_value=True)
     log_event = AsyncMock()
 
-    monkeypatch.setattr("sophie_bot.modules.purges.handlers.delete.bot.delete_messages", delete_messages)
+    services = SimpleNamespace(
+        bot=SimpleNamespace(delete_messages=delete_messages)
+    )
     monkeypatch.setattr("sophie_bot.modules.purges.handlers.delete.log_event", log_event)
 
-    await DelMsgCmdHandler(event).handle()
+    await DelMsgCmdHandler(event, services=services).handle()
 
     assert delete_messages.await_count == 0, "must not attempt a delete that Telegram will silently skip"
     assert log_event.await_count == 0, "must not log MESSAGE_DELETED for a deletion that never happened"
@@ -96,10 +105,12 @@ async def test_delete_removes_recent_replied_message_and_the_command(monkeypatch
     delete_messages = AsyncMock(return_value=True)
     log_event = AsyncMock()
 
-    monkeypatch.setattr("sophie_bot.modules.purges.handlers.delete.bot.delete_messages", delete_messages)
+    services = SimpleNamespace(
+        bot=SimpleNamespace(delete_messages=delete_messages)
+    )
     monkeypatch.setattr("sophie_bot.modules.purges.handlers.delete.log_event", log_event)
 
-    await DelMsgCmdHandler(event).handle()
+    await DelMsgCmdHandler(event, services=services).handle()
 
     assert delete_messages.await_args.args[1] == [105, 100]
     assert log_event.await_count == 1

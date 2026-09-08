@@ -257,8 +257,8 @@ async def test_federation_ban_count_service(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Ban Count Fed", owner_model)
 
     # Ban two users
-    await FederationBanService.ban_user(federation, 7010, owner_model.iid, reason="count test 1")
-    await FederationBanService.ban_user(federation, 7011, owner_model.iid, reason="count test 2")
+    await FederationBanService.ban_user(federation, 7010, owner_model.iid, reason="count test 1", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(federation, 7011, owner_model.iid, reason="count test 2", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     bans = await FederationBanService.get_federation_bans(federation.fed_id)
     assert len(bans) == 2

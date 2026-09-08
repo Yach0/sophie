@@ -32,7 +32,7 @@ class ShowIDHandler(SophieMessageHandler):
         router.message.register(cls, *cls.filters(), flags={"args": optional_user})
 
     async def handle(self) -> Any:
-        chat: ChatConnection = self.data["connection"]
+        chat: ChatConnection = self.connection
         user: ChatModel | None = self.data.get("user", None)
 
         doc = Doc()

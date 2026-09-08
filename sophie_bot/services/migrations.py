@@ -1,229 +1,169 @@
-import importlib
-import time
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from __future__ import annotations
 
-from beanie import Document
+import copy
+import importlib
+import inspect
+import time
+from dataclasses import dataclass
+from functools import partial
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
+
+from beanie import Document, init_beanie
+from redis.asyncio import Redis
+
+from sophie_bot.config import CONFIG
+from sophie_bot.db.models import models
+from sophie_bot.db.models.migrations import MigrationState
+from sophie_bot.services.db import DatabaseResources
+from sophie_bot.utils.logger import log
 
 if TYPE_CHECKING:
     from beanie.migrations.controllers.base import BaseMigrationController
 
-from sophie_bot.config import CONFIG
-from sophie_bot.db.models.migrations import MigrationState
-from sophie_bot.utils.logger import log
+
+@dataclass(frozen=True, slots=True)
+class MigrationResources:
+    database: DatabaseResources
+    redis: Redis
 
 
-async def _get_migration_function(migration_class: type, direction: str = "forward") -> "BaseMigrationController":
-    """
-    Get the decorated migration function from a Forward or Backward class.
-
-    Args:
-        migration_class: The Forward or Backward class
-        direction: 'forward' or 'backward' for logging
-
-    Returns:
-        The decorated migration function
-    """
+async def _get_migration_function(
+    migration_class: type,
+    direction: str = "forward",
+) -> BaseMigrationController:
     from beanie.migrations.controllers.base import BaseMigrationController
 
-    for attr_name in dir(migration_class):
-        attr = getattr(migration_class, attr_name)
-        if isinstance(attr, BaseMigrationController):
-            return attr
-
+    for attribute_name in dir(migration_class):
+        attribute = getattr(migration_class, attribute_name)
+        if isinstance(attribute, BaseMigrationController):
+            return attribute
     raise ValueError(f"No migration function found in {direction} class")
 
 
-async def run_migrations() -> None:
-    """
-    Run all pending migrations automatically.
-    """
-    from sophie_bot.services.db import init_db
+def _bind_migration_resources(
+    controller: BaseMigrationController,
+    resources: MigrationResources,
+) -> BaseMigrationController:
+    function_signature = inspect.signature(controller.function)
+    if "resources" not in function_signature.parameters:
+        return controller
+    bound_controller = copy.copy(controller)
+    bound_controller.function = partial(controller.function, resources=resources)
+    cast(Any, bound_controller).function_signature = inspect.signature(bound_controller.function)
+    return bound_controller
 
-    await init_db(skip_indexes=True)
 
-    if not CONFIG.run_migrations_on_startup:
-        log.info("Migrations disabled by configuration")
-        return
-
+async def run_migrations(resources: MigrationResources) -> None:
     migrations_path = Path(CONFIG.migrations_path)
     if not migrations_path.exists():
         log.warning(f"Migrations directory not found: {CONFIG.migrations_path}")
         return
 
-    # Get all migration files sorted alphabetically
     migration_files = sorted(migrations_path.glob("[0-9]*.py"))
-
     if not migration_files:
         log.info("No migration files found")
         return
 
-    # Get list of already applied migrations
-    applied_migrations = {m.name: m for m in await MigrationState.find_all().to_list()}
-
-    log.info("Migration check started", total_files=len(migration_files), already_applied=len(applied_migrations))
-
-    migrations_to_run = []
-    for migration_file in migration_files:
-        module_name = migration_file.stem
-
-        if module_name in applied_migrations:
-            log.debug("Migration already applied", migration=module_name)
-            continue
-
-        migrations_to_run.append((module_name, migration_file))
-
+    applied_migrations = {migration.name: migration for migration in await MigrationState.find_all().to_list()}
+    migrations_to_run = [
+        migration_file.stem for migration_file in migration_files if migration_file.stem not in applied_migrations
+    ]
     if not migrations_to_run:
         log.info("All migrations are up to date")
         return
 
     log.info("Starting migrations", count=len(migrations_to_run), mode=CONFIG.migration_mode)
-
-    # Run migrations in sequence
-    for module_name, migration_file in migrations_to_run:
-        await _run_single_migration(module_name)
-
+    for module_name in migrations_to_run:
+        await _run_single_migration(module_name, resources)
     log.info("All migrations completed successfully")
 
 
-async def _run_migration_action(module_name: str, direction: str = "forward") -> None:
-    """
-    Execute a migration in the specified direction (forward/backward).
-
-    Args:
-        module_name: The migration module name (e.g., "20240125_120000_add_field")
-        direction: "forward" (apply) or "backward" (rollback)
-    """
-    from sophie_bot.services.db import async_mongo, db, init_db
-
-    # Ensure DB is initialized (idempotent)
-    await init_db(skip_indexes=True)
-
-    log_ctx = log.bind(migration=module_name, direction=direction)
-    log_ctx.info(f"Starting {direction} migration")
-
+async def _run_migration_action(
+    module_name: str,
+    resources: MigrationResources,
+    direction: str = "forward",
+) -> None:
+    log_context = log.bind(migration=module_name, direction=direction)
+    log_context.info(f"Starting {direction} migration")
     start_time = time.time()
-
     try:
-        # Import migration module
-        try:
-            module = importlib.import_module(f"sophie_bot.db.migrations.{module_name}")
-        except ImportError as e:
-            log_ctx.error("Failed to import migration module", error=str(e))
-            raise
-
-        # Determine class and method based on direction
+        module = importlib.import_module(f"sophie_bot.db.migrations.{module_name}")
         class_name = "Forward" if direction == "forward" else "Backward"
-
         if not hasattr(module, class_name):
-            error_msg = f"Migration {module_name} must have a {class_name} class"
-            log_ctx.error(f"Migration missing {class_name} class")
-            raise ValueError(error_msg)
+            raise ValueError(f"Migration {module_name} must have a {class_name} class")
 
         migration_class = getattr(module, class_name)
-        migration_func = await _get_migration_function(migration_class, direction)
+        original_controller = await _get_migration_function(migration_class, direction)
+        migration_controller = _bind_migration_resources(original_controller, resources)
 
-        # Initialize specific models required by this migration
         models_to_init: list[type[Document]] = []
-
-        for attr in ("document_models", "input_document_model", "output_document_model"):
-            if hasattr(migration_func, attr) and (val := getattr(migration_func, attr)):
-                if isinstance(val, list):
-                    models_to_init.extend(val)
+        for attribute_name in ("document_models", "input_document_model", "output_document_model"):
+            if value := getattr(migration_controller, attribute_name, None):
+                if isinstance(value, list):
+                    models_to_init.extend(value)
                 else:
-                    models_to_init.append(val)
-
+                    models_to_init.append(value)
         if models_to_init:
-            from beanie import init_beanie
-
-            from sophie_bot.db.models import models
-
-            # Re-init beanie with specific models for this migration + all existing models
-            # Note: We use list(set(...)) to remove duplicates
             await init_beanie(
-                database=db,
+                database=resources.database.database,
                 document_models=list(set(models + models_to_init)),
                 skip_indexes=True,
             )
 
-        # Execute the migration
         if CONFIG.migration_use_transactions and CONFIG.mongo_use_replica_set:
-            async with async_mongo.start_session() as session, await session.start_transaction():
-                await migration_func.run(session=session)
+            async with resources.database.mongo.start_session() as session, await session.start_transaction():
+                await migration_controller.run(session=session)
         else:
-            await migration_func.run(session=None)
+            await migration_controller.run(session=None)
 
-        # Update MigrationState
         duration_ms = int((time.time() - start_time) * 1000)
-
         if direction == "forward":
-            migration_state = MigrationState(
+            await MigrationState(
                 name=module_name,
                 version="1.0",
                 batch_size=None,
                 duration_ms=duration_ms,
-            )
-            await migration_state.insert()
+            ).insert()
         else:
-            # For rollback, remove the state record
-            await MigrationState.find_one(MigrationState.name == module_name).delete()
-
-        log_ctx.info(f"{direction.capitalize()} migration completed successfully", duration_ms=duration_ms)
-
-    except Exception as e:
+            migration_state = await MigrationState.find_one(MigrationState.name == module_name)
+            if migration_state is not None:
+                await migration_state.delete()
+        log_context.info(
+            f"{direction.capitalize()} migration completed successfully",
+            duration_ms=duration_ms,
+        )
+    except Exception as error:
         duration_ms = int((time.time() - start_time) * 1000)
-        log_ctx.error(f"{direction.capitalize()} migration failed", error=str(e), duration_ms=duration_ms)
+        log_context.error(
+            f"{direction.capitalize()} migration failed",
+            error=str(error),
+            duration_ms=duration_ms,
+        )
         raise
 
 
-async def _run_single_migration(module_name: str) -> None:
-    """Wrapper for forward migration to maintain compatibility."""
-    await _run_migration_action(module_name, direction="forward")
+async def _run_single_migration(module_name: str, resources: MigrationResources) -> None:
+    await _run_migration_action(module_name, resources, direction="forward")
 
 
-async def run_migration_backward(module_name: str) -> None:
-    """Wrapper for backward migration to maintain compatibility."""
-    await _run_migration_action(module_name, direction="backward")
+async def run_migration_backward(module_name: str, resources: MigrationResources) -> None:
+    await _run_migration_action(module_name, resources, direction="backward")
 
 
-async def run_all_migrations_backward() -> None:
-    """
-    Rollback all applied migrations in reverse order.
-    """
-    from sophie_bot.services.db import init_db
-
-    await init_db(skip_indexes=True)
-
+async def run_all_migrations_backward(resources: MigrationResources) -> None:
     applied_states = await MigrationState.find_all().to_list()
-
     if not applied_states:
         log.info("No migrations to rollback")
         return
-
-    # Sort migrations by name in reverse order (newest first)
-    applied_states.sort(key=lambda x: x.name, reverse=True)
-
-    log.info("Starting rollback of all migrations", count=len(applied_states))
-
+    applied_states.sort(key=lambda state: state.name, reverse=True)
     for state in applied_states:
-        await _run_migration_action(state.name, direction="backward")
-
+        await _run_migration_action(state.name, resources, direction="backward")
     log.info("All migrations rolled back successfully")
 
 
-async def get_migration_status() -> dict[str, Any]:
-    """
-    Get the current migration status.
-
-    Returns:
-        Dictionary with migration status information
-    """
-    from sophie_bot.services.db import init_db
-
-    await init_db(skip_indexes=True)
-
+async def get_migration_status(resources: MigrationResources) -> dict[str, Any]:
     migrations_path = Path(CONFIG.migrations_path)
-
     if not migrations_path.exists():
         return {
             "status": "no_migrations_directory",
@@ -233,17 +173,10 @@ async def get_migration_status() -> dict[str, Any]:
             "applied_migrations": [],
             "pending_migrations": [],
         }
-
     migration_files = sorted(migrations_path.glob("[0-9]*.py"))
     applied_states = await MigrationState.find_all().to_list()
     applied_names = {state.name for state in applied_states}
-
-    pending = []
-    for migration_file in migration_files:
-        module_name = migration_file.stem
-        if module_name not in applied_names:
-            pending.append(module_name)
-
+    pending = [file.stem for file in migration_files if file.stem not in applied_names]
     return {
         "status": "ok",
         "total": len(migration_files),

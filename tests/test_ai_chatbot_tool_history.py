@@ -21,7 +21,6 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import (
     remember_chatbot_tool_history,
     tool_history_key,
 )
-from sophie_bot.services.redis import aredis
 
 CHAT_TID = -100123
 
@@ -75,27 +74,42 @@ def test_extract_truncates_long_tool_output() -> None:
     assert exchanges[1].parts[0].content == "x" * 10 + "... [truncated]"
 
 
-async def test_get_tool_exchanges_drops_unreadable_payloads() -> None:
+async def test_get_tool_exchanges_drops_unreadable_payloads(
+    test_redis: object,
+) -> None:
     key = tool_history_key(CHAT_TID)
-    await aredis.hset(key, "10", ModelMessagesTypeAdapter.dump_json(_run_with_tool_call()[1:3]))
-    await aredis.hset(key, "11", b'{"not": "a message list"}')
-    await aredis.hset(key, "not-a-message-id", b"[]")
+    await test_redis.hset(
+        key,
+        "10",
+        ModelMessagesTypeAdapter.dump_json(_run_with_tool_call()[1:3]),
+    )
+    await test_redis.hset(key, "11", b'{"not": "a message list"}')
+    await test_redis.hset(key, "not-a-message-id", b"[]")
 
-    exchanges = await get_tool_exchanges(CHAT_TID)
+    exchanges = await get_tool_exchanges(CHAT_TID, redis=test_redis)
 
     assert list(exchanges) == [10]
     # The poisoned entries are pruned, so the next reply does not re-parse them.
-    assert sorted(await aredis.hkeys(key)) == [b"10"]
+    assert sorted(await test_redis.hkeys(key)) == [b"10"]
 
 
-async def test_remember_swallows_redis_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_remember_swallows_redis_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     def _fail(*args: object, **kwargs: object) -> None:
         raise RedisError("redis is down")
 
-    monkeypatch.setattr(aredis, "pipeline", _fail)
+    monkeypatch.setattr(test_redis, "pipeline", _fail)
 
     with (
         patch("sophie_bot.modules.ai.utils.chatbot_tool_history.is_enabled", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.ai.utils.chatbot_tool_history.get_value", AsyncMock(return_value=100)),
     ):
-        await remember_chatbot_tool_history(CHAT_TID, 42, _run_with_tool_call(), [])
+        await remember_chatbot_tool_history(
+            CHAT_TID,
+            42,
+            _run_with_tool_call(),
+            [],
+            redis=test_redis,
+        )

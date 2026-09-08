@@ -8,6 +8,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.services.application import ApplicationServices
 
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
@@ -18,6 +19,7 @@ class SophieAIToolContext:
     connection: ChatConnection
     chat_tid: int
     chat_iid: PydanticObjectId
+    services: ApplicationServices
     mode: AIMode = AIMode.support
     user_text: str | None = None
     research_progress_callback: ResearchProgressCallback | None = None

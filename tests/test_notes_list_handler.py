@@ -35,7 +35,8 @@ async def test_notes_list_falls_back_to_send_message_when_reply_target_is_missin
     handler = NotesList(
         message,
         bot=bot,
-        connection=connection,
+        context=SimpleNamespace(connection=connection),
+        services=SimpleNamespace(redis=object()),
         search=None,
     )
 

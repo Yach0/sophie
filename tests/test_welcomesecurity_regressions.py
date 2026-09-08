@@ -19,7 +19,10 @@ async def test_legacy_button_validates_membership_via_telegram(monkeypatch: pyte
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
     get_user_in_group = AsyncMock(return_value=None)
     ensure_user_in_group = AsyncMock()
-    get_chat_member = AsyncMock(return_value=SimpleNamespace(status=ChatMemberStatus.MEMBER))
+    get_chat_member = AsyncMock(
+        return_value=SimpleNamespace(status=ChatMemberStatus.MEMBER)
+    )
+    bot = SimpleNamespace(get_chat_member=get_chat_member)
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.UserInGroupModel.get_user_in_group",
@@ -29,12 +32,12 @@ async def test_legacy_button_validates_membership_via_telegram(monkeypatch: pyte
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.UserInGroupModel.ensure_user_in_group",
         ensure_user_in_group,
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.legacy_button.bot",
-        SimpleNamespace(get_chat_member=get_chat_member),
-    )
 
-    is_in_group = await LegacyWSButtonHandler._user_is_still_in_group(user, group)
+    handler = LegacyWSButtonHandler(
+        SimpleNamespace(),
+        services=SimpleNamespace(bot=bot),
+    )
+    is_in_group = await handler._user_is_still_in_group(user, group)
 
     assert is_in_group is True
     get_chat_member.assert_awaited_once_with(chat_id=group.tid, user_id=user.tid)
@@ -53,7 +56,13 @@ async def test_captcha_rules_preserve_join_request_context(monkeypatch: pytest.M
         send_captcha_message,
     )
 
-    await captcha_send_rules(message, rules, chat_iid, True)
+    await captcha_send_rules(
+        message,
+        rules,
+        chat_iid,
+        True,
+        bot=object(),
+    )
 
     reply_markup = send_captcha_message.await_args.kwargs["reply_markup"]
     callback_data = reply_markup.inline_keyboard[0][0].callback_data
@@ -81,14 +90,19 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
         delete_message=AsyncMock(),
     )
 
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.complete_captcha.aredis", redis)
-    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.utils_.complete_captcha.bot", bot_mock)
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
         AsyncMock(),
     )
 
-    await complete_captcha(user, group, greetings, captcha_message)
+    await complete_captcha(
+        user,
+        group,
+        greetings,
+        captcha_message,
+        bot=bot_mock,
+        redis=redis,
+    )
 
     # complete_captcha should only update the captcha image in DM and unmute the user;
     # it must NOT send any welcome or rules messages to the group.

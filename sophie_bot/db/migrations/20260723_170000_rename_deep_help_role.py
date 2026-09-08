@@ -22,6 +22,7 @@ Rollback:
 from beanie import free_fall_migration
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 _OLD = "deep_help"
 _NEW = "sophie_inspect"
@@ -31,8 +32,8 @@ class Forward:
     """Point every deep_help role at the renamed sophie_inspect purpose."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        collection = get_collection("ai_catalog_model")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        collection = get_collection(resources.database.database, "ai_catalog_model")
         renamed = 0
         async for document in collection.find({"roles.purpose": _OLD}, session=session):
             roles = document.get("roles", [])

@@ -19,9 +19,18 @@ async def test_ai_reason_availability_follows_whether_ai_is_enabled(
         AsyncMock(return_value=get_capabilities(mode)),
     )
     chat = SimpleNamespace(tid=-100123)
+    redis = object()
+    services = SimpleNamespace(redis=redis)
 
-    assert await should_generate_ai_reason(chat) is (mode is not AIMode.disabled)
-    feature_enabled.assert_awaited_once_with("ai_moderation_reasons", chat_tid=chat.tid)
+    assert await should_generate_ai_reason(
+        chat,
+        services=services,
+    ) is (mode is not AIMode.disabled)
+    feature_enabled.assert_awaited_once_with(
+        "ai_moderation_reasons",
+        chat_tid=chat.tid,
+        redis=redis,
+    )
 
 
 async def test_ai_reason_feature_flag_disables_generation_in_an_enabled_mode(
@@ -37,5 +46,9 @@ async def test_ai_reason_feature_flag_disables_generation_in_an_enabled_mode(
         resolve_capabilities,
     )
 
-    assert not await should_generate_ai_reason(SimpleNamespace(tid=-100123))
+    services = SimpleNamespace(redis=object())
+    assert not await should_generate_ai_reason(
+        SimpleNamespace(tid=-100123),
+        services=services,
+    )
     resolve_capabilities.assert_not_awaited()

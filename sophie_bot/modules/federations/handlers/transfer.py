@@ -15,7 +15,6 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.args.fed_id import FedIdArg
 from sophie_bot.modules.federations.handlers.base import FederationCommandHandler
 from sophie_bot.modules.federations.services import FederationManageService
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -93,7 +92,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
         }
 
         # Store transfer request in Redis with TTL
-        await aredis.set(
+        await self.services.redis.set(
             transfer_key,
             json.dumps(transfer_data),
             ex=self.TRANSFER_TTL,

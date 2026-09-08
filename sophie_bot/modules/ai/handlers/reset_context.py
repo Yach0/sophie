@@ -37,8 +37,8 @@ class AIContextReset(SophieMessageHandler):
         router.message.register(cls, *cls.filters_alt(), flags={"args": cls.handler_args})
 
     async def handle(self) -> Any:
-        await reset_messages(self.connection.tid)
-        await reset_tool_exchanges(self.connection.tid)
+        await reset_messages(self.connection.tid, redis=self.services.redis)
+        await reset_tool_exchanges(self.connection.tid, redis=self.services.redis)
 
         if self.connection.db_model:
             await AIMemoryModel.clear(self.connection.db_model.iid)

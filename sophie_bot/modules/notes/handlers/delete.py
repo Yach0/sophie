@@ -29,7 +29,7 @@ class DelNote(SophieMessageHandler):
         if not self.event.from_user:
             return
 
-        chat: ChatConnection = self.data["connection"]
+        chat: ChatConnection = self.connection
 
         raw_notenames: list[str] = self.data["notenames"]
 

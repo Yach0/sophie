@@ -37,7 +37,7 @@ async def test_fbanlist_export_queues_a_task(test_client: TestClient) -> None:
     owner_user, group, federation, owner_model = await _fed_in_group(
         test_client, owner_tid=6101, chat_tid=-1001000006101, fed_name="Export List Fed"
     )
-    await FederationBanService.ban_user(federation, 6109, owner_model.iid, reason="spam")
+    await FederationBanService.ban_user(federation, 6109, owner_model.iid, reason="spam", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     requests = await test_client.send_command(command="fbanlist", from_user=owner_user, chat=group)
     assert any("export started" in (request.text or "").lower() for request in requests)

@@ -23,8 +23,8 @@ router = Router(name="Disable")
 
 module_manifest = ModuleManifest(
     name="disabling",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         ListDisableable,
         ListDisabled,

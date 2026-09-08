@@ -22,6 +22,7 @@ from beanie import free_fall_migration
 from pymongo.asynchronous.client_session import AsyncClientSession
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 _PURPOSE = "moderation_reason"
 _TARGET_MODE = "entertainment"
@@ -55,8 +56,13 @@ class Forward:
     """Copy each model's moderation-reason role into entertainment mode."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session: AsyncClientSession | None) -> None:
-        collection = get_collection("ai_catalog_model")
+    async def migrate(
+        self,
+        session: AsyncClientSession | None,
+        *,
+        resources: MigrationResources,
+    ) -> None:
+        collection = get_collection(resources.database.database, "ai_catalog_model")
         async for model in collection.find({"roles.purpose": _PURPOSE}, session=session):
             roles = model.get("roles", [])
             updated_roles = _add_entertainment_reason_role(roles)
@@ -68,8 +74,13 @@ class Backward:
     """Remove the role combination introduced by the forward migration."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session: AsyncClientSession | None) -> None:
-        collection = get_collection("ai_catalog_model")
+    async def migrate(
+        self,
+        session: AsyncClientSession | None,
+        *,
+        resources: MigrationResources,
+    ) -> None:
+        collection = get_collection(resources.database.database, "ai_catalog_model")
         async for model in collection.find(
             {"roles": {"$elemMatch": {"mode": _TARGET_MODE, "purpose": _PURPOSE}}}, session=session
         ):

@@ -7,11 +7,10 @@ from stfu_tg import Code, Doc, Italic, KeyValue, Section, Template
 from sophie_bot.config import CONFIG
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules import LOADED_MODULES, get_module_manifest
+from sophie_bot.modules import get_module_manifest
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
-from sophie_bot.services.db import db
-from sophie_bot.services.migrations import get_migration_status
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.migrations import MigrationResources, get_migration_status
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -29,7 +28,7 @@ def convert_size(size_bytes: int) -> str:
     return f"{s} {size_name[i]}"
 
 
-async def get_system_stats() -> Doc:
+async def get_system_stats(*, services: ApplicationServices) -> Doc:
     doc = Doc()
 
     doc += Section(
@@ -44,7 +43,7 @@ async def get_system_stats() -> Doc:
 
     technical_section = Section(title=_("Technical info"))
 
-    local_db = await db.command("dbstats")
+    local_db = await services.db.database.command("dbstats")
     if "fsTotalSize" in local_db:
         technical_section += KeyValue(
             _("Database size"),
@@ -64,23 +63,23 @@ async def get_system_stats() -> Doc:
             ),
         )
 
-    technical_section += KeyValue(_("Redis keys"), Code(await aredis.dbsize()))
+    technical_section += KeyValue(_("Redis keys"), Code(await services.redis.dbsize()))
 
     technical_section += KeyValue(
         _("Modules"),
-        Template(_("{modules} loaded"), modules=Code(len(LOADED_MODULES))),
+        Template(_("{modules} loaded"), modules=Code(len(services.modules.modules))),
     )
     technical_section += KeyValue(
         _("Legacy modules"),
         Template(
             _("{cmds} total commands registered, in {modules} modules"),
-            cmds=Code(len(get_all_cmds_raw())),
-            modules=Code(len(LOADED_MODULES)),
+            cmds=Code(len(get_all_cmds_raw(services.modules.help_modules))),
+            modules=Code(len(services.modules.modules)),
         ),
     )
 
     # Migrations
-    migration_status = await get_migration_status()
+    migration_status = await get_migration_status(MigrationResources(database=services.db, redis=services.redis))
     if migration_status["status"] == "ok":
         technical_section += KeyValue(
             _("Migrations"),
@@ -105,12 +104,9 @@ class StatsHandler(SophieMessageHandler):
     async def handle(self):
         sec = Doc()
 
-        for module in LOADED_MODULES.values():
+        for module in self.services.modules.modules.values():
             stats = get_module_manifest(module).stats
             if stats:
-                res = stats()
-                if hasattr(res, "__await__"):
-                    res = await res
-                sec += res
+                sec += await stats(services=self.services)
 
         await self.event.reply(str(sec))

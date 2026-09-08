@@ -1,3 +1,4 @@
+from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, InlineKeyboardButton, Message
@@ -9,7 +10,6 @@ from sophie_bot.metrics.welcome import track_captcha_sent
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityConfirmCB, WelcomeSecurityMoveCB
 from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
-from sophie_bot.services.bot import bot, dp
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -18,8 +18,16 @@ class CaptchaDMBlockedError(Exception):
     """Raised when the captcha cannot be delivered because the user blocked the bot."""
 
 
-async def _prepare_captcha_state(user_tid: int, group: ChatModel, captcha: EmojiCaptcha, is_join_request: bool) -> None:
-    state: FSMContext = dp.fsm.get_context(bot=bot, chat_id=user_tid, user_id=user_tid)
+async def _prepare_captcha_state(
+    user_tid: int,
+    group: ChatModel,
+    captcha: EmojiCaptcha,
+    is_join_request: bool,
+    *,
+    bot: Bot,
+    dispatcher: Dispatcher,
+) -> None:
+    state: FSMContext = dispatcher.fsm.get_context(bot=bot, chat_id=user_tid, user_id=user_tid)
     await state.set_state(WelcomeSecurityFSM.captcha)
     await state.update_data(
         captcha=captcha.data.model_dump(),
@@ -32,6 +40,9 @@ async def initiate_captcha(
     user: ChatModel,
     group: ChatModel,
     is_join_request: bool = False,
+    *,
+    bot: Bot,
+    dispatcher: Dispatcher,
 ) -> Message:
     """
     Generic function to initiate captcha process.
@@ -45,7 +56,14 @@ async def initiate_captcha(
     """
     # Generate captcha
     captcha = EmojiCaptcha()
-    await _prepare_captcha_state(user.tid, group, captcha, is_join_request)
+    await _prepare_captcha_state(
+        user.tid,
+        group,
+        captcha,
+        is_join_request,
+        bot=bot,
+        dispatcher=dispatcher,
+    )
 
     # Create text
     text = Template(

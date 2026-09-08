@@ -70,7 +70,7 @@ async def _group_with_note(test_client: TestClient, *, enabled: bool = True, fla
     assert chat is not None
     await NoteModel(chat_id=chat.tid, chat=chat, names=("rules",), text="Be nice", version=2).insert()
 
-    await set_feature("cleannotes", flag)
+    await set_feature(test_client, "cleannotes", flag)
     if enabled:
         await (await _clean_notes(group.id)).set_status(True)
 
@@ -88,7 +88,7 @@ async def test_cleannotes_shows_status(test_client: TestClient) -> None:
 
     admin, group, _user_model = await create_test_user_and_group(test_client, group_title="CleanNotes Status")
     await grant_admin(group.id, admin.id)
-    await set_feature("cleannotes", True)
+    await set_feature(test_client, "cleannotes", True)
 
     requests = await test_client.send_command(command="cleannotes", from_user=admin, chat=group)
 
@@ -105,7 +105,7 @@ async def test_cleannotes_on_persists(test_client: TestClient) -> None:
 
     admin, group, _user_model = await create_test_user_and_group(test_client, group_title="CleanNotes Toggle")
     await grant_admin(group.id, admin.id)
-    await set_feature("cleannotes", True)
+    await set_feature(test_client, "cleannotes", True)
 
     await test_client.send_command(command="cleannotes", from_user=admin, args="on", chat=group)
 
@@ -117,7 +117,7 @@ async def test_cleannotes_requires_admin(test_client: TestClient) -> None:
     """A regular member cannot toggle the cleanup."""
 
     member, group, _user_model = await create_test_user_and_group(test_client, group_title="CleanNotes NoAdmin")
-    await set_feature("cleannotes", True)
+    await set_feature(test_client, "cleannotes", True)
 
     requests = await test_client.send_command(command="cleannotes", from_user=member, args="on", chat=group)
 
@@ -256,7 +256,7 @@ async def test_cleannotes_command_is_gated_by_the_feature_flag(test_client: Test
 
     admin, group, _user_model = await create_test_user_and_group(test_client, group_title="CleanNotes Flag Off")
     await grant_admin(group.id, admin.id)
-    await set_feature("cleannotes", False)
+    await set_feature(test_client, "cleannotes", False)
 
     requests = await test_client.send_command(command="cleannotes", from_user=admin, chat=group)
 

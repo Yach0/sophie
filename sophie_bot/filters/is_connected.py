@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from stfu_tg import Doc
 
 from sophie_bot.filters.chat_status import ChatTypeFilter
-from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -16,9 +16,8 @@ class IsConnectedFilter(Filter):
         self.allow_abort = allow_abort
         super().__init__()
 
-    async def __call__(
-        self, event: Message | CallbackQuery, *args: Any, connection: ChatConnection | None = None, **kwargs: Any
-    ) -> bool | dict[str, Any]:
+    async def __call__(self, event: Message | CallbackQuery, context: RequestContext) -> bool:
+        connection = context.connection
         return bool(connection and connection.is_connected and event.from_user)
 
 
@@ -30,11 +29,13 @@ class GroupOrConnectedFilter(Filter):
 
     """Filters cases when it's a group or connected to a group in PM."""
 
-    async def __call__(self, event: Message | CallbackQuery, *args: Any, **kwargs: Any) -> bool | dict[str, Any]:
+    async def __call__(
+        self, event: Message | CallbackQuery, context: RequestContext, *args: Any, **kwargs: Any
+    ) -> bool | dict[str, Any]:
         if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP)(event, *args, **kwargs):
             return True
 
-        if await IsConnectedFilter(self.allow_abort)(event, *args, **kwargs):
+        if await IsConnectedFilter(self.allow_abort)(event, context):
             return True
 
         if self.allow_abort:

@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from aiogram.dispatcher.event.bases import SkipHandler
-from aiogram.enums import ChatMemberStatus
 from aiogram.filters import Filter
 from aiogram.types import CallbackQuery, Message, TelegramObject
 from stfu_tg import Doc, Section, VList
@@ -13,8 +12,13 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import TELEGRAM_ANONYMOUS_ADMIN_BOT_ID
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.utils_.admin import check_user_admin_permissions
-from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title, resolve_anonymous_admin_candidates
+from sophie_bot.middlewares.request_context import RequestContext
+from sophie_bot.modules.utils_.admin import (
+    check_member_permissions,
+    check_user_admin_permissions,
+    resolve_anonymous_admin_candidates,
+)
+from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -68,19 +72,18 @@ class UserRestricting(Filter):
     async def __call__(
         self,
         event: TelegramObject,
-        connection: ChatConnection | None = None,
-        user_db: ChatModel | None = None,
-    ) -> bool | dict[str, Any]:
+        context: RequestContext,
+    ) -> bool:
         message = self.get_event_message(event)
         if message is None:
             return False
 
-        target = await self.get_target(event, user_db)
+        target = await self.get_target(event, context.actor)
         target_tid = target.tid if isinstance(target, ChatModel) else target
+        connection = context.connection
         chat_ref: int | ChatModel = connection.db_model if connection else message.chat.id
         chat_tid = chat_ref.tid if isinstance(chat_ref, ChatModel) else chat_ref
         is_connected = connection.is_connected if connection else False
-        payload: dict[str, Any] = {}
 
         # Skip if in PM and not connected to the chat
         if not is_connected and message.chat.type == "private":
@@ -95,7 +98,7 @@ class UserRestricting(Filter):
             chat_tid=chat_tid,
             user_tid=target_tid,
             connection=connection,
-            user_db=user_db,
+            actor=context.actor,
         )
         if anonymous_resolution:
             if anonymous_resolution.permission_check is not True:
@@ -106,10 +109,9 @@ class UserRestricting(Filter):
                         await self.no_rights_msg(event, anonymous_resolution.permission_check, target_tid)
                 raise SkipHandler
 
-            if anonymous_resolution.resolved_user_db:
-                payload["user_db"] = anonymous_resolution.resolved_user_db
-
-            return payload or True
+            if anonymous_resolution.resolved_actor:
+                context.actor = anonymous_resolution.resolved_actor
+            return True
 
         if self.user_owner:
             is_owner = await check_user_admin_permissions(chat_ref, target, require_creator=True)
@@ -124,7 +126,7 @@ class UserRestricting(Filter):
             await self.no_rights_msg(event, check, target_tid)
             raise SkipHandler
 
-        return payload or True
+        return True
 
     async def resolve_anonymous_admin_permissions(
         self,
@@ -132,7 +134,7 @@ class UserRestricting(Filter):
         chat_tid: int,
         user_tid: int,
         connection: ChatConnection | None,
-        user_db: ChatModel | None,
+        actor: ChatModel | None,
     ) -> AnonymousResolution | None:
         if user_tid != TELEGRAM_ANONYMOUS_ADMIN_BOT_ID:
             return None
@@ -148,69 +150,55 @@ class UserRestricting(Filter):
         title = normalize_admin_title(getattr(message, "author_signature", None))
         if not title:
             await self.no_anon_title_msg(event)
-            return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=True)
+            return AnonymousResolution(permission_check=False, resolved_actor=None, already_notified=True)
 
         chat_model = connection.db_model if connection else None
         if not chat_model:
-            return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=False)
+            return AnonymousResolution(permission_check=False, resolved_actor=None, already_notified=False)
 
-        matched_admins = await resolve_anonymous_admin_candidates(chat_model.iid, title)
+        matched_admins = await resolve_anonymous_admin_candidates(chat_model, title)
 
         if not matched_admins:
             await self.no_anon_title_match_msg(event)
-            return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=True)
+            return AnonymousResolution(permission_check=False, resolved_actor=None, already_notified=True)
 
         checks = [
-            self.check_member_permissions(member=admin.member, require_creator=self.user_owner)
+            check_member_permissions(
+                admin.member,
+                self.required_permissions or None,
+                require_creator=self.user_owner,
+            )
             for admin in matched_admins
         ]
         if not all(check is True for check in checks):
             await self.no_anon_ambiguous_msg(event)
-            return AnonymousResolution(permission_check=False, resolved_user_db=None, already_notified=True)
+            return AnonymousResolution(permission_check=False, resolved_actor=None, already_notified=True)
 
         if len(matched_admins) == 1:
             resolved_user_db = await matched_admins[0].user.fetch()
             if resolved_user_db:
-                return AnonymousResolution(permission_check=True, resolved_user_db=resolved_user_db)
+                return AnonymousResolution(permission_check=True, resolved_actor=resolved_user_db)
 
-        if user_db:
-            return AnonymousResolution(permission_check=True, resolved_user_db=user_db)
+        if actor:
+            return AnonymousResolution(permission_check=True, resolved_actor=actor)
 
         for admin in matched_admins:
             resolved_user_db = await admin.user.fetch()
             if resolved_user_db:
-                return AnonymousResolution(permission_check=True, resolved_user_db=resolved_user_db)
+                return AnonymousResolution(permission_check=True, resolved_actor=resolved_user_db)
 
-        return AnonymousResolution(permission_check=True, resolved_user_db=None)
+        return AnonymousResolution(permission_check=True, resolved_actor=None)
 
-    def check_member_permissions(
+    async def get_target(
         self,
-        member: Any,
-        require_creator: bool = False,
-    ) -> bool | list[str]:
-        if require_creator:
-            return getattr(member, "status", None) == ChatMemberStatus.CREATOR
-
-        if getattr(member, "status", None) == ChatMemberStatus.CREATOR:
-            return True
-
-        if not self.required_permissions:
-            return True
-
-        missing_permissions = []
-        for permission in self.required_permissions:
-            permission_value = getattr(member, permission, None)
-            if permission_value is None or permission_value is False:
-                missing_permissions.append(permission)
-
-        return missing_permissions or True
-
-    async def get_target(self, event: TelegramObject, user_db: ChatModel | None) -> int | ChatModel:
-        """The entity whose admin rights this filter checks: the sender of the event."""
+        event: TelegramObject,
+        actor: ChatModel | None,
+    ) -> int | ChatModel:
+        """Return the persisted actor when available, otherwise Telegram's sender."""
         from_user = getattr(event, "from_user", None)
         if not from_user:
             raise ValueError("Event must expose a from_user")
-        return user_db or from_user.id
+        return actor or from_user.id
 
     @staticmethod
     def _resolve_message(event: TelegramObject) -> Any:
@@ -302,7 +290,7 @@ class UserRestricting(Filter):
 @dataclass
 class AnonymousResolution:
     permission_check: bool | list[str]
-    resolved_user_db: ChatModel | None
+    resolved_actor: ChatModel | None
     already_notified: bool = False
 
 
@@ -322,5 +310,10 @@ class BotHasPermissions(UserRestricting):
     }
     PAYLOAD_ARGUMENT_NAME = "bot_member"
 
-    async def get_target(self, event: TelegramObject, user_db: ChatModel | None) -> int | ChatModel:
+    async def get_target(
+        self,
+        event: TelegramObject,
+        actor: ChatModel | None,
+    ) -> int | ChatModel:
+        del event, actor
         return CONFIG.bot_id

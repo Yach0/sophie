@@ -1,28 +1,21 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
 from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_text
+from sophie_bot.shared.actions import ActionDefinition
 
-
-class DummyModernAction:
-    icon = "X"
-    title = "Example"
+ACTIONS = {
+    "example": ActionDefinition[None](name="example", icon="X", title="Example")
+}
 
 
 def test_filter_action_text_renders_single_modern_action() -> None:
-    with patch(
-        "sophie_bot.modules.filters.utils_.filter_action_text.ALL_MODERN_ACTIONS",
-        {"example": DummyModernAction()},
-    ):
-        rendered = filter_action_text(None, ["example"])
-
+    rendered = filter_action_text(None, ["example"], ACTIONS)
     assert str(rendered) == "X Example"
 
 
 def test_filter_action_text_renders_legacy_action_without_modern_actions() -> None:
-    assert filter_action_text("legacy_action", []) == "legacy_action"
+    assert filter_action_text("legacy_action", [], ACTIONS) == "legacy_action"
 
 
 def test_filter_action_text_describes_empty_legacy_filter_without_actions() -> None:
-    assert filter_action_text(None, []) == "No actions configured"
+    assert filter_action_text(None, [], ACTIONS) == "No actions configured"

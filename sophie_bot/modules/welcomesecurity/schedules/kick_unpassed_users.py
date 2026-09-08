@@ -6,38 +6,35 @@ from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.metrics.welcome import track_captcha_failed
-from sophie_bot.modules.restrictions.utils.restrictions import kick_user
-from sophie_bot.services.bot import bot
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
 class KickUnpassedUsers:
-    @staticmethod
-    async def process_user(ws_user: WSUserModel):
-        # Early return if already passed
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
+
+    async def process_user(self, ws_user: WSUserModel) -> None:
         if ws_user.passed:
             log.debug("kick_unpassed_users: skipping ws_user, already passed", ws_user_tid=str(ws_user.id))
             return
-
-        # Ensure we have a valid ID and added_at timestamp
         if not ws_user.id:
             log.error("kick_unpassed_users: skipping ws_user due to missing id", ws_user_tid=str(ws_user.id))
             return
-
-        # Validate linked references exist
         try:
             user = await ChatModel.get_by_iid(ws_user.user.ref.id)
             group = await ChatModel.get_by_iid(ws_user.group.ref.id)
-        except AttributeError as e:
+        except AttributeError as error:
             log.warning(
                 "kick_unpassed_users: skipping ws_user due to invalid link references",
                 ws_user_tid=str(ws_user.id),
-                error=str(e),
+                error=str(error),
             )
             await ws_user.delete()
             return
-
         if user is None or group is None:
             log.warning(
                 "kick_unpassed_users: skipping ws_user due to missing linked user/group",
@@ -45,55 +42,52 @@ class KickUnpassedUsers:
             )
             await ws_user.delete()
             return
-        if not await is_enabled("welcomecaptcha_autokick", chat_tid=group.tid):
+        if not await is_enabled(
+            "welcomecaptcha_autokick",
+            chat_tid=group.tid,
+            redis=self.services.redis,
+        ):
             log.debug("kick_unpassed_users: skipped because auto-kick feature flag is disabled", group=group.tid)
             return
 
         log.debug("kick_unpassed_users: processing user", user=user.id, group=group.id)
-
         added_at = ws_user.added_at or ws_user.id.generation_time
-        # Ensure added_at is timezone-aware
         if added_at.tzinfo is None:
             added_at = added_at.replace(tzinfo=UTC)
-        is_old_entry = datetime.now(UTC) - added_at > timedelta(hours=WELCOMESECURITY_KICK_TIMEOUT_HOURS)
-        if not is_old_entry:
+        if datetime.now(UTC) - added_at <= timedelta(hours=WELCOMESECURITY_KICK_TIMEOUT_HOURS):
             log.debug("kick_unpassed_users: skipping ws_user, too young", ws_user_tid=str(ws_user.id))
             return
-        # Check for legacy entries - delete them if old
         if not ws_user.added_at:
             log.warning("kick_unpassed_users: skipping ws_user due to missing added_at", ws_user_tid=str(ws_user.id))
             await ws_user.delete()
             return
 
-        # Process unpassed user (no need to check ws_user.passed again)
         track_captcha_failed("timeout")
         if ws_user.is_join_request:
-            # Decline the join request
             try:
-                await bot.decline_chat_join_request(chat_id=group.tid, user_id=user.tid)
+                await self.services.bot.decline_chat_join_request(chat_id=group.tid, user_id=user.tid)
                 log.info("kick_unpassed_users: declined join request", user=user.tid, group=group.tid)
-            except TelegramAPIError as err:
+            except TelegramAPIError as error:
                 log.warning(
                     "kick_unpassed_users: failed to decline join request",
                     user=user.tid,
                     group=group.tid,
-                    error=str(err),
+                    error=str(error),
                 )
         else:
-            # Kick the user, so they can rejoin and take the captcha again
-            try:
-                await kick_user(chat_tid=group.tid, user_tid=user.tid)
+            result = await execute_restriction(
+                self.services.bot,
+                RestrictionAction.KICK,
+                group.tid,
+                user.tid,
+            )
+            if result.applied:
                 log.info("kick_unpassed_users: kicked user", user=user.tid, group=group.tid)
-            except TelegramAPIError as err:
-                log.warning("kick_unpassed_users: failed to kick user", user=user.tid, group=group.tid, error=str(err))
 
-        # Remove from database
         await ws_user.delete()
 
-    async def handle(self):
+    async def handle(self) -> None:
         log.debug("kick_unpassed_users: starting")
-
         async for ws_user in WSUserModel.find({"passed": False}):  # skipcq: PYL-E1133
             await self.process_user(ws_user)
-
         log.debug("kick_unpassed_users: finished")

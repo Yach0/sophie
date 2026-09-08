@@ -53,6 +53,7 @@ async def _make_group(tid: int, title: str) -> ChatModel:
 
 async def _make_ban_task(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: object,
     *,
     banned_count: int = 2,
     propagation_error: Exception | None = None,
@@ -86,8 +87,11 @@ async def _make_ban_task(
     )
 
     edit_message = AsyncMock()
-    monkeypatch.setattr("sophie_bot.modules.federations.schedules.process_bans.bot.edit_message_text", edit_message)
-    monkeypatch.setattr("sophie_bot.modules.federations.utils.task_failure.bot.edit_message_text", edit_message)
+    monkeypatch.setattr(
+        test_services.bot,
+        "edit_message_text",
+        edit_message,
+    )
 
     task = FederationTask(
         fed_id="fed-1",
@@ -112,15 +116,15 @@ def _edited_text(edit_message: AsyncMock) -> str:
 
 
 @pytest.mark.asyncio
-async def test_ban_task_edits_reply_with_banner_name(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_ban_task_edits_reply_with_banner_name(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """Regression: ChatModel exposes first_name_or_title, not first_name.
 
     Reading `.first_name` raised AttributeError before propagation even started, so every
     ban task failed and the reply never reached a result.
     """
-    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2)
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2, test_services=test_services)
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     text = _edited_text(edit_message)
     assert "yachu" in text, "the banner's display name must survive into the final reply"
@@ -134,32 +138,37 @@ async def test_ban_task_edits_reply_with_banner_name(db_init: Any, monkeypatch: 
 
 
 @pytest.mark.asyncio
-async def test_silent_ban_deletes_reply_only_after_final_edit(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_silent_ban_deletes_reply_only_after_final_edit(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """The in-progress reply must survive until propagation edits it with the result."""
-    task, edit_message = await _make_ban_task(monkeypatch, banned_count=0)
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=0, test_services=test_services)
     task.silent = True
     await task.save()
 
     schedule_deletion = Mock()
     monkeypatch.setattr(
-        "sophie_bot.modules.federations.schedules.process_bans.schedule_message_deletion",
+        test_services.deletions,
+        "schedule",
         schedule_deletion,
     )
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     assert "Propagating" not in _edited_text(edit_message)
     schedule_deletion.assert_called_once_with(REPLY_CHAT_TID, [REPLY_MESSAGE_ID])
 
 
 @pytest.mark.asyncio
-async def test_deleted_progress_reply_is_resent(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    task, edit_message = await _make_ban_task(monkeypatch)
+async def test_deleted_progress_reply_is_resent(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     edit_message.side_effect = TelegramBadRequest(method=None, message=MSG_TO_EDIT_NOT_FOUND)  # type: ignore[arg-type]
     send_message = AsyncMock(return_value=Mock(message_id=4343))
-    monkeypatch.setattr("sophie_bot.modules.federations.schedules.process_bans.bot.send_message", send_message)
+    monkeypatch.setattr(
+        test_services.bot,
+        "send_message",
+        send_message,
+    )
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     send_message.assert_awaited_once()
     reloaded = await FederationTask.get(task.id)
@@ -169,15 +178,13 @@ async def test_deleted_progress_reply_is_resent(db_init: Any, monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_anonymous_banner_is_hidden_in_reply_but_kept_in_log(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_anonymous_banner_is_hidden_in_reply_but_kept_in_log(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """An anonymous admin's identity is hidden in the public reply but preserved in the fed log.
 
     The scheduler rebuilds and edits the public reply, so the anonymisation must survive that
     edit; the fed-channel log must still name the real admin for accountability.
     """
-    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2)
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2, test_services=test_services)
     task.banner_anonymous = True
     await task.save()
 
@@ -187,7 +194,7 @@ async def test_anonymous_banner_is_hidden_in_reply_but_kept_in_log(
         post_log,
     )
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     reply_text = _edited_text(edit_message)
     assert "Anonymous admin" in reply_text, "the public reply must anonymise the banner"
@@ -199,21 +206,19 @@ async def test_anonymous_banner_is_hidden_in_reply_but_kept_in_log(
 
 
 @pytest.mark.asyncio
-async def test_ban_task_for_unknown_target_still_reaches_a_result(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_ban_task_for_unknown_target_still_reaches_a_result(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """A target Sophie has never seen (e.g. /fban by raw ID) has no ChatModel.
 
     Gating the edit on that lookup marked the task COMPLETED while silently leaving the
     reply on "Propagating…" forever - no edit, no log, no error.
     """
-    task, edit_message = await _make_ban_task(monkeypatch, banned_count=0)
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=0, test_services=test_services)
     unknown_tid = 900_099
     task.target_user_id = unknown_tid
     await task.save()
     assert await ChatModel.get_by_tid(unknown_tid) is None
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     text = _edited_text(edit_message)
     assert "Propagating" not in text, "the reply must reach a result even for an unknown user"
@@ -224,14 +229,12 @@ async def test_ban_task_for_unknown_target_still_reaches_a_result(
 
 
 @pytest.mark.asyncio
-async def test_ban_task_with_unresolvable_banner_is_failed_not_silently_completed(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_ban_task_with_unresolvable_banner_is_failed_not_silently_completed(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """If the banner's record is gone, report a failure rather than completing silently."""
-    task, edit_message = await _make_ban_task(monkeypatch)
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     await ChatModel.find_one(ChatModel.tid == BANNER_TID).delete()
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     text = _edited_text(edit_message)
     assert "❌" in text
@@ -242,19 +245,19 @@ async def test_ban_task_with_unresolvable_banner_is_failed_not_silently_complete
 
 
 @pytest.mark.asyncio
-async def test_orphan_with_no_started_at_is_still_reaped(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_orphan_with_no_started_at_is_still_reaped(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """A PROCESSING task with no started_at must not become immortal.
 
     Mongo's $lt is type-bracketed and never matches null, so this needs the created_at
     fallback to be reaped at all.
     """
-    task, edit_message = await _make_ban_task(monkeypatch)
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     task.status = TaskStatus.PROCESSING
     task.started_at = None
     task.created_at = datetime.now(UTC) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES + 1)
     await task.save()
 
-    await CleanupOldTasks().handle()
+    await CleanupOldTasks(test_services).handle()
 
     assert "❌" in _edited_text(edit_message)
     reloaded = await FederationTask.get(task.id)
@@ -263,13 +266,11 @@ async def test_orphan_with_no_started_at_is_still_reaped(db_init: Any, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_failed_ban_task_reports_failure_and_is_marked_failed(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_failed_ban_task_reports_failure_and_is_marked_failed(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """A crash mid-propagation must reach the user, not leave the reply on "Propagating…"."""
-    task, edit_message = await _make_ban_task(monkeypatch, propagation_error=RuntimeError("telegram exploded"))
+    task, edit_message = await _make_ban_task(monkeypatch, propagation_error=RuntimeError("telegram exploded"), test_services=test_services)
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     text = _edited_text(edit_message)
     assert "❌" in text
@@ -282,26 +283,26 @@ async def test_failed_ban_task_reports_failure_and_is_marked_failed(
 
 
 @pytest.mark.asyncio
-async def test_handle_does_not_pick_up_failed_tasks(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_handle_does_not_pick_up_failed_tasks(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """FAILED is terminal - a failed task must not be retried on every 10s tick."""
-    _task, edit_message = await _make_ban_task(monkeypatch, propagation_error=RuntimeError("boom"))
+    _task, edit_message = await _make_ban_task(monkeypatch, propagation_error=RuntimeError("boom"), test_services=test_services)
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
     assert edit_message.await_count == 1
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
     assert edit_message.await_count == 1, "a FAILED task must not be picked up again"
 
 
 @pytest.mark.asyncio
-async def test_orphaned_processing_task_is_failed_and_reported(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_orphaned_processing_task_is_failed_and_reported(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """A task stranded in PROCESSING by a restarted scheduler must not hang forever."""
-    task, edit_message = await _make_ban_task(monkeypatch)
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     task.status = TaskStatus.PROCESSING
     task.started_at = datetime.now(UTC) - timedelta(minutes=FEDERATION_TASK_STALE_AFTER_MINUTES + 1)
     await task.save()
 
-    await CleanupOldTasks().handle()
+    await CleanupOldTasks(test_services).handle()
 
     text = _edited_text(edit_message)
     assert "❌" in text
@@ -313,14 +314,14 @@ async def test_orphaned_processing_task_is_failed_and_reported(db_init: Any, mon
 
 
 @pytest.mark.asyncio
-async def test_recently_started_processing_task_is_left_alone(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_recently_started_processing_task_is_left_alone(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """A task that is merely slow must never be mistaken for an orphan."""
-    task, edit_message = await _make_ban_task(monkeypatch)
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     task.status = TaskStatus.PROCESSING
     task.started_at = datetime.now(UTC) - timedelta(minutes=1)
     await task.save()
 
-    await CleanupOldTasks().handle()
+    await CleanupOldTasks(test_services).handle()
 
     edit_message.assert_not_awaited()
     reloaded = await FederationTask.get(task.id)
@@ -329,11 +330,9 @@ async def test_recently_started_processing_task_is_left_alone(db_init: Any, monk
 
 
 @pytest.mark.asyncio
-async def test_cleanup_expires_completed_but_keeps_failed_forever(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_cleanup_expires_completed_but_keeps_failed_forever(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """FAILED tasks are the record of work still needing a re-do, so they have no TTL."""
-    task, _edit_message = await _make_ban_task(monkeypatch)
+    task, _edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     long_ago = datetime.now(UTC) - timedelta(days=FEDERATION_EXPORT_TTL_DAYS + 1)
 
     task.status = TaskStatus.COMPLETED
@@ -352,7 +351,7 @@ async def test_cleanup_expires_completed_but_keeps_failed_forever(
     )
     await failed_task.insert()
 
-    await CleanupOldTasks().handle()
+    await CleanupOldTasks(test_services).handle()
 
     assert await FederationTask.get(task.id) is None, "old COMPLETED tasks should be cleaned up"
     assert await FederationTask.get(failed_task.id) is not None, "old FAILED tasks must be kept indefinitely"
@@ -371,17 +370,15 @@ def test_build_task_failed_doc_without_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reply_edit_flood_control_does_not_fail_ban_task(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_reply_edit_flood_control_does_not_fail_ban_task(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     from aiogram.exceptions import TelegramRetryAfter
 
-    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2)
+    task, edit_message = await _make_ban_task(monkeypatch, banned_count=2, test_services=test_services)
     edit_message.side_effect = TelegramRetryAfter(
         method=None, message="Too Many Requests: retry after 36", retry_after=36  # type: ignore[arg-type]
     )
 
-    await ProcessFederationBans().handle()
+    await ProcessFederationBans(test_services).handle()
 
     reloaded = await FederationTask.get(task.id)
     assert reloaded is not None

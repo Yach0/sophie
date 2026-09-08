@@ -2,10 +2,11 @@ from stfu_tg import KeyValue, Section
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models import BetaModeModel, GlobalSettings
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 
 
-async def beta_stats() -> Element:
+async def beta_stats(*, services: ApplicationServices) -> Element:
     percentage_db = await GlobalSettings.get_by_key("beta_percentage")
     percentage = percentage_db.value if percentage_db else 0
 

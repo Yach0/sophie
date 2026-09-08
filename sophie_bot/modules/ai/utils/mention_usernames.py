@@ -19,6 +19,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from re import Match
 
+from redis.asyncio import Redis
+
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages
@@ -157,13 +159,17 @@ def _recent_user_tids(user_tids: Sequence[int]) -> tuple[int, ...]:
     return tuple(dict.fromkeys(user_tid for user_tid in user_tids if user_tid != CONFIG.bot_id))
 
 
-async def collect_mention_candidates(chat_tid: int) -> tuple[MentionCandidate, ...]:
+async def collect_mention_candidates(chat_tid: int, *, redis: Redis) -> tuple[MentionCandidate, ...]:
     """Participants of the window the model was given context for.
 
     The recent-message cache is the right source here: it is exactly the set of people the model
     could plausibly be talking about, and it keeps the lookup bounded regardless of chat size.
     """
-    messages = await get_cached_messages(chat_tid, limit=CHATBOT_CACHE_MESSAGE_LIMIT)
+    messages = await get_cached_messages(
+        chat_tid,
+        limit=CHATBOT_CACHE_MESSAGE_LIMIT,
+        redis=redis,
+    )
     user_tids = _recent_user_tids([message.user_id for message in messages])
     if not user_tids:
         return ()
@@ -172,19 +178,28 @@ async def collect_mention_candidates(chat_tid: int) -> tuple[MentionCandidate, .
     return tuple(candidate for user in users if (candidate := _candidate_from_user(user)))
 
 
-async def apply_mention_usernames(text: str, chat_tid: int | None) -> str:
+async def apply_mention_usernames(
+    text: str,
+    chat_tid: int | None,
+    *,
+    redis: Redis,
+) -> str:
     """Flag-gated entry point used by the reply renderer, for both streamed and final output."""
     if not text or "@" not in text or chat_tid is None:
         return text
-    index = await resolve_mention_index(chat_tid)
+    index = await resolve_mention_index(chat_tid, redis=redis)
     if index is None:
         return text
     return resolve_mentions(text, index)
 
 
-async def resolve_mention_index(chat_tid: int | None) -> MentionIndex | None:
+async def resolve_mention_index(chat_tid: int | None, *, redis: Redis) -> MentionIndex | None:
     """Resolve the flag-gated mention index once for a reply/run."""
-    if chat_tid is None or not await is_enabled("ai_chatbot_mention_usernames", chat_tid=chat_tid):
+    if chat_tid is None or not await is_enabled(
+        "ai_chatbot_mention_usernames",
+        chat_tid=chat_tid,
+        redis=redis,
+    ):
         return None
-    candidates = await collect_mention_candidates(chat_tid)
+    candidates = await collect_mention_candidates(chat_tid, redis=redis)
     return build_mention_index(candidates) if candidates else None

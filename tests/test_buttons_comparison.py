@@ -6,7 +6,6 @@ import sophie_bot.utils.i18n
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.buttons_processor.legacy import legacy_button_parser
-from sophie_bot.modules.utils_.legacy_buttons import LEGACY_BUTTON_ACTIONS
 
 TEST_CASES = [
     # URL Button
@@ -49,17 +48,6 @@ def setup_mocks(monkeypatch):
     monkeypatch.setattr(sophie_bot.utils.i18n, "get_i18n", lambda: mock)
     gettext_ctx.set(mock)
 
-    # Populate LEGACY_BUTTON_ACTIONS as they would be in the app
-    LEGACY_BUTTON_ACTIONS.update(
-        {
-            "rules": "btn_rules",
-            "delmsg": "btn_deletemsg_cb",
-            "welcomesecurity": "btnwelcomesecuritystart",
-            "connect": "btn_connect_start",
-            "note": "btnnotesm",
-            "#": "btnnotesm",
-        }
-    )
 
 
 def compare_markups(markup1: InlineKeyboardMarkup, markup2: InlineKeyboardMarkup):

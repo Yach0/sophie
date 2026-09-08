@@ -61,20 +61,26 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
     send_saveable = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.welcomesecurity.handlers.chat_join_request.send_saveable", send_saveable)
     send_message = AsyncMock(return_value=SimpleNamespace(message_id=777))
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.bot",
-        SimpleNamespace(send_message=send_message, delete_message=AsyncMock()),
+    bot = SimpleNamespace(
+        send_message=send_message,
+        delete_message=AsyncMock(),
     )
-    aredis_set = AsyncMock()
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.aredis",
-        SimpleNamespace(set=aredis_set),
+    redis_set = AsyncMock()
+    services = SimpleNamespace(
+        bot=bot,
+        redis=SimpleNamespace(set=redis_set),
     )
 
-    handler = ChatJoinRequestHandler(event, connection=connection, state=SimpleNamespace())
+    handler = ChatJoinRequestHandler(
+        event,
+        state=SimpleNamespace(),
+        context=SimpleNamespace(connection=connection),
+        dispatcher=object(),
+        services=services,
+    )
 
     await handler.handle()
 
     send_saveable.assert_not_awaited()
     send_message.assert_awaited_once()
-    assert aredis_set.await_count == 2
+    assert redis_set.await_count == 2

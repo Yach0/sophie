@@ -6,9 +6,11 @@ from aiogram.types import Message
 from pydantic import BaseModel
 from stfu_tg import Template
 
+from sophie_bot.modules.utils_.action_config_wizard.spec import (
+    ActionSetupTryAgainException,
+)
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardSession, WizardView
-from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
-from sophie_bot.shared.actions import ActionSetupTryAgainException, ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition
 from sophie_bot.utils.handlers import SophieBaseHandler, SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
@@ -33,8 +35,14 @@ class ActionWizard[DRAFT: ActionDraft]:
         return WizardSession(handler.state, self.config.scope, session_id)
 
     async def render_home(self, handler: SophieBaseHandler[Any], draft: DRAFT, session_id: str) -> WizardView:
-        del handler
-        return render_home_view(self.config, draft, session_id)
+        return render_home_view(
+            self.config,
+            draft,
+            session_id,
+            handler.services.modules.actions,
+            handler.services.modules.action_handlers,
+            handler.services.modules.action_wizards,
+        )
 
     async def start(self, handler: SophieBaseHandler[Any], draft: DRAFT | None = None) -> None:
         chat_iid = handler.connection.db_model.iid
@@ -121,17 +129,18 @@ class ActionWizard[DRAFT: ActionDraft]:
             return
 
         draft = await self._get_draft(session)
-        action = self._action(action_name)
-        if action is None:
+        definition = self._definition(handler, action_name)
+        spec = handler.services.modules.action_wizards.get(action_name)
+        if definition is None or spec is None:
             await session.clear()
             await handler.event.reply(_("Invalid callback data."))
             return
 
         setting_id = context.get("setting_id")
         setting = (
-            action.interactive_setup
+            spec.interactive_setup
             if setting_id is None
-            else action.settings(action.load_data(draft.actions.get(action_name))).get(setting_id)
+            else spec.settings(definition.load_data(draft.actions.get(action_name))).get(setting_id)
         )
         if setting is None or setting.setup_confirm is None:
             await session.clear()
@@ -162,28 +171,40 @@ class ActionWizard[DRAFT: ActionDraft]:
     ) -> None:
         session_id = session.require_session_id()
         if not argument:
-            view = render_add_action_view(self.config, draft, session_id)
+            view = render_add_action_view(
+                self.config,
+                draft,
+                session_id,
+                handler.services.modules.actions,
+            )
         else:
             try:
                 page = int(argument)
             except ValueError as error:
                 raise _WizardAlert(_("Invalid callback data.")) from error
-            view = render_add_action_view(self.config, draft, session_id, page)
+            view = render_add_action_view(
+                self.config,
+                draft,
+                session_id,
+                handler.services.modules.actions,
+                page,
+            )
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
     async def _select(
         self, handler: SophieCallbackQueryHandler, session: WizardSession, draft: DRAFT, action_name: str
     ) -> None:
-        action = self._action(action_name)
-        if action is None or not self._allowed(action):
+        definition = self._definition(handler, action_name)
+        if definition is None or not self._allowed(definition):
             raise _WizardAlert(_("Unknown action."))
         if (action_name in draft.actions and self.config.max_actions > 1) or (
             self.config.max_actions > 1 and len(draft.actions) >= self.config.max_actions
         ):
             raise _WizardAlert(_("This action cannot be added."))
-        if action.interactive_setup and action.interactive_setup.setup_message:
+        spec = handler.services.modules.action_wizards.get(action_name)
+        if spec is not None and spec.interactive_setup and spec.interactive_setup.setup_message:
             await session.start_input(action_name=action_name)
-            prompt = await action.interactive_setup.setup_message(handler.event, handler.data)
+            prompt = await spec.interactive_setup.setup_message(handler.event, handler.data)
             view = render_setup_prompt(self.config, prompt, session.require_session_id())
             await handler.answer_rich(view.doc, reply_markup=view.markup)
             return
@@ -196,13 +217,16 @@ class ActionWizard[DRAFT: ActionDraft]:
     async def _configure(
         self, handler: SophieCallbackQueryHandler, session: WizardSession, action_name: str, draft: DRAFT
     ) -> None:
-        if action_name not in draft.actions or self._action(action_name) is None:
+        if action_name not in draft.actions or self._definition(handler, action_name) is None:
             raise _WizardAlert(_("Unknown action."))
         view = render_action_settings_view(
             self.config,
             action_name,
             draft.actions[action_name],
             session.require_session_id(),
+            handler.services.modules.actions,
+            handler.services.modules.action_handlers,
+            handler.services.modules.action_wizards,
         )
         await handler.answer_rich(view.doc, reply_markup=view.markup)
 
@@ -212,10 +236,11 @@ class ActionWizard[DRAFT: ActionDraft]:
         if argument.count(":") != 1:
             raise _WizardAlert(_("Invalid callback data."))
         action_name, setting_id = argument.split(":", 1)
-        action = self._action(action_name)
-        if action is None or action_name not in draft.actions:
+        definition = self._definition(handler, action_name)
+        spec = handler.services.modules.action_wizards.get(action_name)
+        if definition is None or spec is None or action_name not in draft.actions:
             raise _WizardAlert(_("Unknown action."))
-        setting = action.settings(action.load_data(draft.actions[action_name])).get(setting_id)
+        setting = spec.settings(definition.load_data(draft.actions[action_name])).get(setting_id)
         if setting is None or setting.setup_message is None:
             raise _WizardAlert(_("Unknown setting."))
         await session.start_input(action_name=action_name, setting_id=setting_id)
@@ -262,11 +287,15 @@ class ActionWizard[DRAFT: ActionDraft]:
         draft = await session.get_draft()
         return self.config.draft_model.model_validate(draft or {})
 
-    def _action(self, name: str) -> ModernActionABC[Any] | None:
-        return ALL_MODERN_ACTIONS.get(name)
+    def _definition(
+        self,
+        handler: SophieBaseHandler[Any],
+        name: str,
+    ) -> ActionDefinition[Any] | None:
+        return handler.services.modules.actions.get(name)
 
-    def _allowed(self, action: ModernActionABC[Any]) -> bool:
-        return self.config.action_filter is None or self.config.action_filter(action)
+    def _allowed(self, definition: ActionDefinition[Any]) -> bool:
+        return self.config.action_filter is None or self.config.action_filter(definition)
 
     def _dump_value(self, value: BaseModel | None) -> dict[str, Any] | None:
         return value.model_dump(mode="json") if isinstance(value, BaseModel) else None

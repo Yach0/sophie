@@ -46,8 +46,8 @@ class ConnectGroupCmd(SophieMessageHandler):
             await self.event.reply(_("You are not allowed to connect to this chat."))
             return
 
-        await set_connected_chat(user_id, chat_id)
-        text = await get_connection_text(chat_id)
+        await set_connected_chat(user_id, chat_id, redis=self.services.redis)
+        text = await get_connection_text(chat_id, redis=self.services.redis)
         markup = get_disconnect_markup()
 
         try:
