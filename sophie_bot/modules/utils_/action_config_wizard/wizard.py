@@ -297,7 +297,8 @@ class ActionWizard[DRAFT: ActionDraft]:
     def _allowed(self, definition: ActionDefinition[Any]) -> bool:
         return self.config.action_filter is None or self.config.action_filter(definition)
 
-    def _dump_value(self, value: BaseModel | None) -> dict[str, Any] | None:
+    @staticmethod
+    def _dump_value(value: BaseModel | None) -> dict[str, Any] | None:
         return value.model_dump(mode="json") if isinstance(value, BaseModel) else None
 
 
