@@ -18,7 +18,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class ListDisabled(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("disabled"), UserRestricting(admin=True))
+        return CMDFilter("disabled"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         disabled = await get_disabled_handlers(

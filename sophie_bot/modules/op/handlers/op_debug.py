@@ -440,7 +440,7 @@ async def _collect_debug_context(
 class OpDebugHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:
-        return (CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(ChatType.PRIVATE))
+        return CMDFilter("op_debug"), IsOP(True), ChatTypeFilter(ChatType.PRIVATE)
 
     async def handle(self) -> None:
         await _collect_debug_context(self.event, services=self.services)

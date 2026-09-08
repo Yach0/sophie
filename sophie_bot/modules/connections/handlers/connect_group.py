@@ -26,7 +26,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class ConnectGroupCmd(SophieMessageHandler):
     @staticmethod
     def filters():
-        return (CMDFilter("connect"), ChatTypeFilter("group", "supergroup"))
+        return CMDFilter("connect"), ChatTypeFilter("group", "supergroup")
 
     async def handle(self):
         if not self.event.from_user or self.event.from_user.is_bot:

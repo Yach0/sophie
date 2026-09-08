@@ -18,7 +18,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class ResetAdminCache(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("admincache"), UserRestricting(admin=True))
+        return CMDFilter("admincache"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         # TODO: Make a flag for connection middleware

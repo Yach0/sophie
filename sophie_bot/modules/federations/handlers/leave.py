@@ -52,7 +52,7 @@ class LeaveFederationHandler(SophieMessageHandler):
             Template(
                 _("Chat '{chat_title}' has left federation '{fed_name}'."),
                 chat_title=Italic(self.connection.title),
-                fed_name=(federation.fed_name),
+                fed_name=federation.fed_name,
             ),
             Template(_("Federation ID: {fed_id}"), fed_id=federation.fed_id),
         )

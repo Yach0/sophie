@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import gettext as _
 class PrivateNotesRedirectHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (~ChatTypeFilter("private"), CMDFilter(LIST_CMDS), PMNotesFilter())
+        return ~ChatTypeFilter("private"), CMDFilter(LIST_CMDS), PMNotesFilter()
 
     async def handle(self) -> Any:
         text = _("Please connect to the chat to interact with chat notes")

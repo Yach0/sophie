@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class EventHandler(SophieMessageHandler):
     @staticmethod
     def filters():
-        return (CMDFilter(("event",)), IsOP(True))
+        return CMDFilter(("event",)), IsOP(True)
 
     async def handle(self):
         event_data = self.event.model_dump()
