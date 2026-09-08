@@ -10,7 +10,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.modules.filters.callbacks import FilterManagementCallback, FiltersPageCallback
 from sophie_bot.modules.utils_.wizard import WizardCallback
-from tests.e2e.helpers import get_wizard_session_id, grant_admin, set_feature
+from tests.e2e.helpers import get_wizard_session_id, grant_admin, next_group_id, next_user_id, set_feature
 
 
 async def _create_filter(test_client: TestClient, *, group_tid: int, user_tid: int, silent: bool, admin: bool = False):
@@ -96,13 +96,11 @@ async def test_filter_wizard_real_silent_flow_persists_prompt_and_toggle(test_cl
     rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
     assert WizardCallback(scope="filter_action", op="add", session_id=session_id).pack() in rich_html
     assert any(
-        btn.get("callback_data")
-        == WizardCallback(scope="filter_action", op="cancel", session_id=session_id).pack()
+        btn.get("callback_data") == WizardCallback(scope="filter_action", op="cancel", session_id=session_id).pack()
         for btn in inline_buttons
     )
     assert not any(
-        btn.get("callback_data")
-        == WizardCallback(scope="filter_action", op="done", session_id=session_id).pack()
+        btn.get("callback_data") == WizardCallback(scope="filter_action", op="done", session_id=session_id).pack()
         for btn in inline_buttons
     )
 
@@ -147,11 +145,10 @@ async def test_filter_wizard_real_silent_flow_persists_prompt_and_toggle(test_cl
     assert saved.actions == {"ai_text": {"prompt": "contains crypto scams"}}
     assert saved.silent is True
 
-    state = test_client.dispatcher.fsm.get_context(
-        bot=test_client.bot, chat_id=group.id, user_id=user_wrapper.user.id
-    )
+    state = test_client.dispatcher.fsm.get_context(bot=test_client.bot, chat_id=group.id, user_id=user_wrapper.user.id)
     fsm_data = await state.get_data()
     assert "wizard" not in fsm_data
+
 
 @pytest.mark.asyncio
 async def test_editfilter_save_does_not_report_filter_as_its_own_duplicate(test_client: TestClient) -> None:
@@ -195,15 +192,9 @@ async def test_filter_list_pagination_is_available_to_non_admins(test_client: Te
         ).insert()
 
     requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
-    buttons = [
-        button
-        for row in (requests[-1].reply_markup or {}).get("inline_keyboard", [])
-        for button in row
-    ]
+    buttons = [button for row in (requests[-1].reply_markup or {}).get("inline_keyboard", []) for button in row]
     next_callback = next(
-        button["callback_data"]
-        for button in buttons
-        if FiltersPageCallback.unpack(button["callback_data"]).page == 1
+        button["callback_data"] for button in buttons if FiltersPageCallback.unpack(button["callback_data"]).page == 1
     )
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
     list_message = MessageFactory.create(text="Filters", from_user=bot_user, chat=group)
@@ -215,6 +206,65 @@ async def test_filter_list_pagination_is_available_to_non_admins(test_client: Te
     )
 
     assert any("filter9" in str(request.params) for request in page_requests)
+
+
+@pytest.mark.asyncio
+async def test_filter_list_pairs_each_item_with_its_buttons(test_client: TestClient) -> None:
+    group, user_wrapper, first_filter = await _create_filter(
+        test_client,
+        group_tid=next_group_id(),
+        user_tid=next_user_id(),
+        silent=False,
+    )
+    first_filter.handler = "first"
+    await first_filter.save()
+    second_filter = await FiltersModel(
+        chat=first_filter.chat,
+        handler="second",
+        action=None,
+        actions={"reply": {"text": "second reply"}},
+    ).insert()
+
+    requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
+
+    rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
+    first_item_start = rich_html.index("<b>first</b>")
+    first_row_start = rich_html.index("<tg-button-row", first_item_start)
+    first_row_end = rich_html.index("</tg-button-row>", first_row_start)
+    second_item_start = rich_html.index("<b>second</b>")
+    second_row_start = rich_html.index("<tg-button-row", second_item_start)
+    second_row_end = rich_html.index("</tg-button-row>", second_row_start)
+
+    assert first_item_start < first_row_start < first_row_end < second_item_start < second_row_start < second_row_end
+    assert str(first_filter.id) in rich_html[first_row_start:first_row_end]
+    assert str(second_filter.id) in rich_html[second_row_start:second_row_end]
+
+
+@pytest.mark.asyncio
+async def test_filter_list_rich_structure_escapes_items_before_button_rows(test_client: TestClient) -> None:
+    group, user_wrapper, first_filter = await _create_filter(
+        test_client,
+        group_tid=next_group_id(),
+        user_tid=next_user_id(),
+        silent=False,
+    )
+    first_filter.handler = "first <filter>"
+    await first_filter.save()
+    await FiltersModel(
+        chat=first_filter.chat,
+        handler="second & filter",
+        action=None,
+        actions={"reply": {"text": "second reply"}},
+    ).insert()
+
+    requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
+
+    rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
+    assert "<b>first &lt;filter&gt;</b>" in rich_html
+    assert "<b>second &amp; filter</b>" in rich_html
+    assert rich_html.count("<tg-button-row") == 2
+    assert rich_html.count("</tg-button-row>") == 2
+    assert "</tg-button-row>\n<b>second &amp; filter</b>" in rich_html
 
 
 @pytest.mark.asyncio
