@@ -16,7 +16,7 @@ from sophie_bot.modules.communities.utils.ban_docs import (
     build_unban_reply_doc,
 )
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.logger import log
 
 
@@ -26,6 +26,9 @@ class ProcessCommunityBans:
     The handler already applied the ban to the DB record and the current chat; this job
     propagates it across the rest of the community's chats and edits the original reply.
     """
+
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
 
     async def handle(self) -> None:
         tasks = await CommunityTask.find(
@@ -76,6 +79,7 @@ class ProcessCommunityBans:
             ban,
             task.target_user_id,
             current_chat_iid=task.current_chat_iid,
+            bot=self.services.bot,
         )
         task.banned_count = banned_count
 
@@ -97,7 +101,11 @@ class ProcessCommunityBans:
             raise ValueError("Unban task is missing the target user ID")
 
         unbanned_count = (
-            await CommunityBanService.unban_user_in_chat_iids(list(task.unban_chat_iids), task.target_user_id)
+            await CommunityBanService.unban_user_in_chat_iids(
+                list(task.unban_chat_iids),
+                task.target_user_id,
+                bot=self.services.bot,
+            )
             if task.unban_chat_iids
             else 0
         )
@@ -115,11 +123,16 @@ class ProcessCommunityBans:
             )
             await self._edit_reply(task, reply_doc.to_html())
 
-    @staticmethod
-    async def _edit_reply(task: CommunityTask, text: str) -> None:
+    async def _edit_reply(self, task: CommunityTask, text: str) -> None:
         if not task.reply_chat_id or not task.reply_message_id:
             return
-        await common_try(bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id))
+        await common_try(
+            self.services.bot.edit_message_text(
+                text,
+                chat_id=task.reply_chat_id,
+                message_id=task.reply_message_id,
+            )
+        )
 
     @staticmethod
     async def _update_status(

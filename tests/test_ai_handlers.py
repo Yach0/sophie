@@ -16,19 +16,26 @@ from sophie_bot.modules.ai.utils.ai_usage_service import ChatUsageBreakdownItem,
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 
 
-def _build_ai_usage_handler() -> tuple[AiUsage, SimpleNamespace]:
+def _build_ai_usage_handler(
+    test_services: object,
+) -> tuple[AiUsage, SimpleNamespace]:
     event = SimpleNamespace(reply=AsyncMock())
     handler = object.__new__(AiUsage)
     handler.event = event
     handler.data = {
-        "connection": SimpleNamespace(db_model=SimpleNamespace(iid="chat_iid")),
+        "context": SimpleNamespace(
+            connection=SimpleNamespace(
+                db_model=SimpleNamespace(iid="chat_iid")
+            )
+        ),
+        "services": test_services,
     }
     return handler, event
 
 
 @pytest.mark.asyncio
-async def test_aiusage_shows_credit_breakdown(monkeypatch: pytest.MonkeyPatch) -> None:
-    handler, event = _build_ai_usage_handler()
+async def test_aiusage_shows_credit_breakdown(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+    handler, event = _build_ai_usage_handler(test_services)
     monkeypatch.setattr(
         "sophie_bot.modules.ai.handlers.usage.get_chat_usage_view",
         AsyncMock(
@@ -62,8 +69,8 @@ async def test_aiusage_shows_credit_breakdown(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.asyncio
-async def test_aiusage_shows_exhausted_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    handler, event = _build_ai_usage_handler()
+async def test_aiusage_shows_exhausted_state(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+    handler, event = _build_ai_usage_handler(test_services)
     monkeypatch.setattr(
         "sophie_bot.modules.ai.handlers.usage.get_chat_usage_view",
         AsyncMock(
@@ -91,7 +98,7 @@ def test_ai_credit_header_matches_usage_percentage() -> None:
 
 
 @pytest.mark.asyncio
-async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     message = SimpleNamespace(reply=AsyncMock())
     monkeypatch.setattr(
         "sophie_bot.modules.ai.handlers.op_prices.get_model_pricing",
@@ -110,7 +117,7 @@ async def test_op_aiprices_lists_model_prices(monkeypatch: pytest.MonkeyPatch) -
     )
     monkeypatch.setattr("sophie_bot.modules.ai.handlers.op_prices.get_catalog", AsyncMock(return_value=catalog))
 
-    await op_ai_prices_handler(message)
+    await op_ai_prices_handler(message, services=test_services)
 
     text = message.reply.await_args.args[0]
     assert "AI Prices" in text

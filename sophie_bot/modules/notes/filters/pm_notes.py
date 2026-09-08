@@ -1,16 +1,22 @@
-from typing import Any
+from __future__ import annotations
 
 from aiogram.filters import Filter
+from aiogram.types import TelegramObject
 
 from sophie_bot.db.models import PrivateNotesModel
-from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.middlewares.request_context import RequestContext
 
 
 class PMNotesFilter(Filter):
-    async def __call__(self, *args: Any, **kwargs: Any) -> bool:
-        connection: ChatConnection | None = kwargs.get("connection")
+    async def __call__(
+        self,
+        event: TelegramObject,
+        context: RequestContext,
+    ) -> bool:
+        del event
+        connection = context.connection
         if not connection:
-            raise ValueError("Missing connection argument in PMNotesFilter.__call__ method")
+            raise ValueError("Missing connection in request context")
 
         if not connection.db_model:
             raise ValueError("Missing db_model in connection")

@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -21,15 +22,13 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
 )
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError, initiate_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
-from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def send_dm_unblock_message(chat_tid: int) -> Message:
+async def send_dm_unblock_message(chat_tid: int, *, bot: Bot) -> Message:
     payload = build_legacy_start_payload(LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, chat_tid)
     start_url = f"https://t.me/{CONFIG.username}?start={payload}"
 
@@ -104,7 +103,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             # Let admins handle the approval manually
             return
 
-        if not await is_enabled("welcomecaptcha", chat_tid=chat.tid):
+        if not await is_enabled("welcomecaptcha", chat_tid=chat.tid, redis=self.services.redis):
             await _approve_request()
             return
 
@@ -125,20 +124,37 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
         join_request_message_key = f"join_request_message:{chat.iid}:{user.iid}"
         try:
-            await initiate_captcha(user, chat, is_join_request=True)
+            await initiate_captcha(
+                user,
+                chat,
+                is_join_request=True,
+                bot=self.services.bot,
+                dispatcher=self.data["dispatcher"],
+            )
             sent_message = await send_saveable(
                 None,
                 chat_tid,
                 join_request_saveable,
                 additional_fillings=additional_fillings,
                 user=self.event.from_user,
+                bot=self.services.bot,
             )
         except CaptchaDMBlockedError:
-            sent_message = await send_dm_unblock_message(chat_tid)
+            sent_message = await send_dm_unblock_message(chat_tid, bot=self.services.bot)
 
         if greetings.clean_welcome and greetings.clean_welcome.enabled and greetings.clean_welcome.last_msg:
-            await common_try(bot.delete_message(chat_id=chat_tid, message_id=greetings.clean_welcome.last_msg))
+            await common_try(
+                self.services.bot.delete_message(chat_id=chat_tid, message_id=greetings.clean_welcome.last_msg)
+            )
 
         if sent_message:
-            await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
-            await aredis.set(join_request_message_key, sent_message.message_id, ex=172800)
+            await self.services.redis.set(
+                f"chat_ws_message:{chat.iid}:{user.iid}",
+                sent_message.message_id,
+                ex=172800,
+            )
+            await self.services.redis.set(
+                join_request_message_key,
+                sent_message.message_id,
+                ex=172800,
+            )

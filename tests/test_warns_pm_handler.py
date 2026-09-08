@@ -64,7 +64,10 @@ async def test_warns_pm_lists_warns_with_chat_titles(db_init: object) -> None:
         return query
 
     with patch.object(WarnModel, "find", _find):
-        handler = WarnsPMHandler(message, user_db=user)
+        handler = WarnsPMHandler(
+            message,
+            context=SimpleNamespace(actor=user),
+        )
         await handler.handle()
 
     reply_text = message.reply.await_args.args[0]
@@ -86,7 +89,10 @@ async def test_warns_pm_reports_no_warns(db_init: object) -> None:
         return query
 
     with patch.object(WarnModel, "find", _find):
-        handler = WarnsPMHandler(message, user_db=user)
+        handler = WarnsPMHandler(
+            message,
+            context=SimpleNamespace(actor=user),
+        )
         await handler.handle()
 
     assert "don't have warnings" in message.reply.await_args.args[0]

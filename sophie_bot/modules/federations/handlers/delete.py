@@ -107,7 +107,7 @@ class FederationDeleteCallbackHandler(SophieCallbackQueryHandler):
         ).to_html()
         await FederationManageService.post_federation_log(federation, log_text, self.event.bot)
 
-        await FederationManageService.delete_federation(federation)
+        await FederationManageService.delete_federation(federation, redis=self.services.redis)
 
         await self.event.message.edit_text(
             text=Doc(

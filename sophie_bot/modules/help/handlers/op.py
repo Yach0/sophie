@@ -4,7 +4,7 @@ from stfu_tg import Section
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, HandlerHelp, ModuleHelp
+from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp
 from sophie_bot.modules.help.utils.format_help import format_handlers
 from sophie_bot.utils.handlers import SophieMessageHandler
 
@@ -54,5 +54,5 @@ class OpCMDSList(SophieMessageHandler):
         return CMDFilter("op_cmds"), IsOP(True)
 
     async def handle(self) -> None:
-        for text in format_op_commands_messages(list(HELP_MODULES.values())):
+        for text in format_op_commands_messages(list(self.services.modules.help_modules.values())):
             await self.event.reply(text)

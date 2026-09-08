@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from redis.asyncio import Redis
+
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.utils.feature_flags import FeatureType
@@ -27,6 +29,11 @@ class ModerationProvider(Protocol):
     name: str
     native_categories: tuple[NativeCategory, ...]
 
-    async def classify(self, history: AIMessageHistory) -> dict[str, float]:
+    async def classify(
+        self,
+        history: AIMessageHistory,
+        *,
+        redis: Redis,
+    ) -> dict[str, float]:
         """Return the provider's raw per-native-category scores."""
         ...

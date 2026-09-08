@@ -8,9 +8,9 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.cache.locale import get_selected_locale
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.language.handlers.language import SelectLangCb
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.services.i18n import i18n
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user_id
 
@@ -36,7 +36,10 @@ async def test_lang_shows_the_picker(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_selecting_a_language_persists(test_client: TestClient) -> None:
+async def test_selecting_a_language_persists(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+) -> None:
     admin, group, _model = await create_test_user_and_group(test_client, group_title="Lang Select Group")
     await grant_admin(group.id, admin.id)
     chat = await ChatModel.get_by_tid(group.id)
@@ -48,7 +51,7 @@ async def test_selecting_a_language_persists(test_client: TestClient) -> None:
 
     await test_client.send_callback(SelectLangCb(code=target_locale).pack(), from_user=admin, message=picker)
 
-    assert await get_selected_locale(chat.iid) == target_locale
+    assert await test_services.locales.get_selected_locale(chat.iid) == target_locale
 
 
 @pytest.mark.asyncio

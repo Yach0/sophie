@@ -1,5 +1,6 @@
 from typing import Final
 
+from aiogram import Bot
 from aiogram.enums import ContentType
 from aiogram.methods import (
     SendMediaGroup,
@@ -28,7 +29,6 @@ from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.fillings import process_fillings
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MEDIA_SPECS
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
-from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -59,6 +59,8 @@ async def _send_media_group(
     reply_to: int | None,
     message_thread_id: int | None,
     collect_sent: list[Message] | None = None,
+    *,
+    bot: Bot,
 ) -> Message | None:
     """Sends an album note via sendMediaGroup.
 
@@ -132,6 +134,8 @@ async def send_saveable(
     message_thread_id: int | None = None,
     collect_sent: list[Message] | None = None,
     receiver_user_id: int | None = None,
+    *,
+    bot: Bot,
 ) -> Message | None:
     """Sends a saveable, returning its primary message.
 
@@ -202,6 +206,7 @@ async def send_saveable(
             reply_to=reply_to,
             message_thread_id=message_thread_id,
             collect_sent=collect_sent,
+            bot=bot,
         )
 
     # TODO: Multi messages

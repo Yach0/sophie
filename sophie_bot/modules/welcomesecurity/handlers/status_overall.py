@@ -89,4 +89,5 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
             reply_to=self.event.message_id,
             additional_fillings=additional_fillings,
             connection=connection,
+            bot=self.services.bot,
         )

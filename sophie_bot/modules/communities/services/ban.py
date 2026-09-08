@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import TypeVar
 
+from aiogram import Bot
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
 
@@ -13,8 +14,8 @@ from sophie_bot.db.models import ChatModel, CommunityBanModel
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.modules.communities.exceptions import CommunityBanValidationError
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
-from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
-from sophie_bot.modules.restrictions.utils.restrictions import unban_user as restrict_unban_user
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
+from sophie_bot.shared.actions import RestrictionAction
 
 ChatActionResultT = TypeVar("ChatActionResultT")
 
@@ -62,6 +63,8 @@ class CommunityBanService:
         ban: CommunityBanModel,
         user_tid: int,
         current_chat_iid: PydanticObjectId | None = None,
+        *,
+        bot: Bot,
     ) -> int:
         chats = await ChatModel.find(ChatModel.community_tid == community_tid).to_list()
         chat_iids = [chat.iid for chat in chats]
@@ -91,8 +94,8 @@ class CommunityBanService:
         async def ban_chat(chat: ChatModel) -> PydanticObjectId | None:
             if chat.iid not in detected_chat_iids:
                 return None
-            success = await restrict_ban_user(chat.tid, user_tid)
-            return chat.iid if success else None
+            result = await execute_restriction(bot, RestrictionAction.BAN, chat.tid, user_tid)
+            return chat.iid if result.applied else None
 
         banned_chat_iids = await CommunityBanService._run_limited_chat_actions(chats, ban_chat)
 
@@ -117,13 +120,19 @@ class CommunityBanService:
         return ban
 
     @staticmethod
-    async def unban_user_in_chat_iids(chat_iids: list[PydanticObjectId], user_tid: int) -> int:
+    async def unban_user_in_chat_iids(
+        chat_iids: list[PydanticObjectId],
+        user_tid: int,
+        *,
+        bot: Bot,
+    ) -> int:
         if not chat_iids:
             return 0
         chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
 
         async def unban_chat(chat: ChatModel) -> bool:
-            return await restrict_unban_user(chat.tid, user_tid)
+            result = await execute_restriction(bot, RestrictionAction.UNBAN, chat.tid, user_tid)
+            return result.applied
 
         results = await CommunityBanService._run_limited_chat_actions(chats, unban_chat)
         return sum(1 for result in results if result)

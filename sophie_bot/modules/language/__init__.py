@@ -14,7 +14,7 @@ __all__ = ["router"]
 
 module_manifest = ModuleManifest(
     name="language",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(LanguageHandler, LanguageCallbackHandler),
     title=l_("Language"),
     emoji="🌐",

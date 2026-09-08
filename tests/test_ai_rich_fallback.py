@@ -15,14 +15,23 @@ class _RichFailure(Exception):
 
 
 @pytest.mark.asyncio
-async def test_chatbot_final_resend_uses_rich_message(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_chatbot_final_resend_uses_rich_message(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2)
     response = SimpleNamespace(
         chat=SimpleNamespace(id=1),
         message_id=3,
         bot=SimpleNamespace(edit_message_text=AsyncMock(side_effect=_RichFailure())),
     )
-    streamer = ChatbotMessageStreamer(source, "header", StreamMode.RICH_EDIT, 0)
+    streamer = ChatbotMessageStreamer(
+        source,
+        "header",
+        StreamMode.RICH_EDIT,
+        0,
+        redis=test_redis,
+    )
     streamer.response_message = response
     rich_resend = AsyncMock(return_value=SimpleNamespace())
     monkeypatch.setattr(chatbot_streaming, "TelegramAPIError", _RichFailure)
@@ -90,7 +99,9 @@ async def test_send_ai_rich_message_falls_back_when_reply_target_deleted() -> No
 
 
 @pytest.mark.asyncio
-async def test_chatbot_final_resend_falls_back_to_direct_send_when_reply_fails() -> None:
+async def test_chatbot_final_resend_falls_back_to_direct_send_when_reply_fails(
+    test_redis: object,
+) -> None:
     from aiogram.exceptions import TelegramBadRequest
 
     direct_send_mock = AsyncMock(return_value=SimpleNamespace(message_id=77))
@@ -106,7 +117,13 @@ async def test_chatbot_final_resend_falls_back_to_direct_send_when_reply_fails()
         message_id=3,
         edit_text=AsyncMock(side_effect=TelegramBadRequest(method=None, message="Bad Request: message to edit not found")),  # type: ignore[arg-type]
     )
-    streamer = ChatbotMessageStreamer(source, "header", StreamMode.HTML_EDIT, 0)
+    streamer = ChatbotMessageStreamer(
+        source,
+        "header",
+        StreamMode.HTML_EDIT,
+        0,
+        redis=test_redis,
+    )
     streamer.response_message = response
 
     await streamer.send_final(Doc("answer"))
@@ -134,35 +151,47 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
         "_build_answer_history",
         AsyncMock(return_value=SimpleNamespace(prompt=[], message_history=[])),
     )
-    monkeypatch.setattr(
-        proactive_replies,
-        "build_chatbot_run_config",
-        AsyncMock(return_value=SimpleNamespace(agent=None, deps=None, usage_limits=None, request_options=None)),
-    )
-    monkeypatch.setattr(
-        proactive_replies,
-        "run_ai_text",
-        AsyncMock(return_value=SimpleNamespace(served_model=None, usage=None, output="answer", message_history=[])),
-    )
     monkeypatch.setattr(proactive_replies, "build_chatbot_header", AsyncMock(return_value=Doc("header")))
     monkeypatch.setattr(proactive_replies, "build_reply_doc", AsyncMock(return_value=doc))
     monkeypatch.setattr(proactive_replies, "cache_message", AsyncMock())
+    run_chatbot = AsyncMock(
+        return_value=SimpleNamespace(
+            served_model=None,
+            usage=None,
+            output="answer",
+            message_history=[],
+        )
+    )
+    monkeypatch.setattr(proactive_replies, "run_chatbot", run_chatbot)
+    services = SimpleNamespace(redis=object(), bot=object())
 
-    await proactive_replies._answer_message(1, chat, target)
+    await proactive_replies._answer_message(
+        1,
+        chat,
+        target,
+        services=services,
+    )
 
-    rich_sender.assert_awaited_once_with(1, doc, reply_to_message_id=7, message_thread_id=None)
+    rich_sender.assert_awaited_once_with(
+        1,
+        doc,
+        reply_to_message_id=7,
+        message_thread_id=None,
+        bot=services.bot,
+    )
 
 
 @pytest.mark.asyncio
-async def test_send_ai_rich_message_to_chat_normalizes_reply_to_message_id(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_ai_rich_message_to_chat_normalizes_reply_to_message_id() -> None:
     send_rich_mock = AsyncMock(return_value=SimpleNamespace(message_id=42))
-    monkeypatch.setattr(ai_send.bot, "send_rich_message", send_rich_mock)
+    bot = SimpleNamespace(send_rich_message=send_rich_mock)
 
     await ai_send.send_ai_rich_message_to_chat(
         chat_id=12345,
         doc=Doc("Hello rich"),
         reply_to_message_id=999,
         message_thread_id=10,
+        bot=bot,
     )
 
     send_rich_mock.assert_awaited_once()

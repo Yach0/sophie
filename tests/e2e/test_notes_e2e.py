@@ -6,6 +6,7 @@ via bot commands in a group chat context.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -165,7 +166,7 @@ async def test_save_note_rejects_empty_note_names(
     handler = SaveNote.__new__(SaveNote)
     handler.event = fake_event
     handler.data = {
-        "connection": None,
+        "context": SimpleNamespace(connection=object()),
         "notenames": (),
         "description": "",
         "text_with_buttons": {},

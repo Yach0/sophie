@@ -171,6 +171,15 @@ def _group_message(chat_tid: int, user_tid: int, chat_type: str = "supergroup") 
     message.delete = AsyncMock()
     return message
 
+def _lock_data(chat: Any, user: Any, test_services: object) -> dict[str, Any]:
+    return {
+        "context": SimpleNamespace(
+            event_chat=chat,
+            actor=user,
+        ),
+        "services": test_services,
+    }
+
 
 @pytest.fixture
 def lock_middleware_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -186,7 +195,9 @@ def lock_middleware_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_lock_muted_users_middleware_skips_passed_users(
-    monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+    monkeypatch: pytest.MonkeyPatch,
+    lock_middleware_env: None,
+    test_services: object,
 ) -> None:
     """Users who have already passed captcha are not blocked by the middleware."""
     from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
@@ -203,10 +214,11 @@ async def test_lock_muted_users_middleware_skips_passed_users(
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(-100123, 12345)
-    data: dict[str, Any] = {
-        "chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
-        "user_db": SimpleNamespace(tid=12345, iid=PydanticObjectId()),
-    }
+    data = _lock_data(
+        SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
+        SimpleNamespace(tid=12345, iid=PydanticObjectId()),
+        test_services,
+    )
 
     result = await middleware(handler, message, data)
 
@@ -217,7 +229,9 @@ async def test_lock_muted_users_middleware_skips_passed_users(
 
 @pytest.mark.asyncio
 async def test_lock_muted_users_middleware_blocks_unpassed_users(
-    monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+    monkeypatch: pytest.MonkeyPatch,
+    lock_middleware_env: None,
+    test_services: object,
 ) -> None:
     """Users still in captcha (not passed) get their messages deleted and the handler is skipped."""
     from aiogram.dispatcher.event.bases import SkipHandler
@@ -236,10 +250,11 @@ async def test_lock_muted_users_middleware_blocks_unpassed_users(
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(-100123, 12345)
-    data: dict[str, Any] = {
-        "chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
-        "user_db": SimpleNamespace(tid=12345, iid=PydanticObjectId()),
-    }
+    data = _lock_data(
+        SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
+        SimpleNamespace(tid=12345, iid=PydanticObjectId()),
+        test_services,
+    )
 
     with pytest.raises(SkipHandler):
         await middleware(handler, message, data)
@@ -266,7 +281,10 @@ async def _saved_chat(tid: int, chat_type: str, title: str) -> Any:
 
 @pytest.mark.asyncio
 async def test_lock_muted_users_middleware_blocks_unpassed_users_with_real_admin_check(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+    db_init: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    lock_middleware_env: None,
+    test_services: object,
 ) -> None:
     """Regression: the real is_user_admin must not exempt an ordinary group member.
 
@@ -289,7 +307,7 @@ async def test_lock_muted_users_middleware_blocks_unpassed_users_with_real_admin
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(group_chat.tid, user_chat.tid)
-    data: dict[str, Any] = {"chat_db": group_chat, "user_db": user_chat}
+    data = _lock_data(group_chat, user_chat, test_services)
 
     try:
         with pytest.raises(SkipHandler):
@@ -304,7 +322,10 @@ async def test_lock_muted_users_middleware_blocks_unpassed_users_with_real_admin
 
 @pytest.mark.asyncio
 async def test_lock_muted_users_middleware_ignores_private_messages(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch, lock_middleware_env: None
+    db_init: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    lock_middleware_env: None,
+    test_services: object,
 ) -> None:
     """In PMs SaveChatsMiddleware sets chat_db to the user itself; nothing may be locked."""
     from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
@@ -317,7 +338,7 @@ async def test_lock_muted_users_middleware_ignores_private_messages(
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(user_chat.tid, user_chat.tid, chat_type="private")
-    data: dict[str, Any] = {"chat_db": user_chat, "user_db": user_chat}
+    data = _lock_data(user_chat, user_chat, test_services)
 
     try:
         assert await middleware(handler, message, data) == "handler_result"
@@ -328,14 +349,21 @@ async def test_lock_muted_users_middleware_ignores_private_messages(
 
 
 @pytest.mark.asyncio
-async def test_lock_muted_users_middleware_ignores_anonymous_admins(lock_middleware_env: None) -> None:
+async def test_lock_muted_users_middleware_ignores_anonymous_admins(
+    lock_middleware_env: None,
+    test_services: object,
+) -> None:
     """Anonymous admins have no user_db; the middleware must let them through."""
     from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import LockMutedUsers
 
     middleware = LockMutedUsers()
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(-100123, 12345)
-    data: dict[str, Any] = {"chat_db": SimpleNamespace(tid=-100123, iid=PydanticObjectId()), "user_db": None}
+    data = _lock_data(
+        SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
+        None,
+        test_services,
+    )
 
     assert await middleware(handler, message, data) == "handler_result"
     message.delete.assert_not_awaited()

@@ -27,7 +27,7 @@ class AiUsage(SophieMessageHandler):
         if not chat_db:
             return
 
-        usage_view = await get_chat_usage_view(chat_db.iid)
+        usage_view = await get_chat_usage_view(chat_db.iid, redis=self.services.redis)
         if not usage_view:
             await self.event.reply(_("AI quota information is not available yet."))
             return

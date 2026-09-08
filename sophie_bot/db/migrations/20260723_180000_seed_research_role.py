@@ -19,6 +19,7 @@ Rollback:
 from beanie import free_fall_migration
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 # The model the ai_research_model flag used to default to.
 _MODEL_NAME = "openai/gpt-5.5"
@@ -29,8 +30,8 @@ class Forward:
     """Give research an any-mode role on the model that was its flag default."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        await get_collection("ai_catalog_model").update_one(
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        await get_collection(resources.database.database, "ai_catalog_model").update_one(
             {"name": _MODEL_NAME},
             {
                 "$setOnInsert": {
@@ -50,7 +51,7 @@ class Forward:
 
 class Backward:
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        await get_collection("ai_catalog_model").update_one(
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        await get_collection(resources.database.database, "ai_catalog_model").update_one(
             {"name": _MODEL_NAME}, {"$pull": {"roles": _ROLE}}, session=session
         )

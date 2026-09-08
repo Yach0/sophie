@@ -1,22 +1,40 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 from httpx2 import ASGITransport, AsyncClient
 
+from sophie_bot.config import CONFIG
+from sophie_bot.db.cache.locale import LocaleStore
+from sophie_bot.db.models.ai.ai_catalog import (
+    AICatalogModelModel,
+    AICatalogProviderModel,
+)
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.api import api_router as ai_api_router
 from sophie_bot.modules.rest.api import auth, auth_router, feature_flags_router
-from sophie_bot.services.rest import create_app, init_api_routers
+from sophie_bot.services.i18n import i18n
+from sophie_bot.services.rest import create_app
 from sophie_bot.utils.api import auth as auth_utils
+from sophie_bot.utils.cached import RedisCache
 
 pytestmark = pytest.mark.asyncio
 
 
-def _app():
+def _app(redis: object):
     app = create_app()
-    init_api_routers(app, [auth_router, feature_flags_router, ai_api_router])
+    app.state.services = SimpleNamespace(
+        redis=redis,
+        locales=LocaleStore(
+            RedisCache(redis),
+            i18n,
+            CONFIG.default_locale,
+        ),
+    )
+    for router in (auth_router, feature_flags_router, ai_api_router):
+        app.include_router(router)
     return app
 
 _OWNER_TID = -99001
@@ -36,14 +54,20 @@ async def _seed_owner() -> None:
     ).insert()
 
 
-async def _operator_client(monkeypatch: pytest.MonkeyPatch) -> AsyncClient:
+async def _operator_client(
+    monkeypatch: pytest.MonkeyPatch,
+    redis: object,
+) -> AsyncClient:
     """A client authenticated exactly the way the panel authenticates: static token → operator JWT."""
     monkeypatch.setattr(auth.CONFIG, "api_operator_token", _OPERATOR_TOKEN)
     monkeypatch.setattr(auth.CONFIG, "owner_id", _OWNER_TID)
     monkeypatch.setattr(auth_utils.CONFIG, "api_jwt_secret", "a" * 40)
     await _seed_owner()
 
-    client = AsyncClient(transport=ASGITransport(app=_app()), base_url="http://panel.test")
+    client = AsyncClient(
+        transport=ASGITransport(app=_app(redis)),
+        base_url="http://panel.test",
+    )
     login = await client.post("/auth/login/operator", json={"token": _OPERATOR_TOKEN})
     assert login.status_code == 200, login.text
     client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
@@ -51,14 +75,16 @@ async def _operator_client(monkeypatch: pytest.MonkeyPatch) -> AsyncClient:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_the_panel_flow_works_through_the_real_app(monkeypatch: pytest.MonkeyPatch) -> None:
-    from sophie_bot.db.models.ai.ai_catalog import AICatalogModelModel, AICatalogProviderModel
+async def test_the_panel_flow_works_through_the_real_app(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
 
     # The db fixture is session-scoped, so start from a clean catalog regardless of test order.
     await AICatalogProviderModel.delete_all()
     await AICatalogModelModel.delete_all()
 
-    client = await _operator_client(monkeypatch)
+    client = await _operator_client(monkeypatch, test_redis)
     try:
         # The panel loads meta to build its pickers.
         meta = await client.get("/op/ai/catalog/meta")
@@ -104,10 +130,16 @@ async def test_the_panel_flow_works_through_the_real_app(monkeypatch: pytest.Mon
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_the_catalog_is_closed_without_an_operator_token(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_the_catalog_is_closed_without_an_operator_token(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     """The catalog holds provider keys, so an unauthenticated caller must be turned away."""
     monkeypatch.setattr(auth.CONFIG, "api_operator_token", _OPERATOR_TOKEN)
-    client = AsyncClient(transport=ASGITransport(app=_app()), base_url="http://panel.test")
+    client = AsyncClient(
+        transport=ASGITransport(app=_app(test_redis)),
+        base_url="http://panel.test",
+    )
     try:
         response = await client.get("/op/ai/catalog/providers")
         assert response.status_code in (401, 403)
@@ -116,8 +148,11 @@ async def test_the_catalog_is_closed_without_an_operator_token(monkeypatch: pyte
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_the_feature_flags_flow_works_through_the_real_app(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = await _operator_client(monkeypatch)
+async def test_the_feature_flags_flow_works_through_the_real_app(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
+    client = await _operator_client(monkeypatch, test_redis)
     try:
         listed = await client.get("/op/feature-flags")
         assert listed.status_code == 200
@@ -152,9 +187,15 @@ async def test_the_feature_flags_flow_works_through_the_real_app(monkeypatch: py
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_feature_flags_are_closed_without_an_operator_token(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_feature_flags_are_closed_without_an_operator_token(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     monkeypatch.setattr(auth.CONFIG, "api_operator_token", _OPERATOR_TOKEN)
-    client = AsyncClient(transport=ASGITransport(app=_app()), base_url="http://panel.test")
+    client = AsyncClient(
+        transport=ASGITransport(app=_app(test_redis)),
+        base_url="http://panel.test",
+    )
     try:
         response = await client.get("/op/feature-flags")
         assert response.status_code in (401, 403)

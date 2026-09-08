@@ -4,6 +4,7 @@ from aiogram.filters import BaseFilter
 from aiogram.types import CallbackQuery, Message
 
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import FeatureType, is_enabled
 
 
@@ -14,7 +15,12 @@ class FeatureFlagFilter(BaseFilter):
         self.feature = feature
         self.enabled = enabled
 
-    async def __call__(self, event: Message | CallbackQuery, connection: ChatConnection | None = None) -> bool:
+    async def __call__(
+        self,
+        event: Message | CallbackQuery,
+        services: ApplicationServices,
+        connection: ChatConnection | None = None,
+    ) -> bool:
         """Check if the feature flag condition is met, using the connected chat when in a PM connection."""
         message = event.message if isinstance(event, CallbackQuery) else event
         if message is None:
@@ -24,5 +30,5 @@ class FeatureFlagFilter(BaseFilter):
             connection.tid if connection is not None else message.chat.id if isinstance(message, Message) else None
         )
 
-        flag_enabled = await is_enabled(self.feature, chat_tid=chat_tid)
+        flag_enabled = await is_enabled(self.feature, chat_tid=chat_tid, redis=services.redis)
         return flag_enabled == self.enabled

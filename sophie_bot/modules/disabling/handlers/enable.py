@@ -31,7 +31,10 @@ class EnableHandler(SophieMessageHandler):
         connection = self.connection
         cmd_name: str = self.data["cmd"].lower().removeprefix("/").removeprefix("!")
 
-        resolved = resolve_disableable_cmd(cmd_name)
+        resolved = resolve_disableable_cmd(
+            cmd_name,
+            self.services.modules.disableable_commands,
+        )
 
         if not resolved:
             await self.event.reply(str(Template(_("Command {cmd} not found."), cmd=Code("/" + cmd_name))))

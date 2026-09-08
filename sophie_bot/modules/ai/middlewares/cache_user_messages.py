@@ -21,7 +21,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        chat_db: ChatModel | None = data.get("chat_db", None)
+        chat_db: ChatModel | None = data["context"].event_chat
 
         mode = await resolve_chat_mode(chat_db, data.get("state")) if chat_db else AIMode.disabled
         capabilities = get_capabilities(mode)
@@ -72,14 +72,15 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 message_thread_id=event.message_thread_id,
                 handled_by_ai=handled_by_ai,
                 eligible_for_proactive_ai=eligible_for_proactive_ai,
-                reply_to_message_id=reply_to_message.message_id if reply_to_message else None,
-                reply_to_user_id=reply_to_user.id if reply_to_user else None,
-                reply_to_username=reply_to_user.username or reply_to_user.full_name if reply_to_user else None,
+                reply_to_message_id=(reply_to_message.message_id if reply_to_message else None),
+                reply_to_user_id=(reply_to_user.id if reply_to_user else None),
+                reply_to_username=(reply_to_user.username or reply_to_user.full_name if reply_to_user else None),
                 reply_to_is_sophie_ai=reply_to_is_sophie_ai,
                 has_ai_command=has_ai_command,
                 is_ai_filter_reply=bool(data.get("ai_filter_handled", False)),
+                redis=data["services"].redis,
             )
             if eligible_for_proactive_ai and capabilities.proactive_replies:
-                await maybe_run_proactive_reply(event, chat_db)
+                await maybe_run_proactive_reply(event, chat_db, services=data["services"])
 
         return result

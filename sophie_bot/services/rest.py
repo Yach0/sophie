@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import Annotated, cast
 
 import structlog
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from sophie_bot.config import CONFIG
-from sophie_bot.services.i18n import i18n
-from sophie_bot.services.redis import aredis
+from sophie_bot.config import CONFIG, Config
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.api.rate_limiter import get_client_ip
 
 logger = structlog.get_logger(__name__)
@@ -25,6 +24,14 @@ RATE_LIMIT_EXEMPT_PATHS: frozenset[str] = frozenset({"/health"})
 # Global rate limit: requests per IP per window
 GLOBAL_RATE_LIMIT = 300
 GLOBAL_RATE_WINDOW = 60  # seconds
+
+
+def get_services(request: Request) -> ApplicationServices:
+    return cast(ApplicationServices, request.app.state.services)
+
+
+ServicesDep = Annotated[ApplicationServices, Depends(get_services)]
+
 
 # Liveness endpoint mounted from the core app (not an optional module) so the
 # container health probe keeps working even when a module is disabled via config.
@@ -40,15 +47,14 @@ class I18nMiddleware(BaseHTTPMiddleware):
     """Middleware to set up i18n context for REST API requests."""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        locale = CONFIG.default_locale
-
+        locales = get_services(request).locales
+        locale = locales.default_locale
         accept_language = request.headers.get("accept-language")
         if accept_language:
-            lang_code = accept_language.split(",")[0].split("-")[0]
-            if lang_code in i18n.available_locales:
-                locale = lang_code
-
-        with i18n.context(), i18n.use_locale(locale):
+            language_code = accept_language.split(",")[0].split("-")[0]
+            if language_code in locales.i18n.available_locales:
+                locale = language_code
+        with locales.i18n.context(), locales.i18n.use_locale(locale):
             return await call_next(request)
 
 
@@ -121,17 +127,17 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         client_ip = get_client_ip(request)
         key = f"global_rate_limit:{client_ip}"
 
+        redis = get_services(request).redis
         try:
-            async with aredis.pipeline() as pipe:
-                pipe.incr(key)
-                # NX: only set the TTL when the counter has none, so a client that keeps
-                # sending cannot push the window's expiry back and lock itself out forever.
-                pipe.expire(key, GLOBAL_RATE_WINDOW, nx=True)
-                results = await pipe.execute()
+            async with redis.pipeline() as pipeline:
+                pipeline.incr(key)
+                # NX avoids extending the fixed window on every request.
+                pipeline.expire(key, GLOBAL_RATE_WINDOW, nx=True)
+                results = await pipeline.execute()
 
             current_count = results[0]
             if current_count > GLOBAL_RATE_LIMIT:
-                ttl = await aredis.ttl(key)
+                ttl = await redis.ttl(key)
                 logger.warning(
                     "Global rate limit exceeded",
                     client_ip=client_ip,
@@ -154,7 +160,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-def create_app() -> FastAPI:
+def create_app(config: Config = CONFIG) -> FastAPI:
     app = FastAPI(title="Sophie API")
 
     app.include_router(health_router)
@@ -174,15 +180,10 @@ def create_app() -> FastAPI:
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,  # type: ignore[arg-type]
-        allow_origins=CONFIG.api_cors_origins,
+        allow_origins=config.api_cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Accept", "Accept-Language"],
     )
 
     return app
-
-
-def init_api_routers(app: FastAPI, api_routers: Sequence[APIRouter]) -> None:
-    for router in api_routers:
-        app.include_router(router)

@@ -17,7 +17,6 @@ from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.modules.utils_.telegram_exceptions import BOTS_CANT_ADD_NEW_CHAT_MEMBERS
-from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -55,7 +54,7 @@ class DemoteUserHandler(SophieMessageHandler):
             return await self.event.reply(_("You cannot demote yourself."))
 
         try:
-            await bot.promote_chat_member(
+            await self.services.bot.promote_chat_member(
                 chat_id=connection.tid,
                 user_id=user.chat_id,
                 can_invite_users=False,
@@ -72,7 +71,7 @@ class DemoteUserHandler(SophieMessageHandler):
             raise
 
         # Reset admin cache
-        await get_admins_rights(connection.tid)
+        await get_admins_rights(connection.tid, bot=self.services.bot)
 
         doc = Section(
             KeyValue(_("Chat"), connection.title),

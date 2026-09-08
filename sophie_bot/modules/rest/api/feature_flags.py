@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Collection
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.rest import get_services
 from sophie_bot.utils.api.auth import get_current_operator
 from sophie_bot.utils.feature_flags import (
     FEATURE_FLAGS,
@@ -33,6 +36,9 @@ from sophie_bot.utils.feature_flags import (
 from sophie_bot.utils.feature_flags import (
     _get_all_overrides as get_global_overrides,
 )
+
+ServicesDep = Annotated[ApplicationServices, Depends(get_services)]
+
 
 # Operator-only: these switches change the bot's behaviour globally.
 router = APIRouter(
@@ -125,11 +131,16 @@ def _validated(feature: FeatureType, value: FeatureValue) -> FeatureValue:
     return coerced
 
 
-async def _describe(feature: FeatureType, overridden: Collection[str]) -> FeatureFlag:
+async def _describe(
+    feature: FeatureType,
+    overridden: Collection[str],
+    *,
+    services: ApplicationServices,
+) -> FeatureFlag:
     allowed = get_allowed_string_values(feature)
     return FeatureFlag(
         name=feature,
-        value=await get_value(feature),
+        value=await get_value(feature, redis=services.redis),
         default=get_default_value(feature),
         value_kind=get_value_kind(feature),
         allowed_values=sorted(allowed) if allowed is not None else None,
@@ -153,73 +164,77 @@ def _rollout_info(feature: str, rollout: FeatureRollout) -> RolloutInfo:
 
 
 @router.get("", response_model=list[FeatureFlag])
-async def list_feature_flags() -> list[FeatureFlag]:
-    overridden = set(await get_global_overrides())
-    return [await _describe(feature, overridden) for feature in sorted(FEATURE_FLAGS)]
+async def list_feature_flags(services: ServicesDep) -> list[FeatureFlag]:
+    overridden = set(await get_global_overrides(redis=services.redis))
+    return [await _describe(feature, overridden, services=services) for feature in sorted(FEATURE_FLAGS)]
 
 
 @router.put("/{feature}", response_model=FeatureFlag)
-async def set_feature_flag(feature: str, data: FeatureFlagUpdate) -> FeatureFlag:
+async def set_feature_flag(feature: str, data: FeatureFlagUpdate, services: ServicesDep) -> FeatureFlag:
     typed = _feature_or_404(feature)
-    await set_value(typed, _validated(typed, data.value))
-    return await _describe(typed, {typed})
+    await set_value(typed, _validated(typed, data.value), redis=services.redis)
+    return await _describe(typed, {typed}, services=services)
 
 
 @router.delete("/{feature}", response_model=FeatureFlag)
-async def reset_feature_flag(feature: str) -> FeatureFlag:
+async def reset_feature_flag(feature: str, services: ServicesDep) -> FeatureFlag:
     """Clear the global override, reverting the flag to its built-in default."""
     typed = _feature_or_404(feature)
-    await delete_override(typed)
-    return await _describe(typed, set())
+    await delete_override(typed, redis=services.redis)
+    return await _describe(typed, set(), services=services)
 
 
 # ── Progressive rollouts ─────────────────────────────────────────────────────
 
 
 @router.get("/rollouts", response_model=list[RolloutInfo])
-async def list_feature_rollouts() -> list[RolloutInfo]:
-    rollouts = await list_rollouts()
+async def list_feature_rollouts(
+    services: ServicesDep,
+) -> list[RolloutInfo]:
+    rollouts = await list_rollouts(redis=services.redis)
     return [_rollout_info(feature, rollout) for feature, rollout in sorted(rollouts.items())]
 
 
 @router.put("/{feature}/rollout", response_model=RolloutInfo)
-async def set_feature_rollout(feature: str, data: RolloutSet) -> RolloutInfo:
+async def set_feature_rollout(feature: str, data: RolloutSet, services: ServicesDep) -> RolloutInfo:
     typed = _feature_or_404(feature)
     value = _validated(typed, data.value)
 
     if data.days is not None:
-        await set_timed_rollout(typed, data.days, value)
+        await set_timed_rollout(typed, data.days, value, redis=services.redis)
     elif data.percentage is not None:
-        await set_rollout(typed, data.percentage, value)
+        await set_rollout(typed, data.percentage, value, redis=services.redis)
     else:
         raise HTTPException(status_code=422, detail="Provide either a target percentage or a number of days")
 
-    rollout = await get_rollout(typed)
+    rollout = await get_rollout(typed, redis=services.redis)
     if rollout is None:
         raise HTTPException(status_code=500, detail="Rollout was not stored")
     return _rollout_info(typed, rollout)
 
 
 @router.post("/{feature}/rollout/bump", response_model=RolloutInfo)
-async def bump_feature_rollout(feature: str, data: RolloutBump) -> RolloutInfo:
+async def bump_feature_rollout(feature: str, data: RolloutBump, services: ServicesDep) -> RolloutInfo:
     typed = _feature_or_404(feature)
     try:
-        rollout = await bump_rollout(typed, data.percentage)
+        rollout = await bump_rollout(typed, data.percentage, redis=services.redis)
     except ValueError as err:
         raise HTTPException(status_code=409, detail=str(err)) from err
     return _rollout_info(typed, rollout)
 
 
 @router.delete("/{feature}/rollout", status_code=204)
-async def delete_feature_rollout(feature: str) -> None:
-    await delete_rollout(_feature_or_404(feature))
+async def delete_feature_rollout(feature: str, services: ServicesDep) -> None:
+    await delete_rollout(_feature_or_404(feature), redis=services.redis)
 
 
 # ── Per-chat overrides ───────────────────────────────────────────────────────
 
 
 @router.get("/chat-overrides", response_model=list[ChatOverride])
-async def list_feature_chat_overrides(chat_tid: int | None = None) -> list[ChatOverride]:
+async def list_feature_chat_overrides(
+    chat_tid: int | None = None,
+) -> list[ChatOverride]:
     """Every manual/rollout per-chat override, or just one chat's when ``chat_tid`` is given."""
     details = await list_chat_override_details(chat_tid)
 
@@ -243,15 +258,24 @@ async def list_feature_chat_overrides(chat_tid: int | None = None) -> list[ChatO
 
 
 @router.put("/{feature}/chat/{chat_tid}", response_model=ChatOverride)
-async def set_feature_chat_override(feature: str, chat_tid: int, data: FeatureFlagUpdate) -> ChatOverride:
+async def set_feature_chat_override(
+    feature: str,
+    chat_tid: int,
+    data: FeatureFlagUpdate,
+    services: ServicesDep,
+) -> ChatOverride:
     typed = _feature_or_404(feature)
     value = _validated(typed, data.value)
-    await set_chat_override(typed, chat_tid, value)
+    await set_chat_override(typed, chat_tid, value, redis=services.redis)
     chat = await ChatModel.get_by_tid(chat_tid)
     title = chat.first_name_or_title if chat else None
     return ChatOverride(chat_tid=chat_tid, chat_title=title, feature=typed, value=value, source="manual")
 
 
 @router.delete("/{feature}/chat/{chat_tid}", status_code=204)
-async def delete_feature_chat_override(feature: str, chat_tid: int) -> None:
-    await delete_chat_override(_feature_or_404(feature), chat_tid)
+async def delete_feature_chat_override(feature: str, chat_tid: int, services: ServicesDep) -> None:
+    await delete_chat_override(
+        _feature_or_404(feature),
+        chat_tid,
+        redis=services.redis,
+    )

@@ -10,8 +10,9 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSetting, ActionWizardSpec
 from sophie_bot.modules.warns.utils import warn_user
-from sophie_bot.shared.actions import ModernActionABC, ModernActionSetting
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -33,15 +34,36 @@ async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) 
     return Template(_("Please write the warn reason."))
 
 
-class WarnModernAction(ModernActionABC[WarnActionDataModel]):
-    name = "warn_user"
+def build_action_wizard_specs() -> dict[str, ActionWizardSpec]:
+    return {
+        WARN_ACTION.name: ActionWizardSpec(
+            interactive_setup=None,
+            settings=lambda _data: {
+                "change_warn_reason": ActionWizardSetting(
+                    title=l_("Change warn reason"),
+                    icon="📝",
+                    setup_message=setup_message,
+                    setup_confirm=setup_confirm,
+                )
+            },
+        )
+    }
 
-    icon = "⚠️"
-    title = l_("Warn")
-    data_object = WarnActionDataModel
-    default_data = WarnActionDataModel(reason=None)
-    allow_warns = False
-    skip_for_admins = True
+
+WARN_ACTION = ActionDefinition[WarnActionDataModel](
+    name="warn_user",
+    icon="⚠️",
+    title=l_("Warn"),
+    data_object=WarnActionDataModel,
+    default_data=WarnActionDataModel(reason=None),
+    allow_warns=False,
+    skip_for_admins=True,
+    has_interactive_setup=False,
+)
+
+
+class WarnModernAction(ModernActionABC[WarnActionDataModel]):
+    definition = WARN_ACTION
 
     @staticmethod
     def description(data: WarnActionDataModel) -> Element | str:
@@ -51,37 +73,30 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
 
         return _("Warns user with no reason")
 
-    def settings(self, data: WarnActionDataModel) -> dict[str, ModernActionSetting]:
-        return {
-            "change_warn_reason": ModernActionSetting(
-                title=l_("Change warn reason"),
-                icon="📝",
-                setup_message=setup_message,
-                setup_confirm=setup_confirm,
-            ),
-        }
-
     async def handle(self, message: Message, data: dict, filter_data: WarnActionDataModel) -> Element | None:
         if not message.from_user:
             return
 
-        chat_db = data["chat_db"]
+        chat_db = data["context"].event_chat
         admin_db = await ChatModel.get_by_tid(CONFIG.bot_id)
         if not admin_db:
             if not message.bot:
                 return
             bot_me = await message.bot.get_me()
             admin_db = await ChatModel.upsert_user(bot_me)
-        # In filter/action context, the user who triggered it. data["user_db"] may be
-        # None when SaveChatsMiddleware doesn't populate it (channel messages, anonymous
-        # admin sends). Resolve from the message sender, which is guaranteed non-None
-        # by the early return above. SOPHIE-27E.
-        target_db = data.get("user_db") or await ChatModel.upsert_user(message.from_user)
+        # Channel and unresolved anonymous-admin events may not have a persisted
+        # actor. The sender is available after the early return above.
+        target_db = data["context"].actor or await ChatModel.upsert_user(message.from_user)
 
         text = filter_data.reason
         if not text:
             message_text = message.text or message.caption or None
-            ai_reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
+            ai_reason = await generate_restriction_reason(
+                chat_db,
+                message_text=message_text,
+                include_rules=True,
+                services=data["services"],
+            )
             if ai_reason:
                 text = ai_reason
 
@@ -95,6 +110,7 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
             text,
             trigger_message=message,
             action_context=data,
+            services=data["services"],
         )
 
         if "filter_id" in data:

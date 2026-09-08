@@ -86,7 +86,7 @@ class WarnHandler(SophieMessageHandler):
 
         # UserRestricting can grant permission to an anonymous admin without resolving who they are,
         # so user_db may still be None here even though the rights check passed.
-        admin_user = await require_acting_user(message, self.data)
+        admin_user = await require_acting_user(message, self.context)
         if not admin_user:
             return
 
@@ -126,6 +126,7 @@ class WarnHandler(SophieMessageHandler):
                 connection.db_model,
                 message_text=replied_text,
                 include_rules=True,
+                services=self.services,
             )
             if ai_reason:
                 reason = ai_reason
@@ -137,6 +138,7 @@ class WarnHandler(SophieMessageHandler):
             reason,
             trigger_message=message,
             action_context=self.data,
+            services=self.services,
         )
 
         await log_event(

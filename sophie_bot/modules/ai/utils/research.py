@@ -50,6 +50,7 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import get_value
@@ -110,8 +111,12 @@ class ResearchWorkflowResult:
     message_history: list[ModelRequest | ModelResponse]
 
 
-async def get_research_settings(chat_tid: int | None = None) -> ResearchWorkflowSettings:
-    return await get_research_workflow_settings(chat_tid)
+async def get_research_settings(
+    chat_tid: int | None = None,
+    *,
+    services: ApplicationServices,
+) -> ResearchWorkflowSettings:
+    return await get_research_workflow_settings(chat_tid, redis=services.redis)
 
 
 def _limit_queries(queries: Iterable[ResearchSearchQuery], limit: int) -> list[ResearchSearchQuery]:
@@ -147,8 +152,20 @@ def _source_from_tinyfish(result: TinyFishSearchResult) -> ResearchSource:
     )
 
 
-async def search_web_for_research(chat_tid: int, query: str, limit: int) -> list[ResearchSource]:
-    search_provider = str(await get_value("ai_search_provider", chat_tid=chat_tid)).lower()
+async def search_web_for_research(
+    chat_tid: int,
+    query: str,
+    limit: int,
+    *,
+    services: ApplicationServices,
+) -> list[ResearchSource]:
+    search_provider = str(
+        await get_value(
+            "ai_search_provider",
+            chat_tid=chat_tid,
+            redis=services.redis,
+        )
+    ).lower()
     if search_provider not in _RESEARCH_SEARCH_PROVIDERS:
         raise SophieException(
             _(
@@ -168,12 +185,21 @@ async def search_web_for_research(chat_tid: int, query: str, limit: int) -> list
 
 
 async def _run_queries(
-    chat_tid: int, queries: list[ResearchSearchQuery], results_per_query: int
+    chat_tid: int,
+    queries: list[ResearchSearchQuery],
+    results_per_query: int,
+    *,
+    services: ApplicationServices,
 ) -> list[ResearchSource]:
     sources: list[ResearchSource] = []
     seen_urls: set[str] = set()
     for query in queries:
-        for source in await search_web_for_research(chat_tid, query.query, results_per_query):
+        for source in await search_web_for_research(
+            chat_tid,
+            query.query,
+            results_per_query,
+            services=services,
+        ):
             normalized_url = source.url.strip()
             if not normalized_url or normalized_url in seen_urls:
                 continue
@@ -182,8 +208,13 @@ async def _run_queries(
     return sources
 
 
-def _build_history(system_prompt: str, user_prompt: str) -> AIMessageHistory:
-    history = AIMessageHistory()
+def _build_history(
+    system_prompt: str,
+    user_prompt: str,
+    *,
+    services: ApplicationServices,
+) -> AIMessageHistory:
+    history = AIMessageHistory(services=services)
     history.add_system(system_prompt)
     history.prompt = [user_prompt]
     return history
@@ -204,6 +235,8 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
     model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
     session_suffix: str,
+    *,
+    services: ApplicationServices,
 ) -> AIAgentResult[ResearchStepT]:
     return await run_structured_task(
         AIStructuredTask(
@@ -216,6 +249,7 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
         chat_tid=connection.tid,
         session_id=f"research:{connection.db_model.iid}:{session_suffix}",
         service_tier=settings.service_tier,
+        redis=services.redis,
     )
 
 
@@ -224,6 +258,8 @@ async def _generate_initial_queries(
     connection: ChatConnection,
     model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
+    *,
+    services: ApplicationServices,
 ) -> ResearchQueryPlan:
     history = _build_history(
         (
@@ -238,6 +274,7 @@ async def _generate_initial_queries(
                 f"Return up to {settings.queries_per_round} search queries.",
             )
         ),
+        services=services,
     )
     result = await run_research_structured_step(
         history,
@@ -246,6 +283,7 @@ async def _generate_initial_queries(
         model_plan,
         settings,
         "queries",
+        services=services,
     )
     return ResearchQueryPlan(queries=_limit_queries(result.output.queries, settings.queries_per_round))
 
@@ -258,6 +296,8 @@ async def _decide_next_step(
     connection: ChatConnection,
     model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
+    *,
+    services: ApplicationServices,
 ) -> ResearchDecision:
     history = _build_history(
         (
@@ -278,6 +318,7 @@ async def _decide_next_step(
                 f"Return up to {settings.queries_per_round} follow-up queries if more search is needed.",
             )
         ),
+        services=services,
     )
     result = await run_research_structured_step(
         history,
@@ -286,6 +327,7 @@ async def _decide_next_step(
         model_plan,
         settings,
         f"decision:{round_index}",
+        services=services,
     )
     return ResearchDecision(
         action=result.output.action,
@@ -300,6 +342,8 @@ async def _summarize_research(
     connection: ChatConnection,
     model_plan: AIModelPlan,
     settings: ResearchWorkflowSettings,
+    *,
+    services: ApplicationServices,
 ) -> AIAgentResult[ResearchFinalResponse]:
     history = _build_history(
         (
@@ -316,6 +360,7 @@ async def _summarize_research(
                 _sources_payload(sources),
             )
         ),
+        services=services,
     )
     result = await run_research_structured_step(
         history,
@@ -324,6 +369,7 @@ async def _summarize_research(
         model_plan,
         settings,
         "summary",
+        services=services,
     )
     return result
 
@@ -332,18 +378,35 @@ async def run_research_workflow(
     prompt: str,
     connection: ChatConnection,
     progress_callback: ResearchProgressCallback | None = None,
+    *,
+    services: ApplicationServices,
 ) -> ResearchWorkflowResult:
     if not connection.db_model:
         raise SophieException(_("Research requires a saved chat context."))
 
     chat_tid = connection.tid
-    settings = await get_research_settings(chat_tid)
-    service_tier = await resolve_chat_service_tier(AIModelPurpose.research, connection.db_model.iid, chat_tid)
+    settings = await get_research_settings(chat_tid, services=services)
+    service_tier = await resolve_chat_service_tier(
+        AIModelPurpose.research,
+        connection.db_model.iid,
+        chat_tid,
+        redis=services.redis,
+    )
     settings = replace(settings, service_tier=service_tier)
-    model_plan = await get_chat_research_model_plan(connection.db_model.iid, chat_tid)
+    model_plan = await get_chat_research_model_plan(
+        connection.db_model.iid,
+        chat_tid,
+        redis=services.redis,
+    )
     if progress_callback is not None:
         await progress_callback("planning")
-    query_plan = await _generate_initial_queries(prompt, connection, model_plan, settings)
+    query_plan = await _generate_initial_queries(
+        prompt,
+        connection,
+        model_plan,
+        settings,
+        services=services,
+    )
     current_queries = query_plan.queries
     all_sources: list[ResearchSource] = []
     seen_urls: set[str] = set()
@@ -354,7 +417,12 @@ async def run_research_workflow(
 
         if progress_callback is not None:
             await progress_callback("searching")
-        round_sources = await _run_queries(chat_tid, current_queries, settings.results_per_query)
+        round_sources = await _run_queries(
+            chat_tid,
+            current_queries,
+            settings.results_per_query,
+            services=services,
+        )
         for source in round_sources:
             if source.url in seen_urls:
                 continue
@@ -374,6 +442,7 @@ async def run_research_workflow(
             connection,
             model_plan,
             settings,
+            services=services,
         )
         if decision.action == "continue":
             break
@@ -394,7 +463,14 @@ async def run_research_workflow(
 
     if progress_callback is not None:
         await progress_callback("summarizing")
-    summary_result = await _summarize_research(prompt, all_sources, connection, model_plan, settings)
+    summary_result = await _summarize_research(
+        prompt,
+        all_sources,
+        connection,
+        model_plan,
+        settings,
+        services=services,
+    )
     # Failover may have moved the summary off the plan's first candidate, and the summary is the
     # step whose answer the user reads, so the reported model follows the one that produced it.
     summary_model = summary_result.served_model or model_plan.primary
@@ -414,8 +490,15 @@ async def run_research_workflow_response(
     prompt: str,
     connection: ChatConnection,
     progress_callback: ResearchProgressCallback | None = None,
+    *,
+    services: ApplicationServices,
 ) -> ResearchFinalResponse:
-    result = await run_research_workflow(prompt, connection, progress_callback=progress_callback)
+    result = await run_research_workflow(
+        prompt,
+        connection,
+        progress_callback=progress_callback,
+        services=services,
+    )
     return result.response
 
 

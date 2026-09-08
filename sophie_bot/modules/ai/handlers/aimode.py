@@ -115,7 +115,11 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
         if mode == current_mode:
             return await self.event.answer(str(MODE_TITLES[mode]))
 
-        await set_chat_mode(self.connection.db_model, mode)
+        await set_chat_mode(
+            self.connection.db_model,
+            mode,
+            redis=self.services.redis,
+        )
 
         # The picker may have been sent as a rich message, which cannot be edited; only the keyboard
         # is refreshed so the checkmark follows the selection.

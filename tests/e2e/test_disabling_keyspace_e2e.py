@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -23,7 +24,11 @@ from tests.e2e.helpers import grant_admin
 TRANSLATE_CANONICAL_NAME: str = AiTranslate.aiogram_flag["disableable"].name
 
 
-async def _translate_handler_reached(chat_db: ChatModel, message: Message) -> bool:
+async def _translate_handler_reached(
+    chat_db: ChatModel,
+    message: Message,
+    services: object,
+) -> bool:
     """Runs the real middleware over the real translate handler for a non-admin."""
     reached = False
 
@@ -31,7 +36,11 @@ async def _translate_handler_reached(chat_db: ChatModel, message: Message) -> bo
         nonlocal reached
         reached = True
 
-    data: dict[str, Any] = {"chat_db": chat_db, "handler": HandlerObject(callback=AiTranslate)}
+    data: dict[str, Any] = {
+        "context": SimpleNamespace(event_chat=chat_db),
+        "services": services,
+        "handler": HandlerObject(callback=AiTranslate),
+    }
     await DisablingMiddleware()(handler, message, data)
 
     return reached
@@ -50,7 +59,11 @@ async def test_disable_persists_the_key_the_middleware_enforces(test_client: Tes
     assert chat_db
 
     message = MessageFactory.create(text="/translate hello", from_user=member_wrapper.user, chat=group_chat)
-    assert await _translate_handler_reached(chat_db, message), "Handler must run while nothing is disabled"
+    assert await _translate_handler_reached(
+        chat_db,
+        message,
+        test_client.dispatcher.workflow_data["services"],
+    ), "Handler must run while nothing is disabled"
 
     requests = await test_client.send_command(
         command="disable",
@@ -62,7 +75,11 @@ async def test_disable_persists_the_key_the_middleware_enforces(test_client: Tes
     assert await DisablingModel.get_disabled(chat_db.iid) == [TRANSLATE_CANONICAL_NAME]
 
     with pytest.raises(SkipHandler):
-        await _translate_handler_reached(chat_db, message)
+        await _translate_handler_reached(
+            chat_db,
+            message,
+            test_client.dispatcher.workflow_data["services"],
+        )
 
 
 @pytest.mark.asyncio

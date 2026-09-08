@@ -92,7 +92,7 @@ class FederationCommandHandler(SophieMessageHandler, metaclass=ABCMeta):
 
             # Try to get federation for current chat
             chat_iid = connection.db_model.iid
-            federation = await FederationManageService.get_federation_for_chat(chat_iid)
+            federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
 
             if not federation:
                 command = getattr(self, "command", "/command")

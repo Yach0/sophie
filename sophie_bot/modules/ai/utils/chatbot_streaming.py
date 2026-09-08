@@ -10,6 +10,7 @@ from typing import Any
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
 from pydantic_ai.models import Model
+from redis.asyncio import Redis
 from stfu_tg import Doc, Template
 from stfu_tg.doc import Element
 
@@ -27,7 +28,9 @@ from sophie_bot.modules.ai.utils.research import (
     research_progress_suffix,
 )
 from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
@@ -35,55 +38,54 @@ _MIN_STREAM_BACKOFF_SECONDS = 0.5
 _MAX_STREAM_TEXT_LENGTH = 4096 - 128
 # Reasoning is shown inline in the one-line header, so only its tail fits.
 _MAX_REASONING_TAIL_LENGTH = 200
-_TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
+_TOOL_THINKING_TEXTS: dict[str, tuple[LazyProxy, ...]] = {
     "tavily_search": (
-        _("Searching the web..."),
-        _("Looking it up online..."),
-        _("Browsing the internet..."),
+        l_("Searching the web..."),
+        l_("Looking it up online..."),
+        l_("Browsing the internet..."),
     ),
     "kagi_search": (
-        _("Searching the web..."),
-        _("Looking it up online..."),
-        _("Browsing the internet..."),
+        l_("Searching the web..."),
+        l_("Looking it up online..."),
+        l_("Browsing the internet..."),
     ),
     "tinyfish_search": (
-        _("Searching the web..."),
-        _("Looking it up online..."),
-        _("Browsing the internet..."),
+        l_("Searching the web..."),
+        l_("Looking it up online..."),
+        l_("Browsing the internet..."),
     ),
     "write_memory": (
-        _("Updating memory..."),
-        _("Saving to memory..."),
+        l_("Updating memory..."),
+        l_("Saving to memory..."),
     ),
     "forget_memory": (
-        _("Removing from memory..."),
-        _("Forgetting..."),
+        l_("Removing from memory..."),
+        l_("Forgetting..."),
     ),
     "sophie_help": (
-        _("Checking the documentation..."),
-        _("Looking up how Sophie works..."),
+        l_("Checking the documentation..."),
+        l_("Looking up how Sophie works..."),
     ),
     "sophie_inspect": (
-        _("Digging through my own sources..."),
-        _("Reading my own code..."),
+        l_("Digging through my own sources..."),
+        l_("Reading my own code..."),
     ),
     "get_notes": (
-        _("Scanning notes..."),
-        _("Looking through notes..."),
+        l_("Scanning notes..."),
+        l_("Looking through notes..."),
     ),
     "get_note_content": (
-        _("Reading note..."),
-        _("Fetching note content..."),
+        l_("Reading note..."),
+        l_("Fetching note content..."),
     ),
     "save_note": (
-        _("Saving note..."),
-        _("Writing to notes..."),
+        l_("Saving note..."),
+        l_("Writing to notes..."),
     ),
     "delete_note": (
-        _("Deleting note..."),
-        _("Removing note..."),
+        l_("Deleting note..."),
+        l_("Removing note..."),
     ),
-    "research_topic": (_("Starting the research..."),),
 }
 
 
@@ -130,10 +132,13 @@ class ChatbotMessageStreamer:
         header: Element,
         mode: StreamMode,
         throttle_seconds: float,
-        tool_thinking_texts: dict[str, tuple[str, ...]] | None = None,
+        tool_thinking_texts: dict[str, tuple[LazyProxy, ...]] | None = None,
         emoji_id: str | None = None,
+        *,
+        redis: Redis,
     ) -> None:
         self.source_message = source_message
+        self.redis = redis
         self.mention_index: MentionIndex | None = None
         self._mention_index_resolved = False
         self.header = header
@@ -200,7 +205,7 @@ class ChatbotMessageStreamer:
         )
         self._seen_tool_names.add(tool_name)
         if texts:
-            await self._update_thinking_header(ai_progress_line(choice(texts), self.emoji_id))
+            await self._update_thinking_header(ai_progress_line(str(choice(texts)), self.emoji_id))
             return
 
         await self._cancel_pending_update()
@@ -314,7 +319,10 @@ class ChatbotMessageStreamer:
 
     async def _render_doc(self, text: str) -> Doc:
         if not self._mention_index_resolved and "@" in text:
-            self.mention_index = await resolve_mention_index(self.source_message.chat.id)
+            self.mention_index = await resolve_mention_index(
+                self.source_message.chat.id,
+                redis=self.redis,
+            )
             self._mention_index_resolved = True
         return await build_reply_doc(
             self.header,
@@ -323,6 +331,7 @@ class ChatbotMessageStreamer:
             result=None,
             explicit_debug_mode=False,
             chat_tid=self.source_message.chat.id,
+            redis=self.redis,
             mention_index=self.mention_index,
         )
 
@@ -376,13 +385,15 @@ async def build_message_streamer(
     message: Message,
     model: Model,
     explicit_debug_mode: bool,
+    *,
+    redis: Redis,
 ) -> ChatbotMessageStreamer | None:
     if explicit_debug_mode:
         return None
 
-    thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id)
-    streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id)
-    rich_streaming_enabled = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id)
+    thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id, redis=redis)
+    streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id, redis=redis)
+    rich_streaming_enabled = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id, redis=redis)
 
     if rich_streaming_enabled:
         mode = StreamMode.RICH_EDIT
@@ -398,7 +409,11 @@ async def build_message_streamer(
     # the thinking text is shown.
     emoji_id = (
         random_ai_progress_custom_emoji_id()
-        if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id)
+        if await is_enabled(
+            "ai_chatbot_random_emoji",
+            chat_tid=message.chat.id,
+            redis=redis,
+        )
         else None
     )
 
@@ -409,7 +424,11 @@ async def build_message_streamer(
         else ai_progress_line(model.model_name, emoji_id)
     )
     backoff_seconds = _coerce_stream_backoff_seconds(
-        await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id)
+        await get_value(
+            "ai_chatbot_streaming_backoff_seconds",
+            chat_tid=message.chat.id,
+            redis=redis,
+        )
     )
     streamer = ChatbotMessageStreamer(
         source_message=message,
@@ -417,9 +436,15 @@ async def build_message_streamer(
         mode=mode,
         throttle_seconds=backoff_seconds,
         tool_thinking_texts=_TOOL_THINKING_TEXTS
-        if thinking_enabled and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
+        if thinking_enabled
+        and await is_enabled(
+            "ai_chatbot_tool_thinking",
+            chat_tid=message.chat.id,
+            redis=redis,
+        )
         else None,
         emoji_id=emoji_id,
+        redis=redis,
     )
     await streamer.send_thinking_message()
     return streamer

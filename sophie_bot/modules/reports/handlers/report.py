@@ -5,9 +5,8 @@ from beanie.odm.fields import Link as BeanieLink
 from stfu_tg import Code, Doc, HList, InvisibleSymbol, KeyValue, Template, UserLink
 
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.admin import get_chat_admins, is_user_admin
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -53,11 +52,7 @@ class ReportHandler(SophieMessageHandler):
         if not chat:
             return
 
-        # Fetch admins using ChatAdminModel
-        admins = await ChatAdminModel.find(
-            ChatAdminModel.chat.id == chat.iid,
-            fetch_links=True,
-        ).to_list()
+        admins = await get_chat_admins(chat, fetch_links=True)
 
         # Build message
         offender_mention = UserLink(offender_id, message.reply_to_message.from_user.full_name)

@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, ClassVar
+from typing import ClassVar
 
-from aiogram.types import CallbackQuery, Message
-from ass_tg.entities import ArgEntities
-from ass_tg.exceptions import ARGS_EXCEPTIONS
-from ass_tg.i18n import gettext_ctx
-from ass_tg.types import ActionTimeArg
+from aiogram.types import Message
 from babel.dates import format_timedelta
 from pydantic import BaseModel
 from stfu_tg import KeyValue, Template, Title, UserLink
@@ -19,74 +14,19 @@ from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restrict
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
-from sophie_bot.services.i18n import i18n
-from sophie_bot.shared.actions import (
-    ActionSetupTryAgainException,
-    ModernActionABC,
-    ModernActionSetting,
-)
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
+from sophie_bot.shared.actions import ModernActionABC
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
 
-def make_duration_setup_confirm(
-    data_cls: type[BaseModel],
-    invalid_duration_text: str,
-) -> Any:
-    async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> Any:
-        if isinstance(event, CallbackQuery):
-            raise TypeError("This handlers setup_confirm can only be used with messages")
-
-        raw_text = event.text or ""
-
-        if raw_text == "0":
-            try:
-                field_name = next(iter(data_cls.model_fields))
-            except StopIteration:
-                raise ValueError("data_cls must define at least one model field")
-            return data_cls(**{data_cls.model_fields[field_name].alias or field_name: None})
-
-        try:
-            gettext_ctx.set(i18n)
-
-            with i18n.context():
-                arg: timedelta = (await ActionTimeArg().parse(raw_text, 0, ArgEntities([])))[1]
-        except ARGS_EXCEPTIONS:
-            await event.reply(invalid_duration_text)
-            raise ActionSetupTryAgainException()
-
-        field_name = next(iter(data_cls.model_fields))
-        return data_cls(**{field_name: arg})
-
-    return setup_confirm
-
-
-def make_duration_setup_message(prompt_text: str) -> Any:
-    async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
-        return Template(prompt_text)
-
-    return setup_message
-
-
 class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION_DATA]):
-    skip_for_admins = True
-
-    data_object: type[ACTION_DATA]
-
     action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
     auto_banned_text: ClassVar[str]
-    settings_key: ClassVar[str]
-    settings_title: ClassVar[LazyProxy]
 
     @staticmethod
-    @abstractmethod
     def get_duration(data: ACTION_DATA) -> timedelta | None:
-        raise NotImplementedError
-
-    @staticmethod
-    @abstractmethod
-    def restriction_func(chat_tid: int, user_tid: int, until_date: timedelta | None = None) -> Any:
         raise NotImplementedError
 
     @classmethod
@@ -99,23 +39,6 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
             )
         return _("Restricts user indefinitely")
 
-    def settings(self, data: ACTION_DATA) -> dict[str, ModernActionSetting]:
-        return {
-            self.settings_key: ModernActionSetting(
-                title=self.settings_title,
-                icon="⏰",
-                setup_message=make_duration_setup_message(
-                    _(
-                        "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
-                    )
-                ),
-                setup_confirm=make_duration_setup_confirm(
-                    self.data_object,
-                    _("Invalid duration, please try again."),
-                ),
-            ),
-        }
-
     async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Element | None:
         if not message.from_user:
             return
@@ -124,10 +47,15 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
         locale: str = data["i18n"].current_locale
         reason: str | None = None
 
-        chat_db = data.get("chat_db")
+        chat_db = data["context"].event_chat
         if chat_db:
             message_text = message.text or message.caption or None
-            reason = await generate_restriction_reason(chat_db, message_text=message_text, include_rules=True)
+            reason = await generate_restriction_reason(
+                chat_db,
+                message_text=message_text,
+                include_rules=True,
+                services=data["services"],
+            )
 
         duration = self.get_duration(filter_data)
 
@@ -145,7 +73,17 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
         if reason:
             doc += KeyValue(_("Reason"), reason)
 
-        if not await self.restriction_func(chat_id, message.from_user.id, until_date=duration):
+        restriction_action = self.definition.restriction_action
+        if restriction_action is None:
+            raise RuntimeError(f"Restriction action {self.definition.name!r} has no restriction operation")
+        restriction_result = await execute_restriction(
+            data["services"].bot,
+            restriction_action,
+            chat_id,
+            message.from_user.id,
+            until_date=duration,
+        )
+        if not restriction_result.applied:
             return
 
         if "filter_id" in data:

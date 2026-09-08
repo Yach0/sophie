@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -47,17 +48,23 @@ async def test_connected_chat_is_used_when_dispatched_through_aiogram(monkeypatc
     """
     is_enabled_mock = AsyncMock(return_value=True)
     monkeypatch.setattr(feature_flag, "is_enabled", is_enabled_mock)
+    redis = object()
 
     callable_object = CallableObject(callback=FeatureFlagFilter("locks"))
     result = await callable_object.call(
         _pm_message(),
         connection=_connection(GROUP_CHAT_ID, is_connected=True),
+        services=SimpleNamespace(redis=redis),
         bot=MagicMock(),
         event_chat=MagicMock(),
     )
 
     assert result is True
-    is_enabled_mock.assert_awaited_once_with("locks", chat_tid=GROUP_CHAT_ID)
+    is_enabled_mock.assert_awaited_once_with(
+        "locks",
+        chat_tid=GROUP_CHAT_ID,
+        redis=redis,
+    )
 
 
 @pytest.mark.asyncio
@@ -65,15 +72,21 @@ async def test_unconnected_pm_uses_the_pm_chat(monkeypatch: pytest.MonkeyPatch) 
     is_enabled_mock = AsyncMock(return_value=True)
     monkeypatch.setattr(feature_flag, "is_enabled", is_enabled_mock)
 
+    redis = object()
     callable_object = CallableObject(callback=FeatureFlagFilter("locks"))
     result = await callable_object.call(
         _pm_message(),
         connection=_connection(PRIVATE_CHAT_ID, is_connected=False),
+        services=SimpleNamespace(redis=redis),
         bot=MagicMock(),
     )
 
     assert result is True
-    is_enabled_mock.assert_awaited_once_with("locks", chat_tid=PRIVATE_CHAT_ID)
+    is_enabled_mock.assert_awaited_once_with(
+        "locks",
+        chat_tid=PRIVATE_CHAT_ID,
+        redis=redis,
+    )
 
 
 @pytest.mark.asyncio
@@ -81,10 +94,18 @@ async def test_falls_back_to_event_chat_without_a_connection(monkeypatch: pytest
     is_enabled_mock = AsyncMock(return_value=False)
     monkeypatch.setattr(feature_flag, "is_enabled", is_enabled_mock)
 
-    result = await FeatureFlagFilter("locks", enabled=False)(_pm_message())
+    redis = object()
+    result = await FeatureFlagFilter("locks", enabled=False)(
+        _pm_message(),
+        SimpleNamespace(redis=redis),
+    )
 
     assert result is True
-    is_enabled_mock.assert_awaited_once_with("locks", chat_tid=PRIVATE_CHAT_ID)
+    is_enabled_mock.assert_awaited_once_with(
+        "locks",
+        chat_tid=PRIVATE_CHAT_ID,
+        redis=redis,
+    )
 
 
 @pytest.mark.asyncio

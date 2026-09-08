@@ -1,20 +1,19 @@
-from types import ModuleType
+from __future__ import annotations
 
 from aiogram import Router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import APIRouter
 from stfu_tg import Doc
 
-from sophie_bot.modules import ModuleManifest
+from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_NOTE_BUTTON_PREFIX,
     LegacyButtonAction,
-    register_legacy_button_actions,
 )
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-from ...modes import SOPHIE_MODE
-from ...services.scheduler import scheduler
 from .api import notes_router
 from .handlers.delete import DelNote
 from .handlers.delete_all import DelAllNotesCallbackHandler, DelAllNotesHandler
@@ -29,8 +28,18 @@ from .handlers.pmnotes_setting import PMNotesControl, PMNotesStatus
 from .handlers.save import SaveNote
 from .handlers.status_cleannotes import CleanNotesHandlerABC
 from .magic_handlers.export import export
-from .magic_handlers.reply_action import ReplyModernAction
-from .magic_handlers.send_note_action import SendNoteAction
+from .magic_handlers.reply_action import (
+    ReplyModernAction,
+)
+from .magic_handlers.reply_action import (
+    build_action_wizard_specs as build_reply_action_wizard_specs,
+)
+from .magic_handlers.send_note_action import (
+    SendNoteAction,
+)
+from .magic_handlers.send_note_action import (
+    build_action_wizard_specs as build_send_note_action_wizard_specs,
+)
 from .schedules.generate_ai_titles import GenerateAITitles
 from .schedules.generate_embeddings import GenerateNoteEmbeddings
 
@@ -40,22 +49,32 @@ api_router.include_router(notes_router)
 router = Router(name="notes")
 
 
-register_legacy_button_actions(
-    LegacyButtonAction("note", LEGACY_NOTE_BUTTON_PREFIX),
-    LegacyButtonAction("#", LEGACY_NOTE_BUTTON_PREFIX),
-)
+def build_action_wizards() -> dict:
+    return {
+        **build_reply_action_wizard_specs(),
+        **build_send_note_action_wizard_specs(),
+    }
 
 
-async def post_setup(_modules: dict[str, ModuleType]) -> None:
-    if SOPHIE_MODE == "scheduler":
-        scheduler.add_job(GenerateAITitles().handle, "interval", minutes=1, jobstore="ram")
-        scheduler.add_job(GenerateNoteEmbeddings().handle, "interval", minutes=1, jobstore="ram")
+def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
+    scheduler.add_job(
+        track_scheduler_callback(GenerateAITitles(services).handle, services),
+        "interval",
+        minutes=1,
+        jobstore="ram",
+    )
+    scheduler.add_job(
+        track_scheduler_callback(GenerateNoteEmbeddings(services).handle, services),
+        "interval",
+        minutes=1,
+        jobstore="ram",
+    )
 
 
 module_manifest = ModuleManifest(
     name="notes",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         PMNotesControl,
         PMNotesStatus,
@@ -72,7 +91,11 @@ module_manifest = ModuleManifest(
         DelAllNotesCallbackHandler,
         LegacyStartNoteButton,
     ),
-    post_setup=post_setup,
+    legacy_buttons=(
+        LegacyButtonAction("note", LEGACY_NOTE_BUTTON_PREFIX),
+        LegacyButtonAction("#", LEGACY_NOTE_BUTTON_PREFIX),
+    ),
+    setup_scheduler=setup_scheduler,
     title=l_("Notes"),
     emoji="📗",
     description=l_("Save and retrieve notes in chats"),
@@ -88,5 +111,6 @@ module_manifest = ModuleManifest(
     ),
     advertise_wiki_page=True,
     modern_actions=(ReplyModernAction, SendNoteAction),
+    build_action_wizards=build_action_wizards,
     export=export,
 )

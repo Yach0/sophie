@@ -18,7 +18,7 @@ __all__ = ["api_router"]
 
 module_manifest = ModuleManifest(
     name="rest",
-    api_router=api_router,
+    api_router_factory=lambda: api_router,
     title=l_("REST API"),
     emoji="🔌",
     description=l_("REST API for external integrations"),

@@ -19,23 +19,43 @@ from sophie_bot.modules.federations.utils.ban_docs import (
 )
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def send_replacement(task: FederationTask, chat_id: int, text: str) -> None:
-    message = await bot.send_message(chat_id, text)
+async def send_replacement(
+    task: FederationTask,
+    chat_id: int,
+    text: str,
+    *,
+    services: ApplicationServices,
+) -> None:
+    message = await services.bot.send_message(chat_id, text)
     task.reply_message_id = message.message_id
 
 
-async def _edit_or_resend_reply(task: FederationTask, text: str) -> None:
+async def _edit_or_resend_reply(
+    task: FederationTask,
+    text: str,
+    *,
+    services: ApplicationServices,
+) -> None:
     if task.reply_chat_id and task.reply_message_id:
         try:
             await common_try(
-                bot.edit_message_text(text, chat_id=task.reply_chat_id, message_id=task.reply_message_id),
-                edit_not_found=partial(send_replacement, task, task.reply_chat_id, text),
+                services.bot.edit_message_text(
+                    text,
+                    chat_id=task.reply_chat_id,
+                    message_id=task.reply_message_id,
+                ),
+                edit_not_found=partial(
+                    send_replacement,
+                    task,
+                    task.reply_chat_id,
+                    text,
+                    services=services,
+                ),
             )
         except TelegramRetryAfter as err:
             log.warning(
@@ -53,9 +73,9 @@ async def _edit_or_resend_reply(task: FederationTask, text: str) -> None:
             )
 
 
-def schedule_silent_reply_deletion(task: FederationTask) -> None:
+def schedule_silent_reply_deletion(task: FederationTask, *, services: ApplicationServices) -> None:
     if task.silent and task.reply_chat_id and task.reply_message_id:
-        schedule_message_deletion(task.reply_chat_id, [task.reply_message_id])
+        services.deletions.schedule(task.reply_chat_id, [task.reply_message_id])
 
 
 class ProcessFederationBans:
@@ -65,6 +85,9 @@ class ProcessFederationBans:
     job propagates it across the rest of the federation's chats and the subscriber
     chain, then edits the original reply with the final counts and posts the fed log.
     """
+
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
 
     async def handle(self) -> None:
         """Process all pending federation ban tasks."""
@@ -93,14 +116,14 @@ class ProcessFederationBans:
                 await self._process_unban(task, federation)
 
             await self._update_status(task, TaskStatus.COMPLETED)
-            schedule_silent_reply_deletion(task)
+            schedule_silent_reply_deletion(task, services=self.services)
         except Exception as err:
             # Mark FAILED and surface it instead of leaving the reply on "Propagating…".
             # FAILED tasks are kept indefinitely so the cause can be found and the task re-done.
             await self._update_status(task, TaskStatus.FAILED, error_message=str(err))
-            await notify_task_failed(task, str(err))
+            await notify_task_failed(task, str(err), bot=self.services.bot)
             await task.save()
-            schedule_silent_reply_deletion(task)
+            schedule_silent_reply_deletion(task, services=self.services)
             raise
 
     async def _process_ban(self, task: FederationTask, federation: Federation) -> None:
@@ -116,7 +139,7 @@ class ProcessFederationBans:
             # Edit the queued reply to a terminal state so it doesn't stay on "Propagating…".
             log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
             text = build_ban_superseded_doc().to_html()
-            await _edit_or_resend_reply(task, text)
+            await _edit_or_resend_reply(task, text, services=self.services)
             return
 
         banned_count = await FederationBanService.ban_user_in_federation_chats(
@@ -124,6 +147,7 @@ class ProcessFederationBans:
             ban,
             task.target_user_id,
             current_chat_iid=task.current_chat_iid,
+            bot=self.services.bot,
         )
 
         lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
@@ -132,6 +156,7 @@ class ProcessFederationBans:
             by_user.iid,
             task.reason,
             task.original_message_text,
+            redis=self.services.redis,
         )
         lazy_ban_count = len(lazy_bans)
 
@@ -151,7 +176,7 @@ class ProcessFederationBans:
             banner_anonymous=task.banner_anonymous,
         )
         text = reply_doc.to_html()
-        await _edit_or_resend_reply(task, text)
+        await _edit_or_resend_reply(task, text, services=self.services)
 
         total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
@@ -163,14 +188,18 @@ class ProcessFederationBans:
             task.reason,
             task.original_message_text,
         )
-        await FederationManageService.post_federation_log(federation, log_doc.to_html(), bot)
+        await FederationManageService.post_federation_log(federation, log_doc.to_html(), self.services.bot)
 
     async def _process_unban(self, task: FederationTask, federation: Federation) -> None:
         if task.target_user_id is None:
             raise ValueError("Unban task is missing the target user ID")
 
         unbanned_count = (
-            await FederationBanService.unban_user_in_chat_iids(list(task.unban_chat_iids), task.target_user_id)
+            await FederationBanService.unban_user_in_chat_iids(
+                list(task.unban_chat_iids),
+                task.target_user_id,
+                bot=self.services.bot,
+            )
             if task.unban_chat_iids
             else 0
         )
@@ -188,10 +217,10 @@ class ProcessFederationBans:
             unbanned_count=unbanned_count,
         )
         text = reply_doc.to_html()
-        await _edit_or_resend_reply(task, text)
+        await _edit_or_resend_reply(task, text, services=self.services)
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
-        await FederationManageService.post_federation_log(federation, log_text, bot)
+        await FederationManageService.post_federation_log(federation, log_text, self.services.bot)
 
     @staticmethod
     async def _require_user(task: FederationTask) -> ChatModel:

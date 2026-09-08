@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import cast
-
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
@@ -12,68 +9,32 @@ from aiogram.fsm.storage.memory import SimpleEventIsolation
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
-from sophie_bot.config import CONFIG
+from sophie_bot.config import Config
 from sophie_bot.utils.logger import log
-from sophie_bot.utils.runtime_proxy import RuntimeProxy
 from sophie_bot.utils.update_sanitizer import sanitizing_json_loads
 
 
-@dataclass(slots=True)
-class BotRuntime:
-    bot_api: TelegramAPIServer
-    session: AiohttpSession
-    bot: Bot
-    redis: Redis
-    storage: RedisStorage
-    dispatcher: Dispatcher
-
-
-def create_bot_runtime() -> BotRuntime:
-    bot_api = TelegramAPIServer.from_base(str(CONFIG.botapi_server)) if CONFIG.botapi_server else PRODUCTION
+def create_bot(config: Config) -> Bot:
+    bot_api = TelegramAPIServer.from_base(str(config.botapi_server)) if config.botapi_server else PRODUCTION
     session = AiohttpSession(api=bot_api, json_loads=sanitizing_json_loads)
     log.info(f"Using BotAPI server: {bot_api}")
+    return Bot(token=config.token, default=DefaultBotProperties(parse_mode="html"), session=session)
 
-    bot = Bot(token=CONFIG.token, default=DefaultBotProperties(parse_mode="html"), session=session)
-    redis = Redis(
-        host=CONFIG.redis_host,
-        port=CONFIG.redis_port,
-        password=CONFIG.redis_password,
-        db=CONFIG.redis_db_states,
+
+def create_dispatcher(config: Config) -> tuple[Dispatcher, RedisStorage]:
+    """Create bot-only workflow resources with a separately owned FSM Redis client."""
+    fsm_redis = Redis(
+        host=config.redis_host,
+        port=config.redis_port,
+        username=config.redis_username,
+        password=config.redis_password,
+        db=config.redis_db_states,
+        decode_responses=False,
         single_connection_client=True,
     )
-    storage = RedisStorage(redis=redis, key_builder=DefaultKeyBuilder(prefix=str(CONFIG.redis_db_fsm)))
-    dispatcher = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
-    return BotRuntime(
-        bot_api=bot_api,
-        session=session,
-        bot=bot,
-        redis=redis,
-        storage=storage,
-        dispatcher=dispatcher,
+    storage = RedisStorage(
+        redis=fsm_redis,
+        key_builder=DefaultKeyBuilder(prefix=str(config.redis_db_fsm)),
     )
-
-
-_bot_runtime: BotRuntime | None = None
-
-
-def get_bot_runtime() -> BotRuntime:
-    global _bot_runtime
-
-    if _bot_runtime is None:
-        _bot_runtime = create_bot_runtime()
-
-    return _bot_runtime
-
-
-def set_bot_runtime(runtime: BotRuntime) -> BotRuntime:
-    global _bot_runtime
-
-    _bot_runtime = runtime
-    return runtime
-
-
-bot = cast(Bot, RuntimeProxy(lambda: get_bot_runtime().bot))
-redis = cast(Redis, RuntimeProxy(lambda: get_bot_runtime().redis))
-storage = cast(RedisStorage, RuntimeProxy(lambda: get_bot_runtime().storage))
-session = cast(AiohttpSession, RuntimeProxy(lambda: get_bot_runtime().session))
-dp = cast(Dispatcher, RuntimeProxy(lambda: get_bot_runtime().dispatcher))
+    dispatcher = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
+    return dispatcher, storage

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from beanie import Document
 from beanie.exceptions import CollectionWasNotInitialized
 from pydantic import ValidationError
+from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
@@ -14,7 +15,6 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIProviderKind,
 )
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
 # Bumped on every catalog mutation. Processes compare it against the version their snapshot was
@@ -145,16 +145,16 @@ def mask_api_key(api_key: str) -> str:
     return f"{api_key[:3]}…{api_key[-4:]}"
 
 
-async def _current_version() -> str:
-    version = await aredis.get(_VERSION_KEY)
+async def _current_version(*, redis: Redis) -> str:
+    version = await redis.get(_VERSION_KEY)
     if version is None:
         return ""
     return version.decode() if isinstance(version, bytes) else str(version)
 
 
-async def bump_version() -> None:
+async def bump_version(*, redis: Redis) -> None:
     """Invalidate every process's snapshot after a catalog mutation."""
-    await aredis.incr(_VERSION_KEY)  # ty: ignore[invalid-await]
+    await redis.execute_command("INCR", _VERSION_KEY)
 
 
 async def load_documents[DocumentT: Document](
@@ -188,7 +188,7 @@ async def load_documents[DocumentT: Document](
     return parsed
 
 
-async def load_catalog() -> AICatalog:
+async def load_catalog(*, redis: Redis) -> AICatalog:
     global _catalog
 
     providers = {
@@ -246,36 +246,41 @@ async def load_catalog() -> AICatalog:
         for key, role_candidates in candidates.items()
     }
 
-    _catalog = AICatalog(version=await _current_version(), providers=providers, models=models, roles=roles)
+    _catalog = AICatalog(
+        version=await _current_version(redis=redis),
+        providers=providers,
+        models=models,
+        roles=roles,
+    )
 
     log.info("AI catalog loaded", providers=len(providers), models=len(models), roles=len(roles))
     return _catalog
 
 
-async def get_catalog() -> AICatalog:
-    if _catalog.version != await _current_version():
-        return await load_catalog()
+async def get_catalog(*, redis: Redis) -> AICatalog:
+    if _catalog.version != await _current_version(redis=redis):
+        return await load_catalog(redis=redis)
     return _catalog
 
 
-async def resolve_roles(mode: AIMode, purpose: AIModelPurpose) -> tuple[ResolvedRole, ...]:
+async def resolve_roles(mode: AIMode, purpose: AIModelPurpose, *, redis: Redis) -> tuple[ResolvedRole, ...]:
     """Every candidate serving a (mode, purpose), best first, or a crash when there are none.
 
     Resolution is exact: the mode's own roles or nothing. There is no any-mode wildcard and no
     support-tier fallback — an unconfigured combination is an operator mistake, and failing loudly
     beats silently serving a model the operator never chose for that mode.
     """
-    candidates = (await get_catalog()).roles_for(mode, purpose)
+    candidates = (await get_catalog(redis=redis)).roles_for(mode, purpose)
     if not candidates:
         raise ValueError(f"No AI model in the catalog serves {mode.value}:{purpose.value}")
     return candidates
 
 
-async def resolve_role(mode: AIMode, purpose: AIModelPurpose) -> ResolvedRole:
+async def resolve_role(mode: AIMode, purpose: AIModelPurpose, *, redis: Redis) -> ResolvedRole:
     """The highest-priority role serving a (mode, purpose), or a crash."""
-    return (await resolve_roles(mode, purpose))[0]
+    return (await resolve_roles(mode, purpose, redis=redis))[0]
 
 
-async def resolve_model_name(mode: AIMode, purpose: AIModelPurpose) -> str:
+async def resolve_model_name(mode: AIMode, purpose: AIModelPurpose, *, redis: Redis) -> str:
     """The model name serving a (mode, purpose) (see ``resolve_role`` for the per-role settings)."""
-    return (await resolve_role(mode, purpose)).model_name
+    return (await resolve_role(mode, purpose, redis=redis)).model_name

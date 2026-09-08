@@ -7,8 +7,9 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSetting, ActionWizardSpec
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.actions import ActionResult, ModernActionABC, ModernActionSetting
+from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -31,17 +32,38 @@ async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dic
     )
 
 
+def build_action_wizard_specs() -> dict[str, ActionWizardSpec]:
+    return {
+        REPLY_ACTION.name: ActionWizardSpec(
+            interactive_setup=ActionWizardSetting(
+                title=l_("Reply to message"),
+                setup_message=reply_action_setup_message,
+                setup_confirm=set_reply_text,
+            ),
+            settings=lambda _data: {
+                "reply_text": ActionWizardSetting(
+                    title=l_("Change reply text"),
+                    icon="💬",
+                    setup_message=reply_action_setup_message,
+                    setup_confirm=set_reply_text,
+                )
+            },
+        )
+    }
+
+
+REPLY_ACTION = ActionDefinition[Saveable](
+    name="reply",
+    icon="💭",
+    title=l_("Reply to message"),
+    data_object=Saveable,
+    allow_warns=True,
+    has_interactive_setup=True,
+)
+
+
 class ReplyModernAction(ModernActionABC[Saveable]):
-    name = "reply"
-
-    icon = "💭"
-    title = l_("Reply to message")
-    allow_warns = True
-
-    interactive_setup = ModernActionSetting(
-        title=l_("Reply to message"), setup_message=reply_action_setup_message, setup_confirm=set_reply_text
-    )
-    data_object = Saveable
+    definition = REPLY_ACTION
 
     @staticmethod
     def description(data: Saveable) -> Element | str:
@@ -49,16 +71,6 @@ class ReplyModernAction(ModernActionABC[Saveable]):
             return Section(Italic(data.text), title=_("Replies to the message with"), title_underline=False)
 
         return _("Replies to the message")
-
-    def settings(self, data: Saveable) -> dict[str, ModernActionSetting]:
-        return {
-            "reply_text": ModernActionSetting(
-                title=l_("Change reply text"),
-                icon="💬",
-                setup_message=reply_action_setup_message,
-                setup_confirm=set_reply_text,
-            ),
-        }
 
     async def handle(self, message: Message, data: dict, filter_data: Saveable) -> ActionResult | None:
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
@@ -75,6 +87,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
                     title=title,
                     reply_to=message.message_id,
                     collect_sent=sent_messages,
+                    bot=data["services"].bot,
                 )
             )
             return sent_messages

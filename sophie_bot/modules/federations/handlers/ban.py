@@ -21,10 +21,13 @@ from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.federations.utils.ban_docs import build_ban_reply_doc
 from sophie_bot.modules.restrictions.utils.logging import extract_offending_message_text
-from sophie_bot.modules.restrictions.utils.restrictions import ban_user as restrict_ban_user
-from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title, resolve_anonymous_admin_candidates
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
+from sophie_bot.modules.utils_.admin import resolve_anonymous_admin_candidates
+from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -92,6 +95,7 @@ class FederationBanHandler(FederationCommandHandler):
                 self.connection.db_model,
                 message_text=replied_text,
                 include_rules=False,
+                services=self.services,
             )
             if ai_reason:
                 reason = ai_reason
@@ -99,7 +103,14 @@ class FederationBanHandler(FederationCommandHandler):
         # Ban user (DB record - the FedBan middleware enforces the ban immediately,
         # before the scheduler proactively kicks the user from the federation's chats)
         try:
-            ban = await FederationBanService.ban_user(federation, user_tid, banner.iid, reason, original_message_text)
+            ban = await FederationBanService.ban_user(
+                federation,
+                user_tid,
+                banner.iid,
+                reason,
+                original_message_text,
+                redis=self.services.redis,
+            )
         except FederationBanValidationError as err:
             await self.event.reply(str(err))
             return
@@ -114,7 +125,14 @@ class FederationBanHandler(FederationCommandHandler):
         # before the scheduler propagates the ban across the rest of the federation.
         immediate_chat_banned = False
         if chat_part_of_federation:
-            immediate_chat_banned = await restrict_ban_user(self.event.chat.id, user_tid)
+            immediate_chat_banned = (
+                await execute_restriction(
+                    self.services.bot,
+                    RestrictionAction.BAN,
+                    self.event.chat.id,
+                    user_tid,
+                )
+            ).applied
             if immediate_chat_banned:
                 existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
                 if current_chat.iid not in existing_chat_iids:
@@ -147,7 +165,7 @@ class FederationBanHandler(FederationCommandHandler):
             messages_to_delete = [self.event.message_id]
             if self.event.reply_to_message:
                 messages_to_delete.append(self.event.reply_to_message.message_id)
-            schedule_message_deletion(self.event.chat.id, messages_to_delete)
+            self.services.deletions.schedule(self.event.chat.id, messages_to_delete)
 
         # Propagate the ban across the rest of the federation + subscriber chain in the scheduler.
         await FederationTask(
@@ -186,7 +204,9 @@ class FederationBanHandler(FederationCommandHandler):
             and self.event.sender_chat is not None
             and self.event.sender_chat.id == current_chat.tid
         )
-        if is_anonymous_sender and await is_enabled("fban_anonymous_admin", chat_tid=current_chat.tid):
+        if is_anonymous_sender and await is_enabled(
+            "fban_anonymous_admin", chat_tid=current_chat.tid, redis=self.services.redis
+        ):
             return await self._resolve_anonymous_banner(current_chat)
 
         banner = await ChatModel.get_by_tid(from_user.id)

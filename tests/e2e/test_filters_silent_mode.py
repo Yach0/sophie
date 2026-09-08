@@ -10,8 +10,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.modules.filters.callbacks import FilterManagementCallback, FiltersPageCallback
 from sophie_bot.modules.utils_.wizard import WizardCallback
-from sophie_bot.utils.feature_flags import set_enabled
-from tests.e2e.helpers import get_wizard_session_id, grant_admin
+from tests.e2e.helpers import get_wizard_session_id, grant_admin, set_feature
 
 
 async def _create_filter(test_client: TestClient, *, group_tid: int, user_tid: int, silent: bool, admin: bool = False):
@@ -45,7 +44,11 @@ async def test_silent_filter_schedules_deletion_of_trigger_and_reply(test_client
     schedule_mock = MagicMock()
     with (
         patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])),
-        patch("sophie_bot.modules.filters.enforce_middleware.schedule_message_deletion", schedule_mock),
+        patch.object(
+            test_client.dispatcher.workflow_data["services"].deletions,
+            "schedule",
+            schedule_mock,
+        ),
     ):
         requests = await test_client.send_message(text="this is spam content", from_user=user_wrapper.user, chat=group)
 
@@ -66,7 +69,11 @@ async def test_non_silent_filter_does_not_schedule_deletion(test_client: TestCli
     schedule_mock = MagicMock()
     with (
         patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])),
-        patch("sophie_bot.modules.filters.enforce_middleware.schedule_message_deletion", schedule_mock),
+        patch.object(
+            test_client.dispatcher.workflow_data["services"].deletions,
+            "schedule",
+            schedule_mock,
+        ),
     ):
         await test_client.send_message(text="this is spam content", from_user=user_wrapper.user, chat=group)
 
@@ -218,11 +225,11 @@ async def test_filter_list_hides_edit_when_wizard_flag_is_disabled(test_client: 
         user_tid=927000006,
         silent=False,
     )
-    await set_enabled("action_config_wizard", False)
+    await set_feature(test_client, "action_config_wizard", False)
     try:
         requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
     finally:
-        await set_enabled("action_config_wizard", True)
+        await set_feature(test_client, "action_config_wizard", True)
 
     rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
     edit_callback = FilterManagementCallback(operation="edit", oid=str(filter_item.id)).pack()
@@ -235,12 +242,12 @@ async def test_filter_wizard_hides_silent_control_when_flag_is_disabled(test_cli
     user_wrapper = test_client.create_user(user_id=927000007, first_name="Admin", username="silent_admin")
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group)
     await grant_admin(group.id, user_wrapper.user.id)
-    await set_enabled("filters_silent_mode", False)
+    await set_feature(test_client, "filters_silent_mode", False)
     try:
         requests = await test_client.send_message(text="/addfilter spam", from_user=user_wrapper.user, chat=group)
         session_id = await get_wizard_session_id(test_client, group.id, user_wrapper.user.id)
     finally:
-        await set_enabled("filters_silent_mode", True)
+        await set_feature(test_client, "filters_silent_mode", True)
 
     rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
     silent_callback = WizardCallback(
@@ -260,11 +267,11 @@ async def test_filter_list_is_silent_when_filters_flag_is_disabled(test_client: 
         user_tid=927000009,
         silent=False,
     )
-    await set_enabled("filters", False)
+    await set_feature(test_client, "filters", False)
     try:
         requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
     finally:
-        await set_enabled("filters", True)
+        await set_feature(test_client, "filters", True)
 
     assert not requests
 
@@ -295,7 +302,7 @@ async def test_disabled_wizard_clears_pending_input_instead_of_bypassing_filters
         message=wizard_message,
     )
 
-    await set_enabled("action_config_wizard", False)
+    await set_feature(test_client, "action_config_wizard", False)
     try:
         requests = await test_client.send_message(
             text="ordinary message",
@@ -303,7 +310,7 @@ async def test_disabled_wizard_clears_pending_input_instead_of_bypassing_filters
             chat=group,
         )
     finally:
-        await set_enabled("action_config_wizard", True)
+        await set_feature(test_client, "action_config_wizard", True)
 
     assert any("session has expired" in (request.text or "").lower() for request in requests)
     state = test_client.dispatcher.fsm.get_context(

@@ -13,14 +13,8 @@ from sophie_bot.modules.restrictions.services.silent import (
     collect_message_ids_for_cleanup,
     log_silent_action,
 )
-from sophie_bot.modules.restrictions.utils.restrictions import (
-    ban_user,
-    kick_user,
-    mute_user,
-    restrict_user,
-    unban_user,
-    unmute_user,
-)
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
+from sophie_bot.shared.actions import RestrictionAction
 
 
 @pytest.fixture
@@ -91,208 +85,204 @@ async def test_log_silent_action_includes_duration(monkeypatch: pytest.MonkeyPat
     assert payload["duration"] == duration.total_seconds()
 
 
-# --- ban_user tests ---
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("action", "bot_method", "expected_kwargs"),
+    [
+        (
+            RestrictionAction.BAN,
+            "ban_chat_member",
+            {"until_date": None},
+        ),
+        (
+            RestrictionAction.KICK,
+            "unban_chat_member",
+            {},
+        ),
+        (
+            RestrictionAction.UNBAN,
+            "unban_chat_member",
+            {"only_if_banned": True},
+        ),
+    ],
+)
+async def test_restriction_executor_calls_expected_bot_method(
+    mock_bot: AsyncMock,
+    action: RestrictionAction,
+    bot_method: str,
+    expected_kwargs: dict[str, object],
+) -> None:
+    result = await execute_restriction(
+        mock_bot,
+        action,
+        CHAT_TID,
+        USER_TID,
+    )
+
+    assert result.action is action
+    assert result.applied is True
+    getattr(mock_bot, bot_method).assert_awaited_once_with(
+        CHAT_TID,
+        USER_TID,
+        **expected_kwargs,
+    )
 
 
 @pytest.mark.asyncio
-async def test_ban_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-
-    result = await ban_user(CHAT_TID, USER_TID)
-
-    assert result is True
-    mock_bot.ban_chat_member.assert_awaited_once_with(CHAT_TID, USER_TID, until_date=None)
-
-
-@pytest.mark.asyncio
-async def test_ban_user_with_duration(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
+@pytest.mark.parametrize(
+    "action",
+    [
+        RestrictionAction.BAN,
+        RestrictionAction.MUTE,
+        RestrictionAction.RESTRICT,
+    ],
+)
+async def test_restriction_executor_forwards_duration(
+    mock_bot: AsyncMock,
+    action: RestrictionAction,
+) -> None:
     duration = timedelta(hours=24)
 
-    result = await ban_user(CHAT_TID, USER_TID, until_date=duration)
-
-    assert result is True
-    mock_bot.ban_chat_member.assert_awaited_once_with(CHAT_TID, USER_TID, until_date=duration)
-
-
-@pytest.mark.asyncio
-async def test_ban_user_telegram_bad_request(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    mock_bot.ban_chat_member.side_effect = TelegramBadRequest(method="test", message="Bad Request: not enough rights")
-
-    result = await ban_user(CHAT_TID, USER_TID)
-
-    assert result is False
-
-
-@pytest.mark.asyncio
-async def test_ban_user_telegram_forbidden(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    mock_bot.ban_chat_member.side_effect = TelegramForbiddenError(
-        method="test", message="Forbidden: bot was kicked from the group chat"
+    result = await execute_restriction(
+        mock_bot,
+        action,
+        CHAT_TID,
+        USER_TID,
+        until_date=duration,
     )
 
-    result = await ban_user(CHAT_TID, USER_TID)
-
-    assert result is False
-
-
-# --- kick_user tests ---
-
-
-@pytest.mark.asyncio
-async def test_kick_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-
-    result = await kick_user(CHAT_TID, USER_TID)
-
-    assert result is True
-    mock_bot.unban_chat_member.assert_awaited_once_with(CHAT_TID, USER_TID)
+    assert result.applied is True
+    bot_method = (
+        mock_bot.ban_chat_member
+        if action is RestrictionAction.BAN
+        else mock_bot.restrict_chat_member
+    )
+    assert bot_method.await_args.kwargs["until_date"] == duration
 
 
 @pytest.mark.asyncio
-async def test_kick_user_failure(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    mock_bot.unban_chat_member.side_effect = TelegramBadRequest(method="test", message="Bad Request: not enough rights")
+@pytest.mark.parametrize(
+    ("action", "bot_method", "error"),
+    [
+        (
+            RestrictionAction.BAN,
+            "ban_chat_member",
+            TelegramBadRequest(
+                method="test",
+                message="Bad Request: not enough rights",
+            ),
+        ),
+        (
+            RestrictionAction.KICK,
+            "unban_chat_member",
+            TelegramForbiddenError(
+                method="test",
+                message="Forbidden: bot was kicked from the group chat",
+            ),
+        ),
+        (
+            RestrictionAction.MUTE,
+            "restrict_chat_member",
+            TelegramUnauthorizedError(
+                method="test",
+                message="Unauthorized",
+            ),
+        ),
+        (
+            RestrictionAction.UNMUTE,
+            "restrict_chat_member",
+            TelegramForbiddenError(
+                method="test",
+                message="Forbidden: bot is not a member",
+            ),
+        ),
+        (
+            RestrictionAction.UNBAN,
+            "unban_chat_member",
+            TelegramBadRequest(
+                method="test",
+                message="Bad Request: user not found",
+            ),
+        ),
+    ],
+)
+async def test_restriction_executor_reports_telegram_failures(
+    mock_bot: AsyncMock,
+    action: RestrictionAction,
+    bot_method: str,
+    error: Exception,
+) -> None:
+    getattr(mock_bot, bot_method).side_effect = error
 
-    result = await kick_user(CHAT_TID, USER_TID)
-
-    assert result is False
-
-
-# --- mute_user tests ---
-
-
-@pytest.mark.asyncio
-async def test_mute_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-
-    result = await mute_user(CHAT_TID, USER_TID)
-
-    assert result is True
-    mock_bot.restrict_chat_member.assert_awaited_once()
-    call_kwargs = mock_bot.restrict_chat_member.call_args.kwargs
-    permissions: ChatPermissions = call_kwargs["permissions"]
-    assert permissions.can_send_messages is False
-    assert call_kwargs["until_date"] is None
-
-
-@pytest.mark.asyncio
-async def test_mute_user_with_duration(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    duration = timedelta(minutes=30)
-
-    result = await mute_user(CHAT_TID, USER_TID, until_date=duration)
-
-    assert result is True
-    call_kwargs = mock_bot.restrict_chat_member.call_args.kwargs
-    assert call_kwargs["until_date"] == duration
-
-
-@pytest.mark.asyncio
-async def test_mute_user_failure(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    mock_bot.restrict_chat_member.side_effect = TelegramUnauthorizedError(method="test", message="Unauthorized")
-
-    result = await mute_user(CHAT_TID, USER_TID)
-
-    assert result is False
-
-
-# --- unmute_user tests ---
-
-
-@pytest.mark.asyncio
-async def test_unmute_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-
-    result = await unmute_user(CHAT_TID, USER_TID)
-
-    assert result is True
-    mock_bot.restrict_chat_member.assert_awaited_once()
-    call_kwargs = mock_bot.restrict_chat_member.call_args.kwargs
-    permissions: ChatPermissions = call_kwargs["permissions"]
-    assert permissions.can_send_messages is True
-    assert permissions.can_send_audios is True
-    assert permissions.can_send_documents is True
-    assert permissions.can_send_photos is True
-    assert permissions.can_send_videos is True
-    assert permissions.can_send_video_notes is True
-    assert permissions.can_send_voice_notes is True
-    assert permissions.can_send_polls is True
-    assert permissions.can_send_other_messages is True
-    assert permissions.can_add_web_page_previews is True
-
-
-@pytest.mark.asyncio
-async def test_unmute_user_failure(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    mock_bot.restrict_chat_member.side_effect = TelegramForbiddenError(
-        method="test", message="Forbidden: bot is not a member"
+    result = await execute_restriction(
+        mock_bot,
+        action,
+        CHAT_TID,
+        USER_TID,
     )
 
-    result = await unmute_user(CHAT_TID, USER_TID)
-
-    assert result is False
-
-
-# --- unban_user tests ---
+    assert result.action is action
+    assert result.applied is False
 
 
 @pytest.mark.asyncio
-async def test_unban_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
+@pytest.mark.parametrize(
+    ("action", "expected_permissions"),
+    [
+        (
+            RestrictionAction.MUTE,
+            {
+                "can_send_messages": False,
+            },
+        ),
+        (
+            RestrictionAction.UNMUTE,
+            {
+                "can_send_messages": True,
+                "can_send_audios": True,
+                "can_send_documents": True,
+                "can_send_photos": True,
+                "can_send_videos": True,
+                "can_send_video_notes": True,
+                "can_send_voice_notes": True,
+                "can_send_polls": True,
+                "can_send_other_messages": True,
+                "can_add_web_page_previews": True,
+            },
+        ),
+        (
+            RestrictionAction.RESTRICT,
+            {
+                "can_send_messages": True,
+                "can_send_audios": False,
+                "can_send_documents": False,
+                "can_send_photos": False,
+                "can_send_videos": False,
+                "can_send_video_notes": False,
+                "can_send_voice_notes": False,
+                "can_send_polls": False,
+                "can_send_other_messages": False,
+                "can_add_web_page_previews": False,
+            },
+        ),
+    ],
+)
+async def test_restriction_executor_builds_expected_permissions(
+    mock_bot: AsyncMock,
+    action: RestrictionAction,
+    expected_permissions: dict[str, bool],
+) -> None:
+    result = await execute_restriction(
+        mock_bot,
+        action,
+        CHAT_TID,
+        USER_TID,
+    )
 
-    result = await unban_user(CHAT_TID, USER_TID)
-
-    assert result is True
-    mock_bot.unban_chat_member.assert_awaited_once_with(CHAT_TID, USER_TID, only_if_banned=True)
-
-
-@pytest.mark.asyncio
-async def test_unban_user_failure(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    mock_bot.unban_chat_member.side_effect = TelegramBadRequest(method="test", message="Bad Request: user not found")
-
-    result = await unban_user(CHAT_TID, USER_TID)
-
-    assert result is False
-
-
-# --- restrict_user tests ---
-
-
-@pytest.mark.asyncio
-async def test_restrict_user_success(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-
-    result = await restrict_user(CHAT_TID, USER_TID)
-
-    assert result is True
-    mock_bot.restrict_chat_member.assert_awaited_once()
-    call_kwargs = mock_bot.restrict_chat_member.call_args.kwargs
+    assert result.applied is True
+    call_kwargs = mock_bot.restrict_chat_member.await_args.kwargs
     permissions: ChatPermissions = call_kwargs["permissions"]
-    # Text-only: can send messages but no media
-    assert permissions.can_send_messages is True
-    assert permissions.can_send_audios is False
-    assert permissions.can_send_documents is False
-    assert permissions.can_send_photos is False
-    assert permissions.can_send_videos is False
-    assert permissions.can_send_video_notes is False
-    assert permissions.can_send_voice_notes is False
-    assert permissions.can_send_polls is False
-    assert permissions.can_send_other_messages is False
-    assert permissions.can_add_web_page_previews is False
-    assert call_kwargs["until_date"] is None
-
-
-@pytest.mark.asyncio
-async def test_restrict_user_with_duration(monkeypatch: pytest.MonkeyPatch, mock_bot: AsyncMock) -> None:
-    monkeypatch.setattr("sophie_bot.modules.restrictions.utils.restrictions.bot", mock_bot)
-    duration = timedelta(days=7)
-
-    result = await restrict_user(CHAT_TID, USER_TID, until_date=duration)
-
-    assert result is True
-    call_kwargs = mock_bot.restrict_chat_member.call_args.kwargs
-    assert call_kwargs["until_date"] == duration
+    for permission, expected in expected_permissions.items():
+        assert getattr(permissions, permission) is expected
+    if action is not RestrictionAction.UNMUTE:
+        assert call_kwargs["until_date"] is None

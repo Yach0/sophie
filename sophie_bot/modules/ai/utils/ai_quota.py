@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from beanie import PydanticObjectId
+from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_CREDITS_PER_TOKEN
 from sophie_bot.db.models import AIQuotaModel, AIUsageModel
@@ -90,20 +91,23 @@ async def get_or_create_quota_model(chat_iid: PydanticObjectId) -> AIQuotaModel 
     return await _ensure_period(quota)
 
 
-async def get_entertainment_boost_credits(chat_iid: PydanticObjectId) -> int:
+async def get_entertainment_boost_credits(chat_iid: PydanticObjectId, *, redis: Redis) -> int:
     """Extra monthly credits granted while a chat is in entertainment mode.
 
     Derived on every read instead of persisted, so turning ``ai_entertainment_boost`` off or
     lowering ``ai_entertainment_monthly_credits`` takes effect immediately for chats already in it.
     """
-    if not await is_enabled("ai_entertainment_boost"):
+    if not await is_enabled("ai_entertainment_boost", redis=redis):
         return 0
     if await get_chat_mode(chat_iid, AIMode.disabled) != AIMode.entertainment:
         return 0
-    return max(int(await get_value("ai_entertainment_monthly_credits")), 0)
+    return max(
+        int(await get_value("ai_entertainment_monthly_credits", redis=redis)),
+        0,
+    )
 
 
-async def get_quota_state(chat_iid: PydanticObjectId) -> AIQuotaState | None:
+async def get_quota_state(chat_iid: PydanticObjectId, *, redis: Redis) -> AIQuotaState | None:
     quota = await get_or_create_quota_model(chat_iid)
     if not quota:
         return None
@@ -113,12 +117,12 @@ async def get_quota_state(chat_iid: PydanticObjectId) -> AIQuotaState | None:
         quota=quota,
         usage=usage,
         month_key=quota.period_start.strftime("%Y-%m"),
-        boost_credits=await get_entertainment_boost_credits(chat_iid),
+        boost_credits=await get_entertainment_boost_credits(chat_iid, redis=redis),
     )
 
 
-async def get_quota_info(chat_iid: PydanticObjectId) -> QuotaInfo | None:
-    state = await get_quota_state(chat_iid)
+async def get_quota_info(chat_iid: PydanticObjectId, *, redis: Redis) -> QuotaInfo | None:
+    state = await get_quota_state(chat_iid, redis=redis)
     if not state:
         return None
 
@@ -131,8 +135,8 @@ async def get_quota_info(chat_iid: PydanticObjectId) -> QuotaInfo | None:
     )
 
 
-async def check_quota(chat_iid: PydanticObjectId) -> QuotaCheckResult:
-    state = await get_quota_state(chat_iid)
+async def check_quota(chat_iid: PydanticObjectId, *, redis: Redis) -> QuotaCheckResult:
+    state = await get_quota_state(chat_iid, redis=redis)
     if not state:
         return QuotaCheckResult(allowed=False, remaining=0, exhausted=False)
 
@@ -149,6 +153,8 @@ async def consume_quota(
     model_name: str | None = None,
     input_tokens: int | None = None,
     output_tokens: int | None = None,
+    *,
+    redis: Redis,
 ) -> None:
     if tokens <= 0:
         return
@@ -158,7 +164,13 @@ async def consume_quota(
         return
 
     credits_used = (
-        await estimate_model_credit_cost(model_name, tokens, input_tokens, output_tokens)
+        await estimate_model_credit_cost(
+            model_name,
+            tokens,
+            input_tokens,
+            output_tokens,
+            redis=redis,
+        )
         if model_name
         else tokens_to_credits(tokens)
     )

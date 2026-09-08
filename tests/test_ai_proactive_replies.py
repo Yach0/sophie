@@ -58,8 +58,14 @@ def test_normalize_reaction_emoji_falls_back_for_invalid_reactions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_settings_uses_more_frequent_safe_defaults(db_init: object) -> None:
-    settings = await _get_settings(-1001234567891)
+async def test_get_settings_uses_more_frequent_safe_defaults(
+    db_init: object,
+    test_redis: object,
+) -> None:
+    settings = await _get_settings(
+        -1001234567891,
+        services=type("Services", (), {"redis": test_redis})(),
+    )
 
     assert settings.min_messages == 12
     assert settings.max_answers == 1
@@ -92,7 +98,10 @@ def test_limit_actions_respects_answer_and_reaction_caps() -> None:
 
 
 @pytest.mark.asyncio
-async def test_proactive_answer_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_proactive_answer_history_keeps_reply_title(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     monkeypatch.setattr(AIMessageHistory, "add_from_cache", AsyncMock())
     target = MessageType(
         user_id=1,
@@ -103,19 +112,33 @@ async def test_proactive_answer_history_keeps_reply_title(monkeypatch: pytest.Mo
         reply_to_username="Bob",
     )
 
-    history = await _build_answer_history(-100, target)
+    history = await _build_answer_history(
+        -100,
+        target,
+        services=type("Services", (), {"redis": test_redis})(),
+    )
 
     assert history.prompt == ["Alice (reply to Bob): hello"]
 
 
 @pytest.mark.asyncio
-async def test_get_recent_candidates_uses_window_batch_and_eligibility() -> None:
+async def test_get_recent_candidates_uses_window_batch_and_eligibility(
+    test_redis: object,
+) -> None:
     chat_tid = -1001234567890
     now = datetime.now(UTC)
     old_created_at = now - timedelta(minutes=20)
     recent_created_at = now - timedelta(minutes=3)
 
-    await cache_message("too old", chat_tid, 10, 10, old_created_at, "old_user")
+    await cache_message(
+        "too old",
+        chat_tid,
+        10,
+        10,
+        old_created_at,
+        "old_user",
+        redis=test_redis,
+    )
     await cache_message(
         "/ai already handled",
         chat_tid,
@@ -125,6 +148,7 @@ async def test_get_recent_candidates_uses_window_batch_and_eligibility() -> None
         "ai_user",
         has_ai_command=True,
         eligible_for_proactive_ai=False,
+        redis=test_redis,
     )
     for message_id in range(12, 18):
         await cache_message(
@@ -134,10 +158,15 @@ async def test_get_recent_candidates_uses_window_batch_and_eligibility() -> None
             message_id,
             recent_created_at + timedelta(seconds=message_id),
             f"user_{message_id}",
+            redis=test_redis,
         )
 
     settings = ProactiveReplySettings(batch_size=3, window_seconds=600, min_messages=3)
 
-    candidates = await _get_recent_candidates(chat_tid, settings)
+    candidates = await _get_recent_candidates(
+        chat_tid,
+        settings,
+        redis=test_redis,
+    )
 
     assert [message.message_id for message in candidates] == [15, 16, 17]

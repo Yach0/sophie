@@ -9,14 +9,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
+from sophie_bot.modules.utils_.admin import get_admin_record
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.rest import get_services
 from sophie_bot.utils.api.auth import get_current_user
 
 from ..schemas import FederationChatAdd, FederationChatResponse
 from .common import _require_federation_access
 
 router = APIRouter()
+ServicesDep = Annotated[ApplicationServices, Depends(get_services)]
 
 
 @router.get("/{fed_id}/chats", response_model=list[FederationChatResponse])
@@ -49,6 +52,7 @@ async def add_chat_to_federation(
     fed_id: str,
     payload: FederationChatAdd,
     user: Annotated[ChatModel, Depends(get_current_user)],
+    services: ServicesDep,
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
@@ -69,23 +73,20 @@ async def add_chat_to_federation(
 
     # Verify the caller owns (is the creator of) the chat being added
     if user.tid not in CONFIG.operators:
-        admin_record = await ChatAdminModel.find_one(
-            ChatAdminModel.chat.id == chat.iid,
-            ChatAdminModel.user.id == user.iid,
-        )
+        admin_record = await get_admin_record(chat, user)
         if admin_record is None or admin_record.member.status != ChatMemberStatus.CREATOR:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be the chat owner to add it to a federation",
             )
 
-    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid)
+    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid, redis=services.redis)
     if existing_federation:
         if existing_federation.fed_id == federation.fed_id:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in another federation")
 
-    joined = await FederationChatService.add_chat_to_federation(federation, chat.iid)
+    joined = await FederationChatService.add_chat_to_federation(federation, chat.iid, redis=services.redis)
     if not joined:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
 
@@ -95,6 +96,7 @@ async def remove_chat_from_federation(
     fed_id: str,
     chat_iid: PydanticObjectId,
     user: Annotated[ChatModel, Depends(get_current_user)],
+    services: ServicesDep,
 ) -> None:
     federation = await FederationManageService.get_federation_by_id(fed_id)
     if not federation:
@@ -113,10 +115,10 @@ async def remove_chat_from_federation(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid)
+    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid, redis=services.redis)
     if not existing_federation or existing_federation.fed_id != federation.fed_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")
 
-    removed = await FederationChatService.remove_chat_from_federation(federation, chat.iid)
+    removed = await FederationChatService.remove_chat_from_federation(federation, chat.iid, redis=services.redis)
     if not removed:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")

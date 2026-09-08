@@ -44,7 +44,7 @@ class SaveNote(SophieMessageHandler):
         if not self.event.from_user:
             return
 
-        connection: ChatConnection = self.data["connection"]
+        connection: ChatConnection = self.connection
 
         text_with_buttons: dict[str, Any] = self.data.get("text_with_buttons", {})
         raw_text_parsed: ParsedArg[str] | None = text_with_buttons.get("text")

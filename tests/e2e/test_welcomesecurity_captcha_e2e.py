@@ -102,7 +102,12 @@ async def _register_pending_user(test_client: TestClient, group_tid: int) -> tup
     user = await ChatModel.get_by_tid(newbie.id)
     assert user is not None
     await WSUserModel.ensure_user(user, chat, is_join_request=False)
-    captcha_message = await initiate_captcha(user, chat)
+    captcha_message = await initiate_captcha(
+        user,
+        chat,
+        bot=test_client.bot,
+        dispatcher=test_client.dispatcher,
+    )
     return chat, user, captcha_message
 
 
@@ -174,7 +179,7 @@ async def test_ephemeral_captcha_prompts_each_member_privately(test_client: Test
     _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Ephemeral Group")
     await grant_bot_admin(group.id)
     await _enable_ws(group.id)
-    await set_feature("welcomecaptcha_ephemeral", True, chat_tid=group.id)
+    await set_feature(test_client, "welcomecaptcha_ephemeral", True, chat_tid=group.id)
 
     first = User(id=next_user_id(), is_bot=False, first_name="AlphaJoiner")
     second = User(id=next_user_id(), is_bot=False, first_name="BetaJoiner")
@@ -209,13 +214,16 @@ async def test_autokick_kicks_stale_unpassed_user(test_client: TestClient) -> No
     await pending.save()
 
     start = len(test_client.capture)
-    await KickUnpassedUsers().handle()
+    await KickUnpassedUsers(
+        test_client.dispatcher.workflow_data["services"]
+    ).handle()
     requests = test_client.capture.all_requests[start:]
 
     kicks = [
         request
         for request in requests
-        if request.request_type == RequestType.UNBAN_CHAT_MEMBER and request.params.get("user_id") == stale.id
+        if request.request_type == RequestType.UNBAN_CHAT_MEMBER
+        and request.params.get("user_id") == stale.id
     ]
     assert kicks, "A user who never solved the captcha within the window should be kicked"
     assert not [
@@ -239,7 +247,9 @@ async def test_autokick_leaves_recent_user_alone(test_client: TestClient) -> Non
     await WSUserModel.ensure_user(recent_model, chat, is_join_request=False)
 
     start = len(test_client.capture)
-    await KickUnpassedUsers().handle()
+    await KickUnpassedUsers(
+        test_client.dispatcher.workflow_data["services"]
+    ).handle()
     requests = test_client.capture.all_requests[start:]
 
     assert not [

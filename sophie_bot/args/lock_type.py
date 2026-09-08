@@ -12,8 +12,8 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class LockTypeArg(WordArg):
     """Argument type for lock types, supporting standard locks, stickerpack:PACK_ID and language:LANG_CODE formats."""
 
-    def __init__(self, description: LazyProxy | str | None = None):
-        super().__init__(description=description or l_("Lock type"))
+    def __init__(self, description: LazyProxy | str | None = None) -> None:
+        super().__init__(description=description if description is not None else l_("Lock type"))
 
     def check(self, text: str, entities: ArgEntities) -> bool:
         word = text.split()[0].lower() if text.split() else ""

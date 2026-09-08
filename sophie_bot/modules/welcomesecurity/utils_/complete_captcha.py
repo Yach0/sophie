@@ -1,4 +1,6 @@
+from aiogram import Bot
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
+from redis.asyncio import Redis
 
 from sophie_bot.db.models import ChatModel, GreetingsModel
 from sophie_bot.db.models.greetings import WelcomeMute
@@ -6,8 +8,6 @@ from sophie_bot.metrics.welcome import track_captcha_passed
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
-from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -17,7 +17,10 @@ async def complete_captcha(
     greetings: GreetingsModel,
     captcha_message: Message,
     is_join_request: bool = False,
-):
+    *,
+    bot: Bot,
+    redis: Redis,
+) -> None:
     """
     Generic function to complete captcha process.
 
@@ -50,16 +53,16 @@ async def complete_captcha(
 
     # Approve join request if applicable
     if is_join_request:
-        await aredis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
+        await redis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
         await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
 
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
-    await ws_on_user_passed(user, group, greetings.welcome_mute or WelcomeMute())
+    await ws_on_user_passed(user, group, greetings.welcome_mute or WelcomeMute(), bot=bot)
 
     # Clean up the security note message from the group
-    if msg_to_clean := await aredis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
+    if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
         await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
-        await aredis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
+        await redis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
 
-    if is_join_request and (msg_id := await aredis.get(f"join_request_message:{group.iid}:{user.iid}")):
+    if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.iid}:{user.iid}")):
         await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))

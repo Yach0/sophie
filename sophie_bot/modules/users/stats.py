@@ -2,10 +2,11 @@ from stfu_tg import Code, HList, KeyValue, Section
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 
 
-async def users_stats():
+async def users_stats(*, services: ApplicationServices) -> Section:
     return Section(
         KeyValue(
             _("Total"),

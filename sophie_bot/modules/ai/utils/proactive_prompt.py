@@ -3,6 +3,7 @@ from __future__ import annotations
 from sophie_bot.modules.ai.utils.cache_messages import MessageType
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.services.application import ApplicationServices
 
 
 def render_messages_for_prompt(messages: tuple[MessageType, ...]) -> str:
@@ -43,8 +44,13 @@ def build_decision_prompt(messages: tuple[MessageType, ...], settings: Proactive
     )
 
 
-def build_decision_history(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> AIMessageHistory:
-    history = AIMessageHistory()
+def build_decision_history(
+    messages: tuple[MessageType, ...],
+    settings: ProactiveReplySettings,
+    *,
+    services: ApplicationServices,
+) -> AIMessageHistory:
+    history = AIMessageHistory(services=services)
     history.add_system(
         "Return structured JSON only. Sophie is usually silent and only joins when her contribution is clearly "
         "timely, useful, or funny. Prefer none unless there is a strong natural opening; use reactions for "

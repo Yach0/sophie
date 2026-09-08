@@ -52,19 +52,25 @@ from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabl
 
 
 @pytest.mark.asyncio
-async def test_research_feature_flags_have_safe_defaults(db_init: object) -> None:
-    assert await is_enabled("ai_chatbot_research_quote") is True
-    assert await is_enabled("ai_research") is False
+async def test_research_feature_flags_have_safe_defaults(db_init: object, test_redis: object, test_services: object) -> None:
+    assert await is_enabled(
+        "ai_chatbot_research_quote",
+        redis=test_redis,
+    ) is True
+    assert await is_enabled("ai_research", redis=test_redis) is False
     # Empty by default now: research resolves from the catalog, the flag is only an override.
-    assert await get_value("ai_research_model") == ""
-    assert await get_value("ai_research_max_rounds") == 3
-    assert await get_value("ai_research_queries_per_round") == 5
-    assert await get_value("ai_research_results_per_query") == 5
-    assert await get_service_tier("ai_research_service_tier") == "flex"
+    assert await get_value("ai_research_model", redis=test_redis) == ""
+    assert await get_value("ai_research_max_rounds", redis=test_redis) == 3
+    assert await get_value("ai_research_queries_per_round", redis=test_redis) == 5
+    assert await get_value("ai_research_results_per_query", redis=test_redis) == 5
+    assert await get_service_tier(
+        "ai_research_service_tier",
+        redis=test_redis,
+    ) == "flex"
 
 
 @pytest.mark.asyncio
-async def test_run_research_workflow_runs_followup_searches() -> None:
+async def test_run_research_workflow_runs_followup_searches(test_redis: object, test_services: object) -> None:
     connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
     settings = ResearchWorkflowSettings(max_rounds=3, queries_per_round=2, results_per_query=2, service_tier=None)
     first_query = ResearchSearchQuery(query="initial query", reason="Start broad")
@@ -90,7 +96,12 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
         SimpleNamespace(output=final_response, usage=None, message_history=[], served_model=None),
     ]
 
-    async def search_side_effect(chat_tid: int, query: str, limit: int) -> list[ResearchSource]:
+    async def search_side_effect(
+        chat_tid: int,
+        query: str,
+        limit: int,
+        **kwargs: object,
+    ) -> list[ResearchSource]:
         assert chat_tid == connection.tid
         assert limit == settings.results_per_query
         if query == first_query.query:
@@ -127,7 +138,7 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
             "sophie_bot.modules.ai.utils.research.search_web_for_research", AsyncMock(side_effect=search_side_effect)
         ),
     ):
-        response = await run_research_workflow("Research this", connection, progress_callback=record_progress)
+        response = await run_research_workflow("Research this", connection, progress_callback=record_progress, services=test_services)
 
     assert response.response == final_response.model_copy(
         update={"research_query": "Research this", "research_model": response.model.model_name}
@@ -136,7 +147,9 @@ async def test_run_research_workflow_runs_followup_searches() -> None:
     assert generate_mock.await_count == 4
 
 
-async def test_the_reported_research_model_is_the_one_that_summarised() -> None:
+async def test_the_reported_research_model_is_the_one_that_summarised(
+    test_services: object,
+) -> None:
     """Failover may move the summary off the plan's first candidate; the report must follow it."""
     connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
     settings = ResearchWorkflowSettings(max_rounds=1, queries_per_round=1, results_per_query=1, service_tier=None)
@@ -174,7 +187,7 @@ async def test_the_reported_research_model_is_the_one_that_summarised() -> None:
             AsyncMock(return_value=[source]),
         ),
     ):
-        result = await run_research_workflow("Research this", connection)
+        result = await run_research_workflow("Research this", connection, services=test_services)
 
     assert result.model is served_model
     assert result.response.research_model == "backup-model"
@@ -218,7 +231,7 @@ def test_retrieve_latest_research_response_reads_research_tool_return() -> None:
 
 
 @pytest.mark.asyncio
-async def test_research_tool_forwards_chatbot_progress_callback() -> None:
+async def test_research_tool_forwards_chatbot_progress_callback(test_redis: object, test_services: object) -> None:
     expected_response = ResearchFinalResponse(research_title="Answer", text="Answer", sources=[])
 
     async def progress_callback(stage: ResearchProgressStage) -> None:
@@ -228,6 +241,7 @@ async def test_research_tool_forwards_chatbot_progress_callback() -> None:
         deps=SimpleNamespace(
             connection=SimpleNamespace(),
             research_progress_callback=progress_callback,
+            services=test_services,
         )
     )
 
@@ -242,11 +256,12 @@ async def test_research_tool_forwards_chatbot_progress_callback() -> None:
         "complicated topic",
         context.deps.connection,
         progress_callback=progress_callback,
+        services=test_services,
     )
 
 
 @pytest.mark.asyncio
-async def test_build_fitting_reply_doc_fits_rendered_html_limit() -> None:
+async def test_build_fitting_reply_doc_fits_rendered_html_limit(test_redis: object, test_services: object) -> None:
     doc = await _build_fitting_reply_doc(
         Title("AI Chatbot"),
         "Long answer " * 600,
@@ -254,6 +269,7 @@ async def test_build_fitting_reply_doc_fits_rendered_html_limit() -> None:
         result=SimpleNamespace(),
         explicit_debug_mode=False,
         chat_tid=-100123,
+        services=test_services,
     )
 
     assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
@@ -287,8 +303,12 @@ def test_research_markdown_file_uses_sanitized_title() -> None:
 
 
 @pytest.mark.asyncio
-async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None:
-    async def enabled_side_effect(feature: str, chat_tid: int | None = None) -> bool:
+async def test_chatbot_prompt_mentions_research_for_complicated_topics(test_redis: object, test_services: object) -> None:
+    async def enabled_side_effect(
+        feature: str,
+        chat_tid: int | None = None,
+        **kwargs: object,
+    ) -> bool:
         return feature == "ai_research"
 
     with (
@@ -303,6 +323,7 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None
                 user_text=None,
                 mode=AIMode.support,
                 connection=SimpleNamespace(db_model=SimpleNamespace()),
+                services=test_services,
             )
         )
 
@@ -310,15 +331,22 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics() -> None
 
 
 @pytest.mark.asyncio
-async def test_chatbot_tools_include_research_only_when_enabled() -> None:
-    async def enabled_side_effect(feature: str, chat_tid: int | None = None) -> bool:
+async def test_chatbot_tools_include_research_only_when_enabled(test_redis: object, test_services: object) -> None:
+    async def enabled_side_effect(
+        feature: str,
+        chat_tid: int | None = None,
+        **kwargs: object,
+    ) -> bool:
         return feature == "ai_research"
 
     with (
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
     ):
-        tools = await get_chatbot_tools(-100123, get_capabilities(AIMode.support))
+        tools = await get_chatbot_tools(
+            SimpleNamespace(chat_tid=-100123, services=test_services),
+            get_capabilities(AIMode.support),
+        )
 
     assert research_topic_tool in tools
 
@@ -326,14 +354,21 @@ async def test_chatbot_tools_include_research_only_when_enabled() -> None:
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
     ):
-        tools = await get_chatbot_tools(-100123, get_capabilities(AIMode.support))
+        tools = await get_chatbot_tools(
+            SimpleNamespace(chat_tid=-100123, services=test_services),
+            get_capabilities(AIMode.support),
+        )
 
     assert research_topic_tool not in tools
 
 
 @pytest.mark.asyncio
-async def test_build_chatbot_usage_limits_maps_token_limit() -> None:
-    async def value_side_effect(feature: str, chat_tid: int | None = None) -> int:
+async def test_build_chatbot_usage_limits_maps_token_limit(test_redis: object, test_services: object) -> None:
+    async def value_side_effect(
+        feature: str,
+        chat_tid: int | None = None,
+        **kwargs: object,
+    ) -> int:
         return {
             "ai_chatbot_request_limit": 3,
             "ai_chatbot_tool_calls_limit": 5,
@@ -341,7 +376,9 @@ async def test_build_chatbot_usage_limits_maps_token_limit() -> None:
         }[feature]
 
     with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(side_effect=value_side_effect)):
-        limits = await build_chatbot_usage_limits(-100123)
+        limits = await build_chatbot_usage_limits(
+            SimpleNamespace(chat_tid=-100123, services=test_services)
+        )
 
     assert limits.request_limit == 3
     assert limits.tool_calls_limit == 5
@@ -392,25 +429,38 @@ class _FakeTinyFishAsyncClient:
     ],
 )
 async def test_get_search_tool_selects_tinyfish_by_flag(
-    monkeypatch: pytest.MonkeyPatch, provider: str, tinyfish_key: str, expected: object
+    monkeypatch: pytest.MonkeyPatch,
+    provider: str,
+    tinyfish_key: str,
+    expected: object,
+    test_services: object,
 ) -> None:
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", tinyfish_key)
     with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(return_value=provider)):
-        assert await _get_search_tool(-100123) is expected
+        assert await _get_search_tool(
+            SimpleNamespace(
+                chat_tid=-100123,
+                services=test_services,
+            )
+        ) is expected
 
 
 @pytest.mark.asyncio
-async def test_get_search_tool_keeps_existing_providers_working(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_search_tool_keeps_existing_providers_working(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr(CONFIG, "tavily_api_key", "tvly-key")
     monkeypatch.setattr(CONFIG, "kagi_api_key", "kagi-key")
     with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(return_value="tavily")):
-        assert await _get_search_tool(-100123) is not None
+        assert await _get_search_tool(
+            SimpleNamespace(chat_tid=-100123, services=test_services)
+        ) is not None
     with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(return_value="kagi")):
-        assert await _get_search_tool(-100123) is kagi_search_tool
+        assert await _get_search_tool(
+            SimpleNamespace(chat_tid=-100123, services=test_services)
+        ) is kagi_search_tool
 
 
 @pytest.mark.asyncio
-async def test_search_web_for_research_maps_tinyfish_results(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_search_web_for_research_maps_tinyfish_results(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
     tiny_result = TinyFishSearchResult(
         title="Tiny title", url="https://example.com/tiny", snippet="Snip", published="2026-08-01"
@@ -419,7 +469,7 @@ async def test_search_web_for_research_maps_tinyfish_results(monkeypatch: pytest
         patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tinyfish")),
         patch("sophie_bot.modules.ai.utils.research.search_tinyfish", AsyncMock(return_value=[tiny_result])) as mock,
     ):
-        sources = await search_web_for_research(-100123, "query", 5)
+        sources = await search_web_for_research(-100123, "query", 5, services=test_services)
 
     mock.assert_awaited_once_with("query", 5)
     assert sources == [
@@ -428,33 +478,33 @@ async def test_search_web_for_research_maps_tinyfish_results(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_search_web_for_research_requires_a_tinyfish_key(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_search_web_for_research_requires_a_tinyfish_key(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", "")
     with (
         patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tinyfish")),
         pytest.raises(SophieException, match="Research requires a configured TinyFish API key"),
     ):
-        await search_web_for_research(-100123, "query", 5)
+        await search_web_for_research(-100123, "query", 5, services=test_services)
 
 
 @pytest.mark.asyncio
-async def test_search_web_for_research_supports_only_kagi_and_tinyfish() -> None:
+async def test_search_web_for_research_supports_only_kagi_and_tinyfish(test_redis: object, test_services: object) -> None:
     with (
         patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tavily")),
         pytest.raises(SophieException, match="Set ai_search_provider to kagi or tinyfish"),
     ):
-        await search_web_for_research(-100123, "query", 5)
+        await search_web_for_research(-100123, "query", 5, services=test_services)
 
 
 @pytest.mark.asyncio
-async def test_search_web_for_research_keeps_kagi_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_search_web_for_research_keeps_kagi_dispatch(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr(CONFIG, "kagi_api_key", "kagi-key")
     kagi_result = KagiSearchResult(title="Kagi title", url="https://example.com/kagi", snippet="Snip", published=None)
     with (
         patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="kagi")),
         patch("sophie_bot.modules.ai.utils.research.search_kagi", AsyncMock(return_value=[kagi_result])),
     ):
-        sources = await search_web_for_research(-100123, "query", 5)
+        sources = await search_web_for_research(-100123, "query", 5, services=test_services)
 
     assert sources == [
         ResearchSource(title="Kagi title", url="https://example.com/kagi", snippet="Snip", published=None)
@@ -462,7 +512,7 @@ async def test_search_web_for_research_keeps_kagi_dispatch(monkeypatch: pytest.M
 
 
 @pytest.mark.asyncio
-async def test_search_tinyfish_maps_fields_truncates_and_sends_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_search_tinyfish_maps_fields_truncates_and_sends_api_key(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
     captured: dict[str, object] = {}
 
@@ -490,9 +540,7 @@ async def test_search_tinyfish_maps_fields_truncates_and_sends_api_key(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_search_tinyfish_propagates_http_errors_for_retry_classification(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_search_tinyfish_propagates_http_errors_for_retry_classification(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
     monkeypatch.setattr(CONFIG, "tinyfish_api_key", "tf-key")
 
     def failing_async_client() -> _FakeTinyFishAsyncClient:

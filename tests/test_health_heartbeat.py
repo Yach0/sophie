@@ -10,28 +10,47 @@ from sophie_bot.services import health
 from sophie_bot.services.health import check_heartbeat, write_heartbeat
 
 
-async def test_write_then_check_is_fresh() -> None:
-    await write_heartbeat("bot")
+async def test_write_then_check_is_fresh(test_redis: object) -> None:
+    await write_heartbeat("bot", redis=test_redis)
 
-    assert await check_heartbeat("bot", max_age_seconds=health.HEARTBEAT_TTL_SECONDS) is True
+    assert await check_heartbeat(
+        "bot",
+        max_age_seconds=health.HEARTBEAT_TTL_SECONDS,
+        redis=test_redis,
+    ) is True
 
 
-async def test_check_missing_component_is_unhealthy() -> None:
-    assert await check_heartbeat("scheduler", max_age_seconds=health.HEARTBEAT_TTL_SECONDS) is False
+async def test_check_missing_component_is_unhealthy(
+    test_redis: object,
+) -> None:
+    assert await check_heartbeat(
+        "scheduler",
+        max_age_seconds=health.HEARTBEAT_TTL_SECONDS,
+        redis=test_redis,
+    ) is False
 
 
-async def test_check_stale_heartbeat_is_unhealthy() -> None:
-    # Write a timestamp well outside the freshness window (TTL is longer so the key survives).
+async def test_check_stale_heartbeat_is_unhealthy(
+    test_redis: object,
+) -> None:
     stale_ts = int(time.time()) - (health.HEARTBEAT_TTL_SECONDS + 60)
-    await health.aredis.set(health._heartbeat_key("bot"), stale_ts, ex=health.HEARTBEAT_TTL_SECONDS)
+    await test_redis.set(
+        health._heartbeat_key("bot"),
+        stale_ts,
+        ex=health.HEARTBEAT_TTL_SECONDS,
+    )
 
-    assert await check_heartbeat("bot", max_age_seconds=health.HEARTBEAT_TTL_SECONDS) is False
+    assert await check_heartbeat(
+        "bot",
+        max_age_seconds=health.HEARTBEAT_TTL_SECONDS,
+        redis=test_redis,
+    ) is False
 
 
-async def test_write_heartbeat_sets_ttl() -> None:
-    await write_heartbeat("bot")
+async def test_write_heartbeat_sets_ttl(test_redis: object) -> None:
+    await write_heartbeat("bot", redis=test_redis)
 
-    ttl = await health.aredis.ttl(health._heartbeat_key("bot"))
+    ttl = await test_redis.ttl(health._heartbeat_key("bot"))
     assert 0 < ttl <= health.HEARTBEAT_TTL_SECONDS
 
 
@@ -40,19 +59,33 @@ def test_heartbeat_key_is_namespaced_by_instance_name(monkeypatch: pytest.Monkey
     assert health._heartbeat_key("bot") == "sophie:health:stable:bot"
 
 
-async def test_heartbeat_does_not_leak_across_instances(monkeypatch: pytest.MonkeyPatch) -> None:
-    # beta and stable share one redis and both run MODE=bot; their heartbeats must stay distinct.
+async def test_heartbeat_does_not_leak_across_instances(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     monkeypatch.setattr(health.CONFIG, "instance_name", "beta")
-    await write_heartbeat("bot")
-    assert await check_heartbeat("bot", max_age_seconds=health.HEARTBEAT_TTL_SECONDS) is True
+    await write_heartbeat("bot", redis=test_redis)
+    assert await check_heartbeat(
+        "bot",
+        max_age_seconds=health.HEARTBEAT_TTL_SECONDS,
+        redis=test_redis,
+    ) is True
 
     monkeypatch.setattr(health.CONFIG, "instance_name", "stable")
-    assert await check_heartbeat("bot", max_age_seconds=health.HEARTBEAT_TTL_SECONDS) is False
+    assert await check_heartbeat(
+        "bot",
+        max_age_seconds=health.HEARTBEAT_TTL_SECONDS,
+        redis=test_redis,
+    ) is False
 
 
-async def test_cli_bot_mode_uses_heartbeat(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_cli_bot_mode_uses_heartbeat(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     monkeypatch.setattr(healthcheck.CONFIG, "mode", "bot")
-    await write_heartbeat("bot")
+    monkeypatch.setattr(healthcheck, "create_redis", lambda _config: test_redis)
+    await write_heartbeat("bot", redis=test_redis)
 
     healthy, status = await healthcheck._run()
 
@@ -60,8 +93,12 @@ async def test_cli_bot_mode_uses_heartbeat(monkeypatch: pytest.MonkeyPatch) -> N
     assert "bot" in status
 
 
-async def test_cli_scheduler_mode_unhealthy_without_heartbeat(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_cli_scheduler_mode_unhealthy_without_heartbeat(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     monkeypatch.setattr(healthcheck.CONFIG, "mode", "scheduler")
+    monkeypatch.setattr(healthcheck, "create_redis", lambda _config: test_redis)
 
     healthy, status = await healthcheck._run()
 

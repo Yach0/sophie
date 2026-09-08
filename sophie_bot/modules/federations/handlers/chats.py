@@ -97,7 +97,7 @@ class FederationChatsHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        user_iid = self.data["user_db"].id
+        user_iid = self.data["context"].actor.id
         federations = await FederationManageService.get_federations_by_creator(user_iid)
 
         if not federations:
@@ -126,7 +126,7 @@ class FederationChatsHandler(SophieMessageHandler):
             await self.event.reply(_("Chat not found in database"))
             return
         chat_iid = chat.iid
-        federation = await FederationManageService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
 
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))

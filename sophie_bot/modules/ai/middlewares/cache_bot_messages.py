@@ -22,7 +22,7 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         result = await handler(event, data)
-        chat_db: ChatModel | None = data.get("chat_db", None)
+        chat_db: ChatModel | None = data["context"].event_chat
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
@@ -53,9 +53,10 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
                 sent_message_id,
                 created_at,
                 "Sophie",
-                message_thread_id=result.message_thread_id if isinstance(result, Message) else None,
+                message_thread_id=(result.message_thread_id if isinstance(result, Message) else None),
                 handled_by_ai=True,
                 eligible_for_proactive_ai=False,
+                redis=data["services"].redis,
             )
 
         return result

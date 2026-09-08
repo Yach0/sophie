@@ -14,10 +14,14 @@ from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
 def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer:
     streamer = ChatbotMessageStreamer(
-        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        source_message=cast(
+            Message,
+            SimpleNamespace(chat=SimpleNamespace(id=-100123)),
+        ),
         header=Doc("Initial"),
         mode=StreamMode.HTML_EDIT,
         throttle_seconds=1,
+        redis=object(),
     )
     streamer.response_message = cast(Message, response_message)
     return streamer
@@ -72,11 +76,15 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
 async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
     response_message = SimpleNamespace(edit_text=AsyncMock())
     streamer = ChatbotMessageStreamer(
-        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        source_message=cast(
+            Message,
+            SimpleNamespace(chat=SimpleNamespace(id=-100123)),
+        ),
         header=Doc("Initial"),
         mode=StreamMode.HTML_EDIT,
         throttle_seconds=60,
         tool_thinking_texts={"lookup": ("Looking it up...",)},
+        redis=object(),
     )
     streamer.response_message = cast(Message, response_message)
 
@@ -93,10 +101,14 @@ async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
 async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
     response_message = SimpleNamespace(edit_text=AsyncMock())
     streamer = ChatbotMessageStreamer(
-        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        source_message=cast(
+            Message,
+            SimpleNamespace(chat=SimpleNamespace(id=-100123)),
+        ),
         header=Doc("Initial"),
         mode=StreamMode.HTML_EDIT,
         throttle_seconds=0.01,
+        redis=object(),
     )
     streamer.response_message = cast(Message, response_message)
 
@@ -114,11 +126,15 @@ async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
 async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> None:
     response_message = SimpleNamespace(edit_text=AsyncMock())
     streamer = ChatbotMessageStreamer(
-        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        source_message=cast(
+            Message,
+            SimpleNamespace(chat=SimpleNamespace(id=-100123)),
+        ),
         header=Doc("Initial"),
         mode=StreamMode.HTML_EDIT,
         throttle_seconds=0,
         tool_thinking_texts={"lookup": ("Looking it up...",)},
+        redis=object(),
     )
     streamer.response_message = cast(Message, response_message)
 

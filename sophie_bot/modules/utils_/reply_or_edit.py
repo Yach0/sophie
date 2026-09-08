@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+from typing import Any
+
+from aiogram import Bot
 from aiogram.types import CallbackQuery, InaccessibleMessage, InputRichMessage, Message
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -15,7 +19,7 @@ def _accessible_message(event: Message | CallbackQuery) -> Message | None:
     return None
 
 
-async def reply_or_edit(event: Message | CallbackQuery, text: Element | str, **kwargs):
+async def reply_or_edit(event: Message | CallbackQuery, text: Element | str, **kwargs: Any) -> Message | bool | None:
     rendered_text = str(text)
 
     if (edit_target := _accessible_message(event)) is not None:
@@ -25,7 +29,13 @@ async def reply_or_edit(event: Message | CallbackQuery, text: Element | str, **k
     raise ValueError("answer: Wrong event type")
 
 
-async def reply_or_edit_rich(event: Message | CallbackQuery, doc: Element, **kwargs):
+async def reply_or_edit_rich(
+    event: Message | CallbackQuery,
+    doc: Element,
+    *,
+    bot: Bot,
+    **kwargs: Any,
+) -> Message | bool:
     """Reply or edit using Telegram's rich message parser without a silent fallback."""
     edit_target = _accessible_message(event)
     rich_message = InputRichMessage(html=doc.to_rich())

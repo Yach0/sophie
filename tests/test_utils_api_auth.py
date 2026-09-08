@@ -11,7 +11,6 @@ from beanie import PydanticObjectId
 from fastapi import HTTPException
 from pymongo.errors import PyMongoError
 
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.utils.api.auth import (
     create_access_token,
     generate_token,
@@ -223,12 +222,10 @@ async def test_rest_require_admin_owner_allows_creator(mock_config):
 
     dependency = rest_require_admin(permission="can_restrict_members", require_owner=True)
 
-    with (
-        patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True),
-        patch.object(ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True),
-        patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one,
+    with patch(
+        "sophie_bot.utils.api.auth.get_admin_record",
+        new=AsyncMock(return_value=admin_record),
     ):
-        mock_find_one.return_value = admin_record
         result = await dependency(chat_iid_value, user)
         assert result == user
 
@@ -248,14 +245,11 @@ async def test_rest_require_admin_owner_rejects_non_creator(mock_config):
 
     dependency = rest_require_admin(require_owner=True)
 
-    with (
-        patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True),
-        patch.object(ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True),
-        patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one,
-    ):
-        mock_find_one.return_value = admin_record
-        with pytest.raises(HTTPException) as excinfo:
-            await dependency(chat_iid_value, user)
+    with patch(
+        "sophie_bot.utils.api.auth.get_admin_record",
+        new=AsyncMock(return_value=admin_record),
+    ), pytest.raises(HTTPException) as excinfo:
+        await dependency(chat_iid_value, user)
 
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == "You must be the chat owner to perform this action"
@@ -276,12 +270,10 @@ async def test_rest_require_admin_owner_bypasses_permission_check(mock_config):
 
     dependency = rest_require_admin(permission="can_restrict_members")
 
-    with (
-        patch.object(ChatAdminModel, "chat", new=MagicMock(id=MagicMock()), create=True),
-        patch.object(ChatAdminModel, "user", new=MagicMock(id=MagicMock()), create=True),
-        patch("sophie_bot.utils.api.auth.ChatAdminModel.find_one", new_callable=AsyncMock) as mock_find_one,
+    with patch(
+        "sophie_bot.utils.api.auth.get_admin_record",
+        new=AsyncMock(return_value=admin_record),
     ):
-        mock_find_one.return_value = admin_record
         result = await dependency(chat_iid_value, user)
         assert result == user
 

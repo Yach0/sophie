@@ -142,7 +142,14 @@ def test_home_view_keeps_rich_action_buttons_separate_from_inline_navigation() -
         load_draft=None,
         save_draft=lambda *_args: None,  # type: ignore[arg-type]
     )
-    view = render_home_view(config, ActionDraft(), "session")
+    view = render_home_view(
+        config,
+        ActionDraft(),
+        "session",
+        {},
+        {},
+        {},
+    )
     assert isinstance(view, WizardView)
     assert view.markup is not None
     assert not any(btn.text == "✅ Done" for row in view.markup.inline_keyboard for btn in row)
@@ -161,7 +168,14 @@ def test_optional_empty_draft_can_be_saved() -> None:
         save_draft=lambda *_args: None,  # type: ignore[arg-type]
     )
 
-    view = render_home_view(config, ActionDraft(), "session")
+    view = render_home_view(
+        config,
+        ActionDraft(),
+        "session",
+        {},
+        {},
+        {},
+    )
 
     assert view.markup is not None
     assert any(
@@ -181,7 +195,14 @@ def test_unknown_stored_action_has_repair_controls() -> None:
         load_draft=None,
         save_draft=lambda *_args: None,  # type: ignore[arg-type]
     )
-    view = render_home_view(config, ActionDraft(actions={"removed_plugin": None}), "session")
+    view = render_home_view(
+        config,
+        ActionDraft(actions={"removed_plugin": None}),
+        "session",
+        {},
+        {},
+        {},
+    )
     rich_html = view.doc.to_rich()
 
     assert "Unknown action" in rich_html

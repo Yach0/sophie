@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from stfu_tg import BlockQuote, Doc, HList, Italic, Template, Title, Url
@@ -6,7 +6,6 @@ from stfu_tg.doc import Element
 from stfu_tg.md.table import TableMD
 
 from sophie_bot.modules.help.utils.extract_info import (
-    HELP_MODULES,
     HandlerHelp,
     ModuleHelp,
     get_aliased_cmds,
@@ -28,13 +27,20 @@ human_pages = Path("./docs/modules")
 class ModuleWikiPage:
     # TODO: Use this for /help as well
     __slots__ = (
+        "help_modules",
         "module",
         "name",
     )
 
-    def __init__(self, name: str, module: ModuleHelp):
+    def __init__(
+        self,
+        name: str,
+        module: ModuleHelp,
+        help_modules: Mapping[str, ModuleHelp],
+    ) -> None:
         self.name = name
         self.module = module
+        self.help_modules = help_modules
 
     @staticmethod
     def _table_row(handler: HandlerHelp) -> tuple[Element, Element, LazyProxy | str, Element]:
@@ -84,12 +90,18 @@ class ModuleWikiPage:
                     Title(
                         Template(
                             "Aliased commands from {module}",
-                            module=Url(f"{HELP_MODULES[mod_name].icon} {HELP_MODULES[mod_name].name}", mod_name),
+                            module=Url(
+                                f"{self.help_modules[mod_name].icon} {self.help_modules[mod_name].name}",
+                                mod_name,
+                            ),
                         ),
                         level=3,
                     )
                     + self._table(handlers)
-                    for mod_name, handlers in get_aliased_cmds(self.name).items()
+                    for mod_name, handlers in get_aliased_cmds(
+                        self.help_modules,
+                        self.name,
+                    ).items()
                 ),
             )
 
@@ -126,7 +138,9 @@ class ModuleWikiPage:
         return text
 
 
-async def generate_wiki_pages():
+async def generate_wiki_pages(
+    help_modules: Mapping[str, ModuleHelp],
+) -> None:
     log.info("Generating wiki documentation...")
 
     if not wiki_modules.exists():
@@ -141,9 +155,9 @@ async def generate_wiki_pages():
     wiki_modules.mkdir()
 
     # Generate wiki pages for each module
-    for module_name, module_help in HELP_MODULES.items():
+    for module_name, module_help in help_modules.items():
         log.debug(f"Generating wiki page for {module_name}")
-        page = ModuleWikiPage(module_name, module_help)
+        page = ModuleWikiPage(module_name, module_help, help_modules)
 
         if page.is_excluded:
             log.debug(f"Module {module_name} is excluded from the help, skipping")

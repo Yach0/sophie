@@ -12,7 +12,6 @@ from stfu_tg import Code, Doc, Template, Title
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.utils_.acting_user import require_acting_user
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -40,7 +39,7 @@ class AcceptTransferHandler(SophieMessageHandler):
             return
 
         fed_id_input: str = self.data["fed_id"]
-        user_db = await require_acting_user(self.event, self.data)
+        user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
 
@@ -52,7 +51,7 @@ class AcceptTransferHandler(SophieMessageHandler):
 
         # Read the token first without deleting it, so an unauthorized caller cannot
         # consume (and destroy) a pending transfer intended for someone else.
-        transfer_data_raw = await aredis.get(transfer_key)
+        transfer_data_raw = await self.services.redis.get(transfer_key)
 
         if not transfer_data_raw:
             await self.event.reply(_("No pending transfer request found for this federation."))
@@ -71,7 +70,7 @@ class AcceptTransferHandler(SophieMessageHandler):
 
         # Now atomically consume the token; if it was already claimed by a concurrent
         # request, getdel returns None and we bail out safely.
-        if not await aredis.getdel(transfer_key):
+        if not await self.services.redis.getdel(transfer_key):
             await self.event.reply(_("No pending transfer request found for this federation."))
             return
 

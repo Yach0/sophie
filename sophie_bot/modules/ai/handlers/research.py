@@ -12,6 +12,7 @@ from stfu_tg import Doc
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
@@ -24,6 +25,7 @@ from sophie_bot.modules.ai.utils.research import (
     research_progress_suffix,
     run_research_workflow,
 )
+from sophie_bot.modules.connections.utils.connection import set_connected_chat
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
@@ -97,27 +99,39 @@ class ResearchCmd(SophieMessageHandler):
         # Disconnect from any connected group before running research so that quota
         # is charged to the private chat, not the connected group.
         if self.event.chat.type == "private" and self.connection.is_connected and self.event.from_user:
-            from sophie_bot.middlewares.connections import ConnectionsMiddleware
-            from sophie_bot.modules.connections.utils.connection import set_connected_chat
-
-            await set_connected_chat(self.event.from_user.id, None)
+            await set_connected_chat(self.event.from_user.id, None, redis=self.services.redis)
             await self.event.reply(_("You have been automatically disconnected from the chat to use AI."))
-            self.data["connection"] = await ConnectionsMiddleware.get_current_chat_info(self.event.chat)
+            connection = await ConnectionsMiddleware.get_current_chat_info(
+                self.event.chat,
+                self.context.event_chat,
+            )
+            self.context.connection = connection
+            self.context.target_chat = connection.db_model
 
         prompt: str = self.data["text"]
         progress_message = await ResearchProgressMessage.send(self.event)
         try:
-            result = await run_research_workflow(prompt, self.connection, progress_callback=progress_message.update)
+            result = await run_research_workflow(
+                prompt,
+                self.connection,
+                progress_callback=progress_message.update,
+                services=self.services,
+            )
         except SophieException as exc:
             log.warning("research: SophieException during workflow", error=str(exc))
             await self.event.reply(str(exc))
             return
-        header_style = await get_ai_header_style("chatbot", self.event.chat.id)
+        header_style = await get_ai_header_style(
+            "chatbot",
+            self.event.chat.id,
+            redis=self.services.redis,
+        )
         header = await build_chatbot_header(
             self.connection.db_model.iid,
             result.model,
             result.message_history,
             header_style,
+            redis=self.services.redis,
         )
         current_locale = self.data["i18n"].current_locale
         return await progress_message.send_final(

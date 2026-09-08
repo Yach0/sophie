@@ -15,7 +15,10 @@ from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityRulesAgreeCB,
 )
-from sophie_bot.services.redis import aredis
+from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import (
+    initiate_captcha,
+)
+from sophie_bot.services.application import ApplicationServices
 
 
 @pytest.mark.asyncio
@@ -61,6 +64,7 @@ async def test_legacy_welcomesecurity_start_uses_live_membership_check(
 @pytest.mark.asyncio
 async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     test_client: TestClient,
+    test_services: ApplicationServices,
     test_dispatcher,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -103,9 +107,14 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
         AsyncMock(return_value=True),
     )
 
-    from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import initiate_captcha
 
-    captcha_message = await initiate_captcha(user_db, group_db, is_join_request=True)
+    captcha_message = await initiate_captcha(
+        user_db,
+        group_db,
+        is_join_request=True,
+        bot=test_services.bot,
+        dispatcher=test_dispatcher,
+    )
 
     state = test_dispatcher.fsm.get_context(
         bot=test_client.bot, chat_id=user_wrapper.user.id, user_id=user_wrapper.user.id
@@ -134,4 +143,6 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     assert not any("Be nice to each other." in (request.text or "") for request in group_messages)
     assert not any("Welcome to the group" in (request.text or "") for request in group_messages)
 
-    await aredis.delete(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}")
+    await test_services.redis.delete(
+        f"chat_ws_join_request:{group_db.iid}:{user_db.iid}"
+    )

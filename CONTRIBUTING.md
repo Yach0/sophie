@@ -64,7 +64,7 @@ Key points:
 - **PEP8 Compliance**: We use 120 character line length, `ruff` for formatting and import sorting, and `pycln` for removing unused imports.
 - **Type Safety**: **ALWAYS** use type annotations for all function parameters and return values.
 - **Functional Programming**: We prefer pure functions and async/await patterns.
-- **No Global State**: Avoid global state modifications where possible.
+- **Explicit Runtime State**: Runtime resources belong to `ApplicationServices`; per-update state belongs to `RequestContext`. Do not add module-level bot, dispatcher, Redis, or database proxies.
 - **Explicit Naming**: Use `chat_tid` for Telegram Chat IDs (int) and `chat_iid` for database IDs (ObjectId). **NEVER** confuse them.
 
 ---

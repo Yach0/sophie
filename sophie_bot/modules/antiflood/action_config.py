@@ -16,11 +16,11 @@ from sophie_bot.modules.utils_.action_config_wizard import (
     model_action_wizard,
 )
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardFSM, WizardScopeFilter
-from sophie_bot.shared.actions import ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-def antiflood_action_filter(action: ModernActionABC) -> bool:
+def antiflood_action_filter(action: ActionDefinition) -> bool:
     return action.as_flood
 
 

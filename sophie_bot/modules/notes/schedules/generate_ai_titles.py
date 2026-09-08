@@ -11,42 +11,53 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
 class GenerateAITitles:
-    @staticmethod
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
+
     async def generate_data(
-        note: NoteModel, chat_iid: PydanticObjectId, chat_tid: int | None = None
+        self,
+        note: NoteModel,
+        chat_iid: PydanticObjectId,
+        chat_tid: int | None = None,
     ) -> AIUpdateNoteData:
         system_prompt = _(
             "You need to update the data of the chat notes. Generate the note data from the provided note text"
         )
 
-        messages = AIMessageHistory()
+        messages = AIMessageHistory(services=self.services)
         messages.add_custom(note.text or "", name=None)
         messages.add_system(system_prompt)
 
-        model_plan = await get_chat_default_model_plan(chat_iid, chat_tid=chat_tid)
+        model_plan = await get_chat_default_model_plan(
+            chat_iid,
+            chat_tid=chat_tid,
+            redis=self.services.redis,
+        )
         result = await run_structured_task(
             AIStructuredTask(output_type=AIUpdateNoteData),
             model_plan,
             messages,
             chat_iid=chat_iid,
             chat_tid=chat_tid,
+            redis=self.services.redis,
         )
         return result.output
 
     @staticmethod
-    async def update_note(note: NoteModel, generated_data: AIUpdateNoteData):
+    async def update_note(note: NoteModel, generated_data: AIUpdateNoteData) -> None:
         note.description = generated_data.description
         note.ai_description = True
 
         await note.save()
 
-    async def process_chat(self, chat: ChatModel):
+    async def process_chat(self, chat: ChatModel) -> None:
         log.debug("generate_ai_titles: processing chat", chat=chat)
 
         chat_notes = NoteModel.find(NoteModel.chat_tid == chat.tid)
@@ -66,7 +77,7 @@ class GenerateAITitles:
             generated_data = await self.generate_data(note, chat.iid, chat_tid=chat.tid)
             await self.update_note(note, generated_data)
 
-    async def handle(self):
+    async def handle(self) -> None:
         async for chat in ForChats():
             status = await BetaModeModel.get_by_chat_iid(chat.id)
             if not status:
@@ -77,7 +88,11 @@ class GenerateAITitles:
                 log.debug("generate_ai_titles: not in beta mode, skipping...", chat=chat.tid)
                 continue
 
-            if not await is_enabled("ai_note_titles", chat_tid=chat.tid):
+            if not await is_enabled(
+                "ai_note_titles",
+                chat_tid=chat.tid,
+                redis=self.services.redis,
+            ):
                 log.debug("generate_ai_titles: feature flag disabled, skipping...", chat=chat.tid)
                 continue
 
@@ -85,5 +100,5 @@ class GenerateAITitles:
                 log.debug("generate_ai_titles: AI features are not enabled, skipping...", chat=chat.tid)
                 continue
 
-            async with UseChatLanguage(chat.id):
+            async with UseChatLanguage(chat.id, locales=self.services.locales):
                 await self.process_chat(chat)

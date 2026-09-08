@@ -40,7 +40,7 @@ class UnlockAllCallbackHandler(SophieCallbackQueryHandler):
             return
 
         removed_count = await model.unlock_multiple(locked_types)
-        await invalidate_locks_cache(connection.tid)
+        await invalidate_locks_cache(connection.tid, redis=self.services.redis)
 
         doc = Doc(
             Section(

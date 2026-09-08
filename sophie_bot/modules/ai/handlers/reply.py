@@ -37,4 +37,9 @@ class AiReplyHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         self.data["ai_message_handled"] = True
-        return await ai_chatbot_reply(self.event, self.connection, mode=self.data["ai_mode"])
+        return await ai_chatbot_reply(
+            self.event,
+            self.connection,
+            mode=self.data["ai_mode"],
+            services=self.services,
+        )

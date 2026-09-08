@@ -29,6 +29,7 @@ Rollback:
 from beanie import free_fall_migration
 
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 OLD_PROVIDER = "zai"
 NEW_PROVIDER = "auto"
@@ -38,8 +39,8 @@ class Forward:
     """Migrate zai provider entries to auto."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        collection = get_collection("ai_provider")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        collection = get_collection(resources.database.database, "ai_provider")
         result = await collection.update_many(
             {"provider": OLD_PROVIDER},
             {"$set": {"provider": NEW_PROVIDER}},

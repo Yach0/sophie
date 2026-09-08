@@ -17,7 +17,6 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.is_connected import IsConnectedFilter
 from sophie_bot.modules.federations.services import FederationBanService
-from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -62,7 +61,7 @@ class FederationCheckPMHandler(SophieMessageHandler):
                 if not target_user:
                     raise ValueError("Target user not found in database")
             else:
-                target_user = self.data.get("user_db")
+                target_user = self.data["context"].actor
 
         if not target_user:
             await self.event.reply(_("Please specify a user or reply to a user's message."))
@@ -136,4 +135,4 @@ class FederationCheckPMHandler(SophieMessageHandler):
             KeyValue(_("Total bans"), Code(str(len(bans)))),
         ).to_html()
 
-        await bot.send_document(chat_id=self.event.chat.id, document=document, caption=caption)
+        await self.services.bot.send_document(chat_id=self.event.chat.id, document=document, caption=caption)

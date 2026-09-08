@@ -15,6 +15,7 @@ from sophie_bot.modules.federations.services import (
     FederationManageService,
 )
 from sophie_bot.modules.federations.services import ban as ban_service_module
+from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 
 
 class FakeLink:
@@ -34,7 +35,9 @@ class FakeDbRefLink:
 
 
 @pytest.mark.asyncio
-async def test_add_chat_to_federation_skips_existing_dbref_link() -> None:
+async def test_add_chat_to_federation_skips_existing_dbref_link(
+    test_redis: object,
+) -> None:
     chat_iid = PydanticObjectId("507f1f77bcf86cd799439081")
     chat_model = MagicMock()
     chat_model.iid = chat_iid
@@ -58,7 +61,11 @@ async def test_add_chat_to_federation_skips_existing_dbref_link() -> None:
             new=AsyncMock(),
         ) as cache_incr_count_mock,
     ):
-        added = await FederationChatService.add_chat_to_federation(federation, chat_iid)
+        added = await FederationChatService.add_chat_to_federation(
+            federation,
+            chat_iid,
+            redis=test_redis,
+        )
 
     assert added is False
     federation.save.assert_not_called()
@@ -67,7 +74,9 @@ async def test_add_chat_to_federation_skips_existing_dbref_link() -> None:
 
 
 @pytest.mark.asyncio
-async def test_remove_chat_from_federation_removes_matching_dbref_link() -> None:
+async def test_remove_chat_from_federation_removes_matching_dbref_link(
+    test_redis: object,
+) -> None:
     removed_chat_iid = PydanticObjectId("507f1f77bcf86cd799439091")
     remaining_chat_iid = PydanticObjectId("507f1f77bcf86cd799439092")
     chat_model = MagicMock()
@@ -92,18 +101,31 @@ async def test_remove_chat_from_federation_removes_matching_dbref_link() -> None
             new=AsyncMock(),
         ) as cache_incr_count_mock,
     ):
-        removed = await FederationChatService.remove_chat_from_federation(federation, removed_chat_iid)
+        removed = await FederationChatService.remove_chat_from_federation(
+            federation,
+            removed_chat_iid,
+            redis=test_redis,
+        )
 
     assert removed is True
     assert len(federation.chats) == 1
     assert federation.chats[0].to_ref().id == remaining_chat_iid
     federation.save.assert_awaited_once()
-    cache_invalidate_mock.assert_awaited_once_with(removed_chat_iid)
-    cache_incr_count_mock.assert_awaited_once_with("fed-main", -1)
+    cache_invalidate_mock.assert_awaited_once_with(
+        removed_chat_iid,
+        redis=test_redis,
+    )
+    cache_incr_count_mock.assert_awaited_once_with(
+        "fed-main",
+        -1,
+        redis=test_redis,
+    )
 
 
 @pytest.mark.asyncio
-async def test_ban_user_in_federation_chats_bans_only_detected_chats() -> None:
+async def test_ban_user_in_federation_chats_bans_only_detected_chats(
+    test_services: object,
+) -> None:
     user_tid = 1001
     user_iid = PydanticObjectId("507f1f77bcf86cd799439011")
     chat_one_iid = PydanticObjectId("507f1f77bcf86cd799439021")
@@ -147,20 +169,37 @@ async def test_ban_user_in_federation_chats_bans_only_detected_chats() -> None:
         ),
         patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
         patch(
-            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
-            new=AsyncMock(return_value=True),
-        ) as mock_restrict_ban_user,
+            "sophie_bot.modules.federations.services.ban.execute_restriction",
+            new=AsyncMock(
+                return_value=RestrictionResult(
+                    action=RestrictionAction.BAN,
+                    applied=True,
+                )
+            ),
+        ) as execute_restriction,
     ):
-        banned_count = await FederationBanService.ban_user_in_federation_chats(federation, ban, user_tid)
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
+            federation,
+            ban,
+            user_tid,
+            bot=test_services.bot,
+        )
 
     assert banned_count == 1
     assert ban.banned_chats == [chat_one]
     ban.save.assert_awaited_once()
-    mock_restrict_ban_user.assert_awaited_once_with(chat_one.tid, user_tid)
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot,
+        RestrictionAction.BAN,
+        chat_one.tid,
+        user_tid,
+    )
 
 
 @pytest.mark.asyncio
-async def test_ban_user_in_federation_chats_returns_zero_if_user_not_found() -> None:
+async def test_ban_user_in_federation_chats_returns_zero_if_user_not_found(
+    test_services: object,
+) -> None:
     user_tid = 1001
     chat_iid = PydanticObjectId("507f1f77bcf86cd799439031")
 
@@ -190,20 +229,32 @@ async def test_ban_user_in_federation_chats_returns_zero_if_user_not_found() -> 
             return_value=MagicMock(),
         ) as mock_user_in_group_find,
         patch(
-            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
-            new=AsyncMock(return_value=True),
-        ) as mock_restrict_ban_user,
+            "sophie_bot.modules.federations.services.ban.execute_restriction",
+            new=AsyncMock(
+                return_value=RestrictionResult(
+                    action=RestrictionAction.BAN,
+                    applied=True,
+                )
+            ),
+        ) as execute_restriction,
     ):
-        banned_count = await FederationBanService.ban_user_in_federation_chats(federation, ban, user_tid)
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
+            federation,
+            ban,
+            user_tid,
+            bot=test_services.bot,
+        )
 
     assert banned_count == 0
     mock_user_in_group_find.assert_not_called()
-    mock_restrict_ban_user.assert_not_called()
+    execute_restriction.assert_not_called()
     ban.save.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_ban_user_in_federation_chats_normalizes_dbref_group_links() -> None:
+async def test_ban_user_in_federation_chats_normalizes_dbref_group_links(
+    test_services: object,
+) -> None:
     user_tid = 1002
     user_iid = PydanticObjectId("507f1f77bcf86cd799439032")
     chat_iid = PydanticObjectId("507f1f77bcf86cd799439033")
@@ -242,20 +293,37 @@ async def test_ban_user_in_federation_chats_normalizes_dbref_group_links() -> No
         ),
         patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
         patch(
-            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
-            new=AsyncMock(return_value=True),
-        ) as mock_restrict_ban_user,
+            "sophie_bot.modules.federations.services.ban.execute_restriction",
+            new=AsyncMock(
+                return_value=RestrictionResult(
+                    action=RestrictionAction.BAN,
+                    applied=True,
+                )
+            ),
+        ) as execute_restriction,
     ):
-        banned_count = await FederationBanService.ban_user_in_federation_chats(federation, ban, user_tid)
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
+            federation,
+            ban,
+            user_tid,
+            bot=test_services.bot,
+        )
 
     assert banned_count == 1
     assert ban.banned_chats == [chat_model]
     ban.save.assert_awaited_once()
-    mock_restrict_ban_user.assert_awaited_once_with(chat_model.tid, user_tid)
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot,
+        RestrictionAction.BAN,
+        chat_model.tid,
+        user_tid,
+    )
 
 
 @pytest.mark.asyncio
-async def test_ban_user_in_federation_chats_includes_current_chat_without_seen_record() -> None:
+async def test_ban_user_in_federation_chats_includes_current_chat_without_seen_record(
+    test_services: object,
+) -> None:
     user_tid = 1003
     user_iid = PydanticObjectId("507f1f77bcf86cd799439034")
     chat_iid = PydanticObjectId("507f1f77bcf86cd799439035")
@@ -291,21 +359,32 @@ async def test_ban_user_in_federation_chats_includes_current_chat_without_seen_r
         ),
         patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
         patch(
-            "sophie_bot.modules.federations.services.ban.restrict_ban_user",
-            new=AsyncMock(return_value=True),
-        ) as mock_restrict_ban_user,
+            "sophie_bot.modules.federations.services.ban.execute_restriction",
+            new=AsyncMock(
+                return_value=RestrictionResult(
+                    action=RestrictionAction.BAN,
+                    applied=True,
+                )
+            ),
+        ) as execute_restriction,
     ):
         banned_count = await FederationBanService.ban_user_in_federation_chats(
             federation,
             ban,
             user_tid,
             current_chat_iid=chat_iid,
+            bot=test_services.bot,
         )
 
     assert banned_count == 1
     assert ban.banned_chats == [chat_model]
     ban.save.assert_awaited_once()
-    mock_restrict_ban_user.assert_awaited_once_with(chat_model.tid, user_tid)
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot,
+        RestrictionAction.BAN,
+        chat_model.tid,
+        user_tid,
+    )
 
 
 @pytest.mark.asyncio
@@ -441,7 +520,9 @@ async def test_get_subscription_chain_handles_cycle_without_duplicates() -> None
 
 
 @pytest.mark.asyncio
-async def test_get_federation_with_user_multiple_federations_raises() -> None:
+async def test_get_federation_with_user_multiple_federations_raises(
+    test_redis: object,
+) -> None:
     user_id = 21001
     user_model = MagicMock()
     user_model.iid = PydanticObjectId("507f1f77bcf86cd799439071")
@@ -457,4 +538,9 @@ async def test_get_federation_with_user_multiple_federations_raises() -> None:
             new=AsyncMock(return_value=[MagicMock(), MagicMock()]),
         ),pytest.raises(FederationContextError, match="multiple federations")
     ):
-        await FederationManageService.get_federation(fed_id_arg=None, connection=None, user_id=user_id)
+        await FederationManageService.get_federation(
+            fed_id_arg=None,
+            connection=None,
+            user_id=user_id,
+            redis=test_redis,
+        )

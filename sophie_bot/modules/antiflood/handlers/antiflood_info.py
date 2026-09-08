@@ -9,7 +9,6 @@ from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.shared.action_registry import ALL_MODERN_ACTIONS
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import LazyProxy
@@ -59,12 +58,13 @@ class AntifloodInfoHandler(SophieMessageHandler):
         if actions:
             actions_list = []
             for action in actions:
-                action_meta = ALL_MODERN_ACTIONS.get(action.name)
-                if not action_meta:
+                definition = self.services.modules.actions.get(action.name)
+                action_handler = self.services.modules.action_handlers.get(action.name)
+                if not definition or not action_handler:
                     continue
 
-                action_text = action_meta.description(action_meta.load_data(action.data))
-                actions_list.append(f"{action_meta.icon} {action_meta.title}: {action_text}")
+                action_text = action_handler.description(definition.load_data(action.data))
+                actions_list.append(f"{definition.icon} {definition.title}: {action_text}")
 
             actions_text = "\n".join(actions_list)
             actions_header = pl_("Action", "Actions", len(actions))

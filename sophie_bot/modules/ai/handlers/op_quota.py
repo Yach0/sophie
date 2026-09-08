@@ -37,7 +37,10 @@ class SetQuota(SophieMessageHandler):
             return
 
         await set_monthly_quota(connection.db_model, credits)
-        quota_info = await get_quota_info(connection.db_model.iid)
+        quota_info = await get_quota_info(
+            connection.db_model.iid,
+            redis=self.services.redis,
+        )
 
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Quota Updated')}"),
@@ -63,7 +66,10 @@ class ResetQuota(SophieMessageHandler):
         connection = self.connection
         await reset_period_usage(connection.db_model.iid)
 
-        quota_info = await get_quota_info(connection.db_model.iid)
+        quota_info = await get_quota_info(
+            connection.db_model.iid,
+            redis=self.services.redis,
+        )
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Quota Reset')}"),
             Template(_("Quota usage has been reset for this period.")),

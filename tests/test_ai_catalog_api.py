@@ -37,19 +37,19 @@ async def _clear() -> None:
     await AICatalogModelModel.delete_all()
 
 
-async def test_create_provider_refuses_a_duplicate_name(_no_version_bump) -> None:
+async def test_create_provider_refuses_a_duplicate_name(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-1234abcd"))
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-1234abcd"), services=test_services)
 
     with pytest.raises(HTTPException) as error:
-        await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+        await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
 
     assert error.value.status_code == 409
 
 
-async def test_provider_list_masks_the_key_and_never_returns_it(_no_version_bump) -> None:
+async def test_provider_list_masks_the_key_and_never_returns_it(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-abcdef1234"))
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-abcdef1234"), services=test_services)
 
     result = await catalog.list_providers()
 
@@ -59,11 +59,11 @@ async def test_provider_list_masks_the_key_and_never_returns_it(_no_version_bump
     assert "api_key" not in result[0].model_dump()
 
 
-async def test_updating_a_provider_without_a_key_keeps_the_stored_one(_no_version_bump) -> None:
+async def test_updating_a_provider_without_a_key_keeps_the_stored_one(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"))
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"), services=test_services)
 
-    await catalog.update_provider("openrouter", ProviderUpdate(enabled=False))
+    await catalog.update_provider("openrouter", ProviderUpdate(enabled=False), services=test_services)
 
     stored = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == "openrouter")
     assert stored.api_key == "sk-original"
@@ -72,40 +72,40 @@ async def test_updating_a_provider_without_a_key_keeps_the_stored_one(_no_versio
     assert _no_version_bump.await_count >= 1
 
 
-async def test_updating_a_provider_with_an_empty_key_clears_it(_no_version_bump) -> None:
+async def test_updating_a_provider_with_an_empty_key_clears_it(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"))
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"), services=test_services)
 
-    await catalog.update_provider("openrouter", ProviderUpdate(api_key=""))
+    await catalog.update_provider("openrouter", ProviderUpdate(api_key=""), services=test_services)
 
     stored = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == "openrouter")
     assert stored.api_key == ""
 
 
-async def test_creating_a_model_carries_its_roles(_no_version_bump) -> None:
+async def test_creating_a_model_carries_its_roles(_no_version_bump, test_services: object) -> None:
     await _clear()
     role = AIModelRole(mode="support", purpose=AIModelPurpose.summary)
 
-    result = await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role]))
+    result = await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role]), services=test_services)
 
     assert result.roles == [role]
     stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5")
     assert stored.provider == "openrouter"
 
 
-async def test_deleting_a_model_removes_it(_no_version_bump) -> None:
+async def test_deleting_a_model_removes_it(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter"))
+    await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter"), services=test_services)
 
-    await catalog.delete_model("openai/gpt-5.5")
+    await catalog.delete_model("openai/gpt-5.5", services=test_services)
 
     assert await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5") is None
 
 
-async def test_updating_a_missing_model_is_a_404(_no_version_bump) -> None:
+async def test_updating_a_missing_model_is_a_404(_no_version_bump, test_services: object) -> None:
     await _clear()
     with pytest.raises(HTTPException) as error:
-        await catalog.update_model("nope", ModelUpdate(enabled=False))
+        await catalog.update_model("nope", ModelUpdate(enabled=False), services=test_services)
 
     assert error.value.status_code == 404
 
@@ -163,28 +163,24 @@ async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
     assert error.value.status_code == 502
 
 
-async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_version_bump) -> None:
+async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_version_bump, test_services: object) -> None:
     """The table shows exactly what Sophie resolves: a mode's own role, or nothing, and only the
     purposes that mode can actually use."""
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
-    await catalog.create_model(
-        ModelCreate(
-            name="ent/chat",
-            provider="openrouter",
-            roles=[AIModelRole(mode="entertainment", purpose=AIModelPurpose.chatbot)],
-        )
-    )
-    await catalog.create_model(
-        ModelCreate(
-            name="support/summary",
-            provider="openrouter",
-            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.summary)],
-        )
-    )
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
+    await catalog.create_model(ModelCreate(
+        name="ent/chat",
+        provider="openrouter",
+        roles=[AIModelRole(mode="entertainment", purpose=AIModelPurpose.chatbot)],
+    ), services=test_services)
+    await catalog.create_model(ModelCreate(
+        name="support/summary",
+        provider="openrouter",
+        roles=[AIModelRole(mode="support", purpose=AIModelPurpose.summary)],
+    ), services=test_services)
     # A fresh snapshot must be loaded so the just-created roles are visible.
     with patch.object(catalog, "get_catalog", catalog.load_catalog):
-        resolution = await catalog.get_resolution()
+        resolution = await catalog.get_resolution(services=test_services)
 
     assert "disabled" not in resolution.modes
     assert {"sophie_pm", "sophie_help"} <= set(resolution.modes)
@@ -201,53 +197,51 @@ async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_versio
     assert "summary" not in resolution.per_mode["sophie_pm"]
 
 
-async def test_export_round_trips_through_import(_no_version_bump) -> None:
+async def test_export_round_trips_through_import(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_model(
-        ModelCreate(
-            name="a/model",
-            provider="openrouter",
-            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
-        )
-    )
+    await catalog.create_model(ModelCreate(
+        name="a/model",
+        provider="openrouter",
+        roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
+    ), services=test_services)
 
     exported = await catalog.export_catalog()
     assert [model.name for model in exported.models] == ["a/model"]
 
     await _clear()
-    result = await catalog.import_catalog(exported)
+    result = await catalog.import_catalog(exported, services=test_services)
 
     assert result.models_created == 1
     stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "a/model")
     assert stored.roles[0].purpose == AIModelPurpose.chatbot
 
 
-async def test_merge_import_leaves_models_absent_from_the_file_alone(_no_version_bump) -> None:
+async def test_merge_import_leaves_models_absent_from_the_file_alone(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_model(ModelCreate(name="kept/model", provider="openrouter"))
+    await catalog.create_model(ModelCreate(name="kept/model", provider="openrouter"), services=test_services)
 
     incoming = catalog.CatalogExport(models=[catalog.ModelExport(name="new/model", provider="openrouter")])
-    result = await catalog.import_catalog(incoming)
+    result = await catalog.import_catalog(incoming, services=test_services)
 
     assert result.models_created == 1 and result.deleted == 0
     names = {model.name async for model in AICatalogModelModel.find_all()}
     assert names == {"kept/model", "new/model"}
 
 
-async def test_replace_import_removes_models_absent_from_the_file(_no_version_bump) -> None:
+async def test_replace_import_removes_models_absent_from_the_file(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_model(ModelCreate(name="stale/model", provider="openrouter"))
-    await catalog.create_model(ModelCreate(name="kept/model", provider="openrouter"))
+    await catalog.create_model(ModelCreate(name="stale/model", provider="openrouter"), services=test_services)
+    await catalog.create_model(ModelCreate(name="kept/model", provider="openrouter"), services=test_services)
 
     incoming = catalog.CatalogExport(models=[catalog.ModelExport(name="kept/model", provider="openrouter")])
-    result = await catalog.import_catalog(incoming, replace=True)
+    result = await catalog.import_catalog(incoming, replace=True, services=test_services)
 
     assert result.deleted == 1
     names = {model.name async for model in AICatalogModelModel.find_all()}
     assert names == {"kept/model"}
 
 
-async def test_meta_scopes_purposes_to_each_mode(_no_version_bump) -> None:
+async def test_meta_scopes_purposes_to_each_mode(_no_version_bump, test_services: object) -> None:
     """meta.mode_purposes is what the panel greys the role picker and resolution table against."""
     meta = await catalog.get_meta()
 
@@ -258,17 +252,15 @@ async def test_meta_scopes_purposes_to_each_mode(_no_version_bump) -> None:
     assert "sophie_inspect" not in meta.mode_purposes["support"]
 
 
-async def test_provider_models_queries_an_openai_compatible_endpoint(_no_version_bump) -> None:
+async def test_provider_models_queries_an_openai_compatible_endpoint(_no_version_bump, test_services: object) -> None:
     """A custom provider's models come from its own /models, with its own key."""
     await _clear()
-    await catalog.create_provider(
-        ProviderCreate(
-            name="qwencloud",
-            kind="openai_compatible",
-            base_url="https://example.com/v1",
-            api_key="sk-custom",
-        )
-    )
+    await catalog.create_provider(ProviderCreate(
+        name="qwencloud",
+        kind="openai_compatible",
+        base_url="https://example.com/v1",
+        api_key="sk-custom",
+    ), services=test_services)
     payload = {"data": [{"id": "qwen3-vl-flash"}, {"id": "qwen-max"}]}
     response = SimpleNamespace(json=lambda: payload, raise_for_status=lambda: None)
     with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)) as get:
@@ -280,95 +272,89 @@ async def test_provider_models_queries_an_openai_compatible_endpoint(_no_version
     assert get.await_args.kwargs["headers"]["Authorization"] == "Bearer sk-custom"
 
 
-async def test_provider_models_404s_for_an_unknown_provider(_no_version_bump) -> None:
+async def test_provider_models_404s_for_an_unknown_provider(_no_version_bump, test_services: object) -> None:
     await _clear()
     with pytest.raises(HTTPException) as error:
         await catalog.list_provider_models("nope")
     assert error.value.status_code == 404
 
 
-async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bump) -> None:
+async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bump, test_services: object) -> None:
     """The same model can be flex for one role and normal for another."""
     from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_role
 
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
-    await catalog.create_model(
-        ModelCreate(
-            name="one/model",
-            provider="openrouter",
-            roles=[
-                AIModelRole(
-                    mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"
-                ),
-                AIModelRole(
-                    mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"
-                ),
-            ],
-        )
-    )
-    await load_catalog()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
+    await catalog.create_model(ModelCreate(
+        name="one/model",
+        provider="openrouter",
+        roles=[
+            AIModelRole(
+                mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"
+            ),
+            AIModelRole(
+                mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"
+            ),
+        ],
+    ), services=test_services)
+    await load_catalog(redis=test_services.redis)
 
-    research = await resolve_role("support", AIModelPurpose.research)
-    chatbot = await resolve_role("support", AIModelPurpose.chatbot)
+    research = await resolve_role("support", AIModelPurpose.research, redis=test_services.redis)
+    chatbot = await resolve_role("support", AIModelPurpose.chatbot, redis=test_services.redis)
 
     assert research.model_name == chatbot.model_name == "one/model"
     assert research.service_tier == "flex" and research.reasoning_effort == "high"
     assert chatbot.service_tier == "none" and chatbot.reasoning_effort == "low"
 
 
-async def _create_chain(*models: tuple[str, int, bool]) -> None:
+async def _create_chain(*models: tuple[str, int, bool], test_services: object) -> None:
     """Several models claiming the same (support, chatbot), each with its own priority."""
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
     for name, priority, supports_images in models:
-        await catalog.create_model(
-            ModelCreate(
-                name=name,
-                provider="openrouter",
-                supports_images=supports_images,
-                roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=priority)],
-            )
-        )
+        await catalog.create_model(ModelCreate(
+            name=name,
+            provider="openrouter",
+            supports_images=supports_images,
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=priority)],
+        ), services=test_services)
 
 
-async def test_a_shared_purpose_resolves_to_a_chain_ordered_by_priority_then_name(_no_version_bump) -> None:
+async def test_a_shared_purpose_resolves_to_a_chain_ordered_by_priority_then_name(_no_version_bump, test_services: object) -> None:
     """Lower priority runs first; equal priorities fall back to the name so Mongo's order never leaks."""
-    await _create_chain(("b/model", 0, True), ("a/model", 0, True), ("z/model", -1, True))
-    await load_catalog()
+    await _create_chain(("b/model", 0, True), ("a/model", 0, True), ("z/model", -1, True), test_services=test_services)
+    await load_catalog(redis=test_services.redis)
 
-    roles = await resolve_roles("support", AIModelPurpose.chatbot)
+    roles = await resolve_roles("support", AIModelPurpose.chatbot, redis=test_services.redis)
 
     assert [role.model_name for role in roles] == ["z/model", "a/model", "b/model"]
 
 
-async def test_a_model_claiming_one_purpose_twice_is_tried_once(_no_version_bump) -> None:
+async def test_a_model_claiming_one_purpose_twice_is_tried_once(_no_version_bump, test_services: object) -> None:
     """A duplicate role row never meant "run this model twice in a row"."""
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"))
-    await catalog.create_model(
-        ModelCreate(
-            name="one/model",
-            provider="openrouter",
-            roles=[
-                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot),
-                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=5),
-            ],
-        )
-    )
-    await load_catalog()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
+    await catalog.create_model(ModelCreate(
+        name="one/model",
+        provider="openrouter",
+        roles=[
+            AIModelRole(mode="support", purpose=AIModelPurpose.chatbot),
+            AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=5),
+        ],
+    ), services=test_services)
+    await load_catalog(redis=test_services.redis)
 
-    roles = await resolve_roles("support", AIModelPurpose.chatbot)
+    roles = await resolve_roles("support", AIModelPurpose.chatbot, redis=test_services.redis)
 
     assert [role.model_name for role in roles] == ["one/model"]
 
 
-async def test_resolution_exposes_the_whole_chain_and_its_image_support(_no_version_bump) -> None:
+async def test_resolution_exposes_the_whole_chain_and_its_image_support(_no_version_bump, test_services: object) -> None:
     """The panel sees every candidate in run order, so an operator can tell what failover will do."""
-    await _create_chain(("first/model", 0, True), ("second/model", 1, False))
+    await _create_chain(("first/model", 0, True), ("second/model", 1, False), test_services=test_services)
 
     with patch.object(catalog, "get_catalog", catalog.load_catalog):
-        resolution = await catalog.get_resolution()
+        resolution = await catalog.get_resolution(services=test_services)
 
     chatbot = resolution.per_mode["support"]["chatbot"]
     # ``model`` stays the one that runs first, so a panel reading only that field keeps working.

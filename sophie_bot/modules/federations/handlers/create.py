@@ -43,7 +43,7 @@ class CreateFederationHandler(SophieMessageHandler):
 
         try:
             # Create federation
-            user_db = self.data.get("user_db")
+            user_db = self.data["context"].actor
             if not user_db:
                 await self.event.reply(_("This command can only be used by users."))
                 return

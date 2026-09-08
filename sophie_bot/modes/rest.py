@@ -1,29 +1,32 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 
-from sophie_bot.config import CONFIG
+from sophie_bot.config import CONFIG, Config
 from sophie_bot.runtime import build_rest_runtime
-from sophie_bot.services.rest import init_api_routers
+from sophie_bot.services.db import DatabaseResources
+from sophie_bot.services.rest import create_app
 from sophie_bot.startup import initialize_rest_mode
 from sophie_bot.utils.logger import log
 
 
-def create_rest_app() -> FastAPI:
-    runtime = build_rest_runtime()
-    app = runtime.app
+def create_rest_app(
+    *,
+    config: Config = CONFIG,
+    database: DatabaseResources | None = None,
+) -> FastAPI:
+    app = create_app(config)
 
     @asynccontextmanager
-    async def lifespan(active_app: FastAPI):
+    async def lifespan(active_app: FastAPI) -> AsyncIterator[None]:
         log.info("Starting up Sophie API...")
-
-        await initialize_rest_mode(runtime)
-        init_api_routers(active_app, runtime.loaded_modules.api_routers)
-
-        yield
+        async with build_rest_runtime(active_app, config=config, database=database) as runtime:
+            await initialize_rest_mode(runtime)
+            yield
         log.info("Shutting down Sophie API...")
 
     app.router.lifespan_context = lifespan

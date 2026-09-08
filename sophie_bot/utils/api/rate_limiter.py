@@ -1,8 +1,10 @@
+from typing import cast
+
 import structlog
 from fastapi import HTTPException, Request, status
 
 from sophie_bot.config import CONFIG
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
 
 log = structlog.get_logger(__name__)
 
@@ -27,11 +29,12 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
         limit: Maximum number of requests allowed in the window (default: 100)
         window: Time window in seconds (default: 60)
     """
+    redis = cast(ApplicationServices, request.app.state.services).redis
     client_ip = get_client_ip(request)
     key = f"rate_limit:{request.url.path}:{client_ip}"
 
     try:
-        async with aredis.pipeline() as pipe:
+        async with redis.pipeline() as pipe:
             pipe.incr(key)
             # NX: only set the TTL when the counter has none, so a client that keeps
             # sending cannot push the window's expiry back and lock itself out forever.
@@ -51,7 +54,7 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
     current_count = results[0]
     if current_count > limit:
         try:
-            ttl = await aredis.ttl(key)
+            ttl = await redis.ttl(key)
         except Exception:
             log.exception(
                 "Per-endpoint rate limiter Redis error while reading TTL, allowing request through",

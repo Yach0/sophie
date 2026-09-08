@@ -1,3 +1,4 @@
+from aiogram import Bot
 from aiogram.types import (
     BufferedInputFile,
     InlineKeyboardMarkup,
@@ -6,12 +7,16 @@ from aiogram.types import (
 )
 
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
-from sophie_bot.services.bot import bot
 
 
 async def send_captcha_message(
-    message: Message, captcha: EmojiCaptcha, caption: str, reply_markup: InlineKeyboardMarkup | None = None
-):
+    message: Message,
+    captcha: EmojiCaptcha,
+    caption: str,
+    reply_markup: InlineKeyboardMarkup | None = None,
+    *,
+    bot: Bot,
+) -> Message | bool:
     return await bot.edit_message_media(
         media=InputMediaPhoto(media=BufferedInputFile(captcha.image, "captcha.jpeg"), caption=caption),
         chat_id=message.chat.id,

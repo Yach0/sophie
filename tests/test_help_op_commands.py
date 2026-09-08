@@ -69,7 +69,7 @@ async def test_gather_cmds_help_marks_private_chat_type_as_pm_only() -> None:
 
     router.message.register(private_handler, CMDFilter("private"), ChatTypeFilter("private"))
 
-    helps = await gather_cmds_help(router)
+    helps = await gather_cmds_help(router, {}, {})
 
     assert len(helps) == 1
     assert helps[0].only_pm is True
@@ -85,7 +85,7 @@ async def test_gather_cmds_help_marks_inverted_private_chat_type_as_chats_only()
 
     router.message.register(group_handler, CMDFilter("group"), ~ChatTypeFilter("private"))
 
-    helps = await gather_cmds_help(router)
+    helps = await gather_cmds_help(router, {}, {})
 
     assert len(helps) == 1
     assert helps[0].only_pm is False

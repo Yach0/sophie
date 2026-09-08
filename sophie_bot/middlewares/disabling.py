@@ -19,7 +19,7 @@ class DisablingMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         if isinstance(event, Message):
-            chat_db = data["chat_db"]
+            chat_db = data["context"].event_chat
             disabled = await DisablingModel.get_disabled(chat_db.iid)
 
             data["disabled"] = disabled

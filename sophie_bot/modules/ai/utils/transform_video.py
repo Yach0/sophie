@@ -5,11 +5,12 @@ from collections.abc import Iterable
 from io import BufferedReader, BytesIO
 from typing import TYPE_CHECKING, BinaryIO
 
+from aiogram import Bot
 from aiogram.types import Video, VideoNote
+from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_MAX_VIDEO_SIZE_BYTES
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
-from sophie_bot.services.bot import bot
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -59,7 +60,7 @@ def _encode_audio_frames_as_ogg(frames: Iterable[AudioFrame]) -> bytes:
     return output_buffer.getvalue()
 
 
-async def extract_audio_from_video(video: Video | VideoNote) -> bytes | None:
+async def extract_audio_from_video(video: Video | VideoNote, *, bot: Bot) -> bytes | None:
     """Extract audio from video file using PyAV.
 
     Downloads the video file from Telegram, extracts audio using PyAV,
@@ -115,7 +116,7 @@ async def extract_audio_from_video(video: Video | VideoNote) -> bytes | None:
         return None
 
 
-async def transform_video_to_text(video: Video | VideoNote) -> str | None:
+async def transform_video_to_text(video: Video | VideoNote, *, bot: Bot, redis: Redis) -> str | None:
     """Transcribe video audio to text using Mistral AI.
 
     Downloads the video, extracts audio, and transcribes it using
@@ -127,14 +128,14 @@ async def transform_video_to_text(video: Video | VideoNote) -> str | None:
     Returns:
         Optional[str]: The transcribed text from the video, or None if transcription fails
     """
-    audio_bytes = await extract_audio_from_video(video)
+    audio_bytes = await extract_audio_from_video(video, bot=bot)
 
     if audio_bytes is None:
         return None
 
     audio_bytes_io = BufferedReader(BytesIO(audio_bytes))
 
-    client = await get_mistral_client()
+    client = await get_mistral_client(redis=redis)
     resp = await client.audio.transcriptions.complete_async(
         model="voxtral-mini-latest",
         file={

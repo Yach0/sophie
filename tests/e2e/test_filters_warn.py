@@ -10,7 +10,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
 from sophie_bot.modules.warns.utils import warn_user
-from sophie_bot.shared.actions import StoredAction
+from sophie_bot.shared.actions import RestrictionAction, RestrictionResult, StoredAction
 
 
 @pytest.mark.asyncio
@@ -68,16 +68,44 @@ async def test_warn_user_executes_each_and_max_actions(test_client: TestClient) 
     ]
     await settings.save()
 
+    execute_restriction = AsyncMock(
+        side_effect=[
+            RestrictionResult(
+                action=RestrictionAction.KICK,
+                applied=True,
+            ),
+            RestrictionResult(
+                action=RestrictionAction.KICK,
+                applied=True,
+            ),
+            RestrictionResult(
+                action=RestrictionAction.MUTE,
+                applied=True,
+            ),
+            RestrictionResult(
+                action=RestrictionAction.BAN,
+                applied=True,
+            ),
+        ]
+    )
+    services = test_client.dispatcher.workflow_data["services"]
     with (
         patch.object(WarnSettingsModel, "get_or_create", AsyncMock(return_value=settings)),
         patch.object(WarnModel, "count_user_warns", AsyncMock(side_effect=[1, 2])),
-        patch("sophie_bot.modules.warns.utils.kick_user", AsyncMock(return_value=True)) as kick_user_mock,
-        patch("sophie_bot.modules.warns.utils.mute_user", AsyncMock(return_value=True)) as mute_user_mock,
-        patch("sophie_bot.modules.warns.utils.ban_user", AsyncMock(return_value=True)) as ban_user_mock,
+        patch(
+            "sophie_bot.modules.warns.utils.execute_restriction",
+            execute_restriction,
+        ),
     ):
-        await warn_user(chat, user, user, "warn #1")
-        await warn_user(chat, user, user, "warn #2")
+        await warn_user(chat, user, user, "warn #1", services=services)
+        await warn_user(chat, user, user, "warn #2", services=services)
 
-    assert kick_user_mock.await_count == 2
-    assert mute_user_mock.await_count == 1
-    assert ban_user_mock.await_count == 1
+    assert [
+        call.args[1]
+        for call in execute_restriction.await_args_list
+    ] == [
+        RestrictionAction.KICK,
+        RestrictionAction.KICK,
+        RestrictionAction.MUTE,
+        RestrictionAction.BAN,
+    ]

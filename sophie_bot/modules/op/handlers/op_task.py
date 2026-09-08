@@ -94,10 +94,12 @@ class OpTaskHandler(SophieMessageHandler):
             await message.reply(str(Bold(_("Could not find chat model."))))
             return
 
-        messages: tuple[MessageType, ...] = await get_cached_messages(chat_tid, limit=_MESSAGE_HISTORY_LIMIT)
+        messages: tuple[MessageType, ...] = await get_cached_messages(
+            chat_tid, limit=_MESSAGE_HISTORY_LIMIT, redis=self.services.redis
+        )
         history_text = _build_history_context(messages)
 
-        history = AIMessageHistory()
+        history = AIMessageHistory(services=self.services)
         history.add_system(
             "You are a project management assistant for SophieBot, a Telegram bot. "
             "Analyze the provided chat context and operator notes to generate a well-structured GitLab issue. "
@@ -113,7 +115,11 @@ class OpTaskHandler(SophieMessageHandler):
 
         history.add_custom("\n\n".join(prompt_parts), name="OperatorTask")
 
-        model_plan = await get_chat_summary_model_plan(chat_model.iid, chat_tid=chat_tid)
+        model_plan = await get_chat_summary_model_plan(
+            chat_model.iid,
+            chat_tid=chat_tid,
+            redis=self.services.redis,
+        )
         try:
             result = await run_structured_task(
                 AIStructuredTask(
@@ -124,6 +130,7 @@ class OpTaskHandler(SophieMessageHandler):
                 history,
                 chat_iid=chat_model.iid,
                 chat_tid=chat_tid,
+                redis=self.services.redis,
             )
         except AIRequestFailed as err:
             await message.reply(

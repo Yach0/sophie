@@ -54,8 +54,8 @@ class TestChatMigration:
         await middleware(mock_handler, update, base_data)
 
         # Assert
-        assert "chat_db" in base_data
-        migrated_group = base_data["chat_db"]
+        context = base_data["context"]
+        migrated_group = context.event_chat
         assert migrated_group.tid == -1001234567890
         assert migrated_group.type == ChatType.supergroup
 
@@ -184,8 +184,7 @@ class TestChatMigration:
         # Act
         await middleware(mock_handler, update, base_data)
 
-        # Assert - Migration should complete without errors
-        assert "chat_db" in base_data
+        assert base_data["context"].event_chat.tid == -1001234567890
 
     @pytest.mark.asyncio
     async def test_migration_from_nonexistent_group(
@@ -214,10 +213,7 @@ class TestChatMigration:
         # Act
         await middleware(mock_handler, update, base_data)
 
-        # Assert - Should still create the new group in data
-        assert "chat_db" in base_data
-        # Note: When migrating from non-existent group, the middleware may not
-        # create a new ChatModel entry depending on implementation details
+        assert mock_handler.called
 
     @pytest.mark.asyncio
     async def test_both_migration_fields_present(

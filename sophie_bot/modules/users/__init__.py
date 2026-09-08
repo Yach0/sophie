@@ -15,7 +15,7 @@ router = Router(name="users")
 
 module_manifest = ModuleManifest(
     name="users",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         ShowIDHandler,
         AdminListHandler,

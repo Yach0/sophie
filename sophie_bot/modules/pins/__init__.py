@@ -13,7 +13,7 @@ router = Router(name="pins")
 
 module_manifest = ModuleManifest(
     name="pins",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=[PinHandler, UnpinHandler],
     title=l_("Pins"),
     emoji="📌",

@@ -4,10 +4,10 @@ from math import ceil
 
 import ujson
 from httpx2 import AsyncClient, HTTPError
+from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
 ai_http_client = AsyncClient(timeout=30)
@@ -15,13 +15,13 @@ _pricing_cache_ttl_seconds = 3600.0
 _PRICING_CACHE_KEY = "sophie:ai:openrouter_pricing"
 
 
-async def clear_model_pricing_cache() -> None:
-    await aredis.delete(_PRICING_CACHE_KEY)
+async def clear_model_pricing_cache(*, redis: Redis) -> None:
+    await redis.delete(_PRICING_CACHE_KEY)
 
 
-async def refresh_model_pricing_cache() -> dict[str, tuple[float | None, float | None]]:
-    await clear_model_pricing_cache()
-    return await _load_openrouter_pricing_cache()
+async def refresh_model_pricing_cache(*, redis: Redis) -> dict[str, tuple[float | None, float | None]]:
+    await clear_model_pricing_cache(redis=redis)
+    return await _load_openrouter_pricing_cache(redis=redis)
 
 
 async def close_model_pricing_client() -> None:
@@ -48,8 +48,8 @@ def _parse_price_per_million(raw_price: object) -> float | None:
         return None
 
 
-async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, float | None]]:
-    cached_data = await aredis.get(_PRICING_CACHE_KEY)
+async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[float | None, float | None]]:
+    cached_data = await redis.get(_PRICING_CACHE_KEY)
     if cached_data is not None:
         try:
             cache = ujson.loads(cached_data)
@@ -77,14 +77,14 @@ async def _load_openrouter_pricing_cache() -> dict[str, tuple[float | None, floa
         )
 
     serialized = ujson.dumps(cache)
-    await aredis.set(_PRICING_CACHE_KEY, serialized)
-    await aredis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
+    await redis.set(_PRICING_CACHE_KEY, serialized)
+    await redis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
 
     return cache
 
 
-async def get_model_pricing(model_name: str) -> tuple[float | None, float | None]:
-    pricing_cache = await _load_openrouter_pricing_cache()
+async def get_model_pricing(model_name: str, *, redis: Redis) -> tuple[float | None, float | None]:
+    pricing_cache = await _load_openrouter_pricing_cache(redis=redis)
     return pricing_cache.get(model_name, (None, None))
 
 
@@ -93,8 +93,10 @@ async def estimate_model_credit_cost(
     total_tokens: int,
     input_tokens: int | None,
     output_tokens: int | None,
+    *,
+    redis: Redis,
 ) -> int:
-    input_price, output_price = await get_model_pricing(model_name)
+    input_price, output_price = await get_model_pricing(model_name, redis=redis)
     if input_price is None and output_price is None:
         return ceil(total_tokens / AI_CREDITS_PER_TOKEN)
 

@@ -14,7 +14,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -24,6 +24,9 @@ BATCH_SIZE: Final[int] = 100
 
 class ProcessFederationExports:
     """Scheduler job to process federation ban list exports."""
+
+    def __init__(self, services: ApplicationServices) -> None:
+        self.services = services
 
     async def handle(self) -> None:
         """Process all pending export tasks."""
@@ -50,7 +53,7 @@ class ProcessFederationExports:
 
             filename = f"{task.fed_id}_bans.csv"
             document = BufferedInputFile(csv_bytes, filename=filename)
-            message = await bot.send_document(
+            message = await self.services.bot.send_document(
                 chat_id=chat.tid,
                 document=document,
                 caption=self._build_caption(task, ban_count),
@@ -63,7 +66,7 @@ class ProcessFederationExports:
         except Exception as err:
             log.error("Failed to complete export", task_id=str(task.id), exc_info=err)
             await self._update_task_status(task, TaskStatus.FAILED, str(err))
-            await notify_task_failed(task, str(err))
+            await notify_task_failed(task, str(err), bot=self.services.bot)
             raise
 
     async def _generate_banlist_csv(self, fed_id: str) -> tuple[bytes, int]:

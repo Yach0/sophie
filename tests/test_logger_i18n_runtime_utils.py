@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 from sophie_bot.utils import logger
 from sophie_bot.utils.i18n import I18nNew, LocaleStats
-from sophie_bot.utils.runtime_proxy import RuntimeProxy
 
 
 def test_not_handled_filter_suppresses_unhandled_update_noise() -> None:
@@ -60,20 +59,6 @@ def test_ensure_log_directory_ignores_os_errors(monkeypatch) -> None:
     logger._ensure_log_directory()
 
 
-def test_runtime_proxy_forwards_call_attributes_repr_and_dir() -> None:
-    target = SimpleNamespace(value=42, __call__=None)
-
-    def callable_target(prefix: str) -> str:
-        return f"{prefix}:result"
-
-    callable_target.value = 42  # type: ignore[attr-defined]
-    proxy = RuntimeProxy(lambda: callable_target)
-
-    assert proxy("prefix") == "prefix:result"
-    assert proxy.value == 42
-    assert repr(proxy) == repr(callable_target)
-    assert "value" in dir(proxy)
-    assert target.value == 42
 
 
 def test_locale_stats_percent_translated_handles_empty_and_mixed_stats() -> None:

@@ -7,12 +7,14 @@ from aiogram import BaseMiddleware
 from aiogram.types import Chat, TelegramObject
 from beanie import PydanticObjectId
 from beanie.odm.fields import Link as BeanieLink
+from redis.asyncio import Redis
 
 from sophie_bot.db.models import ChatConnectionModel, ChatConnectionSettingsModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -30,10 +32,17 @@ class ChatConnection:
 
 class ConnectionsMiddleware(BaseMiddleware):
     @staticmethod
-    async def get_current_chat_info(chat: Chat) -> ChatConnection:
+    async def get_current_chat_info(
+        chat: Chat,
+        persisted_chat: ChatModel | None = None,
+    ) -> ChatConnection:
         title = chat.title if chat.type != "private" and chat.title else _("Private chat")
 
-        db_model = await ChatModel.get_by_tid(chat.id)
+        db_model = (
+            persisted_chat
+            if persisted_chat is not None and persisted_chat.tid == chat.id
+            else await ChatModel.get_by_tid(chat.id)
+        )
         if not db_model:
             if chat.type == "private":
                 db_model = ChatModel(
@@ -74,19 +83,29 @@ class ConnectionsMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        real_chat: Chat = data["event_chat"]
+        services: ApplicationServices = data["services"]
+        context: RequestContext = data["context"]
+        real_chat: Chat | None = data.get("event_chat")
+        if real_chat is None:
+            return await handler(event, data)
 
         # Handle non-private chats
         if real_chat.type != "private":
             log.debug("ConnectionsMiddleware: Non-private chat")
-            data["connection"] = await self.get_current_chat_info(real_chat)
+            context.connection = await self.get_current_chat_info(
+                real_chat,
+                context.event_chat,
+            )
             return await handler(event, data)
 
         connection = await ChatConnectionModel.get_by_user_tid(real_chat.id)
 
         if not connection or not connection.chat:
             log.debug("ConnectionsMiddleware: Not connected!")
-            data["connection"] = await self.get_current_chat_info(real_chat)
+            context.connection = await self.get_current_chat_info(
+                real_chat,
+                context.event_chat,
+            )
             return await handler(event, data)
 
         # Check expiry
@@ -101,7 +120,10 @@ class ConnectionsMiddleware(BaseMiddleware):
                 connection.expires_at = None
                 await connection.save()
 
-                data["connection"] = await self.get_current_chat_info(real_chat)
+                context.connection = await self.get_current_chat_info(
+                    real_chat,
+                    context.event_chat,
+                )
                 return await handler(event, data)
 
         connection_chat = await connection.chat.fetch()
@@ -124,13 +146,16 @@ class ConnectionsMiddleware(BaseMiddleware):
                 )
             )
 
-            data["connection"] = await self.get_current_chat_info(real_chat)
+            context.connection = await self.get_current_chat_info(
+                real_chat,
+                context.event_chat,
+            )
             return await handler(event, data)
 
         # Re-validate that the user still has permission for this connection.
         # Throttled via Redis to avoid a DB query on every single request.
         user_iid: PydanticObjectId = connection.user.ref.id
-        if not await self._is_permission_cached(user_iid, connection_chat.iid):
+        if not await self._is_permission_cached(user_iid, connection_chat.iid, redis=services.redis):
             if not await self._check_connection_permissions(connection_chat.iid, user_iid):
                 log.info(
                     "ConnectionsMiddleware: permission denied on re-check, disconnecting",
@@ -148,19 +173,23 @@ class ConnectionsMiddleware(BaseMiddleware):
                     )
                 )
 
-                data["connection"] = await self.get_current_chat_info(real_chat)
+                context.connection = await self.get_current_chat_info(
+                    real_chat,
+                    context.event_chat,
+                )
                 return await handler(event, data)
 
-            await self._cache_permission(user_iid, connection_chat.iid)
+            await self._cache_permission(user_iid, connection_chat.iid, redis=services.redis)
 
         log.debug("ConnectionsMiddleware: connected!")
-        data["connection"] = ChatConnection(
+        context.connection = ChatConnection(
             is_connected=True,
             tid=connection_chat.tid,
             type=connection_chat.type,
             title=connection_chat.first_name_or_title,
             db_model=connection_chat,
         )
+        context.target_chat = connection_chat
         return await handler(event, data)
 
     @staticmethod
@@ -176,13 +205,23 @@ class ConnectionsMiddleware(BaseMiddleware):
         return f"conn_perm_ok:{user_iid}:{chat_iid}"
 
     @staticmethod
-    async def _is_permission_cached(user_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> bool:
+    async def _is_permission_cached(
+        user_iid: PydanticObjectId,
+        chat_iid: PydanticObjectId,
+        *,
+        redis: Redis,
+    ) -> bool:
         """Return True if permissions were recently validated (within TTL)."""
         key = ConnectionsMiddleware._permission_cache_key(user_iid, chat_iid)
-        return await aredis.exists(key) == 1
+        return await redis.exists(key) == 1
 
     @staticmethod
-    async def _cache_permission(user_iid: PydanticObjectId, chat_iid: PydanticObjectId) -> None:
+    async def _cache_permission(
+        user_iid: PydanticObjectId,
+        chat_iid: PydanticObjectId,
+        *,
+        redis: Redis,
+    ) -> None:
         """Mark permissions as validated for the throttle window."""
         key = ConnectionsMiddleware._permission_cache_key(user_iid, chat_iid)
-        await aredis.set(key, b"1", ex=_PERMISSION_RECHECK_TTL_SECONDS)
+        await redis.set(key, b"1", ex=_PERMISSION_RECHECK_TTL_SECONDS)

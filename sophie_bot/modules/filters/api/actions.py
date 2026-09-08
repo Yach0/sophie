@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTER_MAX_ACTIONS
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.services.rest import ServicesDep
 from sophie_bot.utils.api.auth import get_current_user
 
 from .dependencies import require_filters_feature
@@ -19,6 +20,7 @@ router = APIRouter(
 
 @router.get("", response_model=FilterActionsCatalogResponse)
 async def list_filter_actions(
+    services: ServicesDep,
     user: ChatModel = Depends(get_current_user),  # noqa: B008  # FastAPI dependency
 ) -> FilterActionsCatalogResponse:
     _ = user
@@ -27,5 +29,5 @@ async def list_filter_actions(
             max_actions_per_filter=FILTER_MAX_ACTIONS,
             max_ai_filters_per_chat=AI_FILTER_LIMIT_PER_CHAT,
         ),
-        actions=build_filter_action_catalog(),
+        actions=build_filter_action_catalog(services.modules.actions),
     )

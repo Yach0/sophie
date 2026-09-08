@@ -11,7 +11,7 @@ from aiogram_test_framework.factories import ChatFactory
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.json_schemas.research import ResearchFinalResponse, ResearchSource
 from sophie_bot.modules.ai.utils.research import ResearchWorkflowResult
-from sophie_bot.utils.feature_flags import set_enabled
+from tests.e2e.helpers import set_feature
 
 
 def _apply_ai_research_patches(stack: ExitStack) -> None:
@@ -33,7 +33,7 @@ def _apply_ai_research_patches(stack: ExitStack) -> None:
 
 @pytest.mark.asyncio
 async def test_research_command_is_silent_when_feature_flag_disabled(test_client: TestClient) -> None:
-    await set_enabled("ai_research", False)
+    await set_feature(test_client, "ai_research", False)
     group_chat = ChatFactory.create_group(chat_id=-1002910000001, title="Research Disabled Group")
     user_wrapper = test_client.create_user(user_id=929100001, first_name="ResearchUser", username="research_user")
 
@@ -57,7 +57,7 @@ async def test_research_command_is_silent_when_feature_flag_disabled(test_client
 
 @pytest.mark.asyncio
 async def test_research_command_returns_summary_and_sources(test_client: TestClient) -> None:
-    await set_enabled("ai_research", True)
+    await set_feature(test_client, "ai_research", True)
     group_chat = ChatFactory.create_group(chat_id=-1002910000002, title="Research Enabled Group")
     user_wrapper = test_client.create_user(user_id=929100002, first_name="ResearchUser", username="research_enabled")
     response = ResearchFinalResponse(
@@ -104,4 +104,4 @@ async def test_research_command_returns_summary_and_sources(test_client: TestCli
     assert "https://example.com/research" in response_text
     workflow_mock.assert_awaited_once()
 
-    await set_enabled("ai_research", False)
+    await set_feature(test_client, "ai_research", False)

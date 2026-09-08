@@ -22,6 +22,7 @@ from sophie_bot.modules.filters.utils_.filter_action_text import filter_action_t
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit_rich
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
@@ -45,7 +46,14 @@ class FiltersListHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
-        await _render_filter_page(self.event, self.connection.tid, self.connection.title, filters, 0)
+        await _render_filter_page(
+            self.event,
+            self.connection.tid,
+            self.connection.title,
+            filters,
+            0,
+            services=self.services,
+        )
 
 
 class FiltersPageHandler(SophieCallbackQueryHandler):
@@ -66,6 +74,7 @@ class FiltersPageHandler(SophieCallbackQueryHandler):
             self.connection.title,
             filters,
             self.data["callback_data"].page,
+            services=self.services,
         )
         await callback.answer()
 
@@ -109,7 +118,7 @@ class FilterDeletePromptHandler(SophieCallbackQueryHandler):
         if filter_model is None:
             await callback.answer(_("Filter not found."), show_alert=True)
             return
-        await _show_delete_confirmation(callback, filter_model)
+        await _show_delete_confirmation(callback, filter_model, services=self.services)
 
 
 class FilterDeleteConfirmHandler(SophieCallbackQueryHandler):
@@ -137,7 +146,7 @@ class FilterDeleteConfirmHandler(SophieCallbackQueryHandler):
         await callback.answer(_("Filter deleted."))
         if callback.message and isinstance(callback.message, Message):
             document = Template(_("🗑 The filter with keyword {keyword} was deleted!"), keyword=keyword)
-            await reply_or_edit_rich(callback, document)
+            await reply_or_edit_rich(callback, document, bot=self.services.bot)
 
 
 async def _get_owned_filter(chat_iid: PydanticObjectId, raw_oid: str) -> FiltersModel | None:
@@ -148,11 +157,20 @@ async def _get_owned_filter(chat_iid: PydanticObjectId, raw_oid: str) -> Filters
     return await FiltersModel.find_one(FiltersModel.id == oid, FiltersModel.chat.id == chat_iid)
 
 
-async def _show_delete_confirmation(callback: CallbackQuery, filter_model: FiltersModel) -> None:
+async def _show_delete_confirmation(
+    callback: CallbackQuery,
+    filter_model: FiltersModel,
+    *,
+    services: ApplicationServices,
+) -> None:
     if not callback.message or not isinstance(callback.message, Message):
         await callback.answer(_("Message not found."))
         return
-    summary = filter_action_text(filter_model.action, list(filter_model.actions.keys()))
+    summary = filter_action_text(
+        filter_model.action,
+        list(filter_model.actions),
+        services.modules.actions,
+    )
     document = Doc(
         Template(_("Delete filter {handler}?"), handler=filter_model.handler),
         KeyValue(_("Actions"), summary),
@@ -169,6 +187,7 @@ async def _show_delete_confirmation(callback: CallbackQuery, filter_model: Filte
     await reply_or_edit_rich(
         callback,
         document,
+        bot=services.bot,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=_("Cancel"), callback_data=FiltersPageCallback(page=0).pack())]]
         ),
@@ -182,18 +201,34 @@ async def _render_filter_page(
     chat_title: str | None,
     all_filters: list[FiltersModel],
     requested_page: int,
+    *,
+    services: ApplicationServices,
 ) -> None:
     if not all_filters:
         document = Doc(_("There are no filters in this chat!\nUse /addfilter <handler> to create one."))
-        await reply_or_edit_rich(event, document)
+        await reply_or_edit_rich(event, document, bot=services.bot)
         return
 
     page = paginate(all_filters, _PAGE_SIZE, requested_page)
-    edit_enabled = await is_enabled("action_config_wizard", chat_tid=chat_tid)
+    edit_enabled = await is_enabled(
+        "action_config_wizard",
+        chat_tid=chat_tid,
+        redis=services.redis,
+    )
     button_rows: list[ButtonRow] = []
     rows: list[Any] = []
     for item in page.items:
-        rows.append(KeyValue(item.handler, filter_action_text(item.action, list(item.actions.keys())), suffix=" -> "))
+        rows.append(
+            KeyValue(
+                item.handler,
+                filter_action_text(
+                    item.action,
+                    list(item.actions),
+                    services.modules.actions,
+                ),
+                suffix=" -> ",
+            )
+        )
         controls: list[Button] = []
         if edit_enabled:
             controls.append(
@@ -217,4 +252,4 @@ async def _render_filter_page(
     markup: InlineKeyboardMarkup | None = None
     if navigation:
         markup = InlineKeyboardMarkup(inline_keyboard=[navigation])
-    await reply_or_edit_rich(event, document, reply_markup=markup)
+    await reply_or_edit_rich(event, document, bot=services.bot, reply_markup=markup)

@@ -7,6 +7,7 @@ from typing import cast
 from beanie import PydanticObjectId
 from pydantic import BaseModel
 from pydantic_ai import Agent
+from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, AIRequestOptions, run_ai_structured
@@ -33,6 +34,8 @@ async def run_structured_task[OutputT: BaseModel](
     chat_tid: int | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
+    *,
+    redis: Redis,
 ) -> AIAgentResult[OutputT]:
     """Run a structured task over its purpose's model plan.
 
@@ -40,7 +43,11 @@ async def run_structured_task[OutputT: BaseModel](
     arrives here, so the plan's failover applies to all of them without any of them looping itself.
     """
     resolved_service_tier = service_tier or (
-        await get_service_tier(task.service_tier_feature_key, chat_tid=chat_tid)
+        await get_service_tier(
+            task.service_tier_feature_key,
+            chat_tid=chat_tid,
+            redis=redis,
+        )
         if task.service_tier_feature_key is not None
         else None
     )
@@ -59,5 +66,11 @@ async def run_structured_task[OutputT: BaseModel](
         model_plan=model_plan,
     )
     if chat_iid is not None and task.feature is not None and result.usage and result.usage.total_tokens:
-        await charge_ai_usage(chat_iid, task.feature, result.served_model or model_plan.primary, result.usage)
+        await charge_ai_usage(
+            chat_iid,
+            task.feature,
+            result.served_model or model_plan.primary,
+            result.usage,
+            redis=redis,
+        )
     return result

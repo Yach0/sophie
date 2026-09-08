@@ -13,15 +13,13 @@ from stfu_tg import KeyValue, Section, UserLink
 from sophie_bot.args.users import SophieUserArg
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.utils_.admin import get_admins_rights
+from sophie_bot.modules.utils_.admin import get_admin_record, get_admins_rights
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN, USER_NOT_ADMIN
-from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -104,10 +102,7 @@ class PromoteUserHandler(SophieMessageHandler):
             user_model = await ChatModel.get_by_tid(invoker_id)
             chat_model = connection.db_model
             if user_model and chat_model:
-                admin_record = await ChatAdminModel.find_one(
-                    ChatAdminModel.chat.id == chat_model.iid,
-                    ChatAdminModel.user.id == user_model.iid,
-                )
+                admin_record = await get_admin_record(chat_model, user_model)
                 if admin_record and admin_record.member.status == ChatMemberStatus.CREATOR:
                     grant_all = True
 
@@ -123,7 +118,7 @@ class PromoteUserHandler(SophieMessageHandler):
                 granted_permissions = {perm: False for perm in PROMOTE_PERMISSIONS}
 
         try:
-            await bot.promote_chat_member(
+            await self.services.bot.promote_chat_member(
                 chat_id=connection.tid,
                 user_id=user.chat_id,
                 **granted_permissions,
@@ -136,7 +131,7 @@ class PromoteUserHandler(SophieMessageHandler):
 
         if admin_title:
             try:
-                await bot.set_chat_administrator_custom_title(
+                await self.services.bot.set_chat_administrator_custom_title(
                     chat_id=connection.tid, user_id=user.chat_id, custom_title=admin_title
                 )
             except TelegramBadRequest as err:
@@ -146,7 +141,7 @@ class PromoteUserHandler(SophieMessageHandler):
                     raise
 
         # Reset admin cache
-        await get_admins_rights(connection.tid)
+        await get_admins_rights(connection.tid, bot=self.services.bot)
 
         doc = Section(
             KeyValue(_("Chat"), connection.title),

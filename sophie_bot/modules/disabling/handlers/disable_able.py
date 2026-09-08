@@ -4,7 +4,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Section
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS, HandlerHelp
+from sophie_bot.modules.help.utils.extract_info import HandlerHelp
 from sophie_bot.modules.help.utils.format_help import format_handlers
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -19,9 +19,8 @@ class ListDisableable(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (CMDFilter("disableable"),)
 
-    @staticmethod
-    def get_disable_able_commands() -> list[HandlerHelp]:
-        return list(DISABLEABLE_CMDS.values())
+    def get_disable_able_commands(self) -> list[HandlerHelp]:
+        return list(self.services.modules.disableable_commands.values())
 
     async def handle(self) -> Any:
         await self.event.reply(

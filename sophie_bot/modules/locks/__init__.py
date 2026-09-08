@@ -14,6 +14,7 @@ from sophie_bot.modules.locks.handlers.unlock_all import UnlockAllCallbackHandle
 from sophie_bot.modules.locks.handlers.unlock_all_cmd import UnlockAllCmdHandler
 from sophie_bot.modules.locks.middlewares.enforcer import LocksEnforcerMiddleware
 from sophie_bot.modules.locks.middlewares.reaction_enforcer import ReactionLocksEnforcerMiddleware
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -28,7 +29,7 @@ __all__ = (
 )
 
 
-async def pre_setup() -> None:
+async def setup_bot(router: Router, _services: ApplicationServices) -> None:
     router.message.outer_middleware(LocksEnforcerMiddleware())
     router.edited_message.outer_middleware(LocksEnforcerMiddleware())
     router.message_reaction.outer_middleware(ReactionLocksEnforcerMiddleware())
@@ -36,8 +37,8 @@ async def pre_setup() -> None:
 
 module_manifest = ModuleManifest(
     name="locks",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         ListLockableHandler,
         LockHandler,
@@ -48,7 +49,7 @@ module_manifest = ModuleManifest(
         UnlockAllCmdHandler,
         UnlockAllCallbackHandler,
     ),
-    pre_setup=pre_setup,
+    setup_bot=setup_bot,
     title=l_("Locks"),
     emoji="🔓",
     description=l_("Lock specific message types in chats"),
