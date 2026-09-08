@@ -62,6 +62,4 @@ async def ws_on_new_users_mute(
     bot: Bot,
     redis: Redis,
 ) -> list[bool]:
-    return await asyncio.gather(
-        *(ws_on_new_user_mute(new_user, chat, bot=bot, redis=redis) for new_user in new_users)
-    )
+    return await asyncio.gather(*(ws_on_new_user_mute(new_user, chat, bot=bot, redis=redis) for new_user in new_users))
