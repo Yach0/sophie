@@ -466,7 +466,7 @@ def _with_hard_output_token_limit(
             (default_model_settings or {}).get("max_tokens"),
             (model_settings or {}).get("max_tokens"),
         )
-        if isinstance(setting, int) and setting > 0
+        if isinstance(setting, int) and setting >= 0
     ]
     max_tokens = min([output_tokens_limit, *configured_limits])
     return {**(model_settings or {}), "max_tokens": max_tokens}

@@ -204,6 +204,19 @@ async def test_output_limit_caps_non_streaming_provider_requests_too() -> None:
     assert agent.run_kwargs["model_settings"]["max_tokens"] == 11
 
 
+async def test_output_limit_preserves_zero_provider_generation_ceiling() -> None:
+    agent = FakeRunAgent(TestModel(settings={"max_tokens": 0}))
+
+    await run_ai_text(
+        cast(Agent[Any, str], agent),
+        "Say nothing",
+        usage_limits=UsageLimits(output_tokens_limit=37),
+    )
+
+    assert agent.run_kwargs is not None
+    assert agent.run_kwargs["model_settings"]["max_tokens"] == 0
+
+
 async def test_run_ai_stream_legacy_path_sends_cumulative_text_and_deduplicates_tools() -> None:
     streamed_text: list[str] = []
     tool_calls: list[str] = []
