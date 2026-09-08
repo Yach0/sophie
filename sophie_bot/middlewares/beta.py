@@ -29,7 +29,8 @@ class BetaMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        chat_db: ChatModel | None = data["context"].event_chat
+        context = data["context"]
+        chat_db: ChatModel | None = context.event_chat or context.actor
 
         if chat_db and await self.is_beta(chat_db):
             json_request = self.get_data(event)

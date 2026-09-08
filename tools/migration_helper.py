@@ -3,15 +3,28 @@
 
 import argparse
 import asyncio
+import importlib.util
 import json
-import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from beanie.migrations.controllers.base import BaseMigrationController
+
 # Add project root to path to allow importing sophie_bot
 sys.path.append(str(Path(__file__).parent.parent))
 
+from sophie_bot.config import CONFIG
+from sophie_bot.services.db import init_db, open_database
+from sophie_bot.services.migrations import (
+    MigrationResources,
+    _run_single_migration,
+    get_migration_status,
+    run_all_migrations_backward,
+    run_migration_backward,
+    run_migrations,
+)
+from sophie_bot.services.redis import create_redis
 
 MIGRATION_TEMPLATE = '''"""Migration: {name}
 
@@ -148,8 +161,6 @@ def validate_migration(path: str) -> None:
         return
 
     # Try to import the migration
-    import importlib.util
-
     spec = importlib.util.spec_from_file_location(migration_path.stem, migration_path)
 
     if spec is None or spec.loader is None:
@@ -174,8 +185,6 @@ def validate_migration(path: str) -> None:
         return
 
     # Check Forward class
-    from beanie.migrations.controllers.base import BaseMigrationController
-
     forward_class = module.Forward
     has_migration_func = False
 
@@ -208,87 +217,34 @@ def validate_migration(path: str) -> None:
     print(f"✓ Migration {migration_path.name} is valid")
 
 
-async def run_migrations_up() -> None:
-    """Run all pending migrations."""
-    # Set environment variable to force migration run
-    os.environ["RUN_MIGRATIONS_ON_STARTUP"] = "true"
-
+async def run_database_command(args: argparse.Namespace) -> None:
+    """Own the clients and Beanie binding for a database-backed CLI command."""
     try:
-        from sophie_bot.services.migrations import run_migrations
-
-        await run_migrations()
-    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
-        print(f"Error running migrations: {error}")
-        sys.exit(1)
-
-
-async def run_single_migration(migration_name: str) -> None:
-    """
-    Run a specific migration by name.
-
-    Args:
-        migration_name: Name of the migration to run
-    """
-    # Set environment variable to force migration run
-    os.environ["RUN_MIGRATIONS_ON_STARTUP"] = "true"
-
-    try:
-        from sophie_bot.services.migrations import _run_single_migration
-
-        await _run_single_migration(migration_name)
-    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
-        print(f"Error running migration: {error}")
-        sys.exit(1)
+        async with open_database(CONFIG) as database:
+            redis = create_redis(CONFIG)
+            try:
+                await init_db(database.database, config=CONFIG, skip_indexes=True)
+                resources = MigrationResources(database=database, redis=redis)
+                match args.command:
+                    case "up":
+                        await run_migrations(resources)
+                    case "run":
+                        await _run_single_migration(args.migration, resources)
+                    case "down":
+                        await run_migration_backward(args.migration, resources)
+                    case "down_all":
+                        await run_all_migrations_backward(resources)
+                    case "status":
+                        status = await get_migration_status(resources)
+                        print(json.dumps(status, indent=2))
+            finally:
+                await redis.aclose()
+    except Exception as error:  # CLI boundary: report failures after releasing clients
+        print(f"Error running migration command '{args.command}': {error}")
+        raise SystemExit(1) from error
 
 
-async def run_migration_down(migration_name: str) -> None:
-    """
-    Rollback a specific migration.
-
-    Args:
-        migration_name: Name of the migration to rollback
-    """
-    # Set environment variable to force migration run
-    os.environ["RUN_MIGRATIONS_ON_STARTUP"] = "true"
-
-    try:
-        from sophie_bot.services.migrations import run_migration_backward
-
-        await run_migration_backward(migration_name)
-    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
-        print(f"Error rolling back migration: {error}")
-        sys.exit(1)
-
-
-async def run_all_migrations_down() -> None:
-    """
-    Rollback all applied migrations.
-    """
-    # Set environment variable to force migration run
-    os.environ["RUN_MIGRATIONS_ON_STARTUP"] = "true"
-
-    try:
-        from sophie_bot.services.migrations import run_all_migrations_backward
-
-        await run_all_migrations_backward()
-    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
-        print(f"Error rolling back all migrations: {error}")
-        sys.exit(1)
-
-
-async def show_migration_status() -> None:
-    """Show status of all migrations."""
-    try:
-        from sophie_bot.services.migrations import get_migration_status
-
-        status = await get_migration_status()
-        print(json.dumps(status, indent=2))
-    except Exception as error:  # noqa: BLE001  # CLI boundary: report any failure and exit non-zero
-        print(f"Error getting migration status: {error}")
-        sys.exit(1)
-
-
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="Beanie migration helper",
@@ -365,16 +321,8 @@ Examples:
         list_migrations(args.path)
     elif args.command == "validate":
         validate_migration(args.path)
-    elif args.command == "up":
-        asyncio.run(run_migrations_up())
-    elif args.command == "run":
-        asyncio.run(run_single_migration(args.migration))
-    elif args.command == "down":
-        asyncio.run(run_migration_down(args.migration))
-    elif args.command == "down_all":
-        asyncio.run(run_all_migrations_down())
-    elif args.command == "status":
-        asyncio.run(show_migration_status())
+    elif args.command in {"up", "run", "down", "down_all", "status"}:
+        asyncio.run(run_database_command(args))
     else:
         parser.print_help()
 

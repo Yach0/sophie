@@ -24,6 +24,7 @@ from sophie_bot.utils.cached import RedisCache
 
 @dataclass(slots=True)
 class BotModeRuntime:
+    config: Config
     services: ApplicationServices
     dispatcher: Dispatcher
     storage: RedisStorage
@@ -31,12 +32,14 @@ class BotModeRuntime:
 
 @dataclass(slots=True)
 class RestModeRuntime:
+    config: Config
     services: ApplicationServices
     app: FastAPI
 
 
 @dataclass(slots=True)
 class SchedulerModeRuntime:
+    config: Config
     services: ApplicationServices
     scheduler: AsyncIOScheduler
 
@@ -90,7 +93,7 @@ async def build_bot_runtime(
         dispatcher, storage = create_dispatcher(config)
         dispatcher.workflow_data["services"] = services
         try:
-            yield BotModeRuntime(services=services, dispatcher=dispatcher, storage=storage)
+            yield BotModeRuntime(config=config, services=services, dispatcher=dispatcher, storage=storage)
         finally:
             await storage.close()
 
@@ -105,7 +108,7 @@ async def build_rest_runtime(
     async with _build_application_services(config, database) as services:
         app.state.services = services
         try:
-            yield RestModeRuntime(services=services, app=app)
+            yield RestModeRuntime(config=config, services=services, app=app)
         finally:
             app.state.services = None
 
@@ -118,4 +121,4 @@ async def build_scheduler_runtime(
 ) -> AsyncIterator[SchedulerModeRuntime]:
     async with _build_application_services(config, database) as services:
         scheduler = create_scheduler(config)
-        yield SchedulerModeRuntime(services=services, scheduler=scheduler)
+        yield SchedulerModeRuntime(config=config, services=services, scheduler=scheduler)

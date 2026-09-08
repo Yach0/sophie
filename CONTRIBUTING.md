@@ -65,6 +65,7 @@ Key points:
 - **Type Safety**: **ALWAYS** use type annotations for all function parameters and return values.
 - **Functional Programming**: We prefer pure functions and async/await patterns.
 - **Explicit Runtime State**: Runtime resources belong to `ApplicationServices`; per-update state belongs to `RequestContext`. Do not add module-level bot, dispatcher, Redis, or database proxies.
+- **Runtime Configuration**: Use the mode runtime's `config` when initializing its resources. Pass it to database initialization so a custom runtime does not inherit process-global index settings.
 - **Explicit Naming**: Use `chat_tid` for Telegram Chat IDs (int) and `chat_iid` for database IDs (ObjectId). **NEVER** confuse them.
 
 ---

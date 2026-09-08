@@ -55,10 +55,6 @@ def _bind_migration_resources(
 
 
 async def run_migrations(resources: MigrationResources) -> None:
-    if not CONFIG.run_migrations_on_startup:
-        log.info("Migrations disabled by configuration")
-        return
-
     migrations_path = Path(CONFIG.migrations_path)
     if not migrations_path.exists():
         log.warning(f"Migrations directory not found: {CONFIG.migrations_path}")

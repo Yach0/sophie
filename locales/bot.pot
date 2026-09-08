@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-08 05:26+0200\n"
+"POT-Creation-Date: 2026-09-08 10:19+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -143,11 +143,11 @@ msgstr ""
 msgid "You must be the chat creator to use this command."
 msgstr ""
 
-#: sophie_bot/filters/is_connected.py:42
+#: sophie_bot/filters/is_connected.py:43
 msgid "This command can only be used in a group or while being connected to a group in PM."
 msgstr ""
 
-#: sophie_bot/filters/is_connected.py:43
+#: sophie_bot/filters/is_connected.py:44
 msgid "Refer to /help for more information about connections."
 msgstr ""
 

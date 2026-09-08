@@ -527,7 +527,6 @@ async def maybe_run_proactive_reply(
             candidate_count=len(candidates),
         )
         decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
-        await _clear_tracked_messages(chat_tid, candidates, redis=services.redis)
         await _execute_actions(
             chat_tid,
             chat,
@@ -536,6 +535,7 @@ async def maybe_run_proactive_reply(
             settings,
             services=services,
         )
+        await _clear_tracked_messages(chat_tid, candidates, redis=services.redis)
         _log_proactive_info("Proactive AI batch completed", chat_id=chat_tid, candidate_count=len(candidates))
     finally:
         await _release_lock(chat_tid, redis=services.redis)

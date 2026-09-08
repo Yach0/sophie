@@ -287,14 +287,13 @@ Run all pending migrations:
 make migrate_up
 ```
 
-Or using Python directly:
+Or invoke the CLI directly:
 
-```python
-import asyncio
-from sophie_bot.services.migrations import run_migrations
-
-asyncio.run(run_migrations())
+```bash
+uv run python tools/migration_helper.py up
 ```
+
+Manual commands run independently of `run_migrations_on_startup`. The CLI opens MongoDB and Redis, initializes Beanie without changing indexes, and closes both clients on success or failure.
 
 ### Check Status
 
@@ -329,13 +328,10 @@ Rollback a specific migration:
 make migrate_rollback MIGRATION=20240125_001_add_field
 ```
 
-Or using Python:
+Or invoke the CLI directly:
 
-```python
-import asyncio
-from sophie_bot.services.migrations import run_migration_backward
-
-asyncio.run(run_migration_backward("20240125_001_add_field"))
+```bash
+uv run python tools/migration_helper.py down 20240125_001_add_field
 ```
 
 ## Configuration
@@ -473,15 +469,18 @@ Add tests to `tests/test_migrations.py`:
 
 ```python
 import pytest
-from sophie_bot.services.migrations import run_migrations, run_migration_backward
+
 from sophie_bot.db.models.migrations import MigrationState
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.migrations import MigrationResources, run_migration_backward, run_migrations
 
 
 @pytest.mark.asyncio
-async def test_migration_applies_correctly():
+async def test_migration_applies_correctly(test_services: ApplicationServices) -> None:
     """Test that migration applies and can be rolled back."""
+    resources = MigrationResources(database=test_services.db, redis=test_services.redis)
     # Run migration
-    await run_migrations()
+    await run_migrations(resources)
     
     # Verify migration was applied
     state = await MigrationState.find_one(
@@ -490,7 +489,7 @@ async def test_migration_applies_correctly():
     assert state is not None
     
     # Rollback
-    await run_migration_backward("20240125_001_test_migration")
+    await run_migration_backward("20240125_001_test_migration", resources)
     
     # Verify rollback
     state = await MigrationState.find_one(
