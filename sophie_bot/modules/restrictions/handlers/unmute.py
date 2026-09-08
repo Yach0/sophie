@@ -8,6 +8,7 @@ from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.restrictions.handlers.base import BaseRestrictionHandler
+from sophie_bot.modules.utils_.clear_pending_user import clear_pending_user
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import LazyProxy
@@ -27,6 +28,9 @@ class UnmuteUserHandler(BaseRestrictionHandler):
     restriction_action: ClassVar[RestrictionAction] = RestrictionAction.UNMUTE
     check_admin: ClassVar[bool] = False
     gen_ai_reason: ClassVar[bool] = False
+
+    async def _after_restriction_applied(self, chat_tid: int, user_tid: int) -> None:
+        await clear_pending_user(user_tid, chat_tid)
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
