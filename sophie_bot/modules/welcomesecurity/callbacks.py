@@ -17,7 +17,3 @@ class WelcomeSecurityConfirmCB(CallbackData, prefix="ws_confirm"):
 class WelcomeSecurityRulesAgreeCB(CallbackData, prefix="ws_rules_agree"):
     chat_iid: str | None = None
     is_join_request: bool = False
-
-
-class WelcomeSecurityExpireCB(CallbackData, prefix="ws_expire"):
-    seconds: int
