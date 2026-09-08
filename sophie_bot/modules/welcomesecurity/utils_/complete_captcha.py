@@ -57,7 +57,13 @@ async def complete_captcha(
         await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
 
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
-    await ws_on_user_passed(user, group, greetings.welcome_mute or WelcomeMute(), bot=bot)
+    await ws_on_user_passed(
+        user,
+        group,
+        greetings.welcome_mute or WelcomeMute(),
+        bot=bot,
+        redis=redis,
+    )
 
     # Clean up the security note message from the group
     if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):

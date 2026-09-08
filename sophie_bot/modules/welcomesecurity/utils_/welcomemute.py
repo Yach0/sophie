@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from aiogram import Bot
+from redis.asyncio import Redis
 
 from sophie_bot.modules.restrictions.utils.restrictions import (
     execute_restriction,
@@ -9,6 +10,8 @@ from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
     convert_timedelta_or_str,
 )
 from sophie_bot.shared.actions import RestrictionAction
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 
 
 async def on_welcomemute(
@@ -17,7 +20,11 @@ async def on_welcomemute(
     on_time: str | timedelta,
     *,
     bot: Bot,
+    redis: Redis,
 ) -> bool:
+    if await is_user_group_whitelisted(group_id, user_id, redis=redis):
+        await log_group_whitelist_exemption(group_id, user_id, "welcome_security_welcome_mute")
+        return False
     return (
         await execute_restriction(
             bot,

@@ -15,6 +15,7 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from sophie_bot.shared.actions import StoredAction
+from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
 from tests.e2e.helpers import (
     create_test_user_and_group,
     get_wizard_session_id,
@@ -84,6 +85,24 @@ async def test_admin_is_exempt_from_antiflood(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_group_whitelisted_user_is_exempt_from_antiflood(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    group, member = await _group_with_flood(test_client, message_count=2)
+    await add_user_to_group_whitelist(
+        group.id,
+        member.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
+
+    restricts: list = []
+    for index in range(4):
+        requests = await test_client.send_message(text=f"allowed msg {index}", from_user=member, chat=group)
+        restricts += [request for request in requests if request.request_type == RequestType.RESTRICT_CHAT_MEMBER]
+
+    assert not restricts
+
+
+@pytest.mark.asyncio
 async def test_antiflood_count_command_persists(test_client: TestClient) -> None:
     admin, group, _model = await create_test_user_and_group(test_client, group_title="Antiflood Count Group")
     await grant_admin(group.id, admin.id)
@@ -107,6 +126,7 @@ async def test_enableantiflood_command_persists(test_client: TestClient) -> None
     assert chat is not None
     settings = await AntifloodModel.get_by_chat_iid(chat.iid)
     assert settings.enabled is True
+
 
 @pytest.mark.asyncio
 async def test_antiflood_action_is_silent_when_wizard_flag_is_disabled(test_client: TestClient) -> None:

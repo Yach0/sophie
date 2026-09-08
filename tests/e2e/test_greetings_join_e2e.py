@@ -18,6 +18,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.db.models.chat import UserInGroupModel
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import (
@@ -26,6 +27,7 @@ from tests.e2e.helpers import (
     grant_bot_admin,
     join_group,
     leave_group,
+    next_group_id,
     next_user_id,
     set_feature,
 )
@@ -155,6 +157,42 @@ async def test_welcome_mute_restricts_new_member(test_client: TestClient) -> Non
         if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
     ]
     assert restricts, "welcome_mute should restrict the new member"
+
+
+@pytest.mark.asyncio
+async def test_welcome_mute_skips_group_whitelisted_new_member(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    _adder, group = await _setup_group(test_client)
+    greetings = await _greetings(group.id)
+    await greetings.set_status_welcomemute(True, timedelta(hours=1))
+    newbie = User(id=next_user_id(), is_bot=False, first_name="Allowed Newbie")
+    await GroupUserWhitelistModel.add_user(group.id, newbie.id)
+
+    requests = await join_group(test_client, group, newbie)
+
+    assert not [
+        request
+        for request in requests
+        if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
+    ]
+
+
+@pytest.mark.asyncio
+async def test_welcome_mute_does_not_use_another_groups_whitelist(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    _adder, group = await _setup_group(test_client)
+    greetings = await _greetings(group.id)
+    await greetings.set_status_welcomemute(True, timedelta(hours=1))
+    newbie = User(id=next_user_id(), is_bot=False, first_name="Group-specific Newbie")
+    await GroupUserWhitelistModel.add_user(next_group_id(), newbie.id)
+
+    requests = await join_group(test_client, group, newbie)
+
+    assert [
+        request
+        for request in requests
+        if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
+    ]
 
 
 @pytest.mark.asyncio

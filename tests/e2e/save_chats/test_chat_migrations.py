@@ -8,8 +8,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from aiogram.types import Chat
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
+from sophie_bot.utils.group_whitelist import group_user_whitelist_cache_key
 
 
 class TestChatMigration:
@@ -132,6 +135,58 @@ class TestChatMigration:
         migrated = await ChatModel.find_one(ChatModel.tid == -1001234567890)
         assert migrated is not None
         assert migrated.type == ChatType.supergroup
+
+    @pytest.mark.asyncio
+    async def test_migration_moves_group_whitelist_rows_and_invalidates_cache(self, base_data) -> None:
+        old_chat_tid = -123456780
+        new_chat_tid = -1001234567800
+        user_tid = 123456780
+        redis = base_data["services"].redis
+        old_group = ChatModel(
+            tid=old_chat_tid,
+            type=ChatType.group,
+            first_name_or_title="Whitelisted Group",
+            is_bot=False,
+            username=None,
+            last_saw=datetime.now(UTC),
+        )
+        await old_group.save()
+        await GroupUserWhitelistModel.add_user(old_chat_tid, user_tid)
+        await GroupUserWhitelistModel.add_user(new_chat_tid, user_tid)
+        old_cache_key = group_user_whitelist_cache_key(old_chat_tid, user_tid)
+        new_cache_key = group_user_whitelist_cache_key(new_chat_tid, user_tid)
+        await redis.set(old_cache_key, b"1")
+        await redis.set(new_cache_key, b"0")
+
+        await ChatModel.do_chat_migrate(
+            old_chat_tid,
+            Chat(id=new_chat_tid, type="supergroup", title="Whitelisted Group"),
+            redis=redis,
+        )
+
+        assert (
+            await GroupUserWhitelistModel.find_one(
+                GroupUserWhitelistModel.chat_tid == old_chat_tid,
+                GroupUserWhitelistModel.user_tid == user_tid,
+            )
+            is None
+        )
+        assert (
+            await GroupUserWhitelistModel.find_one(
+                GroupUserWhitelistModel.chat_tid == new_chat_tid,
+                GroupUserWhitelistModel.user_tid == user_tid,
+            )
+            is not None
+        )
+        assert (
+            await GroupUserWhitelistModel.find(
+                GroupUserWhitelistModel.chat_tid == new_chat_tid,
+                GroupUserWhitelistModel.user_tid == user_tid,
+            ).count()
+            == 1
+        )
+        assert await redis.get(old_cache_key) is None
+        assert await redis.get(new_cache_key) is None
 
     @pytest.mark.asyncio
     async def test_migration_with_users(
