@@ -24,6 +24,7 @@ from sophie_bot.modules.restrictions.actions.mute import MuteActionDataModel, Mu
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
 from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionResult
 
 # Actions typed ModernActionABC[None]: they take no data, so data_object must resolve to None
@@ -248,7 +249,10 @@ async def test_warn_action_data_survives_the_admin_gate(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
-async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_rules_action_processes_fillings_for_text_only_rules(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     captured_kwargs: dict[str, Any] = {}
 
     class FakeSendMessage:
@@ -274,7 +278,7 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
         message,
         {
             "context": SimpleNamespace(connection=connection),
-            "services": SimpleNamespace(bot=object()),
+            "services": test_services,
         },
         None,
     )
@@ -288,7 +292,10 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_set_rules_rejects_empty_content(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_set_rules_rejects_empty_content(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     set_rules_mock = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.rules.handlers.set.RulesModel.set_rules", set_rules_mock)
     monkeypatch.setattr(
@@ -304,6 +311,7 @@ async def test_set_rules_rejects_empty_content(monkeypatch: pytest.MonkeyPatch) 
         message,
         context=SimpleNamespace(connection=connection),
         content=None,
+        services=test_services,
     )
     await handler.handle()
 

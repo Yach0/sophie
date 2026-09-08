@@ -144,11 +144,11 @@ msgstr "Vários administradores anônimos compartilham este título, e nem todos
 msgid "You must be the chat creator to use this command."
 msgstr "Você deve ser o criador do chat para usar este comando."
 
-#: sophie_bot/filters/is_connected.py:42
+#: sophie_bot/filters/is_connected.py:43
 msgid "This command can only be used in a group or while being connected to a group in PM."
 msgstr "Este comando pode ser usado apenas em um grupo ou enquanto estiver conectado a um grupo em PM."
 
-#: sophie_bot/filters/is_connected.py:43
+#: sophie_bot/filters/is_connected.py:44
 msgid "Refer to /help for more information about connections."
 msgstr "Consulte /help para mais informações sobre conexões."
 
@@ -271,7 +271,7 @@ msgstr "Ícone"
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:86
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:96
-#: sophie_bot/modules/notes/handlers/save.py:81
+#: sophie_bot/modules/notes/handlers/save.py:91
 msgid "Description"
 msgstr "Descrição"
 
@@ -959,8 +959,8 @@ msgid "For example, you can combine it with the warn filter: 'Tell the user how 
 msgstr "Por exemplo, você pode combiná-lo com o filtro de aviso: 'Diga ao usuário como é ruim falar palavrões'"
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:58
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:39
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:58
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:46
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:65
 msgid "Reply to message"
 msgstr "Responder a mensagem"
 
@@ -1002,7 +1002,7 @@ msgstr "Autor da mensagem"
 #: sophie_bot/modules/restrictions/actions/base.py:74
 #: sophie_bot/modules/restrictions/actions/kick.py:56
 #: sophie_bot/modules/restrictions/handlers/base.py:75
-#: sophie_bot/modules/restrictions/handlers/base.py:145
+#: sophie_bot/modules/restrictions/handlers/base.py:146
 #: sophie_bot/modules/restrictions/services/silent.py:49
 #: sophie_bot/modules/warns/handlers/warn.py:53
 #: sophie_bot/modules/warns/handlers/warn.py:79
@@ -1757,7 +1757,7 @@ msgstr "O usuário foi restrito por flooding."
 #: sophie_bot/modules/promotes/handlers/promote.py:69
 #: sophie_bot/modules/promotes/handlers/promote.py:148
 #: sophie_bot/modules/restrictions/handlers/base.py:70
-#: sophie_bot/modules/restrictions/handlers/base.py:142
+#: sophie_bot/modules/restrictions/handlers/base.py:143
 #: sophie_bot/modules/restrictions/services/silent.py:46
 #: sophie_bot/modules/users/handlers/id.py:22
 #: sophie_bot/modules/users/handlers/info.py:22
@@ -1768,7 +1768,7 @@ msgid "User"
 msgstr "Usuário"
 
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:168
-#: sophie_bot/modules/restrictions/handlers/base.py:144
+#: sophie_bot/modules/restrictions/handlers/base.py:145
 #: sophie_bot/modules/restrictions/services/silent.py:48
 msgid "Duration"
 msgstr "Duração"
@@ -2028,7 +2028,7 @@ msgstr "Conecta ao chat."
 #: sophie_bot/modules/op/handlers/set_mode.py:149
 #: sophie_bot/modules/promotes/handlers/demote.py:77
 #: sophie_bot/modules/promotes/handlers/promote.py:147
-#: sophie_bot/modules/restrictions/handlers/base.py:141
+#: sophie_bot/modules/restrictions/handlers/base.py:142
 #: sophie_bot/modules/restrictions/services/silent.py:45
 #: sophie_bot/modules/utils_/status_handler.py:49
 #: sophie_bot/modules/utils_/status_handler.py:72
@@ -3890,7 +3890,7 @@ msgid "Please check your direct messages with me to complete verification and jo
 msgstr "Por favor, verifique suas mensagens diretas comigo para concluir a verificação e entrar no grupo."
 
 #: sophie_bot/modules/greetings/default_welcome.py:32
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:44
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:45
 msgid "Open DM with Sophie"
 msgstr "Abrir DM com Sophie"
 
@@ -3904,7 +3904,7 @@ msgstr "Mensagens de boas-vindas"
 
 #: sophie_bot/modules/greetings/handlers/set_join_request.py:20
 #: sophie_bot/modules/greetings/handlers/status_greetings.py:20
-#: sophie_bot/modules/notes/handlers/save.py:35
+#: sophie_bot/modules/notes/handlers/save.py:36
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/text_with_buttons_arg.py:14
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 #: sophie_bot/modules/rules/handlers/set.py:20
@@ -3916,21 +3916,21 @@ msgstr "Conteúdo"
 msgid "Sets join request message."
 msgstr "Define a mensagem de solicitação de ingresso."
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:43
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:51
 #, python-brace-format
 msgid "Join request message was saved in {chat_title}."
 msgstr "A mensagem de solicitação de ingresso foi salva em {chat_title}."
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:49
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:57
 msgid "Deletes the join request message"
 msgstr "Exclui a mensagem de solicitação de ingresso"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:62
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:70
 #, python-brace-format
 msgid "Join request message in {chat_title} has not been set before"
 msgstr "A mensagem de solicitação de ingresso em {chat_title} não foi definida anteriormente"
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:72
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:80
 #, python-brace-format
 msgid "Join request message was reset to default in {chat_title}."
 msgstr "A mensagem de solicitação de ingresso foi redefinida como padrão em {chat_title}."
@@ -3960,17 +3960,17 @@ msgstr "Define a mensagem de boas-vindas."
 msgid "Please the '{cmd}' to control the welcome status."
 msgstr "Por favor, use '{cmd}' para controlar o estado de boas-vindas."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:54
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:62
 #, python-brace-format
 msgid "Welcome message was successfully updated in {chat_title}."
 msgstr "A mensagem de boas-vindas foi atualizada com sucesso em {chat_title}."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:56
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:64
 #, python-brace-format
 msgid "Use {cmd} to retrieve the welcome message."
 msgstr "Use {cmd} para recuperar a mensagem de boas-vindas."
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:63
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:71
 #, python-brace-format
 msgid "⚠️ Please note, that the welcome messages are currently disabled in the chat, use '{cmd}' to enable it."
 msgstr "⚠️ Por favor, note que as mensagens de boas-vindas estão atualmente desabilitadas no chat, use '{cmd}' para habilitá-las."
@@ -4021,8 +4021,8 @@ msgid "Welcome Message"
 msgstr "Mensagem de Boas-Vindas"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
-#: sophie_bot/modules/greetings/utils/send_welcome.py:25
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:123
+#: sophie_bot/modules/greetings/utils/send_welcome.py:28
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:126
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
 msgid "No chat rules, have fun!"
 msgstr "Sem regras de chat, divirta-se!"
@@ -4761,7 +4761,7 @@ msgid "User muted"
 msgstr "Usuário silenciado"
 
 #: sophie_bot/modules/logging/events.py:52
-#: sophie_bot/modules/restrictions/handlers/unmute.py:25
+#: sophie_bot/modules/restrictions/handlers/unmute.py:26
 msgid "User unmuted"
 msgstr "Usuário não silenciado"
 
@@ -4798,7 +4798,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr "Notas permitem salvar diferentes tipos de conteúdo, desde mensagens de texto normais até adesivos e mensagens de áudio; notas também suportam adicionar botões de mensagem em linha."
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:28
+#: sophie_bot/modules/notes/handlers/get.py:30
 msgid "Note name"
 msgstr "Nome da nota"
 
@@ -4849,11 +4849,11 @@ msgstr "Apenas o iniciador pode confirmar a exclusão de todas as notas"
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 Todas as notas ({removed_count}) foram apagadas em {chat_name}"
 
-#: sophie_bot/modules/notes/handlers/get.py:29
+#: sophie_bot/modules/notes/handlers/get.py:31
 msgid "Retrieve the note."
 msgstr "Recupera a nota."
 
-#: sophie_bot/modules/notes/handlers/get.py:43
+#: sophie_bot/modules/notes/handlers/get.py:45
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "Nenhuma nota foi encontrada com o nome {name}."
@@ -4982,42 +4982,42 @@ msgstr "desativado"
 msgid "PrivateNotes have been {status} in {chat}."
 msgstr "Notas Privadas foram {status} em {chat}."
 
-#: sophie_bot/modules/notes/handlers/save.py:33
-#: sophie_bot/modules/notes/handlers/save.py:80
+#: sophie_bot/modules/notes/handlers/save.py:34
+#: sophie_bot/modules/notes/handlers/save.py:90
 msgid "Note names"
 msgstr "Nomes das notas"
 
-#: sophie_bot/modules/notes/handlers/save.py:34
+#: sophie_bot/modules/notes/handlers/save.py:35
 msgid "?Description"
 msgstr "?Descrição"
 
-#: sophie_bot/modules/notes/handlers/save.py:37
+#: sophie_bot/modules/notes/handlers/save.py:38
 msgid "Save the note."
 msgstr "Salva a nota."
 
-#: sophie_bot/modules/notes/handlers/save.py:60
+#: sophie_bot/modules/notes/handlers/save.py:61
 msgid "Please provide at least one valid note name."
 msgstr "Por favor, forneça pelo menos um nome de nota válido."
 
-#: sophie_bot/modules/notes/handlers/save.py:82
+#: sophie_bot/modules/notes/handlers/save.py:92
 msgid "Note was successfully created"
 msgstr "Nota criada com sucesso"
 
-#: sophie_bot/modules/notes/handlers/save.py:82
+#: sophie_bot/modules/notes/handlers/save.py:92
 msgid "Note was successfully updated"
 msgstr "Nota atualizada com sucesso"
 
-#: sophie_bot/modules/notes/handlers/save.py:84
+#: sophie_bot/modules/notes/handlers/save.py:94
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
 msgstr "Use {cmd} para recuperar esta nota."
 
-#: sophie_bot/modules/notes/handlers/save.py:94
+#: sophie_bot/modules/notes/handlers/save.py:104
 #, python-brace-format
 msgid "To save the whole album, send it with {cmd} in the caption instead."
 msgstr "Para salvar o álbum inteiro, envie-o com {cmd} na legenda em vez disso."
 
-#: sophie_bot/modules/notes/handlers/save.py:97
+#: sophie_bot/modules/notes/handlers/save.py:107
 msgid "⚠️ Only the first media of the album was saved"
 msgstr "⚠️ Apenas a primeira mídia do álbum foi salva"
 
@@ -5029,27 +5029,27 @@ msgstr ""
 msgid "Automatic notes cleanup"
 msgstr ""
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:26
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:33
 msgid "Now, please type the text you want to automatically send."
 msgstr "Agora, por favor, digite o texto que você deseja enviar automaticamente."
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:29
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:36
 msgid "Markup help"
 msgstr "Ajuda de formatação"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:45
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:52
 msgid "Change reply text"
 msgstr "Alterar texto de resposta"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:71
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:78
 msgid "Replies to the message with"
 msgstr "Responde à mensagem com"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:73
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:80
 msgid "Replies to the message"
 msgstr "Responde à mensagem"
 
-#: sophie_bot/modules/notes/magic_handlers/reply_action.py:76
+#: sophie_bot/modules/notes/magic_handlers/reply_action.py:83
 msgid "Reply"
 msgstr "Responder"
 
@@ -5190,28 +5190,74 @@ msgstr "Os botões não são válidos."
 msgid "Local chat"
 msgstr "Chat local"
 
-#: sophie_bot/modules/notes/utils/parse.py:44
+#: sophie_bot/modules/notes/utils/parse.py:55
 msgid "Please check the notes documentation for the list of the allowed content types."
 msgstr "Por favor, verifique a documentação das notas para a lista de tipos de conteúdo permitidos."
 
-#: sophie_bot/modules/notes/utils/parse.py:45
+#: sophie_bot/modules/notes/utils/parse.py:56
+#: sophie_bot/modules/notes/utils/parse.py:77
 msgid "Reply message content is not parsable as the note."
 msgstr "O conteúdo da mensagem de resposta não é legível como a nota."
 
-#: sophie_bot/modules/notes/utils/parse.py:125
+#: sophie_bot/modules/notes/utils/parse.py:76
+msgid "This message type is not supported for notes yet."
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/parse.py:88
+#: sophie_bot/modules/notes/utils/parse.py:137
+msgid "Rich message cannot be saved."
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/parse.py:136
+msgid "Rich messages cannot be combined with additional note text."
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/parse.py:186
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr "O comprimento máximo da nota é {limit} caracteres."
 
-#: sophie_bot/modules/notes/utils/parse.py:126
+#: sophie_bot/modules/notes/utils/parse.py:187
 msgid "Please try to reduce the length of note."
 msgstr "Por favor, tente reduzir o comprimento da nota."
 
-#: sophie_bot/modules/notes/utils/parse.py:127
+#: sophie_bot/modules/notes/utils/parse.py:188
 msgid "Note is too long."
 msgstr "Nota muito longa."
 
-#: sophie_bot/modules/notes/utils/send.py:195
+#: sophie_bot/modules/notes/utils/rich.py:141
+msgid "Thinking Rich blocks cannot be sent as final messages"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:412
+msgid "Rich button labels may contain only plain text, custom emoji, or date-time text"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:422
+msgid "Thinking Rich blocks cannot be saved"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:426
+msgid "Rich button rows must contain between 1 and 8 buttons"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:436
+msgid "Rich buttons must contain exactly one action"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:439
+msgid "Rich callback data is too long"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:459
+msgid "Rich buttons from an untrusted source cannot be saved"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/rich.py:465
+msgid "Bot-bound Rich buttons are not accepted by the API"
+msgstr ""
+
+#: sophie_bot/modules/notes/utils/send.py:370
 msgid "The text is too long"
 msgstr "O texto é muito longo"
 
@@ -6464,8 +6510,8 @@ msgstr "O usuário já está banido em uma federação inscrita: {fed_name} ({fe
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr "Tempo (exemplo: 2h, 7d, 2w)"
 
-#: sophie_bot/modules/restrictions/handlers/base.py:166
-#: sophie_bot/modules/restrictions/handlers/base.py:172
+#: sophie_bot/modules/restrictions/handlers/base.py:170
+#: sophie_bot/modules/restrictions/handlers/base.py:176
 #: sophie_bot/modules/users/handlers/info.py:63
 #: sophie_bot/modules/users/handlers/info.py:68
 #: sophie_bot/modules/users/handlers/info.py:77
@@ -6597,23 +6643,23 @@ msgstr "O usuário está banido na federação atual: {fed_name} ({fed_id})."
 msgid "The user is banned in a subscribed federation: {fed_name} ({fed_id})."
 msgstr "O usuário está banido em uma federação inscrita: {fed_name} ({fed_id})."
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:17
+#: sophie_bot/modules/restrictions/handlers/unmute.py:18
 msgid "Unmutes the user in the chat."
 msgstr "Desilencia o usuário no chat."
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:19
+#: sophie_bot/modules/restrictions/handlers/unmute.py:20
 msgid "I cannot unmute myself."
 msgstr "Não posso me desilenciar."
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:20
+#: sophie_bot/modules/restrictions/handlers/unmute.py:21
 msgid "You cannot unmute yourself."
 msgstr "Você não pode se desilenciar."
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:22
+#: sophie_bot/modules/restrictions/handlers/unmute.py:23
 msgid "Failed to unmute the user. Make sure I have the right permissions."
 msgstr "Falha ao desmutar o usuário. Certifique-se de que eu tenha as permissões corretas."
 
-#: sophie_bot/modules/restrictions/handlers/unmute.py:24
+#: sophie_bot/modules/restrictions/handlers/unmute.py:25
 msgid "Unmuted by"
 msgstr "Desmutado por"
 
@@ -6667,11 +6713,11 @@ msgstr "🗑 As regras do chat foram redefinidas."
 msgid "Sets chat rules"
 msgstr "Define as regras do chat"
 
-#: sophie_bot/modules/rules/handlers/set.py:37
+#: sophie_bot/modules/rules/handlers/set.py:49
 msgid "Please provide the rules text, or reply to the message you want to set as the rules."
 msgstr "Por favor, forneça o texto das regras ou responda à mensagem que deseja definir como regras."
 
-#: sophie_bot/modules/rules/handlers/set.py:45
+#: sophie_bot/modules/rules/handlers/set.py:57
 #, python-brace-format
 msgid "🪧 Rules have been set in {chat_name} successfully."
 msgstr "🪧 As regras foram definidas em {chat_name} com sucesso."
@@ -7288,8 +7334,8 @@ msgstr "Proteja seu chat de bots e verifique novos usuários"
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr "A Segurança de Boas-Vindas contém um conjunto de ferramentas que podem ajudar a filtrar bots que tentam se juntar aos seus grupos, bem como garantir que os novos usuários reconheçam as regras do chat antes de poderem falar"
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:75
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:84
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:76
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_confirm.py:85
 msgid "Captcha expired. Please try again."
 msgstr "Captcha expirado. Por favor, tente novamente."
 
@@ -7307,7 +7353,7 @@ msgstr "Complete o emoji '{emoji_name}' para completar o captcha e participar do
 msgid "❌ Incorrect solution. Please, try again."
 msgstr "❌ Solução incorreta. Por favor, tente novamente."
 
-#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:39
+#: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:40
 msgid "I can't send the verification captcha because you've blocked Sophie in direct messages. Please unblock me, then open the DM below to continue."
 msgstr "Não consigo enviar o captcha de verificação porque você bloqueou Sophie nas mensagens diretas. Por favor, me desbloqueie e, em seguida, abra o DM abaixo para continuar."
 
@@ -7368,21 +7414,21 @@ msgstr "Você está banido na federação, então não pode passar na autentica�
 msgid "Sets welcome security message."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:51
 #, python-brace-format
 msgid "Welcome security message was saved in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:49
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:57
 msgid "Deletes the welcome security message"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:62
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:70
 #, python-brace-format
 msgid "Welcome security message in {chat_title} has not been set before"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:72
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:80
 #, python-brace-format
 msgid "Welcome security message was reset to default in {chat_title}."
 msgstr ""
@@ -7428,11 +7474,11 @@ msgstr ""
 msgid "Welcome Security message"
 msgstr "Mensagem de Segurança de Boas-Vindas"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:26
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:28
 msgid "Please read the chat rules"
 msgstr "Por favor, leia as regras do chat"
 
-#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:32
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:34
 msgid "I agree"
 msgstr "Eu concordo"
 

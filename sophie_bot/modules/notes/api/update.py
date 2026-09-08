@@ -5,9 +5,10 @@ from datetime import UTC, datetime
 from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException
 
-from sophie_bot.db.models.notes import NoteModel, normalize_notenames
+from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteModel, normalize_notenames
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
+from sophie_bot.modules.notes.utils.rich import rich_message_to_html_fallback, validate_rich_message_api
 from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 from .schemas import NoteResponse, NoteUpdate
@@ -27,6 +28,41 @@ async def update_note(
         raise HTTPException(status_code=404, detail="Note not found")
 
     update_dict = note_data.model_dump(exclude_unset=True)
+    rich_message = note_data.rich_message
+    if rich_message is not None:
+        update_dict["rich_message"] = rich_message
+
+    if "file" in update_dict and "files" in update_dict:
+        raise HTTPException(status_code=400, detail="file and files cannot be supplied together")
+    if "files" in update_dict:
+        update_dict["files"] = update_dict["files"] or []
+        if "file" not in update_dict:
+            update_dict["file"] = None
+    elif "file" in update_dict:
+        update_dict["files"] = []
+
+    try:
+        if rich_message is not None:
+            validate_rich_message_api(rich_message)
+            fallback = rich_message_to_html_fallback(rich_message)
+            if "text" in update_dict and update_dict["text"] not in (None, "", fallback):
+                raise ValueError("text must match the Rich message fallback")
+            if update_dict.get("file") or update_dict.get("files"):
+                raise ValueError("Rich messages cannot be combined with legacy media fields")
+            update_dict["text"] = fallback
+            update_dict["version"] = CURRENT_SAVEABLE_VERSION
+            update_dict["file"] = None
+            update_dict["files"] = []
+        elif note.rich_message is not None and "rich_message" not in update_dict:
+            changed_content = {"text", "file", "files", "buttons", "parse_mode"} & update_dict.keys()
+            if changed_content:
+                raise ValueError("Clear Rich content before changing its ordinary fields")
+        if note.rich_message is not None and "rich_message" in update_dict and rich_message is None:
+            if not update_dict.get("text") and not update_dict.get("file") and not update_dict.get("files"):
+                raise ValueError("Provide replacement text or media when clearing Rich content")
+            update_dict["version"] = CURRENT_SAVEABLE_VERSION
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if "names" in update_dict:
         if not update_dict["names"]:

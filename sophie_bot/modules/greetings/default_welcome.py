@@ -1,7 +1,7 @@
 from stfu_tg import Doc, Section
 
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.db.models.notes import Saveable
+from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, Saveable
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.utils.i18n import gettext as _
 
@@ -11,7 +11,7 @@ def get_default_welcome_message(has_rules: bool) -> Saveable:
         _("Hi {mention}! Welcome in the group."),
         Section("{rules}", title=_("Group rules")) if has_rules else _("There are no rules in this group, have fun!"),
     )
-    return Saveable(text=str(doc))
+    return Saveable(text=str(doc), version=CURRENT_SAVEABLE_VERSION)
 
 
 def get_default_security_message() -> Saveable:
@@ -19,7 +19,7 @@ def get_default_security_message() -> Saveable:
         _("Hi {mention}! Welcome to the {chatname}!"),
         _("⬇️ Please click the button below to participate in the group."),
     )
-    return Saveable(text=str(doc))
+    return Saveable(text=str(doc), version=CURRENT_SAVEABLE_VERSION)
 
 
 def get_default_join_request_message() -> Saveable:
@@ -30,4 +30,5 @@ def get_default_join_request_message() -> Saveable:
     return Saveable(
         text=str(doc),
         buttons=[[Button(text=_("Open DM with Sophie"), action=ButtonAction.sophiedm)]],
+        version=CURRENT_SAVEABLE_VERSION,
     )

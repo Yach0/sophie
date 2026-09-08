@@ -11,6 +11,7 @@ from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityRulesAgr
 from sophie_bot.modules.welcomesecurity.handlers.legacy_button import LegacyWSButtonHandler
 from sophie_bot.modules.welcomesecurity.utils_.captcha_rules import captcha_send_rules
 from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
+from sophie_bot.services.application import ApplicationServices
 
 
 @pytest.mark.asyncio
@@ -45,7 +46,10 @@ async def test_legacy_button_validates_membership_via_telegram(monkeypatch: pyte
 
 
 @pytest.mark.asyncio
-async def test_captcha_rules_preserve_join_request_context(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_captcha_rules_preserve_join_request_context(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     send_captcha_message = AsyncMock()
     chat_iid = PydanticObjectId()
     message = SimpleNamespace(chat=SimpleNamespace(id=12345))
@@ -61,7 +65,8 @@ async def test_captcha_rules_preserve_join_request_context(monkeypatch: pytest.M
         rules,
         chat_iid,
         True,
-        bot=object(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     reply_markup = send_captcha_message.await_args.kwargs["reply_markup"]
