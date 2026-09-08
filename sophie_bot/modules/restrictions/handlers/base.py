@@ -106,6 +106,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
         )
         if not restriction_result.applied:
             return await reply_or_answer(self.event, self.failed_action_text)
+        await self._after_restriction_applied(connection.tid, user.chat_id)
 
         track_moderation_action(
             _LOG_EVENT_TO_ACTION.get(self.event_type, "unknown"),
@@ -156,6 +157,9 @@ class BaseRestrictionHandler(SophieMessageHandler):
                 connection.tid,
                 collect_message_ids_for_cleanup(self.event, reply_message.message_id),
             )
+
+    async def _after_restriction_applied(self, chat_tid: int, user_tid: int) -> None:
+        return None
 
     def _build_fed_ban_notice(self, info: FederationBanInfo | None) -> KeyValue | None:
         if not info:
