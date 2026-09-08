@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -52,15 +53,13 @@ def run_with_reload(mode: Literal["bot", "scheduler"]) -> None:
             start_scheduler_mode()
 
     # Use subprocess approach for cleaner restarts
-    try:
+    with suppress(KeyboardInterrupt):
         run_process(
             *watch_dirs,
             target=_run_mode_subprocess,
             args=(mode,),
             watch_filter=_python_filter,
         )
-    except KeyboardInterrupt:
-        pass
 
 
 def _python_filter(change: Change, path: str) -> bool:
