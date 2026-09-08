@@ -30,6 +30,7 @@ def _album_message(message_id: int) -> MagicMock:
 
 def _patch_common(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(enforcer, "is_user_admin", AsyncMock(return_value=False))
     monkeypatch.setattr(enforcer, "get_cached_locks", AsyncMock(return_value={LockType.VIDEO}))
 
