@@ -171,6 +171,7 @@ def build_reason_prompt(message_text: str, rules_text: str, base_prompt: str) ->
     Args:
         message_text: The text of the message that triggered the restriction
         rules_text: Group rules text (may be empty)
+        base_prompt: The base prompt to use for AI reason generation
 
     Returns:
         The formatted prompt string
