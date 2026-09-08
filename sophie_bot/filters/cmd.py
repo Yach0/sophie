@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import replace
 from re import Pattern
-from typing import cast
+from typing import TypeAlias, cast
 
 from aiogram import Bot
 from aiogram.filters import BaseFilter
@@ -11,7 +11,7 @@ from magic_filter import MagicFilter
 
 from sophie_bot.config import CONFIG
 
-CMD_TYPE = str | Pattern
+CMD_TYPE: TypeAlias = str | Pattern  # noqa: UP040
 
 
 class CMDFilter(BaseFilter):

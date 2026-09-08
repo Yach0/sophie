@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, Literal, cast
+from typing import Any, ClassVar, Literal, TypeAlias, cast
 
 from aiogram.types import Message
 from pydantic import BaseModel, ValidationError
@@ -83,7 +83,7 @@ class ActionValidationError(ValueError):
 
 
 # What an action may hand back to its dispatcher.
-ActionResult = Element | str | LazyProxy | Message | list[Message]
+ActionResult: TypeAlias = Element | str | LazyProxy | Message | list[Message]  # noqa: UP040
 
 
 class ModernActionABC[ACTION_DATA: BaseModel | None](ABC):

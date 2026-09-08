@@ -5,7 +5,7 @@ import hashlib
 import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final, Literal, TypedDict, cast, get_args
+from typing import Any, Final, Literal, TypeAlias, TypedDict, cast, get_args
 
 from redis.asyncio import Redis
 from sentry_sdk import feature_flags as sentry_feature_flags
@@ -14,7 +14,7 @@ from sophie_bot.constants import AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOverrideSource
 
 # Public types
-FeatureType = Literal[
+FeatureType: TypeAlias = Literal[  # noqa: UP040
     "architecture_refactor",
     "ai_summary_model",
     "ai_filter_handler_model",
@@ -152,8 +152,8 @@ FeatureType = Literal[
 FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = get_args(FeatureType)
 
 
-FeatureValue = bool | str | int | float
-FeatureValueKind = Literal[
+FeatureValue: TypeAlias = bool | str | int | float  # noqa: UP040
+FeatureValueKind: TypeAlias = Literal[  # noqa: UP040
     "plain",
     "ai_header_style",
     "ai_model",

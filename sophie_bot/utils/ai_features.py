@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeAlias
 
-AIFeature = Literal["chatbot", "translate", "auto_translate", "filter", "research", "sophie_inspect"]
+AIFeature: TypeAlias = Literal[  # noqa: UP040
+    "chatbot",
+    "translate",
+    "auto_translate",
+    "filter",
+    "research",
+    "sophie_inspect",
+]
 
 AI_FEATURE_CHATBOT: AIFeature = "chatbot"
 AI_FEATURE_TRANSLATE: AIFeature = "translate"
