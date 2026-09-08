@@ -7,6 +7,7 @@ from stfu_tg import KeyValue, Section
 
 from sophie_bot.db.models import GlobalSettings
 from sophie_bot.db.models.beta import BetaModeModel, CurrentMode, PreferredMode
+from sophie_bot.db.models.chat import ChatType
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.utils import flags
@@ -22,6 +23,9 @@ class InstanceStatus(SophieMessageHandler):
         return (CMDFilter("instance"), UserRestricting(admin=True))
 
     async def handle(self) -> Any:
+        if self.connection.type == ChatType.private:
+            return await self.event.reply(_("You can't use this command in private chats."))
+
         model = await BetaModeModel.get_by_chat_iid(self.connection.db_model.iid)
         preferred_mode = model.preferred_mode if model else PreferredMode.auto
 

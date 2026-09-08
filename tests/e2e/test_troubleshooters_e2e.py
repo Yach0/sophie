@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from aiogram_test_framework import TestClient
+from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.beta import BetaModeModel, CurrentMode, PreferredMode
@@ -47,3 +48,22 @@ async def test_instance_requires_admin(test_client: TestClient) -> None:
     requests = await test_client.send_command(command="instance", from_user=stranger.user, chat=group)
 
     assert any("administrator" in (request.text or "").lower() for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_instance_rejects_private_chat(test_client: TestClient) -> None:
+    user = test_client.create_user(
+        user_id=next_user_id(),
+        first_name="Private User",
+        username="instance_private_user",
+    )
+    private_chat = ChatFactory.create_private(
+        chat_id=user.user.id,
+        first_name=user.user.first_name,
+        username=user.user.username,
+    )
+    await test_client.send_message(text="init", from_user=user.user, chat=private_chat)
+
+    requests = await test_client.send_command(command="instance", from_user=user.user, chat=private_chat)
+
+    assert any("private chats" in (request.text or "").lower() for request in requests)
