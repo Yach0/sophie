@@ -134,12 +134,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 sent_message_ids.append(msg.message_id)
                 continue
 
-            if isinstance(msg, list):
-                sent_messages = [sent for sent in msg if isinstance(sent, Message)]
-                # stfu elements subclass list, so only a list of actual Messages counts as "already sent"
-                if len(sent_messages) == len(msg):
-                    sent_message_ids.extend(sent.message_id for sent in sent_messages)
-                    continue
+            # stfu elements subclass list, so only a list of actual Messages counts as "already sent"
+            if isinstance(msg, list) and all(isinstance(item, Message) for item in msg):
+                sent_message_ids.extend(item.message_id for item in msg)
+                continue
 
             body += " "
             body += msg
