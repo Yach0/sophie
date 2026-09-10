@@ -64,7 +64,8 @@ class CmdStart(BaseModel):
 
         super().__init_subclass__(**kwargs)
 
-    def _encode_value(self, key: str, value: Any) -> str:
+    @staticmethod
+    def _encode_value(key: str, value: Any) -> str:
         if value is None:
             return ""
         if isinstance(value, Enum):
