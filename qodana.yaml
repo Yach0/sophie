@@ -1,0 +1,18 @@
+version: "1.0"
+
+profile:
+  name: qodana.recommended
+
+# Exact audited files only; see docs/Qodana.md for symbols and scope limits.
+exclude:
+  - name: PyAbstractClassInspection
+    paths:
+      - sophie_bot/modules/utils_/status_handler.py
+      - sophie_bot/modules/federations/handlers/base.py
+      - sophie_bot/modules/federations/handlers/promote_demote_base.py
+      - sophie_bot/modules/locks/handlers/base.py
+      - sophie_bot/modules/restrictions/handlers/base.py
+      - sophie_bot/modules/ai/handlers/feature_setting.py
+  - name: PyPropertyDefinitionInspection
+    paths:
+      - sophie_bot/modules/ai/utils/ai_usage_service.py
