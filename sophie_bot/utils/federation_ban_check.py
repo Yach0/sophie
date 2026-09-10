@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, cast
+from typing import Literal, TypeAlias, cast
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
@@ -10,7 +10,7 @@ from bson import DBRef
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation, FederationBan
 
-FederationBanScope = Literal["current", "subscribed"]
+FederationBanScope: TypeAlias = Literal["current", "subscribed"]  # noqa: UP040
 
 
 @dataclass(frozen=True)

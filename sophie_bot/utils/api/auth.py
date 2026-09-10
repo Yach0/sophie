@@ -3,7 +3,7 @@ import hmac
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import parse_qsl
 
 import jwt
@@ -27,7 +27,7 @@ oauth2_scheme = HTTPBearer()
 logger = structlog.get_logger(__name__)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
@@ -47,7 +47,7 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _verify_telegram_data(data: dict, hash_value: str, secret_key: bytes) -> None:
+def _verify_telegram_data(data: dict[str, Any], hash_value: str, secret_key: bytes) -> None:
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if v is not None)
     calculated_hash = hmac.HMAC(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
@@ -63,7 +63,7 @@ def _verify_telegram_data(data: dict, hash_value: str, secret_key: bytes) -> Non
         raise HTTPException(status_code=403, detail="Data is outdated")
 
 
-def verify_telegram_login_widget(data: dict) -> tuple[dict, str]:
+def verify_telegram_login_widget(data: dict[str, Any]) -> tuple[dict[str, Any], str]:
     if "hash" not in data:
         raise HTTPException(status_code=400, detail="Missing hash")
 
@@ -74,7 +74,7 @@ def verify_telegram_login_widget(data: dict) -> tuple[dict, str]:
     return data, hash_value
 
 
-def verify_tma_launch_params(init_data: str) -> tuple[dict, str]:
+def verify_tma_launch_params(init_data: str) -> tuple[dict[str, Any], str]:
     parsed_data = dict(parse_qsl(init_data))
     if "hash" not in parsed_data:
         raise HTTPException(status_code=400, detail="Missing hash")
