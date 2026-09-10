@@ -161,7 +161,7 @@ class FederationUnbanHandler(FederationCommandHandler):
         """Reply when user is not banned."""
         await self.event.reply(_("This user is not banned in this federation."))
 
-    async def _handle_subscription_ban_error(self, subscription_ban, user: ChatModel) -> None:
+    async def _handle_subscription_ban_error(self, subscription_ban, _user: ChatModel) -> None:
         """Handle the case where unbanning is blocked due to subscription."""
         origin_fed = await FederationManageService.get_federation_by_id(subscription_ban.origin_fed)
         if not origin_fed:
