@@ -104,7 +104,7 @@ class MetricsMiddleware(BaseMiddleware):
                     unit="second",
                 )
 
-    def _get_handler_name(self, handler: Callable, event: TelegramObject | None) -> str:
+    def _get_handler_name(self, handler: Callable, _event: TelegramObject | None) -> str:
         """Extract handler name for labeling"""
         handler_name: str = "unknown"
 

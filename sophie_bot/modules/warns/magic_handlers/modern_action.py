@@ -21,7 +21,7 @@ class WarnActionDataModel(BaseModel):
     reason: str | None
 
 
-async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) -> WarnActionDataModel:
+async def setup_confirm(event: Message | CallbackQuery, _data: dict[str, Any]) -> WarnActionDataModel:
     if isinstance(event, CallbackQuery):
         raise TypeError("This handlers setup_confirm can only be used with messages")
 
