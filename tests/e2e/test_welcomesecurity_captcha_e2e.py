@@ -12,10 +12,12 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from aiogram.types import Message, User
+from aiogram.types import Chat, Message, User
 from aiogram_test_framework import TestClient
+from aiogram_test_framework.factories import MessageFactory, UserFactory
 from aiogram_test_framework.types import RequestType
 
+from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeMute, WelcomeSecurity
@@ -23,6 +25,7 @@ from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
+    WelcomeSecurityExpireCB,
     WelcomeSecurityRulesAgreeCB,
 )
 from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
@@ -248,7 +251,7 @@ async def test_autokick_kicks_stale_unpassed_user(test_client: TestClient) -> No
         request
         for request in requests
         if request.request_type == RequestType.UNBAN_CHAT_MEMBER
-        and request.params.get("user_id") == stale.id
+                and request.params.get("user_id") == stale.id
     ]
     assert kicks, "A user who never solved the captcha within the window should be kicked"
     assert not [
@@ -302,6 +305,107 @@ async def test_welcomecaptcha_command_persists(test_client: TestClient) -> None:
     assert chat is not None
     greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
     assert greetings.welcome_security is not None and greetings.welcome_security.enabled is True
+
+
+@pytest.mark.asyncio
+async def test_welcomecaptcha_command_configures_expiry(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="WS Expiry Cmd Group")
+    await grant_admin(group.id, admin.id)
+
+    requests = await test_client.send_command(command="welcomecaptcha", from_user=admin, args="6h", chat=group)
+
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    assert greetings.welcome_security is not None
+    assert greetings.welcome_security.enabled is True
+    assert greetings.welcome_security.expire == timedelta(hours=6)
+    assert any("6 hours" in (request.text or "") for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_welcomesecurity_expiry_button_persists_without_enabling_captcha(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="WS Expiry Button Group")
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+
+    bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    settings_message = MessageFactory.create(text="Welcome Security", from_user=bot_user, chat=group)
+    callback = WelcomeSecurityExpireCB(seconds=int(timedelta(hours=12).total_seconds()), chat_iid=str(chat.iid)).pack()
+
+    await test_client.send_callback(callback, from_user=admin, message=settings_message)
+
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    assert greetings.welcome_security is not None
+    assert greetings.welcome_security.enabled is False
+    assert greetings.welcome_security.expire == timedelta(hours=12)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("action", ["switch", "disconnect", "unauthorized", "unauthorized_connected", "unchanged"])
+async def test_welcomesecurity_expiry_bound_connection(test_client: TestClient, action: str) -> None:
+    admin, group, user_model = await create_test_user_and_group(test_client, group_title="Expiry A")
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    chat.username = "expiry_group_a"
+    await chat.save()
+    await test_client.send_command(command="connect", from_user=admin, args="@expiry_group_a")
+    requests = await test_client.send_command(command="welcomesecurity", from_user=admin)
+    settings = next(
+        request
+        for request in requests
+        if request.request_type == RequestType.SEND_MESSAGE and request.params.get("reply_markup")
+    )
+    markup = settings.params["reply_markup"]
+    if not isinstance(markup, dict):
+        markup = markup.model_dump()
+    callback = markup["inline_keyboard"][0][0]["callback_data"]
+    assert WelcomeSecurityExpireCB.unpack(callback).chat_iid == str(chat.iid)
+    assert len(callback.encode()) <= 64
+    before = await GreetingsModel.get_by_chat_iid(chat.iid)
+    original_security = before.welcome_security
+    other_chat = None
+    actor = admin
+    if action == "switch":
+        _other_admin, other_group, _other_user = await create_test_user_and_group(test_client, group_title="Expiry B")
+        await grant_admin(other_group.id, admin.id)
+        other_chat = await ChatModel.get_by_tid(other_group.id)
+        assert other_chat is not None
+        other_chat.username = "expiry_group_b"
+        await other_chat.save()
+        await test_client.send_command(command="connect", from_user=admin, args="@expiry_group_b")
+    elif action == "disconnect":
+        await test_client.send_command(command="disconnect", from_user=admin)
+    elif action in {"unauthorized", "unauthorized_connected"}:
+        actor = User(id=next_user_id(), is_bot=False, first_name="Stranger")
+        await ChatModel.upsert_user(actor)
+        if action == "unauthorized_connected":
+            await test_client.send_command(command="connect", from_user=actor, args="@expiry_group_a")
+
+    bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
+    settings_message = MessageFactory.create(
+        text="Welcome Security",
+        from_user=bot_user,
+        chat=group if action == "unauthorized" else Chat(id=actor.id, type="private"),
+    )
+    requests = await test_client.send_callback(callback, from_user=actor, message=settings_message)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    if action == "unchanged":
+        assert greetings.welcome_security is not None
+        assert greetings.welcome_security.expire == timedelta(hours=12)
+        assert any(request.request_type == RequestType.EDIT_MESSAGE_TEXT for request in requests)
+    else:
+        assert greetings.welcome_security == original_security
+        assert not any(request.request_type == RequestType.EDIT_MESSAGE_TEXT for request in requests)
+        assert any(request.request_type == RequestType.ANSWER_CALLBACK_QUERY for request in requests)
+        if action in {"switch", "disconnect"}:
+            assert any("no longer active" in request.params.get("text", "") for request in requests)
+        if other_chat:
+            assert await GreetingsModel.find_one(GreetingsModel.chat.id == other_chat.iid) is None
+        if action == "disconnect":
+            assert await GreetingsModel.find_one(GreetingsModel.chat.id == user_model.iid) is None
 
 
 @pytest.mark.asyncio

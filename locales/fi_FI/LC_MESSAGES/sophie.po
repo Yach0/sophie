@@ -50,39 +50,39 @@ msgstr "Käyttäjätunnus"
 msgid "Lock type"
 msgstr "Lukitustyyppi"
 
-#: sophie_bot/args/lock_type.py:36
+#: sophie_bot/args/lock_type.py:30
 msgid "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID or language:LANG format."
 msgstr "Tuntematon lukitustyyppi. Käytä /lockable nähdäksesi kaikki saatavilla olevat lukitustyypit, tai käytä muotoa stickerpack:PACK_ID tai language:LANG."
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:35
 msgid "Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"
 msgstr "Lukitustyyppi (esim. sticker, url, stickerpack:PACK_ID, language:ru)"
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:35
 msgid "Lock types"
 msgstr "Lukitustyypit"
 
-#: sophie_bot/args/lock_type.py:46
+#: sophie_bot/args/lock_type.py:40
 msgid "Block stickers"
 msgstr "Estä tarrat"
 
-#: sophie_bot/args/lock_type.py:47
+#: sophie_bot/args/lock_type.py:41
 msgid "Block URLs"
 msgstr "Estä URL-osoitteet"
 
-#: sophie_bot/args/lock_type.py:48
+#: sophie_bot/args/lock_type.py:42
 msgid "Block web page previews"
 msgstr "Estä verkkosivun esikatselut"
 
-#: sophie_bot/args/lock_type.py:49
+#: sophie_bot/args/lock_type.py:43
 msgid "Block forwarded messages"
 msgstr "Estä edelleenlähetetyt viestit"
 
-#: sophie_bot/args/lock_type.py:50
+#: sophie_bot/args/lock_type.py:44
 msgid "Block specific sticker pack"
 msgstr "Estä tietty tarrapaketti"
 
-#: sophie_bot/args/lock_type.py:51
+#: sophie_bot/args/lock_type.py:45
 msgid "Block Russian language messages"
 msgstr "Estä venäjänkieliset viestit"
 
@@ -1397,16 +1397,16 @@ msgstr "vastaa viestiin"
 msgid "<No text provided>"
 msgstr "<Ei tekstiä>"
 
-#: sophie_bot/modules/ai/utils/message_history.py:175
+#: sophie_bot/modules/ai/utils/message_history.py:173
 msgid "Image is empty"
 msgstr "Kuva on tyhjä"
 
-#: sophie_bot/modules/ai/utils/message_history.py:219
+#: sophie_bot/modules/ai/utils/message_history.py:217
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[Videon transkriptio: {text}]"
 
-#: sophie_bot/modules/ai/utils/message_history.py:294
+#: sophie_bot/modules/ai/utils/message_history.py:292
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr "Viimeaikaiset chat-viestit (vain kontekstia varten — vastaa pelkästään viimeisimpään viestiin)"
 
@@ -1755,7 +1755,7 @@ msgstr "Käyttäjä on rajoitettu tulvan vuoksi."
 #: sophie_bot/modules/promotes/handlers/demote.py:40
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:69
-#: sophie_bot/modules/promotes/handlers/promote.py:148
+#: sophie_bot/modules/promotes/handlers/promote.py:150
 #: sophie_bot/modules/restrictions/handlers/base.py:70
 #: sophie_bot/modules/restrictions/handlers/base.py:143
 #: sophie_bot/modules/restrictions/services/silent.py:46
@@ -2031,7 +2031,7 @@ msgstr "Yhdistää chattiin."
 #: sophie_bot/modules/op/handlers/set_mode.py:112
 #: sophie_bot/modules/op/handlers/set_mode.py:149
 #: sophie_bot/modules/promotes/handlers/demote.py:77
-#: sophie_bot/modules/promotes/handlers/promote.py:147
+#: sophie_bot/modules/promotes/handlers/promote.py:149
 #: sophie_bot/modules/restrictions/handlers/base.py:142
 #: sophie_bot/modules/restrictions/services/silent.py:45
 #: sophie_bot/modules/utils_/status_handler.py:49
@@ -3827,11 +3827,11 @@ msgstr "Kun viestit vastaavat regex-mallia {pattern}"
 msgid "When {handler} in message"
 msgstr "Kun {handler} viestissä"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:226
+#: sophie_bot/modules/filters/utils_/match_handler.py:227
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr "Olet sisällön moderointia avustava. Arvioi, vastaako annettu viestin sisältö suodattimen kriteereitä. Ole tarkka ja objektiivinen arviossasi."
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:233
+#: sophie_bot/modules/filters/utils_/match_handler.py:234
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3842,7 +3842,7 @@ msgstr ""
 "\n"
 "Viestin sisältö: {content}"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:235
+#: sophie_bot/modules/filters/utils_/match_handler.py:236
 msgid "(no text content)"
 msgstr "(ei tekstisisältöä)"
 
@@ -4015,7 +4015,7 @@ msgid "Use {cmd} to retrieve Welcome Security settings"
 msgstr "Käytä {cmd} komentoa tervetuloturvallisuusasetusten noutamiseen"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:47
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:72
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
 #, python-brace-format
 msgid "Check out {cmd} to learn more about Welcome settings."
 msgstr "Tutustu {cmd} komentoon saadaksesi lisää tietoa tervetuloasetuksista."
@@ -4027,7 +4027,7 @@ msgstr "Tervetuloviesti"
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:28
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:135
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:113
 msgid "No chat rules, have fun!"
 msgstr "Ei ryhmän sääntöjä, nauti!"
 
@@ -4946,16 +4946,18 @@ msgstr "Nykyinen tila"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:89
-msgid "Enabled"
-msgstr "Käytössä"
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:50
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:65
+msgid "Disabled"
+msgstr "Poissa käytöstä"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:89
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:51
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:66
-msgid "Disabled"
-msgstr "Poissa käytöstä"
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+msgid "Enabled"
+msgstr "Käytössä"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:39
 msgid "Private Notes"
@@ -5265,7 +5267,7 @@ msgstr ""
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:370
+#: sophie_bot/modules/notes/utils/send.py:418
 msgid "The text is too long"
 msgstr "Teksti on liian pitkä"
 
@@ -6261,19 +6263,19 @@ msgstr "Et voi ylentää itseäsi."
 msgid "Admin title is too long."
 msgstr "Ylläpitäjän otsikko on liian pitkä."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:149
+#: sophie_bot/modules/promotes/handlers/promote.py:151
 msgid "Promoted by"
 msgstr "Ylennetty käyttäjän toimesta"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:150
+#: sophie_bot/modules/promotes/handlers/promote.py:152
 msgid "Admin title"
 msgstr "Ylläpitäjän otsikko"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:150
+#: sophie_bot/modules/promotes/handlers/promote.py:152
 msgid "No admin title"
 msgstr "Ei ylläpitäjän otsikkoa"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:151
+#: sophie_bot/modules/promotes/handlers/promote.py:153
 msgid "Admin promoted successfully"
 msgstr "Ylläpitäjä ylennetty onnistuneesti"
 
@@ -7174,7 +7176,7 @@ msgstr "Nollaa kaikki käyttäjien varoitukset nykyisessä chatissa."
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:133
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:93
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:95
 msgid "Confirm"
 msgstr "Vahvista"
 
@@ -7357,15 +7359,15 @@ msgstr "heitetty ulos"
 msgid "muted"
 msgstr "vaimennettu"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:76
+#: sophie_bot/modules/welcomesecurity/__init__.py:78
 msgid "Welcome Security"
 msgstr "Tervetuloa turvallisuus"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:78
+#: sophie_bot/modules/welcomesecurity/__init__.py:80
 msgid "Protect your chat from bots and verify new users"
 msgstr "Suojaa chattisi boteilta ja varmista uudet käyttäjät"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:80
+#: sophie_bot/modules/welcomesecurity/__init__.py:82
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr "Tervetuloa turvallisuus sisältää joukon työkaluja, jotka voivat auttaa suodattamaan botteja, jotka yrittävät liittyä ryhmiisi, sekä varmistamaan, että uudet käyttäjät ovat hyväksyneet chatin säännöt ennen kuin voivat puhua"
 
@@ -7379,7 +7381,7 @@ msgid "The chat initiated the Welcome Security procedure were not found! Try cli
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:102
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:70
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:72
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr "Suorita '{emoji_name}' -emoji suorittaaksesi captcha-testin ja osallistuaksesi {group_name}-ryhmään."
@@ -7413,13 +7415,30 @@ msgstr "? Toiminnan aika"
 msgid "Enabled, set to {time}"
 msgstr "Käytössä, asetettu {time}-aikaan"
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:11
-msgid "Shows / changes the state of Welcome Captcha."
-msgstr "Näyttää / muuttaa Tervetuloa Captchan tilan."
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:25
+msgid "Shows / changes Welcome Captcha and its expiry time."
+msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:13
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:26
+msgid "?New status or expiry time"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:29
 msgid "Welcome Captcha"
 msgstr "Tervetuloa Captcha"
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:38
+msgid "? Expiry time"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:39
+msgid "? New status"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:53
+#, python-brace-format
+msgid "Enabled, unverified members expire after {time}"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:86
 msgid "This group no longer exists or has been removed."
@@ -7468,46 +7487,62 @@ msgstr ""
 msgid "Welcome security message was reset to default in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:22
-msgid "Shows Welcome Security settings"
-msgstr "Näyttää Tervetuloa-suojauksen asetukset"
-
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:40
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
 msgid "Captcha"
 msgstr "Captcha"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:43
-#, python-brace-format
-msgid "Enabled, expires in {time}"
-msgstr "Käytössä, vanhenee {time}"
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:48
+msgid "Captcha expiry"
+msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:50
+#, python-brace-format
+msgid "Pending members are removed after {time}"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:55
 msgid "Media restriction"
 msgstr "Mediarajoitus"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:59
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:58
 #, python-brace-format
 msgid "Enabled, on {time}"
 msgstr "Käytössä, {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:68
 #, python-brace-format
 msgid "Use {cmd} to control Welcome Captcha"
 msgstr "Käytä {cmd} Tervetuloa Captchan ohjaamiseen"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
 #, python-brace-format
 msgid "Use {cmd} to control Media restriction"
 msgstr "Käytä {cmd} mediarajoituksen ohjaamiseen"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
 #, python-brace-format
 msgid "Use {cmd} to set a custom Welcome Security message"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:76
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:93
+msgid "Shows Welcome Security settings"
+msgstr "Näyttää Tervetuloa-suojauksen asetukset"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:110
 msgid "Welcome Security message"
 msgstr "Tervetuloa-suojaviesti"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:141
+msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:148
+msgid "This expiry option is no longer available."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:155
+msgid "Captcha expiry updated."
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:28
 msgid "Please read the chat rules"
@@ -8222,4 +8257,10 @@ msgstr "Käyttäjän mainintaa ei löytynyt"
 
 #~ msgid "Back to the group"
 #~ msgstr "Takaisin ryhmään"
+
+#~ msgid "Shows / changes the state of Welcome Captcha."
+#~ msgstr "Näyttää / muuttaa Tervetuloa Captchan tilan."
+
+#~ msgid "Enabled, expires in {time}"
+#~ msgstr "Käytössä, vanhenee {time}"
 

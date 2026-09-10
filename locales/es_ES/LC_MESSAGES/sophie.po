@@ -50,39 +50,39 @@ msgstr "Nombre de usuario"
 msgid "Lock type"
 msgstr "Tipo de bloqueo"
 
-#: sophie_bot/args/lock_type.py:36
+#: sophie_bot/args/lock_type.py:30
 msgid "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID or language:LANG format."
 msgstr "Tipo de bloqueo desconocido. Usa /lockable para ver todos los tipos de bloqueo disponibles, o usa el formato stickerpack:PACK_ID o language:LANG."
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:35
 msgid "Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"
 msgstr "Tipo de bloqueo (ej., sticker, url, stickerpack:PACK_ID, language:ru)"
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:35
 msgid "Lock types"
 msgstr "Tipos de bloqueo"
 
-#: sophie_bot/args/lock_type.py:46
+#: sophie_bot/args/lock_type.py:40
 msgid "Block stickers"
 msgstr "Bloquear stickers"
 
-#: sophie_bot/args/lock_type.py:47
+#: sophie_bot/args/lock_type.py:41
 msgid "Block URLs"
 msgstr "Bloquear URLs"
 
-#: sophie_bot/args/lock_type.py:48
+#: sophie_bot/args/lock_type.py:42
 msgid "Block web page previews"
 msgstr "Bloquear vistas previas de páginas web"
 
-#: sophie_bot/args/lock_type.py:49
+#: sophie_bot/args/lock_type.py:43
 msgid "Block forwarded messages"
 msgstr "Bloquear mensajes reenviados"
 
-#: sophie_bot/args/lock_type.py:50
+#: sophie_bot/args/lock_type.py:44
 msgid "Block specific sticker pack"
 msgstr "Bloquear paquete de stickers específico"
 
-#: sophie_bot/args/lock_type.py:51
+#: sophie_bot/args/lock_type.py:45
 msgid "Block Russian language messages"
 msgstr "Bloquear mensajes en ruso"
 
@@ -1397,16 +1397,16 @@ msgstr "responder a"
 msgid "<No text provided>"
 msgstr "<No text provided>"
 
-#: sophie_bot/modules/ai/utils/message_history.py:175
+#: sophie_bot/modules/ai/utils/message_history.py:173
 msgid "Image is empty"
 msgstr "La imagen está vacía"
 
-#: sophie_bot/modules/ai/utils/message_history.py:219
+#: sophie_bot/modules/ai/utils/message_history.py:217
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[Transcripción de video: {text}]"
 
-#: sophie_bot/modules/ai/utils/message_history.py:294
+#: sophie_bot/modules/ai/utils/message_history.py:292
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr ""
 
@@ -1755,7 +1755,7 @@ msgstr "El usuario ha sido restringido por flooding."
 #: sophie_bot/modules/promotes/handlers/demote.py:40
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:69
-#: sophie_bot/modules/promotes/handlers/promote.py:148
+#: sophie_bot/modules/promotes/handlers/promote.py:150
 #: sophie_bot/modules/restrictions/handlers/base.py:70
 #: sophie_bot/modules/restrictions/handlers/base.py:143
 #: sophie_bot/modules/restrictions/services/silent.py:46
@@ -2031,7 +2031,7 @@ msgstr "Conéctate al chat."
 #: sophie_bot/modules/op/handlers/set_mode.py:112
 #: sophie_bot/modules/op/handlers/set_mode.py:149
 #: sophie_bot/modules/promotes/handlers/demote.py:77
-#: sophie_bot/modules/promotes/handlers/promote.py:147
+#: sophie_bot/modules/promotes/handlers/promote.py:149
 #: sophie_bot/modules/restrictions/handlers/base.py:142
 #: sophie_bot/modules/restrictions/services/silent.py:45
 #: sophie_bot/modules/utils_/status_handler.py:49
@@ -3827,11 +3827,11 @@ msgstr "Cuando los mensajes coinciden con el patrón regex {pattern}"
 msgid "When {handler} in message"
 msgstr "Cuando {handler} en el mensaje"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:226
+#: sophie_bot/modules/filters/utils_/match_handler.py:227
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr "Eres un asistente de moderación de contenido. Evalúa si el contenido del mensaje proporcionado coincide con los criterios del filtro. Sé preciso y objetivo en tu evaluación."
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:233
+#: sophie_bot/modules/filters/utils_/match_handler.py:234
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3842,7 +3842,7 @@ msgstr ""
 "\n"
 "Contenido del mensaje: {content}"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:235
+#: sophie_bot/modules/filters/utils_/match_handler.py:236
 msgid "(no text content)"
 msgstr "(sin contenido de texto)"
 
@@ -4015,7 +4015,7 @@ msgid "Use {cmd} to retrieve Welcome Security settings"
 msgstr "Usa {cmd} para recuperar la configuración de Bienvenida Seguridad"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:47
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:72
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
 #, python-brace-format
 msgid "Check out {cmd} to learn more about Welcome settings."
 msgstr "Consulta {cmd} para aprender más sobre la configuración de Bienvenida."
@@ -4027,7 +4027,7 @@ msgstr "Mensaje de Bienvenida"
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:28
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:135
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:113
 msgid "No chat rules, have fun!"
 msgstr "¡No hay reglas en el chat, diviértete!"
 
@@ -4946,16 +4946,18 @@ msgstr "Estado actual"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:89
-msgid "Enabled"
-msgstr "Activado"
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:50
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:65
+msgid "Disabled"
+msgstr "Desactivado"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:89
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:51
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:66
-msgid "Disabled"
-msgstr "Desactivado"
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+msgid "Enabled"
+msgstr "Activado"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:39
 msgid "Private Notes"
@@ -5265,7 +5267,7 @@ msgstr ""
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:370
+#: sophie_bot/modules/notes/utils/send.py:418
 msgid "The text is too long"
 msgstr "El texto es demasiado largo"
 
@@ -6261,19 +6263,19 @@ msgstr "No puedes promoverte."
 msgid "Admin title is too long."
 msgstr "El título de administrador es demasiado largo."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:149
+#: sophie_bot/modules/promotes/handlers/promote.py:151
 msgid "Promoted by"
 msgstr "Promovido por"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:150
+#: sophie_bot/modules/promotes/handlers/promote.py:152
 msgid "Admin title"
 msgstr "Título de administrador"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:150
+#: sophie_bot/modules/promotes/handlers/promote.py:152
 msgid "No admin title"
 msgstr "Sin título de administrador"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:151
+#: sophie_bot/modules/promotes/handlers/promote.py:153
 msgid "Admin promoted successfully"
 msgstr "Administrador promovido con éxito"
 
@@ -7174,7 +7176,7 @@ msgstr "Restablece todas las advertencias de todos los usuarios en el chat actua
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:133
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:93
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:95
 msgid "Confirm"
 msgstr "Confirm"
 
@@ -7357,15 +7359,15 @@ msgstr "expulsado"
 msgid "muted"
 msgstr "silenciado"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:76
+#: sophie_bot/modules/welcomesecurity/__init__.py:78
 msgid "Welcome Security"
 msgstr "Bienvenida Seguridad"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:78
+#: sophie_bot/modules/welcomesecurity/__init__.py:80
 msgid "Protect your chat from bots and verify new users"
 msgstr "Protege tu chat de bots y verifica nuevos usuarios"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:80
+#: sophie_bot/modules/welcomesecurity/__init__.py:82
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr "La Seguridad de Bienvenida contiene un conjunto de herramientas que pueden ayudar a filtrar los bots que intentan unirse a tus grupos, así como a asegurarte de que los nuevos usuarios reconozcan las reglas del chat antes de poder hablar."
 
@@ -7379,7 +7381,7 @@ msgid "The chat initiated the Welcome Security procedure were not found! Try cli
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:102
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:70
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:72
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr "Completa el emoji '{emoji_name}' para completar el captcha y participar en el {group_name}."
@@ -7413,13 +7415,30 @@ msgstr "? Tiempo de acción"
 msgid "Enabled, set to {time}"
 msgstr "Habilitado, establecido a {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:11
-msgid "Shows / changes the state of Welcome Captcha."
-msgstr "Muestra / cambia el estado del Captcha de Bienvenida."
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:25
+msgid "Shows / changes Welcome Captcha and its expiry time."
+msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:13
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:26
+msgid "?New status or expiry time"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:29
 msgid "Welcome Captcha"
 msgstr "Captcha"
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:38
+msgid "? Expiry time"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:39
+msgid "? New status"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:53
+#, python-brace-format
+msgid "Enabled, unverified members expire after {time}"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:86
 msgid "This group no longer exists or has been removed."
@@ -7468,46 +7487,62 @@ msgstr ""
 msgid "Welcome security message was reset to default in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:22
-msgid "Shows Welcome Security settings"
-msgstr "Muestra la configuración de Seguridad de Bienvenida"
-
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:40
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
 msgid "Captcha"
 msgstr "Captcha"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:43
-#, python-brace-format
-msgid "Enabled, expires in {time}"
-msgstr "Habilitado, expira en {time}"
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:48
+msgid "Captcha expiry"
+msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:50
+#, python-brace-format
+msgid "Pending members are removed after {time}"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:55
 msgid "Media restriction"
 msgstr "Restricción de medios"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:59
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:58
 #, python-brace-format
 msgid "Enabled, on {time}"
 msgstr "Habilitado, en {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:68
 #, python-brace-format
 msgid "Use {cmd} to control Welcome Captcha"
 msgstr "Usa {cmd} para controlar el Captcha de Bienvenida."
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
 #, python-brace-format
 msgid "Use {cmd} to control Media restriction"
 msgstr "Usa {cmd} para controlar la restricción de medios."
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
 #, python-brace-format
 msgid "Use {cmd} to set a custom Welcome Security message"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:76
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:93
+msgid "Shows Welcome Security settings"
+msgstr "Muestra la configuración de Seguridad de Bienvenida"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:110
 msgid "Welcome Security message"
 msgstr "Mensaje de Seguridad de Bienvenida"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:141
+msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:148
+msgid "This expiry option is no longer available."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:155
+msgid "Captcha expiry updated."
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:28
 msgid "Please read the chat rules"
@@ -8339,4 +8374,10 @@ msgstr "No se pudo encontrar la mención de usuario"
 
 #~ msgid "Back to the group"
 #~ msgstr "Back to the group"
+
+#~ msgid "Shows / changes the state of Welcome Captcha."
+#~ msgstr "Muestra / cambia el estado del Captcha de Bienvenida."
+
+#~ msgid "Enabled, expires in {time}"
+#~ msgstr "Habilitado, expira en {time}"
 
