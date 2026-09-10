@@ -42,12 +42,13 @@ recount of the original SARIF was performed while narrowing these exclusions.
 | `PyAbstractClassInspection` | `sophie_bot/modules/ai/handlers/feature_setting.py` | `AIFeatureSetting` (1) | Shared status implementation leaves filters and feature metadata to concrete AI setting handlers. |
 | `PyPropertyDefinitionInspection` | `sophie_bot/modules/ai/utils/ai_usage_service.py` | `AIUsageLike.total_tokens`, `AIModelLike.model_name` (2) | Read-only protocol properties with valid `...` stub bodies model computed third-party attributes; writable attributes would change the protocol contract. Ellipsis is valid here, not the only possible protocol body. |
 
-## Inspections intentionally still enabled
+## Other findings from the original MR640 audit
 
 The original MR640 audit left these 19 rule IDs unchanged because findings
 were legitimate, had mixed intent, or could not be verified against its source
 snapshot. The counts below are the historical SARIF counts reported by that
-audit, not fresh measurements:
+audit, not fresh measurements. MR642 subsequently audited the callable finding
+and added the single-file exception below; the other 18 IDs remain unchanged:
 
 | Inspection ID | Results |
 | --- | ---: |
@@ -80,3 +81,47 @@ sets are not proven false positives.
 
 Original MR640 audit source: the supplied SARIF (not tracked here) and commit
 `c5b6d20ab26c0bdc68438da828d3f2770f03a866` (`origin/main`).
+
+## MR642: callable and protocol-property audit
+
+| Inspection ID | Findings in MR642 audit | Audited location and rationale |
+| --- | ---: | --- |
+| `PyCallingNonCallableInspection` | 1 | `sophie_bot/modules/notes/utils/buttons_processor/ass_types/parse_arg.py:85`, `ButtonsArg.parse`: `self.child` is initialized as `ButtonArg()`. `ButtonArg` inherits ASS `OrArg`, which inherits `ArgFabric`; `ArgFabric.__call__` returns the awaitable `_call(...)`. The object is callable; this finding is consistent with Qodana failing to resolve the dependency's inherited method. Only this file is excluded for this inspection. |
+| `PyPropertyDefinitionInspection` | 2 | `sophie_bot/modules/ai/utils/ai_usage_service.py:23` and `:71`, `AIUsageLike.total_tokens` and `AIModelLike.model_name`: read-only protocol properties model `RunUsage.total_tokens` and `Model.model_name`. These are the same two findings documented in MR640, not two additional findings or an additional exclusion. |
+
+During integration, the callable inheritance and `__call__` implementation were
+checked against ASS commit `36e21e9b2ef058e4cbef6589a722bd8d1702b3b8`, pinned in
+`uv.lock` (`ass_tg/types/logic.py` and `ass_tg/types/base_abc.py`). Existing
+`tests/test_buttons_arg.py::test_buttons_arg_many` and
+`test_buttons_arg_many_newlines` exercise the list parser's child call.
+No runtime code was changed and no production fix is needed for these findings.
+
+### MR642 artifact provenance
+
+The original MR642 audit recorded that no source SARIF was present at its
+requested path:
+`/home/yacha/.hermes/cache/documents/doc_5ad27c08200e_3Pjr1_p5l0d_b7dc9491_33fc_4bc2_979b_875d07c540ef_qodana_sarif.json`.
+It instead used the local artifacts
+`/tmp/sophie-qodana-unsuppressed-results/qodana.sarif.json` and
+`/tmp/sophie-qodana-results/qodana.sarif.json`, reporting respectively the three
+call/property findings and the two property findings after an existing local
+suppression run. It audited repository source at
+`c5b6d20ab26c0bdc68438da828d3f2770f03a866` (`origin/main` at audit time).
+These paths are historical provenance, not tracked fixtures or artifacts
+re-read during this integration. Counts from that run must not be combined
+with MR640's full-project count to predict a new Qodana total.
+
+### Integration validation and limits
+
+- Qodana 1.0 schema validation and exact inspection/file allowlist checks passed;
+  each path exists and contains the documented symbols. The recommended profile
+  is unchanged, and no entry has an omitted/empty path list or a wildcard.
+- `make commit` was attempted in an isolated worktree-local environment with
+  dummy service settings. It stopped before style checks/tests because the
+  required Torch wheel was unavailable in the isolated offline cache. A targeted
+  `uv run --frozen python -m pytest tests/test_buttons_arg.py -q` attempt stopped
+  at the same dependency setup step, before test collection.
+- A fresh Qodana scan was not run (no Qodana CLI/container runtime available).
+  Existing button tests were inspected, but their execution remains unverified
+  in this dependency-incomplete environment. Run them and Qodana in provisioned
+  CI before treating suppression counts or runtime test status as verified.
