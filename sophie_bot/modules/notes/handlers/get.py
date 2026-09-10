@@ -137,7 +137,11 @@ class HashtagGetNote(SophieMessageHandler):
             redis=self.services.redis,
         )
         try:
-            if rich_enabled and any(note.rich_message is not None for note in notes_to_stack):
+            # Keep a single note's title separate so retrieval decoration can be omitted
+            # at the Telegram text/caption limit, just as it is for /get.
+            if len(notes_to_stack) == 1 or (
+                rich_enabled and any(note.rich_message is not None for note in notes_to_stack)
+            ):
                 for note in notes_to_stack:
                     sent = await send_saveable(
                         self.event,
