@@ -28,7 +28,6 @@ def render_messages_for_prompt(messages: tuple[MessageType, ...]) -> str:
 
 
 def build_decision_prompt(messages: tuple[MessageType, ...], settings: ProactiveReplySettings) -> str:
-    rendered_messages = render_messages_for_prompt(messages)
     return "\n".join(
         (
             "Decide how Sophie should naturally join this Telegram chat: none, react, or answer.",
@@ -39,7 +38,7 @@ def build_decision_prompt(messages: tuple[MessageType, ...], settings: Proactive
             "Choose none when Sophie would not add anything, or the batch is spam, pure transactions, moderation chatter, or an obvious interruption.",
             "Pick only provided message_id values.",
             "Recent messages:",
-            rendered_messages,
+            render_messages_for_prompt(messages),
         )
     )
 
