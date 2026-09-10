@@ -21,3 +21,4 @@ class WelcomeSecurityRulesAgreeCB(CallbackData, prefix="ws_rules_agree"):
 
 class WelcomeSecurityExpireCB(CallbackData, prefix="ws_expire"):
     seconds: int
+    chat_iid: str

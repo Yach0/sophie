@@ -5,6 +5,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from babel.dates import format_timedelta
+from beanie import PydanticObjectId
 from stfu_tg import Bold, Doc, Italic, KeyValue, Template, Title
 
 from sophie_bot.db.models import GreetingsModel, RulesModel
@@ -71,7 +72,7 @@ def _settings_text(db_item: GreetingsModel, locale: str) -> Doc:
     )
 
 
-def _expiry_keyboard(db_item: GreetingsModel, locale: str) -> InlineKeyboardMarkup:
+def _expiry_keyboard(db_item: GreetingsModel, locale: str, chat_iid: PydanticObjectId) -> InlineKeyboardMarkup:
     current_expiry = _effective_expiry(db_item)
     normalized_locale = locale.replace("-", "_")
     buttons = InlineKeyboardBuilder()
@@ -80,7 +81,9 @@ def _expiry_keyboard(db_item: GreetingsModel, locale: str) -> InlineKeyboardMark
         buttons.add(
             InlineKeyboardButton(
                 text=f"{selected}{format_timedelta(expiry, locale=normalized_locale)}",
-                callback_data=WelcomeSecurityExpireCB(seconds=int(expiry.total_seconds())).pack(),
+                callback_data=WelcomeSecurityExpireCB(
+                    seconds=int(expiry.total_seconds()), chat_iid=str(chat_iid)
+                ).pack(),
             )
         )
     buttons.adjust(2)
@@ -101,7 +104,7 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
 
         await self.event.reply(
             str(_settings_text(db_item, self.current_locale)),
-            reply_markup=_expiry_keyboard(db_item, self.current_locale),
+            reply_markup=_expiry_keyboard(db_item, self.current_locale, connection.db_model.iid),
         )
 
         title = Bold(Title(_("Welcome Security message")))
@@ -130,12 +133,19 @@ class WelcomeSecurityExpireHandler(SophieCallbackQueryHandler):
         return WelcomeSecurityExpireCB.filter(), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
+        connection = self.connection
+        if connection.type == "private" or self.callback_data.chat_iid != str(connection.db_model.iid):
+            return await self.event.answer(
+                _("These settings are no longer active. Open /welcomesecurity again for the intended chat."),
+                show_alert=True,
+            )
+
         seconds = self.callback_data.seconds
         allowed_seconds = {int(expiry.total_seconds()) for expiry in CAPTCHA_EXPIRY_OPTIONS}
         if seconds not in allowed_seconds:
             return await self.event.answer(_("This expiry option is no longer available."), show_alert=True)
 
-        db_item = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
+        db_item = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
         await db_item.set_status_welcomesecurity(
             bool(db_item.welcome_security and db_item.welcome_security.enabled),
             timedelta(seconds=seconds),
@@ -143,5 +153,5 @@ class WelcomeSecurityExpireHandler(SophieCallbackQueryHandler):
         await self.event.answer(_("Captcha expiry updated."))
         return await self.edit_text(
             _settings_text(db_item, self.current_locale),
-            reply_markup=_expiry_keyboard(db_item, self.current_locale),
+            reply_markup=_expiry_keyboard(db_item, self.current_locale, connection.db_model.iid),
         )
