@@ -50,39 +50,39 @@ msgstr "Uživatelské jméno"
 msgid "Lock type"
 msgstr "Typ zámku"
 
-#: sophie_bot/args/lock_type.py:36
+#: sophie_bot/args/lock_type.py:30
 msgid "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID or language:LANG format."
 msgstr "Neznámý typ zámku. Použijte /lockable pro zobrazení všech dostupných typů zámků, nebo použijte formát stickerpack:PACK_ID nebo language:LANG."
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:35
 msgid "Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"
 msgstr "Typ zámku (např. sticker, url, stickerpack:PACK_ID, language:ru)"
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:35
 msgid "Lock types"
 msgstr "Typy zámků"
 
-#: sophie_bot/args/lock_type.py:46
+#: sophie_bot/args/lock_type.py:40
 msgid "Block stickers"
 msgstr "Blokovat nálepky"
 
-#: sophie_bot/args/lock_type.py:47
+#: sophie_bot/args/lock_type.py:41
 msgid "Block URLs"
 msgstr "Blokovat URL adresy"
 
-#: sophie_bot/args/lock_type.py:48
+#: sophie_bot/args/lock_type.py:42
 msgid "Block web page previews"
 msgstr "Blokovat náhledy webových stránek"
 
-#: sophie_bot/args/lock_type.py:49
+#: sophie_bot/args/lock_type.py:43
 msgid "Block forwarded messages"
 msgstr "Blokovat přeposlané zprávy"
 
-#: sophie_bot/args/lock_type.py:50
+#: sophie_bot/args/lock_type.py:44
 msgid "Block specific sticker pack"
 msgstr "Blokovat konkrétní balíček nálepek"
 
-#: sophie_bot/args/lock_type.py:51
+#: sophie_bot/args/lock_type.py:45
 msgid "Block Russian language messages"
 msgstr "Blokovat zprávy v ruském jazyce"
 
@@ -1398,16 +1398,16 @@ msgstr "odpověď na"
 msgid "<No text provided>"
 msgstr "<Nebyl poskytnut žádný text>"
 
-#: sophie_bot/modules/ai/utils/message_history.py:175
+#: sophie_bot/modules/ai/utils/message_history.py:173
 msgid "Image is empty"
 msgstr "Foto je prázdné"
 
-#: sophie_bot/modules/ai/utils/message_history.py:219
+#: sophie_bot/modules/ai/utils/message_history.py:217
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[Transkripce videa: {text}]"
 
-#: sophie_bot/modules/ai/utils/message_history.py:294
+#: sophie_bot/modules/ai/utils/message_history.py:292
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr "Nedávné zprávy chatu (pouze kontext — odpovězte pouze na nejnovější zprávu)"
 
@@ -1757,7 +1757,7 @@ msgstr "Uživatel byl omezen pro záplavu."
 #: sophie_bot/modules/promotes/handlers/demote.py:40
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:69
-#: sophie_bot/modules/promotes/handlers/promote.py:148
+#: sophie_bot/modules/promotes/handlers/promote.py:150
 #: sophie_bot/modules/restrictions/handlers/base.py:70
 #: sophie_bot/modules/restrictions/handlers/base.py:143
 #: sophie_bot/modules/restrictions/services/silent.py:46
@@ -2033,7 +2033,7 @@ msgstr "Připojuje se k chatu."
 #: sophie_bot/modules/op/handlers/set_mode.py:112
 #: sophie_bot/modules/op/handlers/set_mode.py:149
 #: sophie_bot/modules/promotes/handlers/demote.py:77
-#: sophie_bot/modules/promotes/handlers/promote.py:147
+#: sophie_bot/modules/promotes/handlers/promote.py:149
 #: sophie_bot/modules/restrictions/handlers/base.py:142
 #: sophie_bot/modules/restrictions/services/silent.py:45
 #: sophie_bot/modules/utils_/status_handler.py:49
@@ -3829,11 +3829,11 @@ msgstr "Když zprávy odpovídají vzoru regex {pattern}"
 msgid "When {handler} in message"
 msgstr "Když je {handler} ve zprávě"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:226
+#: sophie_bot/modules/filters/utils_/match_handler.py:227
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr "Jste asistent pro moderování obsahu. Vyhodnoťte, zda poskytnutý obsah zprávy odpovídá kritériím filtru. Buďte přesní a objektivní ve svém hodnocení."
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:233
+#: sophie_bot/modules/filters/utils_/match_handler.py:234
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3844,7 +3844,7 @@ msgstr ""
 "\n"
 "Obsah zprávy: {content}"
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:235
+#: sophie_bot/modules/filters/utils_/match_handler.py:236
 msgid "(no text content)"
 msgstr "(žádný textový obsah)"
 
@@ -4017,7 +4017,7 @@ msgid "Use {cmd} to retrieve Welcome Security settings"
 msgstr "Použijte {cmd} pro načtení nastavení Bezpečnosti vítání"
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:47
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:72
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
 #, python-brace-format
 msgid "Check out {cmd} to learn more about Welcome settings."
 msgstr "Podívejte se na {cmd} abyste se dozvěděli více o nastaveních vítání."
@@ -4029,7 +4029,7 @@ msgstr "Uvítací zpráva"
 #: sophie_bot/modules/greetings/handlers/status_overall.py:54
 #: sophie_bot/modules/greetings/utils/send_welcome.py:28
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:135
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:79
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:113
 msgid "No chat rules, have fun!"
 msgstr "Není zde žádné pravidlo, bavte se!"
 
@@ -4948,16 +4948,18 @@ msgstr "Aktuální stav"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:89
-msgid "Enabled"
-msgstr "Povoleno"
+#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:50
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:65
+msgid "Disabled"
+msgstr "Zakázáno"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 #: sophie_bot/modules/utils_/status_handler.py:89
-#: sophie_bot/modules/welcomesecurity/handlers/enable_welcomemute.py:43
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:51
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:66
-msgid "Disabled"
-msgstr "Zakázáno"
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+msgid "Enabled"
+msgstr "Povoleno"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:39
 msgid "Private Notes"
@@ -5267,7 +5269,7 @@ msgstr ""
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:370
+#: sophie_bot/modules/notes/utils/send.py:418
 msgid "The text is too long"
 msgstr "Text je příliš dlouhý"
 
@@ -6263,19 +6265,19 @@ msgstr "Nemůžete se povýšit."
 msgid "Admin title is too long."
 msgstr "Titul admina je příliš dlouhý."
 
-#: sophie_bot/modules/promotes/handlers/promote.py:149
+#: sophie_bot/modules/promotes/handlers/promote.py:151
 msgid "Promoted by"
 msgstr "Povýšen od"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:150
+#: sophie_bot/modules/promotes/handlers/promote.py:152
 msgid "Admin title"
 msgstr "Titul admina"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:150
+#: sophie_bot/modules/promotes/handlers/promote.py:152
 msgid "No admin title"
 msgstr "Žádný admin titul"
 
-#: sophie_bot/modules/promotes/handlers/promote.py:151
+#: sophie_bot/modules/promotes/handlers/promote.py:153
 msgid "Admin promoted successfully"
 msgstr "Admin byl úspěšně povýšen"
 
@@ -7176,7 +7178,7 @@ msgstr "Resetuje všechna varování všech uživatelů v aktuálním chatu."
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:133
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:93
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:95
 msgid "Confirm"
 msgstr "Potvrdit"
 
@@ -7359,15 +7361,15 @@ msgstr "vyhozen"
 msgid "muted"
 msgstr "ztlumit"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:76
+#: sophie_bot/modules/welcomesecurity/__init__.py:78
 msgid "Welcome Security"
 msgstr "Bezpečnost vítání"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:78
+#: sophie_bot/modules/welcomesecurity/__init__.py:80
 msgid "Protect your chat from bots and verify new users"
 msgstr "Chraňte svůj chat před boty a ověřte nové uživatele"
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:80
+#: sophie_bot/modules/welcomesecurity/__init__.py:82
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr "Bezpečnost vítání obsahuje řadu nástrojů, které mohou pomoci filtrovat roboty, kteří se pokoušejí připojit k vašim skupinám, a také zajistit, aby noví uživatelé potvrdili pravidla chatu před tím, než budou moci mluvit"
 
@@ -7381,7 +7383,7 @@ msgid "The chat initiated the Welcome Security procedure were not found! Try cli
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:102
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:70
+#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:72
 #, python-brace-format
 msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
 msgstr "Dokončete emoji '{emoji_name}', abyste se dostali přes captcha a mohli se účastnit {group_name}."
@@ -7415,13 +7417,30 @@ msgstr "? Čas akce"
 msgid "Enabled, set to {time}"
 msgstr "Povoleno, nastaveno na {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:11
-msgid "Shows / changes the state of Welcome Captcha."
-msgstr "Zobrazuje / mění stav Ověření vítání."
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:25
+msgid "Shows / changes Welcome Captcha and its expiry time."
+msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:13
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:26
+msgid "?New status or expiry time"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:29
 msgid "Welcome Captcha"
 msgstr "Ověření vítání"
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:38
+msgid "? Expiry time"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:39
+msgid "? New status"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/enable_ws.py:53
+#, python-brace-format
+msgid "Enabled, unverified members expire after {time}"
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/legacy_button.py:86
 msgid "This group no longer exists or has been removed."
@@ -7470,46 +7489,62 @@ msgstr ""
 msgid "Welcome security message was reset to default in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:22
-msgid "Shows Welcome Security settings"
-msgstr "Zobrazuje nastavení Bezpečnosti vítání"
-
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:40
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
 msgid "Captcha"
 msgstr "Captcha"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:43
-#, python-brace-format
-msgid "Enabled, expires in {time}"
-msgstr "Povoleno, vyprší za {time}"
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:48
+msgid "Captcha expiry"
+msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:56
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:50
+#, python-brace-format
+msgid "Pending members are removed after {time}"
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:55
 msgid "Media restriction"
 msgstr "Omezení médií"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:59
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:58
 #, python-brace-format
 msgid "Enabled, on {time}"
 msgstr "Povoleno, na {time}"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:68
 #, python-brace-format
 msgid "Use {cmd} to control Welcome Captcha"
 msgstr "Použijte {cmd} pro ovládání Ověření vítání"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:69
 #, python-brace-format
 msgid "Use {cmd} to control Media restriction"
 msgstr "Použijte {cmd} pro ovládání Omezení médií"
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:71
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:70
 #, python-brace-format
 msgid "Use {cmd} to set a custom Welcome Security message"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:76
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:93
+msgid "Shows Welcome Security settings"
+msgstr "Zobrazuje nastavení Bezpečnosti vítání"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:110
 msgid "Welcome Security message"
 msgstr "Zpráva o bezpečnosti vítání"
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:141
+msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:148
+msgid "This expiry option is no longer available."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:155
+msgid "Captcha expiry updated."
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:28
 msgid "Please read the chat rules"
@@ -8224,4 +8259,10 @@ msgstr "Nepodařilo se najít zmínku o uživateli"
 
 #~ msgid "Back to the group"
 #~ msgstr "Zpět do skupiny"
+
+#~ msgid "Shows / changes the state of Welcome Captcha."
+#~ msgstr "Zobrazuje / mění stav Ověření vítání."
+
+#~ msgid "Enabled, expires in {time}"
+#~ msgstr "Povoleno, vyprší za {time}"
 
