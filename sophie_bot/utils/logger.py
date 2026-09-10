@@ -24,7 +24,7 @@ def silence_processor(logger: logging.Logger, method_name: str, event_dict: Even
     return event_dict
 
 
-def mongo_prefix_processor(logger: logging.Logger, method_name: str, event_dict: EventDict) -> EventDict:
+def mongo_prefix_processor(logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
     """Add 'mongo: ' prefix to pymongo log messages and make them gray."""
     logger_name = event_dict.get("logger", "")
     if logger_name and logger_name.startswith("pymongo."):
@@ -37,7 +37,7 @@ def mongo_prefix_processor(logger: logging.Logger, method_name: str, event_dict:
     return event_dict
 
 
-def security_color_processor(logger: logging.Logger, method_name: str, event_dict: EventDict) -> EventDict:
+def security_color_processor(logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
     logger_name = event_dict.get("logger", "")
     if logger_name == "security":
         event = event_dict.get("event", "")

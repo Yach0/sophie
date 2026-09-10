@@ -33,7 +33,7 @@ class AIReplyActionDataModel(BaseModel):
     prompt: str
 
 
-async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -> AIReplyActionDataModel:
+async def set_reply_text(event: Message | CallbackQuery, _data: dict[str, Any]) -> AIReplyActionDataModel:
     if isinstance(event, CallbackQuery):
         raise TypeError("This handlers setup_confirm can only be used with messages")
 

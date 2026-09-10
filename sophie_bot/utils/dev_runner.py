@@ -62,7 +62,7 @@ def run_with_reload(mode: Literal["bot", "scheduler"]) -> None:
         )
 
 
-def _python_filter(change: Change, path: str) -> bool:
+def _python_filter(_: Change, path: str) -> bool:
     """Filter to only watch Python files."""
     return path.endswith(".py")
 
