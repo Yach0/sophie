@@ -138,10 +138,8 @@ async def _build_message_parts(
     redis: Redis,
 ) -> list[UserContent]:
     """Build the list of message parts for the AI context."""
-    prompt: list[UserContent] = []
-
     # Message's text
-    prompt.append(
+    prompt: list[UserContent] = [
         message_text
         if disable_name
         else AIUserMessageFormatter.user_message(
@@ -149,7 +147,7 @@ async def _build_message_parts(
             name=from_user_name,
             reply_to_user=replied_user_name,
         )
-    )
+    ]
 
     # Visual media
     if message.photo or message.sticker or message.animation:
