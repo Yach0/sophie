@@ -174,7 +174,7 @@ async def test_process_whitelisted_user_keeps_pending_record_until_unmute_succee
             applied=unmute_succeeded,
         )
     )
-    _patch_module(monkeypatch, execute_restriction, test_services)
+    _patch_module(monkeypatch, execute_restriction)
     monkeypatch.setattr(f"{_MODULE}.is_user_group_whitelisted", AsyncMock(return_value=True))
     monkeypatch.setattr(f"{_MODULE}.log_group_whitelist_exemption", AsyncMock())
 
