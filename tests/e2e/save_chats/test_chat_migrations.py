@@ -8,8 +8,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from aiogram.types import Chat
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
+from sophie_bot.utils.group_whitelist import group_user_whitelist_cache_key
 
 
 class TestChatMigration:
@@ -54,8 +57,8 @@ class TestChatMigration:
         await middleware(mock_handler, update, base_data)
 
         # Assert
-        assert "chat_db" in base_data
-        migrated_group = base_data["chat_db"]
+        context = base_data["context"]
+        migrated_group = context.event_chat
         assert migrated_group.tid == -1001234567890
         assert migrated_group.type == ChatType.supergroup
 
@@ -134,6 +137,58 @@ class TestChatMigration:
         assert migrated.type == ChatType.supergroup
 
     @pytest.mark.asyncio
+    async def test_migration_moves_group_whitelist_rows_and_invalidates_cache(self, base_data) -> None:
+        old_chat_tid = -123456780
+        new_chat_tid = -1001234567800
+        user_tid = 123456780
+        redis = base_data["services"].redis
+        old_group = ChatModel(
+            tid=old_chat_tid,
+            type=ChatType.group,
+            first_name_or_title="Whitelisted Group",
+            is_bot=False,
+            username=None,
+            last_saw=datetime.now(UTC),
+        )
+        await old_group.save()
+        await GroupUserWhitelistModel.add_user(old_chat_tid, user_tid)
+        await GroupUserWhitelistModel.add_user(new_chat_tid, user_tid)
+        old_cache_key = group_user_whitelist_cache_key(old_chat_tid, user_tid)
+        new_cache_key = group_user_whitelist_cache_key(new_chat_tid, user_tid)
+        await redis.set(old_cache_key, b"1")
+        await redis.set(new_cache_key, b"0")
+
+        await ChatModel.do_chat_migrate(
+            old_chat_tid,
+            Chat(id=new_chat_tid, type="supergroup", title="Whitelisted Group"),
+            redis=redis,
+        )
+
+        assert (
+            await GroupUserWhitelistModel.find_one(
+                GroupUserWhitelistModel.chat_tid == old_chat_tid,
+                GroupUserWhitelistModel.user_tid == user_tid,
+            )
+            is None
+        )
+        assert (
+            await GroupUserWhitelistModel.find_one(
+                GroupUserWhitelistModel.chat_tid == new_chat_tid,
+                GroupUserWhitelistModel.user_tid == user_tid,
+            )
+            is not None
+        )
+        assert (
+            await GroupUserWhitelistModel.find(
+                GroupUserWhitelistModel.chat_tid == new_chat_tid,
+                GroupUserWhitelistModel.user_tid == user_tid,
+            ).count()
+            == 1
+        )
+        assert await redis.get(old_cache_key) is None
+        assert await redis.get(new_cache_key) is None
+
+    @pytest.mark.asyncio
     async def test_migration_with_users(
         self,
         middleware,
@@ -184,8 +239,7 @@ class TestChatMigration:
         # Act
         await middleware(mock_handler, update, base_data)
 
-        # Assert - Migration should complete without errors
-        assert "chat_db" in base_data
+        assert base_data["context"].event_chat.tid == -1001234567890
 
     @pytest.mark.asyncio
     async def test_migration_from_nonexistent_group(
@@ -214,10 +268,7 @@ class TestChatMigration:
         # Act
         await middleware(mock_handler, update, base_data)
 
-        # Assert - Should still create the new group in data
-        assert "chat_db" in base_data
-        # Note: When migrating from non-existent group, the middleware may not
-        # create a new ChatModel entry depending on implementation details
+        assert mock_handler.called
 
     @pytest.mark.asyncio
     async def test_both_migration_fields_present(

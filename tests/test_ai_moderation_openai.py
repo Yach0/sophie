@@ -52,10 +52,18 @@ def mock_history() -> AsyncMock:
 
 
 @pytest.fixture
-async def openai_provider() -> None:
-    await set_value("ai_moderation_provider", "openai")
+async def openai_provider(test_redis: object) -> None:
+    await set_value(
+        "ai_moderation_provider",
+        "openai",
+        redis=test_redis,
+    )
     yield
-    await set_value("ai_moderation_provider", "mistral")
+    await set_value(
+        "ai_moderation_provider",
+        "mistral",
+        redis=test_redis,
+    )
 
 
 pytestmark = pytest.mark.usefixtures("db_init", "mock_history", "openai_provider")
@@ -82,60 +90,70 @@ def test_convert_to_openai_moderation_format_drops_roles_and_empties() -> None:
     ]
 
 
-async def test_native_categories_fold_into_sophie_categories() -> None:
+async def test_native_categories_fold_into_sophie_categories(
+    test_redis: object,
+) -> None:
     scores = dict.fromkeys(_DEFAULTS, 0.0)
     scores["sexual/minors"] = _DEFAULTS["sexual/minors"] + 0.1
 
     with _openai_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     # A narrow native category still surfaces as its broad Sophie category.
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
     assert result.triggered_native == frozenset({"sexual/minors"})
 
 
-async def test_narrow_category_has_its_own_threshold() -> None:
+async def test_narrow_category_has_its_own_threshold(
+    test_redis: object,
+) -> None:
     # 0.3 clears sexual/minors (0.2) but not sexual (0.5): the two must not share a cut-off.
     scores = dict.fromkeys(_DEFAULTS, 0.0)
     scores["sexual"] = 0.3
     scores["sexual/minors"] = 0.3
 
     with _openai_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     assert result.triggered_native == frozenset({"sexual/minors"})
 
 
-async def test_several_natives_fold_into_one_category() -> None:
+async def test_several_natives_fold_into_one_category(
+    test_redis: object,
+) -> None:
     scores = dict.fromkeys(_DEFAULTS, 0.0)
     scores["hate"] = 0.9
     scores["harassment"] = 0.9
 
     with _openai_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     assert result.triggered == frozenset({ModerationCategory.HATE_AND_DISCRIMINATION})
     assert result.triggered_native == frozenset({"hate", "harassment"})
 
 
-async def test_none_scores_are_treated_as_zero() -> None:
+async def test_none_scores_are_treated_as_zero(
+    test_redis: object,
+) -> None:
     scores: dict[str, float | None] = dict.fromkeys(_DEFAULTS, 0.0)
     scores["illicit"] = None
     scores["illicit/violent"] = None
     scores["hate"] = 0.9
 
     with _openai_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     assert "illicit" not in result.scores
     assert result.triggered == frozenset({ModerationCategory.HATE_AND_DISCRIMINATION})
 
 
-async def test_categories_without_openai_equivalent_never_fire() -> None:
+async def test_categories_without_openai_equivalent_never_fire(
+    test_redis: object,
+) -> None:
     scores = dict.fromkeys(_DEFAULTS, 0.99)
 
     with _openai_returning(scores):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     assert ModerationCategory.PII not in result.triggered
     assert ModerationCategory.HEALTH not in result.triggered
@@ -143,14 +161,17 @@ async def test_categories_without_openai_equivalent_never_fire() -> None:
     assert ModerationCategory.LAW not in result.triggered
 
 
-async def test_empty_results_not_flagged() -> None:
+async def test_empty_results_not_flagged(test_redis: object) -> None:
     with _openai_returning(None):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     assert result.flagged is False
 
 
-async def test_openai_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_moderation_retries_transient_503(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     scores = dict.fromkeys(_DEFAULTS, 0.0)
     category_scores = SimpleNamespace(model_dump=lambda by_alias=False: dict(scores))
     response = SimpleNamespace(results=[SimpleNamespace(category_scores=category_scores)])
@@ -168,23 +189,33 @@ async def test_openai_moderation_retries_transient_503(monkeypatch: pytest.Monke
         "sophie_bot.modules.ai.utils.moderation.providers.openai.get_openai_client",
         new=AsyncMock(return_value=client),
     ):
-        result = await check_moderator(_make_message())
+        result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
 
     assert result.flagged is False
     assert create.await_count == 2
 
 
-async def test_threshold_flag_overrides_openai_default() -> None:
+async def test_threshold_flag_overrides_openai_default(
+    test_redis: object,
+) -> None:
     scores = dict.fromkeys(_DEFAULTS, 0.0)
     scores["violence"] = 0.1
 
     with _openai_returning(scores):
-        assert (await check_moderator(_make_message())).flagged is False
+        assert (await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))).flagged is False
 
-        await set_value("ai_moderation_threshold_openai_violence", 0.05)
+        await set_value(
+            "ai_moderation_threshold_openai_violence",
+            0.05,
+            redis=test_redis,
+        )
         try:
-            result = await check_moderator(_make_message())
+            result = await check_moderator(_make_message(), services=SimpleNamespace(redis=test_redis))
         finally:
-            await set_value("ai_moderation_threshold_openai_violence", _DEFAULTS["violence"])
+            await set_value(
+                "ai_moderation_threshold_openai_violence",
+                _DEFAULTS["violence"],
+                redis=test_redis,
+            )
 
     assert result.triggered == frozenset({ModerationCategory.VIOLENCE_AND_THREATS})

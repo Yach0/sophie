@@ -17,12 +17,12 @@ from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
-from sophie_bot.modules.filters.types.modern_action_abc import (
-    ActionSetupMessage,
+from sophie_bot.modules.utils_.action_config_wizard import (
     ActionSetupTryAgainException,
-    ModernActionABC,
-    ModernActionSetting,
+    ActionWizardSetting,
+    ActionWizardSpec,
 )
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -45,59 +45,78 @@ async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -
     return AIReplyActionDataModel(prompt=prompt)
 
 
-async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    text = Doc(
+async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Doc(
         _("Please send me the AI instruction to proceed!"),
         _("The AI will try to remember the chat context and will respond accordingly!"),
         _("For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"),
-    ).to_html()
+    )
 
-    return ActionSetupMessage(text=text)
+
+def build_action_wizard_specs() -> dict[str, ActionWizardSpec]:
+    setting = ActionWizardSetting(
+        title=l_("Reply to message"),
+        setup_message=reply_action_setup_message,
+        setup_confirm=set_reply_text,
+    )
+    return {
+        AI_REPLY_ACTION.name: ActionWizardSpec(
+            interactive_setup=setting,
+            settings=lambda _data: {
+                "reply_text": ActionWizardSetting(
+                    title=l_("Change AI prompt"),
+                    icon=AI_EMOJI,
+                    setup_message=reply_action_setup_message,
+                    setup_confirm=set_reply_text,
+                )
+            },
+        )
+    }
+
+
+AI_REPLY_ACTION = ActionDefinition[AIReplyActionDataModel](
+    name="ai_text",
+    icon=AI_EMOJI,
+    title=l_("AI Response"),
+    data_object=AIReplyActionDataModel,
+    allow_warns=True,
+    has_interactive_setup=True,
+)
 
 
 class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
-    name = "ai_text"
-
-    icon = AI_EMOJI
-    title = l_("AI Response")
-    allow_warns = True
-
-    interactive_setup = ModernActionSetting(
-        title=l_("Reply to message"), setup_message=reply_action_setup_message, setup_confirm=set_reply_text
-    )
-    data_object = AIReplyActionDataModel
+    definition = AI_REPLY_ACTION
 
     @staticmethod
     def description(data: AIReplyActionDataModel) -> Element | str:
         return Section(Italic(data.prompt), title=_("Send an AI Respond with prompt"), title_underline=False)
 
-    def settings(self, data: AIReplyActionDataModel) -> dict[str, ModernActionSetting]:
-        return {
-            "reply_text": ModernActionSetting(
-                title=l_("Change AI prompt"),
-                icon=AI_EMOJI,
-                setup_message=reply_action_setup_message,
-                setup_confirm=set_reply_text,
-            ),
-        }
-
     async def handle(self, message: Message, data: dict, filter_data: AIReplyActionDataModel) -> Element | None:
-        connection: ChatConnection = data["connection"]
+        connection: ChatConnection = data["context"].connection
 
         if not (chat_db := await ChatModel.get_by_tid(connection.tid)):
             raise SophieException("Chat not found in database")
 
         if not (
-            (message.text or message.caption) and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(message, chat_db)
+            (message.text or message.caption)
+            and await AIQuotaFilter(AI_FEATURE_FILTER).__call__(
+                message,
+                data["context"],
+                data["services"],
+            )
         ):
             return
 
-        messages = AIMessageHistory()
+        messages = AIMessageHistory(services=data["services"])
         messages.add_system(filter_data.prompt)
         await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)
         messages.apply_context_block()
-        model_plan = await get_chat_default_model_plan(connection.db_model.iid, chat_tid=connection.db_model.tid)
+        model_plan = await get_chat_default_model_plan(
+            connection.db_model.iid,
+            chat_tid=connection.db_model.tid,
+            redis=data["services"].redis,
+        )
 
         result = await run_ai_text(
             Agent(model_plan.primary, output_type=str),
@@ -109,7 +128,11 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
 
         if result.usage and result.usage.total_tokens:
             await charge_ai_usage(
-                chat_db.iid, AI_FEATURE_FILTER, result.served_model or model_plan.primary, result.usage
+                chat_db.iid,
+                AI_FEATURE_FILTER,
+                result.served_model or model_plan.primary,
+                result.usage,
+                redis=data["services"].redis,
             )
 
         return Doc(

@@ -51,7 +51,7 @@ class FederationCheckGroupHandler(FederationCommandHandler):
                 if not target_user:
                     raise ValueError("Target user not found in database")
             else:
-                target_user = self.data.get("user_db")
+                target_user = self.data["context"].actor
 
         if not target_user:
             await self.event.reply(_("Please specify a user or reply to a user's message."))
@@ -59,7 +59,11 @@ class FederationCheckGroupHandler(FederationCommandHandler):
 
         user_tid = target_user.tid
 
-        ban_in_fed = await FederationBanService.is_user_banned_in_chain(federation.fed_id, user_tid)
+        ban_in_fed = await FederationBanService.is_user_banned_in_chain(
+            federation.fed_id,
+            user_tid,
+            redis=self.services.redis,
+        )
         fed_ban_count = await FederationBanService.count_user_fed_bans(user_tid)
 
         doc = Doc(

@@ -16,7 +16,7 @@ from lingua import (
     LanguageDetectorBuilder,
 )
 
-from sophie_bot.middlewares import i18n
+from sophie_bot.services.i18n import i18n
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.logger import log
 

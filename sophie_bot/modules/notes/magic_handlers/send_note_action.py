@@ -8,14 +8,13 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.notes.utils.send import send_saveable
-from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.modern_action_abc import (
-    ActionResult,
-    ActionSetupMessage,
+from sophie_bot.modules.utils_.action_config_wizard import (
     ActionSetupTryAgainException,
-    ModernActionABC,
-    ModernActionSetting,
+    ActionWizardSetting,
+    ActionWizardSpec,
 )
+from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -29,7 +28,7 @@ async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) ->
     if isinstance(event, CallbackQuery):
         raise TypeError("This handlers setup_confirm can only be used with messages")
 
-    connection: ChatConnection = data["connection"]
+    connection: ChatConnection = data["context"].connection
     notename = (event.text or "").split(" ", 1)[0].lower().removeprefix("#")
 
     # Check whatever given notename exist
@@ -40,23 +39,42 @@ async def setup_confirm(event: Message | CallbackQuery, data: dict[str, Any]) ->
     return SendNoteActionDataModel(notename=notename)
 
 
-async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    return ActionSetupMessage(
-        text=_("Please write the note name you want to send as a filter trigger."),
-    )
+async def setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Template(_("Please write the note name you want to send as a filter trigger."))
+
+
+def build_action_wizard_specs() -> dict[str, ActionWizardSpec]:
+    return {
+        SEND_NOTE_ACTION.name: ActionWizardSpec(
+            interactive_setup=ActionWizardSetting(
+                title=l_("Send note"),
+                setup_message=setup_message,
+                setup_confirm=setup_confirm,
+            ),
+            settings=lambda _data: {
+                "send_note": ActionWizardSetting(
+                    title=l_("Change note name"),
+                    icon="🗒",
+                    setup_message=setup_message,
+                    setup_confirm=setup_confirm,
+                )
+            },
+        )
+    }
+
+
+SEND_NOTE_ACTION = ActionDefinition[SendNoteActionDataModel](
+    name="send_note",
+    icon="🗒",
+    title=l_("Send note"),
+    data_object=SendNoteActionDataModel,
+    allow_warns=True,
+    has_interactive_setup=True,
+)
 
 
 class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
-    name = "send_note"
-
-    icon = "🗒"
-    title = l_("Send note")
-    allow_warns = True
-
-    interactive_setup = ModernActionSetting(
-        title=l_("Send note"), setup_message=setup_message, setup_confirm=setup_confirm
-    )
-    data_object = SendNoteActionDataModel
+    definition = SEND_NOTE_ACTION
 
     @staticmethod
     def description(data: SendNoteActionDataModel) -> Element | str:
@@ -64,18 +82,8 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
             _("Replies to the message with the note with {notename} note name"), notename=Code("#" + data.notename)
         )
 
-    def settings(self, data: SendNoteActionDataModel) -> dict[str, ModernActionSetting]:
-        return {
-            "send_note": ModernActionSetting(
-                title=l_("Change note name"),
-                icon="🗒",
-                setup_message=setup_message,
-                setup_confirm=setup_confirm,
-            ),
-        }
-
     async def handle(self, message: Message, data: dict, filter_data: SendNoteActionDataModel) -> ActionResult | None:
-        connection: ChatConnection = data["connection"]
+        connection: ChatConnection = data["context"].connection
         notename = filter_data.notename
 
         note = await NoteModel.get_by_notenames(connection.db_model.iid, (notename,))
@@ -93,7 +101,10 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
                 note,
                 title=title,
                 reply_to=message.message_id,
+                owner_chat_tid=note.chat_tid,
                 collect_sent=sent_messages,
+                bot=data["services"].bot,
+                redis=data["services"].redis,
             )
         )
         return sent_messages

@@ -43,9 +43,7 @@ class JoinFederationHandler(SophieMessageHandler):
 
         # Check if chat is already in a federation
         chat_iid = self.connection.db_model.iid
-        existing_fed = await FederationManageService.get_federation_for_chat(
-            chat_iid,
-        )
+        existing_fed = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if existing_fed:
             if existing_fed.fed_id == fed_id.fed_id:
                 await self.event.reply(_("This chat is already in the specified federation."))
@@ -54,10 +52,7 @@ class JoinFederationHandler(SophieMessageHandler):
             return
 
         # Add chat to federation
-        joined = await FederationChatService.add_chat_to_federation(
-            fed_id,
-            chat_iid,
-        )
+        joined = await FederationChatService.add_chat_to_federation(fed_id, chat_iid, redis=self.services.redis)
         if not joined:
             await self.event.reply(_("Unable to join the federation right now. Please try again."))
             return

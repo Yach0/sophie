@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,6 +25,7 @@ async def test_starts_transaction_when_flag_enabled(mock_update: Update):
     transaction = MagicMock()
     transaction.__enter__.return_value = transaction
     transaction.__exit__.return_value = False
+    data = {"services": SimpleNamespace(redis=object())}
 
     with (
         patch("sophie_bot.middlewares.sentry_tracing.is_enabled", AsyncMock(return_value=True)),
@@ -31,10 +33,10 @@ async def test_starts_transaction_when_flag_enabled(mock_update: Update):
             "sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction", return_value=transaction
         ) as start_transaction,
     ):
-        result = await middleware(handler, mock_update, {})
+        result = await middleware(handler, mock_update, data)
 
     assert result == "ok"
-    handler.assert_awaited_once_with(mock_update, {})
+    handler.assert_awaited_once_with(mock_update, data)
     start_transaction.assert_called_once()
     assert start_transaction.call_args.kwargs["op"] == "bot.update"
     assert start_transaction.call_args.kwargs["name"] == "command:start"
@@ -46,15 +48,16 @@ async def test_starts_transaction_when_flag_enabled(mock_update: Update):
 async def test_no_transaction_when_flag_disabled(mock_update: Update):
     middleware = SentryTracingMiddleware()
     handler = AsyncMock(return_value="ok")
+    data = {"services": SimpleNamespace(redis=object())}
 
     with (
         patch("sophie_bot.middlewares.sentry_tracing.is_enabled", AsyncMock(return_value=False)),
         patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction") as start_transaction,
     ):
-        result = await middleware(handler, mock_update, {})
+        result = await middleware(handler, mock_update, data)
 
     assert result == "ok"
-    handler.assert_awaited_once_with(mock_update, {})
+    handler.assert_awaited_once_with(mock_update, data)
     start_transaction.assert_not_called()
 
 
@@ -66,12 +69,13 @@ async def test_transaction_wraps_handler_exception(mock_update: Update):
     transaction = MagicMock()
     transaction.__enter__.return_value = transaction
     transaction.__exit__.return_value = False
+    data = {"services": SimpleNamespace(redis=object())}
 
     with (
         patch("sophie_bot.middlewares.sentry_tracing.is_enabled", AsyncMock(return_value=True)),
         patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction", return_value=transaction),
         pytest.raises(ValueError, match="boom"),
     ):
-        await middleware(handler, mock_update, {})
+        await middleware(handler, mock_update, data)
 
     transaction.__exit__.assert_called_once()

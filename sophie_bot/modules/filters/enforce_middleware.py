@@ -1,5 +1,4 @@
 from collections.abc import Awaitable, Callable
-from functools import lru_cache
 from typing import Any
 
 from aiogram import BaseMiddleware
@@ -12,10 +11,13 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.ai.utils.ai_filter_texts import AI_FILTER_STATUS
-from sophie_bot.modules.ai.utils.ai_header import ai_table_header
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    build_ai_header,
+    build_ai_message_doc,
+    get_ai_header_style,
+)
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
-from sophie_bot.modules.filters.fsm import FilterEditFSM
-from sophie_bot.modules.filters.types.modern_action_abc import ActionResult
 from sophie_bot.modules.filters.utils_.handle_action import (
     get_effective_filter_actions,
     handle_effective_filter_action,
@@ -24,8 +26,9 @@ from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
-from sophie_bot.services.bot import bot
+from sophie_bot.modules.utils_.wizard import WizardFSM
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.shared.actions import ActionResult
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
@@ -33,11 +36,18 @@ from sophie_bot.utils.logger import log
 
 class EnforceFiltersMiddleware(BaseMiddleware):
     @staticmethod
-    @lru_cache
-    def _get_all_cmds() -> tuple[str, ...]:
-        return get_all_cmds_raw()
+    def _get_all_cmds(
+        services: ApplicationServices,
+    ) -> tuple[str, ...]:
+        return get_all_cmds_raw(services.modules.help_modules)
 
-    async def _is_to_drop(self, message: Message, state: FSMContext | None) -> bool:
+    async def _is_to_drop(
+        self,
+        message: Message,
+        state: FSMContext | None,
+        *,
+        services: ApplicationServices,
+    ) -> bool:
         sender: User | Chat | None = message.sender_chat or message.from_user
 
         if not sender:
@@ -48,9 +58,8 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: not a group, dropping...")
             return True
 
-        # Check for the filter setup states
-        if state and FilterEditFSM.__name__ in (await state.get_state() or ""):
-            log.debug("EnforceFiltersMiddleware: filter setup state, dropping...")
+        if state and WizardFSM.__name__ in (await state.get_state() or ""):
+            log.debug("EnforceFiltersMiddleware: wizard input state, dropping...")
             return True
 
         # Check for the commands
@@ -63,7 +72,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         if text and len(text) > 3 and any(text.startswith(prefix) for prefix in CONFIG.commands_prefix):
             cmd_text = text[1:].lower().split(" ", 1)[0]
 
-            if cmd_text in self._get_all_cmds() and await is_user_admin(chat_id, sender.id):
+            if cmd_text in self._get_all_cmds(services) and await is_user_admin(chat_id, sender.id):
                 log.debug("EnforceFiltersMiddleware: admin and command, dropping...")
                 return True
 
@@ -97,7 +106,11 @@ class EnforceFiltersMiddleware(BaseMiddleware):
 
     @staticmethod
     async def _handle_action_messages(
-        message: Message, messages: list[ActionResult], ai_matched: bool = False
+        message: Message,
+        messages: list[ActionResult],
+        *,
+        services: ApplicationServices,
+        ai_matched: bool = False,
     ) -> list[int]:
         """Sends the aggregated filter text and returns the IDs of every message the bot produced.
 
@@ -105,11 +118,16 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return them instead of text, so they only contribute their IDs and stay out of the doc.
         """
         sent_message_ids: list[int] = []
-        doc = Doc()
+        header_style: AIHeaderStyle = (
+            await get_ai_header_style("filters", message.chat.id, redis=services.redis) if ai_matched else "disable"
+        )
+        header = None
         if ai_matched:
             # An AI filter decided this, so the reply carries the AI header and can be replied to
             # like any other AI message to carry on the conversation.
-            doc += ai_table_header(str(AI_FILTER_STATUS))
+            header = build_ai_header(header_style, str(AI_FILTER_STATUS))
+
+        body = Doc()
 
         for msg in messages:
             if isinstance(msg, Message):
@@ -123,14 +141,16 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                     sent_message_ids.extend(sent.message_id for sent in sent_messages)
                     continue
 
-            doc += " "
-            doc += msg
+            body += " "
+            body += msg
 
-        if not len(doc):
+        if not len(body):
             return sent_message_ids
 
-        async def send_message():
-            return await bot.send_message(chat_id=message.chat.id, text=doc.to_html())
+        doc = build_ai_message_doc(header_style, header, body)
+
+        async def send_message() -> Message:
+            return await services.bot.send_message(chat_id=message.chat.id, text=doc.to_html())
 
         if ai_matched:
             reply = await common_try(send_ai_rich_message(message, doc), reply_not_found=send_message)
@@ -151,7 +171,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         raise SophieException("EnforceFiltersMiddleware: no actions found")
 
     async def _process_filters(self, message: Message, data: dict[str, Any]):
-        chat_db = data.get("chat_db")
+        chat_db = data["context"].event_chat
         if chat_db is None:
             log.debug("EnforceFiltersMiddleware: chat_db is None, skipping...")
             return
@@ -161,7 +181,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             return
 
         matched_filters: list[FiltersModel] = []
-        user_in_group = data.get("user_in_group")
+        user_in_group = data["context"].user_in_group
         ai_filters: list[FiltersModel] = []
         for filter_item in all_filters:
             if filter_item.handler.startswith("ai:"):
@@ -174,8 +194,8 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 user_in_group=user_in_group,
                 enable_lock_types=filter_item.effective_version >= 2,
                 chat_iid=chat_db.iid,
+                services=data["services"],
             )
-
             if matched:
                 matched_filters.append(filter_item)
 
@@ -186,6 +206,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 user_in_group=user_in_group,
                 enable_lock_types=ai_filters[0].effective_version >= 2,
                 chat_iid=chat_db.iid,
+                services=data["services"],
             )
             if matched:
                 matched_filters.append(ai_filters[0])
@@ -211,12 +232,21 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         sent_message_ids: list[int] = []
         if all_messages:
             ai_matched = any(matched.handler.startswith("ai:") for matched in matched_filters)
-            sent_message_ids = await self._handle_action_messages(message, all_messages, ai_matched=ai_matched)
+            sent_message_ids = await self._handle_action_messages(
+                message,
+                all_messages,
+                services=data["services"],
+                ai_matched=ai_matched,
+            )
             data["ai_filter_handled"] = ai_matched
 
         # A single reply aggregates every triggered filter, so one silent filter makes the whole exchange silent
-        if silent and await is_enabled("filters_silent_mode", chat_tid=message.chat.id):
-            schedule_message_deletion(
+        if silent and await is_enabled(
+            "filters_silent_mode",
+            chat_tid=message.chat.id,
+            redis=data["services"].redis,
+        ):
+            data["services"].deletions.schedule(
                 message.chat.id,
                 [message.message_id, *sent_message_ids],
                 delay_seconds=FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS,
@@ -237,11 +267,19 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         if not isinstance(event, Message):
             raise SophieException("EnforceFiltersMiddleware: not a message")
 
-        if await self._is_to_drop(event, data.get("state")):
+        if await self._is_to_drop(
+            event,
+            data.get("state"),
+            services=data["services"],
+        ):
             log.debug("EnforceFiltersMiddleware: dropping...")
             return await handler(event, data)
 
-        if not await is_enabled("filters", chat_tid=event.chat.id):
+        if not await is_enabled(
+            "filters",
+            chat_tid=event.chat.id,
+            redis=data["services"].redis,
+        ):
             log.debug("EnforceFiltersMiddleware: filters feature disabled globally, skipping...")
             return await handler(event, data)
 

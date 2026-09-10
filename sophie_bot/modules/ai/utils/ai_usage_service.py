@@ -7,6 +7,7 @@ from typing import Any, Protocol, cast
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
+from redis.asyncio import Redis
 
 from sophie_bot.db.models import AIUsageModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
@@ -79,7 +80,12 @@ def usage_output_tokens(usage: Any) -> int | None:
 
 
 async def charge_ai_usage(
-    chat_iid: PydanticObjectId, feature: AIFeature, model: AIModelLike, usage: AIUsageLike
+    chat_iid: PydanticObjectId,
+    feature: AIFeature,
+    model: AIModelLike,
+    usage: AIUsageLike,
+    *,
+    redis: Redis,
 ) -> None:
     total_tokens = usage.total_tokens if usage.total_tokens else 0
     if total_tokens <= 0:
@@ -95,11 +101,12 @@ async def charge_ai_usage(
         model_name=model.model_name,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
+        redis=redis,
     )
 
 
-async def get_chat_usage_view(chat_iid: PydanticObjectId) -> ChatUsageView | None:
-    quota_state = await get_quota_state(chat_iid)
+async def get_chat_usage_view(chat_iid: PydanticObjectId, *, redis: Redis) -> ChatUsageView | None:
+    quota_state = await get_quota_state(chat_iid, redis=redis)
     if not quota_state:
         return None
 

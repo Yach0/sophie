@@ -25,5 +25,5 @@ class ResetAdminCache(SophieMessageHandler):
         if self.connection.type == ChatType.private:
             return await self.event.reply(_("You can't use this command in private chats."))
 
-        await get_admins_rights(self.connection.tid)  # Reset a cache
+        await get_admins_rights(self.connection.tid, bot=self.services.bot)
         await self.event.reply(_("Admin rights cache has been reset."))

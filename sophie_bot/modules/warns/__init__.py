@@ -4,16 +4,12 @@ from stfu_tg import Doc
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.modules.warns.action_config import (
     WarnEachActionCallback,
-    WarnEachActionCancel,
-    WarnEachActionDone,
-    WarnEachActionSettings,
-    WarnEachActionSetup,
+    WarnEachActionInput,
+    WarnEachActionInputCleanup,
     WarnEachActionWizard,
     WarnMaxActionCallback,
-    WarnMaxActionCancel,
-    WarnMaxActionDone,
-    WarnMaxActionSettings,
-    WarnMaxActionSetup,
+    WarnMaxActionInput,
+    WarnMaxActionInputCleanup,
     WarnMaxActionWizard,
 )
 from sophie_bot.modules.warns.api import api_router
@@ -29,7 +25,10 @@ from sophie_bot.modules.warns.handlers import (
     WarnsPMHandler,
 )
 from sophie_bot.modules.warns.handlers.warn import WarnHandler
-from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
+from sophie_bot.modules.warns.magic_handlers.modern_action import (
+    WarnModernAction,
+    build_action_wizard_specs,
+)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -41,8 +40,8 @@ router = Router(name="warns")
 
 module_manifest = ModuleManifest(
     name="warns",
-    bot_router=router,
-    api_router=api_router,
+    bot_router_factory=lambda: Router(name=router.name),
+    api_router_factory=lambda: api_router,
     handlers=(
         WarnHandler,
         WarnsGroupHandler,
@@ -56,16 +55,12 @@ module_manifest = ModuleManifest(
         WarnActionHandler,
         WarnEachActionWizard,
         WarnEachActionCallback,
-        WarnEachActionSetup,
-        WarnEachActionDone,
-        WarnEachActionCancel,
-        WarnEachActionSettings,
+        WarnEachActionInput,
+        WarnEachActionInputCleanup,
         WarnMaxActionWizard,
         WarnMaxActionCallback,
-        WarnMaxActionSetup,
-        WarnMaxActionDone,
-        WarnMaxActionCancel,
-        WarnMaxActionSettings,
+        WarnMaxActionInput,
+        WarnMaxActionInputCleanup,
     ),
     title=l_("Warnings"),
     emoji="⚠️",
@@ -76,4 +71,5 @@ module_manifest = ModuleManifest(
         )
     ),
     modern_actions=(WarnModernAction,),
+    build_action_wizards=build_action_wizard_specs,
 )

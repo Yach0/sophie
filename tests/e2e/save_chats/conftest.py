@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -25,11 +26,12 @@ async def mock_handler() -> AsyncMock:
 
 
 @pytest_asyncio.fixture
-async def base_data() -> dict[str, Any]:
+async def base_data(test_redis: object) -> dict[str, Any]:
     """Create base data dictionary for middleware."""
     return {
         "event_from_user": None,
         "event_chat": None,
+        "services": SimpleNamespace(redis=test_redis),
     }
 
 

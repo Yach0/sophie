@@ -15,6 +15,7 @@ from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.update.general import Set
 from pydantic import Field
 from pymongo import ASCENDING, IndexModel
+from redis.asyncio import Redis
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
 from sophie_bot.db.models._link_type import Link
@@ -115,12 +116,17 @@ class ChatModel(Document):
             return ChatModel._with_settled_iid(group)
 
     @staticmethod
-    async def do_chat_migrate(old_id: int, new_chat: Chat) -> Optional["ChatModel"]:
+    async def do_chat_migrate(old_id: int, new_chat: Chat, *, redis: Redis) -> Optional["ChatModel"]:
+        # Kept local because group_whitelist imports the model package. Importing it at
+        # module load time makes a direct group_whitelist import recurse through ChatModel.
+        from sophie_bot.utils.group_whitelist import migrate_group_user_whitelist_chat
+
         chat = await ChatModel.find_one(ChatModel.tid == old_id)
         if chat:
             chat.tid = new_chat.id
             chat.type = ChatType[new_chat.type]
             await chat.save()
+            await migrate_group_user_whitelist_chat(old_id, new_chat.id, redis=redis)
         return chat
 
     @staticmethod

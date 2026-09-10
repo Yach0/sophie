@@ -5,12 +5,18 @@ from typing import Any, cast
 from beanie import PydanticObjectId
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models import Model
+from redis.asyncio import Redis
 from stfu_tg import BlockQuote, Doc, HList, Italic, KeyValue, Section
 from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, ai_table_header
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+)
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, apply_mention_usernames, resolve_mentions
@@ -53,7 +59,10 @@ async def build_chatbot_header(
     chat_iid: PydanticObjectId,
     model: Model,
     message_history: list[ModelRequest | ModelResponse],
-) -> Element:
+    style: AIHeaderStyle = "table",
+    *,
+    redis: Redis,
+) -> Element | str | None:
     """The header of a *finished* AI message.
 
     Only built once generation completed: the status names what the run actually did and the battery
@@ -64,13 +73,13 @@ async def build_chatbot_header(
     status: Element | str = HList(*status_items, divider=", ") if status_items else model.model_name
 
     battery: Element | str = ""
-    if quota_info := await get_quota_info(chat_iid):
+    if quota_info := await get_quota_info(chat_iid, redis=redis):
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
         battery = ai_credit_header(percentage)
 
-    return ai_table_header(status, battery)
+    return build_ai_header(style, status, battery)
 
 
 def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
@@ -91,8 +100,9 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
     )
 
 
-def truncate_output(header: Element, output_text: str) -> str:
-    length = len(output_text) + len(header.to_html())
+def truncate_output(header: Element | str | None, output_text: str) -> str:
+    header_html = header.to_html() if isinstance(header, Element) else str(header or "")
+    length = len(output_text) + len(header_html)
     if length > 4000:
         return output_text[:4000] + "..."
     return output_text
@@ -104,22 +114,29 @@ def build_truncated_note() -> Doc:
 
 
 async def build_reply_doc(
-    header: Element,
+    header: Element | str | None,
     output_text: str,
     model: Model | None,
     result: AIAgentResult[Any] | None,
     explicit_debug_mode: bool,
     chat_tid: int | None,
     mention_index: MentionIndex | None = None,
+    header_style: AIHeaderStyle = "table",
+    *,
+    redis: Redis,
 ) -> Doc:
     # The single rendering chokepoint for both streamed drafts and the final message, so mention
     # resolution happens here — before Markdown is rendered, which keeps escaping STFU's job.
     resolved_text = (
-        await apply_mention_usernames(output_text, chat_tid)
+        await apply_mention_usernames(
+            output_text,
+            chat_tid,
+            redis=redis,
+        )
         if mention_index is None
         else resolve_mentions(output_text, mention_index)
     )
-    doc = Doc(header, ai_markdown_to_doc(resolved_text))
+    doc = build_ai_message_doc(header_style, header, ai_markdown_to_doc(resolved_text))
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "
         doc += build_debug_doc(model, result)

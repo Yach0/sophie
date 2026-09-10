@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from beanie import PydanticObjectId
+from redis.asyncio import Redis
 from stfu_tg import Doc, Section, Template, Title
 from stfu_tg.doc import Element
 
@@ -11,21 +12,25 @@ from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.modules.connections.utils.constants import CONNECTION_DISCONNECT_TEXT
 from sophie_bot.modules.connections.utils.texts import CONNECTION_OBSOLETE_NOTICE
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def set_connected_chat(user_tid: int, chat_tid: int | None):
+async def set_connected_chat(
+    user_tid: int,
+    chat_tid: int | None,
+    *,
+    redis: Redis,
+) -> None:
     """
     Connects user to a chat.
     If chat_tid is None, disconnects.
     Sets expiry to 48 hours from now.
     """
     # Clear legacy redis cache just in case
-    await aredis.delete(f"connection_cache_{user_tid}")
+    await redis.delete(f"connection_cache_{user_tid}")
 
     user = await ChatModel.get_by_tid(user_tid)
     if not user:
@@ -73,11 +78,11 @@ async def check_connection_permissions(chat_iid: PydanticObjectId, user_iid: Pyd
     return not settings or settings.allow_users_connect
 
 
-async def get_connection_text(chat_id: int) -> Doc:
+async def get_connection_text(chat_id: int, *, redis: Redis) -> Doc:
     """Returns the formatted document for a successful connection."""
     chat = await ChatModel.get_by_tid(chat_id)
     obsolete_notice: str | LazyProxy | Element | None = (
-        CONNECTION_OBSOLETE_NOTICE if await is_enabled("connection_webapp_notice") else None
+        CONNECTION_OBSOLETE_NOTICE if await is_enabled("connection_webapp_notice", redis=redis) else None
     )
 
     return Doc(

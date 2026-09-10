@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import BinaryIO
 
+from aiogram import Bot
 from aiogram.types import Message
 
-from sophie_bot.services.bot import bot
 
-
-async def extract_message_content(message: Message) -> tuple[str, bytes | None]:
+async def extract_message_content(message: Message, *, bot: Bot) -> tuple[str, bytes | None]:
     """
     Extract text and image content from a message for AI processing.
 

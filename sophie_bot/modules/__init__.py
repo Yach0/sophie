@@ -1,41 +1,57 @@
 from __future__ import annotations
 
-from asyncio import gather
-from collections.abc import Awaitable, Callable, Iterator, Sequence
-from collections.abc import Sequence as SequenceABC
+import asyncio
+from collections import OrderedDict
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from importlib import import_module
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, Protocol
 
 from aiogram import Dispatcher, Router
+from fastapi import APIRouter, FastAPI
 
 from sophie_bot.utils.logger import log
 
 if TYPE_CHECKING:
-    from fastapi import APIRouter
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
     from stfu_tg import Doc
 
+    from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp
+    from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSpec
+    from sophie_bot.modules.utils_.legacy_buttons import LegacyButtonAction
+    from sophie_bot.services.application import ApplicationServices
+    from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
     from sophie_bot.utils.handlers import SophieBaseHandler
     from sophie_bot.utils.i18n import LazyProxy
 
 
 class ModuleStatsHook(Protocol):
-    async def __call__(self) -> object: ...
+    async def __call__(self, *, services: ApplicationServices) -> object: ...
 
 
 class ExportHook(Protocol):
-    async def __call__(self, chat_iid: Any) -> dict[str, Any] | None: ...
+    async def __call__(self, chat_iid: Any, *, services: ApplicationServices) -> dict[str, Any] | None: ...
 
 
-PreSetupHook = Callable[[], Awaitable[None]]
-PostSetupHook = Callable[[dict[str, ModuleType]], Awaitable[None]]
+BotRouterFactory = Callable[[], Router]
+ApiRouterFactory = Callable[[], APIRouter]
+InitializeHook = Callable[["ApplicationServices"], Awaitable[None]]
+BotSetupHook = Callable[[Router, "ApplicationServices"], Awaitable[None]]
+SchedulerSetupHook = Callable[["AsyncIOScheduler", "ApplicationServices"], None]
+ActionWizardBuilder = Callable[[], Mapping[str, "ActionWizardSpec"]]
 
 
 @dataclass(slots=True)
 class LoadedModuleRegistry:
     modules: dict[str, ModuleType] = field(default_factory=dict)
-    api_routers: list[APIRouter] = field(default_factory=list)
+    actions: dict[str, ActionDefinition[Any]] = field(default_factory=dict)
+    action_handlers: dict[str, ModernActionABC[Any]] = field(default_factory=dict)
+    help_modules: OrderedDict[str, ModuleHelp] = field(default_factory=OrderedDict)
+    disableable_commands: dict[str, HandlerHelp] = field(default_factory=dict)
+    export_hooks: list[ExportHook] = field(default_factory=list)
+    legacy_buttons: dict[str, str] = field(default_factory=dict)
+    action_wizards: dict[str, ActionWizardSpec] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,82 +61,23 @@ class ModuleManifest:
     emoji: str | None = None
     description: LazyProxy | str | Doc | None = None
     info: LazyProxy | str | Doc | None = None
-    bot_router: Router | None = None
-    api_router: APIRouter | None = None
+    bot_router_factory: BotRouterFactory | None = None
+    api_router_factory: ApiRouterFactory | None = None
     handlers: Sequence[type[SophieBaseHandler]] = ()
-    pre_setup: PreSetupHook | None = None
-    post_setup: PostSetupHook | None = None
-    scheduler_jobs: Sequence[object] = ()
+    initialize: InitializeHook | None = None
+    setup_bot: BotSetupHook | None = None
+    setup_scheduler: SchedulerSetupHook | None = None
+    legacy_buttons: tuple[LegacyButtonAction, ...] = ()
+    build_action_wizards: ActionWizardBuilder | None = None
     advertise_wiki_page: bool = False
     exclude_public: bool = False
     stats: ModuleStatsHook | None = None
     export: ExportHook | None = None
-    modern_actions: SequenceABC[type[Any]] = ()
+    modern_actions: Sequence[type[ModernActionABC[Any]]] = ()
 
-
-_loaded_module_registry = LoadedModuleRegistry()
-
-
-def create_loaded_module_registry() -> LoadedModuleRegistry:
-    return LoadedModuleRegistry()
-
-
-def get_loaded_module_registry() -> LoadedModuleRegistry:
-    return _loaded_module_registry
-
-
-def set_loaded_module_registry(registry: LoadedModuleRegistry) -> LoadedModuleRegistry:
-    global _loaded_module_registry
-
-    _loaded_module_registry = registry
-    return registry
-
-
-class LoadedModulesProxy:
-    def _modules(self) -> dict[str, ModuleType]:
-        return get_loaded_module_registry().modules
-
-    def __getitem__(self, key: str) -> ModuleType:
-        return self._modules()[key]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._modules())
-
-    def __len__(self) -> int:
-        return len(self._modules())
-
-    def values(self):
-        return self._modules().values()
-
-    def items(self):
-        return self._modules().items()
-
-    def keys(self):
-        return self._modules().keys()
-
-    def get(self, key: str, default: ModuleType | None = None) -> ModuleType | None:
-        return self._modules().get(key, default)
-
-
-class LoadedApiRoutersProxy:
-    def _api_routers(self) -> list[APIRouter]:
-        return get_loaded_module_registry().api_routers
-
-    def __getitem__(self, index: int) -> APIRouter:
-        return self._api_routers()[index]
-
-    def __len__(self) -> int:
-        return len(self._api_routers())
-
-    def __iter__(self) -> Iterator[APIRouter]:
-        return iter(self._api_routers())
-
-
-LOADED_MODULES = LoadedModulesProxy()
-LOADED_API_ROUTERS = LoadedApiRoutersProxy()
 
 MODULES = [
-    "troubleshooters",  # troubleshooters always first!
+    "troubleshooters",
     "rest",
     "op",
     "error",
@@ -128,16 +85,17 @@ MODULES = [
     "notes",
     "help",
     "federations",
-    "communities",  # After feds
+    "communities",
     "privacy",
     "disabling",
     "rules",
     "promotes",
-    "greetings",  # After feds
+    "greetings",
     "welcomesecurity",
     "purges",
     "warns",
     "restrictions",
+    "whitelist",
     "reports",
     "pins",
     "ai",
@@ -154,82 +112,96 @@ def get_module_manifest(module: ModuleType) -> ModuleManifest:
     manifest = getattr(module, "module_manifest", None)
     if isinstance(manifest, ModuleManifest):
         return manifest
-
-    msg = f"Module {module.__name__} must export module_manifest"
-    raise RuntimeError(msg)
+    raise RuntimeError(f"Module {module.__name__} must export module_manifest")
 
 
 def get_loaded_module_manifest(module_name: str, module: ModuleType) -> ModuleManifest:
     manifest = get_module_manifest(module)
     if manifest.name != module_name:
-        msg = f"Module {module.__name__} manifest name {manifest.name!r} must match configured name {module_name!r}"
-        raise RuntimeError(msg)
-
+        raise RuntimeError(
+            f"Module {module.__name__} manifest name {manifest.name!r} must match configured name {module_name!r}"
+        )
     return manifest
 
 
-async def load_modules(
-    dp: Dispatcher | Router,
-    to_load: Sequence[str],
-    to_not_load: Sequence[str] = (),
-    register_handlers: bool = True,
-    registry: LoadedModuleRegistry | None = None,
-) -> LoadedModuleRegistry:
-    log.info("Importing modules...")
-    active_registry = set_loaded_module_registry(registry or create_loaded_module_registry())
-    active_registry.modules.clear()
-    active_registry.api_routers.clear()
-
-    if "*" in to_load:
-        log.debug("Loading all modules...", modules=MODULES)
-        to_load = MODULES
-    else:
-        log.info("Loading modules", to_load=to_load)
-
-    for module_name in (x for x in MODULES if x in to_load and x not in to_not_load):
-        path = f"sophie_bot.modules.{module_name}"
-
-        module = import_module(path)
-
+def discover_modules(to_load: Sequence[str], to_not_load: Sequence[str] = ()) -> LoadedModuleRegistry:
+    """Import selected modules and build immutable runtime catalogs without I/O."""
+    selected = MODULES if "*" in to_load else to_load
+    registry = LoadedModuleRegistry()
+    for module_name in (name for name in MODULES if name in selected and name not in to_not_load):
+        module = import_module(f"sophie_bot.modules.{module_name}")
         manifest = get_loaded_module_manifest(module_name, module)
+        registry.modules[manifest.name] = module
+        if manifest.export is not None:
+            registry.export_hooks.append(manifest.export)
+        registry.legacy_buttons.update({action.action: action.payload_prefix for action in manifest.legacy_buttons})
+        for action_type in manifest.modern_actions:
+            handler = action_type()
+            definition = handler.definition
+            registry.action_handlers[definition.name] = handler
+            registry.actions[definition.name] = definition
+    log.info("Discovered modules", modules=list(registry.modules))
+    return registry
 
-        if router := manifest.bot_router:
-            dp.include_router(router)
-        else:
-            log.debug(f"! Module {module_name} has no router!")
 
-        if api_router := manifest.api_router:
-            active_registry.api_routers.append(api_router)
+async def initialize_modules(services: ApplicationServices) -> None:
+    for module in services.modules.modules.values():
+        initialize = get_module_manifest(module).initialize
+        if initialize is not None:
+            await initialize(services)
 
-        active_registry.modules[manifest.name] = module
 
-    if register_handlers:
-        for module_name, module in active_registry.modules.items():
-            log.debug(f"Loading module {module_name}...")
-            # Load handlers
-            manifest = get_module_manifest(module)
-            if not (router := manifest.bot_router):
-                continue
+async def assemble_bot_modules(dispatcher: Dispatcher, services: ApplicationServices) -> None:
+    services.modules.action_wizards.clear()
+    for module in services.modules.modules.values():
+        manifest = get_module_manifest(module)
+        if manifest.bot_router_factory is None:
+            continue
+        router = manifest.bot_router_factory()
+        for handler in manifest.handlers:
+            handler.register(router)
+        if manifest.setup_bot is not None:
+            await manifest.setup_bot(router, services)
+        dispatcher.include_router(router)
+        if manifest.build_action_wizards is not None:
+            services.modules.action_wizards.update(manifest.build_action_wizards())
 
-            for handler in manifest.handlers:
-                log.debug(f"Registering handler {handler.__name__}...")
-                handler.register(router)
-    else:
-        log.info("Skipping handler registration (register_handlers=False)")
 
-    # Pre setup
-    await gather(
-        *(func() for module in active_registry.modules.values() if (func := get_module_manifest(module).pre_setup))
-    )
+def assemble_api_modules(app: FastAPI, registry: LoadedModuleRegistry) -> None:
+    if getattr(app.state, "module_routes_assembled", False):
+        return
+    for module in registry.modules.values():
+        factory = get_module_manifest(module).api_router_factory
+        if factory is not None:
+            template = factory()
+            parent = APIRouter()
+            parent.include_router(template)
+            app.include_router(parent)
+    app.state.module_routes_assembled = True
 
-    # Post setup
-    await gather(
-        *(
-            func(active_registry.modules)
-            for module in active_registry.modules.values()
-            if (func := get_module_manifest(module).post_setup)
-        )
-    )
 
-    log.info(f"Loaded modules - {', '.join(active_registry.modules.keys())}")
-    return active_registry
+def track_scheduler_callback(
+    callback: Callable[[], Awaitable[object]],
+    services: ApplicationServices,
+) -> Callable[[], Awaitable[object]]:
+    """Track a running RAM job so service teardown can await its cancellation."""
+
+    async def run() -> object:
+
+        task = asyncio.current_task()
+        if task is not None:
+            services.background_tasks.add(task)
+        try:
+            return await callback()
+        finally:
+            if task is not None:
+                services.background_tasks.discard(task)
+
+    return run
+
+
+def register_module_jobs(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
+    for module in services.modules.modules.values():
+        setup_scheduler = get_module_manifest(module).setup_scheduler
+        if setup_scheduler is not None:
+            setup_scheduler(scheduler, services)

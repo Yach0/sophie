@@ -11,7 +11,6 @@ from sophie_bot.metrics.moderation import track_purge
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -54,10 +53,10 @@ class PurgeMessagesHandler(SophieMessageHandler):
             messages.append(message_id)
 
             if len(messages) == 100:
-                await common_try(bot.delete_messages(chat_id, messages))
+                await common_try(self.services.bot.delete_messages(chat_id, messages))
                 messages = []
 
-        await common_try(bot.delete_messages(chat_id, messages))
+        await common_try(self.services.bot.delete_messages(chat_id, messages))
 
         count = last - first + 1
         track_purge(count)
@@ -68,6 +67,8 @@ class PurgeMessagesHandler(SophieMessageHandler):
             {"count_approx": count},
         )
 
-        msg = await bot.send_message(chat_id, _("Purge completed. This message will be removed in 5 seconds."))
+        msg = await self.services.bot.send_message(
+            chat_id, _("Purge completed. This message will be removed in 5 seconds.")
+        )
         await sleep(5)
         await msg.delete()

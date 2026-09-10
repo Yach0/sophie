@@ -29,19 +29,34 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
         if not isinstance(self.event.message, Message):
             raise SophieException("Invalid message type. Try initializing the captcha again.")
 
-        user = self.data["user_db"]
+        user = self.data["context"].actor
         is_join_request = self.callback_data.is_join_request if self.callback_data else False
 
         if not isinstance(self.data["callback_data"], WelcomeSecurityRulesAgreeCB) and (
             rules := await RulesModel.get_rules(group.iid)
         ):
-            return await captcha_send_rules(self.event.message, rules, group.iid, is_join_request)
+            return await captcha_send_rules(
+                self.event.message,
+                rules,
+                group.iid,
+                is_join_request,
+                bot=self.services.bot,
+                redis=self.services.redis,
+            )
 
         await self.state.clear()
 
         greetings_db = await GreetingsModel.get_by_chat_iid(group.iid)
 
-        return await complete_captcha(user, group, greetings_db, self.event.message, is_join_request)
+        return await complete_captcha(
+            user,
+            group,
+            greetings_db,
+            self.event.message,
+            is_join_request,
+            bot=self.services.bot,
+            redis=self.services.redis,
+        )
 
     async def handle(self) -> Any:
         data = await self.state.get_data()

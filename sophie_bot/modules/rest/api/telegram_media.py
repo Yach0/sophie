@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from sophie_bot.services.rest import ServicesDep
 from sophie_bot.services.telegram_media import (
     ResolvedMedia,
     ResolveResult,
@@ -143,6 +144,7 @@ async def resolve_custom_emojis(
     request: Request,
     data: ResolveCustomEmojisRequest,
     user: CurrentUser,
+    services: ServicesDep,
 ) -> dict[str, Any]:
     unique_ids = list(dict.fromkeys(data.ids))
 
@@ -152,7 +154,8 @@ async def resolve_custom_emojis(
         count=len(unique_ids),
     )
 
-    result = await TelegramMediaService.resolve_custom_emojis(unique_ids)
+    media_service = TelegramMediaService(services.bot, services.redis)
+    result = await media_service.resolve_custom_emojis(unique_ids)
 
     log.debug(
         "Custom emoji resolution complete",
@@ -175,6 +178,7 @@ async def resolve_stickers(
     request: Request,
     data: ResolveStickersRequest,
     user: CurrentUser,
+    services: ServicesDep,
 ) -> dict[str, Any]:
     unique_ids = list(dict.fromkeys(data.file_ids))
 
@@ -184,7 +188,8 @@ async def resolve_stickers(
         count=len(unique_ids),
     )
 
-    result = await TelegramMediaService.resolve_media(sticker_file_ids=unique_ids)
+    media_service = TelegramMediaService(services.bot, services.redis)
+    result = await media_service.resolve_media(sticker_file_ids=unique_ids)
 
     log.debug(
         "Sticker resolution complete",
@@ -207,6 +212,7 @@ async def resolve_media(
     request: Request,
     data: ResolveMediaRequest,
     user: CurrentUser,
+    services: ServicesDep,
 ) -> dict[str, Any]:
     custom_emoji_ids = list(dict.fromkeys(data.custom_emoji_ids)) if data.custom_emoji_ids else None
     sticker_file_ids = list(dict.fromkeys(data.sticker_file_ids)) if data.sticker_file_ids else None
@@ -218,7 +224,8 @@ async def resolve_media(
         sticker_count=len(sticker_file_ids) if sticker_file_ids else 0,
     )
 
-    result = await TelegramMediaService.resolve_media(
+    media_service = TelegramMediaService(services.bot, services.redis)
+    result = await media_service.resolve_media(
         custom_emoji_ids=custom_emoji_ids,
         sticker_file_ids=sticker_file_ids,
     )
@@ -240,15 +247,17 @@ async def resolve_media(
     dependencies=_RATE_LIMIT_DEPENDENCIES,
 )
 async def proxy_media(
+    services: ServicesDep,
     file_id: str = Path(..., description="Telegram file ID to fetch"),
     user: CurrentUser = None,
 ) -> Response:
     _ = user
-    file_path = await TelegramMediaService.get_file_path(file_id)
+    media_service = TelegramMediaService(services.bot, services.redis)
+    file_path = await media_service.get_file_path(file_id)
     if not file_path:
         raise HTTPException(status_code=404, detail="File not found")
 
-    content = await TelegramMediaService.download_file(file_path)
+    content = await media_service.download_file(file_path)
     if content is None:
         raise HTTPException(status_code=500, detail="Failed to download file")
 
@@ -284,11 +293,13 @@ async def proxy_media(
 )
 async def resolve_sticker_set(
     request: Request,
+    services: ServicesDep,
     set_name: str = Path(..., description="Name of the sticker set to resolve"),
     user: CurrentUser = None,
 ) -> StickerSetResponse:
     _ = user
-    result = await TelegramMediaService.resolve_sticker_set(set_name)
+    media_service = TelegramMediaService(services.bot, services.redis)
+    result = await media_service.resolve_sticker_set(set_name)
     if not result:
         raise HTTPException(status_code=404, detail="Sticker set not found")
 

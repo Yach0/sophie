@@ -2,9 +2,19 @@ from aiogram import Router
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
-from sophie_bot.modules.restrictions.actions.ban import BanModernAction
+from sophie_bot.modules.restrictions.actions.ban import (
+    BanModernAction,
+)
+from sophie_bot.modules.restrictions.actions.ban import (
+    build_action_wizard_specs as build_ban_action_wizard_specs,
+)
 from sophie_bot.modules.restrictions.actions.kick import KickModernAction
-from sophie_bot.modules.restrictions.actions.mute import MuteModernAction
+from sophie_bot.modules.restrictions.actions.mute import (
+    MuteModernAction,
+)
+from sophie_bot.modules.restrictions.actions.mute import (
+    build_action_wizard_specs as build_mute_action_wizard_specs,
+)
 from sophie_bot.modules.restrictions.handlers import (
     BanUserHandler,
     KickUserHandler,
@@ -25,9 +35,16 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 router = Router(name="restrictions")
 
 
+def build_action_wizards() -> dict:
+    return {
+        **build_ban_action_wizard_specs(),
+        **build_mute_action_wizard_specs(),
+    }
+
+
 module_manifest = ModuleManifest(
     name="restrictions",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         KickUserHandler,
         SilentKickUserHandler,
@@ -52,4 +69,5 @@ module_manifest = ModuleManifest(
         )
     ),
     modern_actions=(KickModernAction, BanModernAction, MuteModernAction),
+    build_action_wizards=build_action_wizards,
 )

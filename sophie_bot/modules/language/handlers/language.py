@@ -5,7 +5,6 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from stfu_tg import Template
 
-from sophie_bot.db.cache.locale import get_selected_locale, set_selected_locale
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.utils import flags
@@ -31,7 +30,9 @@ class LanguageHandler(SophieMessageHandler):
 
         # Get the language selected for the connected chat
         chat = self.connection.db_model
-        current_lang_code = (await get_selected_locale(chat.iid) if chat else None) or i18n.default_locale
+        current_lang_code = (
+            await self.services.locales.get_selected_locale(chat.iid) if chat else None
+        ) or i18n.default_locale
 
         text = _("Select the language you want to use in this chat.")
         text += "\n\n"
@@ -83,12 +84,12 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
 
         # If the selected language is already active, skip the re-edit — editing the
         # message with identical content raises "message is not modified". SOPHIE-26R.
-        if chat and await get_selected_locale(chat.iid) == lang_code:
+        if chat and await self.services.locales.get_selected_locale(chat.iid) == lang_code:
             await self.event.answer()
             return
 
         if chat:
-            await set_selected_locale(chat, lang_code)
+            await self.services.locales.set_selected_locale(chat, lang_code)
 
         locale = i18n.babels.get(lang_code)
         display_name = i18n.locale_display(locale) if locale else lang_code

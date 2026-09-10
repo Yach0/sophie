@@ -13,6 +13,7 @@ from pydantic_ai.exceptions import (
     FallbackExceptionGroup,
     ModelAPIError,
     ModelHTTPError,
+    ToolFailedError,
     UnexpectedModelBehavior,
     UsageLimitExceeded,
 )
@@ -34,13 +35,14 @@ _HTTP_STATUS_ERRORS: Final = (httpx.HTTPStatusError, httpx2.HTTPStatusError)
 _HTTP_REQUEST_ERRORS: Final = (httpx.RequestError, httpx2.RequestError)
 
 # ModelAPIError covers provider failures that never produced an HTTP status (ModelHTTPError is a
-# subclass of it), and FallbackExceptionGroup is what pydantic-ai raises when every model in a
-# FallbackModel failed. Both used to escape as unclassified crashes with no AI context in Sentry.
+# subclass of it), FallbackExceptionGroup is what pydantic-ai raises when every model in a
+# FallbackModel failed, and ToolFailedError covers tool execution failures that escape pydantic-ai.
 AI_PROVIDER_EXCEPTIONS: Final[tuple[type[Exception], ...]] = (
     ModelAPIError,
     FallbackExceptionGroup,
     UnexpectedModelBehavior,
     UsageLimitExceeded,
+    ToolFailedError,
     *_HTTP_ERRORS,
     OpenAIError,
     MistralError,

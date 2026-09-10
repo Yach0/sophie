@@ -1,24 +1,16 @@
 from typing import Any
 
-from aiogram.types import (
-    CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
-from stfu_tg import Bold, Doc, Italic, PreformattedHTML, Section, Template, Title
+from aiogram.types import CallbackQuery, Message
+from stfu_tg import Bold, Button, ButtonRow, Buttons, Doc, Italic, PreformattedHTML, Section, Template, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSetting, ActionWizardSpec
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.modern_action_abc import (
-    ActionResult,
-    ActionSetupMessage,
-    ModernActionABC,
-    ModernActionSetting,
-)
+from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -27,29 +19,58 @@ async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -
     if isinstance(event, CallbackQuery):
         raise TypeError("This handlers setup_confirm can only be used with messages")
 
-    return await parse_saveable(event, event.html_text)
+    return await parse_saveable(
+        event,
+        event.html_text,
+        owner_chat_tid=data["context"].connection.db_model.tid,
+        bot=data["services"].bot,
+        redis=data["services"].redis,
+    )
 
 
-async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> ActionSetupMessage:
-    return ActionSetupMessage(
-        text=_("Now, please type the text you want to automatically send."),
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=_("Markup help"), url="https://google.com")]]
+async def reply_action_setup_message(_event: Message | CallbackQuery, _data: dict[str, Any]) -> Element:
+    return Doc(
+        _("Now, please type the text you want to automatically send."),
+        Buttons(
+            ButtonRow(
+                Button(_("Markup help"), url="https://google.com"),
+            )
         ),
     )
 
 
+def build_action_wizard_specs() -> dict[str, ActionWizardSpec]:
+    return {
+        REPLY_ACTION.name: ActionWizardSpec(
+            interactive_setup=ActionWizardSetting(
+                title=l_("Reply to message"),
+                setup_message=reply_action_setup_message,
+                setup_confirm=set_reply_text,
+            ),
+            settings=lambda _data: {
+                "reply_text": ActionWizardSetting(
+                    title=l_("Change reply text"),
+                    icon="💬",
+                    setup_message=reply_action_setup_message,
+                    setup_confirm=set_reply_text,
+                )
+            },
+        )
+    }
+
+
+REPLY_ACTION = ActionDefinition[Saveable](
+    name="reply",
+    icon="💭",
+    title=l_("Reply to message"),
+    data_object=Saveable,
+    allow_warns=True,
+    has_interactive_setup=True,
+)
+
+
 class ReplyModernAction(ModernActionABC[Saveable]):
-    name = "reply"
-
-    icon = "💭"
-    title = l_("Reply to message")
-    allow_warns = True
-
-    interactive_setup = ModernActionSetting(
-        title=l_("Reply to message"), setup_message=reply_action_setup_message, setup_confirm=set_reply_text
-    )
-    data_object = Saveable
+    definition = REPLY_ACTION
 
     @staticmethod
     def description(data: Saveable) -> Element | str:
@@ -58,22 +79,25 @@ class ReplyModernAction(ModernActionABC[Saveable]):
 
         return _("Replies to the message")
 
-    def settings(self, data: Saveable) -> dict[str, ModernActionSetting]:
-        return {
-            "reply_text": ModernActionSetting(
-                title=l_("Change reply text"),
-                icon="💬",
-                setup_message=reply_action_setup_message,
-                setup_confirm=set_reply_text,
-            ),
-        }
-
     async def handle(self, message: Message, data: dict, filter_data: Saveable) -> ActionResult | None:
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
+        connection = data["context"].connection
+        rich_enabled = (
+            await is_enabled(
+                "saveable_rich_messages",
+                chat_tid=connection.db_model.tid,
+                redis=data["services"].redis,
+            )
+            if filter_data.rich_message is not None
+            else False
+        )
 
-        if filter_data.buttons or filter_data.file or filter_data.files:
-            # We have to send the note separately; every sent message is returned so the
-            # caller knows what the bot produced (silent filters delete them afterwards).
+        if (
+            filter_data.buttons
+            or filter_data.file
+            or filter_data.files
+            or (filter_data.rich_message is not None and rich_enabled)
+        ):
             sent_messages: list[Message] = []
             await common_try(
                 send_saveable(
@@ -82,7 +106,10 @@ class ReplyModernAction(ModernActionABC[Saveable]):
                     filter_data,
                     title=title,
                     reply_to=message.message_id,
+                    owner_chat_tid=connection.db_model.tid,
                     collect_sent=sent_messages,
+                    bot=data["services"].bot,
+                    redis=data["services"].redis,
                 )
             )
             return sent_messages

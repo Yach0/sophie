@@ -5,11 +5,13 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types.base_abc import ArgFabric
+from stfu_tg import Template
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.parse_arg import ButtonsArgList
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import gettext as _
 
 
 class ButtonsTestHandler(SophieMessageHandler):
@@ -25,4 +27,4 @@ class ButtonsTestHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         buttons = self.data.get("buttons")
-        return await self.event.reply(f"Buttons: {buttons}")
+        return await self.event.reply(Template(_("Buttons: {buttons}"), buttons=buttons).to_html())

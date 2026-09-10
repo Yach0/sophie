@@ -2,33 +2,28 @@ from aiogram.types import Message
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.modules.filters.types.modern_action_abc import (
-    ModernActionABC,
-    ModernActionSetting,
-)
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
+DELETE_MESSAGE_ACTION = ActionDefinition[None](
+    name="delmsg",
+    icon="🗑",
+    title=l_("Delete the message"),
+    allow_warns=True,
+    skip_for_admins=True,
+)
+
 
 class DelMsgModern(ModernActionABC[None]):
-    name = "delmsg"
-
-    icon = "🗑"
-    title = l_("Delete the message")
-
-    default_data = None
-    allow_warns = True
-    skip_for_admins = True
+    definition = DELETE_MESSAGE_ACTION
 
     @staticmethod
     def description(data: None) -> Element | str:
         return _("Deletes the message")
-
-    def settings(self, data: None) -> dict[str, ModernActionSetting]:
-        return {}
 
     async def handle(self, message: Message, data: dict, filter_data: None) -> None:
         if not message.from_user:

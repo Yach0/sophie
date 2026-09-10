@@ -15,8 +15,17 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, LocksModel
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.modules.locks.callbacks import UnlockAllCallback
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
+from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
+from tests.e2e.helpers import (
+    create_test_user_and_group,
+    grant_admin,
+    grant_bot_admin,
+    next_group_id,
+    next_user_id,
+    set_feature,
+)
 
 
 async def _group_with_member(test_client: TestClient) -> tuple[object, object, object]:
@@ -80,6 +89,33 @@ async def test_locked_message_from_admin_is_kept(test_client: TestClient) -> Non
 
 
 @pytest.mark.asyncio
+async def test_locked_message_from_group_whitelisted_user_is_kept(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    admin, group, member = await _group_with_member(test_client)
+    await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
+    await add_user_to_group_whitelist(
+        group.id,
+        member.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
+
+    requests = await test_client.send_message(text="whitelisted users may speak", from_user=member, chat=group)
+
+    assert not _deleted(requests)
+
+@pytest.mark.asyncio
+async def test_locked_message_is_deleted_when_user_is_whitelisted_only_elsewhere(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    admin, group, member = await _group_with_member(test_client)
+    await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
+    await GroupUserWhitelistModel.add_user(next_group_id(), member.id)
+
+    requests = await test_client.send_message(text="not whitelisted here", from_user=member, chat=group)
+
+    assert _deleted(requests)
+
+
+@pytest.mark.asyncio
 async def test_unlock_stops_enforcement(test_client: TestClient) -> None:
     admin, group, member = await _group_with_member(test_client)
     await test_client.send_command(command="lock", from_user=admin, args="text", chat=group)
@@ -109,11 +145,12 @@ async def test_unlockall_clears_every_lock_after_confirm(test_client: TestClient
     assert {"text", "url"} <= await _locked_types(group.id)
 
     prompt_requests = await test_client.send_command(command="unlockall", from_user=admin, chat=group)
-    markup_data = next(
+    markup_data_candidates = (
         request.params.get("reply_markup")
         for request in reversed(prompt_requests)
         if request.params.get("reply_markup")
     )
+    markup_data = next(markup_data_candidates)
     markup = InlineKeyboardMarkup.model_validate(markup_data)
     confirm_data = UnlockAllCallback(user_id=admin.id).pack()
     assert any(button.callback_data == confirm_data for row in markup.inline_keyboard for button in row), (

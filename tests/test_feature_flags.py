@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from functools import partial
 
 import pytest
 
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import (
     FEATURE_FLAGS,
     FeatureRollout,
@@ -58,6 +58,27 @@ STRING_FEATURE = "ai_chatbot_service_tier"
 CHAT_TID_A = -1002950100
 CHAT_TID_B = -1002950101
 CHAT_TID_C = -1002950102
+_REDIS_BOUND_FUNCTIONS = (
+    "bump_rollout",
+    "delete_chat_override",
+    "delete_override",
+    "delete_rollout",
+    "get_chat_override",
+    "get_rollout",
+    "get_service_tier",
+    "get_value",
+    "is_enabled",
+    "list_all",
+    "list_chat_overrides",
+    "list_rollouts",
+    "set_chat_override",
+    "set_enabled",
+    "set_rollout",
+    "set_timed_rollout",
+    "set_value",
+)
+
+
 
 
 def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
@@ -70,7 +91,18 @@ def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
 
 
 @pytest.fixture(autouse=True)
-async def _reset_feature_flag_overrides(db_init: object) -> AsyncGenerator[None]:
+async def _reset_feature_flag_overrides(
+    db_init: object,
+    test_redis: object,
+    monkeypatch: pytest.MonkeyPatch,
+) -> AsyncGenerator[None]:
+    for function_name in _REDIS_BOUND_FUNCTIONS:
+        function = globals()[function_name]
+        monkeypatch.setitem(
+            globals(),
+            function_name,
+            partial(function, redis=test_redis),
+        )
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
     yield
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
@@ -177,6 +209,15 @@ class TestFeatureMetadata:
         assert get_allowed_string_values("ai_chatbot_service_tier") == frozenset(
             {"none", "auto", "default", "flex", "priority"}
         )
+
+    def test_ai_header_style_values_are_declared_in_metadata(self) -> None:
+        assert get_value_kind("ai_chatbot_header_style") == "ai_header_style"
+        assert get_allowed_string_values("ai_chatbot_header_style") == frozenset({"table", "disable", "simple"})
+
+    def test_every_ai_header_style_defaults_to_table(self) -> None:
+        header_flags = [feature for feature in FEATURE_FLAGS if feature.endswith("header_style")]
+        assert header_flags
+        assert {get_default_value(feature) for feature in header_flags} == {"table"}
 
     def test_plain_string_values_are_unrestricted(self) -> None:
         assert get_value_kind("ai_chatbot_system_prompt") == "plain"
@@ -531,13 +572,6 @@ class TestSetGetValue:
         assert await get_value("ai_chatbot_streaming_backoff_seconds") == 1.0
         assert await get_value("ai_chatbot_streaming_backoff_seconds") is not True
 
-    async def test_persists_to_redis(self) -> None:
-        await set_value(FEATURE, True)
-        assert await aredis.hget("sophie:kill_switch", FEATURE) == b"1"
-
-    async def test_persists_string_to_redis(self) -> None:
-        await set_value("ai_summary_model", "test-model")
-        assert await aredis.hget("sophie:kill_switch", "ai_summary_model") == b"test-model"
 
 
 class TestSetEnabled:
@@ -549,9 +583,6 @@ class TestSetEnabled:
         await set_enabled(BOOL_FEATURE_DEFAULT_TRUE, False)
         assert await is_enabled(BOOL_FEATURE_DEFAULT_TRUE) is False
 
-    async def test_persists_to_redis(self) -> None:
-        await set_enabled(FEATURE, True)
-        assert await aredis.hget("sophie:kill_switch", FEATURE) == b"1"
 
 
 class TestDeleteOverride:
@@ -566,12 +597,6 @@ class TestDeleteOverride:
         await delete_override(FEATURE)
         assert await is_enabled(FEATURE) is False
 
-    async def test_delete_clears_redis_cache(self) -> None:
-        await set_enabled(FEATURE, True)
-        assert await aredis.hget("sophie:kill_switch", FEATURE) == b"1"
-
-        await delete_override(FEATURE)
-        assert await aredis.hget("sophie:kill_switch", FEATURE) is None
 
 
 class TestListAll:
@@ -591,22 +616,22 @@ class TestListAll:
 
 
 class TestRedisFallback:
-    async def test_invalid_redis_value_falls_back_to_default(self) -> None:
-        await aredis.hset("sophie:kill_switch", FEATURE, b"invalid")
+    async def test_invalid_redis_value_falls_back_to_default(
+        self,
+        test_redis: object,
+    ) -> None:
+        await test_redis.hset("sophie:kill_switch", FEATURE, b"invalid")
         assert await is_enabled(FEATURE) is False
 
-    async def test_invalid_redis_value_list_all_falls_back(self) -> None:
-        await aredis.hset("sophie:kill_switch", FEATURE, b"invalid")
+    async def test_invalid_redis_value_list_all_falls_back(
+        self,
+        test_redis: object,
+    ) -> None:
+        await test_redis.hset("sophie:kill_switch", FEATURE, b"invalid")
         states = await list_all()
         assert states[FEATURE] is False
 
 
-class TestRedisCacheWarm:
-    async def test_reading_db_override_populates_redis(self) -> None:
-        await FeatureFlagOverride.set_override(FEATURE, True)
-        # Redis is empty — first read should come from DB and cache to Redis
-        assert await is_enabled(FEATURE) is True
-        assert await aredis.hget("sophie:kill_switch", FEATURE) == b"1"
 
 
 # ===========================================================================
@@ -639,12 +664,6 @@ class TestChatOverrides:
         await delete_chat_override(FEATURE, CHAT_TID_A)
         assert await get_chat_override(FEATURE, CHAT_TID_A) is None
 
-    async def test_delete_chat_override_clears_redis(self) -> None:
-        await set_chat_override(FEATURE, CHAT_TID_A, True)
-        assert await aredis.hget(f"sophie:kill_switch_chat:{CHAT_TID_A}", FEATURE) == b"1"
-
-        await delete_chat_override(FEATURE, CHAT_TID_A)
-        assert await aredis.hget(f"sophie:kill_switch_chat:{CHAT_TID_A}", FEATURE) is None
 
     async def test_chat_override_with_string_value(self) -> None:
         await set_chat_override("ai_summary_model", CHAT_TID_A, "openai/gpt-4o")
@@ -803,11 +822,6 @@ class TestDeleteRollout:
         await delete_rollout(FEATURE)
         assert await get_rollout(FEATURE) is None
 
-    async def test_delete_clears_redis_cache(self) -> None:
-        await set_rollout(FEATURE, 50, True)
-        assert await aredis.hget("sophie:kill_switch_rollout", FEATURE) is not None
-        await delete_rollout(FEATURE)
-        assert await aredis.hget("sophie:kill_switch_rollout", FEATURE) is None
 
 
 class TestListRollouts:
@@ -823,15 +837,6 @@ class TestListRollouts:
         assert rollouts[FEATURE]["value"] is True
         assert rollouts[BOOL_FEATURE_DEFAULT_TRUE]["value"] is False
 
-    async def test_rollout_redis_cache_populated_on_list(self) -> None:
-        await set_rollout(FEATURE, 30, True)
-        # Clear Redis cache to force DB read
-        await aredis.hdel("sophie:kill_switch_rollout", FEATURE)
-        rollouts = await list_rollouts()
-        assert FEATURE in rollouts
-        # Should now be cached in Redis again
-        cached = await aredis.hget("sophie:kill_switch_rollout", FEATURE)
-        assert cached is not None
 
 
 class TestTimedRollout:

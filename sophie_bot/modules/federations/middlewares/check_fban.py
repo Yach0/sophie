@@ -8,9 +8,14 @@ from stfu_tg import Template, UserLink
 
 from sophie_bot.modules.federations.services import FederationBanService, FederationManageService
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
-from sophie_bot.modules.restrictions.utils.restrictions import ban_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.actions import RestrictionAction
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -24,8 +29,8 @@ class FedBanMiddleware(BaseMiddleware):
         if not message.from_user:
             return False
 
-        chat_db = data.get("chat_db")
-        user_db = data.get("user_db")
+        chat_db = data["context"].event_chat
+        user_db = data["context"].actor
         if not chat_db or not user_db:
             return False
 
@@ -36,16 +41,22 @@ class FedBanMiddleware(BaseMiddleware):
         log.debug(f"Enforcing fban check on {user_id} in {chat_id}")
 
         # Get federation for this chat
-        federation = await FederationManageService.get_federation_for_chat(chat_db.iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_db.iid, redis=data["services"].redis)
         if not federation:
             return False
 
-        # Skip check for admins
+        if await is_user_group_whitelisted(chat_id, user_id, redis=data["services"].redis):
+            await log_group_whitelist_exemption(chat_id, user_id, "federation_ban_enforcement")
+            return False
         if await is_user_admin(chat_db.iid, user_db.iid):
             return False
 
         # Check if user is banned in this federation or subscription chain
-        ban_info = await FederationBanService.is_user_banned_in_chain(federation.fed_id, user_id)
+        ban_info = await FederationBanService.is_user_banned_in_chain(
+            federation.fed_id,
+            user_id,
+            redis=data["services"].redis,
+        )
         if not ban_info:
             return False
 
@@ -70,7 +81,14 @@ class FedBanMiddleware(BaseMiddleware):
         if ban.reason:
             doc += Template(_("Reason: {text}"), text=ban.reason)
 
-        if not await ban_user(chat_id, user_id):
+        if not (
+            await execute_restriction(
+                data["services"].bot,
+                RestrictionAction.BAN,
+                chat_id,
+                user_id,
+            )
+        ).applied:
             return True
 
         await common_try(message.reply(str(doc)))

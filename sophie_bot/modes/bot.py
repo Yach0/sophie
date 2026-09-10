@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import ssl
+from typing import Any, cast
 
-from aiogram.webhook.aiohttp_server import (
-    SimpleRequestHandler,
-    ip_filter_middleware,
-    setup_application,
-)
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, ip_filter_middleware, setup_application
 from aiogram.webhook.security import IPFilter
-from aiohttp.web import run_app
+from aiohttp.typedefs import Middleware
 from aiohttp.web_app import Application
+from aiohttp.web_runner import AppRunner, TCPSite
 
 from sophie_bot.config import CONFIG
-from sophie_bot.middlewares import enable_middlewares, set_metrics_middleware
+from sophie_bot.middlewares import enable_middlewares
 from sophie_bot.runtime import BotModeRuntime, build_bot_runtime
 from sophie_bot.services.health import heartbeat_loop
 from sophie_bot.startup import initialize_bot_mode
@@ -22,60 +20,90 @@ from sophie_bot.utils.logger import log
 ALLOWED_UPDATES = [
     "message",
     "edited_message",
-    # 'channel_post',
-    # 'edited_channel_post',
     "inline_query",
-    # 'chosen_inline_result',
     "callback_query",
-    # 'shipping_query',
-    # 'pre_checkout_query',
-    # 'poll',
-    # 'poll_answer',
     "my_chat_member",
     "chat_member",
     "chat_join_request",
 ]
 
 
-# Hold strong references to background tasks so they are not garbage-collected mid-run.
-_background_tasks: set[asyncio.Task[None]] = set()
-
-
-def _configure_bot_startup(runtime: BotModeRuntime) -> None:
-    dispatcher = runtime.bot_runtime.dispatcher
-
-    @dispatcher.startup()
-    async def bot_start() -> None:
-        await initialize_bot_mode(runtime)
-
-        # Initialize metrics system if enabled
-        if CONFIG.metrics_enable:
-            await _init_metrics()
-
-        enable_middlewares(dispatcher)
-
-        heartbeat_task = asyncio.create_task(heartbeat_loop(CONFIG.mode))
-        _background_tasks.add(heartbeat_task)
-        heartbeat_task.add_done_callback(_background_tasks.discard)
-
-
-async def _init_metrics() -> None:
-    """Initialize the metrics system"""
+def _init_metrics(runtime: BotModeRuntime) -> Any | None:
+    if not CONFIG.metrics_enable:
+        return None
     try:
         from sophie_bot.metrics import MetricsMiddleware, start_background_tasks
 
-        await start_background_tasks()
-
-        # Create and set middleware
-        metrics_middleware = MetricsMiddleware(CONFIG)
-        set_metrics_middleware(metrics_middleware)
-
+        runtime.services.background_tasks.update(start_background_tasks())
         log.info("Metrics system initialized successfully")
-
-    except Exception as e:
-        log.error("Failed to initialize metrics system", error=str(e))
+        return MetricsMiddleware(CONFIG)
+    except Exception as error:
+        log.error("Failed to initialize metrics system", error=str(error))
         if CONFIG.debug_mode != "off":
             raise
+        return None
+
+
+async def _prepare_runtime(runtime: BotModeRuntime) -> None:
+    await initialize_bot_mode(runtime)
+    enable_middlewares(runtime.dispatcher, runtime.services, _init_metrics(runtime))
+    heartbeat_task = asyncio.create_task(heartbeat_loop(CONFIG.mode, redis=runtime.services.redis))
+    runtime.services.background_tasks.add(heartbeat_task)
+    heartbeat_task.add_done_callback(runtime.services.background_tasks.discard)
+
+
+async def _polling_main() -> None:
+    async with build_bot_runtime() as runtime:
+        await _prepare_runtime(runtime)
+        await runtime.dispatcher.start_polling(
+            runtime.services.bot,
+            allowed_updates=ALLOWED_UPDATES,
+            close_bot_session=False,
+        )
+
+
+def _ssl_context() -> ssl.SSLContext | None:
+    if not CONFIG.webhooks_https_certificate:
+        log.warning("Using HTTP (use it only for reverse-proxy or development)!")
+        return None
+    log.info("Using HTTPS!")
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(CONFIG.webhooks_https_certificate, CONFIG.webhooks_https_certificate_key)
+    return context
+
+
+async def _webhook_main() -> None:
+    async with build_bot_runtime() as runtime:
+        await _prepare_runtime(runtime)
+        app = Application()
+        SimpleRequestHandler(
+            dispatcher=runtime.dispatcher,
+            bot=runtime.services.bot,
+            handle_in_background=CONFIG.webhooks_handle_in_background,
+            secret_token=CONFIG.webhooks_secret_token,
+        ).register(app, path=CONFIG.webhooks_path)
+        if CONFIG.webhooks_filter_ips:
+            log.info("Filtering IP addresses", ips=CONFIG.webhooks_allowed_networks)
+            app.middlewares.append(
+                cast(
+                    Middleware,
+                    ip_filter_middleware(IPFilter(CONFIG.webhooks_allowed_networks)),
+                )
+            )
+        setup_application(app, runtime.dispatcher, bot=runtime.services.bot)
+        runner = AppRunner(app)
+        await runner.setup()
+        site = TCPSite(
+            runner,
+            host=CONFIG.webhooks_listen,
+            port=CONFIG.webhooks_port,
+            ssl_context=_ssl_context(),
+        )
+        await site.start()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await runner.cleanup()
 
 
 def start_bot_mode() -> None:
@@ -84,40 +112,7 @@ def start_bot_mode() -> None:
 
         run_with_reload("bot")
         return
-
-    runtime = build_bot_runtime()
-    _configure_bot_startup(runtime)
-    bot = runtime.bot_runtime.bot
-    dispatcher = runtime.bot_runtime.dispatcher
-
-    if not CONFIG.webhooks_enable:
-        dispatcher.run_polling(
-            bot,
-            allowed_updates=ALLOWED_UPDATES,
-        )
-    else:
-        app = Application()
-        SimpleRequestHandler(
-            dispatcher=dispatcher,
-            bot=bot,
-            handle_in_background=CONFIG.webhooks_handle_in_background,
-            secret_token=CONFIG.webhooks_secret_token,
-        ).register(app, path=CONFIG.webhooks_path)
-
-        if CONFIG.webhooks_filter_ips:
-            log.info("Filtering IP addresses", ips=CONFIG.webhooks_allowed_networks)
-            app.middlewares.append(ip_filter_middleware(IPFilter(CONFIG.webhooks_allowed_networks)))  # type: ignore
-
-        setup_application(app, dispatcher, bot=bot)
-
-        ssl_context: ssl.SSLContext | None
-        if CONFIG.webhooks_https_certificate:
-            log.info("Using HTTPs!")
-
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            ssl_context.load_cert_chain(CONFIG.webhooks_https_certificate, CONFIG.webhooks_https_certificate_key)
-        else:
-            ssl_context = None
-            log.warn("Using HTTP (use it only for reverse-proxy or development)!")
-
-        run_app(app, host=CONFIG.webhooks_listen, port=CONFIG.webhooks_port, ssl_context=ssl_context)
+    try:
+        asyncio.run(_webhook_main() if CONFIG.webhooks_enable else _polling_main())
+    except (KeyboardInterrupt, SystemExit):
+        pass

@@ -1,10 +1,10 @@
 from stfu_tg import Code, KeyValue, Section, Template
 
-from sophie_bot.modules.help.utils.extract_info import HELP_MODULES
+from sophie_bot.services.application import ApplicationServices
 
 
-async def module_stats():
-    modules = HELP_MODULES.values()
+async def module_stats(*, services: ApplicationServices) -> Section:
+    modules = services.modules.help_modules.values()
 
     return Section(
         Template(
@@ -13,7 +13,8 @@ async def module_stats():
             cmds=Code(sum(len(module.handlers) for module in modules)),
         ),
         KeyValue(
-            "With arguments definition", Code(sum(sum(1 for cmd in module.handlers if cmd.args) for module in modules))
+            "With arguments definition",
+            Code(sum(sum(1 for command in module.handlers if command.args) for module in modules)),
         ),
         title="Help",
     )

@@ -21,16 +21,21 @@ from sophie_bot.modules.ai.utils.moderation import (
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
-from sophie_bot.services.bot import bot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import ngettext as pl_
 from sophie_bot.utils.logger import log
 
 
-async def _notice_delete_delay(chat_tid: int) -> int:
-    value = await get_value("ai_moderation_notice_delete_after_seconds", chat_tid=chat_tid)
+async def _notice_delete_delay(chat_tid: int, *, services: ApplicationServices) -> int:
+    value = await get_value(
+        "ai_moderation_notice_delete_after_seconds",
+        chat_tid=chat_tid,
+        redis=services.redis,
+    )
     if isinstance(value, bool):
         return AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
     try:
@@ -42,10 +47,16 @@ async def _notice_delete_delay(chat_tid: int) -> int:
 
 class AiModeratorMiddleware(BaseMiddleware):
     @staticmethod
-    async def _triggered(message: Message, categories: frozenset[ModerationCategory], chat_tid: int) -> None:
+    async def _triggered(
+        message: Message,
+        categories: frozenset[ModerationCategory],
+        chat_tid: int,
+        *,
+        services: ApplicationServices,
+    ) -> None:
         await common_try(message.delete())
 
-        delete_after = await _notice_delete_delay(chat_tid)
+        delete_after = await _notice_delete_delay(chat_tid, services=services)
 
         doc = Doc(
             Title(_("✋ AI Moderator")),
@@ -62,9 +73,17 @@ class AiModeratorMiddleware(BaseMiddleware):
         if delete_after:
             doc += Italic(_("This message will be deleted shortly."))
 
-        sent = await bot.send_message(message.chat.id, text=doc.to_html(), message_thread_id=message.message_thread_id)
+        sent = await services.bot.send_message(
+            message.chat.id,
+            text=doc.to_html(),
+            message_thread_id=message.message_thread_id,
+        )
         if delete_after:
-            schedule_message_deletion(message.chat.id, [sent.message_id], delay_seconds=delete_after)
+            services.deletions.schedule(
+                message.chat.id,
+                [sent.message_id],
+                delay_seconds=delete_after,
+            )
 
     async def __call__(
         self,
@@ -72,7 +91,8 @@ class AiModeratorMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        chat_db: ChatModel | None = data.get("chat_db", None)
+        services: ApplicationServices = data["services"]
+        chat_db: ChatModel | None = data["context"].event_chat
         log.debug("AiModeratorMiddleware: checking moderator...")
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
@@ -80,7 +100,7 @@ class AiModeratorMiddleware(BaseMiddleware):
         if chat_db and chat_db.type != ChatType.private and capabilities and capabilities.moderator:
             if not isinstance(event, Message):
                 return await handler(event, data)
-            if not await is_enabled("ai_moderation", chat_tid=chat_db.tid):
+            if not await is_enabled("ai_moderation", chat_tid=chat_db.tid, redis=data["services"].redis):
                 return await handler(event, data)
             settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
 
@@ -90,13 +110,31 @@ class AiModeratorMiddleware(BaseMiddleware):
             if not event.from_user:
                 return await handler(event, data)
 
+            if await is_user_group_whitelisted(
+                chat_db.tid,
+                event.from_user.id,
+                redis=data["services"].redis,
+            ):
+                await log_group_whitelist_exemption(chat_db.tid, event.from_user.id, "ai_moderation")
+                return await handler(event, data)
+
             if CONFIG.debug_mode == "off" and await is_user_admin(chat_db.tid, event.from_user.id):
                 return await handler(event, data)
 
             try:
-                result = await check_moderator(event, settings=settings, chat_tid=chat_db.tid)
+                result = await check_moderator(
+                    event,
+                    settings=settings,
+                    chat_tid=chat_db.tid,
+                    services=services,
+                )
                 if result.flagged:
-                    await self._triggered(event, result.triggered, chat_db.tid)
+                    await self._triggered(
+                        event,
+                        result.triggered,
+                        chat_db.tid,
+                        services=services,
+                    )
                     raise SkipHandler
             except (SDKError, OpenAIError) as err:
                 # The provider is already distinguishable from the exception type, so no flag lookup

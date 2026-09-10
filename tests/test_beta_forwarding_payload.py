@@ -1,8 +1,17 @@
+from __future__ import annotations
+
 import json
+from functools import partial
+from typing import Literal
+from unittest.mock import AsyncMock
 
-from aiogram.types import Update
+import pytest
+from aiogram.types import InlineQuery, PollAnswer, Update, User
 
+from sophie_bot.db.models import BetaModeModel, ChatModel
+from sophie_bot.db.models.beta import CurrentMode
 from sophie_bot.middlewares.beta import BetaMiddleware
+from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 
 RICH_MESSAGE_UPDATE: dict = {
     "update_id": 1,
@@ -79,3 +88,46 @@ def test_forwarded_payload_keeps_dates_as_unix_timestamps() -> None:
     payload = json.loads(BetaMiddleware().get_data(update))
 
     assert payload["callback_query"]["message"]["date"] == 1784942750
+
+
+@pytest.mark.parametrize("event_type", ("inline_query", "poll_answer"))
+async def test_chatless_updates_follow_the_actors_beta_assignment(
+    event_type: Literal["inline_query", "poll_answer"],
+    db_init: object,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = User(id=7_650_321_001, is_bot=False, first_name="Beta user")
+    actor = await ChatModel.upsert_user(user)
+    try:
+        await BetaModeModel.set_mode(actor.iid, CurrentMode.beta)
+        if event_type == "inline_query":
+            update = Update(
+                update_id=1,
+                inline_query=InlineQuery(id="query", from_user=user, query="notes", offset=""),
+            )
+        else:
+            update = Update(
+                update_id=2,
+                poll_answer=PollAnswer(
+                    poll_id="poll",
+                    user=user,
+                    option_ids=[0],
+                    option_persistent_ids=["first"],
+                ),
+            )
+        beta = BetaMiddleware()
+        forward = AsyncMock()
+        stable = AsyncMock()
+        monkeypatch.setattr(beta, "send_request", forward)
+
+        await SaveChatsMiddleware()(
+            partial(beta, stable),
+            update,
+            {"event_from_user": user, "event_chat": None},
+        )
+
+        forward.assert_awaited_once()
+        stable.assert_not_awaited()
+    finally:
+        await BetaModeModel.find(BetaModeModel.chat.id == actor.iid).delete()
+        await actor.delete()

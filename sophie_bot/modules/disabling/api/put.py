@@ -4,7 +4,7 @@ from beanie.odm.operators.update.general import Set
 from fastapi import APIRouter
 
 from sophie_bot.db.models.disabling import DisablingModel
-from sophie_bot.modules.help.utils.extract_info import DISABLEABLE_CMDS
+from sophie_bot.services.rest import ServicesDep
 from sophie_bot.utils.api.dependencies import ChangeInfoAdminDep, ChatDep
 
 from .schemas import DisabledPayload, DisabledResponse
@@ -17,8 +17,9 @@ async def set_disabled_commands(
     chat: ChatDep,
     payload: DisabledPayload,
     user: ChangeInfoAdminDep,
-):
-    to_disable = [cmd for cmd in payload.disabled if cmd in DISABLEABLE_CMDS]
+    services: ServicesDep,
+) -> DisabledResponse:
+    to_disable = [command for command in payload.disabled if command in services.modules.disableable_commands]
 
     await DisablingModel.find_one(DisablingModel.chat.id == chat.iid).upsert(
         Set({DisablingModel.cmds: to_disable}),

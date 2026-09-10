@@ -38,8 +38,19 @@ class AiCmd(SophieMessageHandler):
         user_text: str | None = self.data["text"]
 
         if self.event.chat.type == "private" and self.connection.is_connected and self.event.from_user:
-            await set_connected_chat(self.event.from_user.id, None)
+            await set_connected_chat(self.event.from_user.id, None, redis=self.services.redis)
             await self.event.reply(_("You have been automatically disconnected from the chat to use AI."))
-            self.data["connection"] = await ConnectionsMiddleware.get_current_chat_info(self.event.chat)
+            connection = await ConnectionsMiddleware.get_current_chat_info(
+                self.event.chat,
+                self.context.event_chat,
+            )
+            self.context.connection = connection
+            self.context.target_chat = connection.db_model
 
-        return await ai_chatbot_reply(self.event, self.connection, user_text, mode=self.data["ai_mode"])
+        return await ai_chatbot_reply(
+            self.event,
+            self.connection,
+            user_text,
+            mode=self.data["ai_mode"],
+            services=self.services,
+        )

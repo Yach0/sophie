@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from typing import Any, ClassVar
 
@@ -18,19 +17,18 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.services.silent import collect_message_ids_for_cleanup
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.modules.utils_.delayed_delete import schedule_message_deletion
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.federation_ban_check import FederationBanInfo, get_user_federation_ban_info
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-
-RestrictionActionFunc = Callable[[int, int, timedelta | None], Awaitable[bool]]
 
 _LOG_EVENT_TO_ACTION: dict[LogEvent, str] = {
     LogEvent.USER_BANNED: "ban",
@@ -51,6 +49,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
     actor_label: ClassVar[str | LazyProxy]
     result_title: ClassVar[str | LazyProxy]
     event_type: ClassVar[LogEvent]
+    restriction_action: ClassVar[RestrictionAction]
     with_duration: ClassVar[bool] = False
     check_admin: ClassVar[bool] = True
     check_federation_ban: ClassVar[bool] = False
@@ -62,10 +61,6 @@ class BaseRestrictionHandler(SophieMessageHandler):
     fed_ban_notice_subscribed: ClassVar[str | LazyProxy] = l_(
         "The user is already banned in a subscribed federation: {fed_name} ({fed_id})."
     )
-
-    @staticmethod
-    def get_restriction_action() -> RestrictionActionFunc:
-        raise NotImplementedError
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -102,9 +97,16 @@ class BaseRestrictionHandler(SophieMessageHandler):
             federation_ban_info = await get_user_federation_ban_info(connection.db_model.iid, user.chat_id)
 
         until_date = self.data.get("time") if self.with_duration else None
-        restriction_action = self.get_restriction_action()
-        if not await restriction_action(connection.tid, user.chat_id, until_date):
+        restriction_result = await execute_restriction(
+            self.services.bot,
+            self.restriction_action,
+            connection.tid,
+            user.chat_id,
+            until_date=until_date,
+        )
+        if not restriction_result.applied:
             return await reply_or_answer(self.event, self.failed_action_text)
+        await self._after_restriction_applied(connection.tid, user.chat_id)
 
         track_moderation_action(
             _LOG_EVENT_TO_ACTION.get(self.event_type, "unknown"),
@@ -120,6 +122,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
                 connection.db_model,
                 message_text=replied_text,
                 include_rules=True,
+                services=self.services,
             )
             if ai_reason:
                 reason = ai_reason
@@ -150,10 +153,13 @@ class BaseRestrictionHandler(SophieMessageHandler):
         reply_message = await reply_or_answer(self.event, doc)
 
         if self.silent and reply_message:
-            schedule_message_deletion(
+            self.services.deletions.schedule(
                 connection.tid,
                 collect_message_ids_for_cleanup(self.event, reply_message.message_id),
             )
+
+    async def _after_restriction_applied(self, chat_tid: int, user_tid: int) -> None:
+        return None
 
     def _build_fed_ban_notice(self, info: FederationBanInfo | None) -> KeyValue | None:
         if not info:

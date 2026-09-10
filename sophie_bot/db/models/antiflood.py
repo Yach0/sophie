@@ -5,16 +5,17 @@ from typing import ClassVar
 from beanie import Document, PydanticObjectId
 from pydantic import ConfigDict, Field, field_validator
 
+from sophie_bot.shared.actions import StoredAction
+
 from ._link_type import Link
 from .chat import ChatModel
-from .filters import FilterActionType
 
 
 class AntifloodModel(Document):
     chat: Link[ChatModel]
     enabled: bool | None = True
     message_count: int = Field(default=5, ge=1, le=100, alias="count")
-    actions: list[FilterActionType] = Field(default_factory=list)
+    actions: list[StoredAction] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -52,7 +53,7 @@ class AntifloodModel(Document):
         chat_iid: PydanticObjectId, action_name: str, action_data: dict | None = None
     ) -> AntifloodModel:
         """Add an action for antiflood violations using internal DB ID (chat_iid)."""
-        action = FilterActionType(name=action_name, data=action_data or {})
+        action = StoredAction(name=action_name, data=action_data or {})
 
         model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
         if model is None:

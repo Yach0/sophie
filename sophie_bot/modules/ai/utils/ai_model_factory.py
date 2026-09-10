@@ -4,6 +4,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 from pydantic_ai.settings import ModelSettings
+from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose, AIProviderKind
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -118,7 +119,12 @@ def single_model_plan(model_name: str) -> AIModelPlan:
 
 
 async def build_purpose_plan(
-    mode: AIMode, purpose: AIModelPurpose, override_name: str = "", chat_tid: int | None = None
+    mode: AIMode,
+    purpose: AIModelPurpose,
+    override_name: str = "",
+    chat_tid: int | None = None,
+    *,
+    redis: Redis,
 ) -> AIModelPlan:
     """The ordered candidates serving a (mode, purpose), with a flag-pinned model in front.
 
@@ -131,7 +137,7 @@ async def build_purpose_plan(
     this is where the chat is known.
     """
     try:
-        roles = await resolve_roles(mode, purpose)
+        roles = await resolve_roles(mode, purpose, redis=redis)
     except ValueError:
         if not override_name:
             raise
@@ -142,14 +148,22 @@ async def build_purpose_plan(
             *((pinned_candidate(override_name),) if override_name else ()),
             *(role_candidate(role) for role in roles),
         ],
-        failover=await is_enabled("ai_model_failover", chat_tid=chat_tid),
+        failover=await is_enabled("ai_model_failover", chat_tid=chat_tid, redis=redis),
     )
 
 
-async def get_proactive_replies_model_plan(chat_tid: int | None = None) -> AIModelPlan:
-    return single_model_plan(str(await get_value("ai_proactive_replies_model", chat_tid=chat_tid)))
+async def get_proactive_replies_model_plan(chat_tid: int | None = None, *, redis: Redis) -> AIModelPlan:
+    return single_model_plan(
+        str(
+            await get_value(
+                "ai_proactive_replies_model",
+                chat_tid=chat_tid,
+                redis=redis,
+            )
+        )
+    )
 
 
-async def get_research_model(chat_tid: int | None = None) -> Model:
-    model_name = str(await get_value("ai_research_model", chat_tid=chat_tid))
+async def get_research_model(chat_tid: int | None = None, *, redis: Redis) -> Model:
+    model_name = str(await get_value("ai_research_model", chat_tid=chat_tid, redis=redis))
     return get_ai_model(model_name)

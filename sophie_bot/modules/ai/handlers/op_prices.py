@@ -10,6 +10,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
 from sophie_bot.modules.ai.utils.ai_model_pricing import get_model_pricing
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
@@ -20,12 +21,12 @@ def _format_price(price: float | None) -> str:
     return f"${price:.2f}/1M"
 
 
-async def op_ai_prices_handler(message: Message) -> None:
-    catalog = await get_catalog()
+async def op_ai_prices_handler(message: Message, *, services: ApplicationServices) -> None:
+    catalog = await get_catalog(redis=services.redis)
 
     model_lines = []
     for model_name in sorted(catalog.models):
-        input_price, output_price = await get_model_pricing(model_name)
+        input_price, output_price = await get_model_pricing(model_name, redis=services.redis)
         roles = sorted(
             f"{mode.value if mode else 'any'}:{purpose.value}"
             for (mode, purpose), name in catalog.roles.items()
@@ -59,4 +60,4 @@ class OpAIPricesHandler(SophieMessageHandler):
         router.message.register(cls, *cls.filters())
 
     async def handle(self) -> None:
-        await op_ai_prices_handler(self.event)
+        await op_ai_prices_handler(self.event, services=self.services)

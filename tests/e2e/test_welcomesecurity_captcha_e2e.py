@@ -18,7 +18,8 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
-from sophie_bot.db.models.greetings import WelcomeSecurity
+from sophie_bot.db.models.greetings import WelcomeMute, WelcomeSecurity
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
@@ -102,7 +103,12 @@ async def _register_pending_user(test_client: TestClient, group_tid: int) -> tup
     user = await ChatModel.get_by_tid(newbie.id)
     assert user is not None
     await WSUserModel.ensure_user(user, chat, is_join_request=False)
-    captcha_message = await initiate_captcha(user, chat)
+    captcha_message = await initiate_captcha(
+        user,
+        chat,
+        bot=test_client.bot,
+        dispatcher=test_client.dispatcher,
+    )
     return chat, user, captcha_message
 
 
@@ -121,6 +127,30 @@ async def test_correct_captcha_unmutes_and_clears_pending(test_client: TestClien
 
     assert _restricts(requests, user.tid), "Passing the captcha should unmute the user"
     assert await WSUserModel.is_user(user.iid, chat.iid) is None, "The pending row should be cleared on pass"
+
+
+@pytest.mark.asyncio
+async def test_whitelisted_captcha_pass_unmutes_instead_of_applying_welcome_mute(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Whitelist Pass Group")
+    await grant_bot_admin(group.id)
+    chat = await _enable_ws(group.id)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings.welcome_mute = WelcomeMute(enabled=True, time=timedelta(hours=1))
+    await greetings.save()
+
+    _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
+    await GroupUserWhitelistModel.add_user(group.id, user.tid)
+    await _solve_fsm_captcha(test_client, user.tid)
+
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid)).pack()
+    from_user = User(id=user.tid, is_bot=False, first_name="Whitelisted Solver")
+    requests = await test_client.send_callback(confirm, from_user=from_user, message=captcha_message)
+
+    restrictions = _restricts(requests, user.tid)
+    assert restrictions
+    assert restrictions[-1].params["permissions"]["can_send_messages"] is True
+    assert await WSUserModel.is_user(user.iid, chat.iid) is None
 
 
 @pytest.mark.asyncio
@@ -174,7 +204,7 @@ async def test_ephemeral_captcha_prompts_each_member_privately(test_client: Test
     _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Ephemeral Group")
     await grant_bot_admin(group.id)
     await _enable_ws(group.id)
-    await set_feature("welcomecaptcha_ephemeral", True, chat_tid=group.id)
+    await set_feature(test_client, "welcomecaptcha_ephemeral", True, chat_tid=group.id)
 
     first = User(id=next_user_id(), is_bot=False, first_name="AlphaJoiner")
     second = User(id=next_user_id(), is_bot=False, first_name="BetaJoiner")
@@ -209,13 +239,16 @@ async def test_autokick_kicks_stale_unpassed_user(test_client: TestClient) -> No
     await pending.save()
 
     start = len(test_client.capture)
-    await KickUnpassedUsers().handle()
+    await KickUnpassedUsers(
+        test_client.dispatcher.workflow_data["services"]
+    ).handle()
     requests = test_client.capture.all_requests[start:]
 
     kicks = [
         request
         for request in requests
-        if request.request_type == RequestType.UNBAN_CHAT_MEMBER and request.params.get("user_id") == stale.id
+        if request.request_type == RequestType.UNBAN_CHAT_MEMBER
+        and request.params.get("user_id") == stale.id
     ]
     assert kicks, "A user who never solved the captcha within the window should be kicked"
     assert not [
@@ -239,7 +272,9 @@ async def test_autokick_leaves_recent_user_alone(test_client: TestClient) -> Non
     await WSUserModel.ensure_user(recent_model, chat, is_join_request=False)
 
     start = len(test_client.capture)
-    await KickUnpassedUsers().handle()
+    await KickUnpassedUsers(
+        test_client.dispatcher.workflow_data["services"]
+    ).handle()
     requests = test_client.capture.all_requests[start:]
 
     assert not [

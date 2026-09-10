@@ -24,6 +24,7 @@ import sentry_sdk
 from sentry_sdk.integrations import Integration
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 from sentry_sdk.types import Event
@@ -72,7 +73,12 @@ def build_release() -> str:
 def init_sentry() -> None:
     log.info("Starting sentry.io integraion...")
 
-    integrations: list[Integration] = [RedisIntegration(), AioHttpIntegration(), PyMongoIntegration()]
+    integrations: list[Integration] = [
+        RedisIntegration(),
+        AioHttpIntegration(),
+        PyMongoIntegration(),
+        PydanticAIIntegration(handled_tool_call_exceptions=False),
+    ]
 
     if CONFIG.sentry_enable_logs:
         integrations.append(

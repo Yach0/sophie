@@ -12,7 +12,9 @@ from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDM
 
 
 @pytest.mark.asyncio
-async def test_initiate_captcha_raises_when_user_blocked(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_initiate_captcha_raises_when_user_blocked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     user = SimpleNamespace(tid=123456)
     group = SimpleNamespace(iid="group_iid", tid=-100987654321, first_name_or_title="Test Group")
     state = SimpleNamespace(set_state=AsyncMock(), update_data=AsyncMock())
@@ -23,17 +25,21 @@ async def test_initiate_captcha_raises_when_user_blocked(monkeypatch: pytest.Mon
     )
     send_photo = AsyncMock(side_effect=forbidden_error)
 
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.utils_.initiate_captcha.bot",
-        SimpleNamespace(send_photo=send_photo),
-    )
-    monkeypatch.setattr(
-        "sophie_bot.modules.welcomesecurity.utils_.initiate_captcha.dp",
-        SimpleNamespace(fsm=SimpleNamespace(get_context=Mock(return_value=state))),
+    bot = SimpleNamespace(send_photo=send_photo)
+    dispatcher = SimpleNamespace(
+        fsm=SimpleNamespace(
+            get_context=Mock(return_value=state)
+        )
     )
 
     with pytest.raises(CaptchaDMBlockedError):
-        await initiate_captcha(user, group, is_join_request=True)
+        await initiate_captcha(
+            user,
+            group,
+            is_join_request=True,
+            bot=bot,
+            dispatcher=dispatcher,
+        )
 
     assert send_photo.await_count == 1
     state.set_state.assert_awaited_once_with(WelcomeSecurityFSM.captcha)

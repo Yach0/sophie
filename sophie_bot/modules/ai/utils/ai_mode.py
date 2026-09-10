@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from aiogram.fsm.context import FSMContext
 from beanie import PydanticObjectId
+from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
@@ -132,9 +133,9 @@ async def resolve_chat_capabilities(chat: ChatModel, state: FSMContext | None = 
     return get_capabilities(await resolve_chat_mode(chat, state))
 
 
-async def set_chat_mode(chat: ChatModel, mode: AIMode) -> None:
+async def set_chat_mode(chat: ChatModel, mode: AIMode, *, redis: Redis) -> None:
     await AIModeModel.set_mode(chat, mode)
 
     # Entering a mode that keeps no history must not leave the previous mode's messages behind.
     if not get_capabilities(mode).message_cache:
-        await reset_messages(chat.tid)
+        await reset_messages(chat.tid, redis=redis)

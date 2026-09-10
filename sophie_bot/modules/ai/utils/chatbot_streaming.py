@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import time
+from contextlib import suppress
 from enum import Enum
 from random import choice
 from typing import Any
@@ -8,6 +10,7 @@ from typing import Any
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
 from pydantic_ai.models import Model
+from redis.asyncio import Redis
 from stfu_tg import Doc, Template
 from stfu_tg.doc import Element
 
@@ -25,7 +28,9 @@ from sophie_bot.modules.ai.utils.research import (
     research_progress_suffix,
 )
 from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
@@ -33,55 +38,54 @@ _MIN_STREAM_BACKOFF_SECONDS = 0.5
 _MAX_STREAM_TEXT_LENGTH = 4096 - 128
 # Reasoning is shown inline in the one-line header, so only its tail fits.
 _MAX_REASONING_TAIL_LENGTH = 200
-_TOOL_THINKING_TEXTS: dict[str, tuple[str, ...]] = {
+_TOOL_THINKING_TEXTS: dict[str, tuple[LazyProxy, ...]] = {
     "tavily_search": (
-        _("Searching the web..."),
-        _("Looking it up online..."),
-        _("Browsing the internet..."),
+        l_("Searching the web..."),
+        l_("Looking it up online..."),
+        l_("Browsing the internet..."),
     ),
     "kagi_search": (
-        _("Searching the web..."),
-        _("Looking it up online..."),
-        _("Browsing the internet..."),
+        l_("Searching the web..."),
+        l_("Looking it up online..."),
+        l_("Browsing the internet..."),
     ),
     "tinyfish_search": (
-        _("Searching the web..."),
-        _("Looking it up online..."),
-        _("Browsing the internet..."),
+        l_("Searching the web..."),
+        l_("Looking it up online..."),
+        l_("Browsing the internet..."),
     ),
     "write_memory": (
-        _("Updating memory..."),
-        _("Saving to memory..."),
+        l_("Updating memory..."),
+        l_("Saving to memory..."),
     ),
     "forget_memory": (
-        _("Removing from memory..."),
-        _("Forgetting..."),
+        l_("Removing from memory..."),
+        l_("Forgetting..."),
     ),
     "sophie_help": (
-        _("Checking the documentation..."),
-        _("Looking up how Sophie works..."),
+        l_("Checking the documentation..."),
+        l_("Looking up how Sophie works..."),
     ),
     "sophie_inspect": (
-        _("Digging through my own sources..."),
-        _("Reading my own code..."),
+        l_("Digging through my own sources..."),
+        l_("Reading my own code..."),
     ),
     "get_notes": (
-        _("Scanning notes..."),
-        _("Looking through notes..."),
+        l_("Scanning notes..."),
+        l_("Looking through notes..."),
     ),
     "get_note_content": (
-        _("Reading note..."),
-        _("Fetching note content..."),
+        l_("Reading note..."),
+        l_("Fetching note content..."),
     ),
     "save_note": (
-        _("Saving note..."),
-        _("Writing to notes..."),
+        l_("Saving note..."),
+        l_("Writing to notes..."),
     ),
     "delete_note": (
-        _("Deleting note..."),
-        _("Removing note..."),
+        l_("Deleting note..."),
+        l_("Removing note..."),
     ),
-    "research_topic": (_("Starting the research..."),),
 }
 
 
@@ -128,10 +132,13 @@ class ChatbotMessageStreamer:
         header: Element,
         mode: StreamMode,
         throttle_seconds: float,
-        tool_thinking_texts: dict[str, tuple[str, ...]] | None = None,
+        tool_thinking_texts: dict[str, tuple[LazyProxy, ...]] | None = None,
         emoji_id: str | None = None,
+        *,
+        redis: Redis,
     ) -> None:
         self.source_message = source_message
+        self.redis = redis
         self.mention_index: MentionIndex | None = None
         self._mention_index_resolved = False
         self.header = header
@@ -140,29 +147,40 @@ class ChatbotMessageStreamer:
         self.tool_thinking_texts = tool_thinking_texts
         self.emoji_id = emoji_id
         self.response_message: Message | None = None
+        self.latest_text: str = ""
         self.last_sent_text: str = ""
         self.last_sent_at: float = 0.0
+        self._last_sent_html: str | None = None
+        self._pending_update_task: asyncio.Task[None] | None = None
+        self._seen_tool_names: set[str] = set()
 
     async def send_thinking_message(self) -> None:
+        doc = Doc(self.header)
         match self.mode:
             case StreamMode.RICH_EDIT:
-                self.response_message = await self._send_rich_reply(Doc(self.header))
+                self.response_message = await self._send_rich_reply(doc)
             case _:
                 self.response_message = await self.source_message.reply(
-                    Doc(self.header).to_html(),
+                    doc.to_html(),
                     disable_web_page_preview=True,
                 )
+        self._last_sent_html = doc.to_html()
 
     async def stream(self, text: str) -> None:
-        if self.mode == StreamMode.THINKING_ONLY or not text.strip() or self._throttled():
+        if self.mode == StreamMode.THINKING_ONLY or not text.strip():
             return
 
         draft_text = _truncate_stream_text(text)
+        self.latest_text = draft_text
         if draft_text == self.last_sent_text:
+            await self._cancel_pending_update()
             return
 
-        if await self._update(await self._render_doc(draft_text)):
-            self.last_sent_text = draft_text
+        if self._throttled():
+            self._schedule_pending_update()
+            return
+
+        await self._flush_draft()
 
     async def stream_reasoning(self, reasoning_text: str) -> None:
         """Show the tail of the model's own reasoning in the thinking header while it works.
@@ -180,12 +198,18 @@ class ChatbotMessageStreamer:
         await self._update_thinking_header(ai_progress_line(tail, self.emoji_id))
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
-        if not self.tool_thinking_texts:
+        texts = (
+            self.tool_thinking_texts.get(tool_name)
+            if self.tool_thinking_texts and tool_name not in self._seen_tool_names
+            else None
+        )
+        self._seen_tool_names.add(tool_name)
+        if texts:
+            await self._update_thinking_header(ai_progress_line(str(choice(texts)), self.emoji_id))
             return
-        texts = self.tool_thinking_texts.get(tool_name)
-        if not texts:
-            return
-        await self._update_thinking_header(ai_progress_line(choice(texts), self.emoji_id))
+
+        await self._cancel_pending_update()
+        await self._flush_draft(force=True)
 
     async def update_retrying(self, attempt: int, total_attempts: int) -> None:
         await self._update_thinking_header(
@@ -202,21 +226,23 @@ class ChatbotMessageStreamer:
         await self._update_thinking_header(ai_progress_line(text, self.emoji_id, suffix))
 
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
+        await self._cancel_pending_update()
+        rendered_html = doc.to_html()
         if self.response_message is None:
             return await self.source_message.reply(
-                doc.to_html(),
+                rendered_html,
                 disable_web_page_preview=True,
                 **reply_kwargs,
             )
 
         # For all edit-based modes: update in place if content changed, reply fresh on error.
-        if doc.to_html() == self.last_sent_text and self.mode != StreamMode.RICH_EDIT:
+        reply_markup = reply_kwargs.get("reply_markup")
+        if not isinstance(reply_markup, InlineKeyboardMarkup):
+            reply_markup = None
+        if rendered_html == self._last_sent_html and reply_markup is None:
             return self.response_message
 
         try:
-            reply_markup = reply_kwargs.get("reply_markup")
-            if not isinstance(reply_markup, InlineKeyboardMarkup):
-                reply_markup = None
             if self.mode == StreamMode.RICH_EDIT:
                 result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
                     chat_id=self.response_message.chat.id,
@@ -226,10 +252,11 @@ class ChatbotMessageStreamer:
                 )
             else:
                 result = await self.response_message.edit_text(
-                    text=doc.to_html(),
+                    text=rendered_html,
                     disable_web_page_preview=True,
                     reply_markup=reply_markup,
                 )
+            self._last_sent_html = rendered_html
             return result if isinstance(result, Message) else self.response_message
         except TelegramAPIError:
             if self.mode == StreamMode.RICH_EDIT:
@@ -249,6 +276,10 @@ class ChatbotMessageStreamer:
                     **reply_kwargs,
                 )
 
+    async def stop(self) -> None:
+        """Cancel a deferred draft edit when the run ends without a normal final reply."""
+        await self._cancel_pending_update()
+
     # ── Private helpers ────────────────────────────────────────────────────────
 
     def _throttled(self) -> bool:
@@ -256,9 +287,42 @@ class ChatbotMessageStreamer:
         limit instead of each getting its own."""
         return time.monotonic() - self.last_sent_at < self.throttle_seconds
 
+    def _schedule_pending_update(self) -> None:
+        if self._pending_update_task is not None and not self._pending_update_task.done():
+            return
+
+        delay = max(0.0, self.throttle_seconds - (time.monotonic() - self.last_sent_at))
+        self._pending_update_task = asyncio.create_task(self._send_pending_after(delay))
+
+    async def _send_pending_after(self, delay: float) -> None:
+        await asyncio.sleep(delay)
+        self._pending_update_task = None
+        await self._flush_draft()
+
+    async def _cancel_pending_update(self) -> None:
+        task = self._pending_update_task
+        self._pending_update_task = None
+        if task is None or task is asyncio.current_task() or task.done():
+            return
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+
+    async def _flush_draft(self, *, force: bool = False) -> None:
+        if not self.latest_text or self.latest_text == self.last_sent_text:
+            return
+        if not force and self._throttled():
+            self._schedule_pending_update()
+            return
+        if await self._update(await self._render_doc(self.latest_text)):
+            self.last_sent_text = self.latest_text
+
     async def _render_doc(self, text: str) -> Doc:
         if not self._mention_index_resolved and "@" in text:
-            self.mention_index = await resolve_mention_index(self.source_message.chat.id)
+            self.mention_index = await resolve_mention_index(
+                self.source_message.chat.id,
+                redis=self.redis,
+            )
             self._mention_index_resolved = True
         return await build_reply_doc(
             self.header,
@@ -267,24 +331,32 @@ class ChatbotMessageStreamer:
             result=None,
             explicit_debug_mode=False,
             chat_tid=self.source_message.chat.id,
+            redis=self.redis,
             mention_index=self.mention_index,
         )
 
     async def _update_thinking_header(self, thinking_element: Element) -> None:
         self.header = thinking_element
+        await self._cancel_pending_update()
 
         # The agent loop can keep going after it has already written text (narrate, call a tool,
         # answer), so a header-only doc here would wipe what the user is reading. Re-render the
         # streamed text under the new header instead.
-        doc = await self._render_doc(self.last_sent_text) if self.last_sent_text else Doc(self.header)
-        await self._update(doc)
+        draft_text = self.latest_text or self.last_sent_text
+        doc = await self._render_doc(draft_text) if draft_text else Doc(self.header)
+        if await self._update(doc):
+            self.last_sent_text = draft_text
 
     async def _update(self, doc: Doc) -> bool:
         """Edit the placeholder in place. Returns False if the edit failed and updates should stop."""
+        rendered_html = doc.to_html()
+        if rendered_html == self._last_sent_html:
+            return True
+
         try:
             if self.response_message is None:
                 self.response_message = await self.source_message.reply(
-                    doc.to_html(),
+                    rendered_html,
                     disable_web_page_preview=True,
                 )
             elif self.mode == StreamMode.RICH_EDIT:
@@ -295,12 +367,13 @@ class ChatbotMessageStreamer:
                 )
             else:
                 await self.response_message.edit_text(
-                    text=doc.to_html(),
+                    text=rendered_html,
                     disable_web_page_preview=True,
                 )
         except TelegramAPIError:
             return False
 
+        self._last_sent_html = rendered_html
         self.last_sent_at = time.monotonic()
         return True
 
@@ -312,13 +385,15 @@ async def build_message_streamer(
     message: Message,
     model: Model,
     explicit_debug_mode: bool,
+    *,
+    redis: Redis,
 ) -> ChatbotMessageStreamer | None:
     if explicit_debug_mode:
         return None
 
-    thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id)
-    streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id)
-    rich_streaming_enabled = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id)
+    thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id, redis=redis)
+    streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id, redis=redis)
+    rich_streaming_enabled = await is_enabled("ai_chatbot_rich_streaming", chat_tid=message.chat.id, redis=redis)
 
     if rich_streaming_enabled:
         mode = StreamMode.RICH_EDIT
@@ -334,7 +409,11 @@ async def build_message_streamer(
     # the thinking text is shown.
     emoji_id = (
         random_ai_progress_custom_emoji_id()
-        if await is_enabled("ai_chatbot_random_emoji", chat_tid=message.chat.id)
+        if await is_enabled(
+            "ai_chatbot_random_emoji",
+            chat_tid=message.chat.id,
+            redis=redis,
+        )
         else None
     )
 
@@ -345,7 +424,11 @@ async def build_message_streamer(
         else ai_progress_line(model.model_name, emoji_id)
     )
     backoff_seconds = _coerce_stream_backoff_seconds(
-        await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id)
+        await get_value(
+            "ai_chatbot_streaming_backoff_seconds",
+            chat_tid=message.chat.id,
+            redis=redis,
+        )
     )
     streamer = ChatbotMessageStreamer(
         source_message=message,
@@ -353,9 +436,15 @@ async def build_message_streamer(
         mode=mode,
         throttle_seconds=backoff_seconds,
         tool_thinking_texts=_TOOL_THINKING_TEXTS
-        if thinking_enabled and await is_enabled("ai_chatbot_tool_thinking", chat_tid=message.chat.id)
+        if thinking_enabled
+        and await is_enabled(
+            "ai_chatbot_tool_thinking",
+            chat_tid=message.chat.id,
+            redis=redis,
+        )
         else None,
         emoji_id=emoji_id,
+        redis=redis,
     )
     await streamer.send_thinking_message()
     return streamer

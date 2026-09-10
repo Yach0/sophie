@@ -12,3 +12,8 @@ class PrivateNotesStartUrlCallback(CmdStart, prefix="pmnotes"):
 
 class DeleteAllNotesCallback(CallbackData, prefix="delete_all_notes"):
     user_id: int
+
+
+class NotesPageCallback(CallbackData, prefix="notes_page"):
+    list_id: str
+    page: int

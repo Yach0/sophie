@@ -173,7 +173,7 @@ class OpAIProvider(SophieMessageHandler):
             if not provider:
                 return await self.event.answer(str(Template(_("No provider named {name}."), name=Code(name))))
             await provider.delete()
-            await bump_version()
+            await bump_version(redis=self.services.redis)
             return await self.event.answer(str(Template(_("Provider {name} deleted."), name=Code(name))))
 
         if not provider:
@@ -189,7 +189,7 @@ class OpAIProvider(SophieMessageHandler):
             provider.enabled = bool(enabled)
 
         await provider.save()
-        await bump_version()
+        await bump_version(redis=self.services.redis)
 
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Provider saved')}"),
@@ -224,7 +224,7 @@ class OpAIModels(SophieMessageHandler):
             )
             async for stored_model in AICatalogModelModel.find_all()
         ]
-        catalog = await get_catalog()
+        catalog = await get_catalog(redis=self.services.redis)
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Models')}"),
             Section(VList(*lines) if lines else _("No models are configured."), title=_("Models")),
@@ -272,7 +272,7 @@ class OpAIModel(SophieMessageHandler):
             if not stored_model:
                 return await self.event.reply(str(Template(_("No model named {name}."), name=Code(name))))
             await stored_model.delete()
-            await bump_version()
+            await bump_version(redis=self.services.redis)
             return await self.event.reply(str(Template(_("Model {name} deleted."), name=Code(name))))
 
         raw_role = _option(options, _ROLE_OPTION)
@@ -317,7 +317,7 @@ class OpAIModel(SophieMessageHandler):
             ]
 
         await stored_model.save()
-        await bump_version()
+        await bump_version(redis=self.services.redis)
 
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Model saved')}"),

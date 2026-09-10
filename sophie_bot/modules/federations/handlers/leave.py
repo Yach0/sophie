@@ -33,15 +33,15 @@ class LeaveFederationHandler(SophieMessageHandler):
 
         # Check if chat is in a federation
         chat_iid = self.connection.db_model.iid
-        federation = await FederationManageService.get_federation_for_chat(
-            chat_iid,
-        )
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
 
         # Remove chat from federation
-        removed = await FederationChatService.remove_chat_from_federation(federation, chat_iid)
+        removed = await FederationChatService.remove_chat_from_federation(
+            federation, chat_iid, redis=self.services.redis
+        )
         if not removed:
             await self.event.reply(_("Unable to leave the federation right now. Please try again."))
             return

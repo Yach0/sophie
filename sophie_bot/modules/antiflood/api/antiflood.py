@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from typing import Any
+
 from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, Field
 
 from sophie_bot.constants import ANTIFOOD_MAX_ACTIONS
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.filters import FilterActionType
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.services.rest import ServicesDep
+from sophie_bot.shared.action_registry import normalize_action_data
+from sophie_bot.shared.actions import (
+    ActionDefinition,
+    ActionValidationError,
+    StoredAction,
+)
 from sophie_bot.utils.api.dependencies import RestrictAdminDep
 
 router = APIRouter(prefix="/antiflood", tags=["antiflood"])
@@ -16,47 +23,7 @@ router = APIRouter(prefix="/antiflood", tags=["antiflood"])
 
 class ActionRequest(BaseModel):
     name: str = Field(..., description="Action name (e.g., 'mute_user', 'kick_user', 'ban_user')")
-    data: dict = Field(default_factory=dict, description="Action-specific data")
-
-    @field_validator("name")
-    @classmethod
-    def validate_action_name(cls, v: str) -> str:
-        """Validate that action name exists and supports flood actions."""
-        if v not in ALL_MODERN_ACTIONS:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Invalid action name: {v}. Valid actions: {', '.join(ALL_MODERN_ACTIONS.keys())}",
-            )
-        action = ALL_MODERN_ACTIONS[v]
-        if not action.as_flood:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Action '{v}' cannot be used as an antiflood action",
-            )
-        return v
-
-    @model_validator(mode="after")
-    def validate_action_data(self) -> ActionRequest:
-        """Validate the data against the action's own model and canonicalize it for storage."""
-        action = ALL_MODERN_ACTIONS[self.name]
-        data_object = getattr(action, "data_object", None)
-        if data_object is None:
-            return self
-
-        if not self.data and action.default_data is not None:
-            self.data = action.default_data.model_dump(mode="json")
-            return self
-
-        try:
-            validated_data = data_object(**self.data)
-        except ValidationError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Invalid action data for '{self.name}': {exc}",
-            ) from exc
-
-        self.data = validated_data.model_dump(mode="json")
-        return self
+    data: dict[str, Any] = Field(default_factory=dict, description="Action-specific data")
 
 
 class AntifloodSettingsRequest(BaseModel):
@@ -67,6 +34,31 @@ class AntifloodSettingsRequest(BaseModel):
         max_length=ANTIFOOD_MAX_ACTIONS,
         description=f"List of actions (max {ANTIFOOD_MAX_ACTIONS})",
     )
+
+
+def _validate_action_request(
+    request: ActionRequest,
+    actions: dict[str, ActionDefinition[Any]],
+) -> StoredAction:
+    try:
+        data = normalize_action_data(
+            actions,
+            request.name,
+            request.data,
+            capability="flood",
+        )
+    except ActionValidationError as error:
+        if error.reason == "unknown":
+            detail = f"Invalid action name: {request.name}. Valid actions: {', '.join(actions)}"
+        elif error.reason == "capability":
+            detail = f"Action '{request.name}' cannot be used as an antiflood action"
+        else:
+            detail = error.detail
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=detail,
+        ) from error
+    return StoredAction(name=request.name, data=data)
 
 
 class ActionResponse(BaseModel):
@@ -120,6 +112,7 @@ async def update_antiflood_settings(
     chat_iid: PydanticObjectId,
     request: AntifloodSettingsRequest,
     user: RestrictAdminDep,
+    services: ServicesDep,
 ) -> AntifloodSettingsResponse:
     """Update antiflood settings for a chat."""
     chat = await ChatModel.get_by_iid(chat_iid)
@@ -136,7 +129,7 @@ async def update_antiflood_settings(
 
     settings.enabled = request.enabled
     settings.message_count = request.message_count
-    settings.actions = [FilterActionType(name=action.name, data=action.data) for action in request.actions]
+    settings.actions = [_validate_action_request(action, services.modules.actions) for action in request.actions]
 
     await settings.save()
 

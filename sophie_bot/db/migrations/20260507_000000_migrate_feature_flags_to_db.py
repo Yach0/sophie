@@ -27,7 +27,7 @@ from beanie import free_fall_migration
 from bson import ObjectId
 
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.migrations import MigrationResources
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _parse_override, _serialize_value
 
 _REDIS_KEY = "sophie:kill_switch"
@@ -52,9 +52,9 @@ class Forward:
     """Copy global and per-chat feature flag overrides from Redis to MongoDB."""
 
     @free_fall_migration(document_models=[FeatureFlagOverride])
-    async def migrate(self, session: object) -> None:
+    async def migrate(self, session: object, *, resources: MigrationResources) -> None:
         collection = FeatureFlagOverride.get_pymongo_collection()
-        raw_global_overrides = await aredis.hgetall(_REDIS_KEY)
+        raw_global_overrides = await resources.redis.hgetall(_REDIS_KEY)
 
         for raw_feature, raw_value in raw_global_overrides.items():
             feature = _decode_redis_value(raw_feature)
@@ -70,13 +70,13 @@ class Forward:
                 session=session,
             )
 
-        async for raw_key in aredis.scan_iter(f"{_REDIS_CHAT_KEY_PREFIX}:*"):
+        async for raw_key in resources.redis.scan_iter(f"{_REDIS_CHAT_KEY_PREFIX}:*"):
             redis_key = _decode_redis_value(raw_key)
             chat_tid = _parse_chat_tid(redis_key)
             if chat_tid is None:
                 continue
 
-            raw_chat_overrides = await aredis.hgetall(redis_key)
+            raw_chat_overrides = await resources.redis.hgetall(redis_key)
             for raw_feature, raw_value in raw_chat_overrides.items():
                 feature = _decode_redis_value(raw_feature)
                 if feature not in FEATURE_FLAGS:
@@ -96,7 +96,7 @@ class Backward:
     """Restore feature flag overrides to Redis and remove the rows that were restored."""
 
     @free_fall_migration(document_models=[FeatureFlagOverride])
-    async def rollback(self, session: object) -> None:
+    async def rollback(self, session: object, *, resources: MigrationResources) -> None:
         collection = FeatureFlagOverride.get_pymongo_collection()
         restored_ids: list[ObjectId] = []
 
@@ -109,7 +109,7 @@ class Backward:
 
             chat_tid = override.get("chat_tid")
             redis_key = _REDIS_KEY if chat_tid is None else f"{_REDIS_CHAT_KEY_PREFIX}:{chat_tid}"
-            await aredis.hset(redis_key, override["feature"], _serialize_value(value))
+            await resources.redis.hset(redis_key, override["feature"], _serialize_value(value))
             restored_ids.append(override["_id"])
 
         await collection.delete_many({"_id": {"$in": restored_ids}}, session=session)

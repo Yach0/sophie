@@ -21,7 +21,10 @@ class ListDisabled(SophieMessageHandler):
         return (CMDFilter("disabled"), UserRestricting(admin=True))
 
     async def handle(self) -> Any:
-        disabled = await get_disabled_handlers(self.connection.db_model.iid)
+        disabled = await get_disabled_handlers(
+            self.connection.db_model.iid,
+            self.services.modules.disableable_commands,
+        )
 
         if not disabled:
             await self.event.reply(_("No disabled commands found."))

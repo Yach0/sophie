@@ -8,11 +8,22 @@ from __future__ import annotations
 
 import pytest
 from aiogram_test_framework import TestClient
+from aiogram_test_framework.factories import MessageFactory, UserFactory
 from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.antiflood import AntifloodModel
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
+from sophie_bot.modules.utils_.wizard import WizardCallback
+from sophie_bot.shared.actions import StoredAction
+from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
+from tests.e2e.helpers import (
+    create_test_user_and_group,
+    get_wizard_session_id,
+    grant_admin,
+    grant_bot_admin,
+    next_user_id,
+    set_feature,
+)
 
 
 async def _group_with_flood(test_client: TestClient, *, message_count: int) -> tuple[object, object]:
@@ -74,6 +85,24 @@ async def test_admin_is_exempt_from_antiflood(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_group_whitelisted_user_is_exempt_from_antiflood(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    group, member = await _group_with_flood(test_client, message_count=2)
+    await add_user_to_group_whitelist(
+        group.id,
+        member.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
+
+    restricts: list = []
+    for index in range(4):
+        requests = await test_client.send_message(text=f"allowed msg {index}", from_user=member, chat=group)
+        restricts += [request for request in requests if request.request_type == RequestType.RESTRICT_CHAT_MEMBER]
+
+    assert not restricts
+
+
+@pytest.mark.asyncio
 async def test_antiflood_count_command_persists(test_client: TestClient) -> None:
     admin, group, _model = await create_test_user_and_group(test_client, group_title="Antiflood Count Group")
     await grant_admin(group.id, admin.id)
@@ -97,3 +126,121 @@ async def test_enableantiflood_command_persists(test_client: TestClient) -> None
     assert chat is not None
     settings = await AntifloodModel.get_by_chat_iid(chat.iid)
     assert settings.enabled is True
+
+
+@pytest.mark.asyncio
+async def test_antiflood_action_is_silent_when_wizard_flag_is_disabled(test_client: TestClient) -> None:
+    await set_feature(test_client, "action_config_wizard", False)
+    try:
+        admin, group, _model = await create_test_user_and_group(
+            test_client, group_title="Antiflood Wizard Disabled Group"
+        )
+        await grant_admin(group.id, admin.id)
+
+        requests = await test_client.send_command(command="antiflood_action", from_user=admin, chat=group)
+        assert not requests
+    finally:
+        await set_feature(test_client, "action_config_wizard", True)
+
+
+@pytest.mark.asyncio
+async def test_antiflood_action_configures_action_and_ignores_plain_messages(
+    test_client: TestClient,
+) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client, group_title="Antiflood Wizard Group")
+    await grant_admin(group.id, admin.id)
+    await grant_bot_admin(group.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+
+    await test_client.send_command(command="antiflood_action", from_user=admin, chat=group)
+    session_id = await get_wizard_session_id(test_client, group.id, admin.id)
+    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
+    wizard_message = MessageFactory.create(text="Wizard", from_user=bot_user, chat=group)
+
+    await test_client.send_callback(
+        WizardCallback(scope="antiflood_action", op="add", session_id=session_id).pack(),
+        from_user=admin,
+        message=wizard_message,
+    )
+    await test_client.send_callback(
+        WizardCallback(
+            scope="antiflood_action",
+            op="select",
+            session_id=session_id,
+            arg="kick_user",
+        ).pack(),
+        from_user=admin,
+        message=wizard_message,
+    )
+    plain_requests = await test_client.send_message(text="ordinary message", from_user=admin, chat=group)
+    assert not plain_requests
+    await test_client.send_callback(
+        WizardCallback(scope="antiflood_action", op="done", session_id=session_id).pack(),
+        from_user=admin,
+        message=wizard_message,
+    )
+
+    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    assert settings is not None
+    assert [action.name for action in settings.actions] == ["kick_user"]
+
+
+@pytest.mark.asyncio
+async def test_antiflood_action_can_be_cleared_to_default(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(
+        test_client,
+        group_title="Antiflood Action Removal Group",
+    )
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings.actions = [StoredAction(name="kick_user")]
+    await settings.save()
+
+    requests = await test_client.send_command(command="antiflood_action", from_user=admin, chat=group)
+    session_id = await get_wizard_session_id(test_client, group.id, admin.id)
+    remove_callback = WizardCallback(
+        scope="antiflood_action",
+        op="remove",
+        session_id=session_id,
+        arg="kick_user",
+    ).pack()
+    assert remove_callback in requests[-1].params.get("rich_message", {}).get("html", "")
+
+    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
+    wizard_message = MessageFactory.create(text="Wizard", from_user=bot_user, chat=group)
+    await test_client.send_callback(
+        remove_callback,
+        from_user=admin,
+        message=wizard_message,
+    )
+    await test_client.send_callback(
+        WizardCallback(scope="antiflood_action", op="done", session_id=session_id).pack(),
+        from_user=admin,
+        message=wizard_message,
+    )
+
+    saved = await AntifloodModel.get_by_chat_iid(chat.iid)
+    assert saved.actions == []
+
+
+@pytest.mark.asyncio
+async def test_antiflood_info_renders_default_action_data(test_client: TestClient) -> None:
+    admin, group, _model = await create_test_user_and_group(
+        test_client,
+        group_title="Antiflood Default Action Description Group",
+    )
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings.actions = [StoredAction(name="mute_user")]
+    await settings.save()
+
+    requests = await test_client.send_command(command="antiflood", from_user=admin, chat=group)
+    response_text = requests[-1].text or ""
+
+    assert "Restricts user indefinitely" in response_text
+    assert "mute_user" not in response_text

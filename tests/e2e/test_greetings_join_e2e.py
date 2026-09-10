@@ -18,14 +18,16 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.db.models.chat import UserInGroupModel
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
-from sophie_bot.services.redis import aredis
+from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import (
     create_test_user_and_group,
     grant_admin,
     grant_bot_admin,
     join_group,
     leave_group,
+    next_group_id,
     next_user_id,
     set_feature,
 )
@@ -158,11 +160,47 @@ async def test_welcome_mute_restricts_new_member(test_client: TestClient) -> Non
 
 
 @pytest.mark.asyncio
+async def test_welcome_mute_skips_group_whitelisted_new_member(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    _adder, group = await _setup_group(test_client)
+    greetings = await _greetings(group.id)
+    await greetings.set_status_welcomemute(True, timedelta(hours=1))
+    newbie = User(id=next_user_id(), is_bot=False, first_name="Allowed Newbie")
+    await GroupUserWhitelistModel.add_user(group.id, newbie.id)
+
+    requests = await join_group(test_client, group, newbie)
+
+    assert not [
+        request
+        for request in requests
+        if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
+    ]
+
+
+@pytest.mark.asyncio
+async def test_welcome_mute_does_not_use_another_groups_whitelist(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    _adder, group = await _setup_group(test_client)
+    greetings = await _greetings(group.id)
+    await greetings.set_status_welcomemute(True, timedelta(hours=1))
+    newbie = User(id=next_user_id(), is_bot=False, first_name="Group-specific Newbie")
+    await GroupUserWhitelistModel.add_user(next_group_id(), newbie.id)
+
+    requests = await join_group(test_client, group, newbie)
+
+    assert [
+        request
+        for request in requests
+        if request.request_type == RequestType.RESTRICT_CHAT_MEMBER and request.params.get("user_id") == newbie.id
+    ]
+
+
+@pytest.mark.asyncio
 async def test_ephemeral_greeting_is_per_member_and_untracked(test_client: TestClient) -> None:
     _adder, group = await _setup_group(test_client)
     greetings = await _greetings(group.id)
     await greetings.set_clean_welcome_status(True)
-    await set_feature("greetings_ephemeral", True, chat_tid=group.id)
+    await set_feature(test_client, "greetings_ephemeral", True, chat_tid=group.id)
 
     first = User(id=next_user_id(), is_bot=False, first_name="AlphaJoiner")
     second = User(id=next_user_id(), is_bot=False, first_name="BetaJoiner")
@@ -205,7 +243,10 @@ async def test_bot_added_triggers_self_welcome(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_join_request_joiner_only_cleans_service(test_client: TestClient) -> None:
+async def test_join_request_joiner_only_cleans_service(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+) -> None:
     _adder, group = await _setup_group(test_client)
     greetings = await _greetings(group.id)
     await greetings.set_service_clean_status(True)
@@ -217,7 +258,10 @@ async def test_join_request_joiner_only_cleans_service(test_client: TestClient) 
     await ChatModel.upsert_user(newbie)
     user = await ChatModel.get_by_tid(newbie.id)
     assert user is not None
-    await aredis.set(f"chat_ws_join_request:{chat.iid}:{user.iid}", "1")
+    await test_services.redis.set(
+        f"chat_ws_join_request:{chat.iid}:{user.iid}",
+        "1",
+    )
 
     requests = await join_group(test_client, group, newbie)
 

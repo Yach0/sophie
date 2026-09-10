@@ -4,15 +4,17 @@ from typing import Any
 from aiogram.types import Message
 
 from sophie_bot.db.models import FiltersModel
-from sophie_bot.modules.filters.types.modern_action_abc import ActionResult, ModernActionABC
-from sophie_bot.modules.filters.types.modern_action_data_types import ACTION_DATA_DUMPED
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.shared.actions import ActionResult, ModernActionABC
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
+from sophie_bot.utils.logger import log
 
 
 @dataclass(frozen=True)
 class EffectiveFilterAction:
     name: str
-    data: ACTION_DATA_DUMPED = None
+    data: dict[str, Any] | None = None
 
 
 def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFilterAction]:
@@ -26,14 +28,28 @@ def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFil
 
 
 async def _handle_modern_filter_action(
-    message: Message, action_name: str, data: dict[str, Any], filter_data: ACTION_DATA_DUMPED
+    message: Message, action_name: str, data: dict[str, Any], filter_data: dict[str, Any] | None
 ) -> ActionResult | None:
-    action_item: ModernActionABC = ALL_MODERN_ACTIONS[action_name]
-
-    if filter_data and action_item.data_object:
-        filter_data = action_item.data_object(**filter_data)
-
-    return await action_item.execute(message, data, filter_data)
+    services = data["services"]
+    action_item: ModernActionABC = services.modules.action_handlers[action_name]
+    definition = services.modules.actions[action_name]
+    if definition.skip_for_admins and message.from_user:
+        user_tid = message.from_user.id
+        if await is_user_group_whitelisted(
+            message.chat.id,
+            user_tid,
+            redis=services.redis,
+        ):
+            await log_group_whitelist_exemption(message.chat.id, user_tid, "automated_actions")
+            return None
+        if await is_user_admin(message.chat.id, user_tid):
+            log.debug(
+                "Modern action: the sender is exempt, skipping...",
+                action=definition.name,
+            )
+            return None
+    loaded_data = definition.load_data(filter_data)
+    return await action_item.execute(message, data, loaded_data)
 
 
 async def handle_effective_filter_action(

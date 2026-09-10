@@ -7,21 +7,24 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, Final, Literal, TypedDict, cast, get_args
 
+from redis.asyncio import Redis
 from sentry_sdk import feature_flags as sentry_feature_flags
 
 from sophie_bot.constants import AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOverrideSource
-from sophie_bot.services.redis import aredis
 
 # Public types
 FeatureType = Literal[
+    "architecture_refactor",
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_filter_daily_chat_limit",
     "ai_filter_daily_user_limit",
     "ai_filter_new_user_message_limit",
     "ai_chatbot_model",
+    "ai_chatbot_header_style",
     "ai_translation_model",
+    "ai_translations_header_style",
     "ai_search_provider",
     "ai_chatbot_system_prompt",
     "ai_help_system_prompt",
@@ -80,7 +83,9 @@ FeatureType = Literal[
     "ai_moderation_threshold_openai_violence",
     "ai_moderation_threshold_openai_violence_graphic",
     "ai_filters",
+    "ai_filters_header_style",
     "ai_chat_summaries",
+    "ai_chat_summaries_header_style",
     "ai_summary_improved_privacy",
     "ai_note_titles",
     "ai_system_prompt_summaries",
@@ -92,8 +97,10 @@ FeatureType = Literal[
     "cleannotes",
     "filters",
     "filters_silent_mode",
+    "action_config_wizard",
     "antiflood",
     "locks",
+    "group_user_whitelist",
     "greetings_ephemeral",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
@@ -105,6 +112,7 @@ FeatureType = Literal[
     "ai_filters_service_tier",
     "ai_chat_summaries_service_tier",
     "ai_proactive_replies",
+    "ai_proactive_replies_header_style",
     "ai_proactive_replies_model",
     "ai_proactive_replies_prompt",
     "ai_proactive_replies_service_tier",
@@ -136,6 +144,7 @@ FeatureType = Literal[
     "ai_entertainment_monthly_credits",
     "fban_anonymous_admin",
     "connection_webapp_notice",
+    "saveable_rich_messages",
 ]
 
 
@@ -144,7 +153,14 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = get_args(FeatureType)
 
 
 FeatureValue = bool | str | int | float
-FeatureValueKind = Literal["plain", "ai_model", "service_tier", "search_provider", "moderation_provider"]
+FeatureValueKind = Literal[
+    "plain",
+    "ai_header_style",
+    "ai_model",
+    "service_tier",
+    "search_provider",
+    "moderation_provider",
+]
 
 
 class FeatureDefinition(TypedDict):
@@ -174,6 +190,8 @@ def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
         return _SEARCH_PROVIDER_VALUES
     if value_kind == "moderation_provider":
         return _MODERATION_PROVIDER_VALUES
+    if value_kind == "ai_header_style":
+        return _AI_HEADER_STYLE_VALUES
     return None
 
 
@@ -222,6 +240,7 @@ class ChatFeatureOverride(TypedDict):
 
 
 _PLAIN_FEATURE: Final[FeatureValueKind] = "plain"
+_AI_HEADER_STYLE_FEATURE: Final[FeatureValueKind] = "ai_header_style"
 _AI_MODEL_FEATURE: Final[FeatureValueKind] = "ai_model"
 _SERVICE_TIER_FEATURE: Final[FeatureValueKind] = "service_tier"
 _SEARCH_PROVIDER_FEATURE: Final[FeatureValueKind] = "search_provider"
@@ -229,6 +248,7 @@ _MODERATION_PROVIDER_FEATURE: Final[FeatureValueKind] = "moderation_provider"
 _SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
 _SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi", "tavily", "tinyfish"})
 _MODERATION_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"mistral", "openai"})
+_AI_HEADER_STYLE_VALUES: Final[frozenset[str]] = frozenset({"table", "disable", "simple"})
 
 
 def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATURE) -> FeatureDefinition:
@@ -236,13 +256,16 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
+    "architecture_refactor": _feature(True),
     "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
     "ai_filter_daily_user_limit": _feature(10),
     "ai_filter_new_user_message_limit": _feature(10),
     "ai_chatbot_model": _feature("", _AI_MODEL_FEATURE),
+    "ai_chatbot_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
     "ai_translation_model": _feature("", _AI_MODEL_FEATURE),
+    "ai_translations_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
     "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
     "ai_chatbot_system_prompt": _feature(
         "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet\nOutput Markdown/plain text only; never output raw HTML or Telegram tg:// links.\nRepresent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
@@ -331,7 +354,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_moderation_threshold_openai_violence": _feature(0.4),
     "ai_moderation_threshold_openai_violence_graphic": _feature(0.4),
     "ai_filters": _feature(True),
+    "ai_filters_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
     "ai_chat_summaries": _feature(True),
+    "ai_chat_summaries_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
     # Sends the summary transcript with positional references and pseudonymous speakers instead of
     # real Telegram message IDs, usernames, and absolute timestamps.
     "ai_summary_improved_privacy": _feature(False),
@@ -345,8 +370,10 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "cleannotes": _feature(False),
     "filters": _feature(True),
     "filters_silent_mode": _feature(True),
+    "action_config_wizard": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
+    "group_user_whitelist": _feature(False),
     # Send the welcome only to the members it greets, so it never becomes chat clutter to clean up.
     "greetings_ephemeral": _feature(False),
     "welcomecaptcha": _feature(True),
@@ -360,6 +387,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filters_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
     "ai_chat_summaries_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_proactive_replies": _feature(False),
+    "ai_proactive_replies_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
     "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_proactive_replies_prompt": _feature(
         "Use balanced judgment about whether Sophie should join the conversation. Reply when there is a natural, useful, or funny opportunity, including a clear invitation or an open question Sophie can help with. Do not force a reply: skip generic chatter, arguments, moderation/admin topics, stale topics, or messages that have already moved on. Never duplicate an existing AI reply, bypass safety requirements, or answer unsafe requests. Prefer no action when a reply would be awkward or mediocre. If answering, be brief: 1-2 short sentences, casual, no long explanations or lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight, and never try to participate in every topic."
@@ -400,6 +428,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "fban_anonymous_admin": _feature(False),
     # Announces the /connection deprecation; stays off until the replacement webapp is deployed.
     "connection_webapp_notice": _feature(False),
+    "saveable_rich_messages": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {
@@ -582,10 +611,14 @@ def _is_chat_in_rollout(feature: FeatureType, chat_tid: int, percentage: int) ->
 
 
 async def _resolve_cached_override(
-    redis_key: str, feature: FeatureType, *, chat_tid: int | None = None
+    redis_key: str,
+    feature: FeatureType,
+    *,
+    redis: Redis,
+    chat_tid: int | None = None,
 ) -> FeatureValue | None:
     """Resolve a feature flag override: Redis cache → DB fallback, warming the cache on DB hit."""
-    value = await aredis.hget(redis_key, feature)
+    value = await redis.hget(redis_key, feature)
     parsed_value = _parse_override(value, _DEFAULT_STATES[feature])
     if parsed_value is not None:
         return parsed_value
@@ -596,20 +629,20 @@ async def _resolve_cached_override(
 
     db_value = _coerce_db_value(override.value)
     if db_value is not None:
-        await aredis.hset(redis_key, feature, _serialize_value(db_value))
+        await redis.hset(redis_key, feature, _serialize_value(db_value))
     return db_value
 
 
-async def _get_override(feature: FeatureType) -> FeatureValue | None:
-    return await _resolve_cached_override(_REDIS_KEY, feature)
+async def _get_override(feature: FeatureType, *, redis: Redis) -> FeatureValue | None:
+    return await _resolve_cached_override(_REDIS_KEY, feature, redis=redis)
 
 
-async def _set_override(feature: FeatureType, value: FeatureValue) -> None:
+async def _set_override(feature: FeatureType, value: FeatureValue, *, redis: Redis) -> None:
     await FeatureFlagOverride.set_override(feature, value)
-    await aredis.hset(_REDIS_KEY, feature, _serialize_value(value))
+    await redis.hset(_REDIS_KEY, feature, _serialize_value(value))
 
 
-async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
+async def _get_all_overrides(*, redis: Redis) -> dict[FeatureType, FeatureValue]:
     parsed_overrides: dict[FeatureType, FeatureValue] = {}
     cached_overrides: dict[str, str] = {}
 
@@ -625,23 +658,23 @@ async def _get_all_overrides() -> dict[FeatureType, FeatureValue]:
         parsed_overrides[typed_feature] = parsed_value
         cached_overrides[typed_feature] = _serialize_value(parsed_value)
 
-    await _cache_serialized_values(_REDIS_KEY, cached_overrides)
+    await _cache_serialized_values(_REDIS_KEY, cached_overrides, redis=redis)
 
     return parsed_overrides
 
 
-async def _cache_serialized_values(redis_key: str, values: Mapping[str, str]) -> None:
+async def _cache_serialized_values(redis_key: str, values: Mapping[str, str], *, redis: Redis) -> None:
     if not values:
         return
-    await asyncio.gather(*[aredis.hset(redis_key, feature, value) for feature, value in values.items()])
+    await asyncio.gather(*[redis.hset(redis_key, feature, value) for feature, value in values.items()])
 
 
 def _track_feature_in_sentry(feature: FeatureType, enabled: bool) -> None:
     sentry_feature_flags.add_feature_flag(feature, enabled)
 
 
-async def get_rollout(feature: FeatureType) -> FeatureRollout | None:
-    cached_value = await aredis.hget(_REDIS_ROLLOUT_KEY, feature)
+async def get_rollout(feature: FeatureType, *, redis: Redis) -> FeatureRollout | None:
+    cached_value = await redis.hget(_REDIS_ROLLOUT_KEY, feature)
     parsed_cached_value = _coerce_rollout(cached_value)
     if parsed_cached_value is not None:
         return parsed_cached_value
@@ -652,11 +685,11 @@ async def get_rollout(feature: FeatureType) -> FeatureRollout | None:
 
     rollout = _coerce_rollout(override.value)
     if rollout is not None:
-        await aredis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))
+        await redis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))
     return rollout
 
 
-async def set_rollout(feature: FeatureType, percentage: int, value: FeatureValue) -> None:
+async def set_rollout(feature: FeatureType, percentage: int, value: FeatureValue, *, redis: Redis) -> None:
     _validate_rollout_percentage(percentage)
 
     rollout: FeatureRollout = {
@@ -666,7 +699,7 @@ async def set_rollout(feature: FeatureType, percentage: int, value: FeatureValue
         "duration_days": None,
         "value": value,
     }
-    await _set_rollout(feature, rollout)
+    await _set_rollout(feature, rollout, redis=redis)
 
 
 async def set_timed_rollout(
@@ -674,11 +707,12 @@ async def set_timed_rollout(
     days: int,
     value: FeatureValue,
     *,
+    redis: Redis,
     now: datetime | None = None,
 ) -> None:
     _validate_rollout_days(days)
 
-    current_rollout = await get_rollout(feature)
+    current_rollout = await get_rollout(feature, redis=redis)
     start_percentage = get_rollout_percentage(current_rollout, now=now) if current_rollout is not None else 0
     rollout: FeatureRollout = {
         "start_percentage": start_percentage,
@@ -687,13 +721,13 @@ async def set_timed_rollout(
         "duration_days": days,
         "value": value,
     }
-    await _set_rollout(feature, rollout)
+    await _set_rollout(feature, rollout, redis=redis)
 
 
-async def bump_rollout(feature: FeatureType, percentage: int) -> FeatureRollout:
+async def bump_rollout(feature: FeatureType, percentage: int, *, redis: Redis) -> FeatureRollout:
     _validate_rollout_percentage(percentage)
 
-    current_rollout = await get_rollout(feature)
+    current_rollout = await get_rollout(feature, redis=redis)
     if current_rollout is None:
         msg = "Cannot bump rollout without an existing rollout."
         raise ValueError(msg)
@@ -707,16 +741,16 @@ async def bump_rollout(feature: FeatureType, percentage: int) -> FeatureRollout:
         "duration_days": None,
         "value": current_rollout["value"],
     }
-    await _set_rollout(feature, rollout)
+    await _set_rollout(feature, rollout, redis=redis)
     return rollout
 
 
-async def _set_rollout(feature: FeatureType, rollout: FeatureRollout) -> None:
+async def _set_rollout(feature: FeatureType, rollout: FeatureRollout, *, redis: Redis) -> None:
     await FeatureFlagOverride.set_override(_rollout_storage_feature(feature), rollout)
-    await aredis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))
+    await redis.hset(_REDIS_ROLLOUT_KEY, feature, _serialize_rollout(rollout))
 
 
-async def delete_rollout(feature: FeatureType) -> None:
+async def delete_rollout(feature: FeatureType, *, redis: Redis) -> None:
     """Delete rollout config while preserving rollout-created per-chat overrides.
 
     Rollout-created overrides are intentionally frozen on first access so
@@ -724,10 +758,10 @@ async def delete_rollout(feature: FeatureType) -> None:
     entered the rollout.
     """
     await FeatureFlagOverride.delete_override(_rollout_storage_feature(feature))
-    await aredis.hdel(_REDIS_ROLLOUT_KEY, feature)
+    await redis.hdel(_REDIS_ROLLOUT_KEY, feature)
 
 
-async def list_rollouts() -> dict[FeatureType, FeatureRollout]:
+async def list_rollouts(*, redis: Redis) -> dict[FeatureType, FeatureRollout]:
     rollouts: dict[FeatureType, FeatureRollout] = {}
     cached_rollouts: dict[str, str] = {}
     async for override in FeatureFlagOverride.find(  # deepsource-ignore[PYL-E1133]
@@ -745,37 +779,42 @@ async def list_rollouts() -> dict[FeatureType, FeatureRollout]:
         rollouts[typed_feature] = rollout
         cached_rollouts[typed_feature] = _serialize_rollout(rollout)
 
-    await _cache_serialized_values(_REDIS_ROLLOUT_KEY, cached_rollouts)
+    await _cache_serialized_values(_REDIS_ROLLOUT_KEY, cached_rollouts, redis=redis)
 
     return rollouts
 
 
-async def get_chat_override(feature: FeatureType, chat_tid: int) -> FeatureValue | None:
-    return await _resolve_cached_override(_chat_redis_key(chat_tid), feature, chat_tid=chat_tid)
+async def get_chat_override(feature: FeatureType, chat_tid: int, *, redis: Redis) -> FeatureValue | None:
+    return await _resolve_cached_override(_chat_redis_key(chat_tid), feature, chat_tid=chat_tid, redis=redis)
 
 
-async def set_chat_override(feature: FeatureType, chat_tid: int, value: FeatureValue) -> None:
-    await _set_chat_override(feature, chat_tid, value, source="manual")
+async def set_chat_override(feature: FeatureType, chat_tid: int, value: FeatureValue, *, redis: Redis) -> None:
+    await _set_chat_override(feature, chat_tid, value, source="manual", redis=redis)
 
 
 async def _set_chat_override(
-    feature: FeatureType, chat_tid: int, value: FeatureValue, *, source: FeatureFlagOverrideSource
+    feature: FeatureType,
+    chat_tid: int,
+    value: FeatureValue,
+    *,
+    source: FeatureFlagOverrideSource,
+    redis: Redis,
 ) -> None:
     await FeatureFlagOverride.set_override(feature, value, chat_tid=chat_tid, source=source)
-    await aredis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))
+    await redis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))
 
 
-async def delete_override(feature: FeatureType) -> None:
+async def delete_override(feature: FeatureType, *, redis: Redis) -> None:
     await FeatureFlagOverride.delete_override(feature)
-    await aredis.hdel(_REDIS_KEY, feature)
+    await redis.hdel(_REDIS_KEY, feature)
 
 
-async def delete_chat_override(feature: FeatureType, chat_tid: int) -> None:
+async def delete_chat_override(feature: FeatureType, chat_tid: int, *, redis: Redis) -> None:
     await FeatureFlagOverride.delete_override(feature, chat_tid=chat_tid)
-    await aredis.hdel(_chat_redis_key(chat_tid), feature)
+    await redis.hdel(_chat_redis_key(chat_tid), feature)
 
 
-async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
+async def list_chat_overrides(chat_tid: int, *, redis: Redis) -> dict[FeatureType, FeatureValue]:
     parsed_overrides: dict[FeatureType, FeatureValue] = {}
     cached_overrides: dict[str, str] = {}
     async for override in FeatureFlagOverride.find(
@@ -790,7 +829,7 @@ async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
             cached_overrides[typed_feature] = _serialize_value(parsed_value)
     if cached_overrides:
         redis_key = _chat_redis_key(chat_tid)
-        await _cache_serialized_values(redis_key, cached_overrides)
+        await _cache_serialized_values(redis_key, cached_overrides, redis=redis)
     return parsed_overrides
 
 
@@ -819,7 +858,7 @@ async def list_chat_override_details(chat_tid: int | None = None) -> list[ChatFe
     return sorted(overrides, key=lambda item: (item["source"], item["chat_tid"], item["feature"]))
 
 
-async def get_value(feature: FeatureType, chat_tid: int | None = None) -> FeatureValue:
+async def get_value(feature: FeatureType, chat_tid: int | None = None, *, redis: Redis) -> FeatureValue:
     """Return the effective feature value.
 
     If a chat qualifies for an active rollout, the rollout value is persisted
@@ -827,46 +866,46 @@ async def get_value(feature: FeatureType, chat_tid: int | None = None) -> Featur
     membership for that chat until the per-chat override is explicitly deleted.
     """
     if chat_tid is not None:
-        chat_override = await get_chat_override(feature, chat_tid)
+        chat_override = await get_chat_override(feature, chat_tid, redis=redis)
         if chat_override is not None:
             return chat_override
-    override = await _get_override(feature)
+    override = await _get_override(feature, redis=redis)
     if override is not None:
         return override
 
     if chat_tid is not None:
-        rollout = await get_rollout(feature)
+        rollout = await get_rollout(feature, redis=redis)
         if rollout is not None and _is_chat_in_rollout(feature, chat_tid, get_rollout_percentage(rollout)):
-            await _set_chat_override(feature, chat_tid, rollout["value"], source="rollout")
+            await _set_chat_override(feature, chat_tid, rollout["value"], source="rollout", redis=redis)
             return rollout["value"]
 
     return _DEFAULT_STATES[feature]
 
 
-async def set_value(feature: FeatureType, value: FeatureValue) -> None:
-    await _set_override(feature, value)
+async def set_value(feature: FeatureType, value: FeatureValue, *, redis: Redis) -> None:
+    await _set_override(feature, value, redis=redis)
 
 
-async def is_enabled(feature: FeatureType, chat_tid: int | None = None) -> bool:
-    enabled = bool(await get_value(feature, chat_tid=chat_tid))
+async def is_enabled(feature: FeatureType, chat_tid: int | None = None, *, redis: Redis) -> bool:
+    enabled = bool(await get_value(feature, chat_tid=chat_tid, redis=redis))
     _track_feature_in_sentry(feature, enabled)
     return enabled
 
 
-async def set_enabled(feature: FeatureType, enabled: bool) -> None:
-    await set_value(feature, enabled)
+async def set_enabled(feature: FeatureType, enabled: bool, *, redis: Redis) -> None:
+    await set_value(feature, enabled, redis=redis)
     _track_feature_in_sentry(feature, enabled)
 
 
-async def get_service_tier(feature: FeatureType, chat_tid: int | None = None) -> str | None:
-    """Return the service_tier value from a feature flag, or None if set to \"none\"."""
-    value = str(await get_value(feature, chat_tid=chat_tid))
+async def get_service_tier(feature: FeatureType, chat_tid: int | None = None, *, redis: Redis) -> str | None:
+    """Return the service_tier value from a feature flag, or None if set to "none"."""
+    value = str(await get_value(feature, chat_tid=chat_tid, redis=redis))
     if value == "none":
         return None
     return value
 
 
-async def list_all() -> dict[FeatureType, FeatureValue]:
+async def list_all(*, redis: Redis) -> dict[FeatureType, FeatureValue]:
     merged = _DEFAULT_STATES.copy()
-    merged.update(await _get_all_overrides())
+    merged.update(await _get_all_overrides(redis=redis))
     return merged

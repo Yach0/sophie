@@ -106,8 +106,7 @@ class EmojiBanner:
         else:
             emojis_text = "".join(emojis)
 
-        # Resolve gradient colors
-        theme = (color or "").lower().strip() if color else ""
+        theme = (color or "").lower().strip()
         if theme in cls.pastel_themes:
             start_c, end_c = cls.pastel_themes[theme]
         else:

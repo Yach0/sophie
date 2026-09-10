@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InputRichMessage, Message, ReplyParameters
 from stfu_tg import Doc
 
 from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID
-from sophie_bot.services.bot import bot
 
 
 async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
@@ -40,6 +40,8 @@ async def send_ai_rich_message_to_chat(
     doc: Doc,
     reply_to_message_id: int | None = None,
     reply_parameters: ReplyParameters | None = None,
+    *,
+    bot: Bot,
     **send_kwargs: Any,
 ) -> Message:
     """Send a rich AI message to a chat."""

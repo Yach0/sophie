@@ -18,6 +18,7 @@ from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.middlewares.request_context import RequestContext
 
 GROUP_TID = -100987654321
 
@@ -118,6 +119,18 @@ def build_connection(chat_model: ChatModel) -> ChatConnection:
         title=chat_model.first_name_or_title,
         db_model=chat_model,
     )
+def build_context(
+    chat_model: ChatModel,
+    actor: ChatModel | None,
+) -> RequestContext:
+    return RequestContext(
+        event_chat=chat_model,
+        target_chat=chat_model,
+        actor=actor,
+        connection=build_connection(chat_model),
+    )
+
+
 
 
 @pytest.mark.asyncio
@@ -144,10 +157,11 @@ async def test_anonymous_admin_title_detection_normalizes_whitespace(
 
     monkeypatch.setattr(ChatAdminModel, "find", lambda *args, **kwargs: FakeAdminsQuery(matched_admins))
 
-    result = await admin_filter(message, connection=connection, user_db=None)
+    context = build_context(connection.db_model, None)
+    result = await admin_filter(message, context=context)
 
-    assert isinstance(result, dict)
-    assert result["user_db"] == matched_admins[0].user.user_model
+    assert result is True
+    assert context.actor == matched_admins[0].user.user_model
     assert message.reply.await_count == 0
 
 
@@ -184,10 +198,11 @@ async def test_anonymous_admin_duplicate_title_all_have_permissions(
 
     monkeypatch.setattr(ChatAdminModel, "find", lambda *args, **kwargs: FakeAdminsQuery(matched_admins))
 
-    result = await admin_filter(message, connection=connection, user_db=None)
+    context = build_context(connection.db_model, None)
+    result = await admin_filter(message, context=context)
 
-    assert isinstance(result, dict)
-    assert result["user_db"] == matched_admins[0].user.user_model
+    assert result is True
+    assert context.actor == matched_admins[0].user.user_model
     assert message.reply.await_count == 0
 
 
@@ -225,7 +240,10 @@ async def test_anonymous_admin_duplicate_title_mixed_permissions_denied(
     monkeypatch.setattr(ChatAdminModel, "find", lambda *args, **kwargs: FakeAdminsQuery(matched_admins))
 
     with pytest.raises(SkipHandler):
-        await admin_filter(message, connection=connection, user_db=None)
+        await admin_filter(
+            message,
+            context=build_context(connection.db_model, None),
+        )
 
     assert message.reply.await_count >= 1
     first_reply_call = message.reply.await_args_list[0]
@@ -286,7 +304,8 @@ async def test_bot_has_permissions_rejects_when_only_the_sender_is_admin(scenari
 
     with pytest.raises(SkipHandler):
         await BotHasPermissions(can_restrict_members=True)(
-            message, connection=build_connection(scenario.group), user_db=scenario.sender
+            message,
+            context=build_context(scenario.group, scenario.sender),
         )
 
     assert "I must be an administrator" in message.reply.await_args_list[0].args[0]
@@ -301,7 +320,8 @@ async def test_bot_has_permissions_reports_the_bots_missing_permission(scenario:
 
     with pytest.raises(SkipHandler):
         await BotHasPermissions(can_restrict_members=True)(
-            message, connection=build_connection(scenario.group), user_db=scenario.sender
+            message,
+            context=build_context(scenario.group, scenario.sender),
         )
 
     reply_text = message.reply.await_args_list[0].args[0]
@@ -321,7 +341,8 @@ async def test_bot_has_permissions_passes_when_the_bot_is_privileged(scenario: A
     message = build_group_message(sender_tid=scenario.sender.tid)
 
     result = await BotHasPermissions(can_restrict_members=True)(
-        message, connection=build_connection(scenario.group), user_db=scenario.sender
+        message,
+        context=build_context(scenario.group, scenario.sender),
     )
 
     assert result is True
@@ -334,7 +355,8 @@ async def test_user_restricting_still_checks_the_sender(scenario: AdminRightsSce
     message = build_group_message(sender_tid=scenario.sender.tid)
 
     result = await UserRestricting(can_restrict_members=True)(
-        message, connection=build_connection(scenario.group), user_db=scenario.sender
+        message,
+        context=build_context(scenario.group, scenario.sender),
     )
     assert result is True
 
@@ -344,6 +366,7 @@ async def test_user_restricting_still_checks_the_sender(scenario: AdminRightsSce
 
     with pytest.raises(SkipHandler):
         await UserRestricting(can_restrict_members=True)(
-            other_message, connection=build_connection(scenario.group), user_db=non_admin
+            other_message,
+            context=build_context(scenario.group, non_admin),
         )
     assert "You must be an administrator" in other_message.reply.await_args_list[0].args[0]

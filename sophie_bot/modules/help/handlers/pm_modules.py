@@ -4,7 +4,20 @@ from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from stfu_tg import Doc, Heading, ListItem, Paragraph, RichBlockQuote, Template, UnorderedList, Url
+from stfu_tg import (
+    Button,
+    ButtonRow,
+    Buttons,
+    Doc,
+    Heading,
+    ListItem,
+    Paragraph,
+    RichBlockQuote,
+    Template,
+    Title,
+    UnorderedList,
+    Url,
+)
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_EMOJI
@@ -16,7 +29,7 @@ from sophie_bot.modules.help.callbacks import (
     PMHelpModules,
     PMHelpStartUrlCallback,
 )
-from sophie_bot.modules.help.utils.extract_info import HELP_MODULES, get_aliased_cmds
+from sophie_bot.modules.help.utils.extract_info import get_aliased_cmds
 from sophie_bot.modules.help.utils.format_help import format_handler_item, group_handlers
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageCallbackQueryHandler
@@ -36,27 +49,31 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
         callback_data: PMHelpModules | None = self.data.get("callback_data", None)
 
         # Sort item by the module title
-        modules = dict(sorted(HELP_MODULES.items(), key=lambda item: str(item[1].name)))
+        modules = dict(
+            sorted(
+                self.services.modules.help_modules.items(),
+                key=lambda item: str(item[1].name),
+            )
+        )
         # Put the featured module to the bottom; re-assigning an existing key would not move it
         if (featured_module := modules.pop(CONFIG.help_featured_module, None)) is not None:
             modules[CONFIG.help_featured_module] = featured_module
 
+        module_buttons = [
+            Button(
+                f"{module.icon} {module.name}",
+                callback_data=PMHelpModule(
+                    module_name=module_name, back_to_start=bool(callback_data and callback_data.back_to_start)
+                ).pack(),
+            )
+            for module_name, module in modules.items()
+            if not module.exclude_public
+        ]
+        module_button_rows = [
+            ButtonRow(*module_buttons[row_start : row_start + 2]) for row_start in range(0, len(module_buttons), 2)
+        ]
+
         buttons = InlineKeyboardBuilder()
-
-        buttons.row(
-            *(
-                InlineKeyboardButton(
-                    text=f"{module.icon} {module.name}",
-                    callback_data=PMHelpModule(
-                        module_name=module_name, back_to_start=bool(callback_data and callback_data.back_to_start)
-                    ).pack(),
-                )
-                for module_name, module in modules.items()
-                if not module.exclude_public
-            ),
-            width=2,
-        )
-
         if callback_data and callback_data.back_to_start:
             buttons.row(InlineKeyboardButton(text=_("⬅️ Back"), callback_data="go_to_start", style="primary"))
 
@@ -76,6 +93,8 @@ class PMModulesList(SophieMessageCallbackQueryHandler):
                 ListItem(_("🧩 The modules below — a quick overview of the commands in each one")),
                 ListItem(_("💬 Sophie herself — ask her how to use her, in your own words")),
             ),
+            Title(_("Select a module to get help with"), level=5),
+            Buttons(*module_button_rows) if module_button_rows else None,
         )
 
         await self.answer_rich(doc, reply_markup=buttons.as_markup())
@@ -89,7 +108,8 @@ class PMModuleHelp(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback_data: PMHelpModule = self.data["callback_data"]
         module_name = callback_data.module_name
-        module = HELP_MODULES.get(module_name)
+        help_modules = self.services.modules.help_modules
+        module = help_modules.get(module_name)
 
         if not module:
             await self.event.answer(_("Module not found"))
@@ -107,8 +127,8 @@ class PMModuleHelp(SophieCallbackQueryHandler):
             doc += Heading(section_title, level=2)
             doc += UnorderedList(*(ListItem(format_handler_item(handler)) for handler in handlers))
 
-        for a_mod_name, a_cmds in get_aliased_cmds(module_name).items():
-            a_module = HELP_MODULES[a_mod_name]
+        for a_mod_name, a_cmds in get_aliased_cmds(help_modules, module_name).items():
+            a_module = help_modules[a_mod_name]
             doc += Heading(
                 Template(_("Aliased commands from {module}"), module=f"{a_module.icon} {a_module.name}"), level=2
             )
@@ -117,11 +137,9 @@ class PMModuleHelp(SophieCallbackQueryHandler):
         buttons = InlineKeyboardBuilder()
 
         if module.advertise_wiki_page:
-            doc += Paragraph(
-                Url(_("📖 Look the module's wiki page for more information"), CONFIG.wiki_modules_link + module_name)
+            doc += Buttons(
+                ButtonRow(Button(_("📖 Wiki page with more info"), url=CONFIG.wiki_modules_link + module_name))
             )
-            buttons.row(InlineKeyboardButton(text=_("📖 Wiki page"), url=CONFIG.wiki_modules_link + module_name))
-
         buttons.row(
             InlineKeyboardButton(
                 text=_("⬅️ Back"),

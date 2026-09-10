@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import inspect
-from collections import OrderedDict
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass
 from itertools import chain
 from types import ModuleType
@@ -18,8 +19,8 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules import get_module_manifest
-from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.modules import LoadedModuleRegistry, get_module_manifest
+from sophie_bot.utils.feature_flags import FeatureType, FeatureValue
 from sophie_bot.utils.flags import get_disableable_name
 from sophie_bot.utils.logger import log
 
@@ -53,27 +54,25 @@ class ModuleHelp:
     advertise_wiki_page: bool
 
 
-HELP_MODULES: OrderedDict[str, ModuleHelp] = OrderedDict()
-
-# Keyed by the canonical disable-able name; the keys are the keyspace persisted in DisablingModel.cmds.
-DISABLEABLE_CMDS: dict[str, HandlerHelp] = {}
-
-
-def get_aliased_cmds(module_name) -> dict[str, list[HandlerHelp]]:
+def get_aliased_cmds(help_modules: Mapping[str, ModuleHelp], module_name: str) -> dict[str, list[HandlerHelp]]:
     return {
-        mod_name: [cmd for cmd in module.handlers if cmd.alias_to_modules and module_name in cmd.alias_to_modules]
-        for mod_name, module in HELP_MODULES.items()
-        if any(cmd.alias_to_modules for cmd in module.handlers)
-        and any(cmd.alias_to_modules and module_name in cmd.alias_to_modules for cmd in module.handlers)
+        alias_module_name: [
+            command
+            for command in module.handlers
+            if command.alias_to_modules and module_name in command.alias_to_modules
+        ]
+        for alias_module_name, module in help_modules.items()
+        if any(command.alias_to_modules for command in module.handlers)
+        and any(command.alias_to_modules and module_name in command.alias_to_modules for command in module.handlers)
     }
 
 
-def get_all_cmds() -> list[HandlerHelp]:
-    return [cmd for module in HELP_MODULES.values() for cmd in module.handlers]
+def get_all_cmds(help_modules: Mapping[str, ModuleHelp]) -> list[HandlerHelp]:
+    return [command for module in help_modules.values() for command in module.handlers]
 
 
-def get_all_cmds_raw() -> tuple[str, ...]:
-    return tuple(cmd for cmds in get_all_cmds() for cmd in cmds.cmds)
+def get_all_cmds_raw(help_modules: Mapping[str, ModuleHelp]) -> tuple[str, ...]:
+    return tuple(command for commands in get_all_cmds(help_modules) for command in commands.cmds)
 
 
 async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> ARGS_DICT | None:
@@ -87,11 +86,15 @@ async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> ARGS_DICT 
     raise ValueError
 
 
-async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
+async def gather_cmds_help(
+    router: Router,
+    feature_values: Mapping[FeatureType, FeatureValue],
+    disableable_commands: dict[str, HandlerHelp],
+) -> list[HandlerHelp]:
     helps: list[HandlerHelp] = []
 
     for sub_router in router.sub_routers:
-        helps.extend(await gather_cmds_help(sub_router))
+        helps.extend(await gather_cmds_help(sub_router, feature_values, disableable_commands))
 
     for handler in router.message.handlers:
         if not handler.filters:
@@ -117,7 +120,7 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
             skip_handler = False
             for feature_flag_event_filter in feature_flag_filters:
                 ff_filter = cast(FeatureFlagFilter, feature_flag_event_filter.callback)
-                feature_enabled = await is_enabled(ff_filter.feature)
+                feature_enabled = bool(feature_values[ff_filter.feature])
                 if feature_enabled != ff_filter.enabled:
                     skip_handler = True
                     break
@@ -170,34 +173,56 @@ async def gather_cmds_help(router: Router) -> list[HandlerHelp]:
         helps.append(cmd)
 
         if disableable:
-            DISABLEABLE_CMDS[disableable] = cmd
+            disableable_commands[disableable] = cmd
 
     log.debug(f"gather_cmds_help: {router.name}", cmds=list(chain.from_iterable(mhelp.cmds for mhelp in helps)))
     return helps
 
 
-async def gather_module_help(module: ModuleType) -> ModuleHelp | None:
+async def gather_module_help(
+    module: ModuleType,
+    feature_values: Mapping[FeatureType, FeatureValue],
+    disableable_commands: dict[str, HandlerHelp],
+) -> ModuleHelp | None:
     manifest = get_module_manifest(module)
-    if manifest.bot_router is None:
+    if manifest.bot_router_factory is None:
         return None
 
+    router = manifest.bot_router_factory()
+    for handler in manifest.handlers:
+        handler.register(router)
+
     name = cast(LazyProxy | str, manifest.title or manifest.name)
-    emoji = manifest.emoji or "?"
-    exclude_public = manifest.exclude_public
-    info = manifest.info
-    description = manifest.description
-    advertise_wiki_page = manifest.advertise_wiki_page
+    log.debug(
+        f"gather_module_help: {module.__name__}",
+        name=name,
+        emoji=manifest.emoji or "?",
+        advertise_wiki_page=manifest.advertise_wiki_page,
+    )
+    commands = await gather_cmds_help(router, feature_values, disableable_commands)
+    if not commands:
+        return None
+    return ModuleHelp(
+        handlers=commands,
+        name=name,
+        icon=manifest.emoji or "?",
+        exclude_public=manifest.exclude_public,
+        info=manifest.info or "",
+        description=manifest.description or "",
+        advertise_wiki_page=manifest.advertise_wiki_page,
+    )
 
-    log.debug(f"gather_module_help: {module.__name__}", name=name, emoji=emoji, advertise_wiki_page=advertise_wiki_page)
 
-    if cmds := await gather_cmds_help(manifest.bot_router):
-        return ModuleHelp(
-            handlers=cmds,
-            name=name,
-            icon=emoji,
-            exclude_public=exclude_public,
-            info=info or "",
-            description=description or "",
-            advertise_wiki_page=advertise_wiki_page,
-        )
-    return None
+async def build_help_catalog(
+    registry: LoadedModuleRegistry,
+    feature_values: Mapping[FeatureType, FeatureValue],
+) -> None:
+    registry.help_modules.clear()
+    registry.disableable_commands.clear()
+    for module_name, module in registry.modules.items():
+        module_help = await gather_module_help(module, feature_values, registry.disableable_commands)
+        if module_help is None:
+            continue
+        if existing := registry.help_modules.get(module_name):
+            module_help.handlers = existing.handlers + module_help.handlers
+        registry.help_modules[module_name] = module_help

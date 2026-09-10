@@ -1,33 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import TelegramObject, Update
-from beanie import PydanticObjectId
 
-from sophie_bot.constants import CACHE_ADMIN_TTL_SECONDS
-from sophie_bot.db.models.chat_admin import ChatAdminModel
-from sophie_bot.modules.utils_.chat_member import update_chat_members
-from sophie_bot.services.redis import aredis
+from sophie_bot.middlewares.request_context import RequestContext
+from sophie_bot.modules.utils_.admin import ensure_admin_snapshot
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.logger import log
-
-REFRESH_MARKER_PREFIX = "admincache:refreshed:"
 
 
 class AdmincacheMiddleware(BaseMiddleware):
-    """Middleware that automatically pulls admins from the database and refreshes cache if needed.
-
-    This middleware ensures that chat admins are available in the database for subsequent
-    permission checks. It pulls admins from the cache (ChatAdminModel) and fetches fresh
-    data from Telegram if the cache is missing or too old.
-
-    The cache TTL is determined by CACHE_DEFAULT_TTL_SECONDS from constants (30 minutes).
-    """
-
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
@@ -37,75 +22,17 @@ class AdmincacheMiddleware(BaseMiddleware):
         if not isinstance(event, Update):
             return await handler(event, data)
 
-        await self._refresh_cache_if_needed(event, data)
-
+        services: ApplicationServices = data["services"]
+        context: RequestContext = data["context"]
+        chat = context.event_chat
+        if chat is None:
+            log.debug("AdmincacheMiddleware: No event chat available, skipping")
+        elif chat.tid > 0:
+            log.debug("AdmincacheMiddleware: Not a group chat, skipping", chat_id=chat.tid)
+        else:
+            await ensure_admin_snapshot(
+                chat,
+                bot=services.bot,
+                redis=services.redis,
+            )
         return await handler(event, data)
-
-    async def _refresh_cache_if_needed(self, event: Update, data: dict[str, Any]) -> None:
-        """Check if admin cache needs refresh and fetch from Telegram if so."""
-        chat_db = data.get("group_db") or data.get("chat_db")
-        if not chat_db:
-            log.debug("AdmincacheMiddleware: No chat_db available, skipping")
-            return
-
-        chat_tid = getattr(chat_db, "tid", None)
-        if not chat_tid or chat_tid > 0:
-            log.debug("AdmincacheMiddleware: Not a group chat, skipping", chat_id=chat_tid)
-            return
-
-        chat_iid = getattr(chat_db, "iid", None)
-        if not chat_iid:
-            log.debug("AdmincacheMiddleware: Missing chat_iid, skipping")
-            return
-
-        if not await self._is_cache_stale(chat_iid):
-            log.debug("AdmincacheMiddleware: Admin cache is up to date", chat_id=chat_tid)
-            return
-
-        if not await self._claim_refresh(chat_iid):
-            log.debug("AdmincacheMiddleware: Admin cache refresh already claimed", chat_id=chat_tid)
-            return
-
-        log.debug("AdmincacheMiddleware: Refreshing admin cache", chat_id=chat_tid)
-        try:
-            await update_chat_members(chat_db)
-        except TelegramAPIError as e:
-            log.warning("AdmincacheMiddleware: Failed to refresh admin cache", chat_id=chat_tid, error=str(e))
-
-    @staticmethod
-    async def _claim_refresh(chat_iid: PydanticObjectId) -> bool:
-        """Claim the right to refresh this chat's admins, at most once per CACHE_ADMIN_TTL_SECONDS.
-
-        A refresh can legitimately persist nothing (update_chat_members skips admins that have no ChatModel),
-        which leaves the cache empty and the chat permanently stale. Without this claim every subsequent update
-        in such a chat would issue another getChatAdministrators call.
-        """
-        claimed = await aredis.set(f"{REFRESH_MARKER_PREFIX}{chat_iid}", "1", ex=CACHE_ADMIN_TTL_SECONDS, nx=True)
-        return bool(claimed)
-
-    async def _is_cache_stale(self, chat_iid: PydanticObjectId) -> bool:
-        """Check if the admin cache is missing or stale.
-
-        Returns True if:
-        - No admin entries exist for this chat
-        - Any admin entry is older than CACHE_DEFAULT_TTL_SECONDS
-        """
-        oldest_admin = await self._get_oldest_admin(chat_iid)
-
-        if not oldest_admin:
-            return True
-
-        cache_age = (datetime.now(UTC) - self._ensure_utc_datetime(oldest_admin.last_updated)).total_seconds()
-        return cache_age > CACHE_ADMIN_TTL_SECONDS
-
-    async def _get_oldest_admin(self, chat_iid: PydanticObjectId) -> ChatAdminModel | None:
-        """Get the oldest admin entry for a chat."""
-        return await (
-            ChatAdminModel.find(ChatAdminModel.chat.id == chat_iid).sort(ChatAdminModel.last_updated).first_or_none()
-        )
-
-    @staticmethod
-    def _ensure_utc_datetime(value: datetime) -> datetime:
-        if value.tzinfo is None:
-            return value.replace(tzinfo=UTC)
-        return value

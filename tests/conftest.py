@@ -13,7 +13,9 @@ import os
 import sys
 from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
+from aiogram import Bot
 
 # Mock PyICU if not available (required by normality but needs system-level ICU libs)
 if "icu" not in sys.modules:
@@ -25,15 +27,17 @@ if "icu" not in sys.modules:
 import mistralai.client.httpclient
 import mistralai.client.sdk
 import pytest
+from fakeredis import FakeAsyncRedis
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.cache.locale import LocaleStore
+from sophie_bot.modules import LoadedModuleRegistry
+from sophie_bot.modules.utils_.delayed_delete import DelayedDeletionService
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.services.db import DatabaseResources
+from sophie_bot.utils.cached import RedisCache
 from sophie_bot.utils.i18n import I18nNew
-from tests.utils.db_fixture import (
-    MOCK_MONGO,
-    cleanup_beanie,
-    initialize_beanie,
-    stop_mongo_patch,
-)
+from tests.utils.db_fixture import MOCK_MONGO, cleanup_beanie, initialize_beanie
 
 logger = logging.getLogger(__name__)
 
@@ -98,16 +102,8 @@ def i18n_context() -> Any:
 
 @pytest.fixture(scope="session")
 async def mock_mongo() -> AsyncGenerator[Any]:
-    """Expose the process-wide mocked MongoDB client.
-
-    ``pymongo.AsyncMongoClient`` is already patched to return it by importing
-    ``tests.utils.db_fixture``; ``sophie_bot.services.db.async_mongo`` still needs
-    redirecting because it captured a client at import time.
-    """
-    with patch("sophie_bot.services.db.async_mongo", MOCK_MONGO):
-        yield MOCK_MONGO
-
-    stop_mongo_patch()
+    """Expose the process-wide explicit mocked MongoDB owner."""
+    yield MOCK_MONGO
     await MOCK_MONGO.aclose()
 
 
@@ -124,21 +120,41 @@ async def db_init(mock_mongo: Any) -> AsyncGenerator[Any]:
     await cleanup_beanie()
 
 
+@pytest.fixture(scope="session")
+async def test_redis() -> AsyncGenerator[FakeAsyncRedis]:
+    redis = FakeAsyncRedis(
+        decode_responses=False,
+        single_connection_client=True,
+    )
+    yield redis
+    await redis.aclose()
+
+
+@pytest.fixture(scope="session")
+async def test_services(
+    db_init: Any,
+    i18n_context: I18nNew,
+    test_redis: FakeAsyncRedis,
+) -> AsyncGenerator[ApplicationServices]:
+    """Provide the explicit application boundary used by unit tests."""
+    cache = RedisCache(test_redis)
+    yield ApplicationServices(
+        bot=MagicMock(spec=Bot),
+        redis=test_redis,
+        db=DatabaseResources(
+            mongo=MOCK_MONGO,
+            database=db_init,
+            initialized=True,
+        ),
+        cache=cache,
+        locales=LocaleStore(cache, i18n_context, CONFIG.default_locale),
+        deletions=MagicMock(spec=DelayedDeletionService),
+        modules=MagicMock(spec=LoadedModuleRegistry),
+        background_tasks=set(),
+    )
+
+
 @pytest.fixture(autouse=True)
-async def reset_redis() -> None:
-    """Reset fakeredis state between tests."""
-    # Import here to avoid circular imports
-    from sophie_bot.services.redis import aredis
-
-    if hasattr(aredis, "flushall"):
-        await aredis.flushall()
-
-
-@pytest.fixture(scope="session", autouse=True)
-async def close_redis_on_shutdown() -> AsyncGenerator[None]:
-    """Close the global fakeredis client after all tests to avoid ResourceWarning."""
-    yield
-
-    from sophie_bot.services.redis import aredis
-
-    await aredis.aclose()
+async def reset_redis(test_redis: FakeAsyncRedis) -> None:
+    """Reset the explicit shared fake Redis state between tests."""
+    await test_redis.flushall()

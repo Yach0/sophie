@@ -35,11 +35,19 @@ async def test_reaction_lock_removes_outsider_reaction(monkeypatch: pytest.Monke
     handler = AsyncMock()
 
     monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(reaction_enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(reaction_enforcer.ChatModel, "get_by_tid", AsyncMock(return_value=chat))
     monkeypatch.setattr(reaction_enforcer, "get_cached_locks", AsyncMock(return_value={LockType.OUTSIDE_REACTION}))
 
     with pytest.raises(SkipHandler):
-        await ReactionLocksEnforcerMiddleware()(handler, _reaction_event(), {"bot": bot})
+        await ReactionLocksEnforcerMiddleware()(
+            handler,
+            _reaction_event(),
+            {
+                "bot": bot,
+                "services": SimpleNamespace(redis=object()),
+            },
+        )
 
     bot.get_chat_member.assert_awaited_once_with(chat_id=-1001234567890, user_id=42)
     bot.set_message_reaction.assert_awaited_once_with(chat_id=-1001234567890, message_id=12, reaction=[])
@@ -54,10 +62,18 @@ async def test_reaction_lock_allows_chat_members(monkeypatch: pytest.MonkeyPatch
     handler = AsyncMock(return_value="handled")
 
     monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(reaction_enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(reaction_enforcer.ChatModel, "get_by_tid", AsyncMock(return_value=chat))
     monkeypatch.setattr(reaction_enforcer, "get_cached_locks", AsyncMock(return_value={LockType.OUTSIDE_REACTION}))
 
-    result = await ReactionLocksEnforcerMiddleware()(handler, _reaction_event(), {"bot": bot})
+    result = await ReactionLocksEnforcerMiddleware()(
+        handler,
+        _reaction_event(),
+        {
+            "bot": bot,
+            "services": SimpleNamespace(redis=object()),
+        },
+    )
 
     assert result == "handled"
     bot.set_message_reaction.assert_not_awaited()

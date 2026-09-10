@@ -30,6 +30,7 @@ def _album_message(message_id: int) -> MagicMock:
 
 def _patch_common(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(enforcer, "is_user_admin", AsyncMock(return_value=False))
     monkeypatch.setattr(enforcer, "get_cached_locks", AsyncMock(return_value={LockType.VIDEO}))
 
@@ -47,7 +48,13 @@ async def test_locked_later_album_item_deletes_whole_album(monkeypatch: pytest.M
 
     album = [_album_message(1), _album_message(2), _album_message(3)]
     handler = AsyncMock()
-    data = {"chat_db": SimpleNamespace(iid="chat-db-id"), "album": album}
+    data = {
+        "context": SimpleNamespace(
+            event_chat=SimpleNamespace(iid="chat-db-id")
+        ),
+        "services": SimpleNamespace(redis=object()),
+        "album": album,
+    }
 
     with pytest.raises(SkipHandler):
         await LocksEnforcerMiddleware()(handler, album[0], data)
@@ -65,7 +72,13 @@ async def test_album_without_locked_items_passes_through(monkeypatch: pytest.Mon
 
     album = [_album_message(1), _album_message(2)]
     handler = AsyncMock(return_value="handled")
-    data = {"chat_db": SimpleNamespace(iid="chat-db-id"), "album": album}
+    data = {
+        "context": SimpleNamespace(
+            event_chat=SimpleNamespace(iid="chat-db-id")
+        ),
+        "services": SimpleNamespace(redis=object()),
+        "album": album,
+    }
 
     result = await LocksEnforcerMiddleware()(handler, album[0], data)
 

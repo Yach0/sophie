@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from aiogram import Bot
 from stfu_tg import Doc, KeyValue
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import FederationTask
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -22,7 +22,12 @@ def build_task_failed_doc(error_message: str | None = None) -> Doc:
     return doc
 
 
-async def notify_task_failed(task: FederationTask, error_message: str | None = None) -> None:
+async def notify_task_failed(
+    task: FederationTask,
+    error_message: str | None = None,
+    *,
+    bot: Bot,
+) -> None:
     """Tell the user their federation task failed, however the task announced itself.
 
     Ban/unban tasks carry the in-progress reply they must edit, so the "Propagating…"

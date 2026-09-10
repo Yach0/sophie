@@ -1,6 +1,8 @@
+import html
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -21,15 +23,15 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
 )
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError, initiate_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
-from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def send_dm_unblock_message(chat_tid: int) -> Message:
+async def send_dm_unblock_message(chat_tid: int, *, bot: Bot) -> Message:
     payload = build_legacy_start_payload(LEGACY_WELCOME_SECURITY_BUTTON_PREFIX, chat_tid)
     start_url = f"https://t.me/{CONFIG.username}?start={payload}"
 
@@ -59,7 +61,6 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
     async def handle(self) -> Any:
         chat_tid = self.event.chat.id
         user_tid = self.event.from_user.id
-        connection = self.connection
 
         async def _approve_request() -> None:
             try:
@@ -76,7 +77,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
                     return
                 raise
 
-        # Check if user is admin
+        # Admins bypass Welcome Security even when it is not enabled for regular users.
         if await is_user_admin(chat_tid, user_tid):
             # Approve immediately
             await _approve_request()
@@ -104,7 +105,14 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             # Let admins handle the approval manually
             return
 
-        if not await is_enabled("welcomecaptcha", chat_tid=chat.tid):
+        if not await is_enabled("welcomecaptcha", chat_tid=chat.tid, redis=self.services.redis):
+            await _approve_request()
+            return
+
+        # The group whitelist bypasses only active CAPTCHA enforcement. When Welcome
+        # Security is disabled, join requests remain pending for manual approval above.
+        if await is_user_group_whitelisted(chat_tid, user_tid, redis=self.services.redis):
+            await log_group_whitelist_exemption(chat_tid, user_tid, "welcome_security_join_request_captcha")
             await _approve_request()
             return
 
@@ -114,31 +122,57 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             return
 
         # Mute the user (similar to ws_on_new_user)
-        muted = await ws_on_new_user(user, chat, is_join_request=True)
+        muted = await ws_on_new_user(user, chat, is_join_request=True, redis=self.services.redis)
         if not muted:
             await _approve_request()
             return
-
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
-        rules = await RulesModel.get_rules(connection.db_model.iid)
-        additional_fillings = {"rules": rules.text or "" if rules else _("No chat rules, have fun!")}
+        rules = await RulesModel.get_rules(chat.iid)
+
+        chat_title = getattr(chat, "first_name_or_title", None) or getattr(chat, "title", None) or str(chat.tid)
+        chat_nick = getattr(chat, "username", None) or chat_title
+        additional_fillings = {
+            "rules": rules.text or "" if rules else _("No chat rules, have fun!"),
+            "chatid": str(chat.tid),
+            "chatname": html.escape(str(chat_title), quote=False),
+            "chatnick": html.escape(str(chat_nick), quote=False),
+        }
 
         join_request_message_key = f"join_request_message:{chat.iid}:{user.iid}"
         try:
-            await initiate_captcha(user, chat, is_join_request=True)
+            await initiate_captcha(
+                user,
+                chat,
+                is_join_request=True,
+                bot=self.services.bot,
+                dispatcher=self.data["dispatcher"],
+            )
             sent_message = await send_saveable(
                 None,
                 chat_tid,
                 join_request_saveable,
                 additional_fillings=additional_fillings,
                 user=self.event.from_user,
+                owner_chat_tid=chat_tid,
+                bot=self.services.bot,
+                redis=self.services.redis,
             )
         except CaptchaDMBlockedError:
-            sent_message = await send_dm_unblock_message(chat_tid)
+            sent_message = await send_dm_unblock_message(chat_tid, bot=self.services.bot)
 
         if greetings.clean_welcome and greetings.clean_welcome.enabled and greetings.clean_welcome.last_msg:
-            await common_try(bot.delete_message(chat_id=chat_tid, message_id=greetings.clean_welcome.last_msg))
+            await common_try(
+                self.services.bot.delete_message(chat_id=chat_tid, message_id=greetings.clean_welcome.last_msg)
+            )
 
         if sent_message:
-            await aredis.set(f"chat_ws_message:{chat.iid}:{user.iid}", sent_message.message_id, ex=172800)
-            await aredis.set(join_request_message_key, sent_message.message_id, ex=172800)
+            await self.services.redis.set(
+                f"chat_ws_message:{chat.iid}:{user.iid}",
+                sent_message.message_id,
+                ex=172800,
+            )
+            await self.services.redis.set(
+                join_request_message_key,
+                sent_message.message_id,
+                ex=172800,
+            )

@@ -9,8 +9,11 @@ from aiogram.types import Message, TelegramObject, Update
 from ussr import predict_message
 
 from sophie_bot.db.models.spam_match import SpamMatchModel
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
 
 
@@ -33,13 +36,18 @@ class SpamDetectionMiddleware(BaseMiddleware):
         return await handler(event, data)
 
     async def _check_spam(self, message: Message, data: dict[str, Any]) -> None:
-        if not await is_enabled("ussr_spam_detection"):
+        if not await is_enabled("ussr_spam_detection", redis=data["services"].redis):
             return
 
-        chat_db = data.get("group_db") or data.get("chat_db")
+        context: RequestContext = data["context"]
+        chat_db = context.event_chat
         user_id = message.from_user.id if message.from_user else None
 
         if not user_id or not chat_db:
+            return
+
+        if await is_user_group_whitelisted(message.chat.id, user_id, redis=data["services"].redis):
+            await log_group_whitelist_exemption(message.chat.id, user_id, "spam_detection")
             return
 
         try:
@@ -68,7 +76,10 @@ class SpamDetectionMiddleware(BaseMiddleware):
                     nsfw_probability=nsfw_prob,
                 )
 
-                if await is_enabled("ussr_spam_save_to_db"):
+                if await is_enabled(
+                    "ussr_spam_save_to_db",
+                    redis=data["services"].redis,
+                ):
                     match = SpamMatchModel(
                         text=text,
                         spam_probability=spam_prob,

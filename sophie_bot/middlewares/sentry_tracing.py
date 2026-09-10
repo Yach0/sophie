@@ -37,7 +37,7 @@ class SentryTracingMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        if not await is_enabled(TRACING_FLAG):
+        if not await is_enabled(TRACING_FLAG, redis=data["services"].redis):
             return await handler(event, data)
 
         update_info = extract_update_info(event)

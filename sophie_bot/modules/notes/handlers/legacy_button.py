@@ -36,7 +36,7 @@ class LegacyStartNoteButton(SophieMessageHandler):
         if not chat:
             raise SophieException("Chat not found")
 
-        user_db: ChatModel = self.data["user_db"]
+        user_db: ChatModel = self.data["context"].actor
         if not await UserInGroupModel.get_user_in_group(user_db.iid, chat.iid):
             await message.reply(_("You need to be a member of this chat to open its notes."))
             return
@@ -64,4 +64,7 @@ class LegacyStartNoteButton(SophieMessageHandler):
             title=title,
             reply_to=message.message_id,
             connection=note_connection,
+            owner_chat_tid=note.chat_tid,
+            bot=self.services.bot,
+            redis=self.services.redis,
         )

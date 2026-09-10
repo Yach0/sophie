@@ -4,26 +4,29 @@ from stfu_tg.doc import Element
 
 from sophie_bot.db.models import RulesModel
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.filters.types.modern_action_abc import ActionResult, ModernActionABC
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
+SEND_RULES_ACTION = ActionDefinition[None](
+    name="send_rules",
+    icon="🪧",
+    title=l_("Send chat rules"),
+    allow_warns=True,
+)
+
 
 class SendRulesAction(ModernActionABC[None]):
-    name = "send_rules"
-
-    icon = "🪧"
-    title = l_("Send chat rules")
-    allow_warns = True
+    definition = SEND_RULES_ACTION
 
     @staticmethod
     def description(data: None) -> Element | str:
         return _("Replies to the message with the chat rules")
 
     async def handle(self, message: Message, data: dict, filter_data: None) -> ActionResult | None:
-        connection: ChatConnection = data["connection"]
+        connection: ChatConnection = data["context"].connection
 
         rules = await RulesModel.get_rules(connection.db_model.iid)
 
@@ -46,7 +49,10 @@ class SendRulesAction(ModernActionABC[None]):
                 title=title,
                 reply_to=message.message_id,
                 connection=connection,
+                owner_chat_tid=connection.db_model.tid,
                 collect_sent=sent_messages,
+                bot=data["services"].bot,
+                redis=data["services"].redis,
             )
         )
         return sent_messages

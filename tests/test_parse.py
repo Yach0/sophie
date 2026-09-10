@@ -12,23 +12,29 @@ from sophie_bot.modules.notes.utils.parse import (
     parse_reply_message,
     parse_saveable,
 )
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_with_text_only():
+async def test_parse_saveable_with_text_only(test_services: ApplicationServices) -> None:
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
     message.content_type = ContentType.TEXT
 
-    result = await parse_saveable(message, text="This is a note.")
+    result = await parse_saveable(
+        message,
+        text="This is a note.",
+        bot=test_services.bot,
+        redis=test_services.redis,
+    )
     assert result.text == "This is a note."
     assert result.file is None
     assert result.buttons == []
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_with_reply_message():
+async def test_parse_saveable_with_reply_message(test_services: ApplicationServices) -> None:
     message = AsyncMock(spec=Message)
     message.reply_to_message = AsyncMock(spec=Message)
     message.reply_to_message.forum_topic_created = False
@@ -38,14 +44,19 @@ async def test_parse_saveable_with_reply_message():
 
     with patch("sophie_bot.modules.notes.utils.parse.parse_reply_message") as mock_parse_reply_message:
         mock_parse_reply_message.return_value = ("Replied message text", None, [])
-        result = await parse_saveable(message, text="This is a note.")
+        result = await parse_saveable(
+            message,
+            text="This is a note.",
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
         assert result.text == "Replied message text\nThis is a note."
         assert result.file is None
         assert result.buttons == []
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_exceeding_length_limit():
+async def test_parse_saveable_exceeding_length_limit(test_services: ApplicationServices) -> None:
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
     message.content_type = ContentType.TEXT
@@ -55,11 +66,18 @@ async def test_parse_saveable_exceeding_length_limit():
         patch("sophie_bot.modules.notes.utils.parse.TELEGRAM_MESSAGE_LENGTH_LIMIT", 1000),
         pytest.raises(SophieException),
     ):
-        await parse_saveable(message, text=text)
+        await parse_saveable(
+            message,
+            text=text,
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_rejects_caption_over_media_limit():
+async def test_parse_saveable_rejects_caption_over_media_limit(
+    test_services: ApplicationServices,
+) -> None:
     """Regression: a media note's text becomes a caption, capped at 1024, not 4096.
 
     Saving was accepted at up to 4096, then Telegram answered MEDIA_CAPTION_TOO_LONG on
@@ -72,11 +90,19 @@ async def test_parse_saveable_rejects_caption_over_media_limit():
     with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
         mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.PHOTO)
         with pytest.raises(SophieException):
-            await parse_saveable(message, text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), buttons=ButtonsList())
+            await parse_saveable(
+                message,
+                text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
+                buttons=ButtonsList(),
+                bot=test_services.bot,
+                redis=test_services.redis,
+            )
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_allows_caption_length_text_without_caption_support():
+async def test_parse_saveable_allows_caption_length_text_without_caption_support(
+    test_services: ApplicationServices,
+) -> None:
     """A sticker note carries no caption, so its text keeps the plain message limit."""
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
@@ -84,13 +110,19 @@ async def test_parse_saveable_allows_caption_length_text_without_caption_support
 
     with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
         mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.STICKER)
-        result = await parse_saveable(message, text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1), buttons=ButtonsList())
+        result = await parse_saveable(
+            message,
+            text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
+            buttons=ButtonsList(),
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
 
     assert result.text == "A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1)
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_with_file_data():
+async def test_parse_saveable_with_file_data(test_services: ApplicationServices) -> None:
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
     message.content_type = ContentType.PHOTO
@@ -98,7 +130,12 @@ async def test_parse_saveable_with_file_data():
 
     with patch("sophie_bot.modules.notes.utils.parse.extract_file_info") as mock_extract_file_info:
         mock_extract_file_info.return_value = NoteFile(id="file_123", type=ContentType.PHOTO)
-        result = await parse_saveable(message, text=None)
+        result = await parse_saveable(
+            message,
+            text=None,
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
         assert result.file.id == "file_123"
         assert result.file.type == ContentType.PHOTO
         assert result.text is None
@@ -143,7 +180,9 @@ def test_extract_file_info_with_non_parsable_content_type():
 
 
 @pytest.mark.asyncio
-async def test_parse_saveable_preserves_inline_custom_emoji() -> None:
+async def test_parse_saveable_preserves_inline_custom_emoji(
+    test_services: ApplicationServices,
+) -> None:
     message = AsyncMock(spec=Message)
     message.reply_to_message = None
     message.content_type = ContentType.TEXT
@@ -157,6 +196,8 @@ async def test_parse_saveable_preserves_inline_custom_emoji() -> None:
         text="Hello 🙂",
         offset=11,
         buttons=ButtonsList(),
+        bot=test_services.bot,
+        redis=test_services.redis,
     )
 
     assert result.text == 'Hello <tg-emoji emoji-id="123456789">🙂</tg-emoji>'

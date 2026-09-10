@@ -9,6 +9,8 @@ from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
 
 GROUP_CHAT_TYPES = ("group", "supergroup")
@@ -27,17 +29,29 @@ class LockMutedUsers(BaseMiddleware):
         if not message.from_user or message.chat.type not in GROUP_CHAT_TYPES:
             return False
 
-        chat_db: ChatModel = data["chat_db"]
-        user_db: ChatModel | None = data.get("user_db")
+        chat_db: ChatModel = data["context"].event_chat
+        user_db: ChatModel | None = data["context"].actor
 
         # Absent for anonymous admins, who are exempt anyway
         if not user_db:
             return False
 
-        if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid):
+        if not await is_enabled("welcomecaptcha", chat_tid=chat_db.tid, redis=data["services"].redis):
             return False
 
         log.debug("LockMutedUsers", chat=chat_db.tid, user=user_db.tid)
+
+        if await is_user_group_whitelisted(
+            chat_db.tid,
+            user_db.tid,
+            redis=data["services"].redis,
+        ):
+            await log_group_whitelist_exemption(
+                chat_db.tid,
+                user_db.tid,
+                "welcome_security_pending_captcha_messages",
+            )
+            return False
 
         if await is_user_admin(chat_db.tid, user_db.tid):
             return False

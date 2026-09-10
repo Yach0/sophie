@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import pytest
 from aiogram_test_framework import TestClient
+from aiogram_test_framework.types import RequestType
 
-from sophie_bot.db.models import ChatModel, RulesModel
+from sophie_bot.db.models import ChatModel, FiltersModel, RulesModel
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.notes import Saveable
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user_id
+from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user_id, set_feature
 
 
 async def _connectable_group(test_client: TestClient, *, username: str, title: str):
@@ -70,6 +71,40 @@ async def test_command_in_dm_targets_the_connected_group(test_client: TestClient
     requests = await test_client.send_command(command="rules", from_user=admin)
 
     assert any("Connected-group rules" in (request.text or "") for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_connected_pm_filter_command_obeys_group_feature_override(test_client: TestClient) -> None:
+    admin, group, model = await _connectable_group(
+        test_client, username="filtersgroup", title="Connected Filters Group"
+    )
+    await grant_admin(group.id, admin.id)
+    filter_item = await FiltersModel(
+        chat=model,
+        handler="connectedfilter",
+        action=None,
+        actions={"reply": {"text": "Connected-group filter"}},
+    ).insert()
+    await test_client.send_command(command="connect", from_user=admin, args="@filtersgroup")
+
+    await set_feature(test_client, "filters", True)
+    await set_feature(test_client, "filters", True, chat_tid=admin.id)
+    await set_feature(test_client, "filters", False, chat_tid=group.id)
+
+    await test_client.send_command(command="delfilter", from_user=admin, args="connectedfilter")
+
+    assert await FiltersModel.get_by_id(filter_item.id) is not None
+
+    await set_feature(test_client, "filters", True, chat_tid=group.id)
+    requests = await test_client.send_command(command="delfilter", from_user=admin, args="connectedfilter")
+
+    assert any(
+        request.request_type == RequestType.SEND_MESSAGE
+        and request.params.get("chat_id") == admin.id
+        and "connectedfilter" in (request.text or "")
+        for request in requests
+    )
+    assert await FiltersModel.get_by_id(filter_item.id) is None
 
 
 @pytest.mark.asyncio

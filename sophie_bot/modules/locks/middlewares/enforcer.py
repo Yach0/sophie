@@ -12,6 +12,8 @@ from sophie_bot.modules.locks.utils.cache import get_cached_locks
 from sophie_bot.modules.locks.utils.detect_lock import check_locks
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
 
 
@@ -29,14 +31,25 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         if not message.from_user:
             return await handler(event, data)
-        chat_db = data.get("chat_db")
+        chat_db = data["context"].event_chat
         if not chat_db:
             return await handler(event, data)
-        if not await is_enabled("locks", chat_tid=message.chat.id):
+        if not await is_enabled("locks", chat_tid=message.chat.id, redis=data["services"].redis):
+            return await handler(event, data)
+        if await is_user_group_whitelisted(
+            message.chat.id,
+            message.from_user.id,
+            redis=data["services"].redis,
+        ):
+            await log_group_whitelist_exemption(message.chat.id, message.from_user.id, "message_locks")
             return await handler(event, data)
         if await is_user_admin(message.chat.id, message.from_user.id):
             return await handler(event, data)
-        locked_types = await get_cached_locks(message.chat.id, chat_db.iid)
+        locked_types = await get_cached_locks(
+            message.chat.id,
+            chat_db.iid,
+            redis=data["services"].redis,
+        )
         if not locked_types:
             return await handler(event, data)
         # When the media-group middleware aggregated an album, `message` is only the

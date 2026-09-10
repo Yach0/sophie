@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from sophie_bot.modules.filters.utils_.all_modern_actions import ALL_MODERN_ACTIONS
+from sophie_bot.services.rest import ServicesDep
 from sophie_bot.utils.api.auth import get_current_user
 
 router = APIRouter(prefix="/actions", tags=["actions"], dependencies=[Depends(get_current_user)])
@@ -23,10 +23,10 @@ class ActionsListResponse(BaseModel):
 
 
 @router.get("", response_model=ActionsListResponse)
-async def list_all_actions() -> ActionsListResponse:
+async def list_all_actions(services: ServicesDep) -> ActionsListResponse:
     """List all available modern actions."""
     actions = []
-    for name, action in ALL_MODERN_ACTIONS.items():
+    for name, action in services.modules.actions.items():
         actions.append(
             ActionInfo(
                 name=name,
@@ -41,10 +41,10 @@ async def list_all_actions() -> ActionsListResponse:
 
 
 @router.get("/flood", response_model=ActionsListResponse)
-async def list_flood_actions() -> ActionsListResponse:
+async def list_flood_actions(services: ServicesDep) -> ActionsListResponse:
     """List actions that can be used as antiflood actions."""
     actions = []
-    for name, action in ALL_MODERN_ACTIONS.items():
+    for name, action in services.modules.actions.items():
         if action.as_flood:
             actions.append(
                 ActionInfo(
@@ -60,10 +60,10 @@ async def list_flood_actions() -> ActionsListResponse:
 
 
 @router.get("/filter", response_model=ActionsListResponse)
-async def list_filter_actions() -> ActionsListResponse:
+async def list_filter_actions(services: ServicesDep) -> ActionsListResponse:
     """List actions that can be used as filter actions."""
     actions = []
-    for name, action in ALL_MODERN_ACTIONS.items():
+    for name, action in services.modules.actions.items():
         if action.as_filter:
             actions.append(
                 ActionInfo(
@@ -79,10 +79,10 @@ async def list_filter_actions() -> ActionsListResponse:
 
 
 @router.get("/button", response_model=ActionsListResponse)
-async def list_button_actions() -> ActionsListResponse:
+async def list_button_actions(services: ServicesDep) -> ActionsListResponse:
     """List actions that can be used as button actions."""
     actions = []
-    for name, action in ALL_MODERN_ACTIONS.items():
+    for name, action in services.modules.actions.items():
         if action.as_button:
             actions.append(
                 ActionInfo(

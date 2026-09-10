@@ -26,6 +26,7 @@ from beanie import free_fall_migration
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.db import get_collection
+from sophie_bot.services.migrations import MigrationResources
 
 _PROVIDER_NAMES = ("mistral", "openai")
 
@@ -48,8 +49,8 @@ class Forward:
     """Move the vendor SDK keys from the environment into the catalog."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        providers = get_collection("ai_catalog_provider")
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        providers = get_collection(resources.database.database, "ai_catalog_provider")
         for provider in _providers():
             await providers.update_one(
                 {"name": provider["name"]}, {"$setOnInsert": provider}, upsert=True, session=session
@@ -63,7 +64,7 @@ class Backward:
     """Remove the rows; the environment still holds the keys."""
 
     @free_fall_migration(document_models=[])
-    async def migrate(self, session) -> None:
-        await get_collection("ai_catalog_provider").delete_many(
+    async def migrate(self, session, *, resources: MigrationResources) -> None:
+        await get_collection(resources.database.database, "ai_catalog_provider").delete_many(
             {"name": {"$in": list(_PROVIDER_NAMES)}}, session=session
         )

@@ -7,7 +7,7 @@ from itertools import count
 from typing import TYPE_CHECKING, Final
 
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message, Update, User
+from aiogram.types import ChatJoinRequest, ChatMemberAdministrator, ChatMemberOwner, Message, Update, User
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.config import CONFIG
@@ -157,6 +157,20 @@ async def grant_bot_admin(chat_tid: int, **rights: bool) -> ChatAdminModel:
     return await grant_admin(chat_tid, CONFIG.bot_id, **rights)
 
 
+async def get_wizard_session_id(test_client: TestClient, chat_tid: int, user_tid: int) -> str:
+    state = test_client.dispatcher.fsm.get_context(
+        bot=test_client.bot,
+        chat_id=chat_tid,
+        user_id=user_tid,
+    )
+    data = await state.get_data()
+    wizard = data.get("wizard")
+    assert isinstance(wizard, dict)
+    session_id = wizard.get("session_id")
+    assert isinstance(session_id, str) and session_id
+    return session_id
+
+
 async def _feed(test_client: TestClient, message: Message) -> list[CapturedRequest]:
     """Feed one message update through the dispatcher and return the requests it produced."""
     start = len(test_client.capture)
@@ -192,6 +206,28 @@ async def join_group(
     return await _feed(test_client, message)
 
 
+async def send_join_request(
+    test_client: TestClient,
+    group: Chat,
+    user: User,
+    *,
+    date: datetime | None = None,
+) -> list[CapturedRequest]:
+    """Simulate a Telegram join request through the real dispatcher."""
+    start = len(test_client.capture)
+    join_request = ChatJoinRequest(
+        chat=group,
+        from_user=user,
+        user_chat_id=user.id,
+        date=date or datetime.now(UTC),
+    )
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot,
+        update=Update(update_id=next(_update_ids), chat_join_request=join_request),
+    )
+    return test_client.capture.all_requests[start:]
+
+
 async def send_reply_command(
     test_client: TestClient,
     *,
@@ -221,15 +257,21 @@ async def leave_group(test_client: TestClient, group: Chat, member: User) -> lis
     return await _feed(test_client, message)
 
 
-async def set_feature(feature: str, enabled: bool, *, chat_tid: int | None = None) -> None:
-    """Persist a real feature-flag override, instead of patching `is_enabled` at call sites.
-
-    A global override when `chat_tid` is None, otherwise a per-chat one. Both go through the
-    production setters so the Redis cache stays consistent. Cleared automatically between tests:
-    FeatureFlagOverride is a registered Beanie model that the autouse `clean_db` truncates, and
-    the cache lives on `aredis`, which `reset_redis` flushes.
-    """
+async def set_feature(
+    test_client: TestClient,
+    feature: str,
+    enabled: bool,
+    *,
+    chat_tid: int | None = None,
+) -> None:
+    """Persist an override through production storage and the client's Redis cache."""
+    redis = test_client.dispatcher.workflow_data["services"].redis
     if chat_tid is None:
-        await feature_flags.set_value(feature, enabled)
+        await feature_flags.set_value(feature, enabled, redis=redis)
     else:
-        await feature_flags.set_chat_override(feature, chat_tid, enabled)
+        await feature_flags.set_chat_override(
+            feature,
+            chat_tid,
+            enabled,
+            redis=redis,
+        )

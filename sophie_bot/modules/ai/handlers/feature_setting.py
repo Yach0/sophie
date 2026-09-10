@@ -17,10 +17,10 @@ class AIFeatureSetting(StatusBoolHandlerABC):
     feature: FeatureType
 
     async def get_status(self) -> bool:
-        return await is_enabled(self.feature, chat_tid=self.connection.tid)
+        return await is_enabled(self.feature, chat_tid=self.connection.tid, redis=self.services.redis)
 
     async def set_status(self, new_status: bool) -> None:
-        await set_chat_override(self.feature, self.connection.tid, new_status)
+        await set_chat_override(self.feature, self.connection.tid, new_status, redis=self.services.redis)
 
 
 @flags.help(description=l_("Controls AI chat summaries"))

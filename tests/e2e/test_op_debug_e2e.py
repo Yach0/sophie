@@ -83,9 +83,28 @@ async def test_op_debug_includes_chat_history(test_client: TestClient) -> None:
     assert chat is not None
 
     created_at = datetime.now(UTC) - timedelta(minutes=10)
-    await cache_message("hello", private_chat.id, 123, 1, created_at, "user_123")
-    await cache_message("hi there", private_chat.id, CONFIG.bot_id, 2, created_at + timedelta(minutes=1), "sophie")
-    await cache_message("how are you", private_chat.id, 123, 3, created_at + timedelta(minutes=2), "user_123")
+    redis = test_client.dispatcher.workflow_data["services"].redis
+    await cache_message(
+        "hello", private_chat.id, 123, 1, created_at, "user_123", redis=redis
+    )
+    await cache_message(
+        "hi there",
+        private_chat.id,
+        CONFIG.bot_id,
+        2,
+        created_at + timedelta(minutes=1),
+        "sophie",
+        redis=redis,
+    )
+    await cache_message(
+        "how are you",
+        private_chat.id,
+        123,
+        3,
+        created_at + timedelta(minutes=2),
+        "user_123",
+        redis=redis,
+    )
 
     with patch.object(CONFIG, "operators", [operator_wrapper.user.id]):
         requests = await test_client.send_command(
@@ -135,7 +154,10 @@ async def test_op_debug_shows_empty_chat_history_when_no_cache(test_client: Test
 
     # The init message gets cached by the message middleware; clear it so
     # the chat history section shows the empty-state ("No cached messages found").
-    await reset_messages(private_chat.id)
+    await reset_messages(
+        private_chat.id,
+        redis=test_client.dispatcher.workflow_data["services"].redis,
+    )
 
     with patch.object(CONFIG, "operators", [operator_wrapper.user.id]):
         requests = await test_client.send_command(

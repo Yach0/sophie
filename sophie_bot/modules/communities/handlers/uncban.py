@@ -17,8 +17,11 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.communities.services import CommunityBanService, CommunityManageService
 from sophie_bot.modules.communities.utils.ban_docs import build_unban_reply_doc
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
-from sophie_bot.modules.restrictions.utils.restrictions import unban_user as restrict_unban_user
+from sophie_bot.modules.restrictions.utils.restrictions import (
+    execute_restriction,
+)
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -50,7 +53,7 @@ class CommunityUnbanHandler(SophieMessageHandler):
             return
 
         current_chat = self.connection.db_model
-        community = await CommunityManageService.get_community_for_chat(current_chat)
+        community = await CommunityManageService.get_community_for_chat(current_chat, services=self.services)
         if not community:
             await self.event.reply(_("This chat is not part of a community."))
             return
@@ -84,7 +87,14 @@ class CommunityUnbanHandler(SophieMessageHandler):
         await CommunityBanService.unban_user(community.community_tid, user.tid)
 
         # Unban in the current chat right away; the scheduler propagates to the rest.
-        immediate_chat_unbanned = await restrict_unban_user(self.event.chat.id, user.tid)
+        immediate_chat_unbanned = (
+            await execute_restriction(
+                self.services.bot,
+                RestrictionAction.UNBAN,
+                self.event.chat.id,
+                user.tid,
+            )
+        ).applied
 
         doc = build_unban_reply_doc(
             community,

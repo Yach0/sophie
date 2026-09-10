@@ -6,6 +6,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from .handlers.admincache import ResetAdminCache
 from .handlers.cancel import CancelState
 from .handlers.cancel_callback import CallbackActionCancelHandler, CancelCallbackHandler, TypedCancelCallbackHandler
+from .handlers.instance import InstanceStatus
 from .handlers.op_settings import ResetBetaChats, SetBetaPercentage
 from .stats import beta_stats
 
@@ -14,12 +15,13 @@ router = Router(name="troubleshooters")
 
 module_manifest = ModuleManifest(
     name="troubleshooters",
-    bot_router=router,
+    bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         CancelCallbackHandler,
         TypedCancelCallbackHandler,
         CallbackActionCancelHandler,
         ResetAdminCache,
+        InstanceStatus,
         SetBetaPercentage,
         ResetBetaChats,
         CancelState,

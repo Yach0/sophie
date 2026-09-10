@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from aiogram import Bot
 from aiogram.types import Message
+from redis.asyncio import Redis
 
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.services.bot import bot
-from sophie_bot.services.redis import aredis
 from sophie_bot.utils.logger import log
 
 _GETCHAT_COOLDOWN_SECONDS = 3600
@@ -43,16 +43,16 @@ def extract_community_change(message: Message) -> CommunityChange | None:
     return None
 
 
-async def fetch_chat_community(chat_tid: int) -> CommunityRef | None:
+async def fetch_chat_community(chat_tid: int, *, bot: Bot, redis: Redis) -> CommunityRef | None:
     """Read the community of a chat via getChat, for chats that joined before Sophie.
 
     Guarded by a Redis cooldown so a chat whose community is unknown is only probed
     once per hour instead of on every message. Returns ``None`` while cooling down.
     """
     cooldown_key = f"sophie:community_getchat:{chat_tid}"
-    if await aredis.exists(cooldown_key):
+    if await redis.exists(cooldown_key):
         return None
-    await aredis.set(cooldown_key, b"1", ex=_GETCHAT_COOLDOWN_SECONDS)
+    await redis.set(cooldown_key, b"1", ex=_GETCHAT_COOLDOWN_SECONDS)
 
     chat_full = await common_try(bot.get_chat(chat_tid))
     if chat_full is None:

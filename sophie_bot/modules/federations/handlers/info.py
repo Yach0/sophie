@@ -51,8 +51,8 @@ class FederationInfoHandler(SophieMessageHandler):
 
     async def _show_federation_info(self, federation: Federation) -> None:
         """Show information about a specific federation."""
-        chat_count = await FederationChatService.get_federation_chat_count(federation.fed_id)
-        ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id)
+        chat_count = await FederationChatService.get_federation_chat_count(federation.fed_id, redis=self.services.redis)
+        ban_count = await FederationBanService.get_federation_ban_count(federation.fed_id, redis=self.services.redis)
 
         # Resolve creator
         creator = await ChatModel.get_by_iid(federation.creator.ref.id)
@@ -87,7 +87,7 @@ class FederationInfoHandler(SophieMessageHandler):
             await self.event.reply(_("This command can only be used by users."))
             return
 
-        user_iid = self.data["user_db"].id
+        user_iid = self.data["context"].actor.id
         federations = await FederationManageService.get_federations_by_creator(user_iid)
 
         if not federations:
@@ -119,7 +119,7 @@ class FederationInfoHandler(SophieMessageHandler):
             await self.event.reply(_("Chat not found in database"))
             return
         chat_iid = chat.iid
-        federation = await FederationManageService.get_federation_for_chat(chat_iid)
+        federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
 
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))

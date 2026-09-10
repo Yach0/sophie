@@ -7,8 +7,8 @@ from aiogram.types import Message
 from stfu_tg import Bold, Doc
 
 from sophie_bot.constants import FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
-from sophie_bot.db.models.filters import FilterHandlerType, FilterInSetupType
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
+from sophie_bot.modules.filters.filter_wizard import FilterDraft
 
 
 def _message_stub(message_id: int) -> Message:
@@ -49,9 +49,10 @@ async def _run_process_filters(
     )
 
     schedule_mock = MagicMock()
-    monkeypatch.setattr(
-        "sophie_bot.modules.filters.enforce_middleware.schedule_message_deletion",
-        schedule_mock,
+    services = SimpleNamespace(
+        redis=object(),
+        bot=SimpleNamespace(send_message=AsyncMock()),
+        deletions=SimpleNamespace(schedule=schedule_mock),
     )
     monkeypatch.setattr(
         "sophie_bot.modules.filters.enforce_middleware.is_enabled",
@@ -59,7 +60,16 @@ async def _run_process_filters(
     )
 
     with pytest.raises(SkipHandler):
-        await middleware._process_filters(message, {"chat_db": SimpleNamespace(iid="chat-iid"), "user_in_group": None})
+        await middleware._process_filters(
+            message,
+            {
+                "context": SimpleNamespace(
+                    event_chat=SimpleNamespace(iid="chat-iid"),
+                    user_in_group=None,
+                ),
+                "services": services,
+            },
+        )
 
     return schedule_mock, message
 
@@ -129,7 +139,11 @@ async def test_action_returning_several_messages_contributes_every_id() -> None:
     message.reply = AsyncMock(return_value=_message_stub(555))
 
     album = [_message_stub(801), _message_stub(802), _message_stub(803)]
-    sent_ids = await middleware._handle_action_messages(message, [album])
+    sent_ids = await middleware._handle_action_messages(
+        message,
+        [album],
+        services=SimpleNamespace(redis=object(), bot=object()),
+    )
 
     assert sent_ids == [801, 802, 803]
     message.reply.assert_not_awaited()
@@ -144,7 +158,11 @@ async def test_stfu_elements_are_never_mistaken_for_sent_messages() -> None:
     message.chat = SimpleNamespace(id=-100125)
     message.reply = AsyncMock(return_value=_message_stub(555))
 
-    sent_ids = await middleware._handle_action_messages(message, [Doc(Bold("important"))])
+    sent_ids = await middleware._handle_action_messages(
+        message,
+        [Doc(Bold("important"))],
+        services=SimpleNamespace(redis=object(), bot=object()),
+    )
 
     assert sent_ids == [555]
     assert "important" in message.reply.await_args.args[0]
@@ -159,7 +177,11 @@ async def test_self_sent_message_is_not_rendered_into_reply_text(monkeypatch: py
     message.chat = SimpleNamespace(id=-100125)
     message.reply = AsyncMock(return_value=_message_stub(555))
 
-    sent_ids = await middleware._handle_action_messages(message, [_message_stub(777), "visible text"])
+    sent_ids = await middleware._handle_action_messages(
+        message,
+        [_message_stub(777), "visible text"],
+        services=SimpleNamespace(redis=object(), bot=object()),
+    )
 
     assert sent_ids == [777, 555]
     sent_text = message.reply.await_args.args[0]
@@ -168,8 +190,6 @@ async def test_self_sent_message_is_not_rendered_into_reply_text(monkeypatch: py
 
 
 def test_silent_survives_setup_round_trip() -> None:
-    filter_setup = FilterInSetupType(handler=FilterHandlerType(keyword="spam"), actions={}, silent=True)
-
-    restored = FilterInSetupType.model_validate(filter_setup.model_dump(mode="json"))
-
+    filter_draft = FilterDraft(handler="spam", actions={}, silent=True)
+    restored = FilterDraft.model_validate(filter_draft.model_dump(mode="json"))
     assert restored.silent is True

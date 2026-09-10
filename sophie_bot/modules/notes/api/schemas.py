@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from aiogram.types import RichMessage
 from beanie import PydanticObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from sophie_bot.db.models.notes import NoteFile, NoteModel, SaveableParseMode
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.services.telegram_media import ResolvedMedia
-from sophie_bot.utils.api.schemas import RestSaveable
+from sophie_bot.utils.api.schemas import RestSaveable, validate_rest_rich_payload
 
 
 class NoteResponse(RestSaveable):
@@ -33,7 +34,10 @@ class NoteResponse(RestSaveable):
             names=note.names,
             text=note.text,
             file=note.file,
+            files=note.files,
+            rich_message=note.rich_message,
             buttons=note.buttons,
+            version=note.version,
             parse_mode=note.parse_mode,
             preview=note.preview,
             description=note.description,
@@ -61,15 +65,22 @@ class NoteCreate(RestSaveable):
     ai_description: bool = False
     note_group: str | None = None
 
+    @model_validator(mode="after")
+    def validate_rich_payload(self) -> NoteCreate:
+        validate_rest_rich_payload(self)
+        return self
+
 
 class NoteUpdate(BaseModel):
     names: tuple[str, ...] | None = None
     text: str | None = None
     file: NoteFile | None = None
+    files: list[NoteFile] | None = None
     buttons: list[list[Button]] | None = None
     parse_mode: SaveableParseMode | None = None
     preview: bool | None = None
     description: str | None = None
+    rich_message: RichMessage | None = None
     ai_description: bool | None = None
     note_group: str | None = None
 

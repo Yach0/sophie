@@ -13,21 +13,26 @@ from stfu_tg import (
     PreformattedHTML,
     Section,
     Template,
-    Title,
 )
+from stfu_tg.doc import Element
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_translations_model_plan,
     resolve_chat_service_tier,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
+from sophie_bot.modules.ai.utils.ai_header import (
+    AIHeaderStyle,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+    get_ai_header_style,
+)
 from sophie_bot.modules.ai.utils.ai_progress import (
     ai_progress_line,
     random_ai_progress_custom_emoji_id,
@@ -38,6 +43,7 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import get_value
@@ -62,13 +68,22 @@ async def _edit_or_reply(source_message: Message, progress_message: Message | No
     await source_message.reply(**kwargs)
 
 
-async def _resolve_translation_input(event: Message, data: dict) -> tuple[str, bool]:
+async def _resolve_translation_input(
+    event: Message,
+    data: dict,
+    *,
+    services: ApplicationServices,
+) -> tuple[str, bool]:
     """Determine what text to translate and whether it's voice."""
     is_autotranslate: bool = data.get("autotranslate", False)
 
     is_voice = False
     if event.reply_to_message and event.reply_to_message.voice and not is_autotranslate:
-        to_translate = await transform_voice_to_text(event.reply_to_message.voice)
+        to_translate = await transform_voice_to_text(
+            event.reply_to_message.voice,
+            bot=services.bot,
+            redis=services.redis,
+        )
         is_voice = True
     elif event.reply_to_message and not is_autotranslate:
         sticker_emoji = event.reply_to_message.sticker.emoji if event.reply_to_message.sticker else ""
@@ -83,20 +98,22 @@ async def _resolve_translation_input(event: Message, data: dict) -> tuple[str, b
 
 
 def _build_translate_reply_doc(
-    translated,
+    translated: AITranslateResponseSchema,
     language_name: str,
     is_autotranslate: bool,
     is_voice: bool,
-    quota_header,
+    quota_header: Element | None,
+    header_style: AIHeaderStyle,
 ) -> Doc:
     """Format the translation response document."""
-    return Doc(
-        HList(
-            Title(AI_GENERATED_TEXT),
-            _("Auto Translator") if is_autotranslate else _("Translator"),
-            f"({_('Voice')})" if is_voice else None,
-            quota_header,
-        ),
+    status = HList(
+        _("Auto Translator") if is_autotranslate else _("Translator"),
+        f"({_('Voice')})" if is_voice else None,
+    )
+    header = build_ai_header(header_style, status, quota_header or "")
+    return build_ai_message_doc(
+        header_style,
+        header,
         (
             Bold(
                 Template(
@@ -149,7 +166,7 @@ class AiTranslate(SophieMessageHandler):
 
         language_name = self.data["i18n"].current_locale_display
 
-        to_translate, is_voice = await _resolve_translation_input(self.event, self.data)
+        to_translate, is_voice = await _resolve_translation_input(self.event, self.data, services=self.services)
 
         reply_to_message = self.event.reply_to_message
         reply_has_translatable_media = bool(
@@ -159,6 +176,7 @@ class AiTranslate(SophieMessageHandler):
                 or reply_to_message.sticker
                 or reply_to_message.animation
                 or reply_to_message.video
+                or reply_to_message.video_note
             )
         )
 
@@ -176,8 +194,14 @@ class AiTranslate(SophieMessageHandler):
             )
 
         # AI Context
-        ai_context = AIMessageHistory()
-        if reply_to_message and (reply_to_message.photo or reply_to_message.sticker or reply_to_message.animation):
+        ai_context = AIMessageHistory(services=self.services)
+        if reply_to_message and (
+            reply_to_message.photo
+            or reply_to_message.sticker
+            or reply_to_message.animation
+            or reply_to_message.video
+            or reply_to_message.video_note
+        ):
             ai_context.add_system(
                 Template(
                     _("If applicable, translate the photo to {language_name}"), language_name=language_name
@@ -189,7 +213,9 @@ class AiTranslate(SophieMessageHandler):
         if not ai_context.prompt:
             ai_context.prompt = [to_translate]
 
-        translator_prompt = str(await get_value("ai_translate_system_prompt", chat_tid=self.event.chat.id))
+        translator_prompt = str(
+            await get_value("ai_translate_system_prompt", chat_tid=self.event.chat.id, redis=self.services.redis)
+        )
         ai_context.add_system(
             "\n".join(
                 (
@@ -206,10 +232,17 @@ class AiTranslate(SophieMessageHandler):
         log.debug("AiTranslate", ai_context=ai_context.history_debug())
 
         model_plan = await get_chat_translations_model_plan(
-            self.connection.db_model.iid, chat_tid=self.connection.db_model.tid
+            self.connection.db_model.iid,
+            chat_tid=self.connection.db_model.tid,
+            mode=self.data.get("ai_mode"),
+            redis=self.services.redis,
         )
         service_tier = await resolve_chat_service_tier(
-            AIModelPurpose.translation, self.connection.db_model.iid, self.event.chat.id
+            AIModelPurpose.translation,
+            self.connection.db_model.iid,
+            self.event.chat.id,
+            redis=self.services.redis,
+            mode=self.data.get("ai_mode"),
         )
 
         try:
@@ -223,6 +256,7 @@ class AiTranslate(SophieMessageHandler):
                 chat_iid=self.connection.db_model.iid,
                 chat_tid=self.event.chat.id,
                 service_tier=service_tier,
+                redis=self.services.redis,
             )
             translated = result.output
         except AIRequestFailed as err:
@@ -240,12 +274,27 @@ class AiTranslate(SophieMessageHandler):
             log.debug("AiTranslate: AI gave the exact same text, skipping.")
             return
 
-        quota_info = await get_quota_info(self.connection.db_model.iid)
+        quota_info = await get_quota_info(
+            self.connection.db_model.iid,
+            redis=self.services.redis,
+        )
         quota_header = None
         if quota_info and quota_info.total_credits > 0:
             quota_percentage = int((quota_info.remaining_credits / quota_info.total_credits) * 100)
             quota_header = ai_credit_header(quota_percentage)
 
-        doc = _build_translate_reply_doc(translated, language_name, is_autotranslate, is_voice, quota_header)
+        header_style = await get_ai_header_style(
+            "translation",
+            self.event.chat.id,
+            redis=self.services.redis,
+        )
+        doc = _build_translate_reply_doc(
+            translated,
+            language_name,
+            is_autotranslate,
+            is_voice,
+            quota_header,
+            header_style,
+        )
 
         await _edit_or_reply(self.event, progress_message, text=str(doc))

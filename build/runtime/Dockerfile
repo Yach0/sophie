@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --compile-bytecode
 
 # Compile translations
-RUN uv run --no-sync pybabel compile -d locales -D sophie --use-fuzzy --statistics
+RUN uv run --no-sync pybabel compile -d locales -D sophie --statistics
 
 # Inject version information
 ARG BRANCH_NAME=Local
