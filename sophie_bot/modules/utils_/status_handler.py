@@ -72,7 +72,7 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, P
             KeyValue(_("Chat"), self.connection.title),
             title=self.header_text,
         )
-        await self.event.reply(str(doc))
+        return await self.event.reply(str(doc))
 
     async def handle(self) -> Any:
         new_status: bool | None = self.data.get("new_status", None)
@@ -128,4 +128,4 @@ class StatusIntHandlerABC(StatusHandlerABC[int], ABC):
             KeyValue(_("Chat"), self.connection.title),
             title=self.header_text,
         )
-        await self.event.reply(str(doc))
+        return await self.event.reply(str(doc))
