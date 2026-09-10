@@ -42,7 +42,7 @@ async def _on_warn_action_back(handler: SophieCallbackQueryHandler, callback_que
 
 
 def _command_filters(*commands: str) -> tuple[CallbackType, ...]:
-    return (CMDFilter(commands), FeatureFlagFilter("action_config_wizard"), UserRestricting(can_restrict_members=True))
+    return CMDFilter(commands), FeatureFlagFilter("action_config_wizard"), UserRestricting(can_restrict_members=True)
 
 
 def _callback_filters(scope: str) -> tuple[CallbackType, ...]:

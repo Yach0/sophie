@@ -22,7 +22,7 @@ class SelectLangCb(CallbackData, prefix="set_lang"):
 class LanguageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("lang"), UserRestricting(admin=True))
+        return CMDFilter("lang"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         message: Message = self.event
@@ -67,7 +67,7 @@ class LanguageHandler(SophieMessageHandler):
 class LanguageCallbackHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (SelectLangCb.filter(), UserRestricting(admin=True))
+        return SelectLangCb.filter(), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         callback_data: SelectLangCb = self.callback_data

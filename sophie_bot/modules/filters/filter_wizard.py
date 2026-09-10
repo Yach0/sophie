@@ -170,7 +170,7 @@ class FilterWizardCallbackHandler(ActionWizardCallbackHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (*_wizard_filters(), WizardCallback.filter((F.scope == "filter_action") & (F.op != "toggle")))
+        return *_wizard_filters(), WizardCallback.filter((F.scope == "filter_action") & (F.op != "toggle"))
 
 
 class FilterWizardToggleHandler(SophieCallbackQueryHandler):

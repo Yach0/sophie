@@ -47,7 +47,7 @@ def tolerated_title_errors(granted_permissions: dict[str, bool]) -> tuple[str, .
     """
     tolerated = (RIGHT_FORBIDDEN, NOT_ENOUGH_RIGHTS)
     if any(granted_permissions.values()):
-        return (*tolerated, USER_NOT_ADMIN)
+        return *tolerated, USER_NOT_ADMIN
     return tolerated
 
 

@@ -146,7 +146,7 @@ def _display_names(user: ChatModel) -> tuple[str, ...]:
     first_name = user.first_name_or_title
     if not user.last_name:
         return (first_name,)
-    return (f"{first_name} {user.last_name}", first_name)
+    return f"{first_name} {user.last_name}", first_name
 
 
 def _candidate_from_user(user: ChatModel | None) -> MentionCandidate | None:

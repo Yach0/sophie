@@ -69,7 +69,7 @@ def _extract_reply_context(message: Message) -> str | None:
 class OpTaskHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:
-        return (CMDFilter("op_task"), IsOP(True), FeatureFlagFilter("op_task"))
+        return CMDFilter("op_task"), IsOP(True), FeatureFlagFilter("op_task")
 
     async def handle(self) -> None:
         message: Message = self.event

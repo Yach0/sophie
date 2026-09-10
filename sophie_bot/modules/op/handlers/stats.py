@@ -99,7 +99,7 @@ async def get_system_stats(*, services: ApplicationServices) -> Doc:
 class StatsHandler(SophieMessageHandler):
     @staticmethod
     def filters():
-        return (CMDFilter(("stats",)), IsOP(True))
+        return CMDFilter(("stats",)), IsOP(True)
 
     async def handle(self):
         sec = Doc()

@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import gettext as _
 class SetBetaPercentage(SophieMessageHandler):
     @staticmethod
     def filters():
-        return (CMDFilter("op_setbeta"), IsOP(True))
+        return CMDFilter("op_setbeta"), IsOP(True)
 
     async def handle(self) -> Any:
         percentage: int = self.data["percentage"]
@@ -37,7 +37,7 @@ class SetBetaPercentage(SophieMessageHandler):
 class ResetBetaChats(SophieMessageHandler):
     @staticmethod
     def filters():
-        return (CMDFilter("op_resetbeta"), IsOP(True))
+        return CMDFilter("op_resetbeta"), IsOP(True)
 
     async def handle(self) -> Any:
         await BetaModeModel.all_chats_reset_current_mode()
