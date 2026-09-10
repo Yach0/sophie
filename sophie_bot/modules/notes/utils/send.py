@@ -1,3 +1,4 @@
+import re
 from html.parser import HTMLParser
 from typing import Final
 
@@ -40,22 +41,45 @@ from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
+_TELEGRAM_ENTITY = re.compile(r"&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);?")
+_TELEGRAM_NAMED_ENTITIES = {"lt": "<", "gt": ">", "amp": "&", "quot": '"'}
+
+
+def _decode_telegram_entity(match: re.Match[str]) -> str:
+    entity = match[1]
+    if not entity.startswith("#"):
+        return _TELEGRAM_NAMED_ENTITIES.get(entity, match[0])
+    # Match TDLib's decode_html_entity, not HTML5's replacement/deletion rules.
+    # The length includes '&' and '#' (and 'x'), but excludes the optional ';'.
+    if len(entity) + 1 >= 10:
+        return match[0]
+    hexadecimal = entity.startswith("#x")
+    digits = entity[2:] if hexadecimal else entity[1:]
+    codepoint = int(digits, 16 if hexadecimal else 10)
+    return chr(codepoint) if 0 < codepoint < 0x10FFFF else match[0]
+
 
 class _TelegramHTMLTextLengthParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.length = 0
+        self.parts: list[str] = []
 
     def handle_data(self, data: str) -> None:
-        self.length += len(data)
+        self.parts.append(_TELEGRAM_ENTITY.sub(_decode_telegram_entity, data))
+
+
+def _telegram_plain_text(text: str) -> str:
+    parser = _TelegramHTMLTextLengthParser()
+    # Protect original references from HTMLParser's HTML5 decoder. Decode only once,
+    # after stripping markup, so escaped tags stay literal text.
+    parser.feed(text.replace("&", "&amp;"))
+    parser.close()
+    return "".join(parser.parts)
 
 
 def _telegram_text_length(text: str) -> int:
     """Return the text length Telegram applies after parsing HTML entities."""
-    parser = _TelegramHTMLTextLengthParser()
-    parser.feed(text)
-    parser.close()
-    return parser.length
+    return len(_telegram_plain_text(text))
 
 
 class _VisibleTitleParser(HTMLParser):
@@ -156,6 +180,7 @@ async def _send_text_chunks(
             return await SendMessage(
                 chat_id=send_to,
                 text=text_chunk,
+                parse_mode=None,
                 reply_markup=chunk_markup,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 message_thread_id=message_thread_id,
@@ -166,6 +191,7 @@ async def _send_text_chunks(
             to_try=SendMessage(
                 chat_id=send_to,
                 text=text_chunk,
+                parse_mode=None,
                 reply_markup=chunk_markup,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 reply_parameters=ReplyParameters(message_id=reply_to) if has_reply else None,
@@ -216,7 +242,7 @@ async def _send_media_group(
     message the bot produced (silent-mode filters) pass `collect_sent` to receive them all.
     """
     has_buttons = bool(inline_markup.inline_keyboard)
-    put_caption_on_album = bool(text) and len(text) <= MEDIA_CAPTION_LENGTH_LIMIT and not has_buttons
+    put_caption_on_album = bool(text) and _telegram_text_length(text) <= MEDIA_CAPTION_LENGTH_LIMIT and not has_buttons
 
     media: list[MediaUnion] = [
         _build_input_media(note_file, text if index == 0 and put_caption_on_album else None)
@@ -358,13 +384,12 @@ async def send_saveable(
     # Apply random choice sections (%%%...%%%)
     if text:
         text = parse_random_text(text)
+    title_html = parse_random_text(title.to_html()) if title else None
     should_split_long_text = split_long_text or (saveable.rich_message is not None and not rich_enabled)
     if should_split_long_text and _telegram_text_length(text) > TELEGRAM_MESSAGE_LENGTH_LIMIT and not single_file:
-        if title:
-            text = f"{title.to_html()}\n{text}"
-        visible_parser = _VisibleTitleParser()
-        visible_parser.feed(text)
-        text = visible_parser.text()
+        if title_html:
+            text = f"{title_html}\n{text}"
+        text = _telegram_plain_text(text)
         return await _send_text_chunks(
             send_to,
             text,
@@ -384,8 +409,8 @@ async def send_saveable(
 
     # The title is retrieval-time decoration and was not part of the saved note's length
     # validation. Preserve the note itself when adding the title would exceed Telegram's limit.
-    if title:
-        titled_text = f"{title.to_html()}\n{text}"
+    if title_html:
+        titled_text = f"{title_html}\n{text}"
         if _telegram_text_length(titled_text) <= text_limit:
             text = titled_text
 

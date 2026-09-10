@@ -11,13 +11,17 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiogram.enums import ContentType
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
+from aiogram_test_framework.factories import ChatFactory, MessageFactory, UpdateFactory, UserFactory
+from aiogram_test_framework.types import RequestType
 
+from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.db.models.notes import NoteModel, SaveableParseMode
+from sophie_bot.db.models.notes import NoteFile, NoteModel, SaveableParseMode
 from sophie_bot.modules.notes.handlers.save import SaveNote
-from tests.e2e.helpers import grant_admin
+from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT
+from tests.e2e.helpers import create_test_user_and_group, grant_admin
 
 
 async def _setup_group_and_user(
@@ -56,6 +60,63 @@ async def _save_note_directly(chat_model: ChatModel, names: tuple[str, ...], tex
     )
     await note.insert()
     return note
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("trigger", ["/get boundary", "#boundary"])
+async def test_save_and_retrieve_note_at_text_limit(test_client: TestClient, trigger: str) -> None:
+    user, group, _user_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, user.id)
+    text = "a" * TELEGRAM_MESSAGE_LENGTH_LIMIT
+    replied_message = MessageFactory.create(text=text, from_user=user, chat=group)
+    command_message = MessageFactory.create(
+        text="/save boundary", from_user=user, chat=group, reply_to_message=replied_message
+    )
+    with patch("sophie_bot.modules.logging.utils.log.log_event", AsyncMock()):
+        await test_client.dispatcher.feed_update(
+            bot=test_client.bot, update=UpdateFactory.create_message_update(command_message)
+        )
+    saved_note = await NoteModel.find_one(NoteModel.chat_tid == group.id)
+    assert saved_note is not None
+    assert saved_note.text == text
+
+    before = len(test_client.capture.get_by_type(RequestType.SEND_MESSAGE))
+    await test_client.send_message(text=trigger, from_user=user, chat=group)
+    sends = test_client.capture.get_by_type(RequestType.SEND_MESSAGE)[before:]
+    assert len(sends) == 1
+    assert sends[0].text == text
+    assert sends[0].params["chat_id"] == group.id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("trigger", ["/get boundary", "#boundary"])
+@pytest.mark.parametrize("caption", [False, True])
+async def test_retrieve_formatted_note_at_limit(
+    test_client: TestClient, trigger: str, caption: bool
+) -> None:
+    user, group, _user_model = await create_test_user_and_group(test_client)
+    chat_model = await ChatModel.get_by_tid(group.id)
+    assert chat_model is not None
+    limit = MEDIA_CAPTION_LENGTH_LIMIT if caption else TELEGRAM_MESSAGE_LENGTH_LIMIT
+    text = "<b>" + "a" * (limit - 1) + "&amp;</b>"
+    note = NoteModel(
+        chat_id=group.id,
+        chat=chat_model,
+        names=("boundary",),
+        text=text,
+        file=NoteFile(id="boundary-photo", type=ContentType.PHOTO) if caption else None,
+        version=2,
+    )
+    await note.insert()
+    request_type = RequestType.SEND_PHOTO if caption else RequestType.SEND_MESSAGE
+    before = len(test_client.capture.get_by_type(request_type))
+    await test_client.send_message(text=trigger, from_user=user, chat=group)
+    sends = test_client.capture.get_by_type(request_type)[before:]
+    assert len(sends) == 1
+    assert sends[0].params["caption" if caption else "text"] == text
+    assert sends[0].params["chat_id"] == group.id
+    if caption:
+        assert sends[0].params["photo"] == "boundary-photo"
 
 
 # ---------------------------------------------------------------------------

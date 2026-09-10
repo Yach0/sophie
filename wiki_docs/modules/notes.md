@@ -38,6 +38,12 @@ Please refer to the [AI help page](ai).
 ## Saving photos / stickers, adding buttons and fillings
 Please refer to the [Saveables help page](/docs/Others/Saveables) of Sophie, as this information is global and work in many other places.
 
+## Retrieving notes near Telegram's length limit
+
+When retrieving a single note with `/get name` or `#name`, Sophie omits the note title and description if adding them would exceed Telegram's limit: 4096 characters for text messages or 1024 for a single media caption, after parsing HTML. The saved note content is kept intact; its title and description remain saved.
+
+This title omission does not apply to multiple notes combined in one hashtag request. Retrieve those notes individually if the combined message is too long. Where long-text splitting is enabled (such as the fallback for rich messages), chunks are sent as plain text: literal `<`, `>` and `&` are preserved, but formatting and link targets are not.
+
 ## Note searching
 Sophie implements 2 ways to search notes.
 The simplest way is to filer by the note names using `/notes <filter>`.
