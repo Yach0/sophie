@@ -253,6 +253,7 @@ def extract_markdown_entities(
     :param text: the message with markdown-like syntax to be parsed.
     :param delimiters: the delimiters to be used, {delimiter: type}.
     :param url_re: the URL bytes regex to be used. Must have two groups.
+    :param extract_headings: whether Markdown headings should be extracted.
     :return: a tuple consisting of (clean message, [message entities]).
     """
     if not text:

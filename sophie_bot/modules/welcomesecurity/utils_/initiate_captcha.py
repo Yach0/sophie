@@ -50,7 +50,9 @@ async def initiate_captcha(
     Args:
         user: The user to send captcha to
         group: The group chat
-        :param is_join_request: Whether this was from a join request
+        is_join_request: Whether this was from a join request
+        bot: The bot instance used to send the captcha.
+        dispatcher: The dispatcher managing the bot's FSM state.
     Returns:
         The message containing the captcha
     """

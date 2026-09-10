@@ -175,6 +175,7 @@ async def match_ai_handler(
         message: The Telegram message to evaluate
         prompt: The user-provided prompt describing when to trigger the filter
         user_in_group: The user in group database model to check for join date
+        chat_iid: The database ID of the chat whose filter is being evaluated
 
     Returns:
         bool: True if the message matches the filter criteria
