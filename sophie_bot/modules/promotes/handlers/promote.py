@@ -98,6 +98,8 @@ class PromoteUserHandler(SophieMessageHandler):
         grant_all = invoker_id in CONFIG.operators
 
         admin_record = None
+        user_model = None
+        chat_model = None
         if not grant_all:
             user_model = await ChatModel.get_by_tid(invoker_id)
             chat_model = connection.db_model
