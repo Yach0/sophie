@@ -79,8 +79,6 @@ async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenera
         attributes={"provider": provider, "model": model_name, "operation": operation},
     )
 
-    error_type = "unknown"
-
     try:
         yield
     except Exception as e:

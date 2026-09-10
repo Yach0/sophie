@@ -29,7 +29,6 @@ async def get_cached_locks(
     try:
         model = await LocksModel.find_one(LocksModel.chat.id == chat_iid)
         if not model:
-            model = LocksModel(chat=chat_iid)
             return set()
         locked_types = model.locked_types
         await set_cached_locks(chat_tid, locked_types, redis=redis)
