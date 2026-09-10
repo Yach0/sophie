@@ -22,13 +22,7 @@ class LockTypeArg(WordArg):
     async def value(self, text: str) -> str:
         lock_type = text.lower()
 
-        if lock_type in ALL_LOCK_TYPES:
-            return lock_type
-
-        if is_stickerpack_lock(lock_type):
-            return lock_type
-
-        if is_language_lock(lock_type):
+        if lock_type in ALL_LOCK_TYPES or is_stickerpack_lock(lock_type) or is_language_lock(lock_type):
             return lock_type
 
         raise ArgStrictError(
