@@ -159,3 +159,34 @@ async def test_process_user_defaults_missing_expiry_to_48_hours(
 
     execute_restriction.assert_not_awaited()
     ws_user.delete.assert_not_awaited()
+
+
+@pytest.mark.parametrize("unmute_succeeded", [False, True])
+async def test_process_whitelisted_user_keeps_pending_record_until_unmute_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+    unmute_succeeded: bool,
+    test_services: object,
+) -> None:
+    ws_user = _make_ws_user(is_join_request=False, age_hours=1)
+    execute_restriction = AsyncMock(
+        return_value=RestrictionResult(
+            action=RestrictionAction.UNMUTE,
+            applied=unmute_succeeded,
+        )
+    )
+    _patch_module(monkeypatch, execute_restriction, test_services)
+    monkeypatch.setattr(f"{_MODULE}.is_user_group_whitelisted", AsyncMock(return_value=True))
+    monkeypatch.setattr(f"{_MODULE}.log_group_whitelist_exemption", AsyncMock())
+
+    await KickUnpassedUsers(test_services).process_user(ws_user)
+
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot,
+        RestrictionAction.UNMUTE,
+        -100123,
+        123,
+    )
+    if unmute_succeeded:
+        ws_user.delete.assert_awaited_once()
+    else:
+        ws_user.delete.assert_not_awaited()

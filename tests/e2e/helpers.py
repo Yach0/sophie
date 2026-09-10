@@ -7,7 +7,7 @@ from itertools import count
 from typing import TYPE_CHECKING, Final
 
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message, Update, User
+from aiogram.types import ChatJoinRequest, ChatMemberAdministrator, ChatMemberOwner, Message, Update, User
 from aiogram_test_framework.factories import ChatFactory
 
 from sophie_bot.config import CONFIG
@@ -204,6 +204,28 @@ async def join_group(
         new_chat_members=list(members),
     )
     return await _feed(test_client, message)
+
+
+async def send_join_request(
+    test_client: TestClient,
+    group: Chat,
+    user: User,
+    *,
+    date: datetime | None = None,
+) -> list[CapturedRequest]:
+    """Simulate a Telegram join request through the real dispatcher."""
+    start = len(test_client.capture)
+    join_request = ChatJoinRequest(
+        chat=group,
+        from_user=user,
+        user_chat_id=user.id,
+        date=date or datetime.now(UTC),
+    )
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot,
+        update=Update(update_id=next(_update_ids), chat_join_request=join_request),
+    )
+    return test_client.capture.all_requests[start:]
 
 
 async def send_reply_command(

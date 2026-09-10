@@ -33,6 +33,9 @@ class LogEvent(str, Enum):
     MESSAGES_PURGED = "messages_purged"
     MESSAGE_DELETED = "message_deleted"
 
+    # Automated moderation exemptions
+    GROUP_WHITELIST_EXEMPTION = "group_whitelist_exemption"
+
 
 LOG_EVENT_STRINGS = {
     LogEvent.WARN_ADDED: l_("Warning added"),
@@ -54,4 +57,5 @@ LOG_EVENT_STRINGS = {
     LogEvent.FILTER_DELETED: l_("Filter deleted"),
     LogEvent.MESSAGES_PURGED: l_("Messages purged"),
     LogEvent.MESSAGE_DELETED: l_("Message deleted"),
+    LogEvent.GROUP_WHITELIST_EXEMPTION: l_("Group whitelist exemption"),
 }

@@ -63,7 +63,7 @@ class MarkdownLinkArgument(ArgFabric[tuple[str, str]], ABC):
         length += len("](")
 
         # Check if link_data has entities
-        if entities := entities.get_overlapping(offset + length, len(link_data) + 1):
+        if entities.get_overlapping(offset + length, len(link_data) + 1):
             raise ArgCustomError(
                 _("Markdown link data cannot contain entities."),
                 offset=length + offset,

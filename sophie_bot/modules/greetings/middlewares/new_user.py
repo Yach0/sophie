@@ -129,7 +129,12 @@ class NewUserMiddleware(BaseMiddleware):
         *,
         services: ApplicationServices,
     ) -> Message | None:
-        muted_users = await ws_on_new_users_mute(new_users, chat_db, bot=services.bot)
+        muted_users = await ws_on_new_users_mute(
+            new_users,
+            chat_db,
+            bot=services.bot,
+            redis=services.redis,
+        )
 
         # If no users were welcomesecurity muted, fall back to the normal welcome flow.
         if not any(muted_users):
@@ -146,8 +151,10 @@ class NewUserMiddleware(BaseMiddleware):
                 chat_rules,
                 user=new_member,
                 additional_keyboard=security_keyboard.as_markup(),
+                owner_chat_tid=chat_db.tid,
                 receiver_user_id=user.tid if user else None,
                 bot=services.bot,
+                redis=services.redis,
             )
 
         if await is_enabled(
@@ -249,8 +256,10 @@ class NewUserMiddleware(BaseMiddleware):
                             cleanservice_enabled,
                             chat_rules,
                             user=member,
+                            owner_chat_tid=chat_db.tid,
                             receiver_user_id=member.id,
                             bot=data["services"].bot,
+                            redis=data["services"].redis,
                         )
                 else:
                     sent_message = await send_welcome(
@@ -259,7 +268,9 @@ class NewUserMiddleware(BaseMiddleware):
                         cleanservice_enabled,
                         chat_rules,
                         user=new_member,
+                        owner_chat_tid=chat_db.tid,
                         bot=data["services"].bot,
+                        redis=data["services"].redis,
                     )
 
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:
@@ -271,6 +282,7 @@ class NewUserMiddleware(BaseMiddleware):
                                 new_user.tid,
                                 welcome_mute_time,
                                 bot=data["services"].bot,
+                                redis=data["services"].redis,
                             )
                             for new_user in human_users
                         )

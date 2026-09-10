@@ -24,6 +24,7 @@ from sophie_bot.modules.restrictions.actions.mute import MuteActionDataModel, Mu
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
 from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionResult
 
 # Actions typed ModernActionABC[None]: they take no data, so data_object must resolve to None
@@ -41,6 +42,8 @@ def _make_message(chat_tid: int = -100123, user_tid: int = 777, chat_title: str 
         caption=None,
         reply=AsyncMock(),
     )
+
+
 def _warn_action_data(message: SimpleNamespace) -> dict[str, Any]:
     action = WarnModernAction()
     return {
@@ -49,14 +52,13 @@ def _warn_action_data(message: SimpleNamespace) -> dict[str, Any]:
             actor=SimpleNamespace(tid=777, iid="user_iid"),
         ),
         "services": SimpleNamespace(
+            redis=AsyncMock(),
             modules=SimpleNamespace(
                 actions={action.definition.name: action.definition},
                 action_handlers={action.definition.name: action},
-            )
+            ),
         ),
     }
-
-
 
 
 @pytest.mark.parametrize(
@@ -132,6 +134,7 @@ async def test_restriction_filter_action_translates_plain_message_id(
 
     execute_restriction_mock.assert_awaited_once()
 
+
 @pytest.mark.parametrize(
     ("module_file", "message_id"),
     [
@@ -154,6 +157,10 @@ def test_restriction_filter_action_message_id_is_extractable(module_file: str, m
 async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) -> None:
     warn_user_mock = AsyncMock(return_value=(1, 3, None, SimpleNamespace(id="warn_iid")))
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_group_whitelisted",
+        AsyncMock(return_value=False),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
         AsyncMock(return_value=True),
@@ -183,11 +190,49 @@ async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) 
 
 
 @pytest.mark.asyncio
+async def test_warn_filter_action_skips_whitelisted_users(monkeypatch: pytest.MonkeyPatch) -> None:
+    warn_user_mock = AsyncMock(return_value=(1, 3, None, SimpleNamespace(id="warn_iid")))
+    log_exemption_mock = AsyncMock()
+
+    monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_group_whitelisted",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.log_group_whitelist_exemption",
+        log_exemption_mock,
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
+        AsyncMock(return_value=False),
+    )
+
+    message = _make_message()
+    data = _warn_action_data(message)
+
+    result = await handle_effective_filter_action(
+        message,
+        EffectiveFilterAction(name="warn_user", data={"reason": None}),
+        data,
+        SimpleNamespace(id="filter_iid"),
+    )
+
+    assert result is None
+    warn_user_mock.assert_not_awaited()
+    log_exemption_mock.assert_awaited_once_with(message.chat.id, message.from_user.id, "automated_actions")
+
+
+@pytest.mark.asyncio
 async def test_warn_filter_action_still_warns_non_admins(monkeypatch: pytest.MonkeyPatch) -> None:
     warn_user_mock = AsyncMock(return_value=(1, 3, None, SimpleNamespace(id="warn_iid")))
     bot_db = SimpleNamespace(tid=1234, iid="bot_iid")
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_group_whitelisted",
+        AsyncMock(return_value=False),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
         AsyncMock(return_value=False),
@@ -226,6 +271,10 @@ async def test_warn_action_data_survives_the_admin_gate(monkeypatch: pytest.Monk
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", fake_warn_user)
     monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.handle_action.is_user_group_whitelisted",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
         "sophie_bot.modules.filters.utils_.handle_action.is_user_admin",
         AsyncMock(return_value=False),
     )
@@ -248,7 +297,10 @@ async def test_warn_action_data_survives_the_admin_gate(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
-async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_rules_action_processes_fillings_for_text_only_rules(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     captured_kwargs: dict[str, Any] = {}
 
     class FakeSendMessage:
@@ -274,7 +326,7 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
         message,
         {
             "context": SimpleNamespace(connection=connection),
-            "services": SimpleNamespace(bot=object()),
+            "services": test_services,
         },
         None,
     )
@@ -288,7 +340,10 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_set_rules_rejects_empty_content(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_set_rules_rejects_empty_content(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
     set_rules_mock = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.rules.handlers.set.RulesModel.set_rules", set_rules_mock)
     monkeypatch.setattr(
@@ -304,6 +359,7 @@ async def test_set_rules_rejects_empty_content(monkeypatch: pytest.MonkeyPatch) 
         message,
         context=SimpleNamespace(connection=connection),
         content=None,
+        services=test_services,
     )
     await handler.handle()
 

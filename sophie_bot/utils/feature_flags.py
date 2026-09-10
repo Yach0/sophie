@@ -100,6 +100,7 @@ FeatureType = Literal[
     "action_config_wizard",
     "antiflood",
     "locks",
+    "group_user_whitelist",
     "greetings_ephemeral",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
@@ -143,6 +144,7 @@ FeatureType = Literal[
     "ai_entertainment_monthly_credits",
     "fban_anonymous_admin",
     "connection_webapp_notice",
+    "saveable_rich_messages",
 ]
 
 
@@ -371,6 +373,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "action_config_wizard": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
+    "group_user_whitelist": _feature(False),
     # Send the welcome only to the members it greets, so it never becomes chat clutter to clean up.
     "greetings_ephemeral": _feature(False),
     "welcomecaptcha": _feature(True),
@@ -425,6 +428,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "fban_anonymous_admin": _feature(False),
     # Announces the /connection deprecation; stays off until the replacement webapp is deployed.
     "connection_webapp_notice": _feature(False),
+    "saveable_rich_messages": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

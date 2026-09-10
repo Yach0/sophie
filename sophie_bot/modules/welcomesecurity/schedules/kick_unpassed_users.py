@@ -13,6 +13,8 @@ from sophie_bot.modules.restrictions.utils.restrictions import execute_restricti
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
+from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
 
 
@@ -44,6 +46,18 @@ class KickUnpassedUsers:
                 ws_user_tid=str(ws_user.id),
             )
             await ws_user.delete()
+            return
+        if await is_user_group_whitelisted(group.tid, user.tid, redis=self.services.redis):
+            await log_group_whitelist_exemption(group.tid, user.tid, "welcome_security_captcha_autokick")
+            result = await execute_restriction(
+                self.services.bot,
+                RestrictionAction.UNMUTE,
+                group.tid,
+                user.tid,
+            )
+            if result.applied:
+                log.debug("kick_unpassed_users: removing exempt user from pending captcha", user=user.tid)
+                await ws_user.delete()
             return
         if not await is_enabled(
             "welcomecaptcha_autokick",

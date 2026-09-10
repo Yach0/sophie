@@ -35,6 +35,7 @@ async def test_reaction_lock_removes_outsider_reaction(monkeypatch: pytest.Monke
     handler = AsyncMock()
 
     monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(reaction_enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(reaction_enforcer.ChatModel, "get_by_tid", AsyncMock(return_value=chat))
     monkeypatch.setattr(reaction_enforcer, "get_cached_locks", AsyncMock(return_value={LockType.OUTSIDE_REACTION}))
 
@@ -61,6 +62,7 @@ async def test_reaction_lock_allows_chat_members(monkeypatch: pytest.MonkeyPatch
     handler = AsyncMock(return_value="handled")
 
     monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(reaction_enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(reaction_enforcer.ChatModel, "get_by_tid", AsyncMock(return_value=chat))
     monkeypatch.setattr(reaction_enforcer, "get_cached_locks", AsyncMock(return_value={LockType.OUTSIDE_REACTION}))
 

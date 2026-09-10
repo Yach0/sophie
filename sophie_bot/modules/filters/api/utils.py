@@ -12,9 +12,11 @@ from regex import regex
 from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTER_MAX_ACTIONS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
+from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, Saveable
 from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
+from sophie_bot.modules.notes.utils.rich import rich_message_to_html_fallback, validate_rich_message_api
 from sophie_bot.shared.action_registry import normalize_action_data
 from sophie_bot.shared.actions import (
     ActionDefinition,
@@ -38,12 +40,30 @@ def _normalize_action_data(
     actions: Mapping[str, ActionDefinition[Any]],
 ) -> dict[str, Any]:
     try:
-        return normalize_action_data(
+        normalized_data = normalize_action_data(
             actions,
             action_name,
             action_data,
             capability="filter",
         )
+        definition = actions[action_name]
+        if definition.data_object is None:
+            return normalized_data
+
+        validated_data = definition.data_object.model_validate(normalized_data)
+        if isinstance(validated_data, Saveable) and validated_data.rich_message is not None:
+            try:
+                validate_rich_message_api(validated_data.rich_message)
+                fallback = rich_message_to_html_fallback(validated_data.rich_message)
+                if validated_data.text not in (None, "", fallback):
+                    raise ValueError("text must match the Rich message fallback")
+            except ValueError as validation_error:
+                raise ActionValidationError(action_name, "data", str(validation_error)) from validation_error
+            validated_data.text = fallback
+            validated_data.file = None
+            validated_data.files = []
+            validated_data.version = CURRENT_SAVEABLE_VERSION
+        return validated_data.model_dump(mode="json")
     except ActionValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

@@ -9,7 +9,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.modules.filters.filter_wizard import FilterDraft, _save_filter
-from sophie_bot.modules.filters.utils_.filter_handler_rules import InvalidFilterHandler
+from sophie_bot.modules.filters.utils_.filter_handler_rules import InvalidFilterHandler, validate_filter_handler
 
 
 @pytest.mark.asyncio
@@ -36,6 +36,7 @@ async def test_filter_save_revalidates_before_persisting() -> None:
 
     validate.assert_awaited_once_with(chat_iid, "spam", None)
 
+
 @pytest.mark.asyncio
 async def test_invalid_filter_id_is_rejected_without_loading_model(db_init: Any) -> None:
     del db_init
@@ -55,5 +56,33 @@ async def test_invalid_filter_id_is_rejected_without_loading_model(db_init: Any)
         patch.object(FiltersModel, "find_one", AsyncMock(return_value=None)) as find_one_mock,
         pytest.raises(ValueError, match="could not be found"),
     ):
-        await _save_filter(PydanticObjectId(), draft_non_existent, SimpleNamespace(from_user=None), SimpleNamespace(tid=-100))
+        await _save_filter(
+            PydanticObjectId(), draft_non_existent, SimpleNamespace(from_user=None), SimpleNamespace(tid=-100)
+        )
     find_one_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_validate_filter_handler_translates_early_lock_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.filter_handler_rules.is_supported_lock_type",
+        lambda keyword: keyword == "lock",
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.filter_handler_rules.get_lock_type_owner",
+        AsyncMock(return_value="locks"),
+    )
+
+    with pytest.raises(InvalidFilterHandler, match="already enforced"):
+        await validate_filter_handler(PydanticObjectId(), "lock")
+
+
+@pytest.mark.asyncio
+async def test_validate_filter_handler_checks_invalid_regex(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.utils_.filter_handler_rules.FiltersModel.get_all_by_keyword",
+        AsyncMock(return_value=[]),
+    )
+
+    with pytest.raises(InvalidFilterHandler, match="regex pattern is invalid"):
+        await validate_filter_handler(PydanticObjectId(), "re:(")

@@ -20,7 +20,8 @@ from aiogram_test_framework.types import RequestType
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_KICK_TIMEOUT_HOURS
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
-from sophie_bot.db.models.greetings import WelcomeSecurity
+from sophie_bot.db.models.greetings import WelcomeMute, WelcomeSecurity
+from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
@@ -129,6 +130,30 @@ async def test_correct_captcha_unmutes_and_clears_pending(test_client: TestClien
 
     assert _restricts(requests, user.tid), "Passing the captcha should unmute the user"
     assert await WSUserModel.is_user(user.iid, chat.iid) is None, "The pending row should be cleared on pass"
+
+
+@pytest.mark.asyncio
+async def test_whitelisted_captcha_pass_unmutes_instead_of_applying_welcome_mute(test_client: TestClient) -> None:
+    await set_feature(test_client, "group_user_whitelist", True)
+    _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Whitelist Pass Group")
+    await grant_bot_admin(group.id)
+    chat = await _enable_ws(group.id)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings.welcome_mute = WelcomeMute(enabled=True, time=timedelta(hours=1))
+    await greetings.save()
+
+    _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
+    await GroupUserWhitelistModel.add_user(group.id, user.tid)
+    await _solve_fsm_captcha(test_client, user.tid)
+
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid)).pack()
+    from_user = User(id=user.tid, is_bot=False, first_name="Whitelisted Solver")
+    requests = await test_client.send_callback(confirm, from_user=from_user, message=captcha_message)
+
+    restrictions = _restricts(requests, user.tid)
+    assert restrictions
+    assert restrictions[-1].params["permissions"]["can_send_messages"] is True
+    assert await WSUserModel.is_user(user.iid, chat.iid) is None
 
 
 @pytest.mark.asyncio

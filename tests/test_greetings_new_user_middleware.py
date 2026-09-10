@@ -87,18 +87,20 @@ async def test_welcome_mute_restricts_the_new_member_not_the_adder(monkeypatch: 
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.send_welcome", AsyncMock(return_value=None))
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.on_welcomemute", on_welcomemute)
 
+    data = _data(chat_db, new_users)
     with pytest.raises(SkipHandler):
         await NewUserMiddleware()(
             AsyncMock(),
             event,
-            _data(chat_db, new_users),
+            data,
         )
 
     on_welcomemute.assert_awaited_once_with(
         CHAT_TID,
         JOINER_TID,
         "1h",
-        bot=on_welcomemute.await_args.kwargs["bot"],
+        bot=data["services"].bot,
+        redis=data["services"].redis,
     )
 
 
