@@ -864,11 +864,11 @@ wheels = [
 
 [[package]]
 name = "init-data-py"
-version = "0.2.7"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/99/9f/9b7a40f0a53a7784ed4a6d794c1f096acefa35a1270d0a9529e443b3858b/init_data_py-0.2.7.tar.gz", hash = "sha256:b83f51e4f5fa75e9cb5da718155b18330cb2a2b77ec9676d401185cb536e8bb7", size = 8586, upload-time = "2025-11-13T13:58:57.704Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/9d/20908944654f10884e4133ff87f8e04d3bdb281b0c0deed2ad7141465058/init_data_py-1.0.0.tar.gz", hash = "sha256:d6b372db700126d8fb4e86db733b6b35897c1357ca698f3d65c8e8d94ae630e3", size = 64300, upload-time = "2026-09-06T07:43:29.236Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/a8/4c2b055bf8870bc45b72c41d7bb7583a9e99a2df8d867162db9f405625cb/init_data_py-0.2.7-py3-none-any.whl", hash = "sha256:48c652a929912645842db044eecfb81b049927f9ca202a7fbc3215edcf69956d", size = 9248, upload-time = "2025-11-13T13:58:56.428Z" },
+    { url = "https://files.pythonhosted.org/packages/84/04/e01f1576e30807db86adc82913512ed65c2f439eb1522b0efa6a817c7097/init_data_py-1.0.0-py3-none-any.whl", hash = "sha256:8e9789010d8a926194ff95714ea3dda7b84450daa7a113a54be1da45fa6c3185", size = 21448, upload-time = "2026-09-06T07:43:28.253Z" },
 ]
 
 [[package]]
@@ -2162,7 +2162,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.141.1,<0.142" },
     { name = "httpx", specifier = ">=0.28.1,<0.29" },
     { name = "httpx2", specifier = ">=2.12.0,<3" },
-    { name = "init-data-py", specifier = ">=0.2.7,<0.3" },
+    { name = "init-data-py", specifier = ">=1,<1.1" },
     { name = "lingua-language-detector", specifier = ">=2.2.0,<3" },
     { name = "mem-top", specifier = ">=0.2.1,<0.3" },
     { name = "mistralai", specifier = ">=2.9.4,<3" },

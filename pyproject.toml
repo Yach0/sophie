@@ -37,7 +37,7 @@ dependencies = [
     "uvicorn>=0.52.4,<0.53",
     "uvloop>=0.22.1,<0.23",
     "pyjwt>=2.13.0,<3",
-    "init-data-py>=0.2.7,<0.3",
+    "init-data-py>=1,<1.1",
     "normality>=3.1.0",
     "av>=18.1,<19",
     "openapi-client",
