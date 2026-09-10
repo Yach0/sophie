@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from init_data_py import InitData
-from init_data_py.errors.errors import InitDataPyError
+from init_data_py import validate_by_hash
+from init_data_py.errors import AuthenticityError, ExpiredError, ParseError
 from pydantic import BaseModel
 
 from sophie_bot.config import CONFIG
@@ -75,16 +75,19 @@ async def create_tokens(user: ChatModel, scopes: list[str] | None = None) -> dic
 
 
 @router.post("/login/tma", response_model=Token, dependencies=[Depends(rate_limit)])
-async def login_tma(data: TMALoginRequest):
+async def login_tma(data: TMALoginRequest) -> dict:
     try:
-        init_data = InitData.parse(data.initData)
-    except InitDataPyError:
+        init_data = validate_by_hash(data.initData, CONFIG.token, expires_in=timedelta(days=1))
+    except ParseError:
         security_log.warning("auth.tma.invalid_init_data")
         raise HTTPException(status_code=400, detail="Invalid init data")
-
-    if not init_data.validate(CONFIG.token):
+    except (AuthenticityError, ExpiredError):
         security_log.warning("auth.tma.validation_failed")
-        raise HTTPException(status_code=403, detail="Invalid init data")
+        raise HTTPException(status_code=401, detail="Invalid init data")
+
+    if init_data.user is None:
+        security_log.warning("auth.tma.missing_user")
+        raise HTTPException(status_code=400, detail="Missing user in init data")
 
     if not (user := await ChatModel.get_by_tid(init_data.user.id)):
         security_log.warning("auth.tma.user_not_found", user_tid=init_data.user.id)

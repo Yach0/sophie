@@ -57,6 +57,15 @@ To deploy the beta environment (includes scheduler and REST API):
 ansible-playbook -i your_inventory deploy/beta.yml
 ```
 
+## Telegram Mini App authentication
+
+Mini App login at `/auth/login/tma` validates Telegram init data with the bot token using
+`init-data-py` v1. Init data has an explicit one-day lifetime; older credentials are rejected,
+so clients must reopen the Mini App to obtain fresh init data rather than reuse it indefinitely.
+Malformed init data (including missing required fields) or validated data without a user returns
+HTTP 400. Invalid hashes and expired credentials return HTTP 401. A valid Telegram user not
+registered in Sophie's database still receives HTTP 403. The successful token response is unchanged.
+
 ## Greetings and welcome security
 
 `greetings_ephemeral` sends the welcome only to the members it greets, one message each, filled
