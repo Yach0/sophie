@@ -28,14 +28,14 @@ async def close_model_pricing_client() -> None:
     await ai_http_client.aclose()
 
 
-def _openrouter_headers() -> dict[str, str]:
+def openrouter_headers() -> dict[str, str]:
     headers = {"Accept": "application/json"}
     if CONFIG.openrouter_api_key:
         headers["Authorization"] = f"Bearer {CONFIG.openrouter_api_key}"
     return headers
 
 
-def _parse_price_per_million(raw_price: object) -> float | None:
+def parse_price_per_million(raw_price: object) -> float | None:
     if raw_price in (None, "", 0, "0"):
         return 0.0 if raw_price in (0, "0") else None
 
@@ -59,7 +59,7 @@ async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[flo
 
     cache: dict[str, tuple[float | None, float | None]] = {}
     try:
-        response = await ai_http_client.get("https://openrouter.ai/api/v1/models", headers=_openrouter_headers())
+        response = await ai_http_client.get("https://openrouter.ai/api/v1/models", headers=openrouter_headers())
         response.raise_for_status()
     except HTTPError as err:
         log.warning("Failed to load OpenRouter pricing", error=str(err))
@@ -72,8 +72,8 @@ async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[flo
             continue
         pricing = item.get("pricing") or {}
         cache[model_name] = (
-            _parse_price_per_million(pricing.get("prompt") or pricing.get("input") or item.get("input_price")),
-            _parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
+            parse_price_per_million(pricing.get("prompt") or pricing.get("input") or item.get("input_price")),
+            parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
         )
 
     serialized = ujson.dumps(cache)

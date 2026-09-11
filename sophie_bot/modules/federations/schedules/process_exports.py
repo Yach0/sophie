@@ -129,7 +129,8 @@ class ProcessFederationExports:
         csv_bytes = output.getvalue().encode("utf-8")
         return csv_bytes, ban_count
 
-    def _extract_chat_iid(self, chat_link: object) -> object | None:
+    @staticmethod
+    def _extract_chat_iid(chat_link: object) -> object | None:
         """Extract ChatModel internal ID from either a fetched model or a Link object."""
         direct_iid = getattr(chat_link, "iid", None)
         if direct_iid is not None:
@@ -141,7 +142,8 @@ class ProcessFederationExports:
 
         return getattr(link_ref, "id", None)
 
-    def _build_caption(self, task: FederationTask, ban_count: int) -> str:
+    @staticmethod
+    def _build_caption(task: FederationTask, ban_count: int) -> str:
         """Build caption for exported document."""
         doc = Doc(
             Title(_("🏛 Federation Ban List Export")),
@@ -151,8 +153,8 @@ class ProcessFederationExports:
         )
         return doc.to_html()
 
+    @staticmethod
     async def _update_task_status(
-        self,
         task: FederationTask,
         status: TaskStatus,
         error_message: str | None = None,

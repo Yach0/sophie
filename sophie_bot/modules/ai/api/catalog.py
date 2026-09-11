@@ -24,11 +24,11 @@ from sophie_bot.modules.ai.utils.ai_catalog import (
     mode_allows,
 )
 from sophie_bot.modules.ai.utils.ai_chat_models import MODEL_OVERRIDE_FLAG_BY_PURPOSE
-from sophie_bot.modules.ai.utils.ai_model_pricing import _openrouter_headers, _parse_price_per_million, ai_http_client
+from sophie_bot.modules.ai.utils.ai_model_pricing import ai_http_client, openrouter_headers, parse_price_per_million
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.services.rest import get_services
 from sophie_bot.utils.api.auth import get_current_operator
-from sophie_bot.utils.feature_flags import _SERVICE_TIER_VALUES
+from sophie_bot.utils.feature_flags import SERVICE_TIER_VALUES
 
 from .catalog_schemas import (
     CatalogExport,
@@ -96,7 +96,7 @@ async def get_meta() -> CatalogMeta:
             for mode, purposes in MODE_PURPOSES.items()
         },
         model_override_flags={purpose.value: flag for purpose, flag in MODEL_OVERRIDE_FLAG_BY_PURPOSE.items()},
-        service_tiers=sorted(_SERVICE_TIER_VALUES),
+        service_tiers=sorted(SERVICE_TIER_VALUES),
         reasoning_efforts=["low", "medium", "high"],
     )
 
@@ -357,8 +357,8 @@ def _parse_models(items: list[dict]) -> list[OpenRouterModelInfo]:
                 name=item.get("name") or model_id,
                 description=item.get("description"),
                 context_length=item.get("context_length"),
-                prompt_price=_parse_price_per_million(pricing.get("prompt")),
-                completion_price=_parse_price_per_million(pricing.get("completion")),
+                prompt_price=parse_price_per_million(pricing.get("prompt")),
+                completion_price=parse_price_per_million(pricing.get("completion")),
                 modalities=architecture.get("input_modalities") or [],
             )
         )
@@ -377,7 +377,7 @@ async def _fetch_models(url: str, headers: dict[str, str]) -> list[OpenRouterMod
 @router.get("/openrouter/models", response_model=list[OpenRouterModelInfo])
 async def list_openrouter_models() -> list[OpenRouterModelInfo]:
     """Proxy OpenRouter's model list so the panel can pick a model without an OpenRouter key of its own."""
-    return await _fetch_models(_OPENROUTER_MODELS_URL, _openrouter_headers())
+    return await _fetch_models(_OPENROUTER_MODELS_URL, openrouter_headers())
 
 
 @router.get("/providers/{name:path}/models", response_model=list[OpenRouterModelInfo])
@@ -392,7 +392,7 @@ async def list_provider_models(name: str) -> list[OpenRouterModelInfo]:
         raise HTTPException(status_code=404, detail="Provider not found")
 
     if provider.kind is AIProviderKind.openrouter:
-        headers = {"Authorization": f"Bearer {provider.api_key}"} if provider.api_key else _openrouter_headers()
+        headers = {"Authorization": f"Bearer {provider.api_key}"} if provider.api_key else openrouter_headers()
         return await _fetch_models(_OPENROUTER_MODELS_URL, headers)
 
     if not provider.base_url:

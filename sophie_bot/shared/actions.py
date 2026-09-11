@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, Literal, TypeAlias, cast
+from typing import Any, ClassVar, Literal, TypeAlias
 
 from aiogram.types import Message
 from pydantic import BaseModel, ValidationError
@@ -55,18 +55,18 @@ class ActionDefinition[ACTION_DATA: BaseModel | None]:
     restriction_action: RestrictionAction | None = None
     duration_field: str | None = None
 
-    def load_data(self, data: dict[str, Any] | BaseModel | None) -> ACTION_DATA:
+    def load_data(self, data: dict[str, Any] | BaseModel | None) -> BaseModel | None:
         """Load stored data permissively, falling back to the configured default."""
         if data is None or data == {}:
-            return cast(ACTION_DATA, self.default_data)
-        if isinstance(data, BaseModel):
-            return cast(ACTION_DATA, data)
+            return self.default_data
+        if self.data_object is not None and isinstance(data, self.data_object):
+            return data
         if not isinstance(data, dict) or self.data_object is None:
-            return cast(ACTION_DATA, self.default_data)
+            return self.default_data
         try:
-            return cast(ACTION_DATA, self.data_object.model_validate(data))
+            return self.data_object.model_validate(data)
         except (ValidationError, TypeError, ValueError):
-            return cast(ACTION_DATA, self.default_data)
+            return self.default_data
 
 
 class ActionValidationError(ValueError):

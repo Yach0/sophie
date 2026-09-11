@@ -196,7 +196,7 @@ wheels = [
 [[package]]
 name = "ass-tg"
 version = "2.4.7"
-source = { git = "https://gitlab.com/SophieBot/ass.git#a0e3be3c15c2e7d84bf22ffc353d2af1260c5881" }
+source = { git = "https://gitlab.com/SophieBot/ass.git#4446f5aaf16d11144a902b546266f3cc4b649c53" }
 dependencies = [
     { name = "aiogram" },
     { name = "babel" },

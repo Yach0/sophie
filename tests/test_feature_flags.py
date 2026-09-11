@@ -16,10 +16,8 @@ from sophie_bot.utils.feature_flags import (
     _coerce_rollout,
     _is_chat_in_rollout,
     _parse_datetime,
-    _parse_override,
     _serialize_datetime,
     _serialize_rollout,
-    _serialize_value,
     _validate_rollout_days,
     _validate_rollout_percentage,
     bump_rollout,
@@ -40,7 +38,9 @@ from sophie_bot.utils.feature_flags import (
     list_chat_override_details,
     list_chat_overrides,
     list_rollouts,
+    parse_feature_override,
     parse_feature_value,
+    serialize_feature_value,
     set_chat_override,
     set_enabled,
     set_rollout,
@@ -114,34 +114,34 @@ async def _reset_feature_flag_overrides(
 
 
 class TestParseOverride:
-    """_parse_override(value, default) parses Redis-stored strings."""
+    """parse_feature_override(value, default) parses Redis-stored strings."""
 
     def test_none_returns_none(self) -> None:
-        assert _parse_override(None, True) is None
+        assert parse_feature_override(None, True) is None
 
     @pytest.mark.parametrize("raw", [b"true", b"True", b"TRUE", b"1"])
     def test_truthy_bytes(self, raw: bytes) -> None:
-        assert _parse_override(raw, True) is True
+        assert parse_feature_override(raw, True) is True
 
     @pytest.mark.parametrize("raw", [b"false", b"False", b"FALSE", b"0"])
     def test_falsy_bytes(self, raw: bytes) -> None:
-        assert _parse_override(raw, True) is False
+        assert parse_feature_override(raw, True) is False
 
     def test_string_integer(self) -> None:
-        assert _parse_override("42", 0) == 42
+        assert parse_feature_override("42", 0) == 42
 
     def test_string_float(self) -> None:
-        assert _parse_override("3.14", 0.0) == 3.14
+        assert parse_feature_override("3.14", 0.0) == 3.14
 
     def test_string_value_when_default_is_not_bool(self) -> None:
-        assert _parse_override("openai/gpt-5", "default_model") == "openai/gpt-5"
+        assert parse_feature_override("openai/gpt-5", "default_model") == "openai/gpt-5"
 
     def test_invalid_string_with_bool_default_returns_none(self) -> None:
-        assert _parse_override("garbage", True) is None
+        assert parse_feature_override("garbage", True) is None
 
     def test_case_insensitive_boolean(self) -> None:
-        assert _parse_override("tRuE", False) is True
-        assert _parse_override("FaLsE", True) is False
+        assert parse_feature_override("tRuE", False) is True
+        assert parse_feature_override("FaLsE", True) is False
 
 
 class TestParseFeatureValue:
@@ -175,19 +175,19 @@ class TestParseFeatureValue:
 
 class TestSerializeValue:
     def test_true(self) -> None:
-        assert _serialize_value(True) == "1"
+        assert serialize_feature_value(True) == "1"
 
     def test_false(self) -> None:
-        assert _serialize_value(False) == "0"
+        assert serialize_feature_value(False) == "0"
 
     def test_string(self) -> None:
-        assert _serialize_value("openai/gpt-5") == "openai/gpt-5"
+        assert serialize_feature_value("openai/gpt-5") == "openai/gpt-5"
 
     def test_int(self) -> None:
-        assert _serialize_value(42) == "42"
+        assert serialize_feature_value(42) == "42"
 
     def test_float(self) -> None:
-        assert _serialize_value(1.5) == "1.5"
+        assert serialize_feature_value(1.5) == "1.5"
 
 
 class TestFeatureMetadata:

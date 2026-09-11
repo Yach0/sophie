@@ -8,7 +8,7 @@ from types import ModuleType
 from typing import Any, cast
 
 from aiogram import Router
-from aiogram.filters.logic import _InvertFilter
+from aiogram.dispatcher.event.handler import FilterObject
 from aiogram.types import Message
 from ass_tg.types.base_abc import ArgFabric
 from babel.support import LazyProxy
@@ -67,6 +67,15 @@ def get_aliased_cmds(help_modules: Mapping[str, ModuleHelp], module_name: str) -
     }
 
 
+def _is_private_chat_inversion(callback: object) -> bool:
+    target = getattr(callback, "target", None)
+    return (
+        isinstance(target, FilterObject)
+        and isinstance(target.callback, ChatTypeFilter)
+        and target.callback.chat_types == ("private",)
+    )
+
+
 def get_all_cmds(help_modules: Mapping[str, ModuleHelp]) -> list[HandlerHelp]:
     return [command for module in help_modules.values() for command in module.handlers]
 
@@ -79,10 +88,10 @@ async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> ARGS_DICT 
     if not args:
         return None
     if isinstance(args, dict):
-        return cast(ARGS_DICT, args)
+        return args
     if inspect.iscoroutinefunction(args):
         result = await args(None, {})
-        return cast(ARGS_DICT, result)
+        return result
     raise ValueError
 
 
@@ -136,14 +145,7 @@ async def gather_cmds_help(
         )
 
         # Only chats
-        only_chats = any(
-            (
-                isinstance(f.callback, _InvertFilter)
-                and isinstance(f.callback.target.callback, ChatTypeFilter)
-                and f.callback.target.callback.chat_types == ("private",)
-            )
-            for f in handler.filters
-        )
+        only_chats = any(_is_private_chat_inversion(event_filter.callback) for event_filter in handler.filters)
 
         only_op = any(isinstance(f.callback, IsOP) for f in handler.filters)
 
@@ -192,7 +194,7 @@ async def gather_module_help(
     for handler in manifest.handlers:
         handler.register(router)
 
-    name = cast(LazyProxy | str, manifest.title or manifest.name)
+    name = manifest.title or manifest.name
     log.debug(
         f"gather_module_help: {module.__name__}",
         name=name,

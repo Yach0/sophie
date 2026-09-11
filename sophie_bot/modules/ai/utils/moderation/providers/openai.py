@@ -86,8 +86,8 @@ class OpenAIModerationProvider:
     name: str = "openai"
     native_categories: tuple[NativeCategory, ...] = _NATIVE_CATEGORIES
 
+    @staticmethod
     async def classify(
-        self,
         history: AIMessageHistory,
         *,
         redis: Redis,

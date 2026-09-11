@@ -45,7 +45,7 @@ _PRIORITY_OPTION = "priority"
 def _option(options: object, name: str) -> object | None:
     if not isinstance(options, Mapping):
         return None
-    value = cast(Mapping[str, object], options).get(name)
+    value = options.get(name)
     if isinstance(value, ParsedArg):
         return value.get_value()
     return value

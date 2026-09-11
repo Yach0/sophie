@@ -31,7 +31,7 @@ class FederationManageService:
         if len(name) > MAX_FEDERATION_NAME_LENGTH:
             raise FederationLimitExceededError("Federation name too long")
 
-        if not await FederationManageService._can_user_create_federation(creator_iid):
+        if not await FederationManageService.can_user_create_federation(creator_iid):
             raise FederationLimitExceededError("Federation creation limit exceeded")
 
         if await Federation.find_one(Federation.fed_name == name):
@@ -119,7 +119,7 @@ class FederationManageService:
         await federation.delete()
 
     @staticmethod
-    async def _can_user_create_federation(user_iid: PydanticObjectId) -> bool:
+    async def can_user_create_federation(user_iid: PydanticObjectId) -> bool:
         user = await ChatModel.get_by_iid(user_iid)
         if not user:
             return False

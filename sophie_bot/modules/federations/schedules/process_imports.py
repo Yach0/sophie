@@ -82,7 +82,98 @@ async def _send_import_result(
         log.error("Failed to send import completion notification", task_id=str(task.id), error=str(e))
 
 
-async def _execute_import_task(processor: ProcessFederationImports, task: FederationTask) -> dict:
+async def _download_and_parse_csv(file_id: str, services: ApplicationServices) -> csv.DictReader:
+    file = await services.bot.get_file(file_id)
+    if not file.file_path:
+        raise CSVDownloadError("Failed to get file path from Telegram")
+
+    downloaded_bytes = await services.bot.download_file(file.file_path)
+    if not downloaded_bytes:
+        raise CSVDownloadError("Failed to download file from Telegram")
+
+    file_bytes = downloaded_bytes.read()
+    if not file_bytes:
+        raise CSVDownloadError("Downloaded file is empty")
+
+    reader = csv.DictReader(StringIO(file_bytes.decode("utf-8")))
+    if not REQUIRED_CSV_HEADERS.issubset(reader.fieldnames or []):
+        raise CSVValidationError(
+            f"Invalid CSV format. Required headers: {', '.join(REQUIRED_CSV_HEADERS)}, "
+            f"got: {', '.join(reader.fieldnames or [])}"
+        )
+    return reader
+
+
+def _create_ban_entry(ban_data: BanData, task_id: object) -> FederationBan:
+    return FederationBan(
+        fed_id=ban_data["fed_id"],
+        user_id=ban_data["user_id"],
+        time=ban_data["time"],
+        by=ban_data["by"],
+        reason=ban_data["reason"],
+        fimport_id=task_id,
+    )
+
+
+async def _update_existing_ban(existing_ban: FederationBan, new_reason: str | None) -> None:
+    if existing_ban.reason != new_reason:
+        existing_ban.reason = new_reason
+        await existing_ban.save()
+
+
+def _validate_positive_int(value_str: str, field_name: str) -> int:
+    if not value_str:
+        raise BanValidationError(f"{field_name} is required")
+    try:
+        value = int(value_str)
+    except ValueError:
+        raise BanValidationError(f"Invalid {field_name}: {value_str}")
+    if value <= 0:
+        raise BanValidationError(f"Invalid {field_name} (must be positive): {value}")
+    return value
+
+
+def _validate_reason(reason: str) -> str | None:
+    if not reason:
+        return None
+    if len(reason) > MAX_REASON_LENGTH:
+        raise BanValidationError(f"Reason too long (max {MAX_REASON_LENGTH} characters)")
+    return reason
+
+
+def _parse_ban_time(time_str: str) -> datetime:
+    if not time_str:
+        return datetime.now(UTC)
+    try:
+        return datetime.fromtimestamp(float(time_str), tz=UTC)
+    except (ValueError, OSError):
+        pass
+    try:
+        return datetime.fromisoformat(time_str)
+    except ValueError:
+        raise BanValidationError(f"Invalid time format: {time_str}")
+
+
+async def check_ban_permissions(user_id: int, federation: Federation, importer_user_tid: int) -> None:
+    if user_id in CONFIG.operators:
+        raise BanValidationError(f"Cannot ban bot operator: {user_id}")
+    if user_id == CONFIG.bot_id:
+        raise BanValidationError("Cannot ban the bot")
+
+    creator = await federation.creator.fetch()
+    if isinstance(creator, ChatModel) and user_id == creator.tid:
+        raise BanValidationError("Cannot ban federation owner")
+
+    if federation.admins:
+        for admin_link in federation.admins:
+            admin = await admin_link.fetch()
+            if isinstance(admin, ChatModel) and user_id == admin.tid:
+                raise BanValidationError("Cannot ban federation admin")
+    if user_id == importer_user_tid:
+        raise BanValidationError("Cannot ban yourself")
+
+
+async def _execute_import_task(services: ApplicationServices, task: FederationTask) -> dict:
     """Handles the actual import execution and returns a result dict."""
     federation = await Federation.find_one(Federation.fed_id == task.fed_id)
     if not federation:
@@ -95,7 +186,7 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
 
     if not task.file_id:
         raise CSVValidationError("Import task is missing the uploaded file ID")
-    reader = await processor._download_and_parse_csv(task.file_id)
+    reader = await _download_and_parse_csv(task.file_id, services)
 
     imported_count = 0
     failed_count = 0
@@ -112,7 +203,7 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         batch_user_ids = []
         for row in batch_rows:
             try:
-                batch_user_ids.append(processor._validate_positive_int(row.get("user_id", "").strip(), "user_id"))
+                batch_user_ids.append(_validate_positive_int(row.get("user_id", "").strip(), "user_id"))
             except BanValidationError:
                 continue
 
@@ -127,7 +218,7 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         by_user_tids = []
         for row in batch_rows:
             try:
-                by_user_tids.append(processor._validate_positive_int(row.get("by", "").strip(), "'by' field"))
+                by_user_tids.append(_validate_positive_int(row.get("by", "").strip(), "'by' field"))
             except BanValidationError:
                 continue
 
@@ -139,12 +230,12 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
         for row_num_in_batch, row in enumerate(batch_rows):
             real_row_num = i + row_num_in_batch + 2
             try:
-                user_id = processor._validate_positive_int(row.get("user_id", "").strip(), "user_id")
-                reason = processor._validate_reason(row.get("reason", "").strip())
-                by_user_tid = processor._validate_positive_int(row.get("by", "").strip(), "'by' field")
-                ban_time = processor._parse_ban_time(row.get("time", "").strip())
+                user_id = _validate_positive_int(row.get("user_id", "").strip(), "user_id")
+                reason = _validate_reason(row.get("reason", "").strip())
+                by_user_tid = _validate_positive_int(row.get("by", "").strip(), "'by' field")
+                ban_time = _parse_ban_time(row.get("time", "").strip())
 
-                await processor._check_ban_permissions(user_id, federation, importer_user_tid)
+                await check_ban_permissions(user_id, federation, importer_user_tid)
 
                 by_user = by_users.get(by_user_tid)
                 if not by_user:
@@ -161,10 +252,10 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
                 existing_ban = existing_bans.get(user_id)
 
                 if existing_ban:
-                    await processor._update_existing_ban(existing_ban, ban_data["reason"])
+                    await _update_existing_ban(existing_ban, ban_data["reason"])
                     imported_count += 1
                 else:
-                    ban = processor._create_ban_entry(ban_data, task.id)
+                    ban = _create_ban_entry(ban_data, task.id)
                     pending_bans.append(ban)
                     imported_count += 1
 
@@ -177,7 +268,7 @@ async def _execute_import_task(processor: ProcessFederationImports, task: Federa
             await FederationCacheService.incr_ban_count(
                 federation.fed_id,
                 len(pending_bans),
-                redis=processor.services.redis,
+                redis=services.redis,
             )
             pending_bans.clear()
 
@@ -217,7 +308,7 @@ class ProcessFederationImports:
         await self._update_task_status(task, TaskStatus.PROCESSING)
 
         try:
-            result = await _execute_import_task(self, task)
+            result = await _execute_import_task(self.services, task)
             imported_count = result["imported_count"]
             failed_count = result["failed_count"]
             federation = result["federation"]
@@ -233,116 +324,6 @@ class ProcessFederationImports:
             await self._update_task_status(task, TaskStatus.FAILED, error_message)
             await notify_task_failed(task, error_message, bot=self.services.bot)
             raise
-
-    async def _download_and_parse_csv(self, file_id: str) -> csv.DictReader:
-        """Download CSV file and parse it into a DictReader."""
-        file = await self.services.bot.get_file(file_id)
-        if not file.file_path:
-            raise CSVDownloadError("Failed to get file path from Telegram")
-
-        downloaded_bytes = await self.services.bot.download_file(file.file_path)
-        if not downloaded_bytes:
-            raise CSVDownloadError("Failed to download file from Telegram")
-
-        file_bytes = downloaded_bytes.read()
-        if not file_bytes:
-            raise CSVDownloadError("Downloaded file is empty")
-
-        file_text = file_bytes.decode("utf-8")
-        reader = csv.DictReader(StringIO(file_text))
-
-        if not REQUIRED_CSV_HEADERS.issubset(reader.fieldnames or []):
-            raise CSVValidationError(
-                f"Invalid CSV format. Required headers: {', '.join(REQUIRED_CSV_HEADERS)}, "
-                f"got: {', '.join(reader.fieldnames or [])}"
-            )
-
-        return reader
-
-    @staticmethod
-    def _create_ban_entry(ban_data: BanData, task_id: object) -> FederationBan:
-        """Create a new FederationBan entry from parsed data."""
-        return FederationBan(
-            fed_id=ban_data["fed_id"],
-            user_id=ban_data["user_id"],
-            time=ban_data["time"],
-            by=ban_data["by"],
-            reason=ban_data["reason"],
-            fimport_id=task_id,
-        )
-
-    @staticmethod
-    async def _update_existing_ban(existing_ban: FederationBan, new_reason: str | None) -> None:
-        """Update existing ban reason if different."""
-        if existing_ban.reason != new_reason:
-            existing_ban.reason = new_reason
-            await existing_ban.save()
-
-    @staticmethod
-    def _validate_positive_int(value_str: str, field_name: str) -> int:
-        """Validate and parse a positive integer from a CSV row."""
-        if not value_str:
-            raise BanValidationError(f"{field_name} is required")
-
-        try:
-            value = int(value_str)
-        except ValueError:
-            raise BanValidationError(f"Invalid {field_name}: {value_str}")
-
-        if value <= 0:
-            raise BanValidationError(f"Invalid {field_name} (must be positive): {value}")
-
-        return value
-
-    @staticmethod
-    def _validate_reason(reason: str) -> str | None:
-        """Validate reason field."""
-        if not reason:
-            return None
-
-        if len(reason) > MAX_REASON_LENGTH:
-            raise BanValidationError(f"Reason too long (max {MAX_REASON_LENGTH} characters)")
-
-        return reason
-
-    @staticmethod
-    def _parse_ban_time(time_str: str) -> datetime:
-        """Parse ban time from CSV row."""
-        if not time_str:
-            return datetime.now(UTC)
-
-        try:
-            timestamp = float(time_str)
-            return datetime.fromtimestamp(timestamp, tz=UTC)
-        except (ValueError, OSError):
-            pass
-
-        try:
-            return datetime.fromisoformat(time_str)
-        except ValueError:
-            raise BanValidationError(f"Invalid time format: {time_str}")
-
-    @staticmethod
-    async def _check_ban_permissions(user_id: int, federation: Federation, importer_user_tid: int) -> None:
-        """Check if the ban is permitted for the given user."""
-        if user_id in CONFIG.operators:
-            raise BanValidationError(f"Cannot ban bot operator: {user_id}")
-
-        if user_id == CONFIG.bot_id:
-            raise BanValidationError("Cannot ban the bot")
-
-        creator = await federation.creator.fetch()
-        if isinstance(creator, ChatModel) and user_id == creator.tid:
-            raise BanValidationError("Cannot ban federation owner")
-
-        if federation.admins:
-            for admin_link in federation.admins:
-                admin = await admin_link.fetch()
-                if isinstance(admin, ChatModel) and user_id == admin.tid:
-                    raise BanValidationError("Cannot ban federation admin")
-
-        if user_id == importer_user_tid:
-            raise BanValidationError("Cannot ban yourself")
 
     @staticmethod
     async def _update_task_status(

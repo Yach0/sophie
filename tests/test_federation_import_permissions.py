@@ -17,7 +17,7 @@ from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.modules.federations.schedules.process_imports import (
     BanValidationError,
-    ProcessFederationImports,
+    check_ban_permissions,
 )
 
 
@@ -56,10 +56,10 @@ async def test_check_ban_permissions_rejects_owner_and_admin(db_init: object) ->
     federation = await _create_federation(owner, admins=[admin])
 
     with pytest.raises(BanValidationError, match="owner"):
-        await ProcessFederationImports._check_ban_permissions(owner.tid, federation, 600003)
+        await check_ban_permissions(owner.tid, federation, 600003)
 
     with pytest.raises(BanValidationError, match="admin"):
-        await ProcessFederationImports._check_ban_permissions(admin.tid, federation, 600003)
+        await check_ban_permissions(admin.tid, federation, 600003)
 
 
 @pytest.mark.asyncio
@@ -67,7 +67,7 @@ async def test_check_ban_permissions_allows_regular_user(db_init: object) -> Non
     owner = await _create_chat(600004, "Owner")
     federation = await _create_federation(owner)
 
-    await ProcessFederationImports._check_ban_permissions(600005, federation, 600006)
+    await check_ban_permissions(600005, federation, 600006)
 
 
 @pytest.mark.asyncio
@@ -76,7 +76,7 @@ async def test_check_ban_permissions_tolerates_deleted_creator(db_init: object) 
     federation = await _create_federation(owner)
     await owner.delete()
 
-    await ProcessFederationImports._check_ban_permissions(600008, federation, 600009)
+    await check_ban_permissions(600008, federation, 600009)
 
 
 @pytest.mark.asyncio
@@ -86,4 +86,4 @@ async def test_check_ban_permissions_tolerates_deleted_admin(db_init: object) ->
     federation = await _create_federation(owner, admins=[admin])
     await admin.delete()
 
-    await ProcessFederationImports._check_ban_permissions(600012, federation, 600013)
+    await check_ban_permissions(600012, federation, 600013)
