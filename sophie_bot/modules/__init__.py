@@ -147,8 +147,8 @@ def discover_modules(to_load: Sequence[str], to_not_load: Sequence[str] = ()) ->
 async def initialize_modules(services: ApplicationServices) -> None:
     for module in services.modules.modules.values():
         initialize = get_module_manifest(module).initialize
-        if initialize is not None:
-            await initialize(services)
+        if callable(initialize):
+            await initialize.__call__(services)
 
 
 async def assemble_bot_modules(dispatcher: Dispatcher, services: ApplicationServices) -> None:
@@ -172,8 +172,8 @@ def assemble_api_modules(app: FastAPI, registry: LoadedModuleRegistry) -> None:
         return
     for module in registry.modules.values():
         factory = get_module_manifest(module).api_router_factory
-        if factory is not None:
-            template = factory()
+        if callable(factory):
+            template = factory.__call__()
             parent = APIRouter()
             parent.include_router(template)
             app.include_router(parent)
@@ -203,5 +203,5 @@ def track_scheduler_callback(
 def register_module_jobs(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
     for module in services.modules.modules.values():
         setup_scheduler = get_module_manifest(module).setup_scheduler
-        if setup_scheduler is not None:
-            setup_scheduler(scheduler, services)
+        if callable(setup_scheduler):
+            setup_scheduler.__call__(scheduler, services)

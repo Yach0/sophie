@@ -27,7 +27,7 @@ async def set_locked_types(
     valid_locks = [lock_type for lock_type in payload.locked if is_supported_lock_type(lock_type)]
 
     await LocksModel.find_one(LocksModel.chat.id == chat.iid).upsert(
-        Set({LocksModel.locked_types: set(valid_locks)}),
+        Set({"locked_types": set(valid_locks)}),
         on_insert=LocksModel(chat=chat.iid, locked_types=set(valid_locks)),
     )
     await invalidate_locks_cache(chat.tid, redis=services.redis)

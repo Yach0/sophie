@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from beanie import PydanticObjectId
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
@@ -8,7 +8,7 @@ from pydantic_ai.models import Model
 from redis.asyncio import Redis
 from stfu_tg import BlockQuote, Doc, HList, Italic, KeyValue, Section
 from stfu_tg.ai_md import ai_markdown_to_doc
-from stfu_tg.doc import Element
+from stfu_tg.doc import Element, SupportsStr
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import (
@@ -25,22 +25,22 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
 
-CHATBOT_TOOLS_TITLES: dict[str, Element] = {
-    "write_memory": cast(Element, l_("Memory 💾")),
-    "forget_memory": cast(Element, l_("Forget 🗑")),
-    "sophie_help": cast(Element, l_("Help 📖")),
-    "sophie_inspect": cast(Element, l_("Sources 🧭")),
-    "tavily_search": cast(Element, l_("Search 🔍")),
-    "kagi_search": cast(Element, l_("Search 🔍")),
-    "tinyfish_search": cast(Element, l_("Search 🔍")),
-    "get_notes": cast(Element, l_("Notes 🗒")),
-    "get_note_content": cast(Element, l_("Note 🗒")),
-    "research_topic": cast(Element, l_("Research 🔎")),
+CHATBOT_TOOLS_TITLES: dict[str, SupportsStr] = {
+    "write_memory": l_("Memory 💾"),
+    "forget_memory": l_("Forget 🗑"),
+    "sophie_help": l_("Help 📖"),
+    "sophie_inspect": l_("Sources 🧭"),
+    "tavily_search": l_("Search 🔍"),
+    "kagi_search": l_("Search 🔍"),
+    "tinyfish_search": l_("Search 🔍"),
+    "get_notes": l_("Notes 🗒"),
+    "get_note_content": l_("Note 🗒"),
+    "research_topic": l_("Research 🔎"),
 }
 
 
-def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -> list[Element]:
-    tool_title_elements: list[Element] = []
+def retrieve_tools_titles(message_history: list[ModelRequest | ModelResponse]) -> list[SupportsStr]:
+    tool_title_elements: list[SupportsStr] = []
     seen_tool_names: set[str] = set()
 
     for message in message_history:

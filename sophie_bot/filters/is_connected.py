@@ -32,10 +32,10 @@ class GroupOrConnectedFilter(Filter):
     async def __call__(
         self, event: Message | CallbackQuery, context: RequestContext, *args: Any, **kwargs: Any
     ) -> bool | dict[str, Any]:
-        if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP)(event, *args, **kwargs):
+        if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP).__call__(event, *args, **kwargs):
             return True
 
-        if await IsConnectedFilter(self.allow_abort)(event, context):
+        if await IsConnectedFilter(self.allow_abort).__call__(event, context):
             return True
 
         if self.allow_abort:

@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
+
+from watchfiles import Change, run_process
 
 from sophie_bot.utils.logger import log
-
-if TYPE_CHECKING:
-    from watchfiles import Change
 
 
 def run_with_reload(mode: Literal["bot", "scheduler"]) -> None:
@@ -24,35 +24,11 @@ def run_with_reload(mode: Literal["bot", "scheduler"]) -> None:
     Args:
         mode: The mode to run ('bot' or 'scheduler')
     """
-    try:
-        from watchfiles import run_process
-    except ImportError:
-        log.error("watchfiles is not installed. Install it with: uv sync --group dev")
-        sys.exit(1)
-
     project_root = Path(__file__).parent.parent.parent
     watch_dirs = [str(project_root / "sophie_bot")]
-
     log.info(f"Starting {mode} mode with hot-reload enabled...")
     log.info(f"Watching directories: {watch_dirs}")
 
-    def target() -> None:
-        """Target function to run the mode."""
-        import os
-
-        os.environ["DEV_RELOAD"] = "false"  # Prevent recursive reload
-        os.environ["MODE"] = mode
-
-        if mode == "bot":
-            from sophie_bot.modes.bot import start_bot_mode
-
-            start_bot_mode()
-        elif mode == "scheduler":
-            from sophie_bot.modes.scheduler import start_scheduler_mode
-
-            start_scheduler_mode()
-
-    # Use subprocess approach for cleaner restarts
     with suppress(KeyboardInterrupt):
         run_process(
             *watch_dirs,
@@ -69,7 +45,6 @@ def _python_filter(_: Change, path: str) -> bool:
 
 def _run_mode_subprocess(mode: str) -> None:
     """Run the mode in a subprocess."""
-    import os
 
     env = os.environ.copy()
     env["DEV_RELOAD"] = "false"

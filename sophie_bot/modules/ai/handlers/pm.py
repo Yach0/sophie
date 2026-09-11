@@ -119,7 +119,7 @@ class AiPmStop(SophieMessageHandler):
         await self.event.reply(_("The AI mode has been exited."), reply_markup=ReplyKeyboardRemove())
 
 
-@flags.status("typing")
+@flags.status(value="typing")
 @flags.ai_cache(cache_handler_result=True)
 class AiPmHandle(SophieMessageHandler):
     @staticmethod

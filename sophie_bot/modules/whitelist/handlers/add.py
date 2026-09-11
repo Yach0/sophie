@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from aiogram import Bot
+from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import KeyValue, Section, Template, UserLink
 
 from sophie_bot.db.models import ChatModel, WSUserModel
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
-from sophie_bot.modules.whitelist.handlers.base import BaseWhitelistMutationHandler
+from sophie_bot.modules.whitelist.handlers.base import BaseWhitelistMutationHandler, whitelist_mutation_filters
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
 from sophie_bot.utils.group_whitelist import add_user_to_group_whitelist
@@ -18,7 +19,9 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 @flags.help(description=l_("Add a user to the group whitelist for automated moderation."))
 class WhitelistUserHandler(BaseWhitelistMutationHandler):
-    commands = ("whitelist", "trust")
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return whitelist_mutation_filters(("whitelist", "trust"))
 
     async def handle(self) -> Any:
         user = self.target()

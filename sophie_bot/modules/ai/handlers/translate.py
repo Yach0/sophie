@@ -149,7 +149,7 @@ async def text_or_reply(message: Message | None, _data: dict):
         "replied voice message to text"
     ),
 )
-@flags.status("typing")
+@flags.status(value="typing")
 @flags.disableable(name="translate")
 @flags.ai_cache(cache_handler_result=True)
 class AiTranslate(SophieMessageHandler):

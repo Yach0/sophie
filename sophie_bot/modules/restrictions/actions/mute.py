@@ -4,16 +4,17 @@ from datetime import timedelta
 from typing import ClassVar
 
 from pydantic import BaseModel
+from stfu_tg.doc import Element
 
 from sophie_bot.modules.logging.events import LogEvent
-from sophie_bot.modules.restrictions.actions.base import BaseRestrictionModernAction
+from sophie_bot.modules.restrictions.actions.base import RestrictionActionMixin, restriction_description
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionWizardSetting,
     ActionWizardSpec,
     make_duration_setup_confirm,
     make_duration_setup_message,
 )
-from sophie_bot.shared.actions import ActionDefinition, RestrictionAction
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC, RestrictionAction
 from sophie_bot.utils.i18n import N_
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -59,7 +60,7 @@ MUTE_ACTION = ActionDefinition[MuteActionDataModel](
 )
 
 
-class MuteModernAction(BaseRestrictionModernAction[MuteActionDataModel]):
+class MuteModernAction(RestrictionActionMixin[MuteActionDataModel], ModernActionABC[MuteActionDataModel]):
     definition = MUTE_ACTION
 
     action_name: ClassVar[str] = "mute_user"
@@ -69,3 +70,7 @@ class MuteModernAction(BaseRestrictionModernAction[MuteActionDataModel]):
     @staticmethod
     def get_duration(data: MuteActionDataModel) -> timedelta | None:
         return data.mute_duration
+
+    @staticmethod
+    def description(data: MuteActionDataModel) -> Element | str:
+        return restriction_description(data.mute_duration)

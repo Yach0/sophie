@@ -12,7 +12,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-class FedIdArg(TextArg):
+class FedIdArg(TextArg[Federation]):
     """Argument type for federation IDs with validation and lookup."""
 
     def __init__(self, description: LazyProxy | None = None):

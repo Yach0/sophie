@@ -6,13 +6,11 @@ from sophie_bot.db.models.federations import Federation
 
 class FederationPermissionService:
     @staticmethod
-    async def _resolve_link(link: BeanieLink) -> ChatModel | None:
+    async def _resolve_link(link: ChatModel | BeanieLink[ChatModel]) -> ChatModel | None:
+        if isinstance(link, ChatModel):
+            return link
         resolved = await link.fetch()
-        if isinstance(resolved, BeanieLink):
-            return None
-        if hasattr(resolved, "tid"):
-            return resolved
-        return None
+        return resolved if isinstance(resolved, ChatModel) else None
 
     @staticmethod
     async def is_federation_owner(federation: Federation, user_tid: int) -> bool:

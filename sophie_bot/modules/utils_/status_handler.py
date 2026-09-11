@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from abc import abstractmethod
+from typing import Any
 
 from aiogram.types import Message
 from ass_tg.types import BooleanArg, IntArg, OptionalArg
@@ -12,16 +12,12 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-T = TypeVar("T")
 
-
-# PEP695 form appends implicit Generic after ABC, which breaks the MRO; keep the explicit
-# Generic[T] ahead of ABC.
-class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, PYI059
+class StatusHandlerABC[StatusValue](SophieMessageHandler):
     """Implements an abstract handler for the status change handlers (enabled/disabled)"""
 
     header_text: LazyProxy
-    status_texts: dict[T, LazyProxy]
+    status_texts: dict[StatusValue, LazyProxy]
     change_command: str | None = None
     change_args: str | LazyProxy = "on / off"
 
@@ -30,19 +26,19 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, P
         return {"new_status": OptionalArg(BooleanArg(l_("?New status")))}
 
     @abstractmethod
-    async def get_status(self) -> T:
+    async def get_status(self) -> StatusValue:
         raise NotImplementedError
 
     @abstractmethod
-    async def set_status(self, new_status: T):
+    async def set_status(self, new_status: StatusValue) -> None:
         raise NotImplementedError
 
-    def status_text(self, status_data: Any) -> Element | str | LazyProxy:
+    def status_text(self, status_data: StatusValue) -> Element | str | LazyProxy:
         return self.status_texts[status_data]
 
     async def display_current_status(self):
         connection = self.connection
-        status_data: T = await self.get_status()
+        status_data: StatusValue = await self.get_status()
 
         doc = Section(
             KeyValue("Current state", self.status_text(status_data)),
@@ -54,8 +50,8 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, P
 
         await self.event.reply(str(doc))
 
-    async def change_status(self, new_status: Any):
-        current_status: T = await self.get_status()
+    async def change_status(self, new_status: StatusValue) -> Any:
+        current_status: StatusValue = await self.get_status()
 
         if current_status == new_status:
             return await self.event.reply(
@@ -75,7 +71,7 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, P
         return await self.event.reply(str(doc))
 
     async def handle(self) -> Any:
-        new_status: bool | None = self.data.get("new_status", None)
+        new_status: StatusValue | None = self.data.get("new_status", None)
 
         if new_status is None:
             return await self.display_current_status()
@@ -83,13 +79,13 @@ class StatusHandlerABC(SophieMessageHandler, Generic[T], ABC):  # noqa: UP046, P
         return await self.change_status(new_status)
 
 
-class StatusBoolHandlerABC(StatusHandlerABC[bool], ABC):
-    # Base generic declares status_texts as an instance var (ClassVar cannot hold the TypeVar T);
+class StatusBoolHandlerABC(StatusHandlerABC[bool]):
+    # Base generic declares status_texts as an instance var (ClassVar cannot hold a type parameter);
     # this concrete mapping is read-only, so the mutable-default warning does not apply.
     status_texts: dict[bool, LazyProxy] = {True: l_("Enabled"), False: l_("Disabled")}  # noqa: RUF012
 
 
-class StatusIntHandlerABC(StatusHandlerABC[int], ABC):
+class StatusIntHandlerABC(StatusHandlerABC[int]):
     """Abstract base class for integer status handlers (e.g., warn limit, max count)."""
 
     min_value: int = 0

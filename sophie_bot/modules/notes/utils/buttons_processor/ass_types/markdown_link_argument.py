@@ -1,6 +1,7 @@
 import re
 from abc import ABC
 from functools import cached_property
+from typing import Never
 
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgCustomError
@@ -9,7 +10,7 @@ from ass_tg.types.base_abc import ArgFabric
 from sophie_bot.utils.i18n import gettext as _
 
 
-class MarkdownLinkArgument(ArgFabric[tuple[str, str]], ABC):
+class MarkdownLinkArgument[ExtendedValue = Never](ArgFabric[tuple[str, str] | ExtendedValue], ABC):
     """
     Abstract Markdown link Argument.
     Example: [text](data)
@@ -34,15 +35,20 @@ class MarkdownLinkArgument(ArgFabric[tuple[str, str]], ABC):
         return len(self._link_name) + len(self.separator) + len("[](")
 
     def check(self, text: str, entities: ArgEntities) -> bool:
+        return self.check_markdown_link(text, entities)
+
+    def check_markdown_link(self, text: str, entities: ArgEntities) -> bool:
         text_match = self._pattern.match(text)
         if not text_match:
             return False
 
         self._link_name, self._link_data = text_match.groups()
-
         return True
 
-    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, tuple[str, str]]:
+    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, tuple[str, str] | ExtendedValue]:
+        return await self.parse_markdown_link(text, offset, entities)
+
+    async def parse_markdown_link(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, tuple[str, str]]:
         text_match = self._pattern.match(text)
         if not text_match:
             raise ArgCustomError(_("Invalid markdown link."), offset=offset)

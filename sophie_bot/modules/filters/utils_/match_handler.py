@@ -121,10 +121,10 @@ async def consume_ai_filter_daily_quota(
     chat_daily_count = int(results[0])
     user_daily_count = int(results[2]) if user_tid is not None else 0
 
-    if chat_limit > 0 and chat_daily_count > chat_limit:
+    if 0 < chat_limit < chat_daily_count:
         return False
 
-    return not (user_tid is not None and user_limit > 0 and user_daily_count > user_limit)
+    return not (user_tid is not None and 0 < user_limit < user_daily_count)
 
 
 async def _is_within_new_user_message_limit(
@@ -314,7 +314,8 @@ async def match_filter_handler(
     if enable_lock_types and is_supported_lock_type(handler):
         return bool(await check_locks(message, {handler}))
 
-    if not (message_text := message.caption or message.text or ""):
+    message_text = message.caption or message.text or ""
+    if not message_text:
         return False
 
     # Regex support

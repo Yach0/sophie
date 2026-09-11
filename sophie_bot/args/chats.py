@@ -8,7 +8,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-class SophieChatIDArg(UserIDArg):
+class SophieChatIDArg(UserIDArg[ChatModel]):
     async def check_type(self, text: str) -> bool:
         # Unlike a user ID, a chat ID is negative for groups/supergroups/channels, so the
         # inherited `isdigit()` check (which rejects the leading "-") can't be used here.
@@ -16,7 +16,7 @@ class SophieChatIDArg(UserIDArg):
         return bool(words) and words[0].removeprefix("-").isdigit()
 
     async def value(self, text: str) -> ChatModel:
-        chat_id: int = await super().value(text)
+        chat_id = self.parse_user_id(text)
 
         # Find chat
         try:
@@ -28,9 +28,9 @@ class SophieChatIDArg(UserIDArg):
             raise ArgStrictError(_("Could not find the requested Chat ID in the database."))
 
 
-class SophieChatUsernameArg(UsernameArg):
+class SophieChatUsernameArg(UsernameArg[ChatModel]):
     async def value(self, text: str) -> ChatModel:
-        username: str = await super().value(text)
+        username = self.parse_username(text)
 
         # Find chat
         try:

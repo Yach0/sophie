@@ -3,6 +3,7 @@ from typing import Any, override
 
 import structlog
 from aiogram import BaseMiddleware
+from aiogram.enums import ChatMemberStatus
 from aiogram.types import Chat, ChatJoinRequest, ChatMemberUpdated, Message, TelegramObject, Update, User
 
 from sophie_bot.config import CONFIG
@@ -307,7 +308,7 @@ class SaveChatsMiddleware(BaseMiddleware):
     async def save_my_chat_member(event: ChatMemberUpdated) -> bool:
         status = event.new_chat_member.status
         logger.debug("SaveChatsMiddleware: Handling my_chat_member update", status=status, chat_id=event.chat.id)
-        if status == "kicked":
+        if status == ChatMemberStatus.KICKED:
             # Remove user, no need to further call handler
             if not (group := await ChatModel.get_by_tid(event.chat.id)):
                 return False
@@ -315,7 +316,7 @@ class SaveChatsMiddleware(BaseMiddleware):
             await group.delete_chat()
             return False
         # "member": Telegram will send a message event, so we'll handle it and save user later
-        return status != "member"
+        return status != ChatMemberStatus.MEMBER
 
     @override
     async def __call__(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from aiogram.types import Message
 from babel.dates import format_timedelta
@@ -15,12 +15,22 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
-from sophie_bot.shared.actions import ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition, ActionResult
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
 
-class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION_DATA]):
+def restriction_description(duration: timedelta | None) -> Element | str:
+    if duration:
+        return Template(
+            _("Restricts user for {time}"),
+            time=format_timedelta(duration, locale="en_US"),
+        )
+    return _("Restricts user indefinitely")
+
+
+class RestrictionActionMixin[ACTION_DATA: BaseModel]:
+    definition: ClassVar[ActionDefinition[Any]]
     action_name: ClassVar[str | LazyProxy]
     action_log_event: ClassVar[LogEvent]
     auto_banned_text: ClassVar[str]
@@ -29,17 +39,7 @@ class BaseRestrictionModernAction[ACTION_DATA: BaseModel](ModernActionABC[ACTION
     def get_duration(data: ACTION_DATA) -> timedelta | None:
         raise NotImplementedError
 
-    @classmethod
-    def description(cls, data: ACTION_DATA) -> Element | str:
-        duration = cls.get_duration(data)
-        if duration:
-            return Template(
-                _("Restricts user for {time}"),
-                time=format_timedelta(duration, locale="en_US"),
-            )
-        return _("Restricts user indefinitely")
-
-    async def handle(self, message: Message, data: dict, filter_data: ACTION_DATA) -> Element | None:
+    async def handle(self, message: Message, data: dict[str, Any], filter_data: ACTION_DATA) -> ActionResult | None:
         if not message.from_user:
             return
 

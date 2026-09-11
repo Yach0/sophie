@@ -101,7 +101,8 @@ class CMDFilter(BaseFilter):
         return any(ent for ent in entities if ent.offset == 0 and ent.type in {"code", "pre"})
 
     async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, CommandObject]:
-        if not (text := ((message.text or message.caption) if self.allow_caption else message.text)):
+        text = (message.text or message.caption) if self.allow_caption else message.text
+        if not text:
             return False
 
         if self.ignore_forwarded and message.forward_from:

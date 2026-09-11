@@ -174,7 +174,7 @@ def _build_system_prompt(base_prompt: str) -> str:
     return prompt_doc.to_md()
 
 
-@flags.status("typing")
+@flags.status(value="typing")
 @flags.help(
     description=l_("Suggests filter handlers from a natural language description"),
     alias_to_modules=["filters"],

@@ -17,23 +17,21 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-class BaseWhitelistMutationHandler(SophieMessageHandler):
-    commands: tuple[str, ...]
+def whitelist_mutation_filters(commands: tuple[str, ...]) -> tuple[CallbackType, ...]:
+    return (
+        CMDFilter(commands),
+        FeatureFlagFilter("group_user_whitelist"),
+        ChatTypeFilter("group", "supergroup"),
+        UserRestricting(can_restrict_members=True),
+    )
 
+
+class BaseWhitelistMutationHandler(SophieMessageHandler):
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict[str, Any]) -> dict[str, ArgFabric]:
         if message and is_real_reply(message):
             return {}
         return {"user": SophieUserArg(l_("User"))}
-
-    @classmethod
-    def filters(cls) -> tuple[CallbackType, ...]:
-        return (
-            CMDFilter(cls.commands),
-            FeatureFlagFilter("group_user_whitelist"),
-            ChatTypeFilter("group", "supergroup"),
-            UserRestricting(can_restrict_members=True),
-        )
 
     def target(self) -> UnionUser:
         return get_union_user(get_arg_or_reply_user(self.event, self.data))

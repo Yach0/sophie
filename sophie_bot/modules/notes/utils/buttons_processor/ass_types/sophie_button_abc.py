@@ -18,7 +18,7 @@ class AssButtonData[A]:
     style: ButtonStyle | None = None
 
 
-class SophieButtonABC(MarkdownLinkArgument, ABC):
+class SophieButtonABC(MarkdownLinkArgument[AssButtonData[str]], ABC):
     button_type_names: tuple[str, ...]  # Must be defined in subclasses
     separator = ":"
     allowed_prefixes: tuple[str, ...] = (
@@ -58,8 +58,8 @@ class SophieButtonABC(MarkdownLinkArgument, ABC):
                 return True
         return False
 
-    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, AssButtonData[str]]:  # ty: ignore[invalid-method-override]
-        length, (_link_name, link_data) = await super().parse(text, offset, entities)
+    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, AssButtonData[str]]:
+        length, (_link_name, link_data) = await super().parse_markdown_link(text, offset, entities)
         prefix = self.used_prefix
         if prefix:
             link_data = link_data.removeprefix(prefix)

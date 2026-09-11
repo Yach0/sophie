@@ -29,7 +29,7 @@ class DisablingModel(Document):
     @staticmethod
     async def disable(chat_iid: PydanticObjectId, cmd: str) -> "DisablingModel":
         return await DisablingModel.find_one(DisablingModel.chat.id == chat_iid).upsert(
-            AddToSet({DisablingModel.cmds: cmd}),
+            AddToSet({"cmds": cmd}),
             on_insert=DisablingModel(chat=chat_iid, cmds=[cmd]),
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
@@ -41,7 +41,7 @@ class DisablingModel(Document):
         if not model:
             raise DBNotFoundException()
 
-        return await model.update(Pull({DisablingModel.cmds: cmd}))
+        return await model.update(Pull({"cmds": cmd}))
 
     @staticmethod
     async def enable_all(chat_iid: PydanticObjectId) -> Optional["DisablingModel"]:
