@@ -32,9 +32,9 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _parse_chat_ids(raw_value: object) -> frozenset[int]:
+def _parse_chat_ids(raw_value: str) -> frozenset[int]:
     identifiers = set()
-    for entry in str(raw_value).replace(",", " ").split():
+    for entry in raw_value.replace(",", " ").split():
         try:
             identifiers.add(int(entry))
         except ValueError:
@@ -50,13 +50,15 @@ async def is_sophie_inspect_chat(chat_tid: int | None, *, redis: Redis) -> bool:
     """
     if chat_tid is None:
         return False
-    return chat_tid in _parse_chat_ids(
-        await get_value(
-            "ai_sophie_inspect_chats",
-            chat_tid=chat_tid,
-            redis=redis,
-        )
+    raw_value = await get_value(
+        "ai_sophie_inspect_chats",
+        chat_tid=chat_tid,
+        redis=redis,
     )
+    if not isinstance(raw_value, str):
+        log.error("sophie_inspect: chat allowlist feature must be a string", value_type=type(raw_value).__name__)
+        return False
+    return chat_tid in _parse_chat_ids(raw_value)
 
 
 def _daily_limit_key(chat_iid: PydanticObjectId, now: datetime) -> str:

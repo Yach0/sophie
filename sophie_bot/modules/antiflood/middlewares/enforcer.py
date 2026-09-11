@@ -6,6 +6,7 @@ from typing import Any, cast
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatType, ContentType
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message, TelegramObject
 from babel.dates import format_timedelta
 from stfu_tg import Doc, KeyValue, Title, UserLink
@@ -144,7 +145,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         # Try to delete the flooding message
         try:
             await message.delete()
-        except Exception:  # noqa: BLE001  # best-effort delete of flooding message
+        except TelegramAPIError:
             log.debug("Failed to delete flooding message")
 
         # Execute action

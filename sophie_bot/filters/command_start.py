@@ -73,7 +73,9 @@ class CmdStart(BaseModel):
             return value.hex
         if isinstance(value, bool):
             return str(int(value))
-        if isinstance(value, (int, str, float, Decimal, Fraction)):
+        if isinstance(value, Decimal):
+            return format(value, "f")
+        if isinstance(value, (int, str, float, Fraction)):
             return str(value)
         raise ValueError(
             f"Attribute {key}={value!r} of type {type(value).__name__!r} can not be packed to callback data"

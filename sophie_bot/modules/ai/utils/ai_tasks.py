@@ -30,7 +30,6 @@ async def run_structured_task[OutputT: BaseModel](
     model_plan: AIModelPlan,
     history: AIMessageHistory,
     chat_iid: PydanticObjectId | None = None,
-    user_tracking_id: object | None = None,
     chat_tid: int | None = None,
     session_id: str | None = None,
     service_tier: str | None = None,
@@ -52,7 +51,7 @@ async def run_structured_task[OutputT: BaseModel](
         else None
     )
     request_options = AIRequestOptions(
-        user_tracking_id=user_tracking_id if user_tracking_id is not None else chat_iid,
+        user_tracking_id=chat_iid,
         session_id=session_id,
         service_tier=resolved_service_tier,
     )

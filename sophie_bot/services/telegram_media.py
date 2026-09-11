@@ -10,9 +10,10 @@ import re
 from enum import Enum
 from typing import Any
 
+import ujson
 from aiogram import Bot
 from aiogram.types import Sticker
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from redis.asyncio import Redis
 
 from sophie_bot.utils.logger import log
@@ -122,11 +123,9 @@ class TelegramMediaService:
         key = self._metadata_cache_key(identifier)
         data = await self.redis.get(key)
         if data:
-            import ujson
-
             try:
                 return ResolvedMedia.model_validate(ujson.loads(data))
-            except Exception:  # noqa: BLE001  # boundary: corrupt cache entry is non-fatal, treat as miss
+            except (ujson.JSONDecodeError, ValidationError):
                 log.warning("Failed to deserialize cached media metadata", identifier=identifier)
         return None
 

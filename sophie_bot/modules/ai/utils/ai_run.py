@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import Any, Final, TypeVar, cast
 
+from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import (
     Agent,
@@ -256,7 +257,7 @@ async def _run_with_model_candidates[FallbackOutputT](
 
 @dataclass(frozen=True, slots=True)
 class AIRequestOptions:
-    user_tracking_id: object | None = None
+    user_tracking_id: str | int | PydanticObjectId | None = None
     session_id: str | None = None
     service_tier: str | None = None
 
