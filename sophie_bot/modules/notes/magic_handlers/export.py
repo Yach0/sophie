@@ -6,8 +6,8 @@ from sophie_bot.services.application import ApplicationServices
 
 async def export(
     chat_iid: PydanticObjectId,
-    *,
-    services: ApplicationServices,
+    _services: ApplicationServices,
+    /,
 ) -> dict[str, object]:
     data = []
     notes = await NoteModel.get_chat_notes(chat_iid)

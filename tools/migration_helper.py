@@ -235,7 +235,7 @@ async def run_database_command(args: argparse.Namespace) -> None:
                     case "down_all":
                         await run_all_migrations_backward(resources)
                     case "status":
-                        status = await get_migration_status(resources)
+                        status = await get_migration_status()
                         print(json.dumps(status, indent=2))
             finally:
                 await redis.aclose()

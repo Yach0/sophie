@@ -37,7 +37,7 @@ def _build_lockable_items(lock_types: tuple[str, ...]) -> list[LockableItem]:
 
 @router.get("/lockable", response_model=LockableResponse)
 async def get_lockable_types(
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    _user: Annotated[ChatModel, Depends(get_current_user)],
 ):
     return LockableResponse(
         content_types=_build_lockable_items(CONTENT_TYPES),

@@ -35,7 +35,7 @@ class TriggerExport(SophieBaseHandler[Message]):
             if (
                 exported := await export_data(
                     chat_iid,
-                    services=self.services,
+                    self.services,
                 )
             )
         ]

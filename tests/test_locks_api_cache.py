@@ -41,7 +41,7 @@ async def test_rest_lock_update_invalidates_the_locks_cache(
     response = await set_locked_types(
         chat=chat,
         payload=LocksPayload(locked=["sticker"]),
-        user=MagicMock(),
+        _user=MagicMock(),
         services=SimpleNamespace(redis=test_redis),
     )
 

@@ -45,7 +45,7 @@ def _scrub_bot_token(url: str) -> str:
     return _BOT_TOKEN_RE.sub(r"\1[REDACTED]\2", url)
 
 
-def _before_send_transaction(event: Event, hint: dict[str, Any]) -> Event | None:
+def _before_send_transaction(event: Event, _hint: dict[str, Any]) -> Event | None:
     """Redact Telegram bot token from outbound request URLs in trace spans."""
     ev = cast(dict[str, Any], event)
     for span in ev.get("spans", []):

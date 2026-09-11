@@ -12,7 +12,7 @@ router = APIRouter(prefix="/warns", tags=["warns"])
 async def update_warn_settings(
     chat: ChatDep,
     update: WarnSettingsUpdate,
-    current_user: RestrictAdminDep,
+    _current_user: RestrictAdminDep,
 ) -> WarnSettingsResponse:
     settings = await WarnSettingsModel.get_or_create(chat.iid)
 

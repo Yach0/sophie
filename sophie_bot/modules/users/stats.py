@@ -6,7 +6,7 @@ from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 
 
-async def users_stats(*, services: ApplicationServices) -> Section:
+async def users_stats(_services: ApplicationServices, /) -> Section:
     return Section(
         KeyValue(
             _("Total"),

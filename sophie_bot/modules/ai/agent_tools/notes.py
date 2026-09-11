@@ -29,6 +29,7 @@ async def get_note_content(ctx: RunContext[SophieAIToolContext], notename: str) 
     """Get one chat note by name and return its title and content.
 
     Args:
+        ctx: Runtime context for the current chat.
         notename: The note name or alias to retrieve. A leading # is optional.
     """
     normalized_notename = _normalize_notenames(notename)[0]

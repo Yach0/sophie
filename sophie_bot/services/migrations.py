@@ -162,7 +162,7 @@ async def run_all_migrations_backward(resources: MigrationResources) -> None:
     log.info("All migrations rolled back successfully")
 
 
-async def get_migration_status(resources: MigrationResources) -> dict[str, Any]:
+async def get_migration_status() -> dict[str, Any]:
     migrations_path = Path(CONFIG.migrations_path)
     if not migrations_path.exists():
         return {

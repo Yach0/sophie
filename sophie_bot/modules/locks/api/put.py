@@ -21,7 +21,7 @@ router = APIRouter()
 async def set_locked_types(
     chat: ChatDep,
     payload: LocksPayload,
-    user: ChangeInfoAdminDep,
+    _user: ChangeInfoAdminDep,
     services: Annotated[ApplicationServices, Depends(get_services)],
 ) -> LocksResponse:
     valid_locks = [lock_type for lock_type in payload.locked if is_supported_lock_type(lock_type)]

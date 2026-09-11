@@ -25,7 +25,7 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (or_f(WelcomeSecurityConfirmCB().filter(), WelcomeSecurityRulesAgreeCB().filter()),)
 
-    async def captcha_correct(self, group: ChatModel, state_data: dict[str, Any]):
+    async def captcha_correct(self, group: ChatModel) -> Any:
         if not isinstance(self.event.message, Message):
             raise SophieException("Invalid message type. Try initializing the captcha again.")
 
@@ -88,6 +88,6 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
         captcha = EmojiCaptcha(data=data["captcha"])
 
         if captcha.data.is_correct:
-            return await self.captcha_correct(chat_db, data)
+            return await self.captcha_correct(chat_db)
         self.data["ws_shuffle"] = True
         return await CaptchaGetHandler(self.event, **self.data)

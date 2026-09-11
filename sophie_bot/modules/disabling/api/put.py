@@ -16,7 +16,7 @@ router = APIRouter()
 async def set_disabled_commands(
     chat: ChatDep,
     payload: DisabledPayload,
-    user: ChangeInfoAdminDep,
+    _user: ChangeInfoAdminDep,
     services: ServicesDep,
 ) -> DisabledResponse:
     to_disable = [command for command in payload.disabled if command in services.modules.disableable_commands]

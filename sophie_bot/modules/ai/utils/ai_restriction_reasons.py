@@ -35,6 +35,7 @@ async def should_generate_ai_reason(chat_db: ChatModel, *, services: Application
 
     Args:
         chat_db: The chat database model
+        services: Application services used to read feature flags.
 
     Returns:
         True if AI reason generation should be used
@@ -63,6 +64,7 @@ async def generate_restriction_reason(
         chat_db: The chat database model
         message_text: The text of the message being replied to (the violation)
         include_rules: Whether to include group rules in the prompt (False for federations)
+        services: Application services used for feature flags and AI requests.
 
     Returns:
         The generated reason string, or None if generation failed or no message text provided

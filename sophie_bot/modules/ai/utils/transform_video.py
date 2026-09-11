@@ -67,6 +67,7 @@ async def extract_audio_from_video(video: Video | VideoNote, *, bot: Bot) -> byt
     and returns the audio bytes in OGG format suitable for transcription.
 
     Args:
+        bot: Telegram bot used to download the video.
         video: The video object from Telegram (Video or VideoNote)
 
     Returns:
@@ -123,6 +124,8 @@ async def transform_video_to_text(video: Video | VideoNote, *, bot: Bot, redis: 
     the Mistral transcription API.
 
     Args:
+        bot: Telegram bot used to download the video.
+        redis: Redis connection used to resolve the transcription client.
         video: The video object from Telegram
 
     Returns:

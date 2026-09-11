@@ -37,7 +37,7 @@ class MarkdownLinkArgument[ExtendedValue = Never](ArgFabric[tuple[str, str] | Ex
     def check(self, text: str, entities: ArgEntities) -> bool:
         return self.check_markdown_link(text, entities)
 
-    def check_markdown_link(self, text: str, entities: ArgEntities) -> bool:
+    def check_markdown_link(self, text: str, _entities: ArgEntities) -> bool:
         text_match = self._pattern.match(text)
         if not text_match:
             return False

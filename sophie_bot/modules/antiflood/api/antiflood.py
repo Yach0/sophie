@@ -77,7 +77,7 @@ class AntifloodSettingsResponse(BaseModel):
 @router.get("/{chat_iid}", response_model=AntifloodSettingsResponse)
 async def get_antiflood_settings(
     chat_iid: PydanticObjectId,
-    user: RestrictAdminDep,
+    _user: RestrictAdminDep,
 ) -> AntifloodSettingsResponse:
     """Get antiflood settings for a chat."""
     chat = await ChatModel.get_by_iid(chat_iid)
@@ -111,7 +111,7 @@ async def get_antiflood_settings(
 async def update_antiflood_settings(
     chat_iid: PydanticObjectId,
     request: AntifloodSettingsRequest,
-    user: RestrictAdminDep,
+    _user: RestrictAdminDep,
     services: ServicesDep,
 ) -> AntifloodSettingsResponse:
     """Update antiflood settings for a chat."""
@@ -145,7 +145,7 @@ async def update_antiflood_settings(
 @router.delete("/{chat_iid}", status_code=status.HTTP_204_NO_CONTENT)
 async def disable_antiflood(
     chat_iid: PydanticObjectId,
-    user: RestrictAdminDep,
+    _user: RestrictAdminDep,
 ) -> None:
     """Disable antiflood for a chat (deletes settings)."""
     settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
