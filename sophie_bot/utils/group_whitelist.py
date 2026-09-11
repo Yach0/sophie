@@ -56,7 +56,7 @@ async def _release_group_user_whitelist_lock(lock_key: str, owner: str, *, redis
                 await pipe.unwatch()
                 return
             pipe.multi()
-            await pipe.delete(lock_key)
+            pipe.delete(lock_key)
             await pipe.execute()
         except WatchError:
             # The lock expired or changed owners between WATCH and EXEC. It is no
@@ -126,7 +126,7 @@ async def _cache_membership_if_lock_owned(
                 await pipe.unwatch()
                 return False
             pipe.multi()
-            await pipe.set(cache_key, value, ex=GROUP_USER_WHITELIST_CACHE_TTL_SECONDS)
+            pipe.set(cache_key, value, ex=GROUP_USER_WHITELIST_CACHE_TTL_SECONDS)
             await pipe.execute()
         except WatchError:
             return False
@@ -174,8 +174,8 @@ async def migrate_group_user_whitelist_chat(old_chat_tid: int, new_chat_tid: int
                     await old_entry.delete()
 
                 async with redis.pipeline(transaction=True) as pipe:
-                    await pipe.delete(group_user_whitelist_cache_key(old_chat_tid, user_tid))
-                    await pipe.delete(group_user_whitelist_cache_key(new_chat_tid, user_tid))
+                    pipe.delete(group_user_whitelist_cache_key(old_chat_tid, user_tid))
+                    pipe.delete(group_user_whitelist_cache_key(new_chat_tid, user_tid))
                     await pipe.execute()
 
 

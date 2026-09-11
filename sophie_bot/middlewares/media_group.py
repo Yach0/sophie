@@ -155,15 +155,15 @@ class RedisMediaGroupAggregator(BaseMediaGroupAggregator):
     async def add_into_group(self, key: StorageKey, media: Message) -> int:
         current_time = await self.get_current_time()
         async with self.redis.pipeline(transaction=True) as pipe:
-            await pipe.set(self.build_last_message_time_key(key), current_time, ex=self.ttl_sec)
+            pipe.set(self.build_last_message_time_key(key), current_time, ex=self.ttl_sec)
             # Some update paths leave aiogram ``Default`` sentinels as field values, at any depth;
             # pydantic cannot serialize them, so they are written as null. They validate back as
             # ``None``, exactly like an incoming update that never carried the field.
-            await pipe.rpush(
+            pipe.rpush(
                 self.build_group_key(key),
                 media.model_dump_json(fallback=serialize_bot_default, warnings=False),
             )
-            await pipe.expire(self.build_group_key(key), self.ttl_sec)
+            pipe.expire(self.build_group_key(key), self.ttl_sec)
             res = await pipe.execute()
         return cast(int, res[1])
 
@@ -182,8 +182,8 @@ class RedisMediaGroupAggregator(BaseMediaGroupAggregator):
 
     async def delete_group(self, key: StorageKey) -> None:
         async with self.redis.pipeline(transaction=True) as pipe:
-            await pipe.delete(self.build_group_key(key))
-            await pipe.delete(self.build_last_message_time_key(key))
+            pipe.delete(self.build_group_key(key))
+            pipe.delete(self.build_last_message_time_key(key))
             await pipe.execute()
 
     async def get_last_message_time(self, key: StorageKey) -> float | None:
