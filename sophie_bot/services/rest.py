@@ -132,7 +132,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
             async with redis.pipeline() as pipeline:
                 pipeline.incr(key)
                 # NX avoids extending the fixed window on every request.
-                pipeline.expire(key, GLOBAL_RATE_WINDOW, nx=True)
+                await pipeline.expire(key, GLOBAL_RATE_WINDOW, nx=True)
                 results = await pipeline.execute()
 
             current_count = results[0]

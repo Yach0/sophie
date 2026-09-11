@@ -161,13 +161,13 @@ class FederationManageService:
         target_fed = await FederationManageService.get_federation_by_id(target_fed_id)
         if not target_fed:
             return False
-        if federation.subscribed and target_fed_id in federation.subscribed:
+        subscriptions = list(federation.subscribed or ())
+        if target_fed_id in subscriptions:
             return False
         if federation.fed_id == target_fed_id:
             return False
-        if federation.subscribed is None:
-            federation.subscribed = []
-        federation.subscribed.append(target_fed_id)
+        subscriptions.append(target_fed_id)
+        federation.subscribed = subscriptions
         await federation.save()
         return True
 

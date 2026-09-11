@@ -3,6 +3,7 @@ from enum import Enum
 from typing import ClassVar, Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
+from beanie.odm.operators.find.comparison import NE
 from beanie.odm.operators.update.general import Set, Unset
 
 from sophie_bot.db.models._link_type import Link
@@ -33,7 +34,7 @@ class BetaModeModel(Document):
 
     @staticmethod
     async def all_chats_reset_current_mode():
-        await BetaModeModel.find(BetaModeModel.mode != None).update(Set({BetaModeModel.mode: None}))
+        await BetaModeModel.find(NE(BetaModeModel.mode, None)).update(Set({BetaModeModel.mode: None}))
 
     @staticmethod
     async def beta_mode_chats_count():

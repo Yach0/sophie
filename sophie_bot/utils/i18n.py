@@ -12,7 +12,8 @@ from flag import flag
 from sophie_bot.utils.logger import log
 
 LANG_STATS_REGEX = compile(
-    r"^(?:(\d+) translated message(?:s))(?:, )?(?:(\d+) fuzzy translation)?(?:," r" )?(?:(\d+) untranslated messages)?"
+    r"^(?P<translated>\d+) translated messages?(, (?P<fuzzy>\d+) fuzzy translation)?"
+    r"(, (?P<untranslated>\d+) untranslated messages)?"
 )
 
 
@@ -61,9 +62,9 @@ class I18nNew(I18n):
 
             # Parse a stats
             return LocaleStats(
-                translated=int(match.group(1)),
-                fuzzy=int(match.group(2)) if match.group(2) else 0,
-                untranslated=int(match.group(3)) if match.group(3) else 0,
+                translated=int(match.group("translated")),
+                fuzzy=int(match.group("fuzzy")) if match.group("fuzzy") else 0,
+                untranslated=int(match.group("untranslated")) if match.group("untranslated") else 0,
             )
 
     @staticmethod

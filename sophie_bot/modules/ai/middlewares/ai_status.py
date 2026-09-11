@@ -10,7 +10,7 @@ from sophie_bot.utils.feature_flags import is_enabled
 
 
 class AiStatusMiddleware(BaseMiddleware):
-    """Sends continuous typing status for handlers decorated with @flags.status('typing').
+    """Sends continuous typing status for handlers decorated with @flags.status(value="typing").
 
     Telegram stops showing the typing indicator after ~5 seconds, so ChatActionSender
     re-sends it periodically for the duration of the handler execution.

@@ -13,7 +13,7 @@ from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageHandler
 
 
-@flags.status("typing")
+@flags.status(value="typing")
 @flags.ai_chatbot_response()
 @flags.ai_cache(cache_handler_result=True)
 class AiReplyHandler(SophieMessageHandler):

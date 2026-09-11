@@ -12,13 +12,7 @@ from sophie_bot.modules.op.handlers.op_task import OpTaskHandler
 from sophie_bot.modules.op.handlers.preview_chat_summary import OpRegenerateChatSummaryHandler
 from sophie_bot.modules.op.handlers.set_mode import SetModeHandler
 from sophie_bot.modules.op.handlers.stats import StatsHandler, get_system_stats
-
-try:
-    from sophie_bot.modules.op.handlers.stfu_gallery import StfuGalleryHandler as _StfuGalleryHandler
-
-    _stfu_gallery_handlers: tuple = (_StfuGalleryHandler,)
-except ImportError:
-    _stfu_gallery_handlers = ()
+from sophie_bot.modules.op.handlers.stfu_gallery import StfuGalleryHandler
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -34,7 +28,7 @@ module_manifest = ModuleManifest(
         OpCaptchaHandler,
         OpRegenerateChatSummaryHandler,
         ButtonsTestHandler,
-        *_stfu_gallery_handlers,
+        StfuGalleryHandler,
         EventHandler,
         StatsHandler,
         OpDebugHandler,

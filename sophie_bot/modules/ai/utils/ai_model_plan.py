@@ -4,7 +4,6 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from pydantic_ai.messages import (
-    BinaryContent,
     ModelRequest,
     ModelResponse,
     UserContent,
@@ -96,7 +95,7 @@ def build_model_plan(candidates: Iterable[AIModelCandidate], failover: bool = Fa
 
 
 def _contents_have_image(contents: Sequence[UserContent]) -> bool:
-    return any(isinstance(content, BinaryContent) and content.is_image for content in contents)
+    return any(getattr(content, "is_image", False) for content in contents)
 
 
 def request_has_images(

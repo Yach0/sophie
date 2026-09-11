@@ -1,7 +1,6 @@
 from ass_tg.entities import ArgEntities
 from babel.support import LazyProxy
 
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.markdown_link_argument import MarkdownLinkArgument
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData, SophieButtonABC
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -18,7 +17,7 @@ class NoteButton(SophieButtonABC):
         }
 
     def check(self, text: str, entities: ArgEntities) -> bool:
-        if not MarkdownLinkArgument.check(self, text, entities):
+        if not self.check_markdown_link(text, entities):
             return False
 
         if self._link_data.startswith("#"):
@@ -28,7 +27,7 @@ class NoteButton(SophieButtonABC):
 
     async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, AssButtonData[str]]:
         if self._link_data.startswith("#"):
-            length, (link_name, link_data) = await MarkdownLinkArgument.parse(self, text, offset, entities)
+            length, (link_name, link_data) = await self.parse_markdown_link(text, offset, entities)
 
             raw_arg = link_data[1:]
             arg = raw_arg

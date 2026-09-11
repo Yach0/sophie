@@ -13,13 +13,13 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 TELEGRAM_USER_ID_MAX = (1 << 63) - 1
 
 
-class SophieUserIDArg(UserIDArg):
+class SophieUserIDArg(UserIDArg[ChatModel]):
     def __init__(self, *args: LazyProxy | str | None, allow_unknown_id: bool = False) -> None:
         super().__init__(*args)
         self.allow_unknown_id = allow_unknown_id
 
     async def value(self, text: str) -> ChatModel:
-        user_id: int = await super().value(text)
+        user_id = self.parse_user_id(text)
 
         if user_id < 0 or user_id > TELEGRAM_USER_ID_MAX:
             raise ArgStrictError(_("Invalid user ID."))
@@ -35,9 +35,9 @@ class SophieUserIDArg(UserIDArg):
         return ChatModel.user_from_id(user_id)
 
 
-class SophieUsernameArg(UsernameArg):
+class SophieUsernameArg(UsernameArg[ChatModel]):
     async def value(self, text: str) -> ChatModel:
-        username: str = await super().value(text)
+        username = self.parse_username(text)
 
         # Find user
         try:
@@ -46,10 +46,10 @@ class SophieUsernameArg(UsernameArg):
             raise ArgStrictError(_("Could not find the requested Username in the database."))
 
 
-class SophieUserMentionArg(UserMentionArg):
+class SophieUserMentionArg(UserMentionArg[ChatModel]):
     async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, ChatModel]:
         aiogram_user: User
-        length, aiogram_user = await super().parse(text, offset, entities)
+        length, aiogram_user = await super().parse_user_mention(text, offset, entities)
 
         # Find user
         try:

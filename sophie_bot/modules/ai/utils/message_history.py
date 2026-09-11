@@ -466,9 +466,6 @@ class AIMessageHistory:
                     elif isinstance(part, UserPromptPart):
                         content_str = part.content if isinstance(part.content, str) else str(part.content)
                         moderation_content.append({"role": "user", "content": content_str})
-                    elif isinstance(part, BinaryContent):
-                        # Binary content (images/audio) is skipped for moderation input here
-                        pass
 
         # Extract content from current prompt (treat as user content)
         if self.prompt:

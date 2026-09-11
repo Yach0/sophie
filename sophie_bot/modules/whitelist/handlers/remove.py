@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import KeyValue, Section, Template, UserLink
 
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
-from sophie_bot.modules.whitelist.handlers.base import BaseWhitelistMutationHandler
+from sophie_bot.modules.whitelist.handlers.base import BaseWhitelistMutationHandler, whitelist_mutation_filters
 from sophie_bot.utils import flags
 from sophie_bot.utils.group_whitelist import remove_user_from_group_whitelist
 from sophie_bot.utils.i18n import gettext as _
@@ -14,7 +15,9 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 @flags.help(description=l_("Remove a user from the group whitelist for automated moderation."))
 class UnwhitelistUserHandler(BaseWhitelistMutationHandler):
-    commands = ("unwhitelist", "untrust")
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return whitelist_mutation_filters(("unwhitelist", "untrust"))
 
     async def handle(self) -> Any:
         user = self.target()

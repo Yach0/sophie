@@ -186,7 +186,16 @@ def capture_ai_error(
     """Report an AI provider failure to Sentry with the model and operation attached."""
     details = _error_details(error, context)
     with sentry_sdk.new_scope() as scope:
-        scope.level = level
+        scope.update_from_kwargs(
+            level=level,
+            fingerprint=[
+                "ai-provider-error",
+                context.operation,
+                context.model_name or "unknown",
+                details["error_type"],
+                str(details["status_code"]),
+            ],
+        )
         scope.set_context("ai_request", details)
         scope.set_tag("ai.operation", context.operation)
         scope.set_tag("ai.error_type", details["error_type"])
@@ -195,15 +204,6 @@ def capture_ai_error(
             scope.set_tag("ai.model", context.model_name)
         if details["status_code"] is not None:
             scope.set_tag("ai.status_code", str(details["status_code"]))
-        # Provider failures surface through tenacity and anyio frames, so Sentry's default stack
-        # grouping merges every model and status code into a single unactionable issue.
-        scope.fingerprint = [
-            "ai-provider-error",
-            context.operation,
-            context.model_name or "unknown",
-            details["error_type"],
-            str(details["status_code"]),
-        ]
         event_id = sentry_sdk.capture_exception(error)
         if event_id is not None:
             # The SDK returns the ID before its background transport has handed the envelope off.

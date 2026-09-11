@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
-
 from beanie import PydanticObjectId
-from beanie.odm.fields import Link as BeanieLink
-from bson import DBRef
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.federations import Federation
@@ -18,8 +14,10 @@ class FederationAdminService:
         for admin_link in federation.admins:
             if admin_link.to_ref().id == user_iid:
                 raise ValueError("User is already an admin")
-        db_ref = DBRef("chats", user_iid)
-        federation.admins.append(cast("ChatModel", BeanieLink(db_ref, ChatModel)))
+        user = await ChatModel.get_by_iid(user_iid)
+        if user is None:
+            raise ValueError("User does not exist")
+        federation.admins.append(user)
         await federation.save()
 
     @staticmethod
@@ -32,11 +30,11 @@ class FederationAdminService:
 
     @staticmethod
     async def is_admin(federation: Federation, user_tid: int) -> bool:
-        creator = await ChatModel.get_by_iid(federation.creator.ref.id)
+        creator = await ChatModel.get_by_iid(federation.creator.to_ref().id)
         if creator and creator.tid == user_tid:
             return True
         for admin_link in federation.admins:
-            admin = await ChatModel.get_by_iid(admin_link.ref.id)
+            admin = await ChatModel.get_by_iid(admin_link.to_ref().id)
             if admin and admin.tid == user_tid:
                 return True
         return False

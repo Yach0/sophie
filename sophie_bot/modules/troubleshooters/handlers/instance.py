@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class InstanceStatus(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter("instance"), UserRestricting(admin=True))
+        return CMDFilter("instance"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         if self.connection.type == ChatType.private:

@@ -197,9 +197,8 @@ class ActionWizard[DRAFT: ActionDraft]:
         definition = self._definition(handler, action_name)
         if definition is None or not self._allowed(definition):
             raise _WizardAlert(_("Unknown action."))
-        if (action_name in draft.actions and self.config.max_actions > 1) or (
-            self.config.max_actions > 1 and len(draft.actions) >= self.config.max_actions
-        ):
+        action_limit_reached = action_name in draft.actions or len(draft.actions) >= self.config.max_actions
+        if self.config.max_actions > 1 and action_limit_reached:
             raise _WizardAlert(_("This action cannot be added."))
         spec = handler.services.modules.action_wizards.get(action_name)
         if spec is not None and spec.interactive_setup and spec.interactive_setup.setup_message:

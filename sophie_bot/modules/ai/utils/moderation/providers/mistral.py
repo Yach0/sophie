@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Final, cast
+from typing import Final
 
-from mistralai.client.models.chatmoderationrequest import ChatModerationRequestInputs3
 from mistralai.client.models.moderationobject import ModerationObject
 from mistralai.client.models.moderationresponse import ModerationResponse
 from redis.asyncio import Redis
@@ -55,7 +54,7 @@ class MistralModerationProvider:
         *,
         redis: Redis,
     ) -> dict[str, float]:
-        moderation_messages = cast(ChatModerationRequestInputs3, convert_to_moderation_format(history.to_moderation))
+        moderation_messages = convert_to_moderation_format(history.to_moderation)
         client = await get_mistral_client(redis=redis)
         response: ModerationResponse = await run_ai_request_with_retries(
             lambda: client.classifiers.moderate_chat_async(

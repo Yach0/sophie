@@ -364,7 +364,7 @@ async def _answer_message(
                 model_plan=model_plan,
                 service_tier=service_tier,
                 thread_id=target_message.message_thread_id,
-                session_id=(f"{chat.iid}:{target_message.message_thread_id or 'proactive'}"),
+                session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
                 use_base_tools=True,
             )
         )

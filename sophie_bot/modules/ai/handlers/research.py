@@ -82,7 +82,7 @@ class ResearchProgressMessage:
     text=TextArg(l_("Research topic")),
 )
 @flags.help(description=l_("Research a topic using multistage web search and return a summary with sources"))
-@flags.status("typing")
+@flags.status(value="typing")
 @flags.ai_cache(cache_handler_result=True)
 @flags.disableable(name="research")
 class ResearchCmd(SophieMessageHandler):
