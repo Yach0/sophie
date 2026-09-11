@@ -17,14 +17,14 @@ class _NotHandledFilter(logging.Filter):
         return "is not handled" not in record.getMessage()
 
 
-def silence_processor(logger: logging.Logger, method_name: str, event_dict: EventDict):
+def silence_processor(_logger: logging.Logger, _method_name: str, event_dict: EventDict) -> EventDict:
     if event_dict.get("logger", None) == "aiogram.event":
         event_dict["level"] = "debug"
 
     return event_dict
 
 
-def mongo_prefix_processor(logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
+def mongo_prefix_processor(_logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
     """Add 'mongo: ' prefix to pymongo log messages and make them gray."""
     logger_name = event_dict.get("logger", "")
     if logger_name and logger_name.startswith("pymongo."):
@@ -37,7 +37,7 @@ def mongo_prefix_processor(logger: logging.Logger, _: str, event_dict: EventDict
     return event_dict
 
 
-def security_color_processor(logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
+def security_color_processor(_logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
     logger_name = event_dict.get("logger", "")
     if logger_name == "security":
         event_text = event_dict.get("event", "")

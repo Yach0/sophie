@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/locked/{chat_iid}", response_model=LocksResponse)
 async def get_locked_types(
     chat: ChatDep,
-    user: ReadAdminDep,
+    _user: ReadAdminDep,
 ):
     locked_types = await LocksModel.get_locked_types(chat.iid)
     return LocksResponse(locked=sorted(locked_types))

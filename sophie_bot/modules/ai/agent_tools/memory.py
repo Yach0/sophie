@@ -15,6 +15,7 @@ async def write_memory(ctx: RunContext[SophieAIToolContext], information_to_save
     """Save information to the chat's long-term memory.
 
     Args:
+        ctx: Runtime context for the current chat.
         information_to_save: The fact, preference, or instruction to remember for this chat.
     """
     normalized_information = information_to_save.strip()
@@ -42,6 +43,7 @@ async def forget_memory(ctx: RunContext[SophieAIToolContext], index: int) -> str
     """Forget one long-term memory item by its visible 1-based index.
 
     Args:
+        ctx: Runtime context for the current chat.
         index: The 1-based memory index shown in the instructions.
     """
 

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/warns", tags=["warns"])
 async def get_user_warns(
     chat: ChatDep,
     user_tid: int,
-    current_user: RestrictAdminDep,
+    _current_user: RestrictAdminDep,
 ) -> list[WarnResponse]:
     user = await ChatModel.get_by_tid(user_tid)
     if not user:

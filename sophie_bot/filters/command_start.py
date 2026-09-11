@@ -1,12 +1,11 @@
 from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
-from typing import Any, ClassVar, Self, TypeVar
+from typing import Any, ClassVar, Self, TypeVar, get_args
 from uuid import UUID
 
 from aiogram import Bot
 from aiogram.filters import CommandObject, Filter
-from aiogram.filters.callback_data import _check_field_is_nullable
 from aiogram.types import Chat, Message
 from pydantic import BaseModel
 
@@ -74,7 +73,9 @@ class CmdStart(BaseModel):
             return value.hex
         if isinstance(value, bool):
             return str(int(value))
-        if isinstance(value, (int, str, float, Decimal, Fraction)):
+        if isinstance(value, Decimal):
+            return format(value, "f")
+        if isinstance(value, (int, str, float, Fraction)):
             return str(value)
         raise ValueError(
             f"Attribute {key}={value!r} of type {type(value).__name__!r} can not be packed to callback data"
@@ -102,11 +103,12 @@ class CmdStart(BaseModel):
             raise ValueError(f"CmdStart {cls.__name__!r} takes {len(names)} arguments but {len(parts)} were given")
         if prefix != cls.__prefix__:
             raise ValueError(f"Bad prefix ({prefix!r} != {cls.__prefix__!r})")
-        payload = {}
-        for k, v in zip(names, parts):  # type: str, Optional[str]
-            if (field := cls.model_fields.get(k)) and v == "" and _check_field_is_nullable(field):
-                v = None
-            payload[k] = v
+        payload: dict[str, Any] = {}
+        for name, raw_value in zip(names, parts):
+            field = cls.model_fields.get(name)
+            if field and raw_value == "" and (not field.is_required() or type(None) in get_args(field.annotation)):
+                raw_value = None
+            payload[name] = raw_value
         return cls(**payload)
 
     @classmethod

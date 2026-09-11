@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/{chat_iid}", response_model=NotesListResponse)
 async def list_notes(
     chat: ChatDep,
-    user: ReadAdminDep,
+    _user: ReadAdminDep,
     services: ServicesDep,
 ) -> NotesListResponse:
     notes = await NoteModel.get_chat_notes(chat.iid)
@@ -34,7 +34,7 @@ async def list_notes(
 async def get_note(
     chat: ChatDep,
     note_id: PydanticObjectId,
-    user: ReadAdminDep,
+    _user: ReadAdminDep,
     services: ServicesDep,
 ) -> NoteResponse:
     note = await NoteModel.get(note_id)

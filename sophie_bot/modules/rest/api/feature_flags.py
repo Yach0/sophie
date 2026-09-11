@@ -34,7 +34,7 @@ from sophie_bot.utils.feature_flags import (
     set_value,
 )
 from sophie_bot.utils.feature_flags import (
-    _get_all_overrides as get_global_overrides,
+    get_all_overrides as get_global_overrides,
 )
 
 ServicesDep = Annotated[ApplicationServices, Depends(get_services)]

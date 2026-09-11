@@ -27,11 +27,11 @@ if TYPE_CHECKING:
 
 
 class ModuleStatsHook(Protocol):
-    async def __call__(self, *, services: ApplicationServices) -> object: ...
+    async def __call__(self, services: ApplicationServices, /) -> object: ...
 
 
 class ExportHook(Protocol):
-    async def __call__(self, chat_iid: Any, *, services: ApplicationServices) -> dict[str, Any] | None: ...
+    async def __call__(self, chat_iid: Any, services: ApplicationServices, /) -> dict[str, Any] | None: ...
 
 
 BotRouterFactory = Callable[[], Router]

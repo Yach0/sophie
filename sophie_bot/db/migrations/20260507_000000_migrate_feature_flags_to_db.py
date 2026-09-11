@@ -28,7 +28,7 @@ from bson import ObjectId
 
 from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.services.migrations import MigrationResources
-from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _parse_override, _serialize_value
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, parse_feature_override, serialize_feature_value
 
 _REDIS_KEY = "sophie:kill_switch"
 _REDIS_CHAT_KEY_PREFIX = "sophie:kill_switch_chat"
@@ -60,7 +60,7 @@ class Forward:
             feature = _decode_redis_value(raw_feature)
             if feature not in FEATURE_FLAGS:
                 continue
-            value = _parse_override(raw_value, "")
+            value = parse_feature_override(raw_value, "")
             if value is None:
                 continue
             await collection.update_one(
@@ -81,7 +81,7 @@ class Forward:
                 feature = _decode_redis_value(raw_feature)
                 if feature not in FEATURE_FLAGS:
                     continue
-                value = _parse_override(raw_value, "")
+                value = parse_feature_override(raw_value, "")
                 if value is None:
                     continue
                 await collection.update_one(
@@ -109,7 +109,7 @@ class Backward:
 
             chat_tid = override.get("chat_tid")
             redis_key = _REDIS_KEY if chat_tid is None else f"{_REDIS_CHAT_KEY_PREFIX}:{chat_tid}"
-            await resources.redis.hset(redis_key, override["feature"], _serialize_value(value))
+            await resources.redis.hset(redis_key, override["feature"], serialize_feature_value(value))
             restored_ids.append(override["_id"])
 
         await collection.delete_many({"_id": {"$in": restored_ids}}, session=session)

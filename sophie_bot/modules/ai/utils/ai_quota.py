@@ -54,7 +54,7 @@ class AIQuotaState:
         return max(self.total_credits - self.used_credits, 0)
 
 
-def _current_period_start() -> date:
+def current_period_start() -> date:
     return datetime.now(UTC).date().replace(day=1)
 
 
@@ -68,7 +68,7 @@ def get_period_end(period_start: date) -> date:
 
 
 async def _ensure_period(quota: AIQuotaModel) -> AIQuotaModel:
-    current = _current_period_start()
+    current = current_period_start()
     if quota.period_start < current:
         quota.used_credits = 0
         quota.period_start = current
@@ -193,7 +193,7 @@ async def consume_quota(
 async def set_monthly_quota(chat: ChatModel, credit_amount: int) -> AIQuotaModel:
     quota = await get_or_create_quota_model(chat.iid)
     if not quota:
-        quota = AIQuotaModel(chat=chat, monthly_credits=credit_amount, period_start=_current_period_start())
+        quota = AIQuotaModel(chat=chat, monthly_credits=credit_amount, period_start=current_period_start())
     else:
         quota.monthly_credits = credit_amount
 
@@ -206,7 +206,7 @@ async def reset_period_usage(chat_iid: PydanticObjectId) -> None:
         return
 
     quota.used_credits = 0
-    quota.period_start = _current_period_start()
+    quota.period_start = current_period_start()
     quota.exhausted_notified_period_start = None
     quota.exhausted_notified_at = None
     await quota.save()

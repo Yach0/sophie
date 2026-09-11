@@ -17,6 +17,7 @@ Impact:
 from __future__ import annotations
 
 from beanie import free_fall_migration
+from pymongo.errors import OperationFailure
 
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.utils.logger import log
@@ -38,7 +39,9 @@ class Forward:
             try:
                 await collection.drop_index(index_name)
                 log.info("Dropped old index", index_name=index_name)
-            except Exception:  # noqa: BLE001
+            except OperationFailure as error:
+                if error.code != 27:
+                    raise
                 log.debug("Old index not present, skipping", index_name=index_name)
 
         # Delete documents where user or group is null/missing.

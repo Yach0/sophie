@@ -6,7 +6,7 @@ from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 
 
-async def beta_stats(*, services: ApplicationServices) -> Element:
+async def beta_stats(_services: ApplicationServices, /) -> Element:
     percentage_db = await GlobalSettings.get_by_key("beta_percentage")
     percentage = percentage_db.value if percentage_db else 0
 

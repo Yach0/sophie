@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import httpx2
 from pydantic import BaseModel, Field
-from pydantic_ai import RunContext, Tool
+from pydantic_ai import Tool
 
 from sophie_bot.config import CONFIG
 from sophie_bot.metrics import track_ai_tool
-from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 
 _TINYFISH_SEARCH_URL = "https://api.search.tinyfish.ai"
 
@@ -40,9 +39,7 @@ async def search_tinyfish(query: str, limit: int = 5) -> list[TinyFishSearchResu
     ]
 
 
-async def tinyfish_search(
-    ctx: RunContext[SophieAIToolContext], query: str, limit: int = 5
-) -> list[TinyFishSearchResult]:
+async def tinyfish_search(query: str, limit: int = 5) -> list[TinyFishSearchResult]:
     """Search the web with TinyFish and return result metadata.
 
     Args:
@@ -57,7 +54,6 @@ tinyfish_search_tool = Tool(
     tinyfish_search,
     name="tinyfish_search",
     description="Search the web with TinyFish and return result titles, URLs, and snippets.",
-    takes_ctx=True,
     docstring_format="google",
     require_parameter_descriptions=True,
 )

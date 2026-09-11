@@ -35,6 +35,8 @@ async def complete_captcha(
         greetings: Greetings model
         captcha_message: The message containing the captcha
         is_join_request: Whether this was from a join request
+        bot: Telegram bot used to update the captcha and membership.
+        redis: Redis connection used by the welcome-security flow.
     """
     # Mark captcha as correct
     track_captcha_passed()

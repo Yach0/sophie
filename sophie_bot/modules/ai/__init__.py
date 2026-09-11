@@ -63,7 +63,7 @@ async def initialize(services: ApplicationServices) -> None:
     await load_catalog(redis=services.redis)
 
 
-async def setup_bot(bot_router: Router, services: ApplicationServices) -> None:
+async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
     bot_router.message.outer_middleware(CacheUserMessagesMiddleware())
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())

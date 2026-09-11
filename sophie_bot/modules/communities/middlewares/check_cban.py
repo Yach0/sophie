@@ -24,7 +24,8 @@ from sophie_bot.utils.logger import log
 class CommunityBanMiddleware(BaseMiddleware):
     """Enforce community bans on users who post in a community chat after being banned."""
 
-    async def is_cbanned(self, message: Message, data: dict[str, Any]) -> bool:
+    @staticmethod
+    async def is_cbanned(message: Message, data: dict[str, Any]) -> bool:
         if message.sender_chat:
             return False
         if message.chat.type not in {"group", "supergroup"}:

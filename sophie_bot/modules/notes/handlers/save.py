@@ -109,8 +109,9 @@ class SaveNote(SophieMessageHandler):
 
         await self.event.reply(str(document))
 
+    @staticmethod
     async def save(
-        self, saveable: Saveable, notenames: Sequence[str], chat_iid: PydanticObjectId, user_id: int, data: dict
+        saveable: Saveable, notenames: Sequence[str], chat_iid: PydanticObjectId, user_id: int, data: dict
     ) -> bool:
         model = await NoteModel.get_by_notenames(chat_iid, notenames)
 

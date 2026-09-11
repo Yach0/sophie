@@ -17,7 +17,7 @@ router = APIRouter(prefix="/pmnotes")
 @router.get("/{chat_iid}", response_model=PMNotesStateResponse)
 async def get_pmnotes_state(
     chat_iid: PydanticObjectId,
-    user: Annotated[ChatModel, Depends(rest_require_admin())],
+    _user: Annotated[ChatModel, Depends(rest_require_admin())],
 ) -> PMNotesStateResponse:
     chat = await ChatModel.get(chat_iid)
     if not chat:

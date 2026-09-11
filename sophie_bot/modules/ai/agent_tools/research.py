@@ -12,6 +12,7 @@ async def research_topic(ctx: RunContext[SophieAIToolContext], topic: str) -> Re
     """Run multistage web research and return a summary with sources.
 
     Args:
+        ctx: Runtime context for the current chat.
         topic: Topic or question to research.
     """
     async with track_ai_tool("research_topic"):

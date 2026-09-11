@@ -15,7 +15,7 @@ router = APIRouter(prefix="/moderator", tags=["ai_moderator"])
 @router.get("/{chat_iid}", response_model=ModeratorSettingsResponse)
 async def get_moderator_settings(
     chat_iid: PydanticObjectId,
-    user: RestrictAdminDep,
+    _user: RestrictAdminDep,
 ) -> ModeratorSettingsResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:
@@ -44,7 +44,7 @@ async def get_moderator_settings(
 async def update_moderator_settings(
     chat_iid: PydanticObjectId,
     data: ModeratorSettingsUpdate,
-    user: RestrictAdminDep,
+    _user: RestrictAdminDep,
 ) -> ModeratorSettingsResponse:
     chat = await ChatModel.get_by_iid(chat_iid)
     if not chat:

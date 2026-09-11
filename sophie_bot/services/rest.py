@@ -6,6 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 from starlette.types import ASGIApp
@@ -148,7 +149,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Too many requests"},
                     headers={"Retry-After": str(max(ttl, 1))},
                 )
-        except Exception:
+        except RedisError:
             # Fail-open: allow the request through rather than blocking all
             # traffic. Track failure count for operator alerting.
             GlobalRateLimitMiddleware._redis_failure_count += 1

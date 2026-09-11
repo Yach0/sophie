@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
@@ -42,13 +42,16 @@ _UNROLE_OPTION = "unrole"
 _PRIORITY_OPTION = "priority"
 
 
-def _option(options: object, name: str) -> object | None:
+def _option[OptionT](options: object, name: str, expected_type: type[OptionT]) -> OptionT | None:
     if not isinstance(options, Mapping):
         return None
-    value = cast(Mapping[str, object], options).get(name)
-    if isinstance(value, ParsedArg):
-        return value.get_value()
-    return value
+    value = options.get(name)
+    resolved = value.get_value() if isinstance(value, ParsedArg) else value
+    if resolved is None:
+        return None
+    if not isinstance(resolved, expected_type):
+        raise TypeError(f"Option {name!r} must be {expected_type.__name__}, got {type(resolved).__name__}")
+    return resolved
 
 
 def _parse_role(raw_role: str, priority: int = 0) -> AIModelRole:
@@ -169,7 +172,7 @@ class OpAIProvider(SophieMessageHandler):
         options = self.data.get("options")
         provider = await AICatalogProviderModel.find_one(AICatalogProviderModel.name == name)
 
-        if _option(options, _DELETE_OPTION):
+        if _option(options, _DELETE_OPTION, bool):
             if not provider:
                 return await self.event.answer(str(Template(_("No provider named {name}."), name=Code(name))))
             await provider.delete()
@@ -179,14 +182,14 @@ class OpAIProvider(SophieMessageHandler):
         if not provider:
             provider = AICatalogProviderModel(name=name)
 
-        if (kind := _option(options, _KIND_OPTION)) is not None:
-            provider.kind = AIProviderKind(str(kind))
-        if (base_url := _option(options, _BASE_URL_OPTION)) is not None:
-            provider.base_url = str(base_url)
-        if (api_key := _option(options, _KEY_OPTION)) is not None:
-            provider.api_key = str(api_key)
-        if (enabled := _option(options, _ENABLED_OPTION)) is not None:
-            provider.enabled = bool(enabled)
+        if (kind := _option(options, _KIND_OPTION, str)) is not None:
+            provider.kind = AIProviderKind(kind)
+        if (base_url := _option(options, _BASE_URL_OPTION, str)) is not None:
+            provider.base_url = base_url
+        if (api_key := _option(options, _KEY_OPTION, str)) is not None:
+            provider.api_key = api_key
+        if (enabled := _option(options, _ENABLED_OPTION, bool)) is not None:
+            provider.enabled = enabled
 
         await provider.save()
         await bump_version(redis=self.services.redis)
@@ -268,39 +271,39 @@ class OpAIModel(SophieMessageHandler):
         options = self.data.get("options")
         stored_model = await AICatalogModelModel.find_one(AICatalogModelModel.name == name)
 
-        if _option(options, _DELETE_OPTION):
+        if _option(options, _DELETE_OPTION, bool):
             if not stored_model:
                 return await self.event.reply(str(Template(_("No model named {name}."), name=Code(name))))
             await stored_model.delete()
             await bump_version(redis=self.services.redis)
             return await self.event.reply(str(Template(_("Model {name} deleted."), name=Code(name))))
 
-        raw_role = _option(options, _ROLE_OPTION)
-        priority = _option(options, _PRIORITY_OPTION)
+        raw_role = _option(options, _ROLE_OPTION, str)
+        priority = _option(options, _PRIORITY_OPTION, int)
         # Priority orders the models inside one role, so on its own it has nothing to apply to.
         # Silently dropping it would leave an operator believing they had reordered a chain.
         if priority is not None and raw_role is None:
             return await self.event.reply(str(_("^priority only applies together with ^role.")))
 
-        provider_name = _option(options, _PROVIDER_OPTION)
+        provider_name = _option(options, _PROVIDER_OPTION, str)
         if not stored_model:
             if provider_name is None:
                 return await self.event.reply(str(_("A new model needs ^provider=<name>.")))
-            stored_model = AICatalogModelModel(name=name, provider=str(provider_name))
+            stored_model = AICatalogModelModel(name=name, provider=provider_name)
         elif provider_name is not None:
-            stored_model.provider = str(provider_name)
+            stored_model.provider = provider_name
 
-        if (api_name := _option(options, _API_NAME_OPTION)) is not None:
-            stored_model.api_name = str(api_name)
-        if (reasoning := _option(options, _REASONING_OPTION)) is not None:
-            stored_model.supports_reasoning = bool(reasoning)
-        if (images := _option(options, _IMAGES_OPTION)) is not None:
-            stored_model.supports_images = bool(images)
-        if (enabled := _option(options, _ENABLED_OPTION)) is not None:
-            stored_model.enabled = bool(enabled)
+        if (api_name := _option(options, _API_NAME_OPTION, str)) is not None:
+            stored_model.api_name = api_name
+        if (reasoning := _option(options, _REASONING_OPTION, bool)) is not None:
+            stored_model.supports_reasoning = reasoning
+        if (images := _option(options, _IMAGES_OPTION, bool)) is not None:
+            stored_model.supports_images = images
+        if (enabled := _option(options, _ENABLED_OPTION, bool)) is not None:
+            stored_model.enabled = enabled
 
         if raw_role is not None:
-            role = _parse_role(str(raw_role), cast(int, priority) if priority is not None else 0)
+            role = _parse_role(raw_role, priority if priority is not None else 0)
             # Matched on (mode, purpose) rather than on the whole role, so re-assigning a role this
             # model already has updates its priority instead of listing it twice.
             stored_model.roles = [
@@ -308,8 +311,8 @@ class OpAIModel(SophieMessageHandler):
                 for existing in stored_model.roles
                 if (existing.mode, existing.purpose) != (role.mode, role.purpose)
             ] + [role]
-        if (raw_unrole := _option(options, _UNROLE_OPTION)) is not None:
-            unrole = _parse_role(str(raw_unrole))
+        if (raw_unrole := _option(options, _UNROLE_OPTION, str)) is not None:
+            unrole = _parse_role(raw_unrole)
             stored_model.roles = [
                 existing
                 for existing in stored_model.roles
