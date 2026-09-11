@@ -109,6 +109,6 @@ class FedBanMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         if isinstance(event, Message) and await self.is_fbanned(event, data):
-            return
+            return None
 
         return await handler(event, data)

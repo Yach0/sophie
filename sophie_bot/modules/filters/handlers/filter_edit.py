@@ -48,3 +48,4 @@ class FilterEditHandler(SophieMessageHandler):
                 )
             )
         await FILTER_WIZARD.start(self, FilterDraft.from_model(filter_item))
+        return None

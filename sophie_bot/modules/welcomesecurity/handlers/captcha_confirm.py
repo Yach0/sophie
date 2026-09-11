@@ -74,7 +74,7 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
 
         if not chat_iid:
             await self.event.answer(_("Captcha expired. Please try again."))
-            return
+            return None
 
         chat_db = await ChatModel.get_by_iid(PydanticObjectId(chat_iid))
         if not chat_db:
@@ -83,7 +83,7 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
         if "captcha" not in data:
             log.warning("Captcha callback with no captcha data in FSM state, likely expired")
             await self.event.answer(_("Captcha expired. Please try again."))
-            return
+            return None
 
         captcha = EmojiCaptcha(data=data["captcha"])
 

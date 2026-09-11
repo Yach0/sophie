@@ -120,7 +120,7 @@ class ResearchCmd(SophieMessageHandler):
         except SophieException as exc:
             log.warning("research: SophieException during workflow", error=str(exc))
             await self.event.reply(str(exc))
-            return
+            return None
         header_style = await get_ai_header_style(
             "chatbot",
             self.event.chat.id,

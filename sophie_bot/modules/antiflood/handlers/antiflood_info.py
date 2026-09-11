@@ -86,3 +86,4 @@ class AntifloodInfoHandler(SophieMessageHandler):
             Template(_("Use {cmd} to configure actions"), cmd=Italic("/antiflood_action")),
         )
         await self.event.reply(str(doc))
+        return None

@@ -157,6 +157,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
                 connection.tid,
                 collect_message_ids_for_cleanup(self.event, reply_message.message_id),
             )
+        return None
 
     async def _after_restriction_applied(self, chat_tid: int, user_tid: int) -> None:
         return None

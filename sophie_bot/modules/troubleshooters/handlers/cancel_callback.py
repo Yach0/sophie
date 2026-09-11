@@ -35,6 +35,7 @@ class CancelCallbackHandler(SophieCallbackQueryHandler):
 
         await self.state.clear()
         await message.edit_text(text=_("❌ Cancelled."))
+        return None
 
 
 class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
@@ -54,6 +55,7 @@ class TypedCancelCallbackHandler(SophieCallbackQueryHandler):
         message = self.event.message
         if isinstance(message, Message):
             await message.edit_text(text=_("❌ Cancelled."))
+        return None
 
 
 class CallbackActionCancelHandler(SophieCallbackQueryHandler):
@@ -64,7 +66,7 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         user = self.event.from_user
         if not user:
-            return
+            return None
 
         # Check if the user is an admin
         if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
@@ -78,3 +80,4 @@ class CallbackActionCancelHandler(SophieCallbackQueryHandler):
                     _("The action was cancelled by {user}."), user=UserLink(user.id, user.first_name)
                 ).to_html()
             )
+        return None

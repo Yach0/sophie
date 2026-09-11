@@ -59,3 +59,4 @@ class SetRulesHandler(SophieMessageHandler):
                 )
             )
         )
+        return None

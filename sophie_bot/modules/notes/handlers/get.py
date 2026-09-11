@@ -45,7 +45,7 @@ class GetNote(SophieMessageHandler):
                 Template(_("No note was found with {name} name."), name=Italic(note_name)).to_html()
             )
         if not note:
-            return
+            return None
 
         title = Bold(HList(Title(f"📗 #{note_name}", bold=False), note.description or ""))
 
@@ -113,7 +113,7 @@ class HashtagGetNote(SophieMessageHandler):
         notes_to_stack = [note for match in matches if (note := await self._fine_note(match))]
 
         if not notes_to_stack:
-            return
+            return None
 
         # Limit to 3 first items
         if len(notes_to_stack) > 3:

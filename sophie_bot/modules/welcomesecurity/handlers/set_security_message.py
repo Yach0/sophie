@@ -83,3 +83,4 @@ class DelSecurityMessageHandler(SophieMessageHandler):
         )
 
         await self.event.reply(str(doc))
+        return None

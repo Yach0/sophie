@@ -128,7 +128,7 @@ class PromoteUserHandler(SophieMessageHandler):
         except TelegramBadRequest as err:
             if RIGHT_FORBIDDEN in err.message:
                 log.debug("PromoteUser: Bot lacks required right, ignoring", error=str(err))
-                return
+                return None
             raise
 
         if admin_title:
@@ -154,3 +154,4 @@ class PromoteUserHandler(SophieMessageHandler):
         )
 
         await reply_or_answer(self.event, doc)
+        return None

@@ -80,3 +80,4 @@ class DelAllNotesCallbackHandler(SophieCallbackQueryHandler):
         )
 
         await self.event.message.edit_text(text=str(text))  # type: ignore
+        return None

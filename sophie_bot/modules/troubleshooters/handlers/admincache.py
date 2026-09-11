@@ -27,3 +27,4 @@ class ResetAdminCache(SophieMessageHandler):
 
         await get_admins_rights(self.connection.tid, bot=self.services.bot)
         await self.event.reply(_("Admin rights cache has been reset."))
+        return None

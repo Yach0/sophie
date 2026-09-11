@@ -72,7 +72,7 @@ class FilterDeleteHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user:
-            return
+            return None
         keyword: str = self.data["handler"]
         index = (self.data["index"] or 1) - 1
         items = await FiltersModel.get_all_by_keyword(self.connection.db_model.iid, keyword)

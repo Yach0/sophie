@@ -44,3 +44,4 @@ class GetRulesHandler(SophieMessageHandler):
             bot=self.services.bot,
             redis=self.services.redis,
         )
+        return None

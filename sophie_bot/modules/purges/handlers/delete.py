@@ -28,7 +28,7 @@ class DelMsgCmdHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user:
-            return
+            return None
 
         reply_to_message = self.event.reply_to_message
         if not reply_to_message:
@@ -51,3 +51,4 @@ class DelMsgCmdHandler(SophieMessageHandler):
             LogEvent.MESSAGE_DELETED,
             {"message_id": reply_to_message.message_id},
         )
+        return None

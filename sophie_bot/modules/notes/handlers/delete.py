@@ -27,7 +27,7 @@ class DelNote(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user:
-            return
+            return None
 
         chat: ChatConnection = self.connection
 
@@ -70,3 +70,4 @@ class DelNote(SophieMessageHandler):
                 )
             )
         )
+        return None

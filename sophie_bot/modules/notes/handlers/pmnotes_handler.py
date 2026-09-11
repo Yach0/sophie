@@ -45,7 +45,7 @@ class PrivateNotesConnectHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user:
-            return
+            return None
 
         user_id = self.event.from_user.id
         command_start: PrivateNotesStartUrlCallback = self.data["command_start"]
