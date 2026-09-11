@@ -14,6 +14,10 @@ export PYTHONPATH := $(PYTHONPATH_ENTRIES)
 # Use uv for package management - no need for explicit environment path
 PYTHON := "uv"
 ASS_PATH := $(shell uv run python -c "import ass_tg as _; print(_.__path__[0])" 2>/dev/null)
+UV_PYTHON_DIR := $(shell uv python dir)
+QODANA_IMAGE ?= docker.io/jetbrains/qodana-python-community:2026.2
+QODANA_RESULTS_DIR ?= /tmp/qodana_output
+
 
 # Use uv run for pybabel
 PYBABEL := uv run pybabel
@@ -71,6 +75,15 @@ test_code_style:
 
 test_codeanalysis:
 	uv run ty check
+
+qodana:
+	@mkdir -p "$(QODANA_RESULTS_DIR)"
+	podman run --rm \
+		-e QODANA_PYTHON_PATH=/data/project/.venv/bin/python \
+		-v "$(CURDIR):/data/project:Z" \
+		-v "$(UV_PYTHON_DIR):$(UV_PYTHON_DIR):ro,Z" \
+		-v "$(QODANA_RESULTS_DIR):/data/results:Z" \
+		"$(QODANA_IMAGE)"
 
 run_tests:
 	uv run python -m pytest tests/ -v --alluredir=allure_results -n auto
