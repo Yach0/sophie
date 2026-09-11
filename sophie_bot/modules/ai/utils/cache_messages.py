@@ -10,6 +10,7 @@ MESSAGE_CACHE_TTL = timedelta(hours=48)
 
 class MessageType(BaseModel):
     user_id: int
+    is_bot: bool = False
     message_id: int
     text: str
     created_at: datetime | None = None
@@ -54,6 +55,7 @@ async def cache_message(
     username: str | None,
     *,
     redis: Redis,
+    is_bot: bool = False,
     message_thread_id: int | None = None,
     handled_by_ai: bool = False,
     eligible_for_proactive_ai: bool = True,
@@ -72,6 +74,7 @@ async def cache_message(
 
     msg = MessageType(
         user_id=user_id,
+        is_bot=is_bot,
         message_id=message_id,
         text=text,
         created_at=created_at,

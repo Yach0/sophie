@@ -23,6 +23,7 @@ from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelP
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
+from sophie_bot.modules.ai.utils.cache_messages import cache_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
@@ -46,6 +47,7 @@ from sophie_bot.modules.ai.utils.help_tip import (
 from sophie_bot.modules.ai.utils.mention_usernames import resolve_mention_index
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -362,6 +364,25 @@ async def ai_chatbot_reply(
             final_message = await message_streamer.send_final(doc, **kwargs)
         else:
             final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
+
+        await cache_message(
+            cut_titlebar(doc.to_md()),
+            message.chat.id,
+            CONFIG.bot_id,
+            final_message.message_id,
+            final_message.date,
+            "Sophie",
+            is_bot=True,
+            message_thread_id=final_message.message_thread_id,
+            handled_by_ai=True,
+            eligible_for_proactive_ai=False,
+            reply_to_message_id=message.message_id,
+            reply_to_user_id=message.from_user.id if message.from_user else None,
+            reply_to_username=(
+                message.from_user.username or message.from_user.full_name if message.from_user else None
+            ),
+            redis=services.redis,
+        )
 
         # Best effort inside the helper: the reply is already out, so a storage failure only costs
         # the next run its replay.

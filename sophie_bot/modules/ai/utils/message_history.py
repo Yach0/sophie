@@ -310,7 +310,7 @@ class AIMessageHistory:
         user = await ChatModel.get_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
 
-        if msg.user_id == CONFIG.bot_id:
+        if msg.is_bot or msg.user_id == CONFIG.bot_id:
             stored_message_text = message_text(msg)
             text = cut_titlebar(stored_message_text) if is_ai_message(stored_message_text) else stored_message_text
             return ModelResponse(parts=[TextPart(content=text)])

@@ -69,6 +69,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 msg_id,
                 event.date,
                 username,
+                is_bot=event.from_user.is_bot,
                 message_thread_id=event.message_thread_id,
                 handled_by_ai=handled_by_ai,
                 eligible_for_proactive_ai=eligible_for_proactive_ai,
