@@ -21,8 +21,21 @@ stages:
   - deploy
 
 include:
-  - '/build/bot-test.yml'
-  - '/build/renovate.yml'
+  - component: $CI_SERVER_FQDN/qodana/qodana/qodana-gitlab-ci@v2026.2
+    inputs:
+      image: jetbrains/qodana-python-community:2026.2
+      upload-result: true
+      artifact-name: Qodana report
+  - "/build/bot-test.yml"
+  - "/build/renovate.yml"
   - "/build/runtime/build.yml"
   - "/deploy/ci_staging.yml"
   - "/deploy/ci_prod.yml"
+
+qodana:
+  before_script:
+    - apt-get update && apt-get install --yes --no-install-recommends g++
+    - python -m pip install uv==0.9.26
+    - uv sync --frozen --no-dev --no-install-project
+  variables:
+    QODANA_PYTHON_PATH: "$CI_PROJECT_DIR/.venv/bin/python"
