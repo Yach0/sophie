@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Mutes the user in the chat."))
+@flags.handler_help(description=l_("Mutes the user in the chat."))
 class MuteUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot mute yourself.")
@@ -36,7 +36,7 @@ class MuteUserHandler(BaseRestrictionHandler):
         )
 
 
-@flags.help(description=l_("Temporarily mutes the user in the chat."))
+@flags.handler_help(description=l_("Temporarily mutes the user in the chat."))
 class TempMuteUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot mute yourself.")

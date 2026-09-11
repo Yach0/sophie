@@ -22,7 +22,7 @@ def text_to_buffered_file(text: str, filename: str = "data.txt") -> BufferedInpu
     return BufferedInputFile(text.encode(), filename=filename)
 
 
-@flags.help(description=l_("Exports your data to a JSON file"))
+@flags.handler_help(description=l_("Exports your data to a JSON file"))
 class TriggerExport(SophieBaseHandler[Message]):
     @classmethod
     def register(cls, router: Router) -> None:
@@ -35,7 +35,7 @@ class TriggerExport(SophieBaseHandler[Message]):
             if (
                 exported := await export_data(
                     chat_iid,
-                    services=self.services,
+                    self.services,
                 )
             )
         ]

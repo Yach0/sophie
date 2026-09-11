@@ -153,18 +153,18 @@ def _process_headings_surrogate(text: str) -> tuple[str, list[MessageEntity]]:
     return "".join(out_parts), entities
 
 
-def _build_delimiter_regex(delimiters: dict) -> re.Pattern:
+def _build_delimiter_regex(delimiters: dict[str, str]) -> re.Pattern:
     # Build a regex to efficiently test all delimiters at once.
     # Note that the largest delimiter should go first, we don't
     # want ``` to be interpreted as a single back-tick in a code block.
-    return re.compile("|".join(f"({re.escape(str(k))})" for k in sorted(delimiters, key=len, reverse=True)))
+    return re.compile("|".join(f"({re.escape(delimiter)})" for delimiter in sorted(delimiters, key=len, reverse=True)))
 
 
 def _process_delimiter_match(
     text: str,
     i: int,
     delim: str,
-    delimiters: dict,
+    delimiters: dict[str, str],
     result: list[MessageEntity],
 ) -> tuple[str, int]:
     """

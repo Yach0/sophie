@@ -18,7 +18,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Show current state of Private Notes"))
+@flags.handler_help(description=l_("Show current state of Private Notes"))
 class PMNotesStatus(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -45,7 +45,7 @@ class PMNotesStatus(SophieMessageHandler):
 
 
 @flags.args(new_state=BooleanArg(l_("New state")))
-@flags.help(description=l_("Control Private Notes"))
+@flags.handler_help(description=l_("Control Private Notes"))
 class PMNotesControl(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

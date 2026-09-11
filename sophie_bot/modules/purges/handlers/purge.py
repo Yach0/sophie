@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Purges all messages after replied message (including the replied message)"))
+@flags.handler_help(description=l_("Purges all messages after replied message (including the replied message)"))
 class PurgeMessagesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -30,7 +30,7 @@ class PurgeMessagesHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user:
-            return
+            return None
 
         reply_to_message = self.event.reply_to_message
         if not reply_to_message:
@@ -72,3 +72,4 @@ class PurgeMessagesHandler(SophieMessageHandler):
         )
         await sleep(5)
         await msg.delete()
+        return None

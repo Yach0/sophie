@@ -32,7 +32,7 @@ class KickModernAction(ModernActionABC[None]):
 
     async def handle(self, message: Message, data: dict, filter_data: None) -> Element | None:
         if not message.from_user:
-            return
+            return None
 
         chat_id = message.chat.id
         reason: str | None = None
@@ -63,7 +63,7 @@ class KickModernAction(ModernActionABC[None]):
             message.from_user.id,
         )
         if not restriction_result.applied:
-            return
+            return None
 
         if "filter_id" in data:
             details = add_offending_message_text(

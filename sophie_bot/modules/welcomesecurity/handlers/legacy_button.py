@@ -73,11 +73,11 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.text:
-            return
+            return None
 
         match = search(LEGACY_WELCOME_SECURITY_BUTTON_PATTERN, self.event.text)
         if not match:
-            return
+            return None
 
         chat_id = int(match.group(1))
 

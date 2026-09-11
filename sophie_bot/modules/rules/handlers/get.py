@@ -13,7 +13,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Gets chat rules"))
+@flags.handler_help(description=l_("Gets chat rules"))
 @flags.disableable(name="rules")
 class GetRulesHandler(SophieMessageHandler):
     @staticmethod
@@ -44,3 +44,4 @@ class GetRulesHandler(SophieMessageHandler):
             bot=self.services.bot,
             redis=self.services.redis,
         )
+        return None

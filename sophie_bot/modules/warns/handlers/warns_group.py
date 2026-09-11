@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from .warns import optional_user
 
 
-@flags.help(description=l_("Shows user's warns in the current chat."))
+@flags.handler_help(description=l_("Shows user's warns in the current chat."))
 @flags.disableable(name="warns")
 class WarnsGroupHandler(SophieMessageHandler):
     @staticmethod
@@ -40,12 +40,12 @@ class WarnsGroupHandler(SophieMessageHandler):
             target_user_name = message.from_user.first_name if message.from_user else _("Unknown")
 
         if not target_user_tid:
-            return
+            return None
 
         # Resolve target user model
         target_user_model = await ChatModel.get_by_tid(target_user_tid)
         if not target_user_model:
-            return
+            return None
 
         # Group: List warns in current chat
         chat_iid = self.connection.db_model.iid

@@ -177,7 +177,7 @@ def build_lockable_doc(full_languages: bool = False) -> Doc:
     )
 
 
-@flags.help(description=l_("Shows all lockable message types"))
+@flags.handler_help(description=l_("Shows all lockable message types"))
 @flags.disableable(name="lockable")
 class ListLockableHandler(SophieMessageHandler):
     @staticmethod

@@ -11,7 +11,7 @@ from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Enable or disable antiflood protection"))
+@flags.handler_help(description=l_("Enable or disable antiflood protection"))
 @flags.disableable(name="antiflood")
 class EnableAntifloodHandler(StatusBoolHandlerABC):
     """Handler for toggling antiflood protection on/off."""

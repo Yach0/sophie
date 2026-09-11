@@ -5,6 +5,7 @@ from typing import ClassVar, Self
 
 import pytest
 from fakeredis import FakeAsyncRedis
+from redis.exceptions import RedisError
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
@@ -271,7 +272,7 @@ async def test_global_rate_limit_rejected_request_does_not_extend_window() -> No
 
 @pytest.mark.asyncio
 async def test_global_rate_limit_fails_open_on_redis_errors() -> None:
-    pipeline = FakePipeline(current_count=0, execute_error=RuntimeError("redis down"))
+    pipeline = FakePipeline(current_count=0, execute_error=RedisError("redis down"))
     fake_redis = FakeRedis(pipeline)
     middleware = GlobalRateLimitMiddleware(dummy_app)
     GlobalRateLimitMiddleware._redis_failure_count = 0

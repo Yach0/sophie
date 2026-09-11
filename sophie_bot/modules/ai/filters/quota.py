@@ -10,7 +10,7 @@ from aiogram.types import Message
 from sophie_bot.db.models.ai.ai_quota import AIQuotaModel
 from sophie_bot.metrics.ai import track_ai_quota_exceeded
 from sophie_bot.middlewares.request_context import RequestContext
-from sophie_bot.modules.ai.utils.ai_quota import _current_period_start, check_quota, get_period_end, get_quota_info
+from sophie_bot.modules.ai.utils.ai_quota import check_quota, current_period_start, get_period_end, get_quota_info
 from sophie_bot.modules.ai.utils.ai_quota_docs import (
     build_chatbot_quota_exhausted_doc,
     build_feature_quota_exhausted_doc,
@@ -41,7 +41,7 @@ class AIQuotaFilter(Filter):
 
         track_ai_quota_exceeded(feature=str(self.feature), chat_type=message.chat.type)
         quota_info = await get_quota_info(chat_db.iid, redis=services.redis)
-        period_start = quota_info.period_start if quota_info else _current_period_start()
+        period_start = quota_info.period_start if quota_info else current_period_start()
         period_end = quota_info.period_end if quota_info else get_period_end(period_start)
 
         if self._is_chatbot:

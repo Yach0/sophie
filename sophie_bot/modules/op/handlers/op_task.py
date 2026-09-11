@@ -65,7 +65,7 @@ def _extract_reply_context(message: Message) -> str | None:
     return _("Reply to {name}: {text}").format(name=sender_name, text=text[:500])
 
 
-@flags.help(description=l_("Generate and create a GitLab issue from chat context."))
+@flags.handler_help(description=l_("Generate and create a GitLab issue from chat context."))
 class OpTaskHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:

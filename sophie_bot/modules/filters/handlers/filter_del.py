@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Deletes a filter"), args={"handler": TextArg(l_("Text to match"))})
+@flags.handler_help(description=l_("Deletes a filter"), args={"handler": TextArg(l_("Text to match"))})
 class FilterDeleteHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -72,7 +72,7 @@ class FilterDeleteHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user:
-            return
+            return None
         keyword: str = self.data["handler"]
         index = (self.data["index"] or 1) - 1
         items = await FiltersModel.get_all_by_keyword(self.connection.db_model.iid, keyword)

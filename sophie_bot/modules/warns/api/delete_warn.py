@@ -11,7 +11,7 @@ router = APIRouter(prefix="/warns", tags=["warns"])
 async def delete_warn(
     chat: ChatDep,
     warn_iid: str,
-    current_user: RestrictAdminDep,
+    _current_user: RestrictAdminDep,
 ) -> dict:
     try:
         warn_obj_id = PydanticObjectId(warn_iid)

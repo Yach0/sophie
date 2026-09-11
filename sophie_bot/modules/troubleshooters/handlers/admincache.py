@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Reset admin rights cache, use if Sophie didn't get the recently added admin"))
+@flags.handler_help(description=l_("Reset admin rights cache, use if Sophie didn't get the recently added admin"))
 class ResetAdminCache(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -27,3 +27,4 @@ class ResetAdminCache(SophieMessageHandler):
 
         await get_admins_rights(self.connection.tid, bot=self.services.bot)
         await self.event.reply(_("Admin rights cache has been reset."))
+        return None

@@ -78,7 +78,8 @@ class I18nNew(I18n):
             locale_code = self.default_locale
         return self.babels[locale_code]
 
-    def locale_display(self, locale: Locale) -> str:
+    @staticmethod
+    def locale_display(locale: Locale) -> str:
         return f"{flag(locale.territory or '')} {locale.display_name}"
 
     @property
@@ -151,7 +152,7 @@ class LazyProxy(BabelLazyProxy):
         return str(self) == other
 
     def __contains__(self, key: object) -> bool:
-        return str(self) in str(key)
+        return isinstance(key, str) and str(self) in key
 
 
 def lazy_plural_gettext(*args: Any, **kwargs: Any) -> Callable[[int], str]:

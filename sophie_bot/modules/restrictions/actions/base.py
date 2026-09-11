@@ -41,7 +41,7 @@ class RestrictionActionMixin[ACTION_DATA: BaseModel]:
 
     async def handle(self, message: Message, data: dict[str, Any], filter_data: ACTION_DATA) -> ActionResult | None:
         if not message.from_user:
-            return
+            return None
 
         chat_id = message.chat.id
         locale: str = data["i18n"].current_locale
@@ -84,7 +84,7 @@ class RestrictionActionMixin[ACTION_DATA: BaseModel]:
             until_date=duration,
         )
         if not restriction_result.applied:
-            return
+            return None
 
         if "filter_id" in data:
             details = add_offending_message_text(

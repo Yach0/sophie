@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Get information about a federation"))
+@flags.handler_help(description=l_("Get information about a federation"))
 @flags.disableable(name="fedinfo")
 class FederationInfoHandler(SophieMessageHandler):
     """Handler for getting federation information."""

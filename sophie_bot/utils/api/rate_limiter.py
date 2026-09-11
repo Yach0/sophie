@@ -2,6 +2,7 @@ from typing import cast
 
 import structlog
 from fastapi import HTTPException, Request, status
+from redis.exceptions import RedisError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.application import ApplicationServices
@@ -40,7 +41,7 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
             # sending cannot push the window's expiry back and lock itself out forever.
             pipe.expire(key, window, nx=True)
             results = await pipe.execute()
-    except Exception:
+    except RedisError:
         # If Redis is unavailable, allow the request through rather than
         # returning 500 errors. Consistent with global rate limiter fail-open
         # design: availability over strict rate enforcement.
@@ -55,7 +56,7 @@ async def rate_limit(request: Request, limit: int = 100, window: int = 60) -> No
     if current_count > limit:
         try:
             ttl = await redis.ttl(key)
-        except Exception:
+        except RedisError:
             log.exception(
                 "Per-endpoint rate limiter Redis error while reading TTL, allowing request through",
                 path=request.url.path,

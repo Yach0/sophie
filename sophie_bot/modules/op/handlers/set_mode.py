@@ -45,8 +45,7 @@ class _ChatKeyValue(IntArg):
 def _extract_option_value(options: object, option: str) -> object | None:
     if not isinstance(options, Mapping):
         return None
-    option_values = cast(Mapping[str, object], options)
-    parsed_value = option_values.get(option)
+    parsed_value = options.get(option)
     if parsed_value is None:
         return None
     if isinstance(parsed_value, ParsedArg):

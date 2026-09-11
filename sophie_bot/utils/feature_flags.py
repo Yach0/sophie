@@ -185,7 +185,7 @@ def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
     """
     value_kind = get_value_kind(feature)
     if value_kind == "service_tier":
-        return _SERVICE_TIER_VALUES
+        return SERVICE_TIER_VALUES
     if value_kind == "search_provider":
         return _SEARCH_PROVIDER_VALUES
     if value_kind == "moderation_provider":
@@ -204,8 +204,8 @@ def parse_feature_value(raw: str) -> FeatureValue:
     """Parse a user-provided string into a FeatureValue.
 
     This is the canonical string-to-FeatureValue parser.
-    ``_parse_override`` delegates here after normalising bytes/None input,
-    and ``_serialize_value`` is its logical inverse.
+    ``parse_feature_override`` delegates here after normalising bytes/None input,
+    and ``serialize_feature_value`` is its logical inverse.
     """
     normalized_value = raw.lower()
     if normalized_value in {"true", "1"}:
@@ -245,7 +245,7 @@ _AI_MODEL_FEATURE: Final[FeatureValueKind] = "ai_model"
 _SERVICE_TIER_FEATURE: Final[FeatureValueKind] = "service_tier"
 _SEARCH_PROVIDER_FEATURE: Final[FeatureValueKind] = "search_provider"
 _MODERATION_PROVIDER_FEATURE: Final[FeatureValueKind] = "moderation_provider"
-_SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
+SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
 _SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi", "tavily", "tinyfish"})
 _MODERATION_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"mistral", "openai"})
 _AI_HEADER_STYLE_VALUES: Final[frozenset[str]] = frozenset({"table", "disable", "simple"})
@@ -459,7 +459,7 @@ def _rollout_storage_feature(feature: FeatureType) -> str:
     return f"{_ROLLOUT_FEATURE_PREFIX}{feature}"
 
 
-def _serialize_value(value: FeatureValue) -> str:
+def serialize_feature_value(value: FeatureValue) -> str:
     """Serialize a FeatureValue for Redis storage (inverse of parse_feature_value)."""
     if isinstance(value, bool):
         return _TRUE_VALUE if value else _FALSE_VALUE
@@ -470,7 +470,7 @@ def _serialize_rollout(rollout: FeatureRollout) -> str:
     return json.dumps(rollout, separators=(",", ":"))
 
 
-def _parse_override(value: bytes | str | None, default: FeatureValue) -> FeatureValue | None:
+def parse_feature_override(value: bytes | str | None, default: FeatureValue) -> FeatureValue | None:
     if value is None:
         return None
     normalized_value = value.decode() if isinstance(value, bytes) else value
@@ -522,14 +522,14 @@ def _coerce_percentage(value: Any) -> int | None:
 
 def _validate_rollout_percentage(percentage: int) -> None:
     if not 0 <= percentage <= 100:
-        msg = "Rollout percentage must be between 0 and 100."
-        raise ValueError(msg)
+        error_message = "Rollout percentage must be between 0 and 100."
+        raise ValueError(error_message)
 
 
 def _validate_rollout_days(days: int) -> None:
     if days <= 0:
-        msg = "Rollout days must be greater than 0."
-        raise ValueError(msg)
+        error_message = "Rollout days must be greater than 0."
+        raise ValueError(error_message)
 
 
 def _coerce_rollout(value: Any) -> FeatureRollout | None:
@@ -619,7 +619,7 @@ async def _resolve_cached_override(
 ) -> FeatureValue | None:
     """Resolve a feature flag override: Redis cache → DB fallback, warming the cache on DB hit."""
     value = await redis.hget(redis_key, feature)
-    parsed_value = _parse_override(value, _DEFAULT_STATES[feature])
+    parsed_value = parse_feature_override(value, _DEFAULT_STATES[feature])
     if parsed_value is not None:
         return parsed_value
 
@@ -629,7 +629,7 @@ async def _resolve_cached_override(
 
     db_value = _coerce_db_value(override.value)
     if db_value is not None:
-        await redis.hset(redis_key, feature, _serialize_value(db_value))
+        await redis.hset(redis_key, feature, serialize_feature_value(db_value))
     return db_value
 
 
@@ -639,10 +639,10 @@ async def _get_override(feature: FeatureType, *, redis: Redis) -> FeatureValue |
 
 async def _set_override(feature: FeatureType, value: FeatureValue, *, redis: Redis) -> None:
     await FeatureFlagOverride.set_override(feature, value)
-    await redis.hset(_REDIS_KEY, feature, _serialize_value(value))
+    await redis.hset(_REDIS_KEY, feature, serialize_feature_value(value))
 
 
-async def _get_all_overrides(*, redis: Redis) -> dict[FeatureType, FeatureValue]:
+async def get_all_overrides(*, redis: Redis) -> dict[FeatureType, FeatureValue]:
     parsed_overrides: dict[FeatureType, FeatureValue] = {}
     cached_overrides: dict[str, str] = {}
 
@@ -656,7 +656,7 @@ async def _get_all_overrides(*, redis: Redis) -> dict[FeatureType, FeatureValue]
             continue
 
         parsed_overrides[typed_feature] = parsed_value
-        cached_overrides[typed_feature] = _serialize_value(parsed_value)
+        cached_overrides[typed_feature] = serialize_feature_value(parsed_value)
 
     await _cache_serialized_values(_REDIS_KEY, cached_overrides, redis=redis)
 
@@ -729,8 +729,8 @@ async def bump_rollout(feature: FeatureType, percentage: int, *, redis: Redis) -
 
     current_rollout = await get_rollout(feature, redis=redis)
     if current_rollout is None:
-        msg = "Cannot bump rollout without an existing rollout."
-        raise ValueError(msg)
+        error_message = "Cannot bump rollout without an existing rollout."
+        raise ValueError(error_message)
 
     current_percentage = get_rollout_percentage(current_rollout)
     bumped_percentage = min(100, current_percentage + percentage)
@@ -801,7 +801,7 @@ async def _set_chat_override(
     redis: Redis,
 ) -> None:
     await FeatureFlagOverride.set_override(feature, value, chat_tid=chat_tid, source=source)
-    await redis.hset(_chat_redis_key(chat_tid), feature, _serialize_value(value))
+    await redis.hset(_chat_redis_key(chat_tid), feature, serialize_feature_value(value))
 
 
 async def delete_override(feature: FeatureType, *, redis: Redis) -> None:
@@ -826,7 +826,7 @@ async def list_chat_overrides(chat_tid: int, *, redis: Redis) -> dict[FeatureTyp
         parsed_value = _coerce_db_value(override.value)
         if parsed_value is not None:
             parsed_overrides[typed_feature] = parsed_value
-            cached_overrides[typed_feature] = _serialize_value(parsed_value)
+            cached_overrides[typed_feature] = serialize_feature_value(parsed_value)
     if cached_overrides:
         redis_key = _chat_redis_key(chat_tid)
         await _cache_serialized_values(redis_key, cached_overrides, redis=redis)
@@ -907,5 +907,5 @@ async def get_service_tier(feature: FeatureType, chat_tid: int | None = None, *,
 
 async def list_all(*, redis: Redis) -> dict[FeatureType, FeatureValue]:
     merged = _DEFAULT_STATES.copy()
-    merged.update(await _get_all_overrides(redis=redis))
+    merged.update(await get_all_overrides(redis=redis))
     return merged

@@ -11,7 +11,7 @@ router = APIRouter(prefix="/warns", tags=["warns"])
 @router.get("/settings/{chat_iid}", response_model=WarnSettingsResponse)
 async def get_warn_settings(
     chat: ChatDep,
-    current_user: ReadAdminDep,
+    _current_user: ReadAdminDep,
 ) -> WarnSettingsResponse:
     settings = await WarnSettingsModel.get_or_create(chat.iid)
     return WarnSettingsResponse(

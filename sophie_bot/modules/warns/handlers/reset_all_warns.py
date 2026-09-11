@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from ..callbacks import ResetAllWarnsCallback
 
 
-@flags.help(description=l_("Resets all warnings of all users in the current chat."))
+@flags.handler_help(description=l_("Resets all warnings of all users in the current chat."))
 class ResetAllWarnsHandler(SophieMessageHandler):
     @staticmethod
     def filters():

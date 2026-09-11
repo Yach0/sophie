@@ -105,7 +105,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
                 data["services"],
             )
         ):
-            return
+            return None
 
         messages = AIMessageHistory(services=data["services"])
         messages.add_system(filter_data.prompt)

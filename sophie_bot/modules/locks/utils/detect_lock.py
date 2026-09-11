@@ -177,7 +177,7 @@ def _check_edited(message: Message) -> bool:
     return bool(message.edit_date)
 
 
-def _check_outside_reaction(message: Message) -> bool:
+def _check_outside_reaction(_: Message) -> bool:
     return False
 
 

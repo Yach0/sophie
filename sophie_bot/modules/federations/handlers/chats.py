@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("List all chats in a federation"))
+@flags.handler_help(description=l_("List all chats in a federation"))
 class FederationChatsHandler(SophieMessageHandler):
     """Handler for listing all chats in a federation."""
 

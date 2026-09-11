@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/disabled/{chat_iid}", response_model=DisabledResponse)
 async def get_disabled_commands(
     chat: ChatDep,
-    user: ReadAdminDep,
+    _user: ReadAdminDep,
 ):
     disabled = await DisablingModel.get_disabled(chat.iid)
     return DisabledResponse(disabled=disabled)
@@ -26,7 +26,7 @@ async def get_disabled_commands(
 
 @router.get("/disableable", response_model=DisableableResponse)
 async def get_disableable_commands(
-    user: Annotated[ChatModel, Depends(get_current_user)],
+    _user: Annotated[ChatModel, Depends(get_current_user)],
     services: ServicesDep,
 ) -> DisableableResponse:
     return DisableableResponse(disableable=sorted(services.modules.disableable_commands))

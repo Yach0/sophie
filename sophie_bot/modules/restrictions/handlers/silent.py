@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Silently kicks the user from the chat. Deletes messages after 10 seconds."))
+@flags.handler_help(description=l_("Silently kicks the user from the chat. Deletes messages after 10 seconds."))
 class SilentKickUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot kick myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot kick yourself.")
@@ -40,7 +40,7 @@ class SilentKickUserHandler(BaseRestrictionHandler):
         )
 
 
-@flags.help(description=l_("Silently bans the user from the chat. Deletes messages after 10 seconds."))
+@flags.handler_help(description=l_("Silently bans the user from the chat. Deletes messages after 10 seconds."))
 class SilentBanUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot ban myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot ban yourself.")
@@ -65,7 +65,9 @@ class SilentBanUserHandler(BaseRestrictionHandler):
         )
 
 
-@flags.help(description=l_("Silently temporarily bans the user from the chat. Deletes messages after 10 seconds."))
+@flags.handler_help(
+    description=l_("Silently temporarily bans the user from the chat. Deletes messages after 10 seconds.")
+)
 class SilentTempBanUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot ban myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot ban yourself.")
@@ -91,7 +93,7 @@ class SilentTempBanUserHandler(BaseRestrictionHandler):
         )
 
 
-@flags.help(description=l_("Silently mutes the user in the chat. Deletes messages after 10 seconds."))
+@flags.handler_help(description=l_("Silently mutes the user in the chat. Deletes messages after 10 seconds."))
 class SilentMuteUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot mute yourself.")
@@ -116,7 +118,9 @@ class SilentMuteUserHandler(BaseRestrictionHandler):
         )
 
 
-@flags.help(description=l_("Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds."))
+@flags.handler_help(
+    description=l_("Silently temporarily mutes the user in the chat. Deletes messages after 10 seconds.")
+)
 class SilentTempMuteUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot mute myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot mute yourself.")

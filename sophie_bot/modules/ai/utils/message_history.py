@@ -18,6 +18,7 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
+    TextContent,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -47,6 +48,15 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
+
+
+def _user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
+    if isinstance(content, str):
+        return content
+    text_parts = [
+        item if isinstance(item, str) else item.content for item in content if isinstance(item, (str, TextContent))
+    ]
+    return "\n".join(text_parts) or None
 
 
 class AIUserMessageFormatter:
@@ -116,20 +126,20 @@ def _extract_message_content(
     is_sophie: bool,
 ) -> str:
     """Extract text, caption, media info from the message. Returns the processed message text."""
-    message_text = custom_text or message.text or message.caption or _("<No text provided>")
+    content_text = custom_text or message.text or message.caption or _("<No text provided>")
     if normalize_texts:
-        message_text = normalize(message_text) or _("<No text provided>")
+        content_text = normalize(content_text) or _("<No text provided>")
 
     # Cut the AI titlebar
-    if is_sophie and is_ai_message(message_text):
-        message_text = cut_titlebar(message_text)
+    if is_sophie and is_ai_message(content_text):
+        content_text = cut_titlebar(content_text)
 
-    return message_text
+    return content_text
 
 
 async def _build_message_parts(
     message: Message,
-    message_text: str,
+    content_text: str,
     from_user_name: str,
     replied_user_name: str | None,
     disable_name: bool,
@@ -140,10 +150,10 @@ async def _build_message_parts(
     """Build the list of message parts for the AI context."""
     # Message's text
     prompt: list[UserContent] = [
-        message_text
+        content_text
         if disable_name
         else AIUserMessageFormatter.user_message(
-            text=message_text,
+            text=content_text,
             name=from_user_name,
             reply_to_user=replied_user_name,
         )
@@ -392,7 +402,7 @@ class AIMessageHistory:
 
         is_sophie = message.from_user.id == CONFIG.bot_id
 
-        message_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
+        content_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
 
         prompt: list[UserContent] = self.prompt or []
         from_user_name = await _admin_context_name(
@@ -405,7 +415,7 @@ class AIMessageHistory:
         prompt.extend(
             await _build_message_parts(
                 message,
-                message_text,
+                content_text,
                 from_user_name,
                 replied_user_name,
                 disable_name,
@@ -463,8 +473,7 @@ class AIMessageHistory:
                     elif isinstance(part, TextPart):
                         # TextPart is from assistant responses
                         moderation_content.append({"role": "assistant", "content": part.content})
-                    elif isinstance(part, UserPromptPart):
-                        content_str = part.content if isinstance(part.content, str) else str(part.content)
+                    elif isinstance(part, UserPromptPart) and (content_str := _user_prompt_text(part.content)):
                         moderation_content.append({"role": "user", "content": content_str})
 
         # Extract content from current prompt (treat as user content)

@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Shows the additional information about the user."))
+@flags.handler_help(description=l_("Shows the additional information about the user."))
 @flags.disableable(name="info")
 @flags.args(user=OptionalArg(SophieUserArg(l_("User"))))
 class UserInfoHandler(SophieMessageHandler):

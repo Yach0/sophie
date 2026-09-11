@@ -15,7 +15,7 @@ router = APIRouter()
 async def set_rules(
     chat: ChatDep,
     payload: RulesPayload,
-    user: ChangeInfoAdminDep,
+    _user: ChangeInfoAdminDep,
 ):
     if not payload.text and not payload.rich_message and not payload.file and not payload.files and not payload.buttons:
         await RulesModel.del_rules(chat.iid)

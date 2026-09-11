@@ -3,7 +3,7 @@ from stfu_tg import Code, KeyValue, Section, Template
 from sophie_bot.services.application import ApplicationServices
 
 
-async def module_stats(*, services: ApplicationServices) -> Section:
+async def module_stats(services: ApplicationServices, /) -> Section:
     modules = services.modules.help_modules.values()
 
     return Section(

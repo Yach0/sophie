@@ -29,7 +29,7 @@ class CaptchaTarget(NamedTuple):
     is_join_request: bool
 
 
-@flags.help(exclude=True)
+@flags.handler_help(exclude=True)
 class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):

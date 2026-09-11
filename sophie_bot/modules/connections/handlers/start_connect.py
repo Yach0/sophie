@@ -21,7 +21,7 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
-@flags.help(exclude=True)
+@flags.handler_help(exclude=True)
 class StartConnectHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -29,11 +29,11 @@ class StartConnectHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         if not self.event.from_user or not self.event.text:
-            return
+            return None
 
         regex = search(LEGACY_CONNECTION_BUTTON_PATTERN, self.event.text)
         if not regex:
-            return
+            return None
 
         chat_tid = int(regex.group(1))
         user_tid = self.event.from_user.id
@@ -42,7 +42,7 @@ class StartConnectHandler(SophieMessageHandler):
         user_db = await ChatModel.get_by_tid(user_tid)
 
         if not chat_db or not user_db:
-            return
+            return None
 
         # Check permissions
         if not await check_connection_permissions(chat_db.iid, user_db.iid):
@@ -60,3 +60,4 @@ class StartConnectHandler(SophieMessageHandler):
         markup = get_disconnect_markup()
 
         await self.event.reply(str(text), reply_markup=markup)
+        return None

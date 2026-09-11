@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.i18n import ngettext as pl_
 
 
-@flags.help(description=l_("Shows antiflood protection settings"))
+@flags.handler_help(description=l_("Shows antiflood protection settings"))
 class AntifloodInfoHandler(SophieMessageHandler):
     """Handler for showing antiflood information."""
 
@@ -86,3 +86,4 @@ class AntifloodInfoHandler(SophieMessageHandler):
             Template(_("Use {cmd} to configure actions"), cmd=Italic("/antiflood_action")),
         )
         await self.event.reply(str(doc))
+        return None

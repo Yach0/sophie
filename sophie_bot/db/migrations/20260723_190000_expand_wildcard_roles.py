@@ -50,8 +50,10 @@ def _role_settings(role: dict) -> dict:
 def _expand_roles(roles: list[dict]) -> list[dict]:
     by_key: dict[tuple[str, str], dict] = {}
 
-    def put(mode: str, purpose: str, settings: dict) -> None:
-        by_key.setdefault((mode, purpose), {"mode": mode, "purpose": purpose, **settings})
+    def put(target_mode: str, target_purpose: str, role_settings: dict) -> None:
+        by_key.setdefault(
+            (target_mode, target_purpose), {"mode": target_mode, "purpose": target_purpose, **role_settings}
+        )
 
     for role in roles:
         purpose = role["purpose"]

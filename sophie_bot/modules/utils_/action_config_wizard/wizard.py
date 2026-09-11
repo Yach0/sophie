@@ -266,7 +266,8 @@ class ActionWizard[DRAFT: ActionDraft]:
         await session.clear()
         await handler.answer_rich(Template(self.config.done_message, keyword=getattr(draft, "handler", "")))
 
-    async def _cancel(self, handler: SophieCallbackQueryHandler, session: WizardSession) -> None:
+    @staticmethod
+    async def _cancel(handler: SophieCallbackQueryHandler, session: WizardSession) -> None:
         await session.clear()
         await handler.answer_rich(Template(_("Configuration cancelled.")))
 
@@ -286,8 +287,8 @@ class ActionWizard[DRAFT: ActionDraft]:
         draft = await session.get_draft()
         return self.config.draft_model.model_validate(draft or {})
 
+    @staticmethod
     def _definition(
-        self,
         handler: SophieBaseHandler[Any],
         name: str,
     ) -> ActionDefinition[Any] | None:

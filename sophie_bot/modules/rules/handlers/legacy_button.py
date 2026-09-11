@@ -21,7 +21,7 @@ class LegacyRulesButton(SophieMessageHandler):
     async def handle(self) -> Any:
         regex = search(LEGACY_RULES_BUTTON_PATTERN, self.event.text)
         if not regex:
-            return
+            return None
 
         chat_tid = int(regex.group(1))
 
@@ -46,3 +46,4 @@ class LegacyRulesButton(SophieMessageHandler):
             bot=self.services.bot,
             redis=self.services.redis,
         )
+        return None

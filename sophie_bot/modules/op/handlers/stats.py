@@ -10,7 +10,7 @@ from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules import get_module_manifest
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.services.application import ApplicationServices
-from sophie_bot.services.migrations import MigrationResources, get_migration_status
+from sophie_bot.services.migrations import get_migration_status
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -28,7 +28,7 @@ def convert_size(size_bytes: int) -> str:
     return f"{s} {size_name[i]}"
 
 
-async def get_system_stats(*, services: ApplicationServices) -> Doc:
+async def get_system_stats(services: ApplicationServices, /) -> Doc:
     doc = Doc()
 
     doc += Section(
@@ -79,7 +79,7 @@ async def get_system_stats(*, services: ApplicationServices) -> Doc:
     )
 
     # Migrations
-    migration_status = await get_migration_status(MigrationResources(database=services.db, redis=services.redis))
+    migration_status = await get_migration_status()
     if migration_status["status"] == "ok":
         technical_section += KeyValue(
             _("Migrations"),
@@ -95,7 +95,7 @@ async def get_system_stats(*, services: ApplicationServices) -> Doc:
     return doc
 
 
-@flags.help(description=l_("Show bot statistics."))
+@flags.handler_help(description=l_("Show bot statistics."))
 class StatsHandler(SophieMessageHandler):
     @staticmethod
     def filters():
@@ -107,6 +107,6 @@ class StatsHandler(SophieMessageHandler):
         for module in self.services.modules.modules.values():
             stats = get_module_manifest(module).stats
             if stats:
-                sec += await stats(services=self.services)
+                sec += await stats(self.services)
 
         await self.event.reply(str(sec))

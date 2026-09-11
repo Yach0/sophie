@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Unmutes the user in the chat."))
+@flags.handler_help(description=l_("Unmutes the user in the chat."))
 class UnmuteUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot unmute myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot unmute yourself.")

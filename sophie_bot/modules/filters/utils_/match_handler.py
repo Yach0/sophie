@@ -176,6 +176,7 @@ async def match_ai_handler(
         prompt: The user-provided prompt describing when to trigger the filter
         user_in_group: The user in group database model to check for join date
         chat_iid: The database ID of the chat whose filter is being evaluated
+        services: Application services used for feature flags, Redis, and AI requests.
 
     Returns:
         bool: True if the message matches the filter criteria
@@ -268,7 +269,7 @@ async def match_ai_handler(
             ),
             model_plan,
             history,
-            user_tracking_id=chat_iid,
+            chat_iid=chat_iid,
             chat_tid=chat_tid,
             service_tier=service_tier,
             redis=services.redis,

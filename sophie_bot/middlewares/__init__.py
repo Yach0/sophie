@@ -24,9 +24,9 @@ from sophie_bot.utils.logger import log
 
 
 def create_try_localization_middleware(services: ApplicationServices) -> OrMiddleware:
-    localization = LocalizationMiddleware(services.locales)
+    localization_middleware = LocalizationMiddleware(services.locales)
     return OrMiddleware(
-        localization,
+        localization_middleware,
         ConstI18nMiddleware(services.locales.default_locale, services.locales.i18n),
     )
 
@@ -47,14 +47,16 @@ def enable_middlewares(
         dispatcher.update.middleware(UpdateDebugMiddleware())
 
     # Album aggregation must precede FSM isolation or sibling album updates deadlock.
-    outer_middlewares = dispatcher.update.outer_middleware._middlewares
+    outer_middlewares = dispatcher.update.outer_middleware
     fsm_index = next(
         index for index, middleware in enumerate(outer_middlewares) if isinstance(middleware, FSMContextMiddleware)
     )
-    outer_middlewares.insert(
-        fsm_index,
-        MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(services.redis)),
-    )
+    trailing_middlewares = tuple(outer_middlewares[fsm_index:])
+    for middleware in trailing_middlewares:
+        outer_middlewares.unregister(middleware)
+    outer_middlewares(MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(services.redis)))
+    for middleware in trailing_middlewares:
+        outer_middlewares(middleware)
 
     if CONFIG.sentry_url:
         dispatcher.update.middleware(SentryTracingMiddleware())

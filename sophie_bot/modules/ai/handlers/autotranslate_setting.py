@@ -31,7 +31,7 @@ def _language_keyboard(excluded: set[str], recent: set[str], code: str | None = 
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-@flags.help(alias_to_modules=["language"], description=l_("Controls AI Auto translator"))
+@flags.handler_help(alias_to_modules=["language"], description=l_("Controls AI Auto translator"))
 class AIAutotrans(StatusBoolHandlerABC):
     header_text = l_(lambda: Template(_("{ai_emoji} AI Auto translate"), ai_emoji=AI_EMOJI).to_html())
     change_command = "aiautotranslate"

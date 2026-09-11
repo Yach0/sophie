@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Final, Literal, cast
+from typing import Any, Final, Literal
 
 import httpx
 import httpx2
@@ -86,15 +86,13 @@ def _get_response_error_message(response_data: object) -> str | None:
     if not isinstance(response_data, Mapping):
         return None
 
-    response_mapping = cast(Mapping[str, object], response_data)
-    error_data = response_mapping.get("error")
+    error_data = response_data.get("error")
     if isinstance(error_data, Mapping):
-        error_mapping = cast(Mapping[str, object], error_data)
-        error_message = error_mapping.get("message")
+        error_message = error_data.get("message")
         if isinstance(error_message, str):
             return error_message
 
-    message = response_mapping.get("message")
+    message = response_data.get("message")
     if isinstance(message, str):
         return message
     return None

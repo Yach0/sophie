@@ -48,7 +48,7 @@ def format_handlers(all_cmds: Sequence[HandlerHelp], **kwargs):
     return VList(*(format_handler(handler, **kwargs) for handler in all_cmds))
 
 
-def format_handler_item(handler: HandlerHelp, **kwargs) -> Element:
+def format_handler_item(handler: HandlerHelp) -> Element:
     """One command as a single line, for use inside a list.
 
     ``format_handler`` wraps the description in a Section, whose title becomes a heading in rich

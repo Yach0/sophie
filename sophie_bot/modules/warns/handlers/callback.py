@@ -66,14 +66,14 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
         if not callback.message or not isinstance(callback.message, Message):
-            return
+            return None
 
         callback_data: ResetWarnsCallback = self.data["callback_data"]
 
         # Check if the user who clicked the button is an admin
         if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
             await callback.answer(_("Only admins can reset warns!"), show_alert=True)
-            return
+            return None
 
         chat_iid = self.connection.db_model.iid
         target_user_tid = callback_data.user_tid
@@ -81,7 +81,7 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
         target_user = await ChatModel.get_by_tid(target_user_tid)
         if not target_user:
             await callback.answer(_("User not found!"), show_alert=True)
-            return
+            return None
 
         await WarnModel.find(WarnModel.chat.id == chat_iid, WarnModel.user.id == target_user.iid).delete()
 
@@ -109,12 +109,12 @@ class ResetAllWarnsCallbackHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
         if not callback.message or not isinstance(callback.message, Message):
-            return
+            return None
 
         # Check if the user who clicked the button is an admin
         if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
             await callback.answer(_("Only admins can reset all warns!"), show_alert=True)
-            return
+            return None
 
         chat_iid = self.connection.db_model.iid
         await WarnModel.find(WarnModel.chat.id == chat_iid).delete()

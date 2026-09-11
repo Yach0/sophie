@@ -175,7 +175,7 @@ def _build_system_prompt(base_prompt: str) -> str:
 
 
 @flags.status(value="typing")
-@flags.help(
+@flags.handler_help(
     description=l_("Suggests filter handlers from a natural language description"),
     alias_to_modules=["filters"],
 )

@@ -81,7 +81,7 @@ class ResearchProgressMessage:
 @flags.args(
     text=TextArg(l_("Research topic")),
 )
-@flags.help(description=l_("Research a topic using multistage web search and return a summary with sources"))
+@flags.handler_help(description=l_("Research a topic using multistage web search and return a summary with sources"))
 @flags.status(value="typing")
 @flags.ai_cache(cache_handler_result=True)
 @flags.disableable(name="research")
@@ -120,7 +120,7 @@ class ResearchCmd(SophieMessageHandler):
         except SophieException as exc:
             log.warning("research: SophieException during workflow", error=str(exc))
             await self.event.reply(str(exc))
-            return
+            return None
         header_style = await get_ai_header_style(
             "chatbot",
             self.event.chat.id,

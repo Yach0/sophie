@@ -29,10 +29,10 @@ __all__ = (
 )
 
 
-async def setup_bot(router: Router, _services: ApplicationServices) -> None:
-    router.message.outer_middleware(LocksEnforcerMiddleware())
-    router.edited_message.outer_middleware(LocksEnforcerMiddleware())
-    router.message_reaction.outer_middleware(ReactionLocksEnforcerMiddleware())
+async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(LocksEnforcerMiddleware())
+    bot_router.edited_message.outer_middleware(LocksEnforcerMiddleware())
+    bot_router.message_reaction.outer_middleware(ReactionLocksEnforcerMiddleware())
 
 
 module_manifest = ModuleManifest(

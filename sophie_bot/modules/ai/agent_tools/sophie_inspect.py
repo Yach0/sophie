@@ -11,6 +11,7 @@ async def sophie_inspect(ctx: RunContext[SophieAIToolContext], question: str) ->
     """Find out how Sophie behaves by inspecting its own source code.
 
     Args:
+        ctx: Runtime context for the current chat.
         question: One specific question about Sophie's behaviour, in full, as the user asked it.
     """
     async with track_ai_tool("sophie_inspect"):

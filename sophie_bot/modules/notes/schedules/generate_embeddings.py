@@ -14,7 +14,8 @@ class GenerateNoteEmbeddings:
     def __init__(self, services: ApplicationServices) -> None:
         self.services = services
 
-    async def process_chat(self, chat: ChatModel) -> None:
+    @staticmethod
+    async def process_chat(chat: ChatModel) -> None:
         chat_notes = NoteModel.find(NoteModel.chat.id == chat.iid)
         async for note in chat_notes:  # skipcq: PYL-E1133
             updated = await update_note_embedding(note)

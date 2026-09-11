@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Add a user to the group whitelist for automated moderation."))
+@flags.handler_help(description=l_("Add a user to the group whitelist for automated moderation."))
 class WhitelistUserHandler(BaseWhitelistMutationHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

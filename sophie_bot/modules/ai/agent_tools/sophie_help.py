@@ -40,6 +40,7 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
     """Get Sophie's documentation: every module and command, or the full text of one wiki page.
 
     Args:
+        ctx: Runtime context that provides the loaded help modules.
         page: Slug of a wiki page to read in full, from the list this tool returns without it.
               Leave empty to get the overview of all modules and commands first.
     """

@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/{chat_iid}", response_model=RulesResponse)
 async def get_rules(
     chat: ChatDep,
-    user: ReadAdminDep,
+    _user: ReadAdminDep,
 ):
     if rules := await RulesModel.get_rules(chat.iid):
         return RulesResponse.model_validate(rules)

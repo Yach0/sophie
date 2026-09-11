@@ -18,7 +18,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Edits filter settings"))
+@flags.handler_help(description=l_("Edits filter settings"))
 class FilterEditHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -48,3 +48,4 @@ class FilterEditHandler(SophieMessageHandler):
                 )
             )
         await FILTER_WIZARD.start(self, FilterDraft.from_model(filter_item))
+        return None

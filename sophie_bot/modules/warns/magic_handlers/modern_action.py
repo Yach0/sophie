@@ -75,13 +75,13 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
 
     async def handle(self, message: Message, data: dict, filter_data: WarnActionDataModel) -> Element | None:
         if not message.from_user:
-            return
+            return None
 
         chat_db = data["context"].event_chat
         admin_db = await ChatModel.get_by_tid(CONFIG.bot_id)
         if not admin_db:
             if not message.bot:
-                return
+                return None
             bot_me = await message.bot.get_me()
             admin_db = await ChatModel.upsert_user(bot_me)
         # Channel and unresolved anonymous-admin events may not have a persisted

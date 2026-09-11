@@ -35,7 +35,7 @@ from sophie_bot.utils.logger import log
     description=OptionalArg(SurroundedArg(TextArg(l_("?Description")))),
     text_with_buttons=OptionalArg(TextWithButtonsArg(l_("Content"))),
 )
-@flags.help(description=l_("Save the note."))
+@flags.handler_help(description=l_("Save the note."))
 class SaveNote(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -109,8 +109,9 @@ class SaveNote(SophieMessageHandler):
 
         await self.event.reply(str(document))
 
+    @staticmethod
     async def save(
-        self, saveable: Saveable, notenames: Sequence[str], chat_iid: PydanticObjectId, user_id: int, data: dict
+        saveable: Saveable, notenames: Sequence[str], chat_iid: PydanticObjectId, user_id: int, data: dict
     ) -> bool:
         model = await NoteModel.get_by_notenames(chat_iid, notenames)
 

@@ -51,7 +51,7 @@ def tolerated_title_errors(granted_permissions: dict[str, bool]) -> tuple[str, .
     return tolerated
 
 
-@flags.help(description=l_("Promotes the user to admins."))
+@flags.handler_help(description=l_("Promotes the user to admins."))
 class PromoteUserHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -128,7 +128,7 @@ class PromoteUserHandler(SophieMessageHandler):
         except TelegramBadRequest as err:
             if RIGHT_FORBIDDEN in err.message:
                 log.debug("PromoteUser: Bot lacks required right, ignoring", error=str(err))
-                return
+                return None
             raise
 
         if admin_title:
@@ -154,3 +154,4 @@ class PromoteUserHandler(SophieMessageHandler):
         )
 
         await reply_or_answer(self.event, doc)
+        return None

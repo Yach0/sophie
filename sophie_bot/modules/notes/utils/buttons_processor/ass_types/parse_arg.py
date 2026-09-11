@@ -24,7 +24,7 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
     know_the_end = True
     know_the_start = True
 
-    def __init__(self, description: str | LazyProxy | None = None, **kwargs: Any) -> None:
+    def __init__(self, description: str | LazyProxy | None = None) -> None:
         super().__init__(description=description)
         self.child = ButtonArg()
 
@@ -59,7 +59,7 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
                         offset += end + 1
                         matched = True
                         break
-                    except Exception:  # noqa: BLE001, S112  # button candidate parse failed; try next candidate
+                    except ValueError:
                         continue
 
             if not matched:

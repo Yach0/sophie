@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Transfer federation ownership"))
+@flags.handler_help(description=l_("Transfer federation ownership"))
 class TransferOwnershipHandler(FederationCommandHandler):
     """Handler for transferring federation ownership."""
 
@@ -78,7 +78,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
             await self.event.reply(_("User has not started the bot yet."))
             return
 
-        if not await FederationManageService._can_user_create_federation(new_owner_chat.iid):
+        if not await FederationManageService.can_user_create_federation(new_owner_chat.iid):
             await self.event.reply(_("The new owner has reached the maximum number of federations they can own."))
             return
 
@@ -113,7 +113,8 @@ class TransferOwnershipHandler(FederationCommandHandler):
 
         await self.event.reply(str(confirm_doc))
 
-    async def _parse_user_id(self, user_input: str) -> int | None:
+    @staticmethod
+    async def _parse_user_id(user_input: str) -> int | None:
         """Parse user ID from username or ID string.
 
         TODO: Implement proper user resolution for usernames via Telegram API.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, TypeAlias, cast
+from typing import Literal, TypeAlias
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
@@ -75,8 +75,7 @@ def _normalize_chat_iids(chat_refs: list[object]) -> list[PydanticObjectId]:
             continue
 
         if isinstance(chat_ref, dict):
-            chat_ref_dict = cast(dict[str, object], chat_ref)
-            reference_id = chat_ref_dict.get("$id")
+            reference_id = chat_ref.get("$id")
             if isinstance(reference_id, PydanticObjectId):
                 normalized.append(reference_id)
             continue

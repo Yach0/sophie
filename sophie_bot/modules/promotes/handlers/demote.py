@@ -25,7 +25,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
 
-@flags.help(description=l_("Demotes the user from admins."))
+@flags.handler_help(description=l_("Demotes the user from admins."))
 class DemoteUserHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -67,7 +67,7 @@ class DemoteUserHandler(SophieMessageHandler):
         except TelegramBadRequest as err:
             if BOTS_CANT_ADD_NEW_CHAT_MEMBERS in err.message:
                 log.debug("DemoteUser: Bot can't manage chat members, ignoring", error=str(err))
-                return
+                return None
             raise
 
         # Reset admin cache
@@ -81,3 +81,4 @@ class DemoteUserHandler(SophieMessageHandler):
         )
 
         await reply_or_answer(self.event, doc)
+        return None

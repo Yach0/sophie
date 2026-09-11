@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
@@ -26,7 +27,7 @@ def whitelist_mutation_filters(commands: tuple[str, ...]) -> tuple[CallbackType,
     )
 
 
-class BaseWhitelistMutationHandler(SophieMessageHandler):
+class BaseWhitelistMutationHandler(SophieMessageHandler, ABC):
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict[str, Any]) -> dict[str, ArgFabric]:
         if message and is_real_reply(message):

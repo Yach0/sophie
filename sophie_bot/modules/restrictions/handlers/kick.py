@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Kicks the user from the chat. The user would be able to join back."))
+@flags.handler_help(description=l_("Kicks the user from the chat. The user would be able to join back."))
 class KickUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot kick myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot kick yourself.")

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai import ModelRetry, RunContext, Tool
 
 from sophie_bot.metrics import track_ai_tool
-from sophie_bot.modules.ai.agent_tools._utils.get_chat_notes import AIChatGetNoteFunc, AIChatNote, AIChatNotesFunc
+from sophie_bot.modules.ai.agent_tools.chat_notes import AIChatGetNoteFunc, AIChatNote, AIChatNotesFunc
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 
 
@@ -29,6 +29,7 @@ async def get_note_content(ctx: RunContext[SophieAIToolContext], notename: str) 
     """Get one chat note by name and return its title and content.
 
     Args:
+        ctx: Runtime context for the current chat.
         notename: The note name or alias to retrieve. A leading # is optional.
     """
     normalized_notename = _normalize_notenames(notename)[0]
