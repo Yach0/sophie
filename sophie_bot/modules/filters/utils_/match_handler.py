@@ -111,11 +111,11 @@ async def consume_ai_filter_daily_quota(
 
     async with services.redis.pipeline() as pipe:
         pipe.incr(chat_rate_limit_key)
-        await pipe.expire(chat_rate_limit_key, daily_ttl)
+        pipe.expire(chat_rate_limit_key, daily_ttl)
         if user_tid is not None:
             user_rate_limit_key = _get_ai_filter_daily_user_limit_key(chat_tid, user_tid, now)
             pipe.incr(user_rate_limit_key)
-            await pipe.expire(user_rate_limit_key, daily_ttl)
+            pipe.expire(user_rate_limit_key, daily_ttl)
         results = await pipe.execute()
 
     chat_daily_count = int(results[0])

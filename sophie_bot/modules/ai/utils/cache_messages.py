@@ -94,9 +94,9 @@ async def cache_message(
     cutoff_score = _build_cutoff(created_at).timestamp()
 
     async with redis.pipeline(transaction=True) as pipe:
-        await pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
-        await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
-        await pipe.expire(key, 86400 * 2, lt=True)
+        pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
+        pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
+        pipe.expire(key, 86400 * 2, lt=True)
         await pipe.execute()
 
 

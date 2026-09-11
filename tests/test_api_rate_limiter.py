@@ -28,7 +28,7 @@ class FakePipeline:
     def incr(self, key: str) -> None:
         self.incr_keys.append(key)
 
-    async def expire(self, key: str, window: int, nx: bool = False) -> None:
+    def expire(self, key: str, window: int, nx: bool = False) -> None:
         self.expire_calls.append((key, window, nx))
 
     async def execute(self) -> list[int]:

@@ -83,10 +83,10 @@ async def track_eligible_message(
     key = eligible_key(chat_tid)
     cutoff_score = (datetime.now(UTC) - timedelta(seconds=settings.window_seconds)).timestamp()
     async with redis.pipeline(transaction=True) as pipe:
-        await pipe.zadd(key, {str(message.message_id): message.date.timestamp()})  # type: ignore[misc]
-        await pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
-        await pipe.expire(key, _PROCESSED_TTL_SECONDS, lt=True)
-        await pipe.zcard(key)  # type: ignore[misc]
+        pipe.zadd(key, {str(message.message_id): message.date.timestamp()})  # type: ignore[misc]
+        pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
+        pipe.expire(key, _PROCESSED_TTL_SECONDS, lt=True)
+        pipe.zcard(key)  # type: ignore[misc]
         results = await pipe.execute()
     tracked_count = int(results[-1])
     log_proactive_info(

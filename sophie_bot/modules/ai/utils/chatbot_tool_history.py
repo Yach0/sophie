@@ -138,8 +138,8 @@ async def store_tool_exchanges(
     key = tool_history_key(chat_tid)
     payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
     async with redis.pipeline(transaction=True) as pipe:
-        await pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
-        await pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
+        pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
+        pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
         await pipe.execute()
     await _trim_tool_history(chat_tid, redis=redis)
 

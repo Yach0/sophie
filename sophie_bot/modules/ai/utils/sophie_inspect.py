@@ -99,7 +99,7 @@ async def _consume_daily_quota(
 
     async with redis.pipeline() as pipe:
         pipe.incr(key)
-        await pipe.expire(key, _seconds_until_next_utc_day(now))
+        pipe.expire(key, _seconds_until_next_utc_day(now))
         results = await pipe.execute()
 
     return int(results[0]) <= limit
