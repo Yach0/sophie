@@ -52,6 +52,7 @@ from sophie_bot.modules.ai.utils.proactive_tracking import (
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     track_eligible_message as _track_eligible_message,
 )
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
@@ -409,16 +410,20 @@ async def _answer_message(
         sent_message_id=sent_message.message_id,
     )
     await cache_message(
-        sent_message.text,
+        cut_titlebar(doc.to_md()),
         chat_tid,
         CONFIG.bot_id,
         sent_message.message_id,
         sent_message.date,
         "Sophie",
+        is_bot=True,
         message_thread_id=sent_message.message_thread_id,
         handled_by_ai=True,
         eligible_for_proactive_ai=False,
         proactively_answered=True,
+        reply_to_message_id=target_message.message_id,
+        reply_to_user_id=target_message.user_id,
+        reply_to_username=target_message.username,
         redis=services.redis,
     )
 

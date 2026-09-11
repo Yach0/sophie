@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -7,7 +8,7 @@ import pytest
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from sophie_bot.modules.ai.utils import message_history
-from sophie_bot.modules.ai.utils.cache_messages import MessageType
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
 
 
@@ -24,7 +25,9 @@ def test_user_message_formatter_localizes_and_sanitizes_reply_title(monkeypatch:
 
 
 @pytest.mark.asyncio
-async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_cached_history_keeps_reply_title(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     cached = MessageType(
         user_id=1,
         message_id=2,
@@ -47,7 +50,9 @@ async def test_cached_history_keeps_reply_title(monkeypatch: pytest.MonkeyPatch,
 
 
 @pytest.mark.asyncio
-async def test_cached_ai_history_uses_shared_message_text_representation(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_cached_ai_history_uses_shared_message_text_representation(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
     monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     monkeypatch.setattr(
@@ -56,12 +61,88 @@ async def test_cached_ai_history_uses_shared_message_text_representation(monkeyp
         lambda message: "✨ AI | Help 📖 | 🔋 80%\nstored body",
     )
 
-    transformed = await AIMessageHistory(
-        services=test_services
-    )._cache_transform_msg(10, cached)
+    transformed = await AIMessageHistory(services=test_services)._cache_transform_msg(10, cached)
 
     assert isinstance(transformed, ModelResponse)
     assert transformed.parts[0].content == "stored body"
+
+
+@pytest.mark.asyncio
+async def test_cached_foreign_bot_message_is_reference_only_context(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    await cache_message(
+        "Dergbot chatter",
+        10,
+        42,
+        2,
+        datetime.now(UTC),
+        "Dergbot",
+        is_bot=True,
+        redis=test_redis,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10, fold_background=True)
+
+    assert history.message_history == []
+    assert history.context_lines == ["Unknown: Dergbot chatter"]
+
+
+@pytest.mark.asyncio
+async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    await cache_message(
+        "Dergbot answer",
+        10,
+        42,
+        2,
+        datetime.now(UTC),
+        "Dergbot",
+        is_bot=True,
+        handled_by_ai=True,
+        redis=test_redis,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10, fold_background=True)
+
+    assert len(history.message_history) == 1
+    response = history.message_history[0]
+    assert isinstance(response, ModelResponse)
+    assert response.parts[0].content == "Dergbot answer"
+
+
+@pytest.mark.asyncio
+async def test_next_generation_replays_the_authoritative_sophie_answer(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+    test_services: object,
+) -> None:
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    answer_time = datetime.now(UTC)
+    await cache_message(
+        "prior answer",
+        10,
+        message_history.CONFIG.bot_id,
+        20,
+        answer_time,
+        "Sophie",
+        reply_to_message_id=19,
+        reply_to_user_id=1,
+        redis=test_redis,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10)
+
+    assert len(history.message_history) == 1
+    cached_answer = history.message_history[0]
+    assert isinstance(cached_answer, ModelResponse)
+    assert cached_answer.parts[0].content == "prior answer"
 
 
 def test_message_history_adds_system_custom_and_debug_output(

@@ -109,13 +109,17 @@ async def test_chatbot_final_resend_falls_back_to_direct_send_when_reply_fails(
         chat=SimpleNamespace(id=1),
         message_id=2,
         message_thread_id=None,
-        reply=AsyncMock(side_effect=TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")),  # type: ignore[arg-type]
+        reply=AsyncMock(
+            side_effect=TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")
+        ),  # type: ignore[arg-type]
         bot=SimpleNamespace(send_message=direct_send_mock),
     )
     response = SimpleNamespace(
         chat=SimpleNamespace(id=1),
         message_id=3,
-        edit_text=AsyncMock(side_effect=TelegramBadRequest(method=None, message="Bad Request: message to edit not found")),  # type: ignore[arg-type]
+        edit_text=AsyncMock(
+            side_effect=TelegramBadRequest(method=None, message="Bad Request: message to edit not found")
+        ),  # type: ignore[arg-type]
     )
     streamer = ChatbotMessageStreamer(
         source,
@@ -130,6 +134,7 @@ async def test_chatbot_final_resend_falls_back_to_direct_send_when_reply_fails(
 
     direct_send_mock.assert_awaited_once()
     assert direct_send_mock.call_args.kwargs["chat_id"] == 1
+
 
 @pytest.mark.asyncio
 async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,6 +184,13 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
         message_thread_id=None,
         bot=services.bot,
     )
+    cache_message = proactive_replies.cache_message
+    cache_message.assert_awaited_once()
+    cache_kwargs = cache_message.await_args.kwargs
+    assert cache_message.await_args.args[0] == "answer"
+    assert cache_kwargs["is_bot"] is True
+    assert cache_kwargs["reply_to_message_id"] == 7
+    assert cache_kwargs["reply_to_user_id"] == 1
 
 
 @pytest.mark.asyncio

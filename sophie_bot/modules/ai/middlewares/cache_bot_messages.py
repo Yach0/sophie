@@ -10,7 +10,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 from sophie_bot.utils.logger import log
 
 
@@ -26,7 +26,10 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
-        sent_message_text = result.text if isinstance(result, Message) else None
+        if get_flag(data, "ai_chatbot_response", default=False):
+            return result
+
+        sent_message_text = message_text(result) if isinstance(result, Message) else None
         sent_message_id = result.message_id if isinstance(result, Message) else None
 
         ai_cache_flag = get_flag(data, "ai_cache", default={})
@@ -53,6 +56,7 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
                 sent_message_id,
                 created_at,
                 "Sophie",
+                is_bot=True,
                 message_thread_id=(result.message_thread_id if isinstance(result, Message) else None),
                 handled_by_ai=True,
                 eligible_for_proactive_ai=False,
