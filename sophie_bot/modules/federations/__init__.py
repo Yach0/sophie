@@ -37,8 +37,8 @@ api_router = federations_api_router
 router = Router(name="federations")
 
 
-async def setup_bot(router: Router, _services: ApplicationServices) -> None:
-    router.message.outer_middleware(FedBanMiddleware())
+async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(FedBanMiddleware())
 
 
 def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:

@@ -21,7 +21,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 type WelcomeMuteStatus = timedelta | Literal[False]
 
 
-@flags.help(
+@flags.handler_help(
     description=l_("Shows / changes the state of Welcome Restrict (Media restricting)."),
     args={"NewStatus": TextArg(l_("?New status or restrict time"))},
 )

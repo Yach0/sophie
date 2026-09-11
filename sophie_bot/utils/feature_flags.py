@@ -522,14 +522,14 @@ def _coerce_percentage(value: Any) -> int | None:
 
 def _validate_rollout_percentage(percentage: int) -> None:
     if not 0 <= percentage <= 100:
-        msg = "Rollout percentage must be between 0 and 100."
-        raise ValueError(msg)
+        error_message = "Rollout percentage must be between 0 and 100."
+        raise ValueError(error_message)
 
 
 def _validate_rollout_days(days: int) -> None:
     if days <= 0:
-        msg = "Rollout days must be greater than 0."
-        raise ValueError(msg)
+        error_message = "Rollout days must be greater than 0."
+        raise ValueError(error_message)
 
 
 def _coerce_rollout(value: Any) -> FeatureRollout | None:
@@ -729,8 +729,8 @@ async def bump_rollout(feature: FeatureType, percentage: int, *, redis: Redis) -
 
     current_rollout = await get_rollout(feature, redis=redis)
     if current_rollout is None:
-        msg = "Cannot bump rollout without an existing rollout."
-        raise ValueError(msg)
+        error_message = "Cannot bump rollout without an existing rollout."
+        raise ValueError(error_message)
 
     current_percentage = get_rollout_percentage(current_rollout)
     bumped_percentage = min(100, current_percentage + percentage)

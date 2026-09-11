@@ -273,7 +273,7 @@ def build_stfu_gallery_docs() -> tuple[Doc, ...]:
     )
 
 
-@flags.help(description=l_("Show an operator-only STFU formatting gallery."))
+@flags.handler_help(description=l_("Show an operator-only STFU formatting gallery."))
 class StfuGalleryHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

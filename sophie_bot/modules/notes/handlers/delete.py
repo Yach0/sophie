@@ -19,7 +19,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.args(notenames=DividedArg(WordArg(l_("Note name"))))
-@flags.help(description=l_("Deletes notes."))
+@flags.handler_help(description=l_("Deletes notes."))
 class DelNote(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Bans the user from the chat."))
+@flags.handler_help(description=l_("Bans the user from the chat."))
 class BanUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot ban myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot ban yourself.")
@@ -37,7 +37,7 @@ class BanUserHandler(BaseRestrictionHandler):
         )
 
 
-@flags.help(description=l_("Temporarily bans the user from the chat."))
+@flags.handler_help(description=l_("Temporarily bans the user from the chat."))
 class TempBanUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot ban myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot ban yourself.")

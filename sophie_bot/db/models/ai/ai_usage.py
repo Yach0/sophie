@@ -56,7 +56,7 @@ class AIUsageModel(Document):
         return usage.monthly_requests_by_feature.get(month_key, {})
 
     @staticmethod
-    async def record_feature_consumption(chat_iid: PydanticObjectId, feature: AIFeature, credits: int) -> None:
+    async def record_feature_consumption(chat_iid: PydanticObjectId, feature: AIFeature, credit_amount: int) -> None:
         month_key = datetime.now(UTC).date().strftime("%Y-%m")
         date_today = datetime.now(UTC).date()
 
@@ -74,7 +74,7 @@ class AIUsageModel(Document):
             usage.monthly_requests_by_feature[month_key].get(feature, 0) + 1
         )
         usage.monthly_credits_by_feature[month_key][feature] = (
-            usage.monthly_credits_by_feature[month_key].get(feature, 0) + credits
+            usage.monthly_credits_by_feature[month_key].get(feature, 0) + credit_amount
         )
         await usage.save()
 

@@ -20,7 +20,7 @@ def _current_summary_date() -> date:
     return datetime.now(UTC).date()
 
 
-@flags.help(description=l_("Force-regenerate today's chat summary for the current chat"))
+@flags.handler_help(description=l_("Force-regenerate today's chat summary for the current chat"))
 class OpRegenerateChatSummaryHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

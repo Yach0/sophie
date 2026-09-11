@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Show list of banned users in federation"))
+@flags.handler_help(description=l_("Show list of banned users in federation"))
 class FederationBanListHandler(FederationCommandHandler):
     """Handler for showing federation ban lists."""
 

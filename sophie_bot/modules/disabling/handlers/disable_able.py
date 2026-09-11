@@ -12,7 +12,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Lists all commands that can be disabled."))
+@flags.handler_help(description=l_("Lists all commands that can be disabled."))
 @flags.disableable(name="disableable")
 class ListDisableable(SophieMessageHandler):
     @staticmethod

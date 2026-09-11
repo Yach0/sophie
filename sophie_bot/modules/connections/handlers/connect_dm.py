@@ -35,7 +35,7 @@ class ConnectToChatCb(CallbackData, prefix="connect_to_chat_cb"):
     chat_id: int
 
 
-@flags.help(description=l_("Connects to the chat."))
+@flags.handler_help(description=l_("Connects to the chat."))
 class ConnectDMCmd(SophieMessageHandler):
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict:

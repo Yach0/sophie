@@ -436,7 +436,7 @@ async def _collect_debug_context(
         await message.reply(str(doc))
 
 
-@flags.help(description=l_("Collect diagnostic context for debugging bot issues (private chat only)."))
+@flags.handler_help(description=l_("Collect diagnostic context for debugging bot issues (private chat only)."))
 class OpDebugHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:

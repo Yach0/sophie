@@ -8,7 +8,7 @@ from beanie.odm.operators.update.general import Set
 from sophie_bot.constants import CACHE_LANGUAGE_TTL_SECONDS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.language import LanguageModel
-from sophie_bot.utils.cached import CachedFunction, RedisCache, cached
+from sophie_bot.utils.cached import Cached, CachedFunction, RedisCache
 from sophie_bot.utils.i18n import I18nNew
 
 _CACHE_KEY = "sophie_bot.db.cache.locale:_cached_stored_locale"
@@ -19,7 +19,7 @@ class LocaleStore:
         self.cache = cache
         self.i18n = i18n
         self.default_locale = default_locale
-        self._cached_stored_locale: CachedFunction[[PydanticObjectId], str | None] = cached(
+        self._cached_stored_locale: CachedFunction[[PydanticObjectId], str | None] = Cached(
             cache,
             ttl=CACHE_LANGUAGE_TTL_SECONDS,
             key=_CACHE_KEY,

@@ -20,23 +20,23 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.args(
     credits=IntArg(l_("Monthly credit amount")),
 )
-@flags.help(description=l_("Set monthly AI quota for a chat"))
+@flags.handler_help(description=l_("Set monthly AI quota for a chat"))
 class SetQuota(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return CMDFilter("op_aisetquota"), IsOP(True)
 
     async def handle(self) -> Any:
-        credits: int = self.data["credits"]
+        credit_amount: int = self.data["credits"]
         connection = self.connection
 
-        if credits < 0:
+        if credit_amount < 0:
             await self.event.reply(
                 str(Template(_("{credit_emoji} amount must be a positive number."), credit_emoji=AI_CREDIT_EMOJI))
             )
             return
 
-        await set_monthly_quota(connection.db_model, credits)
+        await set_monthly_quota(connection.db_model, credit_amount)
         quota_info = await get_quota_info(
             connection.db_model.iid,
             redis=self.services.redis,
@@ -45,7 +45,7 @@ class SetQuota(SophieMessageHandler):
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Quota Updated')}"),
             Section(
-                KeyValue(_("Monthly quota"), Code(format_credit_amount(credits))),
+                KeyValue(_("Monthly quota"), Code(format_credit_amount(credit_amount))),
                 KeyValue(
                     _("Remaining"),
                     Code(format_credit_amount(quota_info.remaining_credits)) if quota_info else Code("N/A"),
@@ -56,7 +56,7 @@ class SetQuota(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.help(description=l_("Reset AI quota usage for a chat"))
+@flags.handler_help(description=l_("Reset AI quota usage for a chat"))
 class ResetQuota(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

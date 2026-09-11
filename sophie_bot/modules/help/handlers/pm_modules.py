@@ -37,7 +37,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Shows help overview for all modules"))
+@flags.handler_help(description=l_("Shows help overview for all modules"))
 class PMModulesList(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):

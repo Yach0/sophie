@@ -16,7 +16,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Check AI quota and usage details"))
+@flags.handler_help(description=l_("Check AI quota and usage details"))
 class AiUsage(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

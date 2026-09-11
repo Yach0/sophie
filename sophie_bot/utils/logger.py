@@ -28,23 +28,23 @@ def mongo_prefix_processor(logger: logging.Logger, _: str, event_dict: EventDict
     """Add 'mongo: ' prefix to pymongo log messages and make them gray."""
     logger_name = event_dict.get("logger", "")
     if logger_name and logger_name.startswith("pymongo."):
-        event = event_dict.get("event", "")
-        if event and not event.startswith("mongo: "):
+        event_text = event_dict.get("event", "")
+        if event_text and not event_text.startswith("mongo: "):
             # Use ANSI escape codes for gray (dim) text
             gray = "\033[90m"
             reset = "\033[0m"
-            event_dict["event"] = f"mongo: {gray}{event}{reset}"
+            event_dict["event"] = f"mongo: {gray}{event_text}{reset}"
     return event_dict
 
 
 def security_color_processor(logger: logging.Logger, _: str, event_dict: EventDict) -> EventDict:
     logger_name = event_dict.get("logger", "")
     if logger_name == "security":
-        event = event_dict.get("event", "")
-        if event:
+        event_text = event_dict.get("event", "")
+        if event_text:
             orange = "\033[38;5;208m"
             reset = "\033[0m"
-            event_dict["event"] = f"{orange}{event}{reset}"
+            event_dict["event"] = f"{orange}{event_text}{reset}"
     return event_dict
 
 

@@ -95,7 +95,7 @@ async def get_system_stats(*, services: ApplicationServices) -> Doc:
     return doc
 
 
-@flags.help(description=l_("Show bot statistics."))
+@flags.handler_help(description=l_("Show bot statistics."))
 class StatsHandler(SophieMessageHandler):
     @staticmethod
     def filters():

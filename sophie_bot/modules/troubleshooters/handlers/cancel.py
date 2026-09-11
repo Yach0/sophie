@@ -10,7 +10,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Cancel current state, use if Sophie is not responding on your message"))
+@flags.handler_help(description=l_("Cancel current state, use if Sophie is not responding on your message"))
 class CancelState(SophieMessageHandler):
     @staticmethod
     def filters():

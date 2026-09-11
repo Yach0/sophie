@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from ..callbacks import PrivacyMenuCallback
 
 
-@flags.help(description=l_("Shows the privacy policy of the bot"))
+@flags.handler_help(description=l_("Shows the privacy policy of the bot"))
 class PrivacyMenu(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router) -> None:

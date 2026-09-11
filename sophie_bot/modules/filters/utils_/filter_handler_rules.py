@@ -94,7 +94,7 @@ async def validate_filter_handler(chat_iid: ObjectId, keyword: str, editing_id: 
 
     if keyword.startswith("re:"):
         pattern = keyword[3:]
-        random_text = "".join(choice(printable) for random_character in range(50))
+        random_text = "".join(choice(printable) for _random_character in range(50))
         try:
             regex.match(pattern, random_text, timeout=0.2)
         except TimeoutError:

@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Shows all supported languages for locking"))
+@flags.handler_help(description=l_("Shows all supported languages for locking"))
 @flags.disableable(name="locklanguages")
 class ListLockLanguagesHandler(SophieMessageHandler):
     @staticmethod

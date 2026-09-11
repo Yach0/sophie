@@ -18,7 +18,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.args(text_with_buttons=TextWithButtonsArg(l_("Content")))
-@flags.help(description=l_("Sets welcome security message."))
+@flags.handler_help(description=l_("Sets welcome security message."))
 class SetSecurityMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -54,7 +54,7 @@ class SetSecurityMessageHandler(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.help(description=l_("Deletes the welcome security message"))
+@flags.handler_help(description=l_("Deletes the welcome security message"))
 class DelSecurityMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

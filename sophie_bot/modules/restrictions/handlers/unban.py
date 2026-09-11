@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Unbans the user from the chat."))
+@flags.handler_help(description=l_("Unbans the user from the chat."))
 class UnbanUserHandler(BaseRestrictionHandler):
     bot_action_text: ClassVar[str | LazyProxy] = l_("I cannot unban myself.")
     self_action_text: ClassVar[str | LazyProxy] = l_("You cannot unban yourself.")

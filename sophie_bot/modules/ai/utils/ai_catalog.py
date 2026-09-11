@@ -242,7 +242,9 @@ async def load_catalog(*, redis: Redis) -> AICatalog:
     # request would otherwise re-sort the same list. The model name breaks priority ties so the same
     # catalog always yields the same order, whatever order Mongo returned the rows in.
     roles = {
-        key: tuple(sorted(role_candidates, key=lambda role: (role.priority, role.model_name)))
+        key: tuple(
+            sorted(role_candidates, key=lambda role_candidate: (role_candidate.priority, role_candidate.model_name))
+        )
         for key, role_candidates in candidates.items()
     }
 

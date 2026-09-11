@@ -73,7 +73,7 @@ async def check_moderator(
     if not scores:
         return ModerationResult(triggered=frozenset(), triggered_native=frozenset(), scores={})
 
-    thresholds = await resolve_thresholds(provider, chat_tid, redis=services.redis)
+    resolved_thresholds = await resolve_thresholds(provider, chat_tid, redis=services.redis)
     multipliers = await resolve_level_multipliers(chat_tid, redis=services.redis)
 
     # The chat's detection level scales the score rather than the threshold, so one category can be
@@ -85,7 +85,7 @@ async def check_moderator(
             continue
         adjusted[native.key] = scores.get(native.key, 0.0) * multipliers[level]
 
-    triggered_native = frozenset(key for key, score in adjusted.items() if score >= thresholds[key])
+    triggered_native = frozenset(key for key, score in adjusted.items() if score >= resolved_thresholds[key])
     triggered = frozenset(native.category for native in provider.native_categories if native.key in triggered_native)
 
     log.debug(
@@ -96,7 +96,7 @@ async def check_moderator(
         triggered_native=sorted(triggered_native),
         scores=scores,
         adjusted_scores=adjusted,
-        thresholds=thresholds,
+        thresholds=resolved_thresholds,
         input_count=len(history.to_moderation),
     )
 

@@ -182,7 +182,7 @@ class CachedFunction[**P, T]:
         return await self.cache.redis.delete(key)
 
 
-class cached:
+class Cached:
     def __init__(
         self,
         cache: RedisCache,

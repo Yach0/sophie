@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.disableable(name="help")
-@flags.help(description=l_("Shows the help message"))
+@flags.handler_help(description=l_("Shows the help message"))
 class HelpGroupHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

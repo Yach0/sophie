@@ -18,7 +18,7 @@ class SelectLangCb(CallbackData, prefix="set_lang"):
     code: str
 
 
-@flags.help(description=l_("Change the language of the bot in the chat."))
+@flags.handler_help(description=l_("Change the language of the bot in the chat."))
 class LanguageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

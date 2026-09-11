@@ -63,13 +63,13 @@ async def initialize(services: ApplicationServices) -> None:
     await load_catalog(redis=services.redis)
 
 
-async def setup_bot(router: Router, services: ApplicationServices) -> None:
-    router.message.outer_middleware(CacheUserMessagesMiddleware())
-    router.message.middleware(CacheBotMessagesMiddleware())
-    router.message.outer_middleware(AiModeratorMiddleware())
-    router.message.outer_middleware(AiStatusMiddleware())
-    router.message.outer_middleware(AiTimeoutMiddleware())
-    router.message.outer_middleware(AiAutoTranslateMiddleware())
+async def setup_bot(bot_router: Router, services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(CacheUserMessagesMiddleware())
+    bot_router.message.middleware(CacheBotMessagesMiddleware())
+    bot_router.message.outer_middleware(AiModeratorMiddleware())
+    bot_router.message.outer_middleware(AiStatusMiddleware())
+    bot_router.message.outer_middleware(AiTimeoutMiddleware())
+    bot_router.message.outer_middleware(AiAutoTranslateMiddleware())
 
 
 def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:

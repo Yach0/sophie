@@ -156,7 +156,7 @@ async def run_all_migrations_backward(resources: MigrationResources) -> None:
     if not applied_states:
         log.info("No migrations to rollback")
         return
-    applied_states.sort(key=lambda state: state.name, reverse=True)
+    applied_states.sort(key=lambda migration_state: migration_state.name, reverse=True)
     for state in applied_states:
         await _run_migration_action(state.name, resources, direction="backward")
     log.info("All migrations rolled back successfully")
