@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai import ModelRetry, RunContext, Tool
 
 from sophie_bot.metrics import track_ai_tool
-from sophie_bot.modules.ai.agent_tools._utils.get_chat_notes import AIChatGetNoteFunc, AIChatNote, AIChatNotesFunc
+from sophie_bot.modules.ai.agent_tools.chat_notes import AIChatGetNoteFunc, AIChatNote, AIChatNotesFunc
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 
 

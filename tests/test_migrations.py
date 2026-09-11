@@ -22,7 +22,7 @@ from sophie_bot.services.migrations import (
     MigrationResources,
     _bind_migration_resources,
 )
-from sophie_bot.utils.feature_flags import FEATURE_FLAGS, _serialize_value
+from sophie_bot.utils.feature_flags import FEATURE_FLAGS, serialize_feature_value
 
 
 def _legacy_notes_migration() -> ModuleType:
@@ -707,13 +707,13 @@ async def test_feature_flags_backward_never_drops_an_override_it_did_not_restore
     assert await test_redis.hget(
         migration._REDIS_KEY,
         live_feature,
-    ) == _serialize_value(True).encode()
+    ) == serialize_feature_value(True).encode()
 
     # A retired flag's override is still restored, and its row is only removed once it is.
     assert await test_redis.hget(
         migration._REDIS_KEY,
         "retired_flag_no_longer_declared",
-    ) == _serialize_value(True).encode()
+    ) == serialize_feature_value(True).encode()
     assert await collection.find_one({"_id": retired.id}) is None
 
     # Nothing to write back, so the row is kept rather than destroyed.

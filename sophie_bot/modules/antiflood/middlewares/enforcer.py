@@ -122,7 +122,8 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
         )
         return result.applied
 
-    def _get_action_text(self, settings: AntifloodModel) -> str:
+    @staticmethod
+    def _get_action_text(settings: AntifloodModel) -> str:
         """Get human-readable action text."""
         action_name = get_action_name(settings)
 

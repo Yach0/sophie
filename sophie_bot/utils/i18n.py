@@ -78,7 +78,8 @@ class I18nNew(I18n):
             locale_code = self.default_locale
         return self.babels[locale_code]
 
-    def locale_display(self, locale: Locale) -> str:
+    @staticmethod
+    def locale_display(locale: Locale) -> str:
         return f"{flag(locale.territory or '')} {locale.display_name}"
 
     @property

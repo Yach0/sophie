@@ -6,7 +6,8 @@ import inspect
 import math
 import random
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from typing import Any, ParamSpec, TypeVar, cast
 
 import ujson
@@ -60,6 +61,15 @@ class RedisCache:
         task = asyncio.ensure_future(awaitable)
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
+
+    @asynccontextmanager
+    async def lock(self, key: str) -> AsyncIterator[None]:
+        entry = self._locks.acquire_entry(key)
+        try:
+            async with entry.lock:
+                yield
+        finally:
+            self._locks.release_entry(key)
 
     async def set_value(self, key: str, value: Any, ttl: float | None) -> None:
         expiry_timestamp = time.time() + ttl if ttl else None
@@ -138,20 +148,16 @@ class CachedFunction[**P, T]:
         return result
 
     async def _get_or_set_with_lock(self, key: str, *args: P.args, **kwargs: P.kwargs) -> T:
-        entry = self.cache._locks.acquire_entry(key)
-        try:
-            async with entry.lock:
-                cached_data = await self.cache.redis.get(key)
-                if cached_data is not None:
-                    value, _expiry, is_valid = _deserialize(cached_data)
-                    if is_valid:
-                        return cast(T, value)
-                result = await self.func(*args, **kwargs)
-                await self.cache.set_value(key, result, ttl=self.ttl)
-                log.debug("Cached: writing new data (lock holder)", key=key)
-                return result
-        finally:
-            self.cache._locks.release_entry(key)
+        async with self.cache.lock(key):
+            cached_data = await self.cache.redis.get(key)
+            if cached_data is not None:
+                value, _expiry, is_valid = _deserialize(cached_data)
+                if is_valid:
+                    return cast(T, value)
+            result = await self.func(*args, **kwargs)
+            await self.cache.set_value(key, result, ttl=self.ttl)
+            log.debug("Cached: writing new data (lock holder)", key=key)
+            return result
 
     async def _recompute_and_store(self, key: str, *args: P.args, **kwargs: P.kwargs) -> None:
         try:

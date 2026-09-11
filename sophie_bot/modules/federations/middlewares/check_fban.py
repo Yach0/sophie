@@ -21,7 +21,8 @@ from sophie_bot.utils.logger import log
 
 
 class FedBanMiddleware(BaseMiddleware):
-    async def is_fbanned(self, message: Message, data: dict[str, Any]) -> bool:
+    @staticmethod
+    async def is_fbanned(message: Message, data: dict[str, Any]) -> bool:
         if message.sender_chat:
             return False
         if message.chat.type not in {"group", "supergroup"}:

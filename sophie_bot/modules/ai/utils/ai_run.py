@@ -395,7 +395,7 @@ def _merge_model_settings(
         return base_model_settings
     if not isinstance(run_model_settings, Mapping):
         raise TypeError("run model_settings must be a mapping when request options are injected")
-    return {**(base_model_settings or {}), **cast(Mapping[str, object], run_model_settings)}
+    return {**(base_model_settings or {}), **run_model_settings}
 
 
 def _candidate_request_options(
@@ -430,7 +430,7 @@ def _candidate_run_kwargs(
     resolved_model_settings = _with_hard_output_token_limit(
         resolved_model_settings,
         candidate.model.settings,
-        cast(UsageLimits | None, run_kwargs.get("usage_limits")),
+        run_kwargs.get("usage_limits"),
     )
     if resolved_model_settings is not None:
         candidate_kwargs["model_settings"] = resolved_model_settings
@@ -697,9 +697,7 @@ async def _stream_via_events[DepsT](
                         case AgentRunResultEvent():
                             output_text = text.parts.render()
                             usage = event.result.usage
-                            result_message_history = cast(
-                                list[ModelRequest | ModelResponse], event.result.all_messages()
-                            )
+                            result_message_history = event.result.all_messages()
         except UsageLimitExceeded:
             if not partial_on_limit:
                 raise
@@ -771,7 +769,7 @@ async def _stream_via_run_stream[DepsT](
         return _StreamOutcome(
             output_text=await result_stream.get_output(),
             usage=result_stream.usage,
-            message_history=cast(list[ModelRequest | ModelResponse], result_stream.all_messages()),
+            message_history=result_stream.all_messages(),
             first_token_seen=first_token_seen,
             chunk_count=chunk_count,
         )

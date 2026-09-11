@@ -35,7 +35,8 @@ class SpamDetectionMiddleware(BaseMiddleware):
 
         return await handler(event, data)
 
-    async def _check_spam(self, message: Message, data: dict[str, Any]) -> None:
+    @staticmethod
+    async def _check_spam(message: Message, data: dict[str, Any]) -> None:
         if not await is_enabled("ussr_spam_detection", redis=data["services"].redis):
             return
 

@@ -40,7 +40,8 @@ class BetaMiddleware(BaseMiddleware):
         log.debug("Leaving this request for Stable...")
         return await handler(event, data)
 
-    async def is_beta(self, chat_db: ChatModel) -> bool:
+    @staticmethod
+    async def is_beta(chat_db: ChatModel) -> bool:
         model = await BetaModeModel.get_by_chat_iid(chat_db.iid)
         # Current mode
         if model and model.mode:
@@ -73,7 +74,8 @@ class BetaMiddleware(BaseMiddleware):
 
         return new_mode == CurrentMode.beta
 
-    def get_data(self, update: TelegramObject) -> str:
+    @staticmethod
+    def get_data(update: TelegramObject) -> str:
         # Never exclude defaults: discriminator fields (such as rich block 'type') carry
         # their tag as a field default, and dropping them makes the payload unparsable
         # on the receiving instance.
