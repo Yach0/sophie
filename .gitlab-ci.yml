@@ -34,6 +34,7 @@ include:
 
 qodana:
   before_script:
+    - apt-get update && apt-get install --yes --no-install-recommends g++
     - python -m pip install uv==0.9.26
     - uv sync --frozen --no-dev --no-install-project
   variables:
