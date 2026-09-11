@@ -152,7 +152,7 @@ class LazyProxy(BabelLazyProxy):
         return str(self) == other
 
     def __contains__(self, key: object) -> bool:
-        return str(self) in str(key)
+        return isinstance(key, str) and str(self) in key
 
 
 def lazy_plural_gettext(*args: Any, **kwargs: Any) -> Callable[[int], str]:

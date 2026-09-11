@@ -59,7 +59,7 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
                         offset += end + 1
                         matched = True
                         break
-                    except Exception:  # noqa: BLE001, S112  # button candidate parse failed; try next candidate
+                    except ValueError:
                         continue
 
             if not matched:

@@ -22,5 +22,5 @@ def normalize_chat_iids(chat_refs: list[object]) -> list[PydanticObjectId]:
         elif isinstance(chat_id, ObjectId):
             normalized.append(PydanticObjectId(chat_id))
         else:
-            raise TypeError(f"Unsupported chat reference: {chat_ref!r}")
+            raise TypeError(f"Unsupported chat reference type: {type(chat_ref).__name__}")
     return normalized

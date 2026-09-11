@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from beanie import PydanticObjectId
 from pydantic_ai import Agent, RunContext, UsageLimits
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.models import Model
@@ -164,7 +165,7 @@ async def build_chatbot_usage_limits(context: SophieAIToolContext) -> UsageLimit
     )
 
 
-def _build_session_id(chat_iid: object, thread_id: int | None) -> str:
+def _build_session_id(chat_iid: PydanticObjectId, thread_id: int | None) -> str:
     return f"{chat_iid}:{thread_id}" if thread_id else str(chat_iid)
 
 

@@ -269,7 +269,7 @@ async def match_ai_handler(
             ),
             model_plan,
             history,
-            user_tracking_id=chat_iid,
+            chat_iid=chat_iid,
             chat_tid=chat_tid,
             service_tier=service_tier,
             redis=services.redis,

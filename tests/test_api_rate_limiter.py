@@ -6,6 +6,7 @@ from typing import Self
 import pytest
 from fakeredis import FakeAsyncRedis
 from fastapi import HTTPException
+from redis.exceptions import RedisError
 
 from sophie_bot.utils.api.rate_limiter import get_client_ip, rate_limit
 
@@ -137,7 +138,7 @@ async def test_rate_limit_raises_with_retry_after_when_limit_exceeded() -> None:
 
 @pytest.mark.asyncio
 async def test_rate_limit_fails_open_when_pipeline_errors() -> None:
-    pipeline = FakePipeline(execute_error=RuntimeError("redis unavailable"))
+    pipeline = FakePipeline(execute_error=RedisError("redis unavailable"))
     redis = FakeRedis(pipeline=pipeline)
 
     await rate_limit(make_request(redis=redis), limit=1, window=60)
@@ -148,7 +149,7 @@ async def test_rate_limit_fails_open_when_pipeline_errors() -> None:
 @pytest.mark.asyncio
 async def test_rate_limit_fails_open_when_ttl_lookup_errors() -> None:
     pipeline = FakePipeline(execute_result=[2])
-    redis = FakeRedis(pipeline=pipeline, ttl_error=RuntimeError("ttl failed"))
+    redis = FakeRedis(pipeline=pipeline, ttl_error=RedisError("ttl failed"))
 
     await rate_limit(make_request(redis=redis), limit=1, window=60)
 

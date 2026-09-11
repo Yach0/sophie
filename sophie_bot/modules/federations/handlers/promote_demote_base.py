@@ -17,6 +17,7 @@ from sophie_bot.modules.federations.services import FederationManageService
 from sophie_bot.modules.federations.services.permissions import FederationPermissionService
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user
 from sophie_bot.modules.utils_.message import is_real_reply
+from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
@@ -58,7 +59,7 @@ class FederationPromoteDemoteHandler(FederationCommandHandler):
     async def _resolve_user(self) -> ChatModel | None:
         try:
             user_input = get_arg_or_reply_user(self.event, self.data)
-        except Exception:  # noqa: BLE001  # arg parsing may raise various errors; reply and abort
+        except SophieException:
             await self.event.reply(str(self.user_not_specified_text))
             return None
 

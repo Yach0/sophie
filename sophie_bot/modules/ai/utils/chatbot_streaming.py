@@ -103,10 +103,12 @@ def _coerce_stream_backoff_seconds(value: object) -> float:
     if isinstance(value, (int, float)):
         return max(float(value), _MIN_STREAM_BACKOFF_SECONDS)
 
-    try:
-        return max(float(str(value)), _MIN_STREAM_BACKOFF_SECONDS)
-    except ValueError:
-        return _DEFAULT_STREAM_BACKOFF_SECONDS
+    if isinstance(value, str):
+        try:
+            return max(float(value), _MIN_STREAM_BACKOFF_SECONDS)
+        except ValueError:
+            pass
+    return _DEFAULT_STREAM_BACKOFF_SECONDS
 
 
 def _truncate_stream_text(output_text: str) -> str:

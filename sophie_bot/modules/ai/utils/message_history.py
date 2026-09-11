@@ -18,6 +18,7 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
+    TextContent,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -47,6 +48,15 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
+
+
+def _user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
+    if isinstance(content, str):
+        return content
+    text_parts = [
+        item if isinstance(item, str) else item.content for item in content if isinstance(item, (str, TextContent))
+    ]
+    return "\n".join(text_parts) or None
 
 
 class AIUserMessageFormatter:
@@ -463,8 +473,7 @@ class AIMessageHistory:
                     elif isinstance(part, TextPart):
                         # TextPart is from assistant responses
                         moderation_content.append({"role": "assistant", "content": part.content})
-                    elif isinstance(part, UserPromptPart):
-                        content_str = part.content if isinstance(part.content, str) else str(part.content)
+                    elif isinstance(part, UserPromptPart) and (content_str := _user_prompt_text(part.content)):
                         moderation_content.append({"role": "user", "content": content_str})
 
         # Extract content from current prompt (treat as user content)

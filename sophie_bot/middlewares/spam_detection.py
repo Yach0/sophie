@@ -5,7 +5,9 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message, TelegramObject, Update
+from pymongo.errors import PyMongoError
 from ussr import predict_message
 
 from sophie_bot.db.models.spam_match import SpamMatchModel
@@ -54,7 +56,7 @@ class SpamDetectionMiddleware(BaseMiddleware):
         try:
             if await is_user_admin(chat_db.iid, user_id):
                 return
-        except Exception:  # noqa: BLE001  # boundary: on admin-check failure skip spam scan, don't block message
+        except (PyMongoError, TelegramAPIError):
             return
 
         text = message.text or message.caption
