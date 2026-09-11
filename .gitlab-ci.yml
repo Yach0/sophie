@@ -23,7 +23,7 @@ stages:
 include:
   - component: $CI_SERVER_FQDN/qodana/qodana/qodana-gitlab-ci@v2026.2
     inputs:
-      image: jetbrains/qodana-python:2026.2
+      image: jetbrains/qodana-python-community:2026.2
       upload-result: true
       artifact-name: Qodana report
   - "/build/bot-test.yml"
