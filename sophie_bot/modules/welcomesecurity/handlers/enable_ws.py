@@ -21,7 +21,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 type WelcomeCaptchaStatus = timedelta | Literal[False]
 
 
-@flags.help(
+@flags.handler_help(
     description=l_("Shows / changes Welcome Captcha and its expiry time."),
     args={"NewStatus": TextArg(l_("?New status or expiry time"))},
 )

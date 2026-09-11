@@ -18,7 +18,7 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
-@flags.help(exclude=True)
+@flags.handler_help(exclude=True)
 class PrivateNotesRedirectHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

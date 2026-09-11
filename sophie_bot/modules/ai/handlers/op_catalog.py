@@ -139,7 +139,7 @@ class OpAIProviders(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.help(description=l_("Create or update an AI provider (private chat only)"))
+@flags.handler_help(description=l_("Create or update an AI provider (private chat only)"))
 class OpAIProvider(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -238,7 +238,7 @@ class OpAIModels(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.help(description=l_("Create or update an AI model"))
+@flags.handler_help(description=l_("Create or update an AI model"))
 class OpAIModel(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

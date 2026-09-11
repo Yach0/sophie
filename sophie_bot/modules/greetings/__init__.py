@@ -28,9 +28,9 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 router = Router(name="greetings")
 
 
-async def setup_bot(router: Router, _services: ApplicationServices) -> None:
-    router.message.outer_middleware(LeaveUserMiddleware())
-    router.message.outer_middleware(NewUserMiddleware())
+async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(LeaveUserMiddleware())
+    bot_router.message.outer_middleware(NewUserMiddleware())
 
 
 module_manifest = ModuleManifest(

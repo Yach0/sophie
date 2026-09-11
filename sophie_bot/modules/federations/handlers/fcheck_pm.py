@@ -25,7 +25,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 TELEGRAM_SAFE_MESSAGE_TEXT_LENGTH = 4000
 
 
-@flags.help(description=l_("Check federation bans"))
+@flags.handler_help(description=l_("Check federation bans"))
 class FederationCheckPMHandler(SophieMessageHandler):
     """Handler for checking fed bans in private chat when not connected."""
 

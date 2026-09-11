@@ -42,7 +42,7 @@ class _NotesListContext(BaseModel):
 
 
 @flags.args(search=OptionalArg(TextArg(l_("?Search notes"))))
-@flags.help(description=l_("Lists available notes."))
+@flags.handler_help(description=l_("Lists available notes."))
 @flags.disableable(name="notes")
 class NotesList(SophieMessageHandler):
     @staticmethod

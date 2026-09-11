@@ -38,7 +38,7 @@ def _build_keyboard(help_mode: bool) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
-@flags.help(description=l_("Start the AI ChatBot mode"))
+@flags.handler_help(description=l_("Start the AI ChatBot mode"))
 class AiPmInitialize(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):

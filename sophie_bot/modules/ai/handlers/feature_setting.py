@@ -23,7 +23,7 @@ class AIFeatureSetting(StatusBoolHandlerABC):
         await set_chat_override(self.feature, self.connection.tid, new_status, redis=self.services.redis)
 
 
-@flags.help(description=l_("Controls AI chat summaries"))
+@flags.handler_help(description=l_("Controls AI chat summaries"))
 class AIChatSummariesSetting(AIFeatureSetting):
     header_text = l_(lambda: Template(_("{ai_emoji} AI Chat Summaries"), ai_emoji=AI_EMOJI).to_html())
     change_command = "ai_summaries"
@@ -34,7 +34,7 @@ class AIChatSummariesSetting(AIFeatureSetting):
         return CMDFilter("ai_summaries"), UserRestricting(admin=True)
 
 
-@flags.help(description=l_("Controls AI note title generation"))
+@flags.handler_help(description=l_("Controls AI note title generation"))
 class AINoteTitlesSetting(AIFeatureSetting):
     header_text = l_(lambda: Template(_("{ai_emoji} AI Note Titles"), ai_emoji=AI_EMOJI).to_html())
     change_command = "ai_note_titles"

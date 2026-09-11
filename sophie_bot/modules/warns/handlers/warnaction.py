@@ -110,7 +110,7 @@ class WarnActionRenderer:
         return doc, None
 
 
-@flags.help(description=l_("Configures warn actions."))
+@flags.handler_help(description=l_("Configures warn actions."))
 class WarnActionHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

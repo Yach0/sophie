@@ -17,7 +17,7 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Adds a new filter"))
+@flags.handler_help(description=l_("Adds a new filter"))
 class FilterNewHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

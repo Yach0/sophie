@@ -21,7 +21,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Deletes all notes."))
+@flags.handler_help(description=l_("Deletes all notes."))
 class DelAllNotesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

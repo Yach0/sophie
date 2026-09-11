@@ -174,14 +174,14 @@ async def _send_text_chunks(
         has_reply = chunk_index == 0 and reply_to is not None
 
         async def reply_not_found(
-            text_chunk: str = text_chunk,
-            chunk_markup: InlineKeyboardMarkup | None = chunk_markup,
+            fallback_text: str = text_chunk,
+            fallback_markup: InlineKeyboardMarkup | None = chunk_markup,
         ) -> Message:
             return await SendMessage(
                 chat_id=send_to,
-                text=text_chunk,
+                text=fallback_text,
                 parse_mode=None,
-                reply_markup=chunk_markup,
+                reply_markup=fallback_markup,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 message_thread_id=message_thread_id,
                 receiver_user_id=receiver_user_id,

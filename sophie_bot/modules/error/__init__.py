@@ -17,10 +17,10 @@ from .handlers.error import SophieErrorHandler
 router = Router(name="error")
 
 
-async def setup_bot(router: Router, services: ApplicationServices) -> None:
-    router.message.register(crash_handler, CMDFilter("op_crash"), IsOP(True))
-    router.error.middleware(create_try_localization_middleware(services))
-    router.error.register(SophieErrorHandler)
+async def setup_bot(bot_router: Router, services: ApplicationServices) -> None:
+    bot_router.message.register(crash_handler, CMDFilter("op_crash"), IsOP(True))
+    bot_router.error.middleware(create_try_localization_middleware(services))
+    bot_router.error.register(SophieErrorHandler)
 
 
 module_manifest = ModuleManifest(

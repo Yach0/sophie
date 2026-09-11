@@ -33,9 +33,9 @@ api_router.include_router(filters_api_router)
 router = Router(name="filters")
 
 
-async def setup_bot(router: Router, _services: ApplicationServices) -> None:
-    router.message.outer_middleware(EnforceFiltersMiddleware())
-    router.edited_message.outer_middleware(EnforceFiltersMiddleware())
+async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(EnforceFiltersMiddleware())
+    bot_router.edited_message.outer_middleware(EnforceFiltersMiddleware())
 
 
 module_manifest = ModuleManifest(

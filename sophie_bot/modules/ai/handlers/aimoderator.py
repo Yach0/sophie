@@ -93,7 +93,7 @@ async def _send_picker(message: Message, settings: AIModeratorModel | None) -> N
         await message.reply(doc.to_html(), reply_markup=keyboard)
 
 
-@flags.help(description=l_("Tune what the AI moderator detects in this chat"))
+@flags.handler_help(description=l_("Tune what the AI moderator detects in this chat"))
 class AIModeratorSetting(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

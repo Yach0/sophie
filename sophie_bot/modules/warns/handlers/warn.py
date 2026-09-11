@@ -58,7 +58,7 @@ def _build_warn_reply_doc(
     return doc
 
 
-@flags.help(description=l_("Warns a user."))
+@flags.handler_help(description=l_("Warns a user."))
 @flags.disableable(name="warn")
 class WarnHandler(SophieMessageHandler):
     @staticmethod

@@ -142,7 +142,7 @@ async def text_or_reply(message: Message | None, _data: dict):
     }
 
 
-@flags.help(
+@flags.handler_help(
     alias_to_modules=["language"],
     description=l_(
         "Translates the given (or replied) text to the chat's selected language. Also transcribes the "

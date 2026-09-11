@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Sets the Federation logs channel"))
+@flags.handler_help(description=l_("Sets the Federation logs channel"))
 class SetFederationLogHandler(SophieMessageHandler):
     """Handler for setting federation log channel."""
 
@@ -94,7 +94,7 @@ class SetFederationLogHandler(SophieMessageHandler):
         await FederationManageService.post_federation_log(federation, log_text, self.event.bot)
 
 
-@flags.help(description=l_("Removes the Federation logs channel"))
+@flags.handler_help(description=l_("Removes the Federation logs channel"))
 class UnsetFederationLogHandler(SophieMessageHandler):
     """Handler for removing federation log channel."""
 

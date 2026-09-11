@@ -28,7 +28,7 @@ args = FlagDecorator(aiogram_flags.args)
 ai_cache = FlagDecorator(aiogram_flags.ai_cache)
 ai_chatbot_response = FlagDecorator(aiogram_flags.ai_chatbot_response)
 disableable = FlagDecorator(aiogram_flags.disableable)
-help = FlagDecorator(aiogram_flags.help)
+handler_help = FlagDecorator(aiogram_flags.help)
 status = FlagDecorator(aiogram_flags.status)
 
 

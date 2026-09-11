@@ -14,7 +14,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Demote a user from federation admin"))
+@flags.handler_help(description=l_("Demote a user from federation admin"))
 class FederationDemoteHandler(FederationPromoteDemoteHandler):
     action_name: ClassVar[str | LazyProxy] = l_("User")
     owner_only_text: ClassVar[str | LazyProxy] = l_("Only the federation owner can demote users.")

@@ -32,5 +32,5 @@ handlers: tuple[type[SophieBaseHandler[Any]], ...] = (
 )
 
 
-async def setup_bot_transport(router: Router, services: ApplicationServices) -> None:
-    router.message.outer_middleware(AntifloodEnforcerMiddleware(services))
+async def setup_bot_transport(bot_router: Router, services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(AntifloodEnforcerMiddleware(services))

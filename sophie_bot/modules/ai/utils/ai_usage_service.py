@@ -116,16 +116,16 @@ async def get_chat_usage_view(chat_iid: PydanticObjectId, *, redis: Redis) -> Ch
     total_feature_credits = sum(feature_credits.values())
 
     breakdown_items: list[ChatUsageBreakdownItem] = []
-    for feature, credits in sorted(feature_credits.items(), key=lambda item: item[1], reverse=True):
+    for feature, credit_amount in sorted(feature_credits.items(), key=lambda item: item[1], reverse=True):
         feature_key = cast(AIFeature, feature)
         info = AI_FEATURES_BY_KEY[feature_key]
-        percentage = int((credits / total_feature_credits) * 100) if total_feature_credits > 0 else 0
+        percentage = int((credit_amount / total_feature_credits) * 100) if total_feature_credits > 0 else 0
         breakdown_items.append(
             ChatUsageBreakdownItem(
                 feature=feature_key,
                 title=info.title,
                 icon=info.icon,
-                credits=credits,
+                credits=credit_amount,
                 percentage=percentage,
             )
         )
@@ -194,9 +194,9 @@ async def get_operator_ai_stats() -> OperatorAIStats:
         for feature, requests in usage.monthly_requests_by_feature.get(month_key, {}).items():
             feature_key = cast(AIFeature, feature)
             feature_requests[feature_key] = feature_requests.get(feature_key, 0) + requests
-        for feature, credits in usage.monthly_credits_by_feature.get(month_key, {}).items():
+        for feature, credit_amount in usage.monthly_credits_by_feature.get(month_key, {}).items():
             feature_key = cast(AIFeature, feature)
-            feature_credits[feature_key] = feature_credits.get(feature_key, 0) + credits
+            feature_credits[feature_key] = feature_credits.get(feature_key, 0) + credit_amount
 
     chat_by_id: dict[str, ChatModel] = {}
     if iids_needed:
@@ -222,15 +222,17 @@ async def get_operator_ai_stats() -> OperatorAIStats:
 
     def _build_feature_stats() -> tuple[OperatorFeatureStats, ...]:
         items: list[OperatorFeatureStats] = []
-        for feature, credits in sorted(feature_credits.items(), key=lambda item: item[1], reverse=True):
-            info = AI_FEATURES_BY_KEY[feature]
+        for stats_feature_key, stats_credit_amount in sorted(
+            feature_credits.items(), key=lambda item: item[1], reverse=True
+        ):
+            info = AI_FEATURES_BY_KEY[stats_feature_key]
             items.append(
                 OperatorFeatureStats(
-                    feature=feature,
+                    feature=stats_feature_key,
                     title=info.title,
                     icon=info.icon,
-                    requests=feature_requests.get(feature, 0),
-                    credits=credits,
+                    requests=feature_requests.get(stats_feature_key, 0),
+                    credits=stats_credit_amount,
                 )
             )
         return tuple(items)

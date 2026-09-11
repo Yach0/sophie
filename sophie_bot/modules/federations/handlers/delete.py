@@ -40,7 +40,7 @@ def build_delete_confirmation_keyboard(fed_id: str) -> InlineKeyboardMarkup:
     )
 
 
-@flags.help(description=l_("Delete a federation (owner only)"))
+@flags.handler_help(description=l_("Delete a federation (owner only)"))
 class FederationDeleteHandler(FederationCommandHandler):
     """Handler for requesting federation deletion."""
 

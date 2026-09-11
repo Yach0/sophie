@@ -90,7 +90,7 @@ def _expiry_keyboard(db_item: GreetingsModel, locale: str, chat_iid: PydanticObj
     return buttons.as_markup()
 
 
-@flags.help(description=l_("Shows Welcome Security settings"))
+@flags.handler_help(description=l_("Shows Welcome Security settings"))
 @flags.disableable(name="welcomesecurity")
 class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
     @staticmethod

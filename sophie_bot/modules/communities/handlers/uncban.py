@@ -28,7 +28,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Unban a user from the whole community."))
+@flags.handler_help(description=l_("Unban a user from the whole community."))
 class CommunityUnbanHandler(SophieMessageHandler):
     """Unban a user across every chat of the current chat's community."""
 

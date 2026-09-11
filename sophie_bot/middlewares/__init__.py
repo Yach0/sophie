@@ -24,9 +24,9 @@ from sophie_bot.utils.logger import log
 
 
 def create_try_localization_middleware(services: ApplicationServices) -> OrMiddleware:
-    localization = LocalizationMiddleware(services.locales)
+    localization_middleware = LocalizationMiddleware(services.locales)
     return OrMiddleware(
-        localization,
+        localization_middleware,
         ConstI18nMiddleware(services.locales.default_locale, services.locales.i18n),
     )
 

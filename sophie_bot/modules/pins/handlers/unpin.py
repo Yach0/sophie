@@ -10,7 +10,7 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Unpins the replied message, or every pinned message with all"))
+@flags.handler_help(description=l_("Unpins the replied message, or every pinned message with all"))
 class UnpinHandler(SophieMessageHandler):
     @staticmethod
     def filters():

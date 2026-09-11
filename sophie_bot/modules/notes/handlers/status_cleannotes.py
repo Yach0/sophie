@@ -9,7 +9,7 @@ from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Shows / changes the state of automatic notes cleanup."))
+@flags.handler_help(description=l_("Shows / changes the state of automatic notes cleanup."))
 class CleanNotesHandlerABC(StatusBoolHandlerABC):
     header_text = l_("Automatic notes cleanup")
     change_command = "cleannotes"

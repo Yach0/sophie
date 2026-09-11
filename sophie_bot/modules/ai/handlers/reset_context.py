@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Reset the chat's AI context and AI memory"))
+@flags.handler_help(description=l_("Reset the chat's AI context and AI memory"))
 class AIContextReset(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

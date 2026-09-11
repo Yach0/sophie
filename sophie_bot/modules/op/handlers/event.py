@@ -10,7 +10,7 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Prints the message event as JSON."))
+@flags.handler_help(description=l_("Prints the message event as JSON."))
 class EventHandler(SophieMessageHandler):
     @staticmethod
     def filters():

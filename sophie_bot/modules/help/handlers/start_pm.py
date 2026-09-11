@@ -16,7 +16,7 @@ from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
-@flags.help(exclude=True)
+@flags.handler_help(exclude=True)
 class StartPMHandler(SophieMessageCallbackQueryHandler):
     @classmethod
     def register(cls, router: Router):

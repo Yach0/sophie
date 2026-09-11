@@ -116,20 +116,20 @@ def _extract_message_content(
     is_sophie: bool,
 ) -> str:
     """Extract text, caption, media info from the message. Returns the processed message text."""
-    message_text = custom_text or message.text or message.caption or _("<No text provided>")
+    content_text = custom_text or message.text or message.caption or _("<No text provided>")
     if normalize_texts:
-        message_text = normalize(message_text) or _("<No text provided>")
+        content_text = normalize(content_text) or _("<No text provided>")
 
     # Cut the AI titlebar
-    if is_sophie and is_ai_message(message_text):
-        message_text = cut_titlebar(message_text)
+    if is_sophie and is_ai_message(content_text):
+        content_text = cut_titlebar(content_text)
 
-    return message_text
+    return content_text
 
 
 async def _build_message_parts(
     message: Message,
-    message_text: str,
+    content_text: str,
     from_user_name: str,
     replied_user_name: str | None,
     disable_name: bool,
@@ -140,10 +140,10 @@ async def _build_message_parts(
     """Build the list of message parts for the AI context."""
     # Message's text
     prompt: list[UserContent] = [
-        message_text
+        content_text
         if disable_name
         else AIUserMessageFormatter.user_message(
-            text=message_text,
+            text=content_text,
             name=from_user_name,
             reply_to_user=replied_user_name,
         )
@@ -392,7 +392,7 @@ class AIMessageHistory:
 
         is_sophie = message.from_user.id == CONFIG.bot_id
 
-        message_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
+        content_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
 
         prompt: list[UserContent] = self.prompt or []
         from_user_name = await _admin_context_name(
@@ -405,7 +405,7 @@ class AIMessageHistory:
         prompt.extend(
             await _build_message_parts(
                 message,
-                message_text,
+                content_text,
                 from_user_name,
                 replied_user_name,
                 disable_name,

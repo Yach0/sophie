@@ -17,7 +17,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.args(lock_type=OptionalArg(LockTypeArg(l_("Lock type"))))
-@flags.help(description=l_("Lock a message type in the chat"))
+@flags.handler_help(description=l_("Lock a message type in the chat"))
 @flags.disableable(name="lock")
 class LockHandler(BaseLockToggleHandler):
     usage_template: ClassVar[str | LazyProxy] = l_("Usage: {cmd}")

@@ -35,7 +35,7 @@ from sophie_bot.utils.logger import log
     description=OptionalArg(SurroundedArg(TextArg(l_("?Description")))),
     text_with_buttons=OptionalArg(TextWithButtonsArg(l_("Content"))),
 )
-@flags.help(description=l_("Save the note."))
+@flags.handler_help(description=l_("Save the note."))
 class SaveNote(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

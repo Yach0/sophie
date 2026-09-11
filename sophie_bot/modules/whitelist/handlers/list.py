@@ -28,7 +28,7 @@ WHITELIST_PAGE_SIZE = 8
 
 
 @flags.args(csv_export=OptionalArg(EqualsArg("^csv", l_("Export as CSV with ^csv"))))
-@flags.help(description=l_("List users in this group's whitelist, or export them with ^csv."))
+@flags.handler_help(description=l_("List users in this group's whitelist, or export them with ^csv."))
 class WhitelistedUsersHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

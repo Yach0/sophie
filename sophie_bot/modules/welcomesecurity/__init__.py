@@ -43,8 +43,8 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 router = Router(name="welcomesecurity")
 
 
-async def setup_bot(router: Router, _services: ApplicationServices) -> None:
-    router.message.outer_middleware(LockMutedUsers())
+async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
+    bot_router.message.outer_middleware(LockMutedUsers())
 
 
 def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:

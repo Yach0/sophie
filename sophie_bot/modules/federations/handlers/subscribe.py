@@ -16,7 +16,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.help(description=l_("Subscribe federation to another federation"))
+@flags.handler_help(description=l_("Subscribe federation to another federation"))
 class SubscribeFederationHandler(FederationCommandHandler):
     """Handler for subscribing federations to other federations."""
 
@@ -86,7 +86,7 @@ class SubscribeFederationHandler(FederationCommandHandler):
         await FederationManageService.post_federation_log(federation, log_text, self.bot)
 
 
-@flags.help(description=l_("Unsubscribe federation from another federation"))
+@flags.handler_help(description=l_("Unsubscribe federation from another federation"))
 class UnsubscribeFederationHandler(FederationCommandHandler):
     """Handler for unsubscribing federations from other federations."""
 
