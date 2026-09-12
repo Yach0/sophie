@@ -21,7 +21,7 @@ from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_fa
 from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
-from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
+from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
@@ -201,7 +201,7 @@ async def _send_chatbot_ai_failure_reply(
             edited_message = await message_streamer.response_message.edit_text(
                 text=failure_message["text"],
                 disable_web_page_preview=True,
-                **reply_kwargs,
+                reply_markup=editable_reply_markup(reply_kwargs.get("reply_markup")),
             )
             if isinstance(edited_message, Message):
                 return edited_message

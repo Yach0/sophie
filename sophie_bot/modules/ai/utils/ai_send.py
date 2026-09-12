@@ -4,10 +4,15 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InputRichMessage, Message, ReplyParameters
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
 from stfu_tg import Doc
 
 from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID
+
+
+def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
+    """Return markup supported by Telegram message edit methods."""
+    return reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None
 
 
 async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
