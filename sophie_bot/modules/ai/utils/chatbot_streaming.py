@@ -8,7 +8,7 @@ from random import choice
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
+from aiogram.types import InputRichMessage, Message
 from pydantic_ai.models import Model
 from redis.asyncio import Redis
 from stfu_tg import Doc, Template
@@ -19,7 +19,7 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     random_ai_progress_custom_emoji_id,
     random_ai_thinking_text,
 )
-from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
+from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, resolve_mention_index
 from sophie_bot.modules.ai.utils.research import (
@@ -238,9 +238,7 @@ class ChatbotMessageStreamer:
             )
 
         # For all edit-based modes: update in place if content changed, reply fresh on error.
-        reply_markup = reply_kwargs.get("reply_markup")
-        if not isinstance(reply_markup, InlineKeyboardMarkup):
-            reply_markup = None
+        reply_markup = editable_reply_markup(reply_kwargs.get("reply_markup"))
         if rendered_html == self._last_sent_html and reply_markup is None:
             return self.response_message
 
