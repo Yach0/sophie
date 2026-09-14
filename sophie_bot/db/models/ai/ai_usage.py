@@ -37,10 +37,7 @@ class AIUsageModel(Document):
     async def get_today(chat_iid: PydanticObjectId) -> int:
         usage = await AIUsageModel.get_or_create_usage(chat_iid)
 
-        if not usage:
-            return 0
-
-        return usage.daily_requests.get(datetime.now(UTC).date(), 0)
+        return usage.daily_requests.get(datetime.now(UTC).date(), 0) if usage else 0
 
     @staticmethod
     async def get_monthly_feature_requests(
