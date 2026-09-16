@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
-from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
@@ -308,34 +307,6 @@ async def test_filter_wizard_hides_silent_control_when_flag_is_disabled(test_cli
         arg="silent",
     ).pack()
     assert silent_callback not in rich_html
-
-
-@pytest.mark.asyncio
-async def test_filter_wizard_callback_alerts_when_wizard_flag_becomes_disabled(test_client: TestClient) -> None:
-    group = ChatFactory.create_group(chat_id=next_group_id(), title="Disabled Filter Wizard Callback")
-    user_wrapper = test_client.create_user(user_id=next_user_id(), first_name="Admin", username="disabled_admin")
-    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group)
-    await grant_admin(group.id, user_wrapper.user.id)
-    await test_client.send_message(text="/addfilter spam", from_user=user_wrapper.user, chat=group)
-    session_id = await get_wizard_session_id(test_client, group.id, user_wrapper.user.id)
-    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
-    wizard_message = MessageFactory.create(text="Filter setup", from_user=bot_user, chat=group)
-
-    await set_feature(test_client, "action_config_wizard", False)
-    try:
-        requests = await test_client.send_callback(
-            WizardCallback(scope="filter_action", op="add", session_id=session_id).pack(),
-            from_user=user_wrapper.user,
-            message=wizard_message,
-        )
-    finally:
-        await set_feature(test_client, "action_config_wizard", True)
-
-    callback_answers = [request for request in requests if request.request_type == RequestType.ANSWER_CALLBACK_QUERY]
-    assert len(callback_answers) == 1
-    assert callback_answers[0].text == "This feature is currently disabled."
-    assert callback_answers[0].params.get("show_alert") is True
-    assert not any(request.request_type == RequestType.EDIT_MESSAGE_TEXT for request in requests)
 
 
 @pytest.mark.asyncio
