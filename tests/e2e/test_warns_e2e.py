@@ -133,7 +133,8 @@ async def test_delete_warn_button_removes_the_warning(test_client: TestClient) -
         for button in row
         if (button.callback_data or "").startswith("del_warn")
     )
-    delete_button = next(delete_button_candidates)
+    delete_button = next(delete_button_candidates, None)
+    assert delete_button is not None
 
     bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
     warn_message = MessageFactory.create(text="⚠️ User warned", from_user=bot_user, chat=group, reply_markup=markup)
@@ -154,7 +155,8 @@ async def test_delete_warn_button_rejects_non_admin(test_client: TestClient) -> 
         for button in row
         if (button.callback_data or "").startswith("del_warn")
     )
-    delete_data = next(delete_data_candidates)
+    delete_data = next(delete_data_candidates, None)
+    assert delete_data is not None
 
     stranger = test_client.create_user(user_id=next_user_id(), first_name="Stranger", username="warn_clicker")
     await test_client.send_message(text="init", from_user=stranger.user, chat=group)
@@ -185,7 +187,8 @@ async def test_resetwarns_confirm_clears_all_warnings(test_client: TestClient) -
         for button in row
         if (button.callback_data or "").startswith("reset_warns")
     )
-    confirm_data = next(confirm_data_candidates)
+    confirm_data = next(confirm_data_candidates, None)
+    assert confirm_data is not None
     assert confirm_data == ResetWarnsCallback(user_tid=target_id).pack()
 
     bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
