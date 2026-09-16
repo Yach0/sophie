@@ -68,6 +68,28 @@ async def test_cached_ai_history_uses_shared_message_text_representation(
 
 
 @pytest.mark.asyncio
+async def test_cached_ai_history_strips_custom_emoji_footer_from_model_context(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        message_history,
+        "message_text",
+        lambda message: '✨ Response text\n<tg-emoji emoji-id="5818860416045945285">🔋</tg-emoji> 51%',
+    )
+
+    transformed = await AIMessageHistory(services=test_services)._cache_transform_msg(10, cached)
+    model_visible_text = transformed.parts[0].content
+
+    assert model_visible_text == "Response text"
+    assert "✨" not in model_visible_text
+    assert "tg-emoji" not in model_visible_text
+    assert "🔋" not in model_visible_text
+    assert "51%" not in model_visible_text
+
+
+@pytest.mark.asyncio
 async def test_cached_foreign_bot_message_is_reference_only_context(
     monkeypatch: pytest.MonkeyPatch, test_services: object
 ) -> None:

@@ -48,6 +48,13 @@ def test_simple_footer_is_removed_after_multiline_body() -> None:
     assert cut_titlebar(text) == "Response text\nMight be many lines\n123"
 
 
+def test_simple_custom_emoji_footer_is_removed_without_changing_body() -> None:
+    text = '✨ Response text\nMight be many lines\n<tg-emoji emoji-id="5818860416045945285">🔋</tg-emoji> 51%'
+
+    assert is_ai_message(text)
+    assert cut_titlebar(text) == "Response text\nMight be many lines"
+
+
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
     text = "A header-free answer\nwith another line"
 

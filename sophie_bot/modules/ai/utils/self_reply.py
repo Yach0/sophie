@@ -9,6 +9,8 @@ from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.utils.ai_header import AI_HEADER_LABEL, AI_HEADER_SEPARATOR, AI_SIMPLE_HEADER_PREFIX
 from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 
+_BATTERY_EMOJI = r"(?:🔋|<tg-emoji\b[^>]*>🔋</tg-emoji>)"
+
 
 def _rich_block_text(block: object) -> str:
     """Flatten one rich block to text, joining table cells the way to_html() does."""
@@ -64,7 +66,7 @@ def is_ai_message(text: str) -> bool:
     if first_line == AI_SIMPLE_HEADER_PREFIX or first_line.startswith(AI_SIMPLE_HEADER_PREFIX + " "):
         return True
     if (first_line == AI_EMOJI or first_line.startswith(AI_EMOJI + " ")) and "\n" in text:
-        return text.rsplit("\n", 1)[-1].startswith("🔋 ")
+        return bool(re.match(rf"^{_BATTERY_EMOJI} \d+%$", text.rsplit("\n", 1)[-1]))
 
     # An answer still being generated has no header yet — it is a plain progress line, and replying
     # to it has to continue the conversation just like replying to the finished message does.
@@ -78,7 +80,7 @@ def is_ai_message(text: str) -> bool:
 
 def cut_titlebar(text: str) -> str:
     simple_footer_match = re.match(
-        rf"^{re.escape(AI_EMOJI)}(?: *\n+| )(.+)\n+🔋 \d+%$",
+        rf"^{re.escape(AI_EMOJI)}(?: *\n+| )(.+)\n+{_BATTERY_EMOJI} \d+%$",
         text,
         re.DOTALL,
     )
