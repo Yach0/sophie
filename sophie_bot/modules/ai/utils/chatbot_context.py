@@ -24,7 +24,7 @@ def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, 
         system_prompt,
         markdown_instruction,
         _("Use the conversation history only for context, but respond specifically to the latest prompt."),
-        _("Today is ") + today.strftime("%d %B %Y, %H:%M"),
+        _("Today is ") + today.strftime("%d %B %Y, %H:%M") + " (UTC)",
         _("You can use the web search tool to search for information. Include information sources as links."),
     )
 
