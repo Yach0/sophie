@@ -145,7 +145,7 @@ class ChatbotMessageStreamer:
         self.redis = redis
         self.mention_index: MentionIndex | None = None
         self._mention_index_resolved = False
-        self.header = None if header_style == "disable" else header
+        self.header = header
         self.mode = mode
         self.throttle_seconds = throttle_seconds
         self.tool_thinking_texts = tool_thinking_texts
@@ -327,8 +327,9 @@ class ChatbotMessageStreamer:
                 redis=self.redis,
             )
             self._mention_index_resolved = True
+        render_header = None if self.header_style == "disable" else self.header
         return await build_reply_doc(
-            self.header,
+            render_header,
             text,
             model=None,
             result=None,
@@ -340,7 +341,7 @@ class ChatbotMessageStreamer:
         )
 
     async def _update_thinking_header(self, thinking_element: Element) -> None:
-        self.header = None if self.header_style == "disable" else thinking_element
+        self.header = thinking_element
         await self._cancel_pending_update()
 
         # The agent loop can keep going after it has already written text (narrate, call a tool,

@@ -18,6 +18,7 @@ from pydantic_ai.models import Model
 from sophie_bot.modules.ai.utils.ai_header import (
     AI_HEADER_LABEL,
     AI_HEADER_SEPARATOR,
+    AIHeaderStyle,
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
@@ -94,6 +95,7 @@ async def _streamer_with_flags(
     message: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
+    header_style: AIHeaderStyle = "table",
     **flags: bool,
 ) -> Any:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.is_enabled", _flags(**flags))
@@ -106,6 +108,7 @@ async def _streamer_with_flags(
         cast(Message, message),
         _model(),
         False,
+        header_style,
         redis=test_redis,
     )
 
@@ -150,6 +153,25 @@ async def test_streaming_placeholder_shows_no_battery(
     assert streamer is not None
     _assert_plain_progress(message.reply.await_args.args[0])
     quota.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_disabled_header_keeps_initial_progress_placeholder(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    message = _message()
+    streamer = await _streamer_with_flags(
+        message,
+        monkeypatch,
+        test_redis,
+        header_style="disable",
+        ai_chatbot_streaming=True,
+    )
+
+    assert streamer is not None
+    initial_text = message.reply.await_args.args[0]
+    assert initial_text
+    _assert_plain_progress(initial_text)
 
 
 @pytest.mark.asyncio
@@ -203,9 +225,12 @@ async def test_retrying_draft_uses_the_configured_simple_layout(
     await streamer.update_retrying(1, 5)
 
     if mode == StreamMode.RICH_EDIT:
+        assert response_message.bot.edit_message_text.await_count == 2
         rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     else:
+        assert response_message.edit_text.await_count == 2
         rendered_html = response_message.edit_text.await_args.kwargs["text"]
+    assert "(Retrying 1/5...)" in rendered_html
     assert rendered_html.count("The fallback answer") == 1
     assert AI_HEADER_LABEL not in rendered_html
     assert rendered_html.count(AI_HEADER_SEPARATOR) == 0
