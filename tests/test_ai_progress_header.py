@@ -111,7 +111,9 @@ async def _streamer_with_flags(
 
 
 @pytest.mark.asyncio
-async def test_thinking_placeholder_is_not_a_table_row(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_thinking_placeholder_is_not_a_table_row(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
 
@@ -130,7 +132,9 @@ async def test_thinking_placeholder_is_not_a_table_row(monkeypatch: pytest.Monke
 
 
 @pytest.mark.asyncio
-async def test_streaming_placeholder_shows_no_battery(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_streaming_placeholder_shows_no_battery(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     """Streaming without the thinking placeholder still must not spend a battery reading early."""
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
@@ -149,7 +153,9 @@ async def test_streaming_placeholder_shows_no_battery(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
-async def test_progress_updates_stay_plain(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_progress_updates_stay_plain(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
 
@@ -172,7 +178,44 @@ async def test_progress_updates_stay_plain(monkeypatch: pytest.MonkeyPatch, test
 
 
 @pytest.mark.asyncio
-async def test_placeholder_emoji_stays_the_same_on_every_edit(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+@pytest.mark.parametrize("mode", [StreamMode.HTML_EDIT, StreamMode.RICH_EDIT])
+async def test_retrying_draft_uses_the_configured_simple_layout(
+    mode: StreamMode,
+    test_redis: object,
+) -> None:
+    """A retry/failover edit must not render a second table header or simple footer."""
+    response_message = SimpleNamespace(
+        chat=SimpleNamespace(id=-100123),
+        message_id=8,
+        edit_text=AsyncMock(),
+        bot=SimpleNamespace(edit_message_text=AsyncMock()),
+    )
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        header=cast(Any, "Initial"),
+        mode=mode,
+        throttle_seconds=0,
+        header_style="simple",
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    await streamer.stream("The fallback answer")
+    await streamer.update_retrying(1, 5)
+
+    rendered_html = (
+        response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        if mode == StreamMode.RICH_EDIT
+        else response_message.edit_text.await_args.kwargs["text"]
+    )
+    assert rendered_html.count("The fallback answer") == 1
+    assert AI_HEADER_LABEL not in rendered_html
+    assert rendered_html.count(AI_HEADER_SEPARATOR) == 0
+
+
+@pytest.mark.asyncio
+async def test_placeholder_emoji_stays_the_same_on_every_edit(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     """Without the random-emoji flag the placeholder keeps one emoji instead of flickering."""
     message = _message()
     streamer = await _streamer_with_flags(
@@ -194,7 +237,9 @@ async def test_placeholder_emoji_stays_the_same_on_every_edit(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_random_emoji_flag_applies_without_the_thinking_placeholder(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_random_emoji_flag_applies_without_the_thinking_placeholder(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     """The flag picks the placeholder emoji; whether the thinking text is shown is a separate flag."""
     message = _message()
     streamer = await _streamer_with_flags(
@@ -214,7 +259,9 @@ async def test_random_emoji_flag_applies_without_the_thinking_placeholder(monkey
 
 
 @pytest.mark.asyncio
-async def test_finished_reply_header_carries_the_table_and_the_battery(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_finished_reply_header_carries_the_table_and_the_battery(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", _quota())
 
     header = await build_chatbot_header(cast(Any, "chat-iid"), _model(), [], redis=test_redis)
