@@ -202,14 +202,47 @@ async def test_retrying_draft_uses_the_configured_simple_layout(
     await streamer.stream("The fallback answer")
     await streamer.update_retrying(1, 5)
 
-    rendered_html = (
-        response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-        if mode == StreamMode.RICH_EDIT
-        else response_message.edit_text.await_args.kwargs["text"]
-    )
+    if mode == StreamMode.RICH_EDIT:
+        rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    else:
+        rendered_html = response_message.edit_text.await_args.kwargs["text"]
     assert rendered_html.count("The fallback answer") == 1
     assert AI_HEADER_LABEL not in rendered_html
     assert rendered_html.count(AI_HEADER_SEPARATOR) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", [StreamMode.HTML_EDIT, StreamMode.RICH_EDIT])
+async def test_streaming_and_retrying_drafts_respect_disabled_layout(
+    mode: StreamMode,
+    test_redis: object,
+) -> None:
+    """Disabled headers must not render progress content in either edit mode."""
+    response_message = SimpleNamespace(
+        chat=SimpleNamespace(id=-100123),
+        message_id=8,
+        edit_text=AsyncMock(),
+        bot=SimpleNamespace(edit_message_text=AsyncMock()),
+    )
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        header=cast(Any, "Initial"),
+        mode=mode,
+        throttle_seconds=0,
+        header_style="disable",
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    await streamer.stream("The fallback answer")
+    await streamer.update_retrying(1, 5)
+
+    if mode == StreamMode.RICH_EDIT:
+        rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        expected_html = "<p>The fallback answer</p>"
+    else:
+        rendered_html = response_message.edit_text.await_args.kwargs["text"]
+        expected_html = "The fallback answer"
+    assert rendered_html == expected_html
 
 
 @pytest.mark.asyncio
