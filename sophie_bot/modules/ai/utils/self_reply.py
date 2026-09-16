@@ -12,20 +12,32 @@ from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 
 def _rich_block_text(block: object) -> str:
     """Flatten one rich block to text, joining table cells the way to_html() does."""
+
+    def rich_text_value(value: object) -> str:
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (list, tuple)):
+            return "".join(rich_text_value(item) for item in value)
+
+        nested_text = getattr(value, "text", None)
+        if nested_text is not None:
+            return rich_text_value(nested_text)
+
+        for attribute in ("alternative_text", "expression", "name"):
+            attribute_value = getattr(value, attribute, None)
+            if isinstance(attribute_value, str):
+                return attribute_value
+        return ""
+
     cells = getattr(block, "cells", None)
     if isinstance(cells, list):
         return "\n".join(
-            AI_HEADER_SEPARATOR.join(str(getattr(cell, "text", "") or "") for cell in row)
+            AI_HEADER_SEPARATOR.join(rich_text_value(getattr(cell, "text", "")) for cell in row)
             for row in cells
             if isinstance(row, list)
         )
 
-    block_text = getattr(block, "text", None)
-    if isinstance(block_text, str):
-        return block_text
-    if isinstance(block_text, list):
-        return "".join(item for item in block_text if isinstance(item, str))
-    return ""
+    return rich_text_value(getattr(block, "text", None))
 
 
 def message_text(message: Message | object) -> str:
