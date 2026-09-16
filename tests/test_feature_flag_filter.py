@@ -66,6 +66,31 @@ async def test_inline_callback_without_a_message_is_not_enabled(test_services: A
 
 
 @pytest.mark.asyncio
+async def test_disabled_feature_answers_callback_when_feedback_is_requested(
+    test_services: ApplicationServices,
+) -> None:
+    await set_enabled("locks", False, redis=test_services.redis)
+    message = _pm_message()
+    callback = CallbackQuery(
+        id="disabled-feature-callback",
+        from_user=User(id=PRIVATE_CHAT_ID, is_bot=False, first_name="User"),
+        chat_instance="instance",
+        message=message,
+    )
+    answer = AsyncMock()
+
+    with patch.object(CallbackQuery, "answer", answer):
+        result = await FeatureFlagFilter("locks", notify_callback=True)(
+            callback,
+            test_services,
+            RequestContext(),
+        )
+
+    assert result is False
+    answer.assert_awaited_once_with("This feature is currently disabled.", show_alert=True)
+
+
+@pytest.mark.asyncio
 async def test_group_or_connected_filter_answers_disconnected_callback_safely() -> None:
     message = _pm_message()
     callback = CallbackQuery(
