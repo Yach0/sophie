@@ -237,10 +237,12 @@ async def ai_chatbot_reply(
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         model_plan = await _resolve_model_plan(connection, model, mode, services=services)
         model = model_plan.primary
+        header_style = await get_ai_header_style("chatbot", message.chat.id, redis=services.redis)
         message_streamer = await build_message_streamer(
             message,
             model,
             explicit_debug_mode,
+            header_style,
             redis=services.redis,
         )
         context = SophieAIToolContext(
@@ -316,7 +318,6 @@ async def ai_chatbot_reply(
         # the header both follow the model that actually answered.
         model = result.served_model or model
 
-        header_style = await get_ai_header_style("chatbot", message.chat.id, redis=services.redis)
         header = await _build_chatbot_header(
             connection,
             model,
