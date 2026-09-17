@@ -54,7 +54,7 @@ class AntifloodActionCallback(ActionWizardCallbackHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             WizardCallback.filter(F.scope == "antiflood_action"),
-            FeatureFlagFilter("action_config_wizard"),
+            FeatureFlagFilter("action_config_wizard", notify_callback=True),
             UserRestricting(admin=True),
         )
 
