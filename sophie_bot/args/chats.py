@@ -18,7 +18,6 @@ class SophieChatIDArg(UserIDArg[ChatModel]):
     async def value(self, text: str) -> ChatModel:
         chat_id = self.parse_user_id(text)
 
-        # Find chat
         try:
             chat = await ChatModel.get_by_tid(chat_id)
             if not chat:
@@ -32,7 +31,6 @@ class SophieChatUsernameArg(UsernameArg[ChatModel]):
     async def value(self, text: str) -> ChatModel:
         username = self.parse_username(text)
 
-        # Find chat
         try:
             chat = await ChatModel.find_one(ChatModel.username == username)
             if not chat:
