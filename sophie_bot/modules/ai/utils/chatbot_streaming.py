@@ -14,7 +14,6 @@ from redis.asyncio import Redis
 from stfu_tg import Doc, Template
 from stfu_tg.doc import Element
 
-from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle
 from sophie_bot.modules.ai.utils.ai_progress import (
     ai_progress_line,
     random_ai_progress_custom_emoji_id,
@@ -132,12 +131,11 @@ class ChatbotMessageStreamer:
     def __init__(
         self,
         source_message: Message,
-        header: Element | None,
+        header: Element,
         mode: StreamMode,
         throttle_seconds: float,
         tool_thinking_texts: dict[str, tuple[LazyProxy, ...]] | None = None,
         emoji_id: str | None = None,
-        header_style: AIHeaderStyle = "table",
         *,
         redis: Redis,
     ) -> None:
@@ -150,7 +148,6 @@ class ChatbotMessageStreamer:
         self.throttle_seconds = throttle_seconds
         self.tool_thinking_texts = tool_thinking_texts
         self.emoji_id = emoji_id
-        self.header_style = header_style
         self.response_message: Message | None = None
         self.latest_text: str = ""
         self.last_sent_text: str = ""
@@ -327,9 +324,8 @@ class ChatbotMessageStreamer:
                 redis=self.redis,
             )
             self._mention_index_resolved = True
-        render_header = None if self.header_style == "disable" else self.header
         return await build_reply_doc(
-            render_header,
+            self.header,
             text,
             model=None,
             result=None,
@@ -337,7 +333,6 @@ class ChatbotMessageStreamer:
             chat_tid=self.source_message.chat.id,
             redis=self.redis,
             mention_index=self.mention_index,
-            header_style=self.header_style,
         )
 
     async def _update_thinking_header(self, thinking_element: Element) -> None:
@@ -390,7 +385,6 @@ async def build_message_streamer(
     message: Message,
     model: Model,
     explicit_debug_mode: bool,
-    header_style: AIHeaderStyle = "table",
     *,
     redis: Redis,
 ) -> ChatbotMessageStreamer | None:
@@ -450,7 +444,6 @@ async def build_message_streamer(
         )
         else None,
         emoji_id=emoji_id,
-        header_style=header_style,
         redis=redis,
     )
     await streamer.send_thinking_message()
