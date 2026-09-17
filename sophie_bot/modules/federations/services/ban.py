@@ -124,10 +124,19 @@ class FederationBanService:
             if not sub_chat_iids:
                 continue
 
+            member_chats = [
+                chat
+                for chat in await ChatModel.find(In(ChatModel.iid, sub_chat_iids)).to_list()
+                if is_member_chat(chat)
+            ]
+            member_chat_iids = [chat.iid for chat in member_chats]
+            if not member_chat_iids:
+                continue
+
             # Check if user is in any of this federation's chats via UserInGroupModel
             user_in_group = await UserInGroupModel.find(
                 UserInGroupModel.user.id == user.iid,
-                In(UserInGroupModel.group.id, sub_chat_iids),
+                In(UserInGroupModel.group.id, member_chat_iids),
             ).first_or_none()
 
             if user_in_group:
