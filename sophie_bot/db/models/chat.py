@@ -31,6 +31,14 @@ class ChatType(Enum):
     channel = "channel"
 
 
+MEMBER_CHAT_TYPES = frozenset({ChatType.group, ChatType.supergroup})
+
+
+def is_member_chat(chat: "ChatModel") -> bool:
+    """Return whether moderation member actions are valid for this chat."""
+    return chat.type in MEMBER_CHAT_TYPES
+
+
 class ChatModel(Document):
     iid: PydanticObjectId = Field(default_factory=PydanticObjectId, alias="_id")
     tid: Annotated[int, Indexed(unique=True)] = Field(..., alias="chat_id")

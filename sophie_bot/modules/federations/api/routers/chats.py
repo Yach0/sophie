@@ -8,7 +8,7 @@ from beanie.odm.operators.find.comparison import In
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat import ChatModel, is_member_chat
 from sophie_bot.modules.federations.services import FederationChatService, FederationManageService
 from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.services.application import ApplicationServices
@@ -44,6 +44,7 @@ async def list_federation_chats(
             username=chat_model.username,
         )
         for chat_model in chats
+        if is_member_chat(chat_model)
     ]
 
 
@@ -70,6 +71,10 @@ async def add_chat_to_federation(
     chat = await ChatModel.get_by_iid(payload.chat_iid)
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
+    if not is_member_chat(chat):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Channels cannot join federations"
+        )
 
     # Verify the caller owns (is the creator of) the chat being added
     if user.tid not in CONFIG.operators:

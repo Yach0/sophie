@@ -12,7 +12,7 @@ from beanie.odm.operators.find.comparison import In
 from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
+from sophie_bot.db.models.chat import ChatModel, UserInGroupModel, is_member_chat
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.metrics.federation import track_federation_ban
@@ -169,7 +169,10 @@ class FederationBanService:
         if current_chat_iid and current_chat_iid not in chat_iids:
             chat_iids.append(current_chat_iid)
 
-        chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+        chats = [chat for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list() if is_member_chat(chat)]
+        chat_iids = [chat.iid for chat in chats]
+        if not chat_iids:
+            return 0
         user = await ChatModel.get_by_tid(user_tid)
         if not user:
             return 0
@@ -255,7 +258,9 @@ class FederationBanService:
                 chat_iids.update(normalize_chat_iids([chat.to_ref() for chat in sub_fed.chats]))
         if not chat_iids:
             return 0
-        chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
+        chats = [
+            chat for chat in await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list() if is_member_chat(chat)
+        ]
 
         async def unban_chat(chat: ChatModel) -> bool:
             return (
@@ -275,7 +280,11 @@ class FederationBanService:
         normalized_chat_iids = normalize_chat_iids(chat_iids)
         if not normalized_chat_iids:
             return 0
-        chats = await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
+        chats = [
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
+            if is_member_chat(chat)
+        ]
 
         async def unban_chat(chat: ChatModel) -> bool:
             return (
