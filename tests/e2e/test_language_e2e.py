@@ -29,11 +29,7 @@ async def test_lang_shows_the_picker(test_client: TestClient) -> None:
 
     requests = await test_client.send_command(command="lang", from_user=admin, chat=group)
 
-    markup_data = next(
-        (request.params.get("reply_markup") for request in requests if request.params.get("reply_markup")),
-        None,
-    )
-    assert markup_data is not None
+    markup_data = next(request.params.get("reply_markup") for request in requests if request.params.get("reply_markup"))
     markup = InlineKeyboardMarkup.model_validate(markup_data)
     callbacks = [button.callback_data or "" for row in markup.inline_keyboard for button in row]
     assert any(data.startswith("set_lang") for data in callbacks), "The picker should offer language buttons"

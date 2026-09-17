@@ -35,23 +35,17 @@ _update_ids = count(900_000)
 
 def next_user_id() -> int:
     """Allocate a Telegram user ID that no other test in this process will reuse."""
-    user_id = next(_user_ids, None)
-    assert user_id is not None
-    return user_id
+    return next(_user_ids)
 
 
 def next_group_id() -> int:
     """Allocate a Telegram supergroup ID that no other test in this process will reuse."""
-    group_id = next(_group_ids, None)
-    assert group_id is not None
-    return group_id
+    return next(_group_ids)
 
 
 def next_message_id() -> int:
     """Allocate a message id unique within this process (also usable as an update id)."""
-    message_id = next(_message_ids, None)
-    assert message_id is not None
-    return message_id
+    return next(_message_ids)
 
 
 async def create_test_user_and_group(
@@ -180,11 +174,9 @@ async def get_wizard_session_id(test_client: TestClient, chat_tid: int, user_tid
 async def _feed(test_client: TestClient, message: Message) -> list[CapturedRequest]:
     """Feed one message update through the dispatcher and return the requests it produced."""
     start = len(test_client.capture)
-    update_id = next(_update_ids, None)
-    assert update_id is not None
     await test_client.dispatcher.feed_update(
         bot=test_client.bot,
-        update=Update(update_id=update_id, message=message),
+        update=Update(update_id=next(_update_ids), message=message),
     )
     return test_client.capture.all_requests[start:]
 
@@ -205,7 +197,7 @@ async def join_group(
     """
     adder = added_by or User(id=next_user_id(), is_bot=False, first_name="Adder")
     message = Message(
-        message_id=next_message_id(),
+        message_id=next(_message_ids),
         date=date or datetime.now(UTC),
         chat=group,
         from_user=adder,
@@ -229,11 +221,9 @@ async def send_join_request(
         user_chat_id=user.id,
         date=date or datetime.now(UTC),
     )
-    update_id = next(_update_ids, None)
-    assert update_id is not None
     await test_client.dispatcher.feed_update(
         bot=test_client.bot,
-        update=Update(update_id=update_id, chat_join_request=join_request),
+        update=Update(update_id=next(_update_ids), chat_join_request=join_request),
     )
     return test_client.capture.all_requests[start:]
 
@@ -258,7 +248,7 @@ async def send_reply_command(
 async def leave_group(test_client: TestClient, group: Chat, member: User) -> list[CapturedRequest]:
     """Simulate `member` leaving `group`, driving LeaveUserMiddleware."""
     message = Message(
-        message_id=next_message_id(),
+        message_id=next(_message_ids),
         date=datetime.now(UTC),
         chat=group,
         from_user=member,

@@ -74,8 +74,7 @@ async def test_list_federations_queries_owned_and_admined(db_init: object) -> No
     def _find(expression: Any) -> Any:
         query = real_find(expression)
         queries.append(query.get_filter_query())
-        result_batch = next(results, None)
-        assert result_batch is not None
+        result_batch = next(results)
         query.to_list = AsyncMock(return_value=result_batch)
         return query
 

@@ -103,7 +103,6 @@ async def test_locked_message_from_group_whitelisted_user_is_kept(test_client: T
 
     assert not _deleted(requests)
 
-
 @pytest.mark.asyncio
 async def test_locked_message_is_deleted_when_user_is_whitelisted_only_elsewhere(test_client: TestClient) -> None:
     await set_feature(test_client, "group_user_whitelist", True)
@@ -151,8 +150,7 @@ async def test_unlockall_clears_every_lock_after_confirm(test_client: TestClient
         for request in reversed(prompt_requests)
         if request.params.get("reply_markup")
     )
-    markup_data = next(markup_data_candidates, None)
-    assert markup_data is not None
+    markup_data = next(markup_data_candidates)
     markup = InlineKeyboardMarkup.model_validate(markup_data)
     confirm_data = UnlockAllCallback(user_id=admin.id).pack()
     assert any(button.callback_data == confirm_data for row in markup.inline_keyboard for button in row), (
