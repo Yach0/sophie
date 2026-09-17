@@ -16,8 +16,9 @@ from sophie_bot.modules.locks.utils.lock_types import LockType
 
 
 def _reaction_event(**kwargs: Any) -> MessageReactionUpdated:
+    chat = kwargs.pop("chat", Chat(id=-1001234567890, type="supergroup"))
     return MessageReactionUpdated(
-        chat=Chat(id=-1001234567890, type="supergroup"),
+        chat=chat,
         message_id=12,
         date=datetime.now(UTC),
         old_reaction=[],
@@ -78,3 +79,23 @@ async def test_reaction_lock_allows_chat_members(monkeypatch: pytest.MonkeyPatch
     assert result == "handled"
     bot.set_message_reaction.assert_not_awaited()
     handler.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_reaction_lock_ignores_channel_reactions(monkeypatch: pytest.MonkeyPatch) -> None:
+    bot = AsyncMock()
+    handler = AsyncMock(return_value="handled")
+    event = _reaction_event(chat=Chat(id=-1001234567890, type="channel"))
+
+    monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(reaction_enforcer, "is_user_group_whitelisted", AsyncMock(return_value=False))
+
+    result = await ReactionLocksEnforcerMiddleware()(
+        handler,
+        event,
+        {"bot": bot, "services": SimpleNamespace(redis=object())},
+    )
+
+    assert result == "handled"
+    handler.assert_awaited_once()
+    bot.get_chat_member.assert_not_awaited()

@@ -29,7 +29,7 @@ class ReactionLocksEnforcerMiddleware(BaseMiddleware):
     ) -> Any:
         if not isinstance(event, MessageReactionUpdated):
             return await handler(event, data)
-        if event.chat.type == ChatType.PRIVATE:
+        if event.chat.type not in {ChatType.GROUP, ChatType.SUPERGROUP}:
             return await handler(event, data)
         if not event.new_reaction:
             return await handler(event, data)
