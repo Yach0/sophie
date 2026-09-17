@@ -101,10 +101,7 @@ class EmojiBanner:
         :param color: optional pastel theme name ("pink" | "red" | "blue" | "green")
         :return: jpeg bytes
         """
-        if isinstance(emojis, str):
-            emojis_text = emojis
-        else:
-            emojis_text = "".join(emojis)
+        emojis_text = emojis if isinstance(emojis, str) else "".join(emojis)
 
         theme = (color or "").lower().strip()
         if theme in cls.pastel_themes:
