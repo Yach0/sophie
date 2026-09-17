@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from stfu_tg import Doc, Section, Template, Title
 from stfu_tg.doc import Element
 
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.modules.connections.utils.constants import CONNECTION_DISCONNECT_TEXT
@@ -69,6 +69,10 @@ async def check_connection_permissions(chat_iid: PydanticObjectId, user_iid: Pyd
     Admins are always allowed.
     Normal users are allowed if 'allow_users_connect' is enabled in settings.
     """
+    chat = await ChatModel.get_by_iid(chat_iid)
+    if not chat or chat.type == ChatType.channel:
+        return False
+
     # Admins always allowed
     if await is_user_admin(chat_iid, user_iid):
         return True

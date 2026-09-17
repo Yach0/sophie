@@ -155,6 +155,13 @@ class ConnectionsMiddleware(BaseMiddleware):
         # Re-validate that the user still has permission for this connection.
         # Throttled via Redis to avoid a DB query on every single request.
         user_iid: PydanticObjectId = connection.user.ref.id
+        if connection_chat.type == ChatType.channel:
+            connection.chat = None
+            connection.expires_at = None
+            await connection.save()
+            context.connection = await self.get_current_chat_info(real_chat, context.event_chat)
+            return await handler(event, data)
+
         if not await self._is_permission_cached(user_iid, connection_chat.iid, redis=services.redis):
             if not await self._check_connection_permissions(connection_chat.iid, user_iid):
                 log.info(
