@@ -68,8 +68,30 @@ async def test_cached_ai_history_uses_shared_message_text_representation(
 
 
 @pytest.mark.asyncio
-async def test_cached_foreign_bot_message_is_reference_only_context(
+async def test_cached_ai_history_strips_custom_emoji_footer_from_model_context(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        message_history,
+        "message_text",
+        lambda message: '✨ Response text\n<tg-emoji emoji-id="5818860416045945285">🔋</tg-emoji> 51%',
+    )
+
+    transformed = await AIMessageHistory(services=test_services)._cache_transform_msg(10, cached)
+    model_visible_text = transformed.parts[0].content
+
+    assert model_visible_text == "Response text"
+    assert "✨" not in model_visible_text
+    assert "tg-emoji" not in model_visible_text
+    assert "🔋" not in model_visible_text
+    assert "51%" not in model_visible_text
+
+
+@pytest.mark.asyncio
+async def test_cached_foreign_bot_message_is_reference_only_context(
+    monkeypatch: pytest.MonkeyPatch, test_services: object
 ) -> None:
     monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
@@ -80,7 +102,7 @@ async def test_cached_foreign_bot_message_is_reference_only_context(
         datetime.now(UTC),
         "Dergbot",
         is_bot=True,
-        redis=test_redis,
+        redis=test_services.redis,
     )
 
     history = AIMessageHistory(services=test_services)
@@ -91,8 +113,31 @@ async def test_cached_foreign_bot_message_is_reference_only_context(
 
 
 @pytest.mark.asyncio
+async def test_cached_normal_human_message_is_reference_only_context(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: object,
+) -> None:
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    await cache_message(
+        "background chatter",
+        10,
+        1,
+        3,
+        datetime.now(UTC),
+        "Alice",
+        redis=test_services.redis,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10, fold_background=True)
+
+    assert history.message_history == []
+    assert history.context_lines == ["Unknown: background chatter"]
+
+
+@pytest.mark.asyncio
 async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
-    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+    monkeypatch: pytest.MonkeyPatch, test_services: object
 ) -> None:
     monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
@@ -104,7 +149,7 @@ async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
         "Dergbot",
         is_bot=True,
         handled_by_ai=True,
-        redis=test_redis,
+        redis=test_services.redis,
     )
 
     history = AIMessageHistory(services=test_services)
@@ -119,7 +164,6 @@ async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
 @pytest.mark.asyncio
 async def test_next_generation_replays_the_authoritative_sophie_answer(
     monkeypatch: pytest.MonkeyPatch,
-    test_redis: object,
     test_services: object,
 ) -> None:
     monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
@@ -133,7 +177,7 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
         "Sophie",
         reply_to_message_id=19,
         reply_to_user_id=1,
-        redis=test_redis,
+        redis=test_services.redis,
     )
 
     history = AIMessageHistory(services=test_services)
@@ -143,6 +187,58 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
     cached_answer = history.message_history[0]
     assert isinstance(cached_answer, ModelResponse)
     assert cached_answer.parts[0].content == "prior answer"
+
+
+@pytest.mark.asyncio
+async def test_cached_human_reply_to_sophie_is_a_conversation_turn(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: object,
+) -> None:
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    answer_time = datetime.now(UTC)
+    await cache_message(
+        "Sophie answer",
+        10,
+        message_history.CONFIG.bot_id,
+        20,
+        answer_time,
+        "Sophie",
+        is_bot=True,
+        handled_by_ai=True,
+        redis=test_services.redis,
+    )
+    await cache_message(
+        "follow-up",
+        10,
+        1,
+        21,
+        answer_time,
+        "Alice",
+        reply_to_is_sophie_ai=True,
+        reply_to_user_id=message_history.CONFIG.bot_id,
+        reply_to_username="Sophie",
+        redis=test_services.redis,
+    )
+    await cache_message(
+        "Sophie follow-up answer",
+        10,
+        message_history.CONFIG.bot_id,
+        22,
+        answer_time,
+        "Sophie",
+        is_bot=True,
+        handled_by_ai=True,
+        redis=test_services.redis,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10, fold_background=True)
+
+    assert len(history.message_history) == 3
+    request = history.message_history[1]
+    assert isinstance(request, ModelRequest)
+    assert request.parts[0].content == "Unknown (reply to Sophie): follow-up"
+    assert history.context_lines == []
 
 
 def test_message_history_adds_system_custom_and_debug_output(
