@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from aiogram.enums import ChatType
 
 from sophie_bot.modules.welcomesecurity.handlers.chat_join_request import ChatJoinRequestHandler
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError
@@ -15,7 +16,7 @@ def _join_request_handler(
 ) -> tuple[ChatJoinRequestHandler, AsyncMock, SimpleNamespace]:
     approve = AsyncMock()
     event = SimpleNamespace(
-        chat=SimpleNamespace(id=-100123),
+        chat=SimpleNamespace(id=-100123, type=ChatType.GROUP),
         from_user=SimpleNamespace(id=123456),
         date=datetime.now(UTC),
         approve=approve,
@@ -109,7 +110,7 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     event = SimpleNamespace(
-        chat=SimpleNamespace(id=-100123),
+        chat=SimpleNamespace(id=-100123, type=ChatType.GROUP),
         from_user=SimpleNamespace(id=123456),
         date=datetime.now(UTC),
         approve=AsyncMock(),
