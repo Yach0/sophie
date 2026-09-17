@@ -4,6 +4,7 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
@@ -59,6 +60,9 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         router.chat_join_request.register(cls, *cls.filters())
 
     async def handle(self) -> Any:
+        if self.event.chat.type == ChatType.CHANNEL:
+            return
+
         chat_tid = self.event.chat.id
         user_tid = self.event.from_user.id
 
