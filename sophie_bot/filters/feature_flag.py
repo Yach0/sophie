@@ -6,16 +6,14 @@ from aiogram.types import CallbackQuery, Message
 from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import FeatureType, is_enabled
-from sophie_bot.utils.i18n import gettext as _
 
 
 class FeatureFlagFilter(BaseFilter):
     """Filter that checks if a feature flag is enabled."""
 
-    def __init__(self, feature: FeatureType, enabled: bool = True, *, notify_callback: bool = False) -> None:
+    def __init__(self, feature: FeatureType, enabled: bool = True) -> None:
         self.feature = feature
         self.enabled = enabled
-        self.notify_callback = notify_callback
 
     async def __call__(
         self,
@@ -34,7 +32,4 @@ class FeatureFlagFilter(BaseFilter):
         )
 
         flag_enabled = await is_enabled(self.feature, chat_tid=chat_tid, redis=services.redis)
-        matches = flag_enabled == self.enabled
-        if not matches and self.notify_callback and isinstance(event, CallbackQuery):
-            await event.answer(_("This feature is currently disabled."), show_alert=True)
-        return matches
+        return flag_enabled == self.enabled

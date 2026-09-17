@@ -156,10 +156,10 @@ class FilterWizard(ActionWizard[FilterDraft]):
 FILTER_WIZARD = FilterWizard(FILTER_WIZARD_CONFIG)
 
 
-def _wizard_filters(*, notify_callback: bool = False) -> tuple[CallbackType, ...]:
+def _wizard_filters() -> tuple[CallbackType, ...]:
     return (
-        FeatureFlagFilter("action_config_wizard", notify_callback=notify_callback),
-        FeatureFlagFilter("filters", notify_callback=notify_callback),
+        FeatureFlagFilter("action_config_wizard"),
+        FeatureFlagFilter("filters"),
         UserRestricting(admin=True),
         GroupOrConnectedFilter(),
     )
@@ -170,19 +170,16 @@ class FilterWizardCallbackHandler(ActionWizardCallbackHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (
-            WizardCallback.filter((F.scope == "filter_action") & (F.op != "toggle")),
-            *_wizard_filters(notify_callback=True),
-        )
+        return *_wizard_filters(), WizardCallback.filter((F.scope == "filter_action") & (F.op != "toggle"))
 
 
 class FilterWizardToggleHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
+            *_wizard_filters(),
+            FeatureFlagFilter("filters_silent_mode"),
             WizardCallback.filter((F.scope == "filter_action") & (F.op == "toggle")),
-            *_wizard_filters(notify_callback=True),
-            FeatureFlagFilter("filters_silent_mode", notify_callback=True),
         )
 
     async def handle(self) -> None:

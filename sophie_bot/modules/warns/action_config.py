@@ -48,7 +48,7 @@ def _command_filters(*commands: str) -> tuple[CallbackType, ...]:
 def _callback_filters(scope: str) -> tuple[CallbackType, ...]:
     return (
         WizardCallback.filter(F.scope == scope),
-        FeatureFlagFilter("action_config_wizard", notify_callback=True),
+        FeatureFlagFilter("action_config_wizard"),
         UserRestricting(can_restrict_members=True),
     )
 
