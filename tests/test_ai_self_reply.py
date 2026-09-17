@@ -1,6 +1,7 @@
 import re
 from types import SimpleNamespace
 
+from aiogram.types import RichTextBold
 from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
@@ -45,6 +46,13 @@ def test_simple_footer_is_removed_after_multiline_body() -> None:
 
     assert is_ai_message(text)
     assert cut_titlebar(text) == "Response text\nMight be many lines\n123"
+
+
+def test_simple_custom_emoji_footer_is_removed_without_changing_body() -> None:
+    text = '✨ Response text\nMight be many lines\n<tg-emoji emoji-id="5818860416045945285">🔋</tg-emoji> 51%'
+
+    assert is_ai_message(text)
+    assert cut_titlebar(text) == "Response text\nMight be many lines"
 
 
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
@@ -115,6 +123,24 @@ def test_message_text_reads_inline_simple_rich_message() -> None:
     assert cut_titlebar(text) == "Answer"
 
 
+def test_message_text_reads_telegram_rich_text_objects() -> None:
+    message = SimpleNamespace(
+        text=None,
+        rich_message=SimpleNamespace(
+            blocks=[
+                SimpleNamespace(text=["✨ AI", " | Help 📖 | 🔋 80%"]),
+                SimpleNamespace(text=RichTextBold(text="Answer")),
+            ]
+        ),
+    )
+
+    text = message_text(message)
+
+    assert text == "✨ AI | Help 📖 | 🔋 80%\nAnswer"
+    assert is_ai_message(text)
+    assert cut_titlebar(text) == "Answer"
+
+
 def _compact_heading_ai_message() -> SimpleNamespace:
     return SimpleNamespace(
         text=None,
@@ -142,6 +168,21 @@ async def test_reply_handler_accepts_ai_message_split_by_rich_heading() -> None:
     message = SimpleNamespace(reply_to_message=_compact_heading_ai_message())
 
     assert await AiReplyHandler.filter(message)
+
+
+async def test_reply_handler_accepts_telegram_rich_text_ai_message() -> None:
+    ai_message = SimpleNamespace(
+        text=None,
+        rich_message=SimpleNamespace(
+            blocks=[
+                SimpleNamespace(text=["✨ AI", " | Answer | 🔋 80%"]),
+                SimpleNamespace(text=SimpleNamespace(text="Earlier answer")),
+            ]
+        ),
+        from_user=SimpleNamespace(id=CONFIG.bot_id),
+    )
+
+    assert await AiReplyHandler.filter(SimpleNamespace(reply_to_message=ai_message))
 
 
 def test_message_text_leaves_disabled_rich_message_body_unchanged() -> None:
