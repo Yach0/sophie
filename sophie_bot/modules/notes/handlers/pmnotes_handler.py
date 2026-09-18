@@ -5,10 +5,11 @@ from aiogram.types import InlineKeyboardButton, KeyboardButton, ReplyKeyboardMar
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from stfu_tg import Bold, Doc, Template
 
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
-from sophie_bot.modules.connections.utils.connection import set_connected_chat
+from sophie_bot.modules.connections.utils.connection import check_connection_permissions, set_connected_chat
 from sophie_bot.modules.connections.utils.constants import CONNECTION_DISCONNECT_TEXT
 from sophie_bot.modules.notes.callbacks import PrivateNotesStartUrlCallback
 from sophie_bot.modules.notes.filters.pm_notes import PMNotesFilter
@@ -50,6 +51,11 @@ class PrivateNotesConnectHandler(SophieMessageHandler):
         user_id = self.event.from_user.id
         command_start: PrivateNotesStartUrlCallback = self.data["command_start"]
         chat_id = command_start.chat_id
+
+        chat = await ChatModel.get_by_tid(chat_id)
+        user = self.data["context"].actor
+        if not chat or not await check_connection_permissions(chat.iid, user.iid):
+            return await self.event.reply(_("You are not allowed to connect to this chat."))
 
         # Connect to the chat
         await set_connected_chat(user_id, chat_id, redis=self.services.redis)

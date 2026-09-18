@@ -7,11 +7,14 @@ group, a group-scoped command then run in the DM operates on the connected group
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models import ChatModel, FiltersModel, RulesModel
+from sophie_bot.db.models.chat import ChatType
 from sophie_bot.db.models.chat_connection_settings import ChatConnectionSettingsModel
 from sophie_bot.db.models.chat_connections import ChatConnectionModel
 from sophie_bot.db.models.notes import Saveable
@@ -57,6 +60,30 @@ async def test_admin_connects_to_group_by_numeric_id(test_client: TestClient) ->
 
     assert any("connected" in (request.text or "").lower() for request in requests)
     assert await _connected_chat_tid(admin.id) == group.id
+
+
+@pytest.mark.asyncio
+async def test_channel_cannot_become_dm_connection_target(test_client: TestClient) -> None:
+    user = test_client.create_user(user_id=next_user_id(), first_name="Channel Admin", username="channel_admin")
+    await test_client.send_message(text="init", from_user=user.user)
+    channel = await ChatModel(
+        tid=-1009876543210,
+        type=ChatType.channel,
+        first_name_or_title="Announcement Channel",
+        username="announcement_channel",
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    ).insert()
+    await grant_admin(channel.tid, user.user.id)
+
+    requests = await test_client.send_command(
+        command="connect",
+        from_user=user.user,
+        args="@announcement_channel",
+    )
+
+    assert any("not allowed" in (request.text or "").lower() for request in requests)
+    assert await _connected_chat_tid(user.user.id) is None
 
 
 @pytest.mark.asyncio
