@@ -23,6 +23,8 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_filter_new_user_message_limit",
     "ai_chatbot_model",
     "ai_chatbot_header_style",
+    "ai_chatbot_strip_alien_html_tags",
+    "ai_chatbot_show_model_name",
     "ai_translation_model",
     "ai_translations_header_style",
     "ai_search_provider",
@@ -247,7 +249,7 @@ _MODERATION_PROVIDER_FEATURE: Final[FeatureValueKind] = "moderation_provider"
 SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
 _SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi", "tavily", "tinyfish"})
 _MODERATION_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"mistral", "openai"})
-_AI_HEADER_STYLE_VALUES: Final[frozenset[str]] = frozenset({"table", "disable", "simple"})
+_AI_HEADER_STYLE_VALUES: Final[frozenset[str]] = frozenset({"disable", "simple"})
 
 
 def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATURE) -> FeatureDefinition:
@@ -262,9 +264,11 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filter_daily_user_limit": _feature(10),
     "ai_filter_new_user_message_limit": _feature(10),
     "ai_chatbot_model": _feature("", _AI_MODEL_FEATURE),
-    "ai_chatbot_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
+    "ai_chatbot_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
+    "ai_chatbot_strip_alien_html_tags": _feature(True),
+    "ai_chatbot_show_model_name": _feature(False),
     "ai_translation_model": _feature("", _AI_MODEL_FEATURE),
-    "ai_translations_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
+    "ai_translations_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
     "ai_chatbot_system_prompt": _feature(
         "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet\nOutput Markdown/plain text only; never output raw HTML or Telegram tg:// links.\nRepresent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
@@ -353,9 +357,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_moderation_threshold_openai_violence": _feature(0.4),
     "ai_moderation_threshold_openai_violence_graphic": _feature(0.4),
     "ai_filters": _feature(True),
-    "ai_filters_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
+    "ai_filters_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     "ai_chat_summaries": _feature(True),
-    "ai_chat_summaries_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
+    "ai_chat_summaries_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     # Sends the summary transcript with positional references and pseudonymous speakers instead of
     # real Telegram message IDs, usernames, and absolute timestamps.
     "ai_summary_improved_privacy": _feature(False),

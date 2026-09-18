@@ -43,7 +43,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model_plan, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, build_ai_message_doc
+from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -595,11 +595,9 @@ def _build_research_sources_section(
 def build_research_doc(
     response: ResearchFinalResponse,
     header: Element | str | None = None,
-    header_style: AIHeaderStyle = "table",
     current_locale: str = "en_US",
 ) -> Doc:
     return build_ai_message_doc(
-        header_style,
         header,
         Title(_("Research")) if header is None else None,
         PreformattedHTML(ai_markdown_to_html(response.text, extract_headings=True)),

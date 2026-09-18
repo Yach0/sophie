@@ -128,8 +128,6 @@ class ResearchCmd(SophieMessageHandler):
         )
         header = await build_chatbot_header(
             self.connection.db_model.iid,
-            result.model,
-            result.message_history,
             header_style,
             redis=self.services.redis,
         )
@@ -139,7 +137,6 @@ class ResearchCmd(SophieMessageHandler):
             build_research_doc(
                 result.response,
                 header=header,
-                header_style=header_style,
                 current_locale=current_locale,
             ),
         )

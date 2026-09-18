@@ -137,9 +137,10 @@ class ChatbotMessageStreamer:
         throttle_seconds: float,
         tool_thinking_texts: dict[str, tuple[LazyProxy, ...]] | None = None,
         emoji_id: str | None = None,
-        header_style: AIHeaderStyle = "table",
+        header_style: AIHeaderStyle = "simple",
         *,
         redis: Redis,
+        strip_alien_html_tags: bool = False,
     ) -> None:
         self.source_message = source_message
         self.redis = redis
@@ -151,6 +152,7 @@ class ChatbotMessageStreamer:
         self.tool_thinking_texts = tool_thinking_texts
         self.emoji_id = emoji_id
         self.header_style = header_style
+        self.strip_alien_html_tags = strip_alien_html_tags
         self.response_message: Message | None = None
         self.latest_text: str = ""
         self.last_sent_text: str = ""
@@ -337,7 +339,7 @@ class ChatbotMessageStreamer:
             chat_tid=self.source_message.chat.id,
             redis=self.redis,
             mention_index=self.mention_index,
-            header_style=self.header_style,
+            strip_alien_html_tags=self.strip_alien_html_tags,
         )
 
     async def _update_thinking_header(self, thinking_element: Element) -> None:
@@ -390,9 +392,10 @@ async def build_message_streamer(
     message: Message,
     model: Model,
     explicit_debug_mode: bool,
-    header_style: AIHeaderStyle = "table",
+    header_style: AIHeaderStyle = "simple",
     *,
     redis: Redis,
+    strip_alien_html_tags: bool = False,
 ) -> ChatbotMessageStreamer | None:
     if explicit_debug_mode:
         return None
@@ -423,7 +426,7 @@ async def build_message_streamer(
         else None
     )
 
-    # Placeholder only — the AI table header and its battery are built once the answer is ready.
+    # Placeholder only — the completed-message prefix and battery are built when the answer is ready.
     header = (
         _thinking_header_element(emoji_id=emoji_id)
         if thinking_enabled
@@ -452,6 +455,7 @@ async def build_message_streamer(
         emoji_id=emoji_id,
         header_style=header_style,
         redis=redis,
+        strip_alien_html_tags=strip_alien_html_tags,
     )
     await streamer.send_thinking_message()
     return streamer

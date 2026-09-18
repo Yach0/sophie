@@ -16,11 +16,7 @@ def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
 
 
 async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
-    """Reply with a rich message.
-
-    Everything the AI sends goes through here so its header renders as a table and users can reply
-    to it, which is how a reply continues the conversation.
-    """
+    """Send a rich AI reply so its custom emoji and structured body render correctly."""
     try:
         return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
             chat_id=message.chat.id,

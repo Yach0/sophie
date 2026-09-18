@@ -1,15 +1,46 @@
-from typing import Final, Literal, cast
+from collections.abc import Sequence
+from typing import Any, Final, Literal
 
 from redis.asyncio import Redis
-from stfu_tg import Doc, HList, PreformattedHTML, RichTable, RichTableCell
+from stfu_tg import CustomEmoji, Doc, HList
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.utils.feature_flags import FeatureType, get_value
 
+AI_CUSTOM_EMOJI_ID: Final[str] = "5325547803936572038"
 _LOW_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5819177212833697095"
 _MIDDLE_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5818860416045945285"
 _HIGH_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5816915599019741395"
+
+
+class _LineBreak(Element):
+    def to_html(self, *_args: Any) -> str:
+        return "<br>"
+
+    def to_rich(self) -> str:
+        return "<br>"
+
+    def to_md(self) -> str:
+        return "\n"
+
+
+class _InlineElement(Element):
+    def __init__(self, element: Element) -> None:
+        self.element = element
+
+    def to_html(self, *_args: Any) -> str:
+        return self.element.to_html()
+
+    def to_rich(self) -> str:
+        return self.element.to_rich().replace("<p>", "").replace("</p>", "")
+
+    def to_md(self) -> str:
+        return self.element.to_md()
+
+
+def _inline_body_item(item: Element | str | None) -> Element | str | None:
+    return _InlineElement(item) if isinstance(item, Element) else item
 
 
 def _get_battery_custom_emoji_id(percentage: int) -> str:
@@ -21,17 +52,10 @@ def _get_battery_custom_emoji_id(percentage: int) -> str:
 
 
 def _battery_custom_emoji(percentage: int) -> Element:
-    emoji_id = _get_battery_custom_emoji_id(percentage)
-    return PreformattedHTML(f'<tg-emoji emoji-id="{emoji_id}">🔋</tg-emoji>')
+    return CustomEmoji(_get_battery_custom_emoji_id(percentage), "🔋")
 
 
-# First cell of every AI message. Replies are detected by it, so it must stay exactly this: the
-# rich renderer shows the cells as a table, and to_html() joins them with the same separator.
-AI_HEADER_LABEL: Final[str] = f"{AI_EMOJI} AI"
-AI_HEADER_SEPARATOR: Final[str] = " | "
-AI_SIMPLE_HEADER_PREFIX: Final[str] = f"{AI_EMOJI} 🔋"
-
-AIHeaderStyle = Literal["table", "disable", "simple"]
+AIHeaderStyle = Literal["disable", "simple"]
 AIHeaderPurpose = Literal["chatbot", "filters", "translation", "summary"]
 
 _HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
@@ -43,44 +67,39 @@ _HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
 
 
 async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int, *, redis: Redis) -> AIHeaderStyle:
-    return cast(
-        AIHeaderStyle,
-        await get_value(
-            _HEADER_STYLE_FLAG_BY_PURPOSE[purpose],
-            chat_tid=chat_tid,
-            redis=redis,
-        ),
+    configured_style = await get_value(
+        _HEADER_STYLE_FLAG_BY_PURPOSE[purpose],
+        chat_tid=chat_tid,
+        redis=redis,
     )
+    return "disable" if configured_style == "disable" else "simple"
 
 
-def ai_table_header(status: Element | str = "", battery: Element | str = "") -> RichTable:
-    """The one-row header every AI message carries: who is speaking, what it did, what is left."""
-    return RichTable(
-        [RichTableCell(AI_HEADER_LABEL), RichTableCell(status, align="center"), RichTableCell(battery, align="right")],
-        bordered=True,
-    )
-
-
-def build_ai_header(
-    style: AIHeaderStyle,
-    status: Element | str = "",
-    battery: Element | str = "",
-) -> Element | str | None:
+def build_ai_header(style: AIHeaderStyle, battery: Element | str = "") -> Element | str | None:
     if style == "disable":
         return None
-    if style == "simple":
-        return HList(battery or "🔋")
-    return ai_table_header(status, battery)
+    return HList(battery or "🔋")
 
 
-def build_ai_message_doc(style: AIHeaderStyle, header: Element | str | None, *body: Element | str | None) -> Doc:
-    body_doc = Doc(*body)
+def build_ai_message_doc(
+    header: Element | str | None,
+    *body: Element | str | None,
+    tool_labels: Sequence[str] = (),
+) -> Doc:
+    inline_body = tuple(_inline_body_item(item) for item in body)
     if header is None:
-        return body_doc
-    if style == "simple":
-        return Doc(HList(AI_EMOJI, body_doc, divider=" "), "\n", header)
-    return Doc(header, body_doc)
+        return Doc(*inline_body)
+    tools = f"({', '.join(tool_labels)})" if tool_labels else None
+    return Doc(
+        HList(
+            HList(CustomEmoji(AI_CUSTOM_EMOJI_ID, AI_EMOJI), tools, *inline_body, divider=" "),
+            _LineBreak(),
+            header,
+            divider="",
+        )
+    )
 
 
-def ai_credit_header(percentage: int) -> Element:
-    return HList(_battery_custom_emoji(percentage), str(percentage) + "%", divider=" ")
+def ai_credit_header(percentage: int, model_label: str | None = None) -> Element:
+    model = f"({model_label})" if model_label else None
+    return HList(_battery_custom_emoji(percentage), str(percentage) + "%", model, divider=" ")

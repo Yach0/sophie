@@ -243,6 +243,7 @@ class AIMessageHistory:
         self.message_history = []
         self.prompt = []
         self.context_lines = []
+        self._cached_message_ids: set[tuple[int, int]] = set()
 
     @staticmethod
     def _is_ai_dialogue(msg: MessageType) -> bool:
@@ -360,6 +361,7 @@ class AIMessageHistory:
             max_age=max_age,
             redis=self.services.redis,
         )
+        self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
         exchanges = tool_exchanges or {}
 
         if not fold_background:
@@ -395,7 +397,8 @@ class AIMessageHistory:
         replied_user_name: str | None = None
         if allow_reply_messages and message.reply_to_message and message.reply_to_message.from_user:
             replied_user_name = message.reply_to_message.from_user.full_name
-            await self.add_from_message(message.reply_to_message, allow_reply_messages=False)
+            if (message.chat.id, message.reply_to_message.message_id) not in self._cached_message_ids:
+                await self.add_from_message(message.reply_to_message, allow_reply_messages=False)
 
         if not message.from_user:  # Linter insists on checking this
             return
