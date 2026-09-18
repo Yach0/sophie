@@ -3,7 +3,7 @@ from __future__ import annotations
 from beanie import PydanticObjectId
 from redis.asyncio import Redis
 
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.federations import Federation
 from sophie_bot.modules.federations.services.manage import FederationManageService
 from sophie_bot.modules.federations.utils.cache_service import FederationCacheService
@@ -20,7 +20,7 @@ class FederationChatService:
         redis: Redis,
     ) -> bool:
         chat = await ChatModel.get_by_iid(chat_iid)
-        if not chat:
+        if not chat or chat.type == ChatType.channel:
             return False
 
         existing_chat_iids = [chat_link.to_ref().id for chat_link in federation.chats]

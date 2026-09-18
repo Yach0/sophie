@@ -7,6 +7,7 @@ import pytest
 from beanie import PydanticObjectId
 from bson import DBRef
 
+from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.federations.exceptions import FederationContextError
 from sophie_bot.modules.federations.services import (
     FederationAdminService,
@@ -71,6 +72,51 @@ async def test_add_chat_to_federation_skips_existing_dbref_link(
     federation.save.assert_not_called()
     cache_set_fed_id_mock.assert_not_awaited()
     cache_incr_count_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_add_chat_to_federation_rejects_channel(test_redis: object) -> None:
+    chat_iid = PydanticObjectId("507f1f77bcf86cd799439082")
+    chat_model = MagicMock(iid=chat_iid, type=ChatType.channel)
+    federation = MagicMock(fed_id="fed-main", chats=[])
+    federation.save = AsyncMock()
+
+    with (
+        patch(
+            "sophie_bot.modules.federations.services.chat.ChatModel.get_by_iid",
+            new=AsyncMock(return_value=chat_model),
+        ),
+        patch(
+            "sophie_bot.modules.federations.services.chat.FederationCacheService.set_fed_id_for_chat",
+            new=AsyncMock(),
+        ) as cache_set_fed_id_mock,
+        patch(
+            "sophie_bot.modules.federations.services.chat.FederationCacheService.incr_chat_count",
+            new=AsyncMock(),
+        ) as cache_incr_count_mock,
+    ):
+        added = await FederationChatService.add_chat_to_federation(federation, chat_iid, redis=test_redis)
+
+    assert added is False
+    federation.save.assert_not_awaited()
+    cache_set_fed_id_mock.assert_not_awaited()
+    cache_incr_count_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_set_federation_log_channel_accepts_channel() -> None:
+    channel_iid = PydanticObjectId("507f1f77bcf86cd799439083")
+    channel = MagicMock(iid=channel_iid, type=ChatType.channel)
+    federation = MagicMock(log_chat=None, save=AsyncMock())
+
+    with patch(
+        "sophie_bot.modules.federations.services.manage.ChatModel.get_by_iid",
+        new=AsyncMock(return_value=channel),
+    ):
+        await FederationManageService.set_federation_log_channel(federation, channel_iid)
+
+    assert federation.log_chat is channel
+    federation.save.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -141,10 +187,12 @@ async def test_ban_user_in_federation_chats_bans_only_detected_chats(
     chat_one = MagicMock()
     chat_one.iid = chat_one_iid
     chat_one.tid = -10012345
+    chat_one.type = ChatType.supergroup
 
     chat_two = MagicMock()
     chat_two.iid = chat_two_iid
     chat_two.tid = -10054321
+    chat_two.type = ChatType.supergroup
 
     user_model = MagicMock()
     user_model.iid = user_iid
@@ -194,6 +242,87 @@ async def test_ban_user_in_federation_chats_bans_only_detected_chats(
         chat_one.tid,
         user_tid,
     )
+
+
+@pytest.mark.asyncio
+async def test_ban_user_in_federation_chats_ignores_persisted_channel(
+    test_services: object,
+) -> None:
+    user_tid = 1004
+    user_iid = PydanticObjectId("507f1f77bcf86cd799439012")
+    group_iid = PydanticObjectId("507f1f77bcf86cd799439023")
+    channel_iid = PydanticObjectId("507f1f77bcf86cd799439024")
+    federation = MagicMock(chats=[FakeLink(group_iid), FakeLink(channel_iid)])
+    ban = MagicMock(banned_chats=[], save=AsyncMock())
+    group = MagicMock(iid=group_iid, tid=-10012345, type=ChatType.supergroup)
+    channel = MagicMock(iid=channel_iid, tid=-10054321, type=ChatType.channel)
+    user_model = MagicMock(iid=user_iid)
+    group_membership = MagicMock(group=FakeLink(group_iid))
+    channel_membership = MagicMock(group=FakeLink(channel_iid))
+    chat_query = MagicMock(to_list=AsyncMock(return_value=[group, channel]))
+    user_in_group_query = MagicMock(to_list=AsyncMock(return_value=[group_membership, channel_membership]))
+
+    with (
+        patch.object(ban_service_module.ChatModel, "iid", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "user", new=MagicMock(), create=True),
+        patch.object(ban_service_module.UserInGroupModel, "group", new=MagicMock(), create=True),
+        patch("sophie_bot.modules.federations.services.ban.ChatModel.find", return_value=chat_query),
+        patch(
+            "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
+            new=AsyncMock(return_value=user_model),
+        ),
+        patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find", return_value=user_in_group_query),
+        patch(
+            "sophie_bot.modules.federations.services.ban.execute_restriction",
+            new=AsyncMock(return_value=RestrictionResult(action=RestrictionAction.BAN, applied=True)),
+        ) as execute_restriction,
+    ):
+        banned_count = await FederationBanService.ban_user_in_federation_chats(
+            federation, ban, user_tid, bot=test_services.bot
+        )
+
+    assert banned_count == 1
+    execute_restriction.assert_awaited_once_with(test_services.bot, RestrictionAction.BAN, group.tid, user_tid)
+    assert ban.banned_chats == [group]
+
+
+@pytest.mark.asyncio
+async def test_lazy_ban_ignores_membership_in_persisted_channel(test_redis: object) -> None:
+    user_tid = 1005
+    user_iid = PydanticObjectId("507f1f77bcf86cd799439013")
+    channel_iid = PydanticObjectId("507f1f77bcf86cd799439025")
+    origin_federation = MagicMock(fed_id="fed-origin")
+    subscribing_federation = MagicMock(fed_id="fed-subscriber", chats=[FakeLink(channel_iid)])
+    user_model = MagicMock(iid=user_iid)
+    channel = MagicMock(iid=channel_iid, type=ChatType.channel)
+    chat_query = MagicMock(to_list=AsyncMock(return_value=[channel]))
+
+    with (
+        patch.object(ban_service_module.ChatModel, "iid", new=MagicMock(), create=True),
+        patch(
+            "sophie_bot.modules.federations.services.ban.FederationManageService.get_subscribed_by_chain",
+            new=AsyncMock(return_value=[subscribing_federation]),
+        ),
+        patch(
+            "sophie_bot.modules.federations.services.ban.FederationBanService.is_user_banned",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "sophie_bot.modules.federations.services.ban.ChatModel.get_by_tid",
+            new=AsyncMock(return_value=user_model),
+        ),
+        patch("sophie_bot.modules.federations.services.ban.ChatModel.find", return_value=chat_query),
+        patch("sophie_bot.modules.federations.services.ban.UserInGroupModel.find") as membership_find,
+    ):
+        lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
+            origin_federation,
+            user_tid,
+            user_iid,
+            redis=test_redis,
+        )
+
+    assert lazy_bans == []
+    membership_find.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -269,6 +398,7 @@ async def test_ban_user_in_federation_chats_normalizes_dbref_group_links(
     chat_model = MagicMock()
     chat_model.iid = chat_iid
     chat_model.tid = -10012346
+    chat_model.type = ChatType.supergroup
 
     user_model = MagicMock()
     user_model.iid = user_iid
@@ -338,6 +468,7 @@ async def test_ban_user_in_federation_chats_includes_current_chat_without_seen_r
     chat_model = MagicMock()
     chat_model.iid = chat_iid
     chat_model.tid = -10012347
+    chat_model.type = ChatType.supergroup
 
     user_model = MagicMock()
     user_model.iid = user_iid
@@ -536,7 +667,8 @@ async def test_get_federation_with_user_multiple_federations_raises(
             FederationManageService,
             "get_federations_by_creator",
             new=AsyncMock(return_value=[MagicMock(), MagicMock()]),
-        ),pytest.raises(FederationContextError, match="multiple federations")
+        ),
+        pytest.raises(FederationContextError, match="multiple federations"),
     ):
         await FederationManageService.get_federation(
             fed_id_arg=None,

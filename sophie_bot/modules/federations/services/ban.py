@@ -12,7 +12,7 @@ from beanie.odm.operators.find.comparison import In
 from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
+from sophie_bot.db.models.chat import ChatModel, ChatType, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.metrics.federation import track_federation_ban
@@ -124,10 +124,19 @@ class FederationBanService:
             if not sub_chat_iids:
                 continue
 
+            member_chats = [
+                chat
+                for chat in await ChatModel.find(In(ChatModel.iid, sub_chat_iids)).to_list()
+                if chat.type != ChatType.channel
+            ]
+            member_chat_iids = [chat.iid for chat in member_chats]
+            if not member_chat_iids:
+                continue
+
             # Check if user is in any of this federation's chats via UserInGroupModel
             user_in_group = await UserInGroupModel.find(
                 UserInGroupModel.user.id == user.iid,
-                In(UserInGroupModel.group.id, sub_chat_iids),
+                In(UserInGroupModel.group.id, member_chat_iids),
             ).first_or_none()
 
             if user_in_group:
@@ -169,7 +178,14 @@ class FederationBanService:
         if current_chat_iid and current_chat_iid not in chat_iids:
             chat_iids.append(current_chat_iid)
 
-        chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+        chats = [
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+            if chat.type != ChatType.channel
+        ]
+        chat_iids = [chat.iid for chat in chats]
+        if not chat_iids:
+            return 0
         user = await ChatModel.get_by_tid(user_tid)
         if not user:
             return 0
@@ -255,7 +271,11 @@ class FederationBanService:
                 chat_iids.update(normalize_chat_iids([chat.to_ref() for chat in sub_fed.chats]))
         if not chat_iids:
             return 0
-        chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
+        chats = [
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
+            if chat.type != ChatType.channel
+        ]
 
         async def unban_chat(chat: ChatModel) -> bool:
             return (
@@ -275,7 +295,11 @@ class FederationBanService:
         normalized_chat_iids = normalize_chat_iids(chat_iids)
         if not normalized_chat_iids:
             return 0
-        chats = await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
+        chats = [
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
+            if chat.type != ChatType.channel
+        ]
 
         async def unban_chat(chat: ChatModel) -> bool:
             return (
