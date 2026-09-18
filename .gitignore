@@ -5,6 +5,12 @@ __pycache__/
 
 # Config
 data/config.env
+data/debug.env
+data/debug-session.json
+data/.debug-session-*
+data/debug.lock
+data/debug.runtime.log
+
 
 # Runtime logs (purged on every start/reload)
 data/runtime.logs
@@ -38,6 +44,12 @@ allure_results/
 
 # Build
 output/
+build/lib/
+debug/frontend/node_modules/
+debug/frontend/dist/
+debug/frontend/openapi.json
+debug/frontend/.tanstack/
+
 
 # OpenAPI
 openapi.json

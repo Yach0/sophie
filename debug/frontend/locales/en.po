@@ -1,0 +1,860 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: sophie-debugger\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/components/AppShell.tsx:15
+#: src/routes/telegram.tsx:6
+msgid "Telegram"
+msgstr ""
+
+#: src/routes/telegram.tsx:6
+msgid "Incoming updates, outgoing Bot API calls, and correlated update work. Background follow-ups retain the trace but remain visibly marked by origin."
+msgstr ""
+
+#: src/routes/redis.tsx:7
+msgid "Observed Redis commands"
+msgstr ""
+
+#: src/routes/redis.tsx:7
+msgid "Application and FSM clients, selected databases, WATCH calls, and aggregate pipeline timing."
+msgstr ""
+
+#: src/routes/mongo.tsx:7
+msgid "Observed MongoDB wire commands"
+msgstr ""
+
+#: src/routes/mongo.tsx:7
+msgid "Driver attempts, results, errors, collections, durations, and trace links."
+msgstr ""
+
+#: src/routes/logs.tsx:6
+msgid "Logs and Python output"
+msgstr ""
+
+#: src/routes/logs.tsx:6
+msgid "Structured records, contextual Python stdout/stderr lines, exceptions, and trace links. Native FD writes remain terminal-only exit diagnostics."
+msgstr ""
+
+#: src/routes/ai-cache.tsx:7
+msgid "AI cache activity"
+msgstr ""
+
+#: src/routes/ai-cache.tsx:7
+msgid "Derived Redis activity for exact Sophie cache key families, linked to the originating Redis span."
+msgstr ""
+
+#: src/components/ResultGrid.tsx:17
+msgid "Redacted value"
+msgstr ""
+
+#: src/components/ResultGrid.tsx:23
+msgid "Inspector results"
+msgstr ""
+
+#: src/components/ResultGrid.tsx:57
+msgid "The inspector returned no values."
+msgstr ""
+
+#: src/components/RedisPanel.tsx:47
+msgid "Offset must be a non-negative integer"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:47
+#: src/components/RedisPanel.tsx:48
+msgid "Limit must be between 1 and 200"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:61
+msgid "Invalid Redis query"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:79
+msgid "Invalid Redis command"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:91
+msgid "Live Redis inspector"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:92
+msgid "Cursor scans are bounded, live, and non-atomic. KEYS, MONITOR, scripts, and admin commands are unavailable."
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "Read type"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "Scan keys"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "String"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "Hash"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "Set"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "List"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:94
+msgid "Sorted set"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:95
+msgid "Pattern"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:95
+msgid "Key or base64 object"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:96
+msgid "Cursor"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:97
+msgid "Offset"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:107
+#: src/components/RedisPanel.tsx:98
+msgid "Limit"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:99
+msgid "Inspect key data"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:104
+msgid "more available"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:111
+#: src/components/RedisPanel.tsx:104
+msgid "response truncated"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:106
+msgid "The key is missing or expired."
+msgstr ""
+
+#: src/components/RedisPanel.tsx:113
+msgid "Allowed single-key command"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:115
+msgid "Command"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:116
+msgid "One key"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:117
+msgid "Typed arguments after the key (JSON array)"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:120
+msgid "Normalized request preview"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:24
+msgid "unavailable"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:33
+msgid "Select a trace with completed spans to show its waterfall."
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:39
+#: src/components/PerformancePanel.tsx:88
+msgid "Selected trace waterfall"
+msgstr ""
+
+#: src/components/AppShell.tsx:19
+#: src/components/PerformancePanel.tsx:78
+msgid "Performance"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:78
+msgid "Bounded process samples and wall-clock middleware timing. RSS changes are not per-handler allocations."
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:80
+msgid "Worker CPU percent"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:81
+msgid "Worker RSS bytes"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:82
+msgid "Worker event-loop lag ms"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:83
+msgid "Collector CPU percent"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:84
+msgid "Collector RSS bytes"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:85
+msgid "Vite RSS bytes"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:92
+msgid "Slowest retained middleware calls"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:93
+msgid "Middleware wall time"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:94
+msgid "Middleware"
+msgstr ""
+
+#: src/components/PerformancePanel.tsx:94
+msgid "Inclusive wall time"
+msgstr ""
+
+#: src/components/EventDetail.tsx:67
+#: src/components/PerformancePanel.tsx:94
+msgid "Trace"
+msgstr ""
+
+#: src/components/Overview.tsx:15
+msgid "Session overview"
+msgstr ""
+
+#: src/components/Overview.tsx:16
+msgid "Worker state"
+msgstr ""
+
+#: src/components/Overview.tsx:16
+msgid "No worker diagnostic"
+msgstr ""
+
+#: src/components/Overview.tsx:17
+msgid "Errors retained"
+msgstr ""
+
+#: src/components/Overview.tsx:17
+msgid "No retained errors"
+msgstr ""
+
+#: src/components/Overview.tsx:18
+msgid "Slow operations"
+msgstr ""
+
+#: src/components/Overview.tsx:18
+msgid "500 ms or slower"
+msgstr ""
+
+#: src/components/Overview.tsx:19
+msgid "Recent dispatches"
+msgstr ""
+
+#: src/components/Overview.tsx:19
+msgid "No incoming updates yet"
+msgstr ""
+
+#: src/components/Overview.tsx:22
+msgid "Sanitized targets"
+msgstr ""
+
+#: src/components/Overview.tsx:23
+msgid "Capture coverage"
+msgstr ""
+
+#: src/components/Overview.tsx:25
+msgid "Captured development payloads can contain personal or unknown secret content. History stays in collector memory, but Sophie's existing console, security, and runtime logs are separate and unchanged."
+msgstr ""
+
+#: src/components/Overview.tsx:26
+msgid "Recent correlated activity"
+msgstr ""
+
+#: src/components/Overview.tsx:26
+msgid "Select a summary to fetch its payload, then follow its trace through every view."
+msgstr ""
+
+#: src/components/MutationFlow.tsx:79
+msgid "Confirmed write workflow"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:81
+msgid "Preparing preview…"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:81
+msgid "Prepare write preview"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:88
+msgid "Preview does not lock the database. Inspect the target immediately before executing."
+msgstr ""
+
+#: src/components/MutationFlow.tsx:92
+msgid "This preview belongs to an earlier worker run. Prepare it again."
+msgstr ""
+
+#: src/components/MutationFlow.tsx:93
+msgid "This preview expired. Prepare it again."
+msgstr ""
+
+#: src/components/MutationFlow.tsx:95
+msgid "Type the exact confirmation text"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:105
+msgid "Executing once…"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:105
+msgid "Execute once"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:112
+msgid "Action status"
+msgstr ""
+
+#: src/components/MutationFlow.tsx:113
+msgid "The write outcome is uncertain. Inspect the target before preparing any new write; this action cannot be retried."
+msgstr ""
+
+#: src/components/MongoPanel.tsx:45
+#: src/components/MongoPanel.tsx:73
+#: src/components/MongoPanel.tsx:99
+msgid "Collection is required"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:46
+msgid "Skip must be a non-negative integer"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:61
+msgid "Invalid query input"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:85
+msgid "Invalid action input"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:96
+msgid "Live MongoDB query"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:97
+msgid "Queries are limited to the selected development database, 200 results, and canonical Extended JSON."
+msgstr ""
+
+#: src/components/MongoPanel.tsx:100
+#: src/components/MongoPanel.tsx:119
+msgid "Collection"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:103
+msgid "Filter (Extended JSON)"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:48
+#: src/components/MongoPanel.tsx:104
+msgid "Projection"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:105
+msgid "Sort"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:106
+msgid "Skip"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:108
+msgid "Run bounded query"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:111
+msgid "more results available"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:111
+msgid "complete page"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:115
+msgid "Single-document write"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:116
+msgid "Start from an explicit patch or document. A redacted query result is never used as a replacement document."
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:25
+#: src/components/MongoPanel.tsx:118
+msgid "Operation"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:118
+msgid "Insert one"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:118
+msgid "Update one by _id"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:118
+msgid "Delete one by _id"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:120
+msgid "Exact _id (Extended JSON)"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:76
+#: src/components/MongoPanel.tsx:121
+msgid "Document"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:121
+msgid "Update ($set, $unset, $inc only)"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:20
+msgid "Time"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:24
+msgid "Category"
+msgstr ""
+
+#: src/components/EventDetail.tsx:69
+#: src/components/EventWorkspace.tsx:26
+msgid "Origin"
+msgstr ""
+
+#: src/components/EventDetail.tsx:70
+#: src/components/EventWorkspace.tsx:27
+msgid "Chat"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:28
+msgid "Summary"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:30
+msgid "Duration"
+msgstr ""
+
+#: src/components/AppShell.tsx:91
+#: src/components/EventWorkspace.tsx:34
+msgid "Level"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:101
+msgid "retained summaries"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:110
+msgid "Reveal getUpdates polling"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:114
+msgid "Event summaries"
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:152
+msgid "No retained events match these filters."
+msgstr ""
+
+#: src/components/EventWorkspace.tsx:157
+msgid "Resize event detail"
+msgstr ""
+
+#: src/components/EventDetail.tsx:30
+msgid "Select an event to fetch its redacted payload."
+msgstr ""
+
+#: src/components/EventDetail.tsx:32
+msgid "Loading event…"
+msgstr ""
+
+#: src/components/EventDetail.tsx:37
+msgid "This event was evicted from the in-memory session history."
+msgstr ""
+
+#: src/components/EventDetail.tsx:45
+msgid "Selected event detail"
+msgstr ""
+
+#: src/components/EventDetail.tsx:52
+msgid "Follow trace across tabs"
+msgstr ""
+
+#: src/components/EventDetail.tsx:61
+msgid "Copied"
+msgstr ""
+
+#: src/components/EventDetail.tsx:61
+msgid "Copy redacted JSON"
+msgstr ""
+
+#: src/components/EventDetail.tsx:65
+msgid "Sequence"
+msgstr ""
+
+#: src/components/EventDetail.tsx:66
+msgid "Outcome"
+msgstr ""
+
+#: src/components/EventDetail.tsx:68
+msgid "Span"
+msgstr ""
+
+#: src/components/EventDetail.tsx:74
+msgid "Credential-shaped values were redacted. "
+msgstr ""
+
+#: src/components/EventDetail.tsx:75
+msgid "Payload exceeded a capture limit and was truncated."
+msgstr ""
+
+#: src/components/AuthGate.tsx:26
+msgid "Unable to contact the debugger."
+msgstr ""
+
+#: src/components/AuthGate.tsx:45
+msgid "Authentication failed."
+msgstr ""
+
+#: src/components/AuthGate.tsx:57
+msgid "Local development tool"
+msgstr ""
+
+#: src/components/AuthGate.tsx:58
+msgid "Open Sophie Debugger"
+msgstr ""
+
+#: src/components/AuthGate.tsx:60
+msgid "Paste the session token from data/debug-session.json. It is exchanged once for a private browser-session cookie and is not stored by this page."
+msgstr ""
+
+#: src/components/AuthGate.tsx:63
+msgid "Session token"
+msgstr ""
+
+#: src/components/AuthGate.tsx:73
+msgid "Checking…"
+msgstr ""
+
+#: src/components/AuthGate.tsx:73
+msgid "Authenticate"
+msgstr ""
+
+#: src/components/AuthGate.tsx:77
+msgid "Checking for an existing local session…"
+msgstr ""
+
+#: src/components/AppShell.tsx:14
+msgid "Overview"
+msgstr ""
+
+#: src/components/AppShell.tsx:16
+msgid "MongoDB"
+msgstr ""
+
+#: src/components/AppShell.tsx:17
+msgid "Redis"
+msgstr ""
+
+#: src/components/AppShell.tsx:18
+msgid "AI Cache"
+msgstr ""
+
+#: src/components/AppShell.tsx:20
+msgid "Logs"
+msgstr ""
+
+#: src/components/AppShell.tsx:40
+msgid "Sophie Debugger"
+msgstr ""
+
+#: src/components/AppShell.tsx:41
+msgid "Sensitive development session · memory only"
+msgstr ""
+
+#: src/components/AppShell.tsx:45
+msgid "SSE reconnecting"
+msgstr ""
+
+#: src/components/AppShell.tsx:45
+msgid "SSE live"
+msgstr ""
+
+#: src/components/AppShell.tsx:45
+msgid "SSE connecting"
+msgstr ""
+
+#: src/components/AppShell.tsx:46
+msgid "run"
+msgstr ""
+
+#: src/components/AppShell.tsx:47
+msgid "PID"
+msgstr ""
+
+#: src/components/AppShell.tsx:48
+msgid "events"
+msgstr ""
+
+#: src/components/AppShell.tsx:49
+msgid "dropped"
+msgstr ""
+
+#: src/components/AppShell.tsx:50
+msgid "truncated"
+msgstr ""
+
+#: src/components/AppShell.tsx:52
+msgid "Restart worker"
+msgstr ""
+
+#: src/components/AppShell.tsx:59
+msgid "Parent debugger code changed. Restart make dev to load it; worker reload cannot update the collector."
+msgstr ""
+
+#: src/components/AppShell.tsx:65
+msgid "Some events were evicted or skipped. The retained event window was reloaded."
+msgstr ""
+
+#: src/components/AppShell.tsx:66
+msgid "Dismiss"
+msgstr ""
+
+#: src/components/AppShell.tsx:70
+msgid "Debugger views"
+msgstr ""
+
+#: src/components/AppShell.tsx:80
+msgid "Search summaries"
+msgstr ""
+
+#: src/components/AppShell.tsx:84
+msgid "Run"
+msgstr ""
+
+#: src/components/AppShell.tsx:86
+msgid "All runs"
+msgstr ""
+
+#: src/components/AppShell.tsx:93
+msgid "All levels"
+msgstr ""
+
+#: src/components/AppShell.tsx:94
+msgid "Debug"
+msgstr ""
+
+#: src/components/AppShell.tsx:95
+msgid "Info"
+msgstr ""
+
+#: src/components/AppShell.tsx:96
+msgid "Warning"
+msgstr ""
+
+#: src/components/AppShell.tsx:97
+msgid "Error"
+msgstr ""
+
+#: src/components/AppShell.tsx:101
+msgid "Chat ID"
+msgstr ""
+
+#: src/components/AppShell.tsx:113
+msgid "From (UTC RFC3339)"
+msgstr ""
+
+#: src/components/AppShell.tsx:117
+msgid "To (UTC RFC3339)"
+msgstr ""
+
+#: src/components/AppShell.tsx:122
+msgid "Errors only"
+msgstr ""
+
+#: src/components/AppShell.tsx:125
+msgid "Pause following"
+msgstr ""
+
+#: src/components/AppShell.tsx:125
+msgid "Resume to latest"
+msgstr ""
+
+#: src/components/AppShell.tsx:129
+msgid "Clear trace"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:51
+msgid "Stored AI cache data"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:52
+msgid "This read-only view does not refill pricing, refresh TTLs, prune malformed tools, or evaluate feature rollout membership."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:54
+msgid "Subview"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:54
+msgid "Messages"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:54
+msgid "Tool exchanges"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:54
+#: src/components/AiCachePanel.tsx:85
+msgid "Global pricing"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:55
+#: src/components/AiCachePanel.tsx:86
+msgid "Telegram chat ID"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:57
+msgid "Replay status is not evaluated. ai_chatbot_tool_history controls replay use, not whether stored exchanges are visible."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:58
+msgid "Provider prompt caching is not reported. Sophie has no separate response, media, or transcription cache."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:59
+msgid "Reading bounded cache data…"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:61
+msgid "The selected cache key is missing or expired."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:62
+msgid "The selected cache exists but contains no entries."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:65
+msgid "Exact key"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:65
+msgid "Live TTL"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:65
+msgid "Configured TTL"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:65
+msgid "Count"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:66
+msgid "The bounded cache response was truncated."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:67
+msgid "AI cache entries"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:68
+msgid "Malformed stored entries were not modified"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:68
+msgid "Malformed AI cache entries"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:74
+msgid "Load next bounded page"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:82
+msgid "Clear an exact cache scope"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:83
+msgid "Context clears message and tool context only. It never invokes /aireset and never removes durable AI memory."
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:85
+msgid "Scope"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:85
+msgid "Messages for chat"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:85
+msgid "Tools for chat"
+msgstr ""
+
+#: src/components/AiCachePanel.tsx:85
+msgid "Both context stores for chat"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:19
+msgid "Binary values must use {\"base64\":\"…\"}"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:46
+msgid "Cursor must be a non-negative integer"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:52
+#: src/components/RedisPanel.tsx:68
+msgid "Key is required"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:70
+msgid "Arguments must be a JSON array"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:12
+#, javascript-format
+msgid "${ label } must be a JSON object"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:50
+msgid "Sort must be an ordered JSON array"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:54
+msgid "Filter"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:74
+msgid "Redaction and truncation placeholders cannot be written"
+msgstr ""
+
+#: src/components/MongoPanel.tsx:79
+msgid "Update"
+msgstr ""
