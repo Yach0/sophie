@@ -59,6 +59,21 @@ def _before_send_transaction(event: Event, _hint: dict[str, Any]) -> Event | Non
     return event
 
 
+def _before_send(event: Event, _hint: dict[str, Any]) -> Event | None:
+    """Drop unhandled pydantic_ai exceptions from intermediate retry attempts.
+
+    PydanticAIIntegration hooks Agent.run and emits an unhandled error event on every failing
+    attempt before retries/failovers occur. Sophie's ai_run candidate loop handles retries with
+    exponential backoff and reports terminal failures with full AI context and fingerprinting.
+    """
+    exc_values = event.get("exception", {}).get("values", [])
+    for exc in exc_values:
+        mechanism = exc.get("mechanism")
+        if mechanism and mechanism.get("type") == "pydantic_ai" and not mechanism.get("handled"):
+            return None
+    return event
+
+
 def build_release() -> str:
     """Build a per-build Sentry release identifier.
 
@@ -102,4 +117,5 @@ def init_sentry() -> None:
         stream_gen_ai_spans=True,
         send_default_pii=True,
         before_send_transaction=_before_send_transaction,
+        before_send=_before_send,
     )
