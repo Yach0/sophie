@@ -155,6 +155,8 @@ class ConnectionsMiddleware(BaseMiddleware):
         # Re-validate that the user still has permission for this connection.
         # Throttled via Redis to avoid a DB query on every single request.
         user_iid: PydanticObjectId = connection.user.ref.id
+        # Channels are not valid DM connection targets; clear any existing or legacy
+        # channel connections and fall back to the current chat context.
         if connection_chat.type == ChatType.channel:
             connection.chat = None
             connection.expires_at = None
