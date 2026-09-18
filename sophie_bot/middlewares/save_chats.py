@@ -3,7 +3,7 @@ from typing import Any, override
 
 import structlog
 from aiogram import BaseMiddleware
-from aiogram.enums import ChatMemberStatus
+from aiogram.enums import ChatMemberStatus, ChatType
 from aiogram.types import Chat, ChatJoinRequest, ChatMemberUpdated, Message, TelegramObject, Update, User
 
 from sophie_bot.config import CONFIG
@@ -293,6 +293,9 @@ class SaveChatsMiddleware(BaseMiddleware):
 
     @staticmethod
     async def save_chat_join_request(join_request: ChatJoinRequest, context: RequestContext) -> None:
+        if join_request.chat.type == ChatType.CHANNEL:
+            return
+
         logger.debug(
             "SaveChatsMiddleware: Saving chat join request",
             chat_id=join_request.chat.id,
