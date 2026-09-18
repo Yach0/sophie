@@ -383,23 +383,23 @@ msgstr "Suggests filter handlers from a natural language description"
 msgid "Describe what the filter should catch"
 msgstr "Describe what the filter should catch"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:227
 msgid "Could not generate suggestions"
 msgstr "Could not generate suggestions"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:232
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:230
 msgid "Could not generate suggestions. Please try again or use /addfilter directly."
 msgstr "Could not generate suggestions. Please try again or use /addfilter directly."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:235
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:233
 msgid "AI Filter Suggestions"
 msgstr "AI Filter Suggestions"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:246
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 msgid "Use /addfilter <handler> to create the filter."
 msgstr "Use /addfilter <handler> to create the filter."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:247
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:245
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr "For example, {cmd}"
@@ -1048,19 +1048,15 @@ msgstr "By using AI features you agree to our Privacy Policy (/privacy) and to t
 msgid "Research"
 msgstr "Research"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:69
-msgid "The AI request failed. Please try again in a moment."
-msgstr "The AI request failed. Please try again in a moment."
-
-#: sophie_bot/modules/ai/utils/ai_errors.py:257
+#: sophie_bot/modules/ai/utils/ai_errors.py:65
 msgid "🤖 AI request failed"
 msgstr "🤖 AI request failed"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:268
+#: sophie_bot/modules/ai/utils/ai_errors.py:66
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "The AI provider did not complete the request. Please try again in a moment."
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:272
+#: sophie_bot/modules/ai/utils/ai_errors.py:330
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr "Reference ID"
@@ -5651,28 +5647,28 @@ msgstr "Please provide a description for the task."
 msgid "Could not find chat model."
 msgstr "Could not find chat model."
 
-#: sophie_bot/modules/op/handlers/op_task.py:137
+#: sophie_bot/modules/op/handlers/op_task.py:136
 msgid "Error generating task description"
 msgstr "Error generating task description"
 
-#: sophie_bot/modules/op/handlers/op_task.py:152
+#: sophie_bot/modules/op/handlers/op_task.py:150
 msgid "Failed to create GitLab issue"
 msgstr "Failed to create GitLab issue"
 
-#: sophie_bot/modules/op/handlers/op_task.py:158
+#: sophie_bot/modules/op/handlers/op_task.py:156
 msgid "GitLab Issue Created"
 msgstr "GitLab Issue Created"
 
-#: sophie_bot/modules/op/handlers/op_task.py:160
+#: sophie_bot/modules/op/handlers/op_task.py:158
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 msgid "Title"
 msgstr "Title"
 
-#: sophie_bot/modules/op/handlers/op_task.py:161
+#: sophie_bot/modules/op/handlers/op_task.py:159
 msgid "Issue"
 msgstr "Issue"
 
-#: sophie_bot/modules/op/handlers/op_task.py:162
+#: sophie_bot/modules/op/handlers/op_task.py:160
 msgid "Open in GitLab"
 msgstr "Open in GitLab"
 
@@ -7047,8 +7043,8 @@ msgid "Configuration cancelled."
 msgstr ""
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:17
-#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:127
-#: sophie_bot/utils/handlers.py:136
+#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:124
+#: sophie_bot/utils/handlers.py:133
 msgid "The message is inaccessible. Please write the command again"
 msgstr "The message is inaccessible. Please write the command again."
 
@@ -8268,4 +8264,7 @@ msgstr "Could not find the user mention."
 
 #~ msgid "Enabled, expires in {time}"
 #~ msgstr "Enabled, expires in {time}"
+
+#~ msgid "The AI request failed. Please try again in a moment."
+#~ msgstr "The AI request failed. Please try again in a moment."
 

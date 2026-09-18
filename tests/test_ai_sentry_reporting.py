@@ -16,9 +16,12 @@ from tenacity import wait_none
 from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
 from sophie_bot.modules.ai.utils import ai_errors, ai_run
 from sophie_bot.modules.ai.utils.ai_errors import (
+    _DEFAULT_AI_FAILED_MESSAGE,
     AIErrorContext,
     AIRequestFailed,
+    ai_request_failed_message,
     capture_ai_error,
+    ensure_sentry_event_id,
     run_ai_request_with_retries,
 )
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
@@ -301,3 +304,73 @@ def test_init_sentry_includes_pydantic_ai_integration(monkeypatch: pytest.Monkey
     pydantic_ai_integrations = [i for i in captured_integrations if isinstance(i, PydanticAIIntegration)]
     assert len(pydantic_ai_integrations) == 1
     assert pydantic_ai_integrations[0].handled_tool_call_exceptions is False
+
+
+def test_capture_ai_error_includes_user_facing_message_in_context_and_tags(
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    context = AIErrorContext(operation="agent", model_name="openai/gpt-5")
+    error = _model_http_error()
+
+    capture_ai_error(error, context)
+
+    (event,) = sentry_events
+    expected_message = str(_DEFAULT_AI_FAILED_MESSAGE)
+    assert event["tags"]["ai.user_facing_error"] == expected_message
+    assert event["contexts"]["ai_request"]["user_facing_message"] == expected_message
+
+
+def test_sentry_before_send_filters_unhandled_pydantic_ai_exceptions() -> None:
+    from sophie_bot.services.sentry import _before_send
+
+    pydantic_ai_unhandled_event = {
+        "exception": {
+            "values": [
+                {
+                    "type": "ModelHTTPError",
+                    "value": "503",
+                    "mechanism": {"type": "pydantic_ai", "handled": False},
+                }
+            ]
+        }
+    }
+    assert _before_send(pydantic_ai_unhandled_event, {}) is None
+
+    generic_ai_event = {
+        "exception": {
+            "values": [
+                {
+                    "type": "ModelHTTPError",
+                    "value": "503",
+                    "mechanism": {"type": "generic", "handled": True},
+                }
+            ]
+        }
+    }
+    assert _before_send(generic_ai_event, {}) == generic_ai_event
+
+
+def test_ensure_sentry_event_id_captures_cause_when_missing(
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    cause = _model_http_error()
+    failure = AIRequestFailed(None)
+    failure.__cause__ = cause
+
+    event_id = ensure_sentry_event_id(failure)
+
+    assert event_id is not None
+    assert failure.sentry_event_id == event_id
+    assert len(sentry_events) == 1
+    assert sentry_events[0]["exception"]["values"][0]["type"] == "ModelHTTPError"
+
+
+def test_ai_request_failed_message_preserves_custom_docs_from_error() -> None:
+    custom_text = "The AI request took too long and was cancelled. Please try again."
+    failure = AIRequestFailed("test-event-id", custom_text)
+
+    message = ai_request_failed_message(error=failure)
+
+    assert custom_text in message["text"]
+    assert "Reference ID" in message["text"]
+    assert "test-event-id" in message["text"]

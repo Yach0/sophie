@@ -383,23 +383,23 @@ msgstr "يقترح معالجات الفلتر من وصف اللغة الطبي
 msgid "Describe what the filter should catch"
 msgstr "صف ما يجب أن يلتقطه الفلتر"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:227
 msgid "Could not generate suggestions"
 msgstr "تعذر إنشاء اقتراحات"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:232
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:230
 msgid "Could not generate suggestions. Please try again or use /addfilter directly."
 msgstr "تعذر إنشاء اقتراحات. يرجى المحاولة مرة أخرى أو استخدام /addfilter مباشرة."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:235
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:233
 msgid "AI Filter Suggestions"
 msgstr "اقتراحات فلتر الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:246
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 msgid "Use /addfilter <handler> to create the filter."
 msgstr "استخدم /addfilter <handler> لإنشاء الفلتر."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:247
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:245
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr "على سبيل المثال، {cmd}"
@@ -1052,19 +1052,15 @@ msgstr "باستخدام ميزات الذكاء الاصطناعي، فإنك �
 msgid "Research"
 msgstr "بحث"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:69
-msgid "The AI request failed. Please try again in a moment."
-msgstr "فشل طلب الذكاء الاصطناعي. الرجاء المحاولة مرة أخرى بعد قليل."
-
-#: sophie_bot/modules/ai/utils/ai_errors.py:257
+#: sophie_bot/modules/ai/utils/ai_errors.py:65
 msgid "🤖 AI request failed"
 msgstr "🤖 فشل طلب الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:268
+#: sophie_bot/modules/ai/utils/ai_errors.py:66
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "مزود الذكاء الاصطناعي لم يُكمل الطلب. الرجاء المحاولة مرة أخرى بعد قليل."
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:272
+#: sophie_bot/modules/ai/utils/ai_errors.py:330
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr "معرف المرجع"
@@ -5659,28 +5655,28 @@ msgstr "يرجى تقديم وصف للمهمة."
 msgid "Could not find chat model."
 msgstr "تعذر العثور على نموذج الدردشة."
 
-#: sophie_bot/modules/op/handlers/op_task.py:137
+#: sophie_bot/modules/op/handlers/op_task.py:136
 msgid "Error generating task description"
 msgstr "خطأ في توليد وصف المهمة"
 
-#: sophie_bot/modules/op/handlers/op_task.py:152
+#: sophie_bot/modules/op/handlers/op_task.py:150
 msgid "Failed to create GitLab issue"
 msgstr "فشل في إنشاء قضية GitLab"
 
-#: sophie_bot/modules/op/handlers/op_task.py:158
+#: sophie_bot/modules/op/handlers/op_task.py:156
 msgid "GitLab Issue Created"
 msgstr "تم إنشاء قضية GitLab"
 
-#: sophie_bot/modules/op/handlers/op_task.py:160
+#: sophie_bot/modules/op/handlers/op_task.py:158
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 msgid "Title"
 msgstr "العنوان"
 
-#: sophie_bot/modules/op/handlers/op_task.py:161
+#: sophie_bot/modules/op/handlers/op_task.py:159
 msgid "Issue"
 msgstr "مشكلة"
 
-#: sophie_bot/modules/op/handlers/op_task.py:162
+#: sophie_bot/modules/op/handlers/op_task.py:160
 msgid "Open in GitLab"
 msgstr "افتح في GitLab"
 
@@ -7055,8 +7051,8 @@ msgid "Configuration cancelled."
 msgstr ""
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:17
-#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:127
-#: sophie_bot/utils/handlers.py:136
+#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:124
+#: sophie_bot/utils/handlers.py:133
 msgid "The message is inaccessible. Please write the command again"
 msgstr "الرسالة غير متاحة. يرجى كتابة الأمر مرة أخرى"
 
@@ -8276,4 +8272,7 @@ msgstr "لم يتم العثور على الإشارة إلى المستخدم"
 
 #~ msgid "Enabled, expires in {time}"
 #~ msgstr "مفعل، تنتهي في {time}"
+
+#~ msgid "The AI request failed. Please try again in a moment."
+#~ msgstr "فشل طلب الذكاء الاصطناعي. الرجاء المحاولة مرة أخرى بعد قليل."
 

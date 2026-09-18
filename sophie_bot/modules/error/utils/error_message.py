@@ -13,7 +13,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-def get_error_message(exception: Exception) -> tuple[str | Element, ...]:
+def get_error_message(exception: Exception) -> tuple[str | Element | LazyProxy, ...]:
     if isinstance(exception, SophieException):
         # It has 'docs' field
         return exception.docs

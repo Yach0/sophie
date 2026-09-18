@@ -383,23 +383,23 @@ msgstr "Suggère des gestionnaires de filtre à partir d'une description en lang
 msgid "Describe what the filter should catch"
 msgstr "Décrivez ce que le filtre doit détecter"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:228
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:227
 msgid "Could not generate suggestions"
 msgstr "Impossible de générer des suggestions"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:232
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:230
 msgid "Could not generate suggestions. Please try again or use /addfilter directly."
 msgstr "Impossible de générer des suggestions. Veuillez réessayer ou utiliser /addfilter directement."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:235
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:233
 msgid "AI Filter Suggestions"
 msgstr "Suggestions de filtre IA"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:246
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 msgid "Use /addfilter <handler> to create the filter."
 msgstr "Utilisez /addfilter <handler> pour créer le filtre."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:247
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:245
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr "Par exemple, {cmd}"
@@ -1048,19 +1048,15 @@ msgstr "En utilisant les fonctionnalités d'IA, vous acceptez notre Politique de
 msgid "Research"
 msgstr "Recherche"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:69
-msgid "The AI request failed. Please try again in a moment."
-msgstr "La requête IA a échoué. Veuillez réessayer dans un instant."
-
-#: sophie_bot/modules/ai/utils/ai_errors.py:257
+#: sophie_bot/modules/ai/utils/ai_errors.py:65
 msgid "🤖 AI request failed"
 msgstr "🤖 Requête IA échouée"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:268
+#: sophie_bot/modules/ai/utils/ai_errors.py:66
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "Le fournisseur d'IA n'a pas complété la requête. Veuillez réessayer dans un instant."
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:272
+#: sophie_bot/modules/ai/utils/ai_errors.py:330
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr "ID de référence"
@@ -5651,28 +5647,28 @@ msgstr "Veuillez fournir une description pour la tâche."
 msgid "Could not find chat model."
 msgstr "Impossible de trouver le modèle de chat."
 
-#: sophie_bot/modules/op/handlers/op_task.py:137
+#: sophie_bot/modules/op/handlers/op_task.py:136
 msgid "Error generating task description"
 msgstr "Erreur lors de la génération de la description de la tâche"
 
-#: sophie_bot/modules/op/handlers/op_task.py:152
+#: sophie_bot/modules/op/handlers/op_task.py:150
 msgid "Failed to create GitLab issue"
 msgstr "Échec de la création du ticket GitLab"
 
-#: sophie_bot/modules/op/handlers/op_task.py:158
+#: sophie_bot/modules/op/handlers/op_task.py:156
 msgid "GitLab Issue Created"
 msgstr "Ticket GitLab créé"
 
-#: sophie_bot/modules/op/handlers/op_task.py:160
+#: sophie_bot/modules/op/handlers/op_task.py:158
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 msgid "Title"
 msgstr "Titre"
 
-#: sophie_bot/modules/op/handlers/op_task.py:161
+#: sophie_bot/modules/op/handlers/op_task.py:159
 msgid "Issue"
 msgstr "Ticket"
 
-#: sophie_bot/modules/op/handlers/op_task.py:162
+#: sophie_bot/modules/op/handlers/op_task.py:160
 msgid "Open in GitLab"
 msgstr "Ouvrir dans GitLab"
 
@@ -7047,8 +7043,8 @@ msgid "Configuration cancelled."
 msgstr ""
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:17
-#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:127
-#: sophie_bot/utils/handlers.py:136
+#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:124
+#: sophie_bot/utils/handlers.py:133
 msgid "The message is inaccessible. Please write the command again"
 msgstr "Le message est inaccessible. Veuillez écrire à nouveau la commande /enableall"
 
@@ -8268,4 +8264,7 @@ msgstr "Impossible de trouver la mention d'utilisateur"
 
 #~ msgid "Enabled, expires in {time}"
 #~ msgstr "Activé, expire dans {time}"
+
+#~ msgid "The AI request failed. Please try again in a moment."
+#~ msgstr "La requête IA a échoué. Veuillez réessayer dans un instant."
 
