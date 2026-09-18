@@ -1,4 +1,5 @@
 .git
+/debug/
 .gitignore
 .venv
 __pycache__
