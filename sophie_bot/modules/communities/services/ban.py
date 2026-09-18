@@ -11,7 +11,7 @@ from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, CommunityBanModel
-from sophie_bot.db.models.chat import UserInGroupModel, is_member_chat
+from sophie_bot.db.models.chat import ChatType, UserInGroupModel
 from sophie_bot.modules.communities.exceptions import CommunityBanValidationError
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
@@ -69,12 +69,12 @@ class CommunityBanService:
         chats = [
             chat
             for chat in await ChatModel.find(ChatModel.community_tid == community_tid).to_list()
-            if is_member_chat(chat)
+            if chat.type != ChatType.channel
         ]
         chat_iids = [chat.iid for chat in chats]
         if current_chat_iid and current_chat_iid not in chat_iids:
             extra_chat = await ChatModel.get_by_iid(current_chat_iid)
-            if extra_chat and is_member_chat(extra_chat):
+            if extra_chat and extra_chat.type != ChatType.channel:
                 chats.append(extra_chat)
                 chat_iids.append(current_chat_iid)
 
@@ -132,7 +132,11 @@ class CommunityBanService:
     ) -> int:
         if not chat_iids:
             return 0
-        chats = [chat for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list() if is_member_chat(chat)]
+        chats = [
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+            if chat.type != ChatType.channel
+        ]
 
         async def unban_chat(chat: ChatModel) -> bool:
             result = await execute_restriction(bot, RestrictionAction.UNBAN, chat.tid, user_tid)

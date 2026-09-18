@@ -12,7 +12,7 @@ from beanie.odm.operators.find.comparison import In
 from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models.chat import ChatModel, UserInGroupModel, is_member_chat
+from sophie_bot.db.models.chat import ChatModel, ChatType, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.metrics.federation import track_federation_ban
@@ -127,7 +127,7 @@ class FederationBanService:
             member_chats = [
                 chat
                 for chat in await ChatModel.find(In(ChatModel.iid, sub_chat_iids)).to_list()
-                if is_member_chat(chat)
+                if chat.type != ChatType.channel
             ]
             member_chat_iids = [chat.iid for chat in member_chats]
             if not member_chat_iids:
@@ -178,7 +178,11 @@ class FederationBanService:
         if current_chat_iid and current_chat_iid not in chat_iids:
             chat_iids.append(current_chat_iid)
 
-        chats = [chat for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list() if is_member_chat(chat)]
+        chats = [
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+            if chat.type != ChatType.channel
+        ]
         chat_iids = [chat.iid for chat in chats]
         if not chat_iids:
             return 0
@@ -268,7 +272,9 @@ class FederationBanService:
         if not chat_iids:
             return 0
         chats = [
-            chat for chat in await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list() if is_member_chat(chat)
+            chat
+            for chat in await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
+            if chat.type != ChatType.channel
         ]
 
         async def unban_chat(chat: ChatModel) -> bool:
@@ -292,7 +298,7 @@ class FederationBanService:
         chats = [
             chat
             for chat in await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
-            if is_member_chat(chat)
+            if chat.type != ChatType.channel
         ]
 
         async def unban_chat(chat: ChatModel) -> bool:
