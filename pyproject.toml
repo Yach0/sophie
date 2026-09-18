@@ -34,7 +34,7 @@ dependencies = [
     # Sophie speaks httpx2, but mistralai and the Tavily search tool still raise legacy httpx
     # exceptions that the AI retry classifier has to recognise. See ai_errors.py.
     "httpx>=0.28.1,<0.29",
-    "uvicorn>=0.52.4,<0.53",
+    "uvicorn>=0.53,<0.54",
     "uvloop>=0.22.1,<0.23",
     "pyjwt>=2.13.0,<3",
     "init-data-py>=1,<1.1",
