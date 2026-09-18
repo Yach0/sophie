@@ -38,14 +38,12 @@ class SetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("This chat is not initialized yet."))
             return
 
-        # Get federation for this chat
         chat_iid = connection.db_model.iid
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
 
-        # Check if user is federation owner
         user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
@@ -55,7 +53,6 @@ class SetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("Only the federation owner can set the log channel."))
             return
 
-        # Check if log channel is already set
         if federation.log_chat:
             await self.event.reply(
                 _("This federation already has a log channel set. Use /funsetlog to remove it first.")
@@ -117,14 +114,12 @@ class UnsetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("This chat is not initialized yet."))
             return
 
-        # Get federation for this chat
         chat_iid = connection.db_model.iid
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
             return
 
-        # Check if user is federation owner
         user_db = await require_acting_user(self.event, self.context)
         if not user_db:
             return
