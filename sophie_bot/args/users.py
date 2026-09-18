@@ -24,7 +24,6 @@ class SophieUserIDArg(UserIDArg[ChatModel]):
         if user_id < 0 or user_id > TELEGRAM_USER_ID_MAX:
             raise ArgStrictError(_("Invalid user ID."))
 
-        # Find user
         try:
             return await ChatModel.find_user(user_id)
         except DBNotFoundException:
@@ -39,7 +38,6 @@ class SophieUsernameArg(UsernameArg[ChatModel]):
     async def value(self, text: str) -> ChatModel:
         username = self.parse_username(text)
 
-        # Find user
         try:
             return await ChatModel.find_user_by_username(username)
         except DBNotFoundException:
@@ -51,7 +49,6 @@ class SophieUserMentionArg(UserMentionArg[ChatModel]):
         aiogram_user: User
         length, aiogram_user = await super().parse_user_mention(text, offset, entities)
 
-        # Find user
         try:
             user = await ChatModel.find_user(aiogram_user.id)
         except DBNotFoundException:
