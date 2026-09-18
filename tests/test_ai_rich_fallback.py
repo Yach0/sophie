@@ -150,7 +150,12 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
         AsyncMock(return_value=SimpleNamespace(primary=SimpleNamespace(model_name="model"))),
     )
     monkeypatch.setattr(proactive_replies, "get_service_tier", AsyncMock(return_value=None))
-    monkeypatch.setattr(proactive_replies, "get_ai_header_style", AsyncMock(return_value="table"))
+    monkeypatch.setattr(proactive_replies, "get_ai_header_style", AsyncMock(return_value="simple"))
+    monkeypatch.setattr(
+        proactive_replies,
+        "is_enabled",
+        AsyncMock(side_effect=lambda feature, **_kwargs: feature == "ai_chatbot_strip_alien_html_tags"),
+    )
     monkeypatch.setattr(
         proactive_replies,
         "_build_answer_history",

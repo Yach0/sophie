@@ -5,6 +5,12 @@ from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CUSTOM_EMOJI_ID,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+)
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_thinking_text
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 
@@ -47,6 +53,40 @@ def test_simple_footer_is_removed_after_multiline_body() -> None:
     assert cut_titlebar(text) == "Response text\nMight be many lines\n123"
 
 
+def test_rendered_simple_header_is_removed_from_cached_multiline_body() -> None:
+    body = "Hello there! How are you?\nNew line test text\nThird line"
+    header = build_ai_header("simple", ai_credit_header(95))
+
+    doc = build_ai_message_doc(header, body)
+
+    assert doc.to_rich() == (
+        f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {body}'
+        '<br><tg-emoji emoji-id="5816915599019741395">🔋</tg-emoji> 95%'
+    )
+    assert cut_titlebar(doc.to_md()) == body
+
+
+def test_rendered_tool_labels_and_model_footer_are_removed_from_cached_body() -> None:
+    body = "Reply here"
+    tool_labels = ("🔍 Internet Search", "📝 Notes")
+    header = build_ai_header("simple", ai_credit_header(45, "Gemini 5"))
+    doc = build_ai_message_doc(header, body, tool_labels=tool_labels)
+
+    text = doc.to_md()
+
+    assert is_ai_message(text)
+    assert cut_titlebar(text, tool_labels=tool_labels) == body
+
+
+def test_old_custom_battery_markup_is_removed_from_cached_body() -> None:
+    text = (
+        "✨ Hello there! How are you?\nNew line test text\nThird line\n"
+        '<tg-emoji emoji-id="5816915599019741395">🔋</tg-emoji> 95%'
+    )
+
+    assert cut_titlebar(text) == "Hello there! How are you?\nNew line test text\nThird line"
+
+
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
     text = "A header-free answer\nwith another line"
 
@@ -60,10 +100,7 @@ def test_is_ai_message_accepts_the_table_header() -> None:
 
 
 def test_is_ai_message_accepts_the_in_progress_placeholder() -> None:
-    """Replying while the answer is still being generated must continue the conversation.
-
-    The placeholder carries no table header, so the progress marker is what identifies it.
-    """
+    """The progress marker identifies an answer before its completed-message markers exist."""
     placeholder = _as_telegram_shows(Doc(ai_progress_line(random_ai_thinking_text())).to_html())
 
     assert is_ai_message(placeholder)
@@ -115,15 +152,29 @@ def test_message_text_reads_inline_simple_rich_message() -> None:
     assert cut_titlebar(text) == "Answer"
 
 
+def test_message_text_prefers_rich_content_over_plain_fallback() -> None:
+    message = SimpleNamespace(
+        text="Answer",
+        rich_message=SimpleNamespace(blocks=[SimpleNamespace(text=["✨ Answer"]), SimpleNamespace(text="🔋 80%")]),
+    )
+
+    text = message_text(message)
+
+    assert text == "✨ Answer\n🔋 80%"
+    assert is_ai_message(text)
+
+
 def _compact_heading_ai_message() -> SimpleNamespace:
+    ai_emoji = SimpleNamespace(alternative_text="✨")
+    battery_emoji = SimpleNamespace(alternative_text="🔋")
     return SimpleNamespace(
         text=None,
         rich_message=SimpleNamespace(
             blocks=[
-                SimpleNamespace(text="✨ "),
+                SimpleNamespace(text=[ai_emoji, " "]),
                 SimpleNamespace(text="Answer heading"),
                 SimpleNamespace(text="Answer body"),
-                SimpleNamespace(text="🔋 80%"),
+                SimpleNamespace(text=[battery_emoji, " 80%"]),
             ]
         ),
         from_user=SimpleNamespace(id=CONFIG.bot_id),

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
-from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
 from stfu_tg import BlockQuote, Doc, Section
@@ -35,7 +35,9 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     build_chatbot_header,
     build_reply_doc,
     build_truncated_note,
+    model_display_name,
     truncate_output,
+    used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
 from sophie_bot.modules.ai.utils.chatbot_tool_history import remember_chatbot_tool_history
@@ -98,17 +100,15 @@ async def _resolve_model_plan(
 
 async def _build_chatbot_header(
     connection: ChatConnection,
-    model: Model,
-    message_history: list[ModelRequest | ModelResponse],
     style: AIHeaderStyle,
+    model_label: str | None = None,
     *,
     services: ApplicationServices,
 ) -> Element | str | None:
     return await build_chatbot_header(
         connection.db_model.iid,
-        model,
-        message_history,
         style,
+        model_label,
         redis=services.redis,
     )
 
@@ -138,7 +138,8 @@ async def _build_fitting_reply_doc(
     result: AIAgentResult[str] | None,
     explicit_debug_mode: bool,
     chat_tid: int,
-    header_style: AIHeaderStyle = "table",
+    tool_labels: Sequence[str] = (),
+    strip_alien_html_tags: bool = False,
     *,
     services: ApplicationServices,
 ) -> Doc:
@@ -161,7 +162,8 @@ async def _build_fitting_reply_doc(
             chat_tid=chat_tid,
             mention_index=mention_index,
             redis=services.redis,
-            header_style=header_style,
+            tool_labels=tool_labels,
+            strip_alien_html_tags=strip_alien_html_tags,
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
@@ -182,9 +184,9 @@ async def _build_fitting_reply_doc(
         result,
         explicit_debug_mode,
         chat_tid=chat_tid,
-        mention_index=mention_index,
-        header_style=header_style,
         redis=services.redis,
+        tool_labels=tool_labels,
+        strip_alien_html_tags=strip_alien_html_tags,
     )
 
 
@@ -238,12 +240,18 @@ async def ai_chatbot_reply(
         model_plan = await _resolve_model_plan(connection, model, mode, services=services)
         model = model_plan.primary
         header_style = await get_ai_header_style("chatbot", message.chat.id, redis=services.redis)
+        strip_alien_html_tags = await is_enabled(
+            "ai_chatbot_strip_alien_html_tags",
+            chat_tid=message.chat.id,
+            redis=services.redis,
+        )
         message_streamer = await build_message_streamer(
             message,
             model,
             explicit_debug_mode,
             header_style,
             redis=services.redis,
+            strip_alien_html_tags=strip_alien_html_tags,
         )
         context = SophieAIToolContext(
             connection=connection,
@@ -318,11 +326,18 @@ async def ai_chatbot_reply(
         # the header both follow the model that actually answered.
         model = result.served_model or model
 
+        header_style, show_model_name = await asyncio.gather(
+            get_ai_header_style("chatbot", message.chat.id, redis=services.redis),
+            is_enabled(
+                "ai_chatbot_show_model_name",
+                chat_tid=message.chat.id,
+                redis=services.redis,
+            ),
+        )
         header = await _build_chatbot_header(
             connection,
-            model,
-            result.message_history,
             header_style,
+            model_display_name(model) if show_model_name else None,
             services=services,
         )
         research_response = (
@@ -334,6 +349,7 @@ async def ai_chatbot_reply(
             )
             else None
         )
+        tool_labels = used_tool_labels(result.message_history[len(previous_history) :])
         output_text = truncate_output(header, str(result.output))
         doc = await _build_fitting_reply_doc(
             header,
@@ -342,8 +358,9 @@ async def ai_chatbot_reply(
             result,
             explicit_debug_mode,
             chat_tid=message.chat.id,
-            header_style=header_style,
             services=services,
+            tool_labels=tool_labels,
+            strip_alien_html_tags=strip_alien_html_tags,
         )
         # Appended to the doc rather than to the text, so the length-fitting loop above cannot eat
         # it — a truncated reply is exactly the case where the loop is shrinking hardest.
@@ -367,7 +384,7 @@ async def ai_chatbot_reply(
             final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
 
         await cache_message(
-            cut_titlebar(doc.to_md()),
+            cut_titlebar(doc.to_md(), tool_labels=tool_labels),
             message.chat.id,
             CONFIG.bot_id,
             final_message.message_id,

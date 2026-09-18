@@ -30,7 +30,13 @@ from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunRequest,
     run_chatbot,
 )
-from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, build_reply_doc, truncate_output
+from sophie_bot.modules.ai.utils.chatbot_response import (
+    build_chatbot_header,
+    build_reply_doc,
+    model_display_name,
+    truncate_output,
+    used_tool_labels,
+)
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
 from sophie_bot.modules.ai.utils.proactive_prompt import build_decision_history as _build_decision_history
@@ -347,6 +353,7 @@ async def _answer_message(
         service_tier=service_tier or "none",
     )
     history = await _build_answer_history(chat_tid, target_message, services=services)
+    previous_history = list(history.message_history)
     context = SophieAIToolContext(
         connection=connection,
         chat_tid=chat_tid,
@@ -371,14 +378,19 @@ async def _answer_message(
         )
     model = result.served_model or model
     header_style = await get_ai_header_style("proactive_replies", chat_tid, redis=services.redis)
+    show_model_name = await is_enabled(
+        "ai_chatbot_show_model_name",
+        chat_tid=chat_tid,
+        redis=services.redis,
+    )
     header = await build_chatbot_header(
         chat.iid,
-        model,
-        result.message_history,
         header_style,
+        model_display_name(model) if show_model_name else None,
         redis=services.redis,
     )
     output_text = truncate_output(header, str(result.output))
+    tool_labels = used_tool_labels(result.message_history[len(previous_history) :])
     doc = await build_reply_doc(
         header,
         output_text,
@@ -386,8 +398,13 @@ async def _answer_message(
         result,
         False,
         chat_tid=chat_tid,
-        header_style=header_style,
         redis=services.redis,
+        tool_labels=tool_labels,
+        strip_alien_html_tags=await is_enabled(
+            "ai_chatbot_strip_alien_html_tags",
+            chat_tid=chat_tid,
+            redis=services.redis,
+        ),
     )
     _log_proactive_info(
         "Proactive AI answer send started",
@@ -410,7 +427,7 @@ async def _answer_message(
         sent_message_id=sent_message.message_id,
     )
     await cache_message(
-        cut_titlebar(doc.to_md()),
+        cut_titlebar(doc.to_md(), tool_labels=tool_labels),
         chat_tid,
         CONFIG.bot_id,
         sent_message.message_id,

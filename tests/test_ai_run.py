@@ -9,7 +9,6 @@ import pytest
 from pydantic import BaseModel
 from pydantic_ai import (
     Agent,
-    AgentRunResultEvent,
     FunctionToolCallEvent,
     PartDeltaEvent,
     PartEndEvent,
@@ -96,7 +95,7 @@ class FakeRunAgent:
 
 
 class FakeEventAgent:
-    """Replays a scripted event stream through ``run_stream_events``."""
+    """Replays scripted events through a Pydantic AI event stream handler."""
 
     def __init__(self, events: list[Any], final_output: str, raises: Exception | None = None) -> None:
         self.model = TestModel()
@@ -105,18 +104,18 @@ class FakeEventAgent:
         self.raises = raises
         self.run_kwargs: dict[str, Any] | None = None
 
-    @asynccontextmanager
-    async def run_stream_events(self, **kwargs: Any) -> AsyncGenerator[AsyncIterable[Any]]:
+    async def run(self, **kwargs: Any) -> FakeRunResult:
         self.run_kwargs = kwargs
+        event_stream_handler = kwargs["event_stream_handler"]
 
         async def stream() -> AsyncIterable[Any]:
             for event in self.events:
                 yield event
             if self.raises is not None:
                 raise self.raises
-            yield AgentRunResultEvent(cast(Any, FakeRunResult(self.final_output)))
 
-        yield stream()
+        await event_stream_handler(None, stream())
+        return FakeRunResult(self.final_output)
 
 
 class FakeStreamResult:
@@ -240,12 +239,7 @@ async def test_run_ai_stream_legacy_path_sends_cumulative_text_and_deduplicates_
     assert result.output == "hello"
 
 
-async def test_run_ai_stream_concatenates_text_from_every_round(no_stream_debounce: None) -> None:
-    """A model that narrates, calls a tool, then answers must keep both rounds of text.
-
-    `Agent.run_stream` ended the run at the narration and dropped the answer; this is the
-    regression guard for that.
-    """
+async def test_run_ai_stream_completes_tool_loop_and_uses_final_output(no_stream_debounce: None) -> None:
     streamed_text: list[str] = []
     tool_calls: list[str] = []
 
@@ -272,12 +266,34 @@ async def test_run_ai_stream_concatenates_text_from_every_round(no_stream_deboun
         on_tool_call=on_tool_call,
     )
 
-    assert result.output == "Let me check the docs.\n\nAntiflood works like this."
+    assert result.output == "Antiflood works like this."
     assert tool_calls == ["sophie_help"]
-    # Cumulative, never a bare delta, and the second round appends to the first.
     assert streamed_text[-1] == result.output
-    assert streamed_text[1] == "Let me check "
     assert "Let me check the docs." in streamed_text
+
+
+async def test_run_ai_stream_does_not_duplicate_restarted_text_part(no_stream_debounce: None) -> None:
+    streamed_text: list[str] = []
+
+    async def on_text_stream(text: str) -> None:
+        streamed_text.append(text)
+    formatted_answer = "Testing mode: *beep boop*"
+    agent = FakeEventAgent(
+        events=[
+            *text_round(formatted_answer),
+            *text_round("Testing mode: beep boop"),
+        ],
+        final_output=formatted_answer,
+    )
+
+    result = await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="Reply once",
+        on_text_stream=on_text_stream,
+    )
+
+    assert result.output == formatted_answer
+    assert streamed_text[-1] == formatted_answer
 
 
 async def test_run_ai_stream_forces_latest_text_before_a_tool_call() -> None:

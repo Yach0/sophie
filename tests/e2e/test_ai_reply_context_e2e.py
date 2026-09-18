@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.types import Message, Update, User
+from aiogram.types import Message, RichBlockParagraph, RichMessage, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 
@@ -113,7 +113,16 @@ async def test_reply_to_ai_without_command_builds_reply_title(test_client: TestC
     alice = User(id=929000093, is_bot=False, first_name="Alice")
     sophie = User(id=CONFIG.bot_id, is_bot=True, first_name="Sophie")
     await test_client.send_message(text="init", from_user=alice, chat=group)
-    ai_message = MessageFactory.create(text="✨ AI | Answer\nEarlier answer", from_user=sophie, chat=group)
+    ai_message = MessageFactory.create(text="Earlier answer", from_user=sophie, chat=group).model_copy(
+        update={
+            "rich_message": RichMessage(
+                blocks=[
+                    RichBlockParagraph(text=["✨ Earlier answer"]),
+                    RichBlockParagraph(text=["🔋 80%"]),
+                ]
+            )
+        }
+    )
     follow_up = MessageFactory.create(
         text="follow up",
         from_user=alice,
