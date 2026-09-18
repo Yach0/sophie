@@ -9,37 +9,23 @@ from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
 from sophie_bot.modules.ai.utils.ai_header import AI_HEADER_LABEL, AI_HEADER_SEPARATOR, AI_SIMPLE_HEADER_PREFIX
 from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 
-_BATTERY_EMOJI = r"(?:🔋|<tg-emoji\b[^>]*>🔋</tg-emoji>)"
-
 
 def _rich_block_text(block: object) -> str:
     """Flatten one rich block to text, joining table cells the way to_html() does."""
-
-    def rich_text_value(value: object) -> str:
-        if isinstance(value, str):
-            return value
-        if isinstance(value, (list, tuple)):
-            return "".join(rich_text_value(item) for item in value)
-
-        nested_text = getattr(value, "text", None)
-        if nested_text is not None:
-            return rich_text_value(nested_text)
-
-        for attribute in ("alternative_text", "expression", "name"):
-            attribute_value = getattr(value, attribute, None)
-            if isinstance(attribute_value, str):
-                return attribute_value
-        return ""
-
     cells = getattr(block, "cells", None)
     if isinstance(cells, list):
         return "\n".join(
-            AI_HEADER_SEPARATOR.join(rich_text_value(getattr(cell, "text", "")) for cell in row)
+            AI_HEADER_SEPARATOR.join(str(getattr(cell, "text", "") or "") for cell in row)
             for row in cells
             if isinstance(row, list)
         )
 
-    return rich_text_value(getattr(block, "text", None))
+    block_text = getattr(block, "text", None)
+    if isinstance(block_text, str):
+        return block_text
+    if isinstance(block_text, list):
+        return "".join(item for item in block_text if isinstance(item, str))
+    return ""
 
 
 def message_text(message: Message | object) -> str:
@@ -66,7 +52,7 @@ def is_ai_message(text: str) -> bool:
     if first_line == AI_SIMPLE_HEADER_PREFIX or first_line.startswith(AI_SIMPLE_HEADER_PREFIX + " "):
         return True
     if (first_line == AI_EMOJI or first_line.startswith(AI_EMOJI + " ")) and "\n" in text:
-        return bool(re.match(rf"^{_BATTERY_EMOJI} \d+%$", text.rsplit("\n", 1)[-1]))
+        return text.rsplit("\n", 1)[-1].startswith("🔋 ")
 
     # An answer still being generated has no header yet — it is a plain progress line, and replying
     # to it has to continue the conversation just like replying to the finished message does.
@@ -80,7 +66,7 @@ def is_ai_message(text: str) -> bool:
 
 def cut_titlebar(text: str) -> str:
     simple_footer_match = re.match(
-        rf"^{re.escape(AI_EMOJI)}(?: *\n+| )(.+)\n+{_BATTERY_EMOJI} \d+%$",
+        rf"^{re.escape(AI_EMOJI)}(?: *\n+| )(.+)\n+🔋 \d+%$",
         text,
         re.DOTALL,
     )
