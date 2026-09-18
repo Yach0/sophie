@@ -51,6 +51,14 @@ build_standalone:
 	uv run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone
 
 # Development with hot-reload
+DEBUG_CONFIG ?= data/debug.env
+DEBUG_ARGS ?=
+
+dev:
+	@echo "Starting Sophie development debugger..."
+	uv run python -m debug --config "$(DEBUG_CONFIG)" $(DEBUG_ARGS)
+
+
 dev_bot:
 	@echo "Starting bot with hot-reload..."
 	DEV_RELOAD=true MODE=bot uv run python -m sophie_bot
@@ -66,11 +74,11 @@ dev_scheduler:
 fix_code_style:
 	uv run python -m pycln . -a
 	uv run ruff check . --fix
-	uv run ruff format sophie_bot/
+	uv run ruff format sophie_bot/ debug/
 
 test_code_style:
 	uv run python -m pycln . -a -c
-	uv run ruff format sophie_bot/ --check
+	uv run ruff format sophie_bot/ debug/ --check
 	uv run ruff check .
 
 test_codeanalysis:
@@ -86,7 +94,7 @@ qodana:
 		"$(QODANA_IMAGE)"
 
 run_tests:
-	uv run python -m pytest tests/ -v --alluredir=allure_results -n auto
+	uv run python -m pytest tests/ debug/tests/ -v --alluredir=allure_results -n auto
 
 # Locale
 
