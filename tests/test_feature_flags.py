@@ -79,8 +79,6 @@ _REDIS_BOUND_FUNCTIONS = (
 )
 
 
-
-
 def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
     for chat_tid in range(-1002951000, -1002950000):
         if _is_chat_in_rollout(FEATURE, chat_tid, 10) is expected_in_rollout:
@@ -212,12 +210,16 @@ class TestFeatureMetadata:
 
     def test_ai_header_style_values_are_declared_in_metadata(self) -> None:
         assert get_value_kind("ai_chatbot_header_style") == "ai_header_style"
-        assert get_allowed_string_values("ai_chatbot_header_style") == frozenset({"table", "disable", "simple"})
+        assert get_allowed_string_values("ai_chatbot_header_style") == frozenset({"disable", "simple"})
 
-    def test_every_ai_header_style_defaults_to_table(self) -> None:
+    def test_every_ai_header_style_defaults_to_simple(self) -> None:
         header_flags = [feature for feature in FEATURE_FLAGS if feature.endswith("header_style")]
         assert header_flags
-        assert {get_default_value(feature) for feature in header_flags} == {"table"}
+        assert {get_default_value(feature) for feature in header_flags} == {"simple"}
+
+    def test_ai_output_sanitizer_and_model_label_defaults(self) -> None:
+        assert get_default_value("ai_chatbot_strip_alien_html_tags") is True
+        assert get_default_value("ai_chatbot_show_model_name") is False
 
     def test_plain_string_values_are_unrestricted(self) -> None:
         assert get_value_kind("ai_chatbot_system_prompt") == "plain"
@@ -573,7 +575,6 @@ class TestSetGetValue:
         assert await get_value("ai_chatbot_streaming_backoff_seconds") is not True
 
 
-
 class TestSetEnabled:
     async def test_set_enabled_true(self) -> None:
         await set_enabled(FEATURE, True)
@@ -582,7 +583,6 @@ class TestSetEnabled:
     async def test_set_enabled_false(self) -> None:
         await set_enabled(BOOL_FEATURE_DEFAULT_TRUE, False)
         assert await is_enabled(BOOL_FEATURE_DEFAULT_TRUE) is False
-
 
 
 class TestDeleteOverride:
@@ -596,7 +596,6 @@ class TestDeleteOverride:
     async def test_delete_nonexistent_override_is_safe(self) -> None:
         await delete_override(FEATURE)
         assert await is_enabled(FEATURE) is False
-
 
 
 class TestListAll:
@@ -632,8 +631,6 @@ class TestRedisFallback:
         assert states[FEATURE] is False
 
 
-
-
 # ===========================================================================
 # Chat overrides
 # ===========================================================================
@@ -663,7 +660,6 @@ class TestChatOverrides:
     async def test_delete_nonexistent_chat_override_is_safe(self) -> None:
         await delete_chat_override(FEATURE, CHAT_TID_A)
         assert await get_chat_override(FEATURE, CHAT_TID_A) is None
-
 
     async def test_chat_override_with_string_value(self) -> None:
         await set_chat_override("ai_summary_model", CHAT_TID_A, "openai/gpt-4o")
@@ -823,7 +819,6 @@ class TestDeleteRollout:
         assert await get_rollout(FEATURE) is None
 
 
-
 class TestListRollouts:
     async def test_empty_when_none_set(self) -> None:
         assert await list_rollouts() == {}
@@ -836,7 +831,6 @@ class TestListRollouts:
         assert BOOL_FEATURE_DEFAULT_TRUE in rollouts
         assert rollouts[FEATURE]["value"] is True
         assert rollouts[BOOL_FEATURE_DEFAULT_TRUE]["value"] is False
-
 
 
 class TestTimedRollout:

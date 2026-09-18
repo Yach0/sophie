@@ -11,7 +11,6 @@ from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import (
     Agent,
-    AgentRunResultEvent,
     AgentStreamEvent,
     FunctionToolCallEvent,
     PartDeltaEvent,
@@ -24,7 +23,7 @@ from pydantic_ai import (
     ThinkingPartDelta,
     capture_run_messages,
 )
-from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
+from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage, UsageLimits
@@ -285,56 +284,34 @@ class AIAgentResult[OutputT](BaseModel):
 
 
 @dataclass(slots=True)
-class _PartAccumulator:
-    """Reassembles one kind of model output (text or thinking) from a run's event stream.
+class _StreamChannel:
+    """One indexed response buffer plus its debounced consumer."""
 
-    Part indices restart with every model response, so segments are tracked through the part
-    lifecycle instead of by index: ``end`` closes the in-flight segment with the authoritative
-    content pydantic-ai hands back, and ``start`` closes any segment that never got an end event.
-
-    Deltas go into a chunk list and closed segments into a running prefix, so rendering a growing
-    reply on every delta stays linear instead of re-joining everything each time.
-    """
-
-    prefix: str = ""
-    active: list[str] = field(default_factory=list)
+    callback: TextStreamCallback | None
+    parts: dict[int, list[str]] = field(default_factory=dict)
+    last_emit: float = 0.0
 
     @property
     def empty(self) -> bool:
-        return not self.prefix and not any(self.active)
+        return not any(self.parts.values())
 
-    def start(self, content: str) -> None:
-        self._close()
-        self.active = [content] if content else []
+    def reset(self) -> None:
+        self.parts.clear()
 
-    def delta(self, content: str) -> None:
-        self.active.append(content)
+    def start(self, part_index: int, content: str) -> None:
+        self.parts[part_index] = [content] if content else []
 
-    def end(self, content: str) -> None:
-        self.active = [content] if content else []
-        self._close()
+    def delta(self, part_index: int, content: str) -> None:
+        self.parts.setdefault(part_index, []).append(content)
+
+    def end(self, part_index: int, content: str) -> None:
+        self.parts[part_index] = [content] if content else []
+
+    def replace(self, content: str) -> None:
+        self.parts = {0: [content]} if content else {}
 
     def render(self) -> str:
-        active = "".join(self.active)
-        if not self.prefix:
-            return active
-        return f"{self.prefix}\n\n{active}" if active else self.prefix
-
-    def _close(self) -> None:
-        segment = "".join(self.active)
-        self.active = []
-        if not segment:
-            return
-        self.prefix = f"{self.prefix}\n\n{segment}" if self.prefix else segment
-
-
-@dataclass(slots=True)
-class _StreamChannel:
-    """One accumulated output channel (answer text or reasoning) plus its debounced consumer."""
-
-    callback: TextStreamCallback | None
-    parts: _PartAccumulator = field(default_factory=_PartAccumulator)
-    last_emit: float = 0.0
+        return "".join("".join(self.parts[part_index]) for part_index in sorted(self.parts))
 
     async def emit(self, *, force: bool = False) -> None:
         if self.callback is None:
@@ -343,7 +320,7 @@ class _StreamChannel:
         if not force and now - self.last_emit < _STREAM_DEBOUNCE_SECONDS:
             return
         self.last_emit = now
-        await self.callback(self.parts.render())
+        await self.callback(self.render())
 
 
 @dataclass(frozen=True, slots=True)
@@ -632,12 +609,10 @@ async def _stream_via_events[DepsT](
     seen_tool_names: set[str],
     partial_on_limit: bool,
 ) -> _StreamOutcome:
-    """Stream a run over the agent's full event stream.
+    """Run the full agent loop while forwarding Pydantic AI stream events.
 
-    ``Agent.run_stream`` ends the agent graph at the first text token, so a model that narrates
-    before acting has its narration promoted to the final answer and its tool calls discarded.
-    ``run_stream_events`` wraps ``Agent.run`` instead, so the tool-calling loop runs to completion.
-    Text from every round is concatenated, because the run result only carries the last round's.
+    ``Agent.run_stream`` treats the first text output as final and can skip later tool calls.
+    ``Agent.run`` completes the graph and owns the final output, usage, and message history.
     """
     text = _StreamChannel(on_text_stream)
     reasoning = _StreamChannel(on_reasoning_stream)
@@ -645,16 +620,69 @@ async def _stream_via_events[DepsT](
     stream_start = time.perf_counter()
     first_token_seen = False
     chunk_count = 0
-    output_text = ""
-    usage = RunUsage()
-    result_message_history: list[ModelRequest | ModelResponse] = []
 
     def note_first_token() -> None:
         nonlocal first_token_seen
-        if first_token_seen or text.parts.empty:
+        if first_token_seen or text.empty:
             return
         first_token_seen = True
         track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
+
+    async def event_stream_handler(
+        _ctx: RunContext[DepsT],
+        events: AsyncIterable[AgentStreamEvent],
+    ) -> None:
+        nonlocal chunk_count
+        text_response_started = False
+        reasoning_response_started = False
+
+        async for event in events:
+            match event:
+                case PartStartEvent(index=part_index, part=TextPart(content=content)):
+                    if not text_response_started:
+                        text.reset()
+                        text_response_started = True
+                    text.start(part_index, content)
+                    note_first_token()
+                    await text.emit()
+                case PartStartEvent(index=part_index, part=ThinkingPart(content=content)):
+                    if not reasoning_response_started:
+                        reasoning.reset()
+                        reasoning_response_started = True
+                    reasoning.start(part_index, content)
+                    await reasoning.emit()
+                case PartDeltaEvent(index=part_index, delta=TextPartDelta(content_delta=content_delta)):
+                    if not text_response_started:
+                        text.reset()
+                        text_response_started = True
+                    chunk_count += 1
+                    text.delta(part_index, content_delta or "")
+                    note_first_token()
+                    await text.emit()
+                case PartDeltaEvent(index=part_index, delta=ThinkingPartDelta(content_delta=content_delta)):
+                    if not reasoning_response_started:
+                        reasoning.reset()
+                        reasoning_response_started = True
+                    reasoning.delta(part_index, content_delta or "")
+                    await reasoning.emit()
+                case PartEndEvent(index=part_index, part=TextPart(content=content)):
+                    if not text_response_started:
+                        text.reset()
+                        text_response_started = True
+                    text.end(part_index, content)
+                    note_first_token()
+                    await text.emit()
+                case PartEndEvent(index=part_index, part=ThinkingPart(content=content)):
+                    if not reasoning_response_started:
+                        reasoning.reset()
+                        reasoning_response_started = True
+                    reasoning.end(part_index, content)
+                    await reasoning.emit()
+                case FunctionToolCallEvent():
+                    await text.emit(force=True)
+                    if on_before_tool_call is not None:
+                        await on_before_tool_call(event.part.tool_name)
+                    await notify_tool_call(event.part.tool_name)
 
     # `partial_on_limit` is the only consumer, and capturing retains a second reference to the whole
     # message list for the length of the run, so only pay for it when it can be read.
@@ -662,49 +690,13 @@ async def _stream_via_events[DepsT](
 
     with capture as captured_messages:
         try:
-            async with agent.run_stream_events(**run_kwargs) as events:
-                async for event in events:
-                    match event:
-                        case PartStartEvent(part=TextPart(content=content)):
-                            text.parts.start(content)
-                            note_first_token()
-                            await text.emit()
-                        case PartStartEvent(part=ThinkingPart(content=content)):
-                            reasoning.parts.start(content)
-                            await reasoning.emit()
-                        case PartDeltaEvent(delta=TextPartDelta(content_delta=content_delta)):
-                            chunk_count += 1
-                            text.parts.delta(content_delta or "")
-                            note_first_token()
-                            await text.emit()
-                        case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=content_delta)):
-                            reasoning.parts.delta(content_delta or "")
-                            await reasoning.emit()
-                        case PartEndEvent(part=TextPart(content=content)):
-                            text.parts.end(content)
-                            note_first_token()
-                            await text.emit()
-                        case PartEndEvent(part=ThinkingPart(content=content)):
-                            reasoning.parts.end(content)
-                            await reasoning.emit()
-                        case FunctionToolCallEvent():
-                            # A tool may take much longer than the stream debounce. Push the full
-                            # narration through before execution starts so the user is not left
-                            # looking at an older partial draft throughout that wait.
-                            await text.emit(force=True)
-                            if on_before_tool_call is not None:
-                                await on_before_tool_call(event.part.tool_name)
-                            await notify_tool_call(event.part.tool_name)
-                        case AgentRunResultEvent():
-                            output_text = text.parts.render()
-                            usage = event.result.usage
-                            result_message_history = event.result.all_messages()
+            result = await agent.run(**run_kwargs, event_stream_handler=event_stream_handler)
         except UsageLimitExceeded:
             if not partial_on_limit:
                 raise
             captured = list(captured_messages)
             return _StreamOutcome(
-                output_text=text.parts.render(),
+                output_text=text.render(),
                 usage=_usage_from_messages(captured),
                 message_history=captured,
                 first_token_seen=first_token_seen,
@@ -712,13 +704,13 @@ async def _stream_via_events[DepsT](
                 truncated=True,
             )
 
-    if not result_message_history:
-        raise UnexpectedModelBehavior("Agent event stream ended without a run result")
-
+    output_text = str(result.output)
+    text.replace(output_text)
+    await text.emit(force=True)
     return _StreamOutcome(
         output_text=output_text,
-        usage=usage,
-        message_history=result_message_history,
+        usage=result.usage,
+        message_history=result.all_messages(),
         first_token_seen=first_token_seen,
         chunk_count=chunk_count,
     )

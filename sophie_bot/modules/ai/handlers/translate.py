@@ -9,7 +9,6 @@ from stfu_tg import (
     BlockQuote,
     Bold,
     Doc,
-    HList,
     PreformattedHTML,
     Section,
     Template,
@@ -106,13 +105,8 @@ def _build_translate_reply_doc(
     header_style: AIHeaderStyle,
 ) -> Doc:
     """Format the translation response document."""
-    status = HList(
-        _("Auto Translator") if is_autotranslate else _("Translator"),
-        f"({_('Voice')})" if is_voice else None,
-    )
-    header = build_ai_header(header_style, status, quota_header or "")
+    header = build_ai_header(header_style, quota_header or "")
     return build_ai_message_doc(
-        header_style,
         header,
         (
             Bold(

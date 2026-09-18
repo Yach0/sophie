@@ -141,7 +141,7 @@ def _build_summary_doc(
     summary_date: date,
     overview: str,
     lines: list[AIChatSummaryLine],
-    header_style: AIHeaderStyle = "table",
+    header_style: AIHeaderStyle = "simple",
 ) -> Doc:
     current_locale = get_i18n().current_locale
     sorted_lines = sorted(lines, key=lambda line: line.first_message_at)
@@ -156,7 +156,6 @@ def _build_summary_doc(
     header = build_ai_header(header_style)
 
     return build_ai_message_doc(
-        header_style,
         header,
         title,
         overview,
