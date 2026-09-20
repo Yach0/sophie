@@ -370,7 +370,9 @@ async def _answer_message(
             )
         )
     model = result.served_model or model
-    header_style = await get_ai_header_style("proactive_replies", chat_tid, redis=services.redis)
+    # Proactive answers are chatbot replies selected by a different trigger. They must use the
+    # same per-chat rendering contract as commands, reply-to-AI, streaming, and model fallback.
+    header_style = await get_ai_header_style("chatbot", chat_tid, redis=services.redis)
     header = await build_chatbot_header(
         chat.iid,
         model,

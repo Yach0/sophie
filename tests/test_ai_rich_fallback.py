@@ -143,21 +143,25 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
     doc = Doc("answer")
     sent = SimpleNamespace(message_id=8, text="answer", date=None, message_thread_id=None)
     rich_sender = AsyncMock(return_value=sent)
+    model = SimpleNamespace(model_name="model")
+    build_chatbot_header = AsyncMock(return_value=Doc("header"))
+    build_reply_doc = AsyncMock(return_value=doc)
     monkeypatch.setattr(proactive_replies, "send_ai_rich_message_to_chat", rich_sender)
     monkeypatch.setattr(
         proactive_replies,
         "get_chat_default_model_plan",
-        AsyncMock(return_value=SimpleNamespace(primary=SimpleNamespace(model_name="model"))),
+        AsyncMock(return_value=SimpleNamespace(primary=model)),
     )
     monkeypatch.setattr(proactive_replies, "get_service_tier", AsyncMock(return_value=None))
-    monkeypatch.setattr(proactive_replies, "get_ai_header_style", AsyncMock(return_value="table"))
+    get_ai_header_style = AsyncMock(return_value="simple")
+    monkeypatch.setattr(proactive_replies, "get_ai_header_style", get_ai_header_style)
     monkeypatch.setattr(
         proactive_replies,
         "_build_answer_history",
         AsyncMock(return_value=SimpleNamespace(prompt=[], message_history=[])),
     )
-    monkeypatch.setattr(proactive_replies, "build_chatbot_header", AsyncMock(return_value=Doc("header")))
-    monkeypatch.setattr(proactive_replies, "build_reply_doc", AsyncMock(return_value=doc))
+    monkeypatch.setattr(proactive_replies, "build_chatbot_header", build_chatbot_header)
+    monkeypatch.setattr(proactive_replies, "build_reply_doc", build_reply_doc)
     monkeypatch.setattr(proactive_replies, "cache_message", AsyncMock())
     run_chatbot = AsyncMock(
         return_value=SimpleNamespace(
@@ -177,6 +181,16 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
         services=services,
     )
 
+    get_ai_header_style.assert_awaited_once_with("chatbot", 1, redis=services.redis)
+    build_chatbot_header.assert_awaited_once_with(
+        "chat",
+        model,
+        [],
+        "simple",
+        redis=services.redis,
+    )
+    assert build_reply_doc.await_args is not None
+    assert build_reply_doc.await_args.kwargs["header_style"] == "simple"
     rich_sender.assert_awaited_once_with(
         1,
         doc,

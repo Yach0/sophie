@@ -217,6 +217,7 @@ class TestFeatureMetadata:
     def test_every_ai_header_style_defaults_to_table(self) -> None:
         header_flags = [feature for feature in FEATURE_FLAGS if feature.endswith("header_style")]
         assert header_flags
+        assert "ai_proactive_replies_header_style" not in header_flags
         assert {get_default_value(feature) for feature in header_flags} == {"table"}
 
     def test_plain_string_values_are_unrestricted(self) -> None:
