@@ -20,6 +20,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_HEADER_SEPARATOR,
     AIHeaderStyle,
     ai_credit_header,
+    ai_table_header,
     build_ai_header,
     build_ai_message_doc,
 )
@@ -89,6 +90,14 @@ def _assert_plain_progress(text: str) -> None:
     assert AI_HEADER_LABEL not in text
     assert AI_HEADER_SEPARATOR not in text
     assert BATTERY_EMOJI not in text
+
+
+def test_table_header_uses_compact_unbordered_layout() -> None:
+    header = ai_table_header("gpt-5.5", "50%")
+
+    assert header.to_rich() == (
+        '<table><tr><td>✨ AI</td><td align="center">gpt-5.5</td><td align="right">50%</td></tr></table>'
+    )
 
 
 async def _streamer_with_flags(

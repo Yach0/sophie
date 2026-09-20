@@ -57,8 +57,7 @@ async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int, *, redis:
 def ai_table_header(status: Element | str = "", battery: Element | str = "") -> RichTable:
     """The one-row header every AI message carries: who is speaking, what it did, what is left."""
     return RichTable(
-        [RichTableCell(AI_HEADER_LABEL), RichTableCell(status, align="center"), RichTableCell(battery, align="right")],
-        bordered=True,
+        [RichTableCell(AI_HEADER_LABEL), RichTableCell(status, align="center"), RichTableCell(battery, align="right")]
     )
 
 
