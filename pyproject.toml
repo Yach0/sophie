@@ -75,7 +75,7 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [tool.uv.sources]
-stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
+stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git", rev = "95f66a265bb35120b7eaf09c0ad1b56f7d4d9ba9" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 ussr = { git = "https://gitlab.com/SophieBot/ussr.git" }
