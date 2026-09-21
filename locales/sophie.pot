@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 14:14+0200\n"
+"POT-Creation-Date: 2026-09-21 14:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7015,8 +7015,8 @@ msgid "Configuration cancelled."
 msgstr ""
 
 #: sophie_bot/modules/utils_/reply_or_edit.py:17
-#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:127
-#: sophie_bot/utils/handlers.py:136
+#: sophie_bot/utils/handlers.py:108 sophie_bot/utils/handlers.py:124
+#: sophie_bot/utils/handlers.py:133
 msgid "The message is inaccessible. Please write the command again"
 msgstr ""
 
