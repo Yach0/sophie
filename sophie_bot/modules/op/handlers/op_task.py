@@ -133,9 +133,7 @@ class OpTaskHandler(SophieMessageHandler):
                 redis=self.services.redis,
             )
         except AIRequestFailed as err:
-            await message.reply(
-                **ai_request_failed_message(err.sentry_event_id, title=_("Error generating task description"))
-            )
+            await message.reply(**ai_request_failed_message(error=err, title=_("Error generating task description")))
             return
 
         task_result: OpTaskAIResult = result.output
