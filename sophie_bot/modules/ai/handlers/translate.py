@@ -262,7 +262,7 @@ class AiTranslate(SophieMessageHandler):
         except AIRequestFailed as err:
             if self.data.get("silent_error"):
                 return
-            error_message = ai_request_failed_message(err.sentry_event_id, title=_("Error generating translation"))
+            error_message = ai_request_failed_message(error=err, title=_("Error generating translation"))
             await _edit_or_reply(self.event, progress_message, **error_message)
             return
 

@@ -194,7 +194,7 @@ async def _send_chatbot_ai_failure_reply(
     error: AIRequestFailed,
     **reply_kwargs: Any,
 ) -> Message:
-    failure_message = ai_request_failed_message(error.sentry_event_id)
+    failure_message = ai_request_failed_message(error=error)
     if message_streamer and message_streamer.response_message is not None:
         await message_streamer.stop()
         try:
