@@ -187,17 +187,14 @@ def _process_delimiter_match(
         )
 
         # Check other affected entities.
-        # NOTE: the `ty: ignore` comments below work around a ty 0.0.73 false positive: it reads
-        # `frozen=True` from aiogram's TelegramObject and misses the `frozen=False` override on
-        # MutableTelegramObject, which MessageEntity actually inherits from. The fields are mutable.
         for ent in result:
             # If the end is after our start, it is affected
             if ent.offset + ent.length > i:
                 # If the old start is also before ours, it is fully enclosed
                 if ent.offset <= i:
-                    ent.length -= len(delim) * 2  # ty: ignore[invalid-assignment]
+                    ent.length -= len(delim) * 2
                 else:
-                    ent.length -= len(delim)  # ty: ignore[invalid-assignment]
+                    ent.length -= len(delim)
 
         # Append the found entity
         ent_type = delimiters[delim]
@@ -228,7 +225,7 @@ def _process_url_match(
         for ent in result:
             # If the end is after our start, it is affected
             if ent.offset + ent.length > m.start():
-                ent.length -= delim_size  # ty: ignore[invalid-assignment]
+                ent.length -= delim_size
 
         result.append(
             MessageEntity(

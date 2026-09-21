@@ -21,7 +21,7 @@ def buttons_from_ass(buttons: list[AssButtonData]) -> ButtonLayout:
         button = Button(
             text=ass_button.title,
             action=cast(ButtonAction, ASS_MAPPING.get(ass_button.button_type, ass_button.button_type)),
-            data=ass_button.arguments[0] or None if ass_button.arguments else None,
+            data=ass_button.arguments[0] or None,
             style=ass_button.style,
         )
 
