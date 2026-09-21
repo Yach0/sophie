@@ -112,7 +112,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_filters_service_tier",
     "ai_chat_summaries_service_tier",
     "ai_proactive_replies",
-    "ai_proactive_replies_header_style",
     "ai_proactive_replies_model",
     "ai_proactive_replies_prompt",
     "ai_proactive_replies_service_tier",
@@ -387,7 +386,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filters_service_tier": _feature("none", _SERVICE_TIER_FEATURE),
     "ai_chat_summaries_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_proactive_replies": _feature(False),
-    "ai_proactive_replies_header_style": _feature("table", _AI_HEADER_STYLE_FEATURE),
     "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_proactive_replies_prompt": _feature(
         "Use balanced judgment about whether Sophie should join the conversation. Reply when there is a natural, useful, or funny opportunity, including a clear invitation or an open question Sophie can help with. Do not force a reply: skip generic chatter, arguments, moderation/admin topics, stale topics, or messages that have already moved on. Never duplicate an existing AI reply, bypass safety requirements, or answer unsafe requests. Prefer no action when a reply would be awkward or mediocre. If answering, be brief: 1-2 short sentences, casual, no long explanations or lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight, and never try to participate in every topic."

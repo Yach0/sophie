@@ -116,10 +116,7 @@ class SophieCallbackQueryHandler(SophieBaseHandler[CallbackQuery], ABC):
 class SophieMessageCallbackQueryHandler(SophieBaseHandler[Message | CallbackQuery], ABC):
     @property
     def message(self) -> Message:
-        if isinstance(self.event, Message):
-            msg = self.event
-        else:
-            msg = getattr(self.event, "message", None)
+        msg = self.event if isinstance(self.event, Message) else getattr(self.event, "message", None)
 
         if not msg:
             raise SophieException("No message in the event")

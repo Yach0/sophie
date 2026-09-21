@@ -237,6 +237,40 @@ async def test_retrying_draft_uses_the_configured_simple_layout(
 
 
 @pytest.mark.asyncio
+async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test_redis: object) -> None:
+    response_message = SimpleNamespace(
+        chat=SimpleNamespace(id=-100123),
+        message_id=8,
+        edit_text=AsyncMock(),
+    )
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        header=cast(Any, "Retrying"),
+        mode=StreamMode.HTML_EDIT,
+        throttle_seconds=0,
+        header_style="simple",
+        redis=cast(Any, test_redis),
+    )
+    streamer.response_message = cast(Message, response_message)
+    await streamer.stream("Partial primary answer")
+    await streamer.update_retrying(2, 5)
+
+    final_header = build_ai_header("simple", "fallback-model", ai_credit_header(50))
+    final_doc = build_ai_message_doc("simple", final_header, "Fallback answer")
+    await streamer.send_final(final_doc)
+
+    assert response_message.edit_text.await_args is not None
+    rendered_html = response_message.edit_text.await_args.kwargs["text"]
+    assert rendered_html.count("✨") == 1
+    assert rendered_html.count(BATTERY_EMOJI) == 1
+    assert rendered_html.count("Fallback answer") == 1
+    assert "Partial primary answer" not in rendered_html
+    assert "Retrying" not in rendered_html
+    assert AI_HEADER_LABEL not in rendered_html
+    assert AI_HEADER_SEPARATOR not in rendered_html
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("mode", [StreamMode.HTML_EDIT, StreamMode.RICH_EDIT])
 async def test_streaming_and_retrying_drafts_respect_disabled_layout(
     mode: StreamMode,

@@ -41,11 +41,8 @@ class CMDFilter(BaseFilter):
     def extract_command(text: str) -> CommandObject:
         # First step: separate command with arguments
         # "/command@mention arg1 arg2" -> "/command@mention", ["arg1 arg2"]
-        try:
-            # Otty changes: split only by one space!
-            full_command, *args = text.split(" ", maxsplit=1)
-        except ValueError:
-            raise CommandException("not enough values to unpack")
+        # Otty changes: split only by one space!
+        full_command, *args = text.split(" ", maxsplit=1)
 
         if not full_command:
             raise CommandException("empty command")
