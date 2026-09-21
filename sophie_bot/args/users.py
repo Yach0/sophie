@@ -30,7 +30,6 @@ class SophieUserIDArg(UserIDArg[ChatModel]):
             if not self.allow_unknown_id:
                 raise ArgStrictError(_("Could not find the requested User ID in the database."))
 
-        # Else - try to construct the user from ID
         return ChatModel.user_from_id(user_id)
 
 
