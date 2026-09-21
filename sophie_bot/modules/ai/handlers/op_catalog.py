@@ -27,6 +27,7 @@ from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.i18n import ngettext as pl_
 
 _DELETE_OPTION = "delete"
 _KIND_OPTION = "kind"
@@ -232,9 +233,15 @@ class OpAIModels(SophieMessageHandler):
             Title(f"{AI_EMOJI} {_('AI Models')}"),
             Section(VList(*lines) if lines else _("No models are configured."), title=_("Models")),
             Template(
-                _("Loaded: {models} models, {providers} providers"),
-                models=len(catalog.models),
-                providers=len(catalog.providers),
+                _("Loaded: {models}, {providers}"),
+                models=Template(
+                    pl_("{count} model", "{count} models", len(catalog.models)),
+                    count=Code(len(catalog.models)),
+                ),
+                providers=Template(
+                    pl_("{count} provider", "{count} providers", len(catalog.providers)),
+                    count=Code(len(catalog.providers)),
+                ),
             ),
             _model_usage(),
         )

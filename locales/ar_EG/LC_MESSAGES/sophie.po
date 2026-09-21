@@ -22,7 +22,7 @@ msgstr ""
 msgid "Could not find the requested Chat ID in the database."
 msgstr "لم يتم العثور على معرف الدردشة المطلوب في قاعدة البيانات."
 
-#: sophie_bot/args/chats.py:40 sophie_bot/args/users.py:44
+#: sophie_bot/args/chats.py:40 sophie_bot/args/users.py:43
 msgid "Could not find the requested Username in the database."
 msgstr "لم يتم العثور على اسم المستخدم المطلوب في قاعدة البيانات."
 
@@ -39,7 +39,7 @@ msgstr "الدردشات: 'معرفات الدردشة (رقمي) / أسماء �
 msgid "Chat ID"
 msgstr "رقم تعريف الدردشة"
 
-#: sophie_bot/args/chats.py:61 sophie_bot/args/users.py:79
+#: sophie_bot/args/chats.py:61 sophie_bot/args/users.py:78
 #: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
 msgstr "اسم المستخدم"
@@ -94,19 +94,19 @@ msgstr "معرف مستخدم غير صالح."
 msgid "Could not find the requested User ID in the database."
 msgstr "لم يتم العثور على معرف المستخدم المطلوب في قاعدة البيانات."
 
-#: sophie_bot/args/users.py:71
+#: sophie_bot/args/users.py:70
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr "المستخدم: 'معرف المستخدم (رقمي) / اسم المستخدم (يبدأ بـ @) / إشارة (روابط إلى المستخدمين)'"
 
-#: sophie_bot/args/users.py:72
+#: sophie_bot/args/users.py:71
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr "المستخدمون: 'معرفات المستخدمين (رقمي) / أسماء المستخدمين (تبدأ بـ @) / إشارات (روابط إلى المستخدمين)'"
 
-#: sophie_bot/args/users.py:78
+#: sophie_bot/args/users.py:77
 msgid "User ID"
 msgstr "معرف المستخدم"
 
-#: sophie_bot/args/users.py:81
+#: sophie_bot/args/users.py:80
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "رابط إلى المستخدم، يتم إنشاؤه عادةً عن طريق الإشارة إلى مستخدم بدون اسم مستخدم."
 
@@ -554,133 +554,155 @@ msgstr "يتحكم في ملخّصات دردشة الذكاء الاصطناع�
 msgid "Controls AI note title generation"
 msgstr "يتحكم في توليد عناوين الملاحظات بواسطة الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:75
+#: sophie_bot/modules/ai/handlers/op_catalog.py:76
 #, python-brace-format
 msgid "Kinds: {kinds}"
 msgstr "الأنواع: {kinds}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:76
+#: sophie_bot/modules/ai/handlers/op_catalog.py:77
 msgid "Only the given options change; the rest keep their current values."
 msgstr "فقط الخيارات المعطاة تتغير؛ الباقي يحتفظ بقيمه الحالية."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:77
+#: sophie_bot/modules/ai/handlers/op_catalog.py:78
 msgid "A key can only be set in a private chat, and that message is deleted right away."
 msgstr "المفتاح يمكن تعيينه فقط في دردشة خاصة، وتُحذف تلك الرسالة فورًا."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:79
-#: sophie_bot/modules/ai/handlers/op_catalog.py:114
+#: sophie_bot/modules/ai/handlers/op_catalog.py:80
+#: sophie_bot/modules/ai/handlers/op_catalog.py:115
 #: sophie_bot/modules/ai/handlers/usage.py:51
 msgid "Usage"
 msgstr "الاستخدام"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:91
+#: sophie_bot/modules/ai/handlers/op_catalog.py:92
 #, python-brace-format
 msgid "Roles: {modes} paired with {purposes}, e.g. {example}"
 msgstr "الأدوار: {modes} مُقرّنة بـ {purposes}، على سبيل المثال {example}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:97
+#: sophie_bot/modules/ai/handlers/op_catalog.py:98
 #, python-brace-format
 msgid "Drop the mode for purposes that are not per-chat, e.g. {example}"
 msgstr "اسقُط الوضع للأغراض التي ليست per-chat، مثلاً {example}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:101
+#: sophie_bot/modules/ai/handlers/op_catalog.py:102
 msgid "Several models can share one role: they are tried best-first, ordered by ^priority (lower runs earlier), and the next one takes over when the current one fails or answers with nothing."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:106
+#: sophie_bot/modules/ai/handlers/op_catalog.py:107
 #, python-brace-format
 msgid "A model that cannot be shown an image is skipped for image messages: set {option}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:110
+#: sophie_bot/modules/ai/handlers/op_catalog.py:111
 #, python-brace-format
 msgid "The upstream name defaults to the model name; set {option} when they differ."
 msgstr "الاسم upstream افتراضيًا هو اسم النموذج؛ اضبط {option} عندما يختلفان."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:133
-#: sophie_bot/modules/ai/handlers/op_catalog.py:226
+#: sophie_bot/modules/ai/handlers/op_catalog.py:134
+#: sophie_bot/modules/ai/handlers/op_catalog.py:227
 msgid " (disabled)"
 msgstr " (معطل)"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:138
+#: sophie_bot/modules/ai/handlers/op_catalog.py:139
 msgid "AI Providers"
 msgstr "مزودو الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:140
 msgid "No providers are configured."
 msgstr "لم يتم تكوين أي مزودين."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:140
 msgid "Providers"
 msgstr "مزودون"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:145
+#: sophie_bot/modules/ai/handlers/op_catalog.py:146
 msgid "Create or update an AI provider (private chat only)"
 msgstr "إنشاء أو تحديث مزود ذكاء اصطناعي (دردشة خاصة فقط)"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:164
+#: sophie_bot/modules/ai/handlers/op_catalog.py:165
 msgid "Provider name"
 msgstr "اسم المزود"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:177
+#: sophie_bot/modules/ai/handlers/op_catalog.py:178
 #, python-brace-format
 msgid "No provider named {name}."
 msgstr "لا يوجد مزود باسم {name}."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:180
+#: sophie_bot/modules/ai/handlers/op_catalog.py:181
 #, python-brace-format
 msgid "Provider {name} deleted."
 msgstr "تم حذف المزود {name}."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:198
+#: sophie_bot/modules/ai/handlers/op_catalog.py:199
 msgid "AI Provider saved"
 msgstr "تم حفظ مزود الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:232
+#: sophie_bot/modules/ai/handlers/op_catalog.py:233
 msgid "AI Models"
 msgstr "نماذج الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:234
 msgid "No models are configured."
 msgstr "لم يتم تكوين أي نماذج."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:234
 #: sophie_bot/modules/ai/handlers/op_prices.py:48
 msgid "Models"
 msgstr "نماذج"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:235
+#: sophie_bot/modules/ai/handlers/op_catalog.py:236
 #, python-brace-format
-msgid "Loaded: {models} models, {providers} providers"
-msgstr "تم التحميل: {models} نماذج، {providers} مزودين"
+msgid "Loaded: {models}, {providers}"
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:244
+#: sophie_bot/modules/ai/handlers/op_catalog.py:238
+#, python-brace-format
+msgid "{count} model"
+msgid_plural "{count} models"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:242
+#, python-brace-format
+msgid "{count} provider"
+msgid_plural "{count} providers"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:251
 msgid "Create or update an AI model"
 msgstr "إنشاء أو تحديث نموذج ذكاء اصطناعي"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:266
+#: sophie_bot/modules/ai/handlers/op_catalog.py:273
 msgid "Model name"
 msgstr "اسم النموذج"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:276
+#: sophie_bot/modules/ai/handlers/op_catalog.py:283
 #, python-brace-format
 msgid "No model named {name}."
 msgstr "لا يوجد نموذج باسم {name}."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:279
+#: sophie_bot/modules/ai/handlers/op_catalog.py:286
 #, python-brace-format
 msgid "Model {name} deleted."
 msgstr "تم حذف النموذج {name}."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:286
+#: sophie_bot/modules/ai/handlers/op_catalog.py:293
 msgid "^priority only applies together with ^role."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:291
+#: sophie_bot/modules/ai/handlers/op_catalog.py:298
 msgid "A new model needs ^provider=<name>."
 msgstr "النموذج الجديد يحتاج ^provider=<name>."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:326
+#: sophie_bot/modules/ai/handlers/op_catalog.py:333
 msgid "AI Model saved"
 msgstr "تم حفظ نموذج الذكاء الاصطناعي"
 
@@ -998,10 +1020,10 @@ msgid "Message author"
 msgstr "مؤلف الرسالة"
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:70
-#: sophie_bot/modules/communities/utils/ban_docs.py:37
+#: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
-#: sophie_bot/modules/federations/utils/ban_docs.py:42
-#: sophie_bot/modules/federations/utils/ban_docs.py:91
+#: sophie_bot/modules/federations/utils/ban_docs.py:43
+#: sophie_bot/modules/federations/utils/ban_docs.py:107
 #: sophie_bot/modules/reports/handlers/report.py:89
 #: sophie_bot/modules/restrictions/actions/base.py:74
 #: sophie_bot/modules/restrictions/actions/kick.py:56
@@ -1685,32 +1707,38 @@ msgstr[3] "الاجراءات"
 msgstr[4] "الاجراءات"
 msgstr[5] "الاجراءات"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:17
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:18
 msgid "Set the message count threshold for antiflood protection"
 msgstr "تعيين عتبة عدد الرسائل لحماية مكافحة الفيضانات"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:32
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:33
 msgid "Number of messages allowed in 30 seconds"
 msgstr "عدد الرسائل المسموح بها في 30 ثانية"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:40
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:41
 #: sophie_bot/modules/op/handlers/preview_chat_summary.py:34
 msgid "Chat not found"
 msgstr "الدردشة غير موجودة"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:45
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:46
 #, python-brace-format
 msgid "Please provide a number. Usage: {cmd}"
 msgstr "يرجى تقديم رقم. الاستخدام: {cmd}"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:50
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:51
 msgid "Number must be between 1 and 100"
 msgstr "يجب أن يكون العدد بين 1 و 100"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:62
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:65
 #, python-brace-format
-msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
-msgstr "✅ تم تحديث عتبة مكافحة الفيضانات إلى {count} رسائل كل 30 ثانية"
+msgid "✅ Antiflood threshold updated to {count} message per 30 seconds"
+msgid_plural "✅ Antiflood threshold updated to {count} messages per 30 seconds"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 #: sophie_bot/modules/antiflood/handlers/enable_antiflood.py:14
 msgid "Enable or disable antiflood protection"
@@ -1747,8 +1775,8 @@ msgstr "تم تقييد المستخدم بسبب الفيضانات."
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:168
 #: sophie_bot/modules/communities/handlers/cban.py:50
 #: sophie_bot/modules/communities/handlers/uncban.py:47
-#: sophie_bot/modules/communities/utils/ban_docs.py:33
-#: sophie_bot/modules/communities/utils/ban_docs.py:67
+#: sophie_bot/modules/communities/utils/ban_docs.py:34
+#: sophie_bot/modules/communities/utils/ban_docs.py:75
 #: sophie_bot/modules/federations/handlers/ban.py:51
 #: sophie_bot/modules/federations/handlers/demote.py:19
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:75
@@ -1757,9 +1785,9 @@ msgstr "تم تقييد المستخدم بسبب الفيضانات."
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:134
 #: sophie_bot/modules/federations/handlers/promote.py:19
 #: sophie_bot/modules/federations/handlers/unban.py:47
-#: sophie_bot/modules/federations/utils/ban_docs.py:38
-#: sophie_bot/modules/federations/utils/ban_docs.py:76
-#: sophie_bot/modules/federations/utils/ban_docs.py:114
+#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/federations/utils/ban_docs.py:88
+#: sophie_bot/modules/federations/utils/ban_docs.py:130
 #: sophie_bot/modules/promotes/handlers/demote.py:40
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:69
@@ -1884,18 +1912,18 @@ msgstr "{user} محظور في هذا المجتمع."
 msgid "Reason: {text}"
 msgstr "السبب: {text}"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:10
-#: sophie_bot/modules/communities/utils/ban_docs.py:32
-#: sophie_bot/modules/communities/utils/ban_docs.py:66
+#: sophie_bot/modules/communities/utils/ban_docs.py:11
+#: sophie_bot/modules/communities/utils/ban_docs.py:33
+#: sophie_bot/modules/communities/utils/ban_docs.py:74
 msgid "Community"
 msgstr "المجتمع"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:31
+#: sophie_bot/modules/communities/utils/ban_docs.py:32
 msgid "🌐 User Banned from Community"
 msgstr "🌐 المستخدم محظور من المجتمع"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:33
-#: sophie_bot/modules/communities/utils/ban_docs.py:67
+#: sophie_bot/modules/communities/utils/ban_docs.py:34
+#: sophie_bot/modules/communities/utils/ban_docs.py:75
 #: sophie_bot/modules/federations/handlers/admins.py:37
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:75
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:79
@@ -1906,10 +1934,10 @@ msgstr "🌐 المستخدم محظور من المجتمع"
 #: sophie_bot/modules/federations/handlers/unban.py:178
 #: sophie_bot/modules/federations/schedules/process_bans.py:134
 #: sophie_bot/modules/federations/schedules/process_bans.py:209
-#: sophie_bot/modules/federations/utils/ban_docs.py:38
-#: sophie_bot/modules/federations/utils/ban_docs.py:79
-#: sophie_bot/modules/federations/utils/ban_docs.py:114
-#: sophie_bot/modules/federations/utils/ban_docs.py:146
+#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/federations/utils/ban_docs.py:91
+#: sophie_bot/modules/federations/utils/ban_docs.py:130
+#: sophie_bot/modules/federations/utils/ban_docs.py:169
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/notes/handlers/list.py:83
 #: sophie_bot/modules/op/handlers/set_mode.py:106
@@ -1918,8 +1946,8 @@ msgstr "🌐 المستخدم محظور من المجتمع"
 msgid "Unknown"
 msgstr "غير معروف"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:34
-#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/communities/utils/ban_docs.py:35
+#: sophie_bot/modules/federations/utils/ban_docs.py:40
 #: sophie_bot/modules/restrictions/handlers/ban.py:25
 #: sophie_bot/modules/restrictions/handlers/ban.py:48
 #: sophie_bot/modules/restrictions/handlers/silent.py:51
@@ -1927,82 +1955,94 @@ msgstr "غير معروف"
 msgid "Banned by"
 msgstr "حظر بواسطة"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:41
+#: sophie_bot/modules/communities/utils/ban_docs.py:42
 msgid "✅ Banned in this chat. Propagating across the community…"
 msgstr "✅ محظور في هذه الدردشة. جارٍ نشر الحظر عبر المجتمع…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:43
+#: sophie_bot/modules/communities/utils/ban_docs.py:44
 msgid "⏳ Ban recorded. Propagating across the community…"
 msgstr "⏳ تم تسجيل الحظر. جارٍ نشره عبر المجتمع…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:45
-#: sophie_bot/modules/communities/utils/ban_docs.py:77
-#: sophie_bot/modules/federations/utils/ban_docs.py:50
-#: sophie_bot/modules/federations/utils/ban_docs.py:124
+#: sophie_bot/modules/communities/utils/ban_docs.py:48
+#: sophie_bot/modules/communities/utils/ban_docs.py:87
+#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#: sophie_bot/modules/federations/utils/ban_docs.py:142
 msgid "Result"
 msgstr "النتيجه"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:45
-#: sophie_bot/modules/federations/utils/ban_docs.py:50
+#: sophie_bot/modules/communities/utils/ban_docs.py:50
+#: sophie_bot/modules/federations/utils/ban_docs.py:55
 #, python-brace-format
-msgid "Banned in {count} chats"
-msgstr "محظور في {count} دردشات"
+msgid "Banned in {count} chat"
+msgid_plural "Banned in {count} chats"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:48
-#: sophie_bot/modules/federations/utils/ban_docs.py:57
+#: sophie_bot/modules/communities/utils/ban_docs.py:56
+#: sophie_bot/modules/federations/utils/ban_docs.py:69
 msgid "🤫 The action is silent, all related messages would be deleted shortly"
 msgstr "🤫 الإجراء صامت، وستُحذف جميع الرسائل ذات الصلة قريبًا"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:65
+#: sophie_bot/modules/communities/utils/ban_docs.py:73
 msgid "🌐 User Unbanned from Community"
 msgstr "🌐 تم إلغاء حظر المستخدم من المجتمع"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:68
-#: sophie_bot/modules/federations/utils/ban_docs.py:115
+#: sophie_bot/modules/communities/utils/ban_docs.py:76
+#: sophie_bot/modules/federations/utils/ban_docs.py:131
 #: sophie_bot/modules/restrictions/handlers/unban.py:24
 msgid "Unbanned by"
 msgstr "تم cancel الحظر بواسطة"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:73
+#: sophie_bot/modules/communities/utils/ban_docs.py:81
 msgid "✅ Unbanned in this chat. Propagating across the community…"
 msgstr "✅ تم إلغاء الحظر في هذه الدردشة. جارٍ نشر الإلغاء عبر المجتمع…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:75
+#: sophie_bot/modules/communities/utils/ban_docs.py:83
 msgid "⏳ Unban recorded. Propagating across the community…"
 msgstr "⏳ تم تسجيل إلغاء الحظر. جارٍ نشره عبر المجتمع…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:77
-#: sophie_bot/modules/federations/utils/ban_docs.py:124
-#, python-brace-format
-msgid "Unbanned in {count} chats"
-msgstr "تم رفع الحظر في {count} دردشات"
-
 #: sophie_bot/modules/communities/utils/ban_docs.py:89
+#: sophie_bot/modules/federations/utils/ban_docs.py:144
+#, python-brace-format
+msgid "Unbanned in {count} chat"
+msgid_plural "Unbanned in {count} chats"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:104
 msgid "⚠️ Community Propagation Failed"
 msgstr "⚠️ فشل نشر عبر المجتمع"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:90
+#: sophie_bot/modules/communities/utils/ban_docs.py:105
 msgid "The action was applied in this chat, but propagating it across the community didn't complete."
 msgstr "تم تطبيق الإجراء في هذه الدردشة، لكن نشره عبر المجتمع لم يكتمل."
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:93
+#: sophie_bot/modules/communities/utils/ban_docs.py:108
 #: sophie_bot/modules/error/__init__.py:30
 #: sophie_bot/modules/federations/schedules/process_imports.py:77
 #: sophie_bot/modules/federations/utils/task_failure.py:21
 msgid "Error"
 msgstr "خطأ"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:94
+#: sophie_bot/modules/communities/utils/ban_docs.py:109
 msgid "Please run the command again to retry."
 msgstr "يرجى إعادة تشغيل الأمر للمحاولة مرة أخرى."
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:101
-#: sophie_bot/modules/federations/utils/ban_docs.py:137
+#: sophie_bot/modules/communities/utils/ban_docs.py:116
+#: sophie_bot/modules/federations/utils/ban_docs.py:160
 msgid "ℹ️ Ban Superseded"
 msgstr "ℹ️ الحظر تم تجاوزه"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:102
-#: sophie_bot/modules/federations/utils/ban_docs.py:138
+#: sophie_bot/modules/communities/utils/ban_docs.py:117
+#: sophie_bot/modules/federations/utils/ban_docs.py:161
 msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
 msgstr "تم إلغاء حظر هذا المستخدم قبل أن يكتمل نشر الحظر، لذا لم يتبق شيء للقيام به."
 
@@ -2639,8 +2679,8 @@ msgstr "🏛 مشرفو الاتحاد"
 #: sophie_bot/modules/federations/handlers/subscribe.py:142
 #: sophie_bot/modules/federations/schedules/process_exports.py:150
 #: sophie_bot/modules/federations/schedules/process_imports.py:71
-#: sophie_bot/modules/federations/utils/ban_docs.py:37
-#: sophie_bot/modules/federations/utils/ban_docs.py:113
+#: sophie_bot/modules/federations/utils/ban_docs.py:38
+#: sophie_bot/modules/federations/utils/ban_docs.py:129
 msgid "Federation"
 msgstr "الاتحاد"
 
@@ -3485,65 +3525,77 @@ msgstr "ليس لديك أي اتحادات."
 msgid "Could not determine federation"
 msgstr "تعذر تحديد الاتحاد"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:34
+#: sophie_bot/modules/federations/utils/ban_docs.py:35
 msgid "Anonymous admin"
 msgstr "مشرف مجهول"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:36
+#: sophie_bot/modules/federations/utils/ban_docs.py:37
 msgid "🏛 User Banned from Federation"
 msgstr "🏛 المستخدم محظور من الاتحاد"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:46
+#: sophie_bot/modules/federations/utils/ban_docs.py:47
 msgid "✅ Banned in this chat. Propagating across the federation…"
 msgstr "✅ محظور في هذه الدردشة. جارٍ نشر الحظر عبر الاتحاد…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:48
+#: sophie_bot/modules/federations/utils/ban_docs.py:49
 msgid "⏳ Ban recorded. Propagating across the federation…"
 msgstr "⏳ تم تسجيل الحظر. جارٍ نشره عبر الاتحاد…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#: sophie_bot/modules/federations/utils/ban_docs.py:61
 msgid "Also banned in"
 msgstr "محظور أيضًا في"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#: sophie_bot/modules/federations/utils/ban_docs.py:63
 #, python-brace-format
-msgid "{count} subscribed federations"
-msgstr "{count} اتحادات مشتركة"
+msgid "{count} subscribed federation"
+msgid_plural "{count} subscribed federations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:73
+#: sophie_bot/modules/federations/utils/ban_docs.py:85
 msgid "Ban user in the fed #FedBan"
 msgstr "حظر المستخدم في الاتحاد #FedBan"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:74
+#: sophie_bot/modules/federations/utils/ban_docs.py:86
 msgid "Fed"
 msgstr "الاتحاد"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:83
+#: sophie_bot/modules/federations/utils/ban_docs.py:95
 msgid "By"
 msgstr "بواسطة"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:85
+#: sophie_bot/modules/federations/utils/ban_docs.py:98
 #, python-brace-format
-msgid "User banned in {banned_count} out of {total_chats} chats in the federation"
-msgstr ""
+msgid "User banned in {banned_count} out of {total_chats} chat in the federation"
+msgid_plural "User banned in {banned_count} out of {total_chats} chats in the federation"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:95
+#: sophie_bot/modules/federations/utils/ban_docs.py:111
 msgid "Original message"
 msgstr "الرسالة الأصلية"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:112
+#: sophie_bot/modules/federations/utils/ban_docs.py:128
 msgid "🏛 User Unbanned from Federation"
 msgstr "🏛 تم cancel حظر المستخدم من الاتحاد"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:120
+#: sophie_bot/modules/federations/utils/ban_docs.py:136
 msgid "✅ Unbanned in this chat. Propagating across the federation…"
 msgstr "✅ تم إلغاء الحظر في هذه الدردشة. جارٍ نشر إلغاء الحظر عبر الاتحاد…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:122
+#: sophie_bot/modules/federations/utils/ban_docs.py:138
 msgid "⏳ Unban recorded. Propagating across the federation…"
 msgstr "⏳ تم تسجيل إلغاء الحظر. جارٍ نشره عبر الاتحاد…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:145
+#: sophie_bot/modules/federations/utils/ban_docs.py:168
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr "🏛 تم cancel حظر المستخدم {unbanned_user} من الاتحاد بواسطة {unbanner}."
@@ -4693,6 +4745,17 @@ msgstr "تمت إزالة القفل"
 #, python-brace-format
 msgid "Lock type {type} is not locked in this chat."
 msgstr "نوع القفل {type} غير مقفل في هذه الدردشة."
+
+#: sophie_bot/modules/locks/handlers/unlock_all_cmd.py:64
+#, python-brace-format
+msgid "Do you want to unlock all {count} lock type in {chat_name}?"
+msgid_plural "Do you want to unlock all {count} lock types in {chat_name}?"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 #: sophie_bot/modules/logging/__init__.py:15
 msgid "Logging"
@@ -8272,6 +8335,24 @@ msgstr "لم يتم العثور على الإشارة إلى المستخدم"
 
 #~ msgid "Enabled, expires in {time}"
 #~ msgstr "مفعّل، تنتهي في {time}"
+
+#~ msgid "Loaded: {models} models, {providers} providers"
+#~ msgstr "تم التحميل: {models} نماذج، {providers} مزودين"
+
+#~ msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
+#~ msgstr "✅ تم تحديث عتبة مكافحة الفيضانات إلى {count} رسائل كل 30 ثانية"
+
+#~ msgid "Banned in {count} chats"
+#~ msgstr "محظور في {count} دردشات"
+
+#~ msgid "Unbanned in {count} chats"
+#~ msgstr "تم رفع الحظر في {count} دردشات"
+
+#~ msgid "{count} subscribed federations"
+#~ msgstr "{count} اتحادات مشتركة"
+
+#~ msgid "User banned in {banned_count} out of {total_chats} chats in the federation"
+#~ msgstr ""
 
 #~ msgid "The AI request failed. Please try again in a moment."
 #~ msgstr "فشل طلب الذكاء الاصطناعي. الرجاء المحاولة بعد قليل."
