@@ -32,12 +32,11 @@ AI_HEADER_SEPARATOR: Final[str] = " | "
 AI_SIMPLE_HEADER_PREFIX: Final[str] = f"{AI_EMOJI} 🔋"
 
 AIHeaderStyle = Literal["table", "disable", "simple"]
-AIHeaderPurpose = Literal["chatbot", "filters", "proactive_replies", "translation", "summary"]
+AIHeaderPurpose = Literal["chatbot", "filters", "translation", "summary"]
 
 _HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
     "chatbot": "ai_chatbot_header_style",
     "filters": "ai_filters_header_style",
-    "proactive_replies": "ai_proactive_replies_header_style",
     "translation": "ai_translations_header_style",
     "summary": "ai_chat_summaries_header_style",
 }
