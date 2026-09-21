@@ -2082,7 +2082,7 @@ wheels = [
 
 [[package]]
 name = "sophie-bot"
-version = "4.6.0"
+version = "4.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiogram" },
@@ -2180,7 +2180,7 @@ requires-dist = [
     { name = "redis", specifier = ">=8.1,<9" },
     { name = "regex", specifier = ">=2026.7.19" },
     { name = "sentry-sdk", specifier = ">=2.68.1,<3" },
-    { name = "stfu-tg", git = "https://gitlab.com/SophieBot/stf.git" },
+    { name = "stfu-tg", git = "https://gitlab.com/SophieBot/stf.git?tag=4.4" },
     { name = "structlog", specifier = ">=26.1,<27" },
     { name = "tenacity", specifier = ">=9.1.4,<10" },
     { name = "torch", specifier = ">=2.13.0,<3", index = "https://download.pytorch.org/whl/cpu" },
@@ -2245,8 +2245,8 @@ wheels = [
 
 [[package]]
 name = "stfu-tg"
-version = "4.3"
-source = { git = "https://gitlab.com/SophieBot/stf.git#33e4f262370d7651e7d871d009409e010015ddab" }
+version = "4.4"
+source = { git = "https://gitlab.com/SophieBot/stf.git?tag=4.4#e7c422f75ecf87ef50162f471523245962738dc7" }
 
 [[package]]
 name = "structlog"

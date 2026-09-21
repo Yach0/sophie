@@ -1,6 +1,6 @@
 [project]
 name = "sophie_bot"
-version = "4.6.0"
+version = "4.7.0"
 description = "Sophie is modern and fast Telegram chat manager bot"
 authors = [{ name = "Yacha", email = "yacha@orangefox.tech" }]
 requires-python = ">=3.14,<4"
@@ -17,7 +17,7 @@ dependencies = [
     "emoji-country-flag>=2.1.0,<3",
     "pydantic-settings>=2.15.0,<3",
     "structlog>=26.1,<27",
-    "stfu-tg>=4",
+    "stfu-tg==4.4",
     "ass-tg>=2.4.7",
     "beanie>=2.2.0,<3",
     "openai>=3.5.0,<4",
@@ -75,7 +75,7 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [tool.uv.sources]
-stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git" }
+stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git", tag = "4.4" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 ussr = { git = "https://gitlab.com/SophieBot/ussr.git" }
