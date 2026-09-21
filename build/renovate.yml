@@ -1,6 +1,6 @@
 renovate:
   stage: test
-  image: ghcr.io/renovatebot/renovate:43
+  image: ghcr.io/renovatebot/renovate:44
   allow_failure: true
   needs: []
   rules:
