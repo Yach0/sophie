@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Final
 
 from aiogram.types import Message
 from beanie import PydanticObjectId
@@ -13,10 +14,12 @@ from stfu_tg import Template
 from sophie_bot.constants import AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.chat import UserInGroupModel
+from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_filters_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_model_pricing import ai_http_client as openrouter_http_client
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
-from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema
+from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema, JevResponse
 from sophie_bot.modules.filters.utils_.extract_content import extract_message_content
 from sophie_bot.modules.locks.utils.detect_lock import check_locks
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
@@ -27,6 +30,10 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 _REGEX_TIMEOUT_SECONDS = 0.5
+_JEV_ENDPOINT: Final[str] = "https://openrouter.ai/api/v1/systemone"
+_JEV_MODEL: Final[str] = "typesafe/jev-1.13"
+_JEV_MATCH_QUESTION: Final[str] = "matches"
+_JEV_MATCH_THRESHOLD: Final[float] = 0.5
 
 
 def match_regex_handler(message_text: str, pattern: str) -> bool:
@@ -155,6 +162,49 @@ async def _is_within_new_user_message_limit(
     return True
 
 
+async def _match_jev_filter(
+    text_content: str,
+    prompt: str,
+    chat_tid: int | None,
+    *,
+    services: ApplicationServices,
+) -> bool:
+    provider = (await get_catalog(redis=services.redis)).providers.get("openrouter")
+    if provider is None or not provider.api_key:
+        raise RuntimeError("OpenRouter provider has no API key")
+
+    threshold = _JEV_MATCH_THRESHOLD
+
+    response = await openrouter_http_client.post(
+        _JEV_ENDPOINT,
+        headers={"Authorization": f"Bearer {provider.api_key}"},
+        json={
+            "model": _JEV_MODEL,
+            "state": text_content or "(no text content)",
+            "questions": {
+                _JEV_MATCH_QUESTION: {
+                    "type": "noul",
+                    "instructions": f"Does the message match this filter criterion: {prompt}",
+                }
+            },
+        },
+    )
+    response.raise_for_status()
+    result = JevResponse.model_validate(response.json())
+    probability = result.answers[_JEV_MATCH_QUESTION].noul
+    matches = probability >= threshold
+
+    log.debug(
+        "match_ai_handler: Jev evaluation",
+        prompt=prompt,
+        model=result.model,
+        probability=probability,
+        threshold=threshold,
+        matches=matches,
+    )
+    return matches
+
+
 async def match_ai_handler(
     message: Message,
     prompt: str,
@@ -166,10 +216,8 @@ async def match_ai_handler(
     """
     Match a message against an AI-powered filter.
 
-    The model is resolved via ``get_chat_filters_model_plan``: the ai_filter_handler_model flag when set,
-    otherwise the model the chat's AI mode uses for filters.
-
-    Supports text, photos, videos (thumbnail), and stickers.
+    Text-only messages use Jev when the rollout flag is enabled. Messages with images use
+    ``get_chat_filters_model_plan`` so they stay on a multimodal model.
 
     Args:
         message: The Telegram message to evaluate
@@ -219,6 +267,14 @@ async def match_ai_handler(
     try:
         # Extract message content (text and optional image)
         text_content, image_data = await extract_message_content(message, bot=services.bot)
+
+        if image_data is None and await is_enabled("ai_filters_jev", chat_tid=chat_tid, redis=services.redis):
+            return await _match_jev_filter(
+                text_content,
+                prompt,
+                chat_tid,
+                services=services,
+            )
 
         # Build the AI message history
         history = AIMessageHistory(services=services)

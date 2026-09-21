@@ -11,7 +11,11 @@ from aiogram.types import Message
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
 from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
-from sophie_bot.modules.filters.utils_.match_handler import consume_ai_filter_daily_quota, match_ai_handler
+from sophie_bot.modules.filters.utils_.match_handler import (
+    _match_jev_filter,
+    consume_ai_filter_daily_quota,
+    match_ai_handler,
+)
 
 
 @pytest.mark.asyncio
@@ -38,6 +42,148 @@ async def test_match_ai_handler_skips_users_older_than_threshold(
     assert matched is False
     extract_mock.assert_not_awaited()
     ai_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_match_jev_filter_uses_openrouter_system_one(
+    test_redis: object,
+) -> None:
+    response = SimpleNamespace(
+        raise_for_status=lambda: None,
+        json=lambda: {
+            "model": "typesafe/jev-1.13-20260917",
+            "answers": {"matches": {"type": "noul", "noul": 0.49}},
+        },
+    )
+    post_mock = AsyncMock(return_value=response)
+
+    with (
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.get_catalog",
+            AsyncMock(
+                return_value=SimpleNamespace(providers={"openrouter": SimpleNamespace(api_key="openrouter-test-key")})
+            ),
+        ),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.openrouter_http_client.post",
+            post_mock,
+        ),
+    ):
+        matched = await _match_jev_filter(
+            "buy discounted crypto",
+            "promotes cryptocurrency",
+            -100123,
+            services=SimpleNamespace(redis=test_redis),
+        )
+
+    assert matched is False
+    post_mock.assert_awaited_once_with(
+        "https://openrouter.ai/api/v1/systemone",
+        headers={"Authorization": "Bearer openrouter-test-key"},
+        json={
+            "model": "typesafe/jev-1.13",
+            "state": "buy discounted crypto",
+            "questions": {
+                "matches": {
+                    "type": "noul",
+                    "instructions": ("Does the message match this filter criterion: promotes cryptocurrency"),
+                }
+            },
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_match_ai_handler_routes_text_to_jev(
+    test_redis: object,
+) -> None:
+    message = AsyncMock(spec=Message)
+    message.chat = SimpleNamespace(id=-100123)
+    message.from_user = SimpleNamespace(id=123)
+    user_in_group = SimpleNamespace(first_saw=datetime.now(UTC))
+    services = SimpleNamespace(redis=test_redis, bot=AsyncMock())
+    jev_mock = AsyncMock(return_value=True)
+
+    with (
+        patch("sophie_bot.modules.filters.utils_.match_handler.is_enabled", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler._is_within_new_user_message_limit",
+            AsyncMock(return_value=True),
+        ),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.consume_ai_filter_daily_quota",
+            AsyncMock(return_value=True),
+        ),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.extract_message_content",
+            AsyncMock(return_value=("message text", None)),
+        ),
+        patch("sophie_bot.modules.filters.utils_.match_handler._match_jev_filter", jev_mock),
+        patch("sophie_bot.modules.filters.utils_.match_handler.run_structured_task", AsyncMock()) as ai_mock,
+    ):
+        matched = await match_ai_handler(
+            message,
+            "spam",
+            user_in_group=user_in_group,
+            services=services,
+        )
+
+    assert matched is True
+    jev_mock.assert_awaited_once_with("message text", "spam", -100123, services=services)
+    ai_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_match_ai_handler_keeps_images_on_vision_model(
+    test_redis: object,
+) -> None:
+    message = AsyncMock(spec=Message)
+    message.chat = SimpleNamespace(id=-100124)
+    message.from_user = SimpleNamespace(id=124)
+    user_in_group = SimpleNamespace(first_saw=datetime.now(UTC))
+    services = SimpleNamespace(redis=test_redis, bot=AsyncMock())
+    jev_mock = AsyncMock()
+    ai_mock = AsyncMock(
+        return_value=SimpleNamespace(
+            output=SimpleNamespace(matches=True, reasoning="Image matches the filter."),
+        )
+    )
+
+    with (
+        patch("sophie_bot.modules.filters.utils_.match_handler.is_enabled", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler._is_within_new_user_message_limit",
+            AsyncMock(return_value=True),
+        ),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.consume_ai_filter_daily_quota",
+            AsyncMock(return_value=True),
+        ),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.extract_message_content",
+            AsyncMock(return_value=("image caption", b"image")),
+        ),
+        patch("sophie_bot.modules.filters.utils_.match_handler._match_jev_filter", jev_mock),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.get_chat_filters_model_plan",
+            AsyncMock(return_value="model-plan"),
+        ),
+        patch(
+            "sophie_bot.modules.filters.utils_.match_handler.resolve_chat_service_tier",
+            AsyncMock(return_value=None),
+        ),
+        patch("sophie_bot.modules.filters.utils_.match_handler.run_structured_task", ai_mock),
+    ):
+        matched = await match_ai_handler(
+            message,
+            "spam",
+            user_in_group=user_in_group,
+            services=services,
+        )
+
+    assert matched is True
+    jev_mock.assert_not_awaited()
+    ai_mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio
