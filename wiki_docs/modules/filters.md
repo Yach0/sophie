@@ -128,10 +128,23 @@ Remarks:
 
 ## AI Filter handlers
 
-Sophie introduces powerful AI-powered filter handlers that intelligently determine whether to trigger filter actions
-based on message content. Powered by Mistral AI, an industry-leading AI provider known for its commitment to data
-privacy, this feature allows you to create intelligent filters that understand context and meaning rather than just
-matching text patterns.
+Sophie introduces AI-powered filter handlers that determine whether to trigger filter actions based on message
+content. They understand context and meaning rather than only matching text patterns. During the Jev rollout,
+text-only messages can use Jev through OpenRouter, while messages with an image or thumbnail stay on the configured
+multimodal filter model.
+
+Operators control the text-only route with `ai_filters_jev` (disabled by default).
+`ai_filters_jev_model` selects the OpenRouter System One model and defaults to `typesafe/jev-1.13`.
+Use a model supported by System One; this setting does not select a chat-completions model.
+
+```
+/op_ff ai_filters_jev_model typesafe/jev-1.13
+/op_ff ^chat=-1001234567890 ai_filters_jev_model typesafe/jev-1.13
+```
+
+Chat-specific model overrides take precedence over the global value. Unsetting an override restores
+the inherited value. Messages with images continue to use the normal multimodal filter model,
+regardless of the Jev model setting.
 
 ### How to Use AI Filters
 
