@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.types import Message, RichBlockParagraph, RichMessage, Update, User
+from aiogram.types import Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 
@@ -108,19 +108,28 @@ async def test_ai_command_builds_reply_title_and_preserves_non_reply(
 
 
 @pytest.mark.asyncio
-async def test_reply_to_ai_without_command_builds_reply_title(test_client: TestClient) -> None:
+@pytest.mark.parametrize("layout", ("tagged_tip", "tag_only"))
+async def test_reply_to_ai_without_command_builds_reply_title(test_client: TestClient, layout: str) -> None:
     group = ChatFactory.create_group(chat_id=-1002900000092, title="AI follow-up context")
     alice = User(id=929000093, is_bot=False, first_name="Alice")
     sophie = User(id=CONFIG.bot_id, is_bot=True, first_name="Sophie")
     await test_client.send_message(text="init", from_user=alice, chat=group)
+    rich_text = [
+        RichTextCustomEmoji(custom_emoji_id="5325547803936572038", alternative_text="✨"),
+        " Earlier answer",
+    ]
+    if layout == "tagged_tip":
+        rich_text.extend(
+            [
+                "\n",
+                RichTextCustomEmoji(custom_emoji_id="5816915599019741395", alternative_text="🔋"),
+                " 80% ⚠️ Help mode is available.",
+            ]
+        )
+    rich_message = RichMessage(blocks=[RichBlockParagraph(text=rich_text)])
     ai_message = MessageFactory.create(text="Earlier answer", from_user=sophie, chat=group).model_copy(
         update={
-            "rich_message": RichMessage(
-                blocks=[
-                    RichBlockParagraph(text=["✨ Earlier answer"]),
-                    RichBlockParagraph(text=["🔋 80%"]),
-                ]
-            )
+            "rich_message": rich_message,
         }
     )
     follow_up = MessageFactory.create(
@@ -145,4 +154,5 @@ async def test_reply_to_ai_without_command_builds_reply_title(test_client: TestC
         await _feed_message(test_client, follow_up)
 
     assert prompts
+    assert prompts[0][0] == "Sophie: Earlier answer"
     assert prompts[0][-1] == "Alice (reply to Sophie): follow up"

@@ -127,12 +127,12 @@ def _extract_message_content(
 ) -> str:
     """Extract text, caption, media info from the message. Returns the processed message text."""
     content_text = custom_text or message.text or message.caption or _("<No text provided>")
+    if is_sophie and is_ai_message(message):
+        content_text = cut_titlebar(message) if custom_text is None else cut_titlebar(content_text)
+    elif is_sophie and is_ai_message(content_text):
+        content_text = cut_titlebar(content_text)
     if normalize_texts:
         content_text = normalize(content_text) or _("<No text provided>")
-
-    # Cut the AI titlebar
-    if is_sophie and is_ai_message(content_text):
-        content_text = cut_titlebar(content_text)
 
     return content_text
 

@@ -1,6 +1,8 @@
 import re
 from types import SimpleNamespace
 
+import pytest
+from aiogram.types import Message
 from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
@@ -12,6 +14,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_thinking_text
+from sophie_bot.modules.ai.utils.help_tip import build_help_mode_tip
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 
 
@@ -85,6 +88,150 @@ def test_old_custom_battery_markup_is_removed_from_cached_body() -> None:
     )
 
     assert cut_titlebar(text) == "Hello there! How are you?\nNew line test text\nThird line"
+
+
+def test_help_tip_after_simple_footer_is_excluded_from_cached_answer() -> None:
+    doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(92)), "test")
+    doc += build_help_mode_tip()
+
+    assert cut_titlebar(doc.to_md()) == "test"
+
+
+def test_same_line_tip_after_footer_is_excluded_from_cached_answer() -> None:
+    assert cut_titlebar("✨ test\n🔋 92% ⚠️ Help mode is available.") == "test"
+
+
+def test_battery_mention_in_body_is_not_an_ai_footer() -> None:
+    assert not is_ai_message("✨ Battery status\n🔋 92% of charge remains")
+
+
+def test_rich_ai_marker_identity_triggers_without_battery_footer() -> None:
+    message = Message.model_validate(
+        {
+            "message_id": 3084553,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": "5325547803936572038",
+                                "alternative_text": "✨",
+                            },
+                            " Answer without a battery footer",
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+
+    assert is_ai_message(message)
+    assert not is_ai_message(message.model_copy(update={"rich_message": None}))
+
+
+def test_other_rich_emoji_with_same_fallback_is_not_ai_marker() -> None:
+    message = Message.model_validate(
+        {
+            "message_id": 1,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {"type": "custom_emoji", "custom_emoji_id": "123", "alternative_text": "✨"},
+                            " Lookalike ",
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": AI_CUSTOM_EMOJI_ID,
+                                "alternative_text": "✨",
+                            },
+                            "\n🔋 90%",
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+
+    assert not is_ai_message(message)
+
+
+@pytest.mark.parametrize(
+    "battery_id",
+    ("5819177212833697095", "5818860416045945285", "5816915599019741395"),
+)
+def test_rich_battery_and_all_trailing_metadata_are_removed(battery_id: str) -> None:
+    message = Message.model_validate(
+        {
+            "message_id": 3084553,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": AI_CUSTOM_EMOJI_ID,
+                                "alternative_text": "✨",
+                            },
+                            " Answer contains ",
+                            {"type": "custom_emoji", "custom_emoji_id": battery_id, "alternative_text": "🔋"},
+                            " 42% as text.\n",
+                            {"type": "custom_emoji", "custom_emoji_id": battery_id, "alternative_text": "🔋"},
+                            " 92% ⚠️ Help mode is available.",
+                        ],
+                    },
+                    {"type": "paragraph", "text": ["Extra content after the battery"]},
+                ]
+            },
+        }
+    )
+
+    assert cut_titlebar(message) == "Answer contains 🔋 42% as text."
+
+
+async def test_reply_handler_requires_sophie_as_sender() -> None:
+    rich_message = Message.model_validate(
+        {
+            "message_id": 3084553,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "from": {"id": 483808054, "is_bot": False, "first_name": "yachu"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": AI_CUSTOM_EMOJI_ID,
+                                "alternative_text": "✨",
+                            },
+                            " Forwarded Sophie answer",
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+
+    assert not await AiReplyHandler.filter(SimpleNamespace(reply_to_message=rich_message))
+    sophie = rich_message.from_user.model_copy(update={"id": CONFIG.bot_id})
+    assert await AiReplyHandler.filter(
+        SimpleNamespace(reply_to_message=rich_message.model_copy(update={"from_user": sophie}))
+    )
+    untagged_reply = rich_message.model_copy(
+        update={"from_user": sophie, "rich_message": None, "text": "✨ Old answer\n🔋 90%"}
+    )
+    assert not await AiReplyHandler.filter(SimpleNamespace(reply_to_message=untagged_reply))
 
 
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
@@ -177,7 +324,6 @@ def _compact_heading_ai_message() -> SimpleNamespace:
                 SimpleNamespace(text=[battery_emoji, " 80%"]),
             ]
         ),
-        from_user=SimpleNamespace(id=CONFIG.bot_id),
     )
 
 
@@ -187,12 +333,6 @@ def test_message_text_detects_simple_ai_message_split_by_rich_heading() -> None:
     assert text == "✨ \nAnswer heading\nAnswer body\n🔋 80%"
     assert is_ai_message(text)
     assert cut_titlebar(text) == "Answer heading\nAnswer body"
-
-
-async def test_reply_handler_accepts_ai_message_split_by_rich_heading() -> None:
-    message = SimpleNamespace(reply_to_message=_compact_heading_ai_message())
-
-    assert await AiReplyHandler.filter(message)
 
 
 def test_message_text_leaves_disabled_rich_message_body_unchanged() -> None:
