@@ -8,7 +8,7 @@ import math
 import time
 from datetime import UTC, datetime
 from decimal import InvalidOperation
-from typing import Any
+from typing import Any, cast
 
 from bson import json_util
 from pydantic import JsonValue, ValidationError
@@ -286,6 +286,7 @@ class WorkerActions:
             for item in raw_sort
         ):
             raise WorkerActionError("invalid_sort", "Sort must contain ordered field and direction pairs")
+        raw_sort = cast(list[list[str | int]], raw_sort)
         mongo_filter = _decode_extended_json(raw_filter)
         projection = _decode_extended_json(raw_projection) if raw_projection is not None else None
         collection = self.runtime.services.db.database[collection_name]
@@ -568,6 +569,7 @@ class WorkerActions:
             raise WorkerActionError("invalid_update", "Only $set, $unset and $inc are allowed")
         if any(not isinstance(value, dict) or not value for value in raw_update.values()):
             raise WorkerActionError("invalid_update", "Every update operator must contain fields")
+        raw_update = cast(dict[str, dict[str, JsonValue]], raw_update)
         if any(field == "_id" or field.startswith("_id.") for fields in raw_update.values() for field in fields):
             raise WorkerActionError("invalid_update", "The _id field cannot be edited")
         update = _decode_extended_json(raw_update)
