@@ -1,8 +1,4 @@
-"""While an AI answer is still being generated, the placeholder must stay a plain progress line.
-
-The AI table header names what the model produced and how much quota is left — both are only known
-once generation finished, so neither the header row nor the battery may appear before that.
-"""
+"""AI progress messages stay plain; completed messages use the simple AI prefix and quota footer."""
 
 from __future__ import annotations
 
@@ -13,11 +9,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.types import Message
+from pydantic_ai.messages import ModelResponse, ToolCallPart
 from pydantic_ai.models import Model
+from stfu_tg.ai_md import ai_markdown_to_doc
 
 from sophie_bot.modules.ai.utils.ai_header import (
-    AI_HEADER_LABEL,
-    AI_HEADER_SEPARATOR,
+    AI_CUSTOM_EMOJI_ID,
     AIHeaderStyle,
     ai_credit_header,
     build_ai_header,
@@ -27,7 +24,11 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     AI_PROGRESS_CUSTOM_EMOJI_IDS,
     AI_PROGRESS_DEFAULT_CUSTOM_EMOJI_ID,
 )
-from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
+from sophie_bot.modules.ai.utils.chatbot_response import (
+    build_chatbot_header,
+    model_display_name,
+    used_tool_labels,
+)
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
 
 BATTERY_EMOJI = "🔋"
@@ -86,8 +87,7 @@ def _custom_emoji_ids(html: str) -> list[str]:
 
 
 def _assert_plain_progress(text: str) -> None:
-    assert AI_HEADER_LABEL not in text
-    assert AI_HEADER_SEPARATOR not in text
+    assert AI_CUSTOM_EMOJI_ID not in text
     assert BATTERY_EMOJI not in text
 
 
@@ -205,7 +205,7 @@ async def test_retrying_draft_uses_the_configured_simple_layout(
     mode: StreamMode,
     test_redis: object,
 ) -> None:
-    """A retry/failover edit must not render a second table header or simple footer."""
+    """A retry/failover edit must keep one simple prefix and omit the completed footer."""
     response_message = SimpleNamespace(
         chat=SimpleNamespace(id=-100123),
         message_id=8,
@@ -232,8 +232,9 @@ async def test_retrying_draft_uses_the_configured_simple_layout(
         rendered_html = response_message.edit_text.await_args.kwargs["text"]
     assert "(Retrying 1/5...)" in rendered_html
     assert rendered_html.count("The fallback answer") == 1
-    assert AI_HEADER_LABEL not in rendered_html
-    assert rendered_html.count(AI_HEADER_SEPARATOR) == 0
+    assert BATTERY_EMOJI not in rendered_html
+    if mode == StreamMode.RICH_EDIT:
+        assert _custom_emoji_ids(rendered_html).count(AI_CUSTOM_EMOJI_ID) == 1
 
 
 @pytest.mark.asyncio
@@ -255,8 +256,8 @@ async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test
     await streamer.stream("Partial primary answer")
     await streamer.update_retrying(2, 5)
 
-    final_header = build_ai_header("simple", "fallback-model", ai_credit_header(50))
-    final_doc = build_ai_message_doc("simple", final_header, "Fallback answer")
+    final_header = build_ai_header("simple", ai_credit_header(50, "fallback-model"))
+    final_doc = build_ai_message_doc(final_header, "Fallback answer")
     await streamer.send_final(final_doc)
 
     assert response_message.edit_text.await_args is not None
@@ -266,8 +267,6 @@ async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test
     assert rendered_html.count("Fallback answer") == 1
     assert "Partial primary answer" not in rendered_html
     assert "Retrying" not in rendered_html
-    assert AI_HEADER_LABEL not in rendered_html
-    assert AI_HEADER_SEPARATOR not in rendered_html
 
 
 @pytest.mark.asyncio
@@ -297,11 +296,12 @@ async def test_streaming_and_retrying_drafts_respect_disabled_layout(
 
     if mode == StreamMode.RICH_EDIT:
         rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-        expected_html = "<p>The fallback answer</p>"
     else:
         rendered_html = response_message.edit_text.await_args.kwargs["text"]
-        expected_html = "The fallback answer"
-    assert rendered_html == expected_html
+    assert "The fallback answer" in rendered_html
+    assert "Initial" not in rendered_html
+    assert "Retrying" not in rendered_html
+    assert BATTERY_EMOJI not in rendered_html
 
 
 @pytest.mark.asyncio
@@ -351,35 +351,70 @@ async def test_random_emoji_flag_applies_without_the_thinking_placeholder(
 
 
 @pytest.mark.asyncio
-async def test_finished_reply_header_carries_the_table_and_the_battery(
+async def test_finished_reply_uses_custom_ai_emoji_and_battery_footer(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", _quota())
 
-    header = await build_chatbot_header(cast(Any, "chat-iid"), _model(), [], redis=test_redis)
+    header = await build_chatbot_header(cast(Any, "chat-iid"), redis=test_redis)
 
-    text = header.to_html()
-    assert AI_HEADER_LABEL in text
-    assert AI_HEADER_SEPARATOR in text
+    text = build_ai_message_doc(header, "Hello").to_rich()
+    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello')
+    assert "<br><tg-emoji" in text
     assert BATTERY_EMOJI in text
     assert "50%" in text
+    assert "<table" not in text
 
 
-def test_simple_header_is_inline_and_omits_table_status() -> None:
-    header = build_ai_header("simple", "gpt-5.5", ai_credit_header(50))
+def test_simple_header_is_inline_and_places_battery_on_next_line() -> None:
+    header = build_ai_header("simple", ai_credit_header(50))
 
     assert header is not None
-    text = build_ai_message_doc("simple", header, "Hello").to_html()
-    assert text.startswith("✨ Hello")
-    assert "Hello" in text
-    assert "50%" in text
-    assert text.rfind("50%") > text.find("Hello")
-    assert "gpt-5.5" not in text
-    assert "\nHello" not in text
+    text = build_ai_message_doc(header, "Hello\nSecond line").to_rich()
+    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello\nSecond line')
+    assert "<br><tg-emoji" in text
+    assert text.endswith(" 50%")
+    assert "<table" not in text
+
+
+def test_simple_header_renders_first_markdown_paragraph_inline() -> None:
+    header = build_ai_header("simple", ai_credit_header(50))
+
+    assert header is not None
+    text = build_ai_message_doc(header, ai_markdown_to_doc("Hello *world*.\n\nSecond paragraph.")).to_rich()
+    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello <i>world</i>.')
+    assert "<p>" not in text
+    assert "\nSecond paragraph.<br>" in text
+
+
+def test_used_tool_categories_render_before_reply_body() -> None:
+    labels = used_tool_labels(
+        [
+            ModelResponse(parts=[ToolCallPart(tool_name="kagi_search", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="tinyfish_search", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="get_note_content", args={})]),
+        ]
+    )
+    header = build_ai_header("simple", ai_credit_header(45))
+
+    text = build_ai_message_doc(header, "Reply here", tool_labels=labels).to_rich()
+
+    assert labels == ("🔍 Internet Search", "📝 Notes")
+    assert text.startswith(
+        f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> (🔍 Internet Search, 📝 Notes) Reply here'
+    )
+    assert "<br><tg-emoji" in text
+    assert text.endswith(" 45%")
+
+
+def test_model_name_is_optional_after_battery_percentage() -> None:
+    assert ai_credit_header(45).to_rich().endswith(" 45%")
+    assert ai_credit_header(45, "Gemini 5").to_rich().endswith(" 45% (Gemini 5)")
+    assert model_display_name(_model()) == "GPT 5.5"
 
 
 def test_disabled_header_leaves_only_the_body() -> None:
-    header = build_ai_header("disable", "gpt-5.5", ai_credit_header(50))
+    header = build_ai_header("disable", ai_credit_header(50))
 
     assert header is None
-    assert build_ai_message_doc("disable", header, "Hello").to_html() == "Hello"
+    assert build_ai_message_doc(header, "Hello").to_html() == "Hello"

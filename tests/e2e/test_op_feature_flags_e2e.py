@@ -254,7 +254,7 @@ async def test_op_ff_accepts_only_supported_ai_header_styles(test_client: TestCl
         test_client,
         chat_tid=-1002950000095,
         user_tid=929500095,
-        command="op_ff ai_chatbot_header_style compact",
+        command="op_ff ai_chatbot_header_style table",
     )
 
     assert "Invalid value" in invalid_response

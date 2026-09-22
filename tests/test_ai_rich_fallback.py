@@ -157,6 +157,11 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
     monkeypatch.setattr(proactive_replies, "get_ai_header_style", get_ai_header_style)
     monkeypatch.setattr(
         proactive_replies,
+        "is_enabled",
+        AsyncMock(side_effect=lambda feature, **_kwargs: feature == "ai_chatbot_strip_alien_html_tags"),
+    )
+    monkeypatch.setattr(
+        proactive_replies,
         "_build_answer_history",
         AsyncMock(return_value=SimpleNamespace(prompt=[], message_history=[])),
     )
@@ -184,13 +189,11 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
     get_ai_header_style.assert_awaited_once_with("chatbot", 1, redis=services.redis)
     build_chatbot_header.assert_awaited_once_with(
         "chat",
-        model,
-        [],
         "simple",
+        None,
         redis=services.redis,
     )
     assert build_reply_doc.await_args is not None
-    assert build_reply_doc.await_args.kwargs["header_style"] == "simple"
     rich_sender.assert_awaited_once_with(
         1,
         doc,

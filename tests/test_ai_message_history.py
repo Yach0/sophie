@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from aiogram.types import Chat, Message, User
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from sophie_bot.modules.ai.utils import message_history
@@ -143,6 +144,52 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
     cached_answer = history.message_history[0]
     assert isinstance(cached_answer, ModelResponse)
     assert cached_answer.parts[0].content == "prior answer"
+
+
+@pytest.mark.asyncio
+async def test_cached_reply_target_is_not_added_to_prompt_twice(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+    test_services: object,
+) -> None:
+    answer_time = datetime.now(UTC)
+    await cache_message(
+        "prior answer",
+        10,
+        message_history.CONFIG.bot_id,
+        20,
+        answer_time,
+        "Sophie",
+        is_bot=True,
+        redis=test_redis,
+    )
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
+    chat = Chat(id=10, type="group", title="Test chat")
+    sophie = User(id=message_history.CONFIG.bot_id, is_bot=True, first_name="Sophie")
+    alice = User(id=1, is_bot=False, first_name="Alice")
+    prior_answer = Message(
+        message_id=20,
+        date=answer_time,
+        chat=chat,
+        from_user=sophie,
+        text="✨ prior answer\n🔋 90%",
+    )
+    follow_up = Message(
+        message_id=21,
+        date=answer_time,
+        chat=chat,
+        from_user=alice,
+        text="follow up",
+        reply_to_message=prior_answer,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10)
+    await history.add_from_message(follow_up)
+
+    assert len(history.message_history) == 1
+    assert history.prompt == ["Alice (reply to Sophie): follow up"]
 
 
 def test_message_history_adds_system_custom_and_debug_output(
