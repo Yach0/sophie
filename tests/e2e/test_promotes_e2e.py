@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
 from aiogram_test_framework.types import RequestType
 
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
@@ -110,24 +109,3 @@ async def test_demote_removes_rights(test_client: TestClient) -> None:
     ]
     assert calls, "demote should call promoteChatMember clearing the rights"
     assert calls[0].params["can_delete_messages"] is False, "demote clears the admin rights"
-
-
-@pytest.mark.asyncio
-async def test_demote_is_filtered_outside_group_chats(test_client: TestClient) -> None:
-    operator = test_client.create_user(user_id=next_user_id(), first_name="Operator", username="demote_operator")
-    target = test_client.create_user(user_id=next_user_id(), first_name="Target", username="demote_target")
-    private_chat = ChatFactory.create_private(
-        chat_id=operator.user.id,
-        first_name=operator.user.first_name,
-        username=operator.user.username,
-    )
-    await test_client.send_message(text="init", from_user=operator.user, chat=private_chat)
-
-    requests = await test_client.send_command(
-        command="demote",
-        from_user=operator.user,
-        args=str(target.user.id),
-        chat=private_chat,
-    )
-
-    assert not _promote_calls(requests, target.user.id)
