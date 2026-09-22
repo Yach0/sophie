@@ -219,28 +219,55 @@ def _history_with_tool(tool_name: str) -> list:
     return [SimpleNamespace(parts=[ToolCallPart(tool_name=tool_name, args={})])]
 
 
-async def test_the_help_mode_tip_follows_a_documentation_answer(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_the_help_mode_tip_follows_a_documentation_answer(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=False))
     message = SimpleNamespace(chat=SimpleNamespace(id=-100123, type="supergroup"))
 
-    assert await should_offer_help_mode(message, AIMode.support, _history_with_tool("sophie_help"), redis=test_redis)
+    assert await should_offer_help_mode(
+        message, AIMode.support, _history_with_tool("sophie_help"), previous_message_count=0, redis=test_redis
+    )
     # Nothing to upsell when the answer did not come from the documentation.
-    assert not await should_offer_help_mode(message, AIMode.support, _history_with_tool("get_notes"), redis=test_redis)
+    assert not await should_offer_help_mode(
+        message, AIMode.support, _history_with_tool("get_notes"), previous_message_count=0, redis=test_redis
+    )
 
 
-async def test_no_tip_where_the_assistant_is_already_the_help_one(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_help_mode_tip_does_not_follow_replayed_help_calls(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=False))
+    message = SimpleNamespace(chat=SimpleNamespace(id=-100123, type="supergroup"))
+    previous_history = _history_with_tool("sophie_help")
+    result_history = previous_history + _history_with_tool("get_notes")
+
+    assert not await should_offer_help_mode(
+        message, AIMode.support, result_history, previous_message_count=len(previous_history), redis=test_redis
+    )
+
+
+async def test_no_tip_where_the_assistant_is_already_the_help_one(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=False))
     message = SimpleNamespace(chat=SimpleNamespace(id=1, type="private"))
 
-    assert not await should_offer_help_mode(message, AIMode.sophie_help, _history_with_tool("sophie_help"), redis=test_redis)
+    assert not await should_offer_help_mode(
+        message, AIMode.sophie_help, _history_with_tool("sophie_help"), previous_message_count=0, redis=test_redis
+    )
 
 
-async def test_no_tip_where_source_inspection_is_available(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_no_tip_where_source_inspection_is_available(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     """That chat already answers more than the documentation, so the tip would be a downgrade."""
     monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=True))
     message = SimpleNamespace(chat=SimpleNamespace(id=-1001202504432, type="supergroup"))
 
-    assert not await should_offer_help_mode(message, AIMode.support, _history_with_tool("sophie_help"), redis=test_redis)
+    assert not await should_offer_help_mode(
+        message, AIMode.support, _history_with_tool("sophie_help"), previous_message_count=0, redis=test_redis
+    )
 
 
 def test_the_tip_button_leads_into_help_mode_from_both_places() -> None:

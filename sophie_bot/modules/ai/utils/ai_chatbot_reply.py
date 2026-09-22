@@ -370,6 +370,7 @@ async def ai_chatbot_reply(
             message,
             mode,
             result.message_history,
+            previous_message_count=len(previous_history),
             redis=services.redis,
         ):
             doc += build_help_mode_tip()
