@@ -4,6 +4,7 @@ from stfu_tg import Code, Doc, KeyValue, Template, Title, UserLink
 
 from sophie_bot.db.models import ChatModel, CommunityModel
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import ngettext as pl_
 
 
 def _community_name(community: CommunityModel) -> str:
@@ -42,7 +43,14 @@ def build_ban_reply_doc(
         else:
             doc += _("⏳ Ban recorded. Propagating across the community…")
     else:
-        doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count or 0)))
+        banned_count = banned_count or 0
+        doc += KeyValue(
+            _("Result"),
+            Template(
+                pl_("Banned in {count} chat", "Banned in {count} chats", banned_count),
+                count=Code(banned_count),
+            ),
+        )
 
     if silent:
         doc += _("🤫 The action is silent, all related messages would be deleted shortly")
@@ -74,7 +82,14 @@ def build_unban_reply_doc(
         else:
             doc += _("⏳ Unban recorded. Propagating across the community…")
     else:
-        doc += KeyValue(_("Result"), Template(_("Unbanned in {count} chats"), count=str(unbanned_count or 0)))
+        unbanned_count = unbanned_count or 0
+        doc += KeyValue(
+            _("Result"),
+            Template(
+                pl_("Unbanned in {count} chat", "Unbanned in {count} chats", unbanned_count),
+                count=Code(unbanned_count),
+            ),
+        )
 
     return doc
 

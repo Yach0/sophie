@@ -5,6 +5,7 @@ from stfu_tg.formatting import Spoiler
 
 from sophie_bot.db.models import ChatModel, Federation
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import ngettext as pl_
 
 
 def build_ban_reply_doc(
@@ -47,10 +48,21 @@ def build_ban_reply_doc(
         else:
             doc += _("⏳ Ban recorded. Propagating across the federation…")
     else:
-        doc += KeyValue(_("Result"), Template(_("Banned in {count} chats"), count=Code(banned_count or 0)))
+        banned_count = banned_count or 0
+        doc += KeyValue(
+            _("Result"),
+            Template(
+                pl_("Banned in {count} chat", "Banned in {count} chats", banned_count),
+                count=Code(banned_count),
+            ),
+        )
         if lazy_ban_count > 0:
             doc += KeyValue(
-                _("Also banned in"), Template(_("{count} subscribed federations"), count=Code(lazy_ban_count))
+                _("Also banned in"),
+                Template(
+                    pl_("{count} subscribed federation", "{count} subscribed federations", lazy_ban_count),
+                    count=Code(lazy_ban_count),
+                ),
             )
 
     if silent:
@@ -82,7 +94,11 @@ def build_ban_log_doc(
         ),
         KeyValue(_("By"), banner_name),
         Template(
-            _("User banned in {banned_count} out of {total_chats} chats in the federation"),
+            pl_(
+                "User banned in {banned_count} out of {total_chats} chat in the federation",
+                "User banned in {banned_count} out of {total_chats} chats in the federation",
+                total_chats,
+            ),
             banned_count=banned_count,
             total_chats=total_chats,
         ),
@@ -121,7 +137,14 @@ def build_unban_reply_doc(
         else:
             doc += _("⏳ Unban recorded. Propagating across the federation…")
     else:
-        doc += KeyValue(_("Result"), Template(_("Unbanned in {count} chats"), count=str(unbanned_count or 0)))
+        unbanned_count = unbanned_count or 0
+        doc += KeyValue(
+            _("Result"),
+            Template(
+                pl_("Unbanned in {count} chat", "Unbanned in {count} chats", unbanned_count),
+                count=Code(unbanned_count),
+            ),
+        )
 
     return doc
 

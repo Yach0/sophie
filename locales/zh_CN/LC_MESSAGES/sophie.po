@@ -22,7 +22,7 @@ msgstr ""
 msgid "Could not find the requested Chat ID in the database."
 msgstr "未能在数据库中找到请求的聊天 ID。"
 
-#: sophie_bot/args/chats.py:40 sophie_bot/args/users.py:44
+#: sophie_bot/args/chats.py:40 sophie_bot/args/users.py:43
 msgid "Could not find the requested Username in the database."
 msgstr "未能在数据库中找到请求的用户名。"
 
@@ -39,7 +39,7 @@ msgstr "聊天：'聊天 ID（数字） / 用户名（以 @ 开头）'"
 msgid "Chat ID"
 msgstr "聊天 ID"
 
-#: sophie_bot/args/chats.py:61 sophie_bot/args/users.py:79
+#: sophie_bot/args/chats.py:61 sophie_bot/args/users.py:78
 #: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
 msgstr "用户名"
@@ -94,19 +94,19 @@ msgstr "无效的用户ID。"
 msgid "Could not find the requested User ID in the database."
 msgstr "未能在数据库中找到请求的用户 ID。"
 
-#: sophie_bot/args/users.py:71
+#: sophie_bot/args/users.py:70
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr "用户：用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）"
 
-#: sophie_bot/args/users.py:72
+#: sophie_bot/args/users.py:71
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr "用户：用户 ID（数字）/ 用户名（以 @ 开头）/ 提及（链接到用户）"
 
-#: sophie_bot/args/users.py:78
+#: sophie_bot/args/users.py:77
 msgid "User ID"
 msgstr "用户 ID"
 
-#: sophie_bot/args/users.py:81
+#: sophie_bot/args/users.py:80
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr "用户的链接，通常通过提及用户而不带用户名来创建。"
 
@@ -554,133 +554,145 @@ msgstr "控制 AI 聊天摘要"
 msgid "Controls AI note title generation"
 msgstr "控制 AI 笔记标题生成"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:75
+#: sophie_bot/modules/ai/handlers/op_catalog.py:76
 #, python-brace-format
 msgid "Kinds: {kinds}"
 msgstr "类型：{kinds}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:76
+#: sophie_bot/modules/ai/handlers/op_catalog.py:77
 msgid "Only the given options change; the rest keep their current values."
 msgstr "只有给定的选项会更改；其余保持当前值。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:77
+#: sophie_bot/modules/ai/handlers/op_catalog.py:78
 msgid "A key can only be set in a private chat, and that message is deleted right away."
 msgstr "密钥只能在私人聊天中设置，该消息会立即被删除。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:79
-#: sophie_bot/modules/ai/handlers/op_catalog.py:114
+#: sophie_bot/modules/ai/handlers/op_catalog.py:80
+#: sophie_bot/modules/ai/handlers/op_catalog.py:115
 #: sophie_bot/modules/ai/handlers/usage.py:51
 msgid "Usage"
 msgstr "使用量"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:91
+#: sophie_bot/modules/ai/handlers/op_catalog.py:92
 #, python-brace-format
 msgid "Roles: {modes} paired with {purposes}, e.g. {example}"
 msgstr "角色：{modes} 与 {purposes} 配对，例如 {example}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:97
+#: sophie_bot/modules/ai/handlers/op_catalog.py:98
 #, python-brace-format
 msgid "Drop the mode for purposes that are not per-chat, e.g. {example}"
 msgstr "对于非每聊天的用途省略模式，例如 {example}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:101
+#: sophie_bot/modules/ai/handlers/op_catalog.py:102
 msgid "Several models can share one role: they are tried best-first, ordered by ^priority (lower runs earlier), and the next one takes over when the current one fails or answers with nothing."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:106
+#: sophie_bot/modules/ai/handlers/op_catalog.py:107
 #, python-brace-format
 msgid "A model that cannot be shown an image is skipped for image messages: set {option}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:110
+#: sophie_bot/modules/ai/handlers/op_catalog.py:111
 #, python-brace-format
 msgid "The upstream name defaults to the model name; set {option} when they differ."
 msgstr "上游名称默认使用模型名；当两者不同时设置 {option}。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:133
-#: sophie_bot/modules/ai/handlers/op_catalog.py:226
+#: sophie_bot/modules/ai/handlers/op_catalog.py:134
+#: sophie_bot/modules/ai/handlers/op_catalog.py:227
 msgid " (disabled)"
 msgstr " (未启用)"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:138
+#: sophie_bot/modules/ai/handlers/op_catalog.py:139
 msgid "AI Providers"
 msgstr "AI 提供者"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:140
 msgid "No providers are configured."
 msgstr "未配置任何提供者。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:140
 msgid "Providers"
 msgstr "提供者"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:145
+#: sophie_bot/modules/ai/handlers/op_catalog.py:146
 msgid "Create or update an AI provider (private chat only)"
 msgstr "创建或更新 AI 提供者（仅限私聊）"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:164
+#: sophie_bot/modules/ai/handlers/op_catalog.py:165
 msgid "Provider name"
 msgstr "提供者名称"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:177
+#: sophie_bot/modules/ai/handlers/op_catalog.py:178
 #, python-brace-format
 msgid "No provider named {name}."
 msgstr "没有名为 {name} 的提供者。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:180
+#: sophie_bot/modules/ai/handlers/op_catalog.py:181
 #, python-brace-format
 msgid "Provider {name} deleted."
 msgstr "提供者 {name} 已删除。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:198
+#: sophie_bot/modules/ai/handlers/op_catalog.py:199
 msgid "AI Provider saved"
 msgstr "AI 提供者已保存"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:232
+#: sophie_bot/modules/ai/handlers/op_catalog.py:233
 msgid "AI Models"
 msgstr "AI 模型"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:234
 msgid "No models are configured."
 msgstr "未配置任何模型。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:234
 #: sophie_bot/modules/ai/handlers/op_prices.py:48
 msgid "Models"
 msgstr "模型"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:235
+#: sophie_bot/modules/ai/handlers/op_catalog.py:236
 #, python-brace-format
-msgid "Loaded: {models} models, {providers} providers"
-msgstr "已加载：{models} 个模型，{providers} 个提供者"
+msgid "Loaded: {models}, {providers}"
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:244
+#: sophie_bot/modules/ai/handlers/op_catalog.py:238
+#, python-brace-format
+msgid "{count} model"
+msgid_plural "{count} models"
+msgstr[0] ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:242
+#, python-brace-format
+msgid "{count} provider"
+msgid_plural "{count} providers"
+msgstr[0] ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:251
 msgid "Create or update an AI model"
 msgstr "创建或更新 AI 模型"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:266
+#: sophie_bot/modules/ai/handlers/op_catalog.py:273
 msgid "Model name"
 msgstr "模型名称"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:276
+#: sophie_bot/modules/ai/handlers/op_catalog.py:283
 #, python-brace-format
 msgid "No model named {name}."
 msgstr "没有名为 {name} 的模型。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:279
+#: sophie_bot/modules/ai/handlers/op_catalog.py:286
 #, python-brace-format
 msgid "Model {name} deleted."
 msgstr "模型 {name} 已删除。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:286
+#: sophie_bot/modules/ai/handlers/op_catalog.py:293
 msgid "^priority only applies together with ^role."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:291
+#: sophie_bot/modules/ai/handlers/op_catalog.py:298
 msgid "A new model needs ^provider=<name>."
 msgstr "新模型需要 ^provider=<name>。"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:326
+#: sophie_bot/modules/ai/handlers/op_catalog.py:333
 msgid "AI Model saved"
 msgstr "AI 模型已保存"
 
@@ -998,10 +1010,10 @@ msgid "Message author"
 msgstr "消息作者"
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:70
-#: sophie_bot/modules/communities/utils/ban_docs.py:37
+#: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
-#: sophie_bot/modules/federations/utils/ban_docs.py:42
-#: sophie_bot/modules/federations/utils/ban_docs.py:91
+#: sophie_bot/modules/federations/utils/ban_docs.py:43
+#: sophie_bot/modules/federations/utils/ban_docs.py:107
 #: sophie_bot/modules/reports/handlers/report.py:89
 #: sophie_bot/modules/restrictions/actions/base.py:74
 #: sophie_bot/modules/restrictions/actions/kick.py:56
@@ -1675,32 +1687,33 @@ msgid "Action"
 msgid_plural "Actions"
 msgstr[0] "操作"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:17
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:18
 msgid "Set the message count threshold for antiflood protection"
 msgstr "设置防洪保护的消息计数阈值"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:32
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:33
 msgid "Number of messages allowed in 30 seconds"
 msgstr "30秒内允许的消息数"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:40
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:41
 #: sophie_bot/modules/op/handlers/preview_chat_summary.py:34
 msgid "Chat not found"
 msgstr "未找到聊天"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:45
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:46
 #, python-brace-format
 msgid "Please provide a number. Usage: {cmd}"
 msgstr "请提供一个数字。用法：{cmd}"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:50
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:51
 msgid "Number must be between 1 and 100"
 msgstr "数字必须在 1 和 100 之间"
 
-#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:62
+#: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:65
 #, python-brace-format
-msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
-msgstr "✅ 防洪阈值已更新为每 30 秒 {count} 条消息"
+msgid "✅ Antiflood threshold updated to {count} message per 30 seconds"
+msgid_plural "✅ Antiflood threshold updated to {count} messages per 30 seconds"
+msgstr[0] ""
 
 #: sophie_bot/modules/antiflood/handlers/enable_antiflood.py:14
 msgid "Enable or disable antiflood protection"
@@ -1737,8 +1750,8 @@ msgstr "用户因洪水攻击已被限制。"
 #: sophie_bot/modules/antiflood/middlewares/enforcer.py:168
 #: sophie_bot/modules/communities/handlers/cban.py:50
 #: sophie_bot/modules/communities/handlers/uncban.py:47
-#: sophie_bot/modules/communities/utils/ban_docs.py:33
-#: sophie_bot/modules/communities/utils/ban_docs.py:67
+#: sophie_bot/modules/communities/utils/ban_docs.py:34
+#: sophie_bot/modules/communities/utils/ban_docs.py:75
 #: sophie_bot/modules/federations/handlers/ban.py:51
 #: sophie_bot/modules/federations/handlers/demote.py:19
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:75
@@ -1747,9 +1760,9 @@ msgstr "用户因洪水攻击已被限制。"
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:134
 #: sophie_bot/modules/federations/handlers/promote.py:19
 #: sophie_bot/modules/federations/handlers/unban.py:47
-#: sophie_bot/modules/federations/utils/ban_docs.py:38
-#: sophie_bot/modules/federations/utils/ban_docs.py:76
-#: sophie_bot/modules/federations/utils/ban_docs.py:114
+#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/federations/utils/ban_docs.py:88
+#: sophie_bot/modules/federations/utils/ban_docs.py:130
 #: sophie_bot/modules/promotes/handlers/demote.py:40
 #: sophie_bot/modules/promotes/handlers/demote.py:78
 #: sophie_bot/modules/promotes/handlers/promote.py:69
@@ -1874,18 +1887,18 @@ msgstr "{user} 未被此联盟封禁。"
 msgid "Reason: {text}"
 msgstr "原因：{text}"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:10
-#: sophie_bot/modules/communities/utils/ban_docs.py:32
-#: sophie_bot/modules/communities/utils/ban_docs.py:66
+#: sophie_bot/modules/communities/utils/ban_docs.py:11
+#: sophie_bot/modules/communities/utils/ban_docs.py:33
+#: sophie_bot/modules/communities/utils/ban_docs.py:74
 msgid "Community"
 msgstr "社区"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:31
+#: sophie_bot/modules/communities/utils/ban_docs.py:32
 msgid "🌐 User Banned from Community"
 msgstr "🌐 用户被社区封禁"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:33
-#: sophie_bot/modules/communities/utils/ban_docs.py:67
+#: sophie_bot/modules/communities/utils/ban_docs.py:34
+#: sophie_bot/modules/communities/utils/ban_docs.py:75
 #: sophie_bot/modules/federations/handlers/admins.py:37
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:75
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:79
@@ -1896,10 +1909,10 @@ msgstr "🌐 用户被社区封禁"
 #: sophie_bot/modules/federations/handlers/unban.py:178
 #: sophie_bot/modules/federations/schedules/process_bans.py:134
 #: sophie_bot/modules/federations/schedules/process_bans.py:209
-#: sophie_bot/modules/federations/utils/ban_docs.py:38
-#: sophie_bot/modules/federations/utils/ban_docs.py:79
-#: sophie_bot/modules/federations/utils/ban_docs.py:114
-#: sophie_bot/modules/federations/utils/ban_docs.py:146
+#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/federations/utils/ban_docs.py:91
+#: sophie_bot/modules/federations/utils/ban_docs.py:130
+#: sophie_bot/modules/federations/utils/ban_docs.py:169
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/notes/handlers/list.py:83
 #: sophie_bot/modules/op/handlers/set_mode.py:106
@@ -1908,8 +1921,8 @@ msgstr "🌐 用户被社区封禁"
 msgid "Unknown"
 msgstr "未知"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:34
-#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/communities/utils/ban_docs.py:35
+#: sophie_bot/modules/federations/utils/ban_docs.py:40
 #: sophie_bot/modules/restrictions/handlers/ban.py:25
 #: sophie_bot/modules/restrictions/handlers/ban.py:48
 #: sophie_bot/modules/restrictions/handlers/silent.py:51
@@ -1917,82 +1930,84 @@ msgstr "未知"
 msgid "Banned by"
 msgstr "封禁者"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:41
+#: sophie_bot/modules/communities/utils/ban_docs.py:42
 msgid "✅ Banned in this chat. Propagating across the community…"
 msgstr "✅ 已在此聊天封禁。正在跨社区传播…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:43
+#: sophie_bot/modules/communities/utils/ban_docs.py:44
 msgid "⏳ Ban recorded. Propagating across the community…"
 msgstr "⏳ 已记录封禁。正在跨社区传播…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:45
-#: sophie_bot/modules/communities/utils/ban_docs.py:77
-#: sophie_bot/modules/federations/utils/ban_docs.py:50
-#: sophie_bot/modules/federations/utils/ban_docs.py:124
+#: sophie_bot/modules/communities/utils/ban_docs.py:48
+#: sophie_bot/modules/communities/utils/ban_docs.py:87
+#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#: sophie_bot/modules/federations/utils/ban_docs.py:142
 msgid "Result"
 msgstr "结果"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:45
-#: sophie_bot/modules/federations/utils/ban_docs.py:50
+#: sophie_bot/modules/communities/utils/ban_docs.py:50
+#: sophie_bot/modules/federations/utils/ban_docs.py:55
 #, python-brace-format
-msgid "Banned in {count} chats"
-msgstr "在 {count} 个群组中被封禁"
+msgid "Banned in {count} chat"
+msgid_plural "Banned in {count} chats"
+msgstr[0] ""
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:48
-#: sophie_bot/modules/federations/utils/ban_docs.py:57
+#: sophie_bot/modules/communities/utils/ban_docs.py:56
+#: sophie_bot/modules/federations/utils/ban_docs.py:69
 msgid "🤫 The action is silent, all related messages would be deleted shortly"
 msgstr "🤫 该操作是静默的，所有相关消息将很快被删除"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:65
+#: sophie_bot/modules/communities/utils/ban_docs.py:73
 msgid "🌐 User Unbanned from Community"
 msgstr "🌐 用户已从社区解禁"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:68
-#: sophie_bot/modules/federations/utils/ban_docs.py:115
+#: sophie_bot/modules/communities/utils/ban_docs.py:76
+#: sophie_bot/modules/federations/utils/ban_docs.py:131
 #: sophie_bot/modules/restrictions/handlers/unban.py:24
 msgid "Unbanned by"
 msgstr "解禁者"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:73
+#: sophie_bot/modules/communities/utils/ban_docs.py:81
 msgid "✅ Unbanned in this chat. Propagating across the community…"
 msgstr "✅ 已在此聊天解除封禁。正在跨社区传播…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:75
+#: sophie_bot/modules/communities/utils/ban_docs.py:83
 msgid "⏳ Unban recorded. Propagating across the community…"
 msgstr "⏳ 已记录解除封禁。正在跨社区传播…"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:77
-#: sophie_bot/modules/federations/utils/ban_docs.py:124
-#, python-brace-format
-msgid "Unbanned in {count} chats"
-msgstr "在 {count} 个群组中解除封禁"
-
 #: sophie_bot/modules/communities/utils/ban_docs.py:89
+#: sophie_bot/modules/federations/utils/ban_docs.py:144
+#, python-brace-format
+msgid "Unbanned in {count} chat"
+msgid_plural "Unbanned in {count} chats"
+msgstr[0] ""
+
+#: sophie_bot/modules/communities/utils/ban_docs.py:104
 msgid "⚠️ Community Propagation Failed"
 msgstr "⚠️ 社区传播失败"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:90
+#: sophie_bot/modules/communities/utils/ban_docs.py:105
 msgid "The action was applied in this chat, but propagating it across the community didn't complete."
 msgstr "该操作已在此聊天应用，但跨社区传播未完成。"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:93
+#: sophie_bot/modules/communities/utils/ban_docs.py:108
 #: sophie_bot/modules/error/__init__.py:30
 #: sophie_bot/modules/federations/schedules/process_imports.py:77
 #: sophie_bot/modules/federations/utils/task_failure.py:21
 msgid "Error"
 msgstr "错误"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:94
+#: sophie_bot/modules/communities/utils/ban_docs.py:109
 msgid "Please run the command again to retry."
 msgstr "请再次运行命令以重试。"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:101
-#: sophie_bot/modules/federations/utils/ban_docs.py:137
+#: sophie_bot/modules/communities/utils/ban_docs.py:116
+#: sophie_bot/modules/federations/utils/ban_docs.py:160
 msgid "ℹ️ Ban Superseded"
 msgstr "ℹ️ 封禁被覆盖"
 
-#: sophie_bot/modules/communities/utils/ban_docs.py:102
-#: sophie_bot/modules/federations/utils/ban_docs.py:138
+#: sophie_bot/modules/communities/utils/ban_docs.py:117
+#: sophie_bot/modules/federations/utils/ban_docs.py:161
 msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
 msgstr "该用户在封禁完成传播前已经被解封，因此无需进一步操作。"
 
@@ -2629,8 +2644,8 @@ msgstr "🏛 联盟管理员"
 #: sophie_bot/modules/federations/handlers/subscribe.py:142
 #: sophie_bot/modules/federations/schedules/process_exports.py:150
 #: sophie_bot/modules/federations/schedules/process_imports.py:71
-#: sophie_bot/modules/federations/utils/ban_docs.py:37
-#: sophie_bot/modules/federations/utils/ban_docs.py:113
+#: sophie_bot/modules/federations/utils/ban_docs.py:38
+#: sophie_bot/modules/federations/utils/ban_docs.py:129
 msgid "Federation"
 msgstr "联盟"
 
@@ -3475,65 +3490,67 @@ msgstr "您没有任何联盟"
 msgid "Could not determine federation"
 msgstr "无法确定联盟"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:34
+#: sophie_bot/modules/federations/utils/ban_docs.py:35
 msgid "Anonymous admin"
 msgstr "匿名管理员"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:36
+#: sophie_bot/modules/federations/utils/ban_docs.py:37
 msgid "🏛 User Banned from Federation"
 msgstr "🏛 用户被联盟封禁"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:46
+#: sophie_bot/modules/federations/utils/ban_docs.py:47
 msgid "✅ Banned in this chat. Propagating across the federation…"
 msgstr "✅ 已在此聊天封禁。正在跨联盟传播…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:48
+#: sophie_bot/modules/federations/utils/ban_docs.py:49
 msgid "⏳ Ban recorded. Propagating across the federation…"
 msgstr "⏳ 已记录封禁。正在跨联盟传播…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#: sophie_bot/modules/federations/utils/ban_docs.py:61
 msgid "Also banned in"
 msgstr "同时被封禁于"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:53
+#: sophie_bot/modules/federations/utils/ban_docs.py:63
 #, python-brace-format
-msgid "{count} subscribed federations"
-msgstr "{count} 个已订阅的联盟"
+msgid "{count} subscribed federation"
+msgid_plural "{count} subscribed federations"
+msgstr[0] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:73
+#: sophie_bot/modules/federations/utils/ban_docs.py:85
 msgid "Ban user in the fed #FedBan"
 msgstr "在联盟中封禁用户 #FedBan"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:74
+#: sophie_bot/modules/federations/utils/ban_docs.py:86
 msgid "Fed"
 msgstr "联盟"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:83
+#: sophie_bot/modules/federations/utils/ban_docs.py:95
 msgid "By"
 msgstr "由"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:85
+#: sophie_bot/modules/federations/utils/ban_docs.py:98
 #, python-brace-format
-msgid "User banned in {banned_count} out of {total_chats} chats in the federation"
-msgstr ""
+msgid "User banned in {banned_count} out of {total_chats} chat in the federation"
+msgid_plural "User banned in {banned_count} out of {total_chats} chats in the federation"
+msgstr[0] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:95
+#: sophie_bot/modules/federations/utils/ban_docs.py:111
 msgid "Original message"
 msgstr "原始消息"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:112
+#: sophie_bot/modules/federations/utils/ban_docs.py:128
 msgid "🏛 User Unbanned from Federation"
 msgstr "🏛 用户已从联盟中解禁"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:120
+#: sophie_bot/modules/federations/utils/ban_docs.py:136
 msgid "✅ Unbanned in this chat. Propagating across the federation…"
 msgstr "✅ 已在此聊天解除封禁。正在跨联盟传播…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:122
+#: sophie_bot/modules/federations/utils/ban_docs.py:138
 msgid "⏳ Unban recorded. Propagating across the federation…"
 msgstr "⏳ 已记录解除封禁。正在跨联盟传播…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:145
+#: sophie_bot/modules/federations/utils/ban_docs.py:168
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr "🏛 用户 {unbanned_user} 已通过 {unbanner} 从联盟中解禁。"
@@ -4683,6 +4700,12 @@ msgstr "已移除锁定"
 #, python-brace-format
 msgid "Lock type {type} is not locked in this chat."
 msgstr "锁定类型 {type} 未在此聊天中锁定。"
+
+#: sophie_bot/modules/locks/handlers/unlock_all_cmd.py:64
+#, python-brace-format
+msgid "Do you want to unlock all {count} lock type in {chat_name}?"
+msgid_plural "Do you want to unlock all {count} lock types in {chat_name}?"
+msgstr[0] ""
 
 #: sophie_bot/modules/logging/__init__.py:15
 msgid "Logging"
@@ -8262,6 +8285,24 @@ msgstr "未找到用户提及"
 
 #~ msgid "Enabled, expires in {time}"
 #~ msgstr "已启用，过期于 {time}"
+
+#~ msgid "Loaded: {models} models, {providers} providers"
+#~ msgstr "已加载：{models} 个模型，{providers} 个提供者"
+
+#~ msgid "✅ Antiflood threshold updated to {count} messages per 30 seconds"
+#~ msgstr "✅ 防洪阈值已更新为每 30 秒 {count} 条消息"
+
+#~ msgid "Banned in {count} chats"
+#~ msgstr "在 {count} 个群组中被封禁"
+
+#~ msgid "Unbanned in {count} chats"
+#~ msgstr "在 {count} 个群组中解除封禁"
+
+#~ msgid "{count} subscribed federations"
+#~ msgstr "{count} 个已订阅的联盟"
+
+#~ msgid "User banned in {banned_count} out of {total_chats} chats in the federation"
+#~ msgstr ""
 
 #~ msgid "The AI request failed. Please try again in a moment."
 #~ msgstr "AI 请求失败。请稍后重试。"

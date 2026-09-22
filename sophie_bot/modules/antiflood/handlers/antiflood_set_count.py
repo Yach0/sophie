@@ -12,6 +12,7 @@ from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.i18n import ngettext as pl_
 
 
 @flags.handler_help(description=l_("Set the message count threshold for antiflood protection"))
@@ -59,5 +60,12 @@ class AntifloodSetCountHandler(SophieMessageHandler):
             await model.save()
 
         await self.event.reply(
-            Template(_("✅ Antiflood threshold updated to {count} messages per 30 seconds"), count=count).to_html()
+            Template(
+                pl_(
+                    "✅ Antiflood threshold updated to {count} message per 30 seconds",
+                    "✅ Antiflood threshold updated to {count} messages per 30 seconds",
+                    count,
+                ),
+                count=count,
+            ).to_html()
         )
