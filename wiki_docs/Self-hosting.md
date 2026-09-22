@@ -40,8 +40,6 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `TOKEN`: Your Telegram Bot API token.
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
-- `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`: Seed the AI catalog on first
-  migration, and are never read again. See below.
 
 ### 2. Run the Playbook
 
@@ -89,20 +87,15 @@ adding a model or rotating a key never needs a redeploy.
 
 ### Seeding
 
-The `seed_ai_catalog` migration creates the initial catalog from your environment:
+The `seed_ai_catalog` migration creates catalog models and the `openrouter` provider; the
+`seed_vendor_sdk_provider_keys` migration creates `mistral` and `openai` providers for
+moderation and transcription. All three start without keys. Configure credentials in the
+database before enabling AI, using `/op_aiprovider <name> ^key=<your-key>` in a private chat
+with the bot or updating the provider through the operator API.
 
-- `OPENROUTER_API_KEY` becomes the `openrouter` provider.
-- `MISTRAL_API_KEY` and `OPENAI_API_KEY` become the `mistral` and `openai` providers, of kind
-  `moderation`. These carry no models: they hold the key for a service Sophie calls with the
-  vendor's own SDK — the moderation classifiers, and Mistral's voice and video transcription.
-- `CUSTOM_PROVIDERS` becomes one provider per entry, for OpenAI-compatible endpoints:
-
-```
-CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://example.com/compatible-mode/v1","api_key":"sk-..."}]'
-```
-
-Every one of these variables is read **only** by a seed migration. Once the catalog exists, changing
-them has no effect — use the commands below instead.
+The initial catalog also includes a `qwencloud` model. To use it, create an OpenAI-compatible
+provider named `qwencloud` with its endpoint and key via `/op_aiprovider` or the operator API.
+No AI provider credentials are read from environment variables.
 
 ### Managing the catalog
 
@@ -124,8 +117,8 @@ A mode with no model for a purpose falls back to the `support` tier, so you only
 roles you want to differ. Changes take effect on every process within a few seconds without a
 restart.
 
-> **Warning:** with an empty catalog no AI feature can resolve a model and every AI request fails.
-> Check `/op_aimodels` after deploying.
+> **Warning:** AI requests require a configured catalog model and a key on its provider. Check
+> `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
 ## AI moderation

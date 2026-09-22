@@ -192,7 +192,7 @@ async def _query_notes(
         rag_allowed = quota_result.allowed
     if rag_allowed:
         assert search is not None
-        return await semantic_search_notes(chat_iid, search)
+        return await semantic_search_notes(chat_iid, search, redis=redis)
     notes = await NoteModel.get_chat_notes(chat_iid)
     return [note for note in notes if not search or any(search in name for name in note.names)]
 

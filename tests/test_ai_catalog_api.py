@@ -39,7 +39,9 @@ async def _clear() -> None:
 
 async def test_create_provider_refuses_a_duplicate_name(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-1234abcd"), services=test_services)
+    await catalog.create_provider(
+        ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-1234abcd"), services=test_services
+    )
 
     with pytest.raises(HTTPException) as error:
         await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
@@ -49,7 +51,9 @@ async def test_create_provider_refuses_a_duplicate_name(_no_version_bump, test_s
 
 async def test_provider_list_masks_the_key_and_never_returns_it(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-abcdef1234"), services=test_services)
+    await catalog.create_provider(
+        ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-abcdef1234"), services=test_services
+    )
 
     result = await catalog.list_providers()
 
@@ -61,7 +65,9 @@ async def test_provider_list_masks_the_key_and_never_returns_it(_no_version_bump
 
 async def test_updating_a_provider_without_a_key_keeps_the_stored_one(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"), services=test_services)
+    await catalog.create_provider(
+        ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"), services=test_services
+    )
 
     await catalog.update_provider("openrouter", ProviderUpdate(enabled=False), services=test_services)
 
@@ -74,7 +80,9 @@ async def test_updating_a_provider_without_a_key_keeps_the_stored_one(_no_versio
 
 async def test_updating_a_provider_with_an_empty_key_clears_it(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"), services=test_services)
+    await catalog.create_provider(
+        ProviderCreate(name="openrouter", kind="openrouter", api_key="sk-original"), services=test_services
+    )
 
     await catalog.update_provider("openrouter", ProviderUpdate(api_key=""), services=test_services)
 
@@ -86,7 +94,9 @@ async def test_creating_a_model_carries_its_roles(_no_version_bump, test_service
     await _clear()
     role = AIModelRole(mode="support", purpose=AIModelPurpose.summary)
 
-    result = await catalog.create_model(ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role]), services=test_services)
+    result = await catalog.create_model(
+        ModelCreate(name="openai/gpt-5.5", provider="openrouter", roles=[role]), services=test_services
+    )
 
     assert result.roles == [role]
     stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5")
@@ -124,7 +134,7 @@ async def test_meta_exposes_the_enums_the_panel_builds_pickers_from() -> None:
     assert set(meta.model_override_flags) == set(meta.purposes)
 
 
-async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
+async def test_openrouter_proxy_trims_the_upstream_shape(test_services: object) -> None:
     payload = {
         "data": [
             {
@@ -141,7 +151,7 @@ async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
     }
     response = SimpleNamespace(json=lambda: payload, raise_for_status=lambda: None)
     with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)):
-        models = await catalog.list_openrouter_models()
+        models = await catalog.list_openrouter_models(test_services)
 
     assert len(models) == 1
     model = models[0]
@@ -151,16 +161,36 @@ async def test_openrouter_proxy_trims_the_upstream_shape() -> None:
     assert model.modalities == ["text", "image"]
 
 
-async def test_openrouter_proxy_reports_upstream_failure_as_502() -> None:
+async def test_openrouter_proxy_reports_upstream_failure_as_502(test_services: object) -> None:
     from httpx2 import HTTPError
 
     with (
         patch.object(catalog.ai_http_client, "get", AsyncMock(side_effect=HTTPError("boom"))),
         pytest.raises(HTTPException) as error,
     ):
-        await catalog.list_openrouter_models()
+        await catalog.list_openrouter_models(test_services)
 
     assert error.value.status_code == 502
+
+
+async def test_openrouter_model_picker_uses_the_current_catalog_key(
+    _no_version_bump: object, test_services: object
+) -> None:
+    await _clear()
+    await catalog.create_provider(
+        ProviderCreate(name="openrouter", kind="openrouter", api_key="catalog-key"), services=test_services
+    )
+    await load_catalog(redis=test_services.redis)
+    response = SimpleNamespace(json=lambda: {"data": []}, raise_for_status=lambda: None)
+    with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)) as fetch:
+        await catalog.list_openrouter_models(test_services)
+    assert fetch.await_args.kwargs["headers"]["Authorization"] == "Bearer catalog-key"
+
+    await catalog.update_provider("openrouter", ProviderUpdate(api_key=""), services=test_services)
+    await load_catalog(redis=test_services.redis)
+    with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)) as fetch:
+        await catalog.list_openrouter_models(test_services)
+    assert "Authorization" not in fetch.await_args.kwargs["headers"]
 
 
 async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_version_bump, test_services: object) -> None:
@@ -168,16 +198,22 @@ async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_versio
     purposes that mode can actually use."""
     await _clear()
     await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
-    await catalog.create_model(ModelCreate(
-        name="ent/chat",
-        provider="openrouter",
-        roles=[AIModelRole(mode="entertainment", purpose=AIModelPurpose.chatbot)],
-    ), services=test_services)
-    await catalog.create_model(ModelCreate(
-        name="support/summary",
-        provider="openrouter",
-        roles=[AIModelRole(mode="support", purpose=AIModelPurpose.summary)],
-    ), services=test_services)
+    await catalog.create_model(
+        ModelCreate(
+            name="ent/chat",
+            provider="openrouter",
+            roles=[AIModelRole(mode="entertainment", purpose=AIModelPurpose.chatbot)],
+        ),
+        services=test_services,
+    )
+    await catalog.create_model(
+        ModelCreate(
+            name="support/summary",
+            provider="openrouter",
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.summary)],
+        ),
+        services=test_services,
+    )
     # A fresh snapshot must be loaded so the just-created roles are visible.
     with patch.object(catalog, "get_catalog", catalog.load_catalog):
         resolution = await catalog.get_resolution(services=test_services)
@@ -199,11 +235,14 @@ async def test_resolution_is_strict_and_scoped_to_each_modes_purposes(_no_versio
 
 async def test_export_round_trips_through_import(_no_version_bump, test_services: object) -> None:
     await _clear()
-    await catalog.create_model(ModelCreate(
-        name="a/model",
-        provider="openrouter",
-        roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
-    ), services=test_services)
+    await catalog.create_model(
+        ModelCreate(
+            name="a/model",
+            provider="openrouter",
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
+        ),
+        services=test_services,
+    )
 
     exported = await catalog.export_catalog()
     assert [model.name for model in exported.models] == ["a/model"]
@@ -255,12 +294,15 @@ async def test_meta_scopes_purposes_to_each_mode(_no_version_bump, test_services
 async def test_provider_models_queries_an_openai_compatible_endpoint(_no_version_bump, test_services: object) -> None:
     """A custom provider's models come from its own /models, with its own key."""
     await _clear()
-    await catalog.create_provider(ProviderCreate(
-        name="qwencloud",
-        kind="openai_compatible",
-        base_url="https://example.com/v1",
-        api_key="sk-custom",
-    ), services=test_services)
+    await catalog.create_provider(
+        ProviderCreate(
+            name="qwencloud",
+            kind="openai_compatible",
+            base_url="https://example.com/v1",
+            api_key="sk-custom",
+        ),
+        services=test_services,
+    )
     payload = {"data": [{"id": "qwen3-vl-flash"}, {"id": "qwen-max"}]}
     response = SimpleNamespace(json=lambda: payload, raise_for_status=lambda: None)
     with patch.object(catalog.ai_http_client, "get", AsyncMock(return_value=response)) as get:
@@ -285,18 +327,21 @@ async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bum
 
     await _clear()
     await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
-    await catalog.create_model(ModelCreate(
-        name="one/model",
-        provider="openrouter",
-        roles=[
-            AIModelRole(
-                mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"
-            ),
-            AIModelRole(
-                mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"
-            ),
-        ],
-    ), services=test_services)
+    await catalog.create_model(
+        ModelCreate(
+            name="one/model",
+            provider="openrouter",
+            roles=[
+                AIModelRole(
+                    mode="support", purpose=AIModelPurpose.research, service_tier="flex", reasoning_effort="high"
+                ),
+                AIModelRole(
+                    mode="support", purpose=AIModelPurpose.chatbot, service_tier="none", reasoning_effort="low"
+                ),
+            ],
+        ),
+        services=test_services,
+    )
     await load_catalog(redis=test_services.redis)
 
     research = await resolve_role("support", AIModelPurpose.research, redis=test_services.redis)
@@ -312,15 +357,20 @@ async def _create_chain(*models: tuple[str, int, bool], test_services: object) -
     await _clear()
     await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
     for name, priority, supports_images in models:
-        await catalog.create_model(ModelCreate(
-            name=name,
-            provider="openrouter",
-            supports_images=supports_images,
-            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=priority)],
-        ), services=test_services)
+        await catalog.create_model(
+            ModelCreate(
+                name=name,
+                provider="openrouter",
+                supports_images=supports_images,
+                roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=priority)],
+            ),
+            services=test_services,
+        )
 
 
-async def test_a_shared_purpose_resolves_to_a_chain_ordered_by_priority_then_name(_no_version_bump, test_services: object) -> None:
+async def test_a_shared_purpose_resolves_to_a_chain_ordered_by_priority_then_name(
+    _no_version_bump, test_services: object
+) -> None:
     """Lower priority runs first; equal priorities fall back to the name so Mongo's order never leaks."""
     await _create_chain(("b/model", 0, True), ("a/model", 0, True), ("z/model", -1, True), test_services=test_services)
     await load_catalog(redis=test_services.redis)
@@ -334,14 +384,17 @@ async def test_a_model_claiming_one_purpose_twice_is_tried_once(_no_version_bump
     """A duplicate role row never meant "run this model twice in a row"."""
     await _clear()
     await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
-    await catalog.create_model(ModelCreate(
-        name="one/model",
-        provider="openrouter",
-        roles=[
-            AIModelRole(mode="support", purpose=AIModelPurpose.chatbot),
-            AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=5),
-        ],
-    ), services=test_services)
+    await catalog.create_model(
+        ModelCreate(
+            name="one/model",
+            provider="openrouter",
+            roles=[
+                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot),
+                AIModelRole(mode="support", purpose=AIModelPurpose.chatbot, priority=5),
+            ],
+        ),
+        services=test_services,
+    )
     await load_catalog(redis=test_services.redis)
 
     roles = await resolve_roles("support", AIModelPurpose.chatbot, redis=test_services.redis)
@@ -349,7 +402,9 @@ async def test_a_model_claiming_one_purpose_twice_is_tried_once(_no_version_bump
     assert [role.model_name for role in roles] == ["one/model"]
 
 
-async def test_resolution_exposes_the_whole_chain_and_its_image_support(_no_version_bump, test_services: object) -> None:
+async def test_resolution_exposes_the_whole_chain_and_its_image_support(
+    _no_version_bump, test_services: object
+) -> None:
     """The panel sees every candidate in run order, so an operator can tell what failover will do."""
     await _create_chain(("first/model", 0, True), ("second/model", 1, False), test_services=test_services)
 

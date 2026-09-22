@@ -704,16 +704,22 @@ async def test_feature_flags_backward_never_drops_an_override_it_did_not_restore
 
     # Restored to Redis, so removing the row is safe.
     assert await collection.find_one({"_id": live.id}) is None
-    assert await test_redis.hget(
-        migration._REDIS_KEY,
-        live_feature,
-    ) == serialize_feature_value(True).encode()
+    assert (
+        await test_redis.hget(
+            migration._REDIS_KEY,
+            live_feature,
+        )
+        == serialize_feature_value(True).encode()
+    )
 
     # A retired flag's override is still restored, and its row is only removed once it is.
-    assert await test_redis.hget(
-        migration._REDIS_KEY,
-        "retired_flag_no_longer_declared",
-    ) == serialize_feature_value(True).encode()
+    assert (
+        await test_redis.hget(
+            migration._REDIS_KEY,
+            "retired_flag_no_longer_declared",
+        )
+        == serialize_feature_value(True).encode()
+    )
     assert await collection.find_one({"_id": retired.id}) is None
 
     # Nothing to write back, so the row is kept rather than destroyed.
@@ -750,6 +756,7 @@ async def _reset_collections(
     """db_init is session-scoped, so collections carry over between tests."""
     for name in names:
         await get_collection(db_init, name).delete_many({})
+
 
 async def _run_migration(
     controller: Any,
@@ -858,37 +865,30 @@ def _vendor_sdk_keys_migration() -> ModuleType:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_vendor_sdk_keys_are_copied_from_the_environment(
-    monkeypatch: pytest.MonkeyPatch,
+async def test_vendor_sdk_providers_start_without_credentials(
     db_init: Any,
     test_redis: object,
 ) -> None:
     migration = _vendor_sdk_keys_migration()
     providers = get_collection(db_init, "ai_catalog_provider")
     await _reset_collections(db_init, "ai_catalog_provider")
-    monkeypatch.setattr(migration.CONFIG, "mistral_api_key", "env-mistral-key")
-    monkeypatch.setattr(migration.CONFIG, "openai_api_key", "env-openai-key")
 
     await _run_migration(migration.Forward.migrate, db_init, test_redis)
 
     stored = {document["name"]: document async for document in providers.find({})}
-    assert stored["mistral"]["api_key"] == "env-mistral-key"
-    assert stored["openai"]["api_key"] == "env-openai-key"
+    assert set(stored) == {"mistral", "openai"}
+    assert {document["api_key"] for document in stored.values()} == {""}
     assert {document["kind"] for document in stored.values()} == {"moderation"}
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_vendor_sdk_keys_seed_is_idempotent_and_keeps_operator_edits(
-    monkeypatch: pytest.MonkeyPatch,
+async def test_vendor_sdk_provider_seed_keeps_operator_credentials(
     db_init: Any,
     test_redis: object,
 ) -> None:
-    """An operator who rotated a key with /op_aiprovider must not have the env value put back."""
     migration = _vendor_sdk_keys_migration()
     providers = get_collection(db_init, "ai_catalog_provider")
     await _reset_collections(db_init, "ai_catalog_provider")
-    monkeypatch.setattr(migration.CONFIG, "mistral_api_key", "env-mistral-key")
-    monkeypatch.setattr(migration.CONFIG, "openai_api_key", None)
 
     await _run_migration(migration.Forward.migrate, db_init, test_redis)
     await providers.update_one({"name": "mistral"}, {"$set": {"api_key": "rotated-by-operator"}})
@@ -896,7 +896,6 @@ async def test_vendor_sdk_keys_seed_is_idempotent_and_keeps_operator_edits(
 
     assert await providers.count_documents({}) == len(migration._PROVIDER_NAMES)
     assert (await providers.find_one({"name": "mistral"}))["api_key"] == "rotated-by-operator"
-    # An instance that never set the env var gets an empty row to fill in, not a missing one.
     assert (await providers.find_one({"name": "openai"}))["api_key"] == ""
 
 

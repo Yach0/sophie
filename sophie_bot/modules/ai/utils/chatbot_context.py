@@ -106,7 +106,9 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
         chat_tid=context.chat_tid,
         redis=context.services.redis,
     ):
-        related_notes = await semantic_search_notes(context.chat_iid, context.user_text, limit=5)
+        related_notes = await semantic_search_notes(
+            context.chat_iid, context.user_text, limit=5, redis=context.services.redis
+        )
         if related_notes:
             include_note_content = await is_enabled(
                 "ai_notes_related_system_prompt_full_content",

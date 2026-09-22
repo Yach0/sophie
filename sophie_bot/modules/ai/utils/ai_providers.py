@@ -34,7 +34,10 @@ def _cached(provider: CatalogProvider | None, build) -> Provider:
 
 
 def get_openrouter_provider(provider: CatalogProvider | None = None) -> Provider:
-    return _cached(provider, lambda: OpenRouterProvider(api_key=_api_key(provider.api_key if provider else "")))
+    api_key = _api_key(provider.api_key if provider else "")
+    if not api_key:
+        raise ValueError("OpenRouter API key is missing from the AI catalog; configure /op_aiprovider openrouter")
+    return _cached(provider, lambda: OpenRouterProvider(api_key=api_key))
 
 
 def get_openai_provider(provider: CatalogProvider) -> Provider:

@@ -345,7 +345,6 @@ async def build_reply_doc(
         _render_ai_markdown(resolved_text, strip_alien_html_tags=strip_alien_html_tags),
         tool_labels=tool_labels,
     )
-    print(doc.to_rich())
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "
         doc += build_debug_doc(model, result)

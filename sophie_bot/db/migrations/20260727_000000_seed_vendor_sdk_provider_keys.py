@@ -1,30 +1,22 @@
 """Migration: seed_vendor_sdk_provider_keys
 
 Description:
-    Copies MISTRAL_API_KEY and OPENAI_API_KEY out of the environment into the AI provider catalog,
-    as rows named `mistral` and `openai` with kind `moderation`. After this runs, both keys are
-    managed at runtime with /op_aiprovider and the env vars are never read again.
-
-    TODO: delete this migration, along with `mistral_api_key` and `openai_api_key` in
-    `sophie_bot/config.py` and their entries in `deploy/`, once every deployment has run it.
-    It only exists so an existing instance keeps working without an operator re-entering keys.
+    Creates the `mistral` and `openai` catalog providers for vendor SDK calls.
+    The operator configures their API keys in the catalog with /op_aiprovider.
 
 Affected Collections:
     - ai_catalog_provider (two rows added)
 
 Impact:
-    - Medium risk: without these rows the AI moderator and voice/video transcription have no key
-      and every request fails with a 401. Forward is idempotent per row.
-    - An instance that never set the env vars gets rows with an empty key, which is the same state
-      it was already in; the operator fills them in with /op_aiprovider.
+    - Without configured keys, moderation and transcription requests cannot authenticate.
+    - The migration is idempotent and does not overwrite existing provider credentials.
 
 Rollback:
-    Removes both rows. The keys remain in the environment, but no code reads them any more.
+    Removes both provider rows.
 """
 
 from beanie import free_fall_migration
 
-from sophie_bot.config import CONFIG
 from sophie_bot.services.db import get_collection
 from sophie_bot.services.migrations import MigrationResources
 
@@ -32,13 +24,12 @@ _PROVIDER_NAMES = ("mistral", "openai")
 
 
 def _providers() -> list[dict]:
-    keys = {"mistral": CONFIG.mistral_api_key, "openai": CONFIG.openai_api_key}
     return [
         {
             "name": name,
             "kind": "moderation",
             "base_url": None,
-            "api_key": keys[name] or "",
+            "api_key": "",
             "enabled": True,
         }
         for name in _PROVIDER_NAMES
@@ -46,7 +37,7 @@ def _providers() -> list[dict]:
 
 
 class Forward:
-    """Move the vendor SDK keys from the environment into the catalog."""
+    """Create catalog rows for vendor SDK providers."""
 
     @free_fall_migration(document_models=[])
     async def migrate(self, session, *, resources: MigrationResources) -> None:
@@ -56,12 +47,11 @@ class Forward:
                 {"name": provider["name"]}, {"$setOnInsert": provider}, upsert=True, session=session
             )
 
-        seeded = [provider["name"] for provider in _providers() if provider["api_key"]]
-        print(f"Seeded {len(_PROVIDER_NAMES)} vendor SDK providers, {len(seeded)} with a key from the environment")
+        print(f"Seeded {len(_PROVIDER_NAMES)} vendor SDK providers")
 
 
 class Backward:
-    """Remove the rows; the environment still holds the keys."""
+    """Remove the vendor SDK provider rows."""
 
     @free_fall_migration(document_models=[])
     async def migrate(self, session, *, resources: MigrationResources) -> None:

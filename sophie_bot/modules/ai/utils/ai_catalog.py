@@ -265,6 +265,11 @@ async def get_catalog(*, redis: Redis) -> AICatalog:
     return _catalog
 
 
+async def get_openrouter_api_key(*, redis: Redis) -> str | None:
+    provider = (await get_catalog(redis=redis)).providers.get("openrouter")
+    return provider.api_key if provider and provider.kind is AIProviderKind.openrouter and provider.api_key else None
+
+
 async def resolve_roles(mode: AIMode, purpose: AIModelPurpose, *, redis: Redis) -> tuple[ResolvedRole, ...]:
     """Every candidate serving a (mode, purpose), best first, or a crash when there are none.
 

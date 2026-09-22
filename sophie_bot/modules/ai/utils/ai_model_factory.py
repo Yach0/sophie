@@ -53,7 +53,7 @@ def _build_model(model_name: str, reasoning_effort: str | None) -> Model:
             settings=_build_openai_settings(model),
         )
 
-    provider = model.provider if model else None
+    provider = model.provider if model else catalog().providers.get("openrouter")
     return OpenRouterModel(
         model.api_name if model else model_name,
         provider=get_openrouter_provider(provider),

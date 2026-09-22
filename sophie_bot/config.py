@@ -4,7 +4,6 @@ from typing import Annotated, Literal
 from aiogram.webhook.security import DEFAULT_TELEGRAM_NETWORKS
 from pydantic import (
     AnyHttpUrl,
-    BaseModel,
     Field,
     FilePath,
     ValidationInfo,
@@ -13,14 +12,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class CustomProviderConfig(BaseModel):
-    """An OpenAI-compatible AI provider used to seed the AI catalog on first migration."""
-
-    name: str
-    base_url: str
-    api_key: str
 
 
 class Config(BaseSettings):
@@ -130,21 +121,9 @@ class Config(BaseSettings):
     proxy_stable_instance_url: str = "http://host.container.internal:8071"
     proxy_beta_instance_url: str = "http://host.container.internal:8072"
 
-    # OpenRouter API key for routing non-Mistral models and note embeddings via OpenAI-compatible API
-    openrouter_api_key: str | None = None
     tavily_api_key: str = ""
     kagi_api_key: str = ""
     tinyfish_api_key: str = ""
-    # TODO: delete both, with the seed_vendor_sdk_provider_keys migration, once every deployment
-    # has run it. They are read only by that migration, which copies them into the AI catalog;
-    # afterwards the keys are managed with /op_aiprovider.
-    mistral_api_key: str | None = None
-    openai_api_key: str | None = None
-
-    # Seed values for the AI provider catalog, read only by the seed_ai_catalog migration. Once the
-    # catalog exists, providers and keys are managed with /op_aiprovider; changing these does nothing.
-    # CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://dashscope-intl.aliyuncs.com/compatible-mode/v1","api_key":"sk-..."}]'
-    custom_providers: list[CustomProviderConfig] = []
 
     gitlab_token: str | None = None
     gitlab_project_id: str | None = None  # GitLab project ID or URL-encoded path
@@ -156,7 +135,9 @@ class Config(BaseSettings):
     metrics_enable: bool = True
     metrics_sample_ratio: float = 1.0
 
-    model_config = SettingsConfigDict(env_parse_none_str="None", env_file="data/config.env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_parse_none_str="None", env_file="data/config.env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     @computed_field
     @property

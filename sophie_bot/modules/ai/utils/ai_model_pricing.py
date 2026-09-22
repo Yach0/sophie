@@ -6,8 +6,8 @@ import ujson
 from httpx2 import AsyncClient, HTTPError
 from redis.asyncio import Redis
 
-from sophie_bot.config import CONFIG
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
+from sophie_bot.modules.ai.utils.ai_catalog import get_openrouter_api_key
 from sophie_bot.utils.logger import log
 
 ai_http_client = AsyncClient(timeout=30)
@@ -28,10 +28,10 @@ async def close_model_pricing_client() -> None:
     await ai_http_client.aclose()
 
 
-def openrouter_headers() -> dict[str, str]:
+async def openrouter_headers(*, redis: Redis) -> dict[str, str]:
     headers = {"Accept": "application/json"}
-    if CONFIG.openrouter_api_key:
-        headers["Authorization"] = f"Bearer {CONFIG.openrouter_api_key}"
+    if api_key := await get_openrouter_api_key(redis=redis):
+        headers["Authorization"] = f"Bearer {api_key}"
     return headers
 
 
@@ -59,7 +59,9 @@ async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[flo
 
     cache: dict[str, tuple[float | None, float | None]] = {}
     try:
-        response = await ai_http_client.get("https://openrouter.ai/api/v1/models", headers=openrouter_headers())
+        response = await ai_http_client.get(
+            "https://openrouter.ai/api/v1/models", headers=await openrouter_headers(redis=redis)
+        )
         response.raise_for_status()
     except HTTPError as err:
         log.warning("Failed to load OpenRouter pricing", error=str(err))

@@ -14,11 +14,10 @@ class GenerateNoteEmbeddings:
     def __init__(self, services: ApplicationServices) -> None:
         self.services = services
 
-    @staticmethod
-    async def process_chat(chat: ChatModel) -> None:
+    async def process_chat(self, chat: ChatModel) -> None:
         chat_notes = NoteModel.find(NoteModel.chat.id == chat.iid)
         async for note in chat_notes:  # skipcq: PYL-E1133
-            updated = await update_note_embedding(note)
+            updated = await update_note_embedding(note, redis=self.services.redis)
             if updated:
                 log.debug("notes_rag: updated note embedding", chat=chat.tid, note=note.names)
 
