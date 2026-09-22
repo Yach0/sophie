@@ -31,7 +31,6 @@ from sophie_bot.utils.logger import log
 
 _REGEX_TIMEOUT_SECONDS = 0.5
 _JEV_ENDPOINT: Final[str] = "https://openrouter.ai/api/v1/systemone"
-_JEV_MODEL: Final[str] = "typesafe/jev-1.13"
 _JEV_MATCH_QUESTION: Final[str] = "matches"
 _JEV_MATCH_THRESHOLD: Final[float] = 0.5
 
@@ -173,13 +172,14 @@ async def _match_jev_filter(
     if provider is None or not provider.api_key:
         raise RuntimeError("OpenRouter provider has no API key")
 
+    model = str(await get_value("ai_filters_jev_model", chat_tid=chat_tid, redis=services.redis))
     threshold = _JEV_MATCH_THRESHOLD
 
     response = await openrouter_http_client.post(
         _JEV_ENDPOINT,
         headers={"Authorization": f"Bearer {provider.api_key}"},
         json={
-            "model": _JEV_MODEL,
+            "model": model,
             "state": text_content or "(no text content)",
             "questions": {
                 _JEV_MATCH_QUESTION: {

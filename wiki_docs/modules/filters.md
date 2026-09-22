@@ -128,10 +128,10 @@ Remarks:
 
 ## AI Filter handlers
 
-Sophie introduces AI-powered filter handlers that determine whether to trigger filter actions based on message
-content. They understand context and meaning rather than only matching text patterns. During the Jev rollout,
-text-only messages can use Jev through OpenRouter, while messages with an image or thumbnail stay on the configured
-multimodal filter model.
+Sophie introduces powerful AI-powered filter handlers that intelligently determine whether to trigger filter actions
+based on message content. Powered by Mistral AI, an industry-leading AI provider known for its commitment to data
+privacy, this feature allows you to create intelligent filters that understand context and meaning rather than just
+matching text patterns.
 
 ### How to Use AI Filters
 

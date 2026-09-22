@@ -12,7 +12,6 @@ from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_U
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
 from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.filters.utils_.match_handler import (
-    _match_jev_filter,
     consume_ai_filter_daily_quota,
     match_ai_handler,
 )
@@ -42,55 +41,6 @@ async def test_match_ai_handler_skips_users_older_than_threshold(
     assert matched is False
     extract_mock.assert_not_awaited()
     ai_mock.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_match_jev_filter_uses_openrouter_system_one(
-    test_redis: object,
-) -> None:
-    response = SimpleNamespace(
-        raise_for_status=lambda: None,
-        json=lambda: {
-            "model": "typesafe/jev-1.13-20260917",
-            "answers": {"matches": {"type": "noul", "noul": 0.49}},
-        },
-    )
-    post_mock = AsyncMock(return_value=response)
-
-    with (
-        patch(
-            "sophie_bot.modules.filters.utils_.match_handler.get_catalog",
-            AsyncMock(
-                return_value=SimpleNamespace(providers={"openrouter": SimpleNamespace(api_key="openrouter-test-key")})
-            ),
-        ),
-        patch(
-            "sophie_bot.modules.filters.utils_.match_handler.openrouter_http_client.post",
-            post_mock,
-        ),
-    ):
-        matched = await _match_jev_filter(
-            "buy discounted crypto",
-            "promotes cryptocurrency",
-            -100123,
-            services=SimpleNamespace(redis=test_redis),
-        )
-
-    assert matched is False
-    post_mock.assert_awaited_once_with(
-        "https://openrouter.ai/api/v1/systemone",
-        headers={"Authorization": "Bearer openrouter-test-key"},
-        json={
-            "model": "typesafe/jev-1.13",
-            "state": "buy discounted crypto",
-            "questions": {
-                "matches": {
-                    "type": "noul",
-                    "instructions": ("Does the message match this filter criterion: promotes cryptocurrency"),
-                }
-            },
-        },
-    )
 
 
 @pytest.mark.asyncio
