@@ -106,7 +106,7 @@ async def extract_audio_from_video(video: Video | VideoNote, *, bot: Bot) -> byt
 
             audio_bytes = _encode_audio_frames_as_ogg(input_container.decode(audio_stream))
 
-        if len(audio_bytes) == 0:
+        if not audio_bytes:
             log.debug("Extracted audio is empty")
             return None
 
