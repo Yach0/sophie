@@ -7,6 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from ass_tg.types import OptionalArg
+from beanie.odm.fields import Link as BeanieLink
 from stfu_tg import Doc, Title
 from stfu_tg.doc import Element
 
@@ -80,12 +81,13 @@ class ConnectDMCmd(SophieMessageHandler):
             # Show last 5
             for h_chat in reversed(conn.history[-5:]):
                 chat = await h_chat.fetch()
-                if chat:
-                    buttons.add(
-                        InlineKeyboardButton(
-                            text=chat.first_name_or_title, callback_data=ConnectToChatCb(chat_id=chat.tid).pack()
-                        )
+                if isinstance(chat, BeanieLink):
+                    continue
+                buttons.add(
+                    InlineKeyboardButton(
+                        text=chat.first_name_or_title, callback_data=ConnectToChatCb(chat_id=chat.tid).pack()
                     )
+                )
 
         buttons.adjust(1)
         await self.event.reply(str(doc), reply_markup=buttons.as_markup())

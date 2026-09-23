@@ -12,6 +12,8 @@ from datetime import UTC, datetime
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
+from bson import DBRef
+from bson.objectid import ObjectId
 
 from sophie_bot.db.models import ChatModel, FiltersModel, RulesModel
 from sophie_bot.db.models.chat import ChatType
@@ -60,6 +62,24 @@ async def test_admin_connects_to_group_by_numeric_id(test_client: TestClient) ->
 
     assert any("connected" in (request.text or "").lower() for request in requests)
     assert await _connected_chat_tid(admin.id) == group.id
+
+
+@pytest.mark.asyncio
+async def test_connect_menu_skips_dangling_history_links(test_client: TestClient) -> None:
+    user = test_client.create_user(user_id=next_user_id(), first_name="History User", username="history_user")
+    await test_client.send_message(text="init", from_user=user.user)
+    user_model = await ChatModel.get_by_tid(user.user.id)
+    assert user_model is not None
+
+    connection = await ChatConnectionModel(user=user_model, history=[]).insert()
+    await ChatConnectionModel.get_pymongo_collection().update_one(
+        {"_id": connection.id},
+        {"$set": {"history": [DBRef("chats", ObjectId())]}},
+    )
+
+    requests = await test_client.send_command(command="connect", from_user=user.user)
+
+    assert any("Select a chat to connect to" in (request.text or "") for request in requests)
 
 
 @pytest.mark.asyncio
