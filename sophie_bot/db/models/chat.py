@@ -282,8 +282,7 @@ class ChatTopicModel(Document):
             await model.save()
             return model
 
-        if (topic_name and topic_name != model.name) or (topic_name and not model.name):
+        if topic_name and topic_name != model.name:
             model.name = topic_name
             await model.save()
-
         return model
