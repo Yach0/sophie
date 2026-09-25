@@ -17,15 +17,15 @@ from pydantic_ai.exceptions import (
     UnexpectedModelBehavior,
     UsageLimitExceeded,
 )
-from stfu_tg import Code, Doc, KeyValue, Title
+from stfu_tg import Doc, Title
 from stfu_tg.doc import Element
 from tenacity import AsyncRetrying, RetryCallState, retry_if_exception, stop_after_attempt, wait_exponential
 
 from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
 from sophie_bot.services.logfire import capture_logfire_error
+from sophie_bot.utils.error_references import error_reference_elements
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
-from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 # openai and pydantic-ai speak httpx2; mistralai and the Tavily search tool still speak legacy
@@ -70,9 +70,12 @@ _DEFAULT_AI_FAILED_MESSAGE: Final = l_("The AI provider did not complete the req
 class AIRequestFailed(SophieException):
     """Raised when an AI provider request fails after retry handling."""
 
-    def __init__(self, sentry_event_id: str | None, *docs: str | Element | LazyProxy) -> None:
+    def __init__(
+        self, sentry_event_id: str | None, *docs: str | Element | LazyProxy, logfire_trace_id: str | None = None
+    ) -> None:
         super().__init__(*(docs or (_DEFAULT_AI_FAILED_MESSAGE,)))
         self.sentry_event_id = sentry_event_id
+        self.logfire_trace_id = logfire_trace_id
         Exception.__init__(self, "AI request failed")
 
 
@@ -199,8 +202,6 @@ def capture_ai_error(
             status_code=_get_status_code(error),
             outcome=level,
         )
-        if level == "error":
-            capture_logfire_error(error)
         return None
     message_str = str(user_facing_message or _DEFAULT_AI_FAILED_MESSAGE) if level == "error" else None
     details = _error_details(error, context, user_facing_message=message_str)
@@ -295,8 +296,9 @@ def ai_request_failed_from_error(
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> AIRequestFailed:
     sentry_event_id = capture_ai_error(error, context, user_facing_message=user_facing_message)
+    logfire_trace_id = capture_logfire_error(error)
     docs = (user_facing_message,) if user_facing_message is not None else ()
-    return AIRequestFailed(sentry_event_id, *docs)
+    return AIRequestFailed(sentry_event_id, *docs, logfire_trace_id=logfire_trace_id)
 
 
 def ai_request_failed_message(
@@ -317,14 +319,7 @@ def ai_request_failed_message(
             Doc(
                 Title(title),
                 *body_elements,
-                *(
-                    (
-                        " ",
-                        KeyValue(_("Reference ID"), Code(sentry_event_id)),
-                    )
-                    if sentry_event_id
-                    else ()
-                ),
+                *error_reference_elements(sentry_event_id, error.logfire_trace_id if error else None),
             )
         )
     }

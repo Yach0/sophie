@@ -8437,3 +8437,14 @@ msgstr "Nepodařilo se najít zmínku o uživateli"
 #~ msgid "I could not find the answer in my own sources within the allowed budget."
 #~ msgstr "Nemohl jsem najít odpověď ve svých zdrojích v rámci povoleného rozpočtu."
 
+#: sophie_bot/utils/error_references.py:12
+msgid "Reference IDs"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:14
+msgid "Sentry"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:15
+msgid "Logfire"
+msgstr ""

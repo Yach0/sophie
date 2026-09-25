@@ -138,6 +138,10 @@ can capture requests and responses. With no token, Sophie does not initialize or
 Logfire telemetry. Sentry, when separately configured, retains its own crash-reporting
 policy above.
 
+Crash and AI-failure messages include a Logfire trace reference when Logfire records
+the error. When Sentry also records it, the message shows both labeled reference IDs;
+otherwise it shows the available provider's reference ID.
+
 An operator disables Logfire by removing `LOGFIRE_TOKEN` and restarting every serving process.
 Disabling one chat's AI mode does not disable deployment-wide telemetry for other activity.
 See Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.

@@ -99,7 +99,15 @@ def stop_logfire() -> None:
         _configured = False
 
 
-def capture_logfire_error(exception: Exception) -> None:
+def capture_logfire_error(exception: Exception) -> str | None:
     if not _enabled:
-        return
-    logfire.exception("Unhandled application error", _exc_info=exception, error_type=type(exception).__name__)
+        return None
+    with logfire.span(
+        "Error: {error_type}: {error_message}",
+        _level="error",
+        error_type=type(exception).__name__,
+        error_message=str(exception),
+    ) as span:
+        span.record_exception(exception)
+        context = span.get_span_context()
+        return f"{context.trace_id:032x}" if context is not None and context.is_valid else None

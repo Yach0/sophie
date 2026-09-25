@@ -8176,3 +8176,14 @@ msgstr ""
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
+#: sophie_bot/utils/error_references.py:12
+msgid "Reference IDs"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:14
+msgid "Sentry"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:15
+msgid "Logfire"
+msgstr ""

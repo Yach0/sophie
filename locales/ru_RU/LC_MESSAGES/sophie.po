@@ -8434,3 +8434,14 @@ msgstr "Невозможно найти упоминание пользоват�
 #~ msgid "I could not find the answer in my own sources within the allowed budget."
 #~ msgstr "Не удалось найти ответ в собственных источниках в пределах установленного лимита."
 
+#: sophie_bot/utils/error_references.py:12
+msgid "Reference IDs"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:14
+msgid "Sentry"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:15
+msgid "Logfire"
+msgstr ""

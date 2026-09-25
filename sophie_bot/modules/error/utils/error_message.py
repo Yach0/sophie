@@ -2,11 +2,12 @@ import random
 from typing import Any
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from stfu_tg import BlockQuote, Code, Doc, Italic, KeyValue, Title
+from stfu_tg import BlockQuote, Doc, Italic, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.error.utils.haikus import HAIKUS
+from sophie_bot.utils.error_references import error_reference_elements
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
@@ -28,6 +29,7 @@ _DEFAULT_ERROR_TITLE = l_("😞 I've got an error trying to process this update"
 def generic_error_message(
     exception: Exception,
     sentry_event_id: str | None,
+    logfire_trace_id: str | None = None,
     hide_contact: bool = False,
     title: str | LazyProxy | Element = _DEFAULT_ERROR_TITLE,
 ) -> dict[str, Any]:
@@ -44,14 +46,7 @@ def generic_error_message(
                         BlockQuote(Doc(*random.choice(HAIKUS))),
                     )
                 ),
-                *(
-                    (
-                        " ",
-                        KeyValue(_("Reference ID"), Code(sentry_event_id)),
-                    )
-                    if sentry_event_id
-                    else ()
-                ),
+                *error_reference_elements(sentry_event_id, logfire_trace_id),
             )
         ),
         "reply_markup": InlineKeyboardMarkup(

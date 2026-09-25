@@ -8417,3 +8417,14 @@ msgstr "未找到用户提及"
 #~ msgid "I could not find the answer in my own sources within the allowed budget."
 #~ msgstr "在允许的预算内，我无法在自己的来源中找到答案。"
 
+#: sophie_bot/utils/error_references.py:12
+msgid "Reference IDs"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:14
+msgid "Sentry"
+msgstr ""
+
+#: sophie_bot/utils/error_references.py:15
+msgid "Logfire"
+msgstr ""
