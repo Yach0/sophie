@@ -26,7 +26,7 @@ class AiStatusMiddleware(BaseMiddleware):
         if status != "typing" or not isinstance(event, Message):
             return await handler(event, data)
 
-        is_ai_chatbot_response = bool(get_flag(data, "ai_chatbot_response", default=False))
+        is_ai_chatbot_response = get_flag(data, "ai_chatbot_response", default=None) is not None
         if (
             is_ai_chatbot_response
             and event.chat.type != "private"

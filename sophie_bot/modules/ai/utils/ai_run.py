@@ -290,6 +290,7 @@ class _StreamChannel:
     callback: TextStreamCallback | None
     parts: dict[int, list[str]] = field(default_factory=dict)
     last_emit: float = 0.0
+    last_emitted_text: str = ""
 
     @property
     def empty(self) -> bool:
@@ -297,6 +298,7 @@ class _StreamChannel:
 
     def reset(self) -> None:
         self.parts.clear()
+        self.last_emitted_text = ""
 
     def start(self, part_index: int, content: str) -> None:
         self.parts[part_index] = [content] if content else []
@@ -319,8 +321,14 @@ class _StreamChannel:
         now = time.monotonic()
         if not force and now - self.last_emit < _STREAM_DEBOUNCE_SECONDS:
             return
+        if self.empty:
+            return
+        rendered = self.render()
+        if rendered == self.last_emitted_text:
+            return
         self.last_emit = now
-        await self.callback(self.render())
+        self.last_emitted_text = rendered
+        await self.callback(rendered)
 
 
 @dataclass(frozen=True, slots=True)
@@ -691,6 +699,7 @@ async def _stream_via_events[DepsT](
                     reasoning.end(part_index, content)
                     await reasoning.emit()
                 case FunctionToolCallEvent():
+                    await reasoning.emit(force=True)
                     await text.emit(force=True)
                     if on_before_tool_call is not None:
                         await on_before_tool_call(event.part.tool_name)

@@ -338,6 +338,41 @@ async def test_run_ai_stream_forces_latest_text_before_a_tool_call() -> None:
     assert callback_order[tool_index - 1] == ("text", "Let me check the docs.")
 
 
+@pytest.mark.asyncio
+async def test_run_ai_stream_flushes_reasoning_before_a_tool_call() -> None:
+    callback_order: list[tuple[str, str]] = []
+
+    async def on_text_stream(_text: str) -> None:
+        return None
+
+    async def on_reasoning_stream(text: str) -> None:
+        callback_order.append(("reasoning", text))
+
+    async def on_before_tool_call(tool_name: str) -> None:
+        callback_order.append(("tool", tool_name))
+
+    agent = FakeEventAgent(
+        events=[
+            *thinking_round("First five words ", "and the rest of the reasoning."),
+            tool_call("web_search"),
+            tool_call("sophie_help"),
+        ],
+        final_output="Answer",
+    )
+
+    await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="Research this",
+        on_text_stream=on_text_stream,
+        on_reasoning_stream=on_reasoning_stream,
+        on_before_tool_call=on_before_tool_call,
+    )
+
+    tool_index = callback_order.index(("tool", "web_search"))
+    assert callback_order[tool_index - 1] == ("reasoning", "First five words and the rest of the reasoning.")
+    assert callback_order.count(("reasoning", "First five words and the rest of the reasoning.")) == 1
+
+
 async def test_run_ai_stream_routes_thinking_away_from_the_answer(no_stream_debounce: None) -> None:
     streamed_text: list[str] = []
     streamed_reasoning: list[str] = []

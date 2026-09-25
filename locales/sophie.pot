@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-25 16:32+0200\n"
+"POT-Creation-Date: 2026-09-25 17:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1046,7 +1046,7 @@ msgid "Thinking..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:44
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:140
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:141
 msgid "Working on it..."
 msgstr ""
 
@@ -1431,7 +1431,7 @@ msgstr ""
 msgid "⚠️ Cut short — the reply hit its step limit."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:151
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:152
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""

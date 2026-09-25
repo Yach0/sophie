@@ -120,6 +120,7 @@ class AiPmStop(SophieMessageHandler):
 
 
 @flags.status(value="typing")
+@flags.ai_chatbot_response()
 @flags.ai_cache(cache_handler_result=True)
 class AiPmHandle(SophieMessageHandler):
     @staticmethod

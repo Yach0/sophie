@@ -2,15 +2,57 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram.types import Chat, Message, User
+from aiogram import Router
+from aiogram.types import Chat, Message, TelegramObject, User
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
+from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
+from sophie_bot.modules.ai.handlers.pm import AiPmHandle
+from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
+from sophie_bot.modules.ai.middlewares.cache_bot_messages import CacheBotMessagesMiddleware
 from sophie_bot.modules.ai.utils import message_history
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
+from sophie_bot.utils.handlers import SophieMessageHandler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("handler_type", [AiCmd, AiReplyHandler, AiPmHandle])
+async def test_chatbot_response_caches_only_the_answer(
+    handler_type: type[SophieMessageHandler], monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    router = Router()
+    handler_type.register(router)
+    sent = Message(
+        message_id=51,
+        date=datetime.now(UTC),
+        chat=Chat(id=-100123, type="supergroup"),
+        text="✨ (🙂 Search, 🙂 Memory) Answer\n🔋 50%",
+    )
+    cached = AsyncMock()
+    monkeypatch.setattr("sophie_bot.modules.ai.middlewares.cache_bot_messages.cache_message", cached)
+
+    async def reply(_event: TelegramObject, _data: dict[str, Any]) -> Message:
+        await cached("Answer")
+        return sent
+
+    result = await CacheBotMessagesMiddleware()(
+        reply,
+        sent,
+        {
+            "handler": router.message.handlers[-1],
+            "context": SimpleNamespace(event_chat=SimpleNamespace(tid=sent.chat.id)),
+            "ai_capabilities": SimpleNamespace(message_cache=True),
+            "services": SimpleNamespace(redis=test_redis),
+        },
+    )
+
+    assert result is sent
+    cached.assert_awaited_once_with("Answer")
 
 
 def test_user_message_formatter_localizes_and_sanitizes_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:

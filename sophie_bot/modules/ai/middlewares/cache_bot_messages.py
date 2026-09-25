@@ -26,7 +26,7 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
-        if get_flag(data, "ai_chatbot_response", default=False):
+        if get_flag(data, "ai_chatbot_response", default=None) is not None:
             return result
 
         sent_message_text = message_text(result) if isinstance(result, Message) else None

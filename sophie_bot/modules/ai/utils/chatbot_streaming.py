@@ -123,7 +123,7 @@ class ChatbotMessageStreamer:
 
     async def stream_reasoning(self, reasoning_text: str) -> None:
         """Show the tail of the model's reasoning below the draft, never in the final reply."""
-        if self.response_message is None or self._throttled():
+        if self.response_message is None:
             return
 
         tail = _reasoning_tail(reasoning_text)
@@ -132,7 +132,8 @@ class ChatbotMessageStreamer:
 
         self.reasoning = ai_markdown_to_doc(tail)
         self.status = None
-        await self._refresh_progress()
+        if not self._throttled():
+            await self._refresh_progress()
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
         tool = AI_TOOLS_BY_NAME.get(tool_name)
@@ -201,9 +202,12 @@ class ChatbotMessageStreamer:
         self._pending_update_task = asyncio.create_task(self._send_pending_after(delay))
 
     async def _send_pending_after(self, delay: float) -> None:
-        await asyncio.sleep(delay)
-        self._pending_update_task = None
-        await self._flush_draft()
+        try:
+            await asyncio.sleep(delay)
+            await self._flush_draft(force=True)
+        finally:
+            if self._pending_update_task is asyncio.current_task():
+                self._pending_update_task = None
 
     async def _cancel_pending_update(self) -> None:
         task = self._pending_update_task

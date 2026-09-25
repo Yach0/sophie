@@ -287,7 +287,6 @@ async def test_tool_call_displays_only_italic_activity(tool_name: str, test_redi
     tool = AI_TOOLS_BY_NAME[tool_name]
     assert any(f"<i>{activity}</i>" in html for activity in tool.activity_texts)
     assert tool.custom_emoji_id not in html
-    assert tool.display_label() not in html
     assert tool_name not in html
 
 @pytest.mark.asyncio

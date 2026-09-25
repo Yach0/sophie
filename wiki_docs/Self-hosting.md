@@ -125,8 +125,9 @@ restart.
 
 When `ai_chatbot_thinking_message` or `ai_chatbot_streaming` is enabled, the in-progress
 reply uses STFU rich rendering with an animated AI emoji and a three-emoji footer. Streamed
-reasoning renders Markdown; an active tool shows one of its localized activity messages in
-italics, without an emoji, title, or internal name. Tool arguments are not displayed.
+reasoning renders Markdown and is flushed before tool activity, even during edit backoff.
+An active tool shows one of its localized activity messages in italics, without an emoji,
+title, or internal name. Tool arguments are not displayed.
 Completed replies replace the animation with a static AI emoji, eligible used-tool titles
 without tool icons (Search first when used), and a battery footer in its own paragraph.
 Each tool has its own `display_in_ai_header` setting in
@@ -136,6 +137,8 @@ tool metadata but are not rendered in the progress activity or completed header.
 The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66–100%.
 `ai_chatbot_show_model_name` adds the model beside the battery reading. The
 `ai_chatbot_header_style` flag can disable the final prefix and quota footer.
+Only the assistant's answer is stored in conversation history; the displayed header, tool
+titles, and battery footer are not.
 
 ## AI moderation
 

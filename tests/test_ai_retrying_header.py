@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from time import monotonic
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
@@ -9,6 +10,8 @@ import pytest
 from aiogram.types import Message
 from stfu_tg import Doc
 
+from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, build_ai_header, build_ai_message_doc
+from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
 
 
@@ -77,6 +80,22 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
     # Whitespace collapsed, and a blank update never costs an edit.
     response_message.bot.edit_message_text.assert_awaited_once()
     assert "The user is asking about antiflood." in _edited_text(response_message)
+
+
+@pytest.mark.asyncio
+async def test_tool_status_keeps_reasoning_received_during_edit_backoff() -> None:
+    response_message = _response_message()
+    streamer = _build_streamer(response_message)
+    streamer.throttle_seconds = 60
+    streamer.last_sent_at = monotonic()
+
+    await streamer.stream_reasoning("First five words and the rest of the reasoning.")
+    response_message.bot.edit_message_text.assert_not_awaited()
+    await streamer.update_thinking_for_tool("web_search")
+
+    html = _edited_text(response_message)
+    assert "First five words and the rest of the reasoning." in html
+    assert "<i>" in html
 
 
 @pytest.mark.asyncio
@@ -172,3 +191,37 @@ async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> 
     await streamer.update_thinking_for_tool("lookup")
 
     response_message.bot.edit_message_text.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_final_tool_titles_survive_a_pending_draft_edit(monkeypatch: pytest.MonkeyPatch) -> None:
+    response_message = _response_message()
+    streamer = _build_streamer(response_message)
+    streamer.throttle_seconds = 0.01
+    streamer.last_sent_at = monotonic()
+    rendering = asyncio.Event()
+    release_render = asyncio.Event()
+
+    async def render_pending_draft(_text: str) -> Doc:
+        rendering.set()
+        await release_render.wait()
+        return Doc("Draft progress")
+
+    monkeypatch.setattr(streamer, "_render_doc", render_pending_draft)
+    await streamer.stream("Draft")
+    pending_update = streamer._pending_update_task
+    assert pending_update is not None
+    await asyncio.wait_for(rendering.wait(), timeout=1)
+
+    final_doc = build_ai_message_doc(
+        build_ai_header("simple", ai_credit_header(80)),
+        "Answer",
+        tool_labels=(AI_TOOLS_BY_NAME["web_search"],),
+    )
+    await streamer.send_final(final_doc)
+    release_render.set()
+    await asyncio.gather(pending_update, return_exceptions=True)
+
+    assert _edited_text(response_message) == final_doc.to_rich()
+    assert "(Search) Answer<br><p>" in _edited_text(response_message)
+    assert 'emoji-id="5535248817659576336"' not in _edited_text(response_message)
