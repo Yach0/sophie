@@ -9,6 +9,7 @@ from stfu_tg import Doc
 
 from sophie_bot.modules.ai.handlers.research import ResearchProgressMessage
 from sophie_bot.modules.ai.utils import ai_send, proactive_replies
+from sophie_bot.modules.ai.utils.ai_header import AI_GENERATING_EMOJI_ID, AI_PROGRESS_LINE_EMOJI_IDS
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
 
 
@@ -97,13 +98,34 @@ async def test_research_final_edit_propagates_telegram_failure() -> None:
     error = _RichFailure()
     edit_message_text = AsyncMock(side_effect=error)
     bot = SimpleNamespace(edit_message_text=edit_message_text)
-    progress = ResearchProgressMessage(SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2), "emoji", bot)
+    progress = ResearchProgressMessage(SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2), bot)
 
     with pytest.raises(_RichFailure) as raised:
         await progress.send_final(Doc("answer"))
 
     assert raised.value is error
     edit_message_text.assert_awaited_once()
+    payload = edit_message_text.call_args.kwargs["rich_message"].html
+    assert payload == Doc("answer").to_rich()
+
+
+@pytest.mark.asyncio
+async def test_research_progress_edit_propagates_telegram_failure() -> None:
+    error = _RichFailure()
+    edit_message_text = AsyncMock(side_effect=error)
+    progress = ResearchProgressMessage(
+        SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2),
+        SimpleNamespace(edit_message_text=edit_message_text),
+    )
+
+    with pytest.raises(_RichFailure) as raised:
+        await progress.update("searching")
+
+    assert raised.value is error
+    edit_message_text.assert_awaited_once()
+    payload = edit_message_text.call_args.kwargs["rich_message"].html
+    assert AI_GENERATING_EMOJI_ID in payload
+    assert all(emoji_id in payload for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS)
 
 
 @pytest.mark.asyncio

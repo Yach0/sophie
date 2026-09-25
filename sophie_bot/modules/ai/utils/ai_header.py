@@ -12,6 +12,7 @@ from sophie_bot.utils.feature_flags import FeatureType, get_value
 AI_CUSTOM_EMOJI_ID: Final[str] = "5325547803936572038"
 AI_CHATBOT_CUSTOM_EMOJI_ID: Final[str] = "5573451671289200650"
 AI_GENERATING_EMOJI_ID: Final[str] = "5573333417954639880"
+AI_PROGRESS_MARKER: Final[str] = "💭"
 AI_PROGRESS_LINE_EMOJI_IDS: Final[tuple[str, str, str]] = (
     "5348210173104134595",
     "5350601434800889611",
@@ -130,7 +131,7 @@ def build_ai_progress_doc(
     footer = HList(*(CustomEmoji(emoji_id, "〰️") for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS), divider="")
     return Doc(
         HList(
-            HList(CustomEmoji(AI_GENERATING_EMOJI_ID, "💭"), _inline_body_item(body), divider=" "),
+            HList(CustomEmoji(AI_GENERATING_EMOJI_ID, AI_PROGRESS_MARKER), _inline_body_item(body), divider=" "),
             _LineBreak(),
             Italic(reasoning) if reasoning is not None else None,
             _LineBreak() if reasoning is not None else None,

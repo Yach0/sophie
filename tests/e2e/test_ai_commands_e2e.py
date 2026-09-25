@@ -5,26 +5,35 @@ Covers: /enableai, /aimoderator, /ai_summaries, /ai_note_titles, /aiusage, /aire
 
 from __future__ import annotations
 
+import re
 from contextlib import ExitStack
 from datetime import date
 from io import BytesIO
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiogram import Bot
 from aiogram.types import PhotoSize, Video
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
+from aiogram_test_framework.types import RequestType
 from pydantic_ai.messages import BinaryContent
 
+from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_GENERATING_EMOJI_ID,
+    AI_PROGRESS_LINE_EMOJI_IDS,
+)
 from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageBreakdownItem,
     ChatUsageView,
 )
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
-from tests.e2e.helpers import grant_admin, send_reply_command
+from tests.e2e.helpers import grant_admin, send_reply_command, set_feature
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -303,9 +312,23 @@ async def test_aimode_shows_mode_picker(test_client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _simulate_rich_send_response(test_client: TestClient, stack: ExitStack) -> None:
+    """Make the Telegram mock return a Message for sendRichMessage, like the real API."""
+    session = test_client.dispatcher.workflow_data["services"].bot.session
+    original_response = session._generate_response
+
+    def generate_response(bot: Bot, method_name: str, params: dict[str, Any]) -> Any:
+        if method_name == "sendRichMessage":
+            method_name = "sendMessage"
+        return original_response(bot=bot, method_name=method_name, params=params)
+
+    stack.enter_context(patch.object(session, "_generate_response", side_effect=generate_response))
+
+
 @pytest.mark.asyncio
-async def test_translate_success(test_client: TestClient) -> None:
-    """The /translate command should return a translated text."""
+@pytest.mark.parametrize("command", ("translate", "tr"))
+async def test_translate_success(test_client: TestClient, command: str) -> None:
+    """The /translate and /tr commands send rich progress and edit it with a rich translation."""
     group_chat = ChatFactory.create_group(chat_id=-1002900000010, title="Translate Success Group")
     user_wrapper = test_client.create_user(user_id=929000010, first_name="TransUser", username="trans_user")
 
@@ -324,6 +347,7 @@ async def test_translate_success(test_client: TestClient) -> None:
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
         stack.enter_context(
             patch(
                 "sophie_bot.modules.ai.handlers.translate.run_structured_task",
@@ -337,18 +361,83 @@ async def test_translate_success(test_client: TestClient) -> None:
             )
         )
         requests = await test_client.send_command(
-            command="translate",
+            command=command,
             from_user=user_wrapper.user,
             chat=group_chat,
             args="Hello world",
         )
 
-    assert requests, "Bot should respond to /translate"
-    response_text = requests[-1].params.get("rich_message", {}).get("html", "") or requests[-1].text or ""
-    assert "Hola mundo" in response_text, f"Expected translated text in response, got: {response_text}"
-    assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text, (
-        f"Expected origin language info in response, got: {response_text}"
+    progress = [request for request in requests if request.request_type == RequestType.OTHER]
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert len(progress) == len(edits) == 1
+    progress_html = progress[0].params["rich_message"]["html"]
+    assert re.findall(r'<tg-emoji emoji-id="(\d+)">', progress_html) == [
+        AI_GENERATING_EMOJI_ID,
+        *AI_PROGRESS_LINE_EMOJI_IDS,
+    ]
+    assert not progress[0].text
+    assert edits[0].params["message_id"] == progress[0].response.message_id
+    response_text = edits[0].params["rich_message"]["html"]
+    assert not edits[0].text
+    assert "Hola mundo" in response_text
+    assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text
+    assert AI_GENERATING_EMOJI_ID not in response_text
+
+
+@pytest.mark.asyncio
+async def test_autotranslate_sends_only_rich_final(test_client: TestClient) -> None:
+    """Foreign-language chat text should translate without a progress message."""
+    group_chat = ChatFactory.create_group(chat_id=-1002900000049, title="Autotranslate Group")
+    user = test_client.create_user(user_id=929000049, first_name="AutoUser", username="auto_user")
+    await test_client.send_message(text="init", from_user=user.user, chat=group_chat)
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert chat is not None
+    await AIAutotranslateModel.set_state(chat, True)
+    await set_feature(test_client, "ai_translations", True, chat_tid=group_chat.id)
+
+    mock_ai_result = SimpleNamespace(
+        output=SimpleNamespace(
+            translated_text="Good morning, how are you today? I hope you are doing well.",
+            origin_language_name="Spanish",
+            origin_language_emoji="🇪🇸",
+            needs_translation=True,
+            translation_explanations=None,
+        )
     )
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.middlewares.auto_translate.check_quota",
+                AsyncMock(return_value=SimpleNamespace(allowed=True)),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.translate.run_structured_task",
+                AsyncMock(return_value=mock_ai_result),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
+                AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            )
+        )
+        requests = await test_client.send_message(
+            text="Buenos días, ¿cómo estás hoy? Espero que estés muy bien.",
+            from_user=user.user,
+            chat=group_chat,
+        )
+
+    assert not any(request.request_type == RequestType.SEND_MESSAGE for request in requests)
+    assert not any(request.request_type == RequestType.EDIT_MESSAGE_TEXT for request in requests)
+    rich_sends = [request for request in requests if request.request_type == RequestType.OTHER]
+    assert len(rich_sends) == 1
+    rich_html = rich_sends[0].params["rich_message"]["html"]
+    assert "Good morning" in rich_html
+    assert "Spanish" in rich_html
+    assert AI_GENERATING_EMOJI_ID not in rich_html
 
 
 @pytest.mark.asyncio
@@ -390,6 +479,7 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
         stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.run_structured_task", run_task))
         stack.enter_context(
             patch(
@@ -467,6 +557,7 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
         stack.enter_context(
             patch(
                 "sophie_bot.modules.ai.handlers.translate.run_structured_task",
@@ -487,6 +578,12 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
             args="Hello world",
         )
 
-    assert requests, "Bot should respond with an error when AI fails"
-    response_text = requests[-1].text or ""
+    progress = [request for request in requests if request.request_type == RequestType.OTHER]
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert len(progress) == len(edits) == 1
+    assert re.findall(r'<tg-emoji emoji-id="(\d+)">', progress[0].params["rich_message"]["html"]) == [
+        AI_GENERATING_EMOJI_ID,
+        *AI_PROGRESS_LINE_EMOJI_IDS,
+    ]
+    response_text = edits[0].text or ""
     assert "AI provider did not complete" in response_text, f"Expected AI failure message, got: {response_text}"

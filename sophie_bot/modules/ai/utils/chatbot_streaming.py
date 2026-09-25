@@ -23,7 +23,6 @@ from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, resolve_
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
-    research_progress_suffix,
 )
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -153,9 +152,7 @@ class ChatbotMessageStreamer:
         )
 
     async def update_research_progress(self, stage: ResearchProgressStage) -> None:
-        text = random_research_progress_text(stage)
-        suffix = research_progress_suffix(stage)
-        await self._update_status(Italic(HList(text, suffix, divider=" ")))
+        await self._update_status(Italic(random_research_progress_text(stage)))
 
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
         await self._cancel_pending_update()

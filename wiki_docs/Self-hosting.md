@@ -121,11 +121,14 @@ restart.
 > `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
-### Chatbot progress
+### AI progress
 
-When `ai_chatbot_thinking_message` or `ai_chatbot_streaming` is enabled, the in-progress
-reply uses STFU rich rendering with an animated AI emoji and a three-emoji footer. Streamed
-reasoning renders Markdown and is flushed before tool activity, even during edit backoff.
+When `ai_chatbot_thinking_message` or `ai_chatbot_streaming` is enabled, chatbot replies
+show an in-progress message. Manual translation (`/tr`, `/translate`) and `/research` also
+show progress. All three use STFU Rich rendering with a fixed animated AI emoji and a
+three-emoji footer; translation and research edit the same Rich message for the result.
+Automatic translation stays silent until its result is ready. Streamed chatbot reasoning
+renders Markdown and is flushed before tool activity, even during edit backoff.
 An active tool shows one of its localized activity messages in italics, without an emoji,
 title, or internal name. Tool arguments are not displayed.
 Completed replies replace the animation with a static AI emoji, eligible used-tool titles

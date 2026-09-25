@@ -29,13 +29,10 @@ from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
+    build_ai_progress_doc,
     get_ai_header_style,
 )
-from sophie_bot.modules.ai.utils.ai_progress import (
-    ai_progress_line,
-    random_ai_progress_custom_emoji_id,
-    random_ai_thinking_text,
-)
+from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -168,9 +165,8 @@ class AiTranslate(SophieMessageHandler):
         # In-progress message (skipped for auto-translate, which runs silently)
         progress_message: Message | None = None
         if not is_autotranslate:
-            progress_message = await self.event.reply(
-                Doc(ai_progress_line(random_ai_thinking_text(), random_ai_progress_custom_emoji_id())).to_html()
-            )
+            doc = build_ai_progress_doc(random_ai_thinking_text())
+            progress_message = await send_ai_rich_message(self.event, doc)
 
         # AI Context
         ai_context = AIMessageHistory(services=self.services)

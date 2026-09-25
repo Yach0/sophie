@@ -63,13 +63,6 @@ _RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
 
-_RESEARCH_PROGRESS_SUFFIXES: Final[dict[ResearchProgressStage, str]] = {
-    "planning": "🧑‍🔬",
-    "searching": "🔎",
-    "reviewing": "🧐",
-    "summarizing": "🧾",
-}
-
 
 def _research_progress_texts(stage: ResearchProgressStage) -> tuple[str, ...]:
     return {
@@ -98,10 +91,6 @@ def _research_progress_texts(stage: ResearchProgressStage) -> tuple[str, ...]:
 
 def random_research_progress_text(stage: ResearchProgressStage) -> str:
     return choice(_research_progress_texts(stage))
-
-
-def research_progress_suffix(stage: ResearchProgressStage) -> str:
-    return _RESEARCH_PROGRESS_SUFFIXES[stage]
 
 
 @dataclass(frozen=True)

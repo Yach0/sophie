@@ -3,7 +3,6 @@ from types import SimpleNamespace
 
 import pytest
 from aiogram.types import Message
-from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
@@ -14,8 +13,9 @@ from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
+    build_ai_progress_doc,
 )
-from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_thinking_text
+from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.help_tip import build_help_mode_tip
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
@@ -289,13 +289,13 @@ def test_is_ai_message_accepts_the_table_header() -> None:
 
 def test_is_ai_message_accepts_the_in_progress_placeholder() -> None:
     """The progress marker identifies an answer before its completed-message markers exist."""
-    placeholder = _as_telegram_shows(Doc(ai_progress_line(random_ai_thinking_text())).to_html())
+    placeholder = _as_telegram_shows(build_ai_progress_doc(random_ai_thinking_text()).to_rich())
 
     assert is_ai_message(placeholder)
 
 
 def test_is_ai_message_accepts_a_placeholder_that_already_streamed_text() -> None:
-    placeholder = _as_telegram_shows(Doc(ai_progress_line("Searching the web...")).to_html())
+    placeholder = _as_telegram_shows(build_ai_progress_doc("Searching the web...").to_rich())
 
     assert is_ai_message(f"{placeholder}\n\nHere is what I found")
 

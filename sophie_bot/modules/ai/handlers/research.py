@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import Message
+from aiogram.types import InputRichMessage, Message
 from ass_tg.types import TextArg
 from stfu_tg import Doc
 
@@ -14,14 +14,13 @@ from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
-from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
+from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc, get_ai_header_style
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     build_research_doc,
     random_research_progress_text,
-    research_progress_suffix,
     run_research_workflow,
 )
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
@@ -33,25 +32,19 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class ResearchProgressMessage:
-    def __init__(self, message: Message, emoji_id: str, bot: Bot) -> None:
+    def __init__(self, message: Message, bot: Bot) -> None:
         self.message = message
-        self.emoji_id = emoji_id
         self.bot = bot
 
     @classmethod
     async def send(cls, source_message: Message) -> ResearchProgressMessage:
-        emoji_id = random_ai_progress_custom_emoji_id()
-        message = await source_message.reply(
-            Doc(ai_progress_line(_("Starting the research..."), emoji_id, "🧑‍🔬")).to_html(),
-            disable_web_page_preview=True,
-        )
-        return cls(message, emoji_id, cast(Bot, source_message.bot))
+        message = await send_ai_rich_message(source_message, build_ai_progress_doc(_("Starting the research...")))
+        return cls(message, cast(Bot, source_message.bot))
 
     async def update(self, stage: ResearchProgressStage) -> None:
-        text = random_research_progress_text(stage)
-        suffix = research_progress_suffix(stage)
+        doc = build_ai_progress_doc(random_research_progress_text(stage))
         await self.bot.edit_message_text(
-            text=Doc(ai_progress_line(text, self.emoji_id, suffix)).to_html(),
+            rich_message=InputRichMessage(html=doc.to_rich()),
             chat_id=self.message.chat.id,
             message_id=self.message.message_id,
             disable_web_page_preview=True,
@@ -61,7 +54,7 @@ class ResearchProgressMessage:
         return cast(
             Message,
             await self.bot.edit_message_text(
-                text=doc.to_html(),
+                rich_message=InputRichMessage(html=doc.to_rich()),
                 chat_id=self.message.chat.id,
                 message_id=self.message.message_id,
                 disable_web_page_preview=True,

@@ -12,8 +12,8 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_CHATBOT_CUSTOM_EMOJI_ID,
     AI_CUSTOM_EMOJI_ID,
     AI_GENERATING_EMOJI_ID,
+    AI_PROGRESS_MARKER,
 )
-from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 
 _LEGACY_AI_HEADER_LABEL = f"{AI_EMOJI} AI"
