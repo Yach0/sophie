@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from io import BufferedReader, BytesIO
+from time import perf_counter
 from typing import BinaryIO
 
 import av
@@ -13,6 +14,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_MAX_VIDEO_SIZE_BYTES
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -107,25 +109,43 @@ async def transform_video_to_text(video: Video | VideoNote, *, bot: Bot, redis: 
     Returns:
         Optional[str]: The transcribed text, or None if the video has no audio.
     """
-    audio_bytes = await extract_audio_from_video(video, bot=bot)
+    with ai_span(
+        "ai.transcription", provider="mistral", model="voxtral-mini-latest", input_count=1, media="video"
+    ) as span:
+        started = perf_counter() if span is not None else 0.0
+        try:
+            audio_bytes = await extract_audio_from_video(video, bot=bot)
 
-    if audio_bytes is None:
-        return None
+            if audio_bytes is None:
+                if span is not None:
+                    span.set_attribute("outcome", "no_audio")
+                return None
 
-    audio_bytes_io = BufferedReader(BytesIO(audio_bytes))
+            audio_bytes_io = BufferedReader(BytesIO(audio_bytes))
 
-    client = await get_mistral_client(redis=redis)
-    resp = await client.audio.transcriptions.complete_async(
-        model="voxtral-mini-latest",
-        file={
-            "file_name": "audio.ogg",
-            "content": audio_bytes_io,
-            "content_type": "audio/ogg",
-        },
-    )
+            client = await get_mistral_client(redis=redis)
+            resp = await client.audio.transcriptions.complete_async(
+                model="voxtral-mini-latest",
+                file={
+                    "file_name": "audio.ogg",
+                    "content": audio_bytes_io,
+                    "content_type": "audio/ogg",
+                },
+            )
 
-    transcribed_text = resp.text.removesuffix("\n")
-
-    log.debug("Transcribed text", transcribed_text=transcribed_text)
-
-    return transcribed_text
+            transcribed_text = resp.text.removesuffix("\n")
+            log.debug("Transcribed text", transcribed_text=transcribed_text)
+            if span is not None:
+                span.set_attribute("outcome", "success")
+            return transcribed_text
+        except Exception as error:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(error).__name__)
+                status_code = getattr(error, "status_code", None)
+                if isinstance(status_code, int):
+                    span.set_attribute("status_code", status_code)
+            raise
+        finally:
+            if span is not None:
+                span.set_attribute("duration_ms", (perf_counter() - started) * 1000)

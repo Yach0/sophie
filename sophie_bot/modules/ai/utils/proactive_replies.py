@@ -24,6 +24,7 @@ from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model_pl
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_event, ai_span
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
@@ -249,6 +250,12 @@ async def _generate_decision(
         redis=services.redis,
     )
     limited_actions = _limit_actions(result.output, settings)
+    ai_event(
+        "ai.proactive.decision",
+        outcome="actions_selected" if limited_actions else "no_action",
+        action_count=len(limited_actions),
+        raw_action_count=len(result.output.actions),
+    )
     track_ai_proactive_event("decision_generated", _METRIC_ATTRIBUTES)
     track_ai_proactive_batch(len(messages), len(limited_actions), _METRIC_ATTRIBUTES)
     if not limited_actions:
@@ -276,6 +283,7 @@ async def _react_to_message(
         _log_proactive_info(
             "Proactive AI reaction skipped without emoji", chat_id=chat_tid, message_id=target_message.message_id
         )
+        ai_event("ai.proactive.action", action="react", outcome="missing_emoji")
         return
     _log_proactive_info(
         "Proactive AI reaction send started",
@@ -288,6 +296,7 @@ async def _react_to_message(
         message_id=target_message.message_id,
         reaction=[ReactionTypeEmoji(emoji=reaction_emoji)],
     )
+    ai_event("ai.proactive.action", action="react", outcome="sent")
     track_ai_proactive_event("reaction_sent", _METRIC_ATTRIBUTES)
     _log_proactive_info(
         "Proactive AI reaction sent",
@@ -421,6 +430,7 @@ async def _answer_message(
         message_thread_id=target_message.message_thread_id,
         bot=services.bot,
     )
+    ai_event("ai.proactive.action", action="answer", outcome="sent")
     track_ai_proactive_event("answer_sent", _METRIC_ATTRIBUTES)
     _log_proactive_info(
         "Proactive AI answer sent",
@@ -445,6 +455,7 @@ async def _answer_message(
         reply_to_username=target_message.username,
         redis=services.redis,
     )
+    ai_event("ai.proactive.action", action="answer", outcome="cached")
 
 
 async def _execute_actions(
@@ -462,6 +473,7 @@ async def _execute_actions(
     for action in limited_actions:
         if action.message_id is None or action.message_id not in messages_by_id:
             track_ai_proactive_event("action_invalid_target", _METRIC_ATTRIBUTES)
+            ai_event("ai.proactive.action", action=action.action, outcome="invalid_target")
             _log_proactive_info(
                 "Proactive AI action skipped due to invalid target",
                 chat_id=chat_tid,
@@ -500,66 +512,108 @@ async def maybe_run_proactive_reply(
     *,
     services: ApplicationServices,
 ) -> None:
-    chat_tid = chat.tid
-    if not await is_enabled(
-        "ai_proactive_replies",
-        chat_tid=chat_tid,
-        redis=services.redis,
-    ):
-        return
-    if message.chat.type not in {"group", "supergroup"}:
-        _log_proactive_info("Proactive AI skipped outside group chat", chat_id=chat_tid, chat_type=message.chat.type)
-        return
-    quota_result = await check_quota(chat.iid, redis=services.redis)
-    if not quota_result.allowed:
-        track_ai_proactive_event("quota_exhausted", _METRIC_ATTRIBUTES)
-        _log_proactive_info("Proactive AI skipped because quota is exhausted", chat_id=chat_tid)
-        return
+    with ai_span("ai.proactive.batch") as span:
+        stage = "eligibility"
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        try:
+            chat_tid = chat.tid
+            if not await is_enabled(
+                "ai_proactive_replies",
+                chat_tid=chat_tid,
+                redis=services.redis,
+            ):
+                if span is not None:
+                    span.set_attribute("outcome", "disabled")
+                return
+            if message.chat.type not in {"group", "supergroup"}:
+                if span is not None:
+                    span.set_attribute("outcome", "non_group")
+                _log_proactive_info(
+                    "Proactive AI skipped outside group chat", chat_id=chat_tid, chat_type=message.chat.type
+                )
+                return
+            quota_result = await check_quota(chat.iid, redis=services.redis)
+            if not quota_result.allowed:
+                if span is not None:
+                    span.set_attribute("outcome", "quota_exhausted")
+                track_ai_proactive_event("quota_exhausted", _METRIC_ATTRIBUTES)
+                _log_proactive_info("Proactive AI skipped because quota is exhausted", chat_id=chat_tid)
+                return
 
-    settings = await _get_settings(chat_tid, services=services)
-    tracked_count = await _track_eligible_message(chat_tid, message, settings, redis=services.redis)
-    track_ai_proactive_event("eligible_message", _METRIC_ATTRIBUTES)
-    if tracked_count < settings.min_messages:
-        track_ai_proactive_event("below_threshold", _METRIC_ATTRIBUTES)
-        _log_proactive_info(
-            "Proactive AI waiting for more messages",
-            chat_id=chat_tid,
-            tracked_count=tracked_count,
-            min_messages=settings.min_messages,
-        )
-        return
-    if not await _acquire_lock(chat_tid, redis=services.redis):
-        track_ai_proactive_event("lock_busy", _METRIC_ATTRIBUTES)
-        _log_proactive_info("Proactive AI skipped because lock is busy", chat_id=chat_tid)
-        return
-
-    try:
-        candidates = await _get_recent_candidates(chat_tid, settings, redis=services.redis)
-        if len(candidates) < settings.min_messages:
-            track_ai_proactive_event("no_candidates", _METRIC_ATTRIBUTES)
-            _log_proactive_info(
-                "Proactive AI skipped because candidate count is below minimum",
-                chat_id=chat_tid,
-                candidate_count=len(candidates),
+            stage = "threshold"
+            settings = await _get_settings(chat_tid, services=services)
+            tracked_count = await _track_eligible_message(chat_tid, message, settings, redis=services.redis)
+            track_ai_proactive_event("eligible_message", _METRIC_ATTRIBUTES)
+            ai_event(
+                "ai.proactive.threshold",
+                tracked_count=tracked_count,
                 min_messages=settings.min_messages,
+                reached=tracked_count >= settings.min_messages,
             )
-            return
-        track_ai_proactive_event("batch_started", _METRIC_ATTRIBUTES)
-        _log_proactive_info(
-            "Proactive AI batch started",
-            chat_id=chat_tid,
-            candidate_count=len(candidates),
-        )
-        decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
-        await _execute_actions(
-            chat_tid,
-            chat,
-            candidates,
-            decision,
-            settings,
-            services=services,
-        )
-        await _clear_tracked_messages(chat_tid, candidates, redis=services.redis)
-        _log_proactive_info("Proactive AI batch completed", chat_id=chat_tid, candidate_count=len(candidates))
-    finally:
-        await _release_lock(chat_tid, redis=services.redis)
+            if tracked_count < settings.min_messages:
+                if span is not None:
+                    span.set_attribute("outcome", "below_threshold")
+                track_ai_proactive_event("below_threshold", _METRIC_ATTRIBUTES)
+                _log_proactive_info(
+                    "Proactive AI waiting for more messages",
+                    chat_id=chat_tid,
+                    tracked_count=tracked_count,
+                    min_messages=settings.min_messages,
+                )
+                return
+            stage = "lock"
+            if not await _acquire_lock(chat_tid, redis=services.redis):
+                if span is not None:
+                    span.set_attribute("outcome", "lock_busy")
+                track_ai_proactive_event("lock_busy", _METRIC_ATTRIBUTES)
+                _log_proactive_info("Proactive AI skipped because lock is busy", chat_id=chat_tid)
+                return
+
+            try:
+                stage = "selection"
+                candidates = await _get_recent_candidates(chat_tid, settings, redis=services.redis)
+                if span is not None:
+                    span.set_attribute("candidate_count", len(candidates))
+                if len(candidates) < settings.min_messages:
+                    if span is not None:
+                        span.set_attribute("outcome", "no_candidates")
+                    track_ai_proactive_event("no_candidates", _METRIC_ATTRIBUTES)
+                    _log_proactive_info(
+                        "Proactive AI skipped because candidate count is below minimum",
+                        chat_id=chat_tid,
+                        candidate_count=len(candidates),
+                        min_messages=settings.min_messages,
+                    )
+                    return
+                track_ai_proactive_event("batch_started", _METRIC_ATTRIBUTES)
+                _log_proactive_info(
+                    "Proactive AI batch started",
+                    chat_id=chat_tid,
+                    candidate_count=len(candidates),
+                )
+                stage = "decision"
+                decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
+                stage = "actions"
+                await _execute_actions(
+                    chat_tid,
+                    chat,
+                    candidates,
+                    decision,
+                    settings,
+                    services=services,
+                )
+                stage = "clear"
+                await _clear_tracked_messages(chat_tid, candidates, redis=services.redis)
+                _log_proactive_info("Proactive AI batch completed", chat_id=chat_tid, candidate_count=len(candidates))
+            finally:
+                await _release_lock(chat_tid, redis=services.redis)
+            if span is not None:
+                span.set_attribute("outcome", "completed")
+        except Exception as exc:
+            ai_event("ai.proactive.transition", transition="failure", stage=stage, error_type=type(exc).__name__)
+            if span is not None:
+                span.set_attribute("outcome", "failure")
+                span.set_attribute("failure_stage", stage)
+                span.set_attribute("error_type", type(exc).__name__)
+            raise

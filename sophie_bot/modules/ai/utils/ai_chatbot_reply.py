@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, get_ai_header_s
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
@@ -210,6 +211,42 @@ async def _send_chatbot_ai_failure_reply(
 
 
 async def ai_chatbot_reply(
+    message: Message,
+    connection: ChatConnection,
+    user_text: str | None = None,
+    debug_mode: bool = False,
+    model: Model | None = None,
+    mode: AIMode = AIMode.support,
+    *,
+    services: ApplicationServices,
+    **kwargs: Any,
+) -> Any:
+    with ai_span("ai.chatbot_reply", mode=mode.value) as span:
+        try:
+            reply = await _ai_chatbot_reply(
+                message,
+                connection,
+                user_text,
+                debug_mode,
+                model,
+                mode,
+                services=services,
+                **kwargs,
+            )
+        except Exception as error:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(error).__name__)
+                status_code = getattr(error, "status_code", None)
+                if isinstance(status_code, int):
+                    span.set_attribute("status_code", status_code)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "sent" if reply is not None else "skipped")
+        return reply
+
+
+async def _ai_chatbot_reply(
     message: Message,
     connection: ChatConnection,
     user_text: str | None = None,

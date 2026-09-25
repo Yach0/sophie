@@ -9,6 +9,7 @@ from stfu_tg import Doc, HList, Section, Template, VList
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_tool_history import load_chatbot_tool_history
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
@@ -29,8 +30,10 @@ def _base_chatbot_instruction_doc(system_prompt: str, today: datetime.datetime, 
     )
 
 
-async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIMode) -> Doc:
+async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIMode) -> tuple[Doc, int, int]:
     capabilities = get_capabilities(mode)
+    summary_count = 0
+    memory_count = 0
     chat_name_enabled = await is_enabled(
         "ai_chatbot_chat_name",
         chat_tid=context.chat_tid,
@@ -78,6 +81,7 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
     ):
         summary_lines = await AIChatSummaryModel.get_recent_lines(context.chat_iid)
         if summary_lines:
+            summary_count = len(summary_lines)
             # The message ID lets the provider correlate the summary back to the real chat.
             hide_message_ids = await is_enabled(
                 "ai_summary_improved_privacy",
@@ -141,12 +145,13 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
             context_doc += Section(VList(*rendered_related_notes), title=section_title)
 
     if capabilities.memory and (memory_lines := await AIMemoryModel.get_lines(context.chat_iid)):
+        memory_count = len(memory_lines)
         indexed_memory_lines = [f"{index + 1}. {line}" for index, line in enumerate(memory_lines)]
         context_doc += Section(
             VList(*indexed_memory_lines), title=_("You have the following information in your memory")
         )
 
-    return context_doc
+    return context_doc, memory_count, summary_count
 
 
 # Sophie-help exists to give the "chat with Sophie for help" button its own assistant, so it gets
@@ -157,42 +162,66 @@ _SYSTEM_PROMPT_FLAG_BY_MODE: Mapping[AIMode, FeatureType] = {AIMode.sophie_help:
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
     mode = context.mode
     prompt_flag = _SYSTEM_PROMPT_FLAG_BY_MODE.get(mode, "ai_chatbot_system_prompt")
-    system_prompt = str(
-        await get_value(
-            prompt_flag,
+    with ai_span("ai.chatbot.instructions", mode=mode.value, prompt_variant=prompt_flag) as span:
+        system_prompt = str(
+            await get_value(
+                prompt_flag,
+                chat_tid=context.chat_tid,
+                redis=context.services.redis,
+            )
+        )
+        tables_enabled = await is_enabled(
+            "ai_chatbot_tables",
             chat_tid=context.chat_tid,
             redis=context.services.redis,
         )
-    )
-    tables_enabled = await is_enabled(
-        "ai_chatbot_tables",
-        chat_tid=context.chat_tid,
-        redis=context.services.redis,
-    )
-    instruction_doc = _base_chatbot_instruction_doc(
-        system_prompt, datetime.datetime.now(datetime.UTC), tables_enabled=tables_enabled
-    )
-    instruction_doc += await _build_chatbot_runtime_context(context, mode)
-    return instruction_doc.to_md()
+        instruction_doc = _base_chatbot_instruction_doc(
+            system_prompt, datetime.datetime.now(datetime.UTC), tables_enabled=tables_enabled
+        )
+        runtime_context, memory_count, summary_count = await _build_chatbot_runtime_context(context, mode)
+        instruction_doc += runtime_context
+        instructions = instruction_doc.to_md()
+        if span is not None:
+            span.set_attribute("memory_present", memory_count > 0)
+            span.set_attribute("memory_count", memory_count)
+            span.set_attribute("summary_present", summary_count > 0)
+            span.set_attribute("summary_count", summary_count)
+            span.set_attribute("tables_enabled", tables_enabled)
+            span.set_attribute("instruction_size", len(instructions))
+        return instructions
 
 
 async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> AIMessageHistory:
-    history = AIMessageHistory(services=context.services)
-    max_age_minutes = int(
-        await get_value(
-            "ai_chatbot_history_max_age_minutes",
-            chat_tid=context.chat_tid,
-            redis=context.services.redis,
+    with ai_span("ai.chatbot.history") as span:
+        history = AIMessageHistory(services=context.services)
+        max_age_minutes = int(
+            await get_value(
+                "ai_chatbot_history_max_age_minutes",
+                chat_tid=context.chat_tid,
+                redis=context.services.redis,
+            )
         )
-    )
-    max_age = datetime.timedelta(minutes=max_age_minutes) if max_age_minutes > 0 else None
-    await history.add_from_cache(
-        context.chat_tid,
-        limit=CHATBOT_CACHE_MESSAGE_LIMIT,
-        fold_background=True,
-        max_age=max_age,
-        tool_exchanges=await load_chatbot_tool_history(context.chat_tid, redis=context.services.redis),
-    )
-    await history.add_from_message(message, custom_text=context.user_text)
-    history.apply_context_block()
-    return history
+        max_age = datetime.timedelta(minutes=max_age_minutes) if max_age_minutes > 0 else None
+        if span is not None:
+            span.set_attribute("max_age_minutes", max_age_minutes)
+            span.set_attribute("max_age_enabled", max_age is not None)
+        tool_exchanges = await load_chatbot_tool_history(context.chat_tid, redis=context.services.redis)
+        await history.add_from_cache(
+            context.chat_tid,
+            limit=CHATBOT_CACHE_MESSAGE_LIMIT,
+            fold_background=True,
+            max_age=max_age,
+            tool_exchanges=tool_exchanges,
+        )
+        if span is not None:
+            replay_ids = {id(exchange) for exchanges in tool_exchanges.values() for exchange in exchanges}
+            replay_count = sum(id(entry) in replay_ids for entry in history.message_history)
+            span.set_attribute("replay_message_count", replay_count)
+            span.set_attribute("dialogue_turn_count", len(history.message_history) - replay_count)
+            span.set_attribute("background_context_count", len(history.context_lines))
+        await history.add_from_message(message, custom_text=context.user_text)
+        history.apply_context_block()
+        if span is not None:
+            span.set_attribute("history_message_count", len(history.message_history))
+            span.set_attribute("prompt_part_count", len(history.prompt))
+        return history

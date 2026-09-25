@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_event, ai_span
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.summary_transcript import SummaryTranscript, build_summary_transcript
@@ -296,90 +297,129 @@ class GenerateChatSummaries:
         target_chat_tid: int | None = None,
         now: datetime | None = None,
     ) -> None:
-        existing_summary = None if force else await AIChatSummaryModel.get_for_date(chat.iid, summary_date)
-        if existing_summary:
-            log.debug(
-                "generate_chat_summaries: summary already exists for date, skipping",
-                chat=chat.tid,
-                summary_date=summary_date,
-                has_lines=bool(existing_summary.lines),
-            )
-            return
+        with ai_span("ai.summary.process", forced=force) as span:
+            stage = "lookup"
+            if span is not None:
+                span.set_attribute("outcome", "failure")
+            try:
+                existing_summary = None if force else await AIChatSummaryModel.get_for_date(chat.iid, summary_date)
+                if existing_summary:
+                    ai_event("ai.summary.transition", transition="existing", has_lines=bool(existing_summary.lines))
+                    if span is not None:
+                        span.set_attribute("outcome", "existing")
+                    log.debug(
+                        "generate_chat_summaries: summary already exists for date, skipping",
+                        chat=chat.tid,
+                        summary_date=summary_date,
+                        has_lines=bool(existing_summary.lines),
+                    )
+                    return
 
-        current_time = now or datetime.now(UTC)
-        window_start, window_end = _build_summary_window(current_time)
-        cached_messages = await get_cached_messages_between(
-            chat.tid,
-            window_start,
-            window_end,
-            redis=self.services.redis,
-        )
-        if len(cached_messages) < 3:
-            log.debug(
-                "generate_chat_summaries: not enough messages, skipping",
-                chat=chat.tid,
-                count=len(cached_messages),
-                window_start=window_start,
-                window_end=window_end,
-            )
-            return
+                stage = "load_messages"
+                current_time = now or datetime.now(UTC)
+                window_start, window_end = _build_summary_window(current_time)
+                cached_messages = await get_cached_messages_between(
+                    chat.tid,
+                    window_start,
+                    window_end,
+                    redis=self.services.redis,
+                )
+                if span is not None:
+                    span.set_attribute("message_count", len(cached_messages))
+                if len(cached_messages) < 3:
+                    ai_event("ai.summary.transition", transition="too_few", message_count=len(cached_messages))
+                    if span is not None:
+                        span.set_attribute("outcome", "too_few")
+                    log.debug(
+                        "generate_chat_summaries: not enough messages, skipping",
+                        chat=chat.tid,
+                        count=len(cached_messages),
+                        window_start=window_start,
+                        window_end=window_end,
+                    )
+                    return
 
-        anonymize = await is_enabled(
-            "ai_summary_improved_privacy",
-            chat_tid=chat.tid,
-            redis=self.services.redis,
-        )
-        transcript = build_summary_transcript(cached_messages, anonymize=anonymize)
-        groups = await self.generate_verified_summary_groups(transcript, chat, strict=anonymize)
-        if groups is None:
-            return
+                stage = "generate"
+                anonymize = await is_enabled(
+                    "ai_summary_improved_privacy",
+                    chat_tid=chat.tid,
+                    redis=self.services.redis,
+                )
+                transcript = build_summary_transcript(cached_messages, anonymize=anonymize)
+                groups = await self.generate_verified_summary_groups(transcript, chat, strict=anonymize)
+                if groups is None:
+                    ai_event("ai.summary.transition", transition="invalid_references")
+                    if span is not None:
+                        span.set_attribute("outcome", "invalid_references")
+                    return
+                ai_event("ai.summary.transition", transition="generated", group_count=len(groups.lines))
 
-        messages_by_reference = transcript.messages_by_reference
-        known_refs = {
-            reference
-            for reference in chain.from_iterable(group.message_refs for group in groups.lines)
-            if reference in messages_by_reference
-        }
-        lines = [
-            line
-            for line in (_derive_summary_line(group, messages_by_reference) for group in groups.lines)
-            if line is not None
-        ]
-        covered_message_ids = {line.first_message_id for line in lines}
-        for group in groups.lines:
-            grouped_messages = _resolve_group_messages(group, messages_by_reference)
-            if not grouped_messages or not _is_significant_topic(grouped_messages):
-                continue
-            covered_message_ids.update(message.message_id for message in grouped_messages)
+                messages_by_reference = transcript.messages_by_reference
+                known_refs = {
+                    reference
+                    for reference in chain.from_iterable(group.message_refs for group in groups.lines)
+                    if reference in messages_by_reference
+                }
+                lines = [
+                    line
+                    for line in (_derive_summary_line(group, messages_by_reference) for group in groups.lines)
+                    if line is not None
+                ]
+                covered_message_ids = {line.first_message_id for line in lines}
+                for group in groups.lines:
+                    grouped_messages = _resolve_group_messages(group, messages_by_reference)
+                    if not grouped_messages or not _is_significant_topic(grouped_messages):
+                        continue
+                    covered_message_ids.update(message.message_id for message in grouped_messages)
 
-        grouped_message_count = len(known_refs)
-        covered_percentage = (
-            round((len(covered_message_ids) / len(cached_messages)) * 100, 2) if cached_messages else 0.0
-        )
-        low_signal_line_count = max(len(groups.lines) - len(lines), 0)
-        if not lines:
-            log.debug("generate_chat_summaries: no summary lines generated", chat=chat.tid, summary_date=summary_date)
-            await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, [])
-            _track_summary_metrics(
-                len(cached_messages),
-                grouped_message_count,
-                covered_percentage,
-                0,
-                low_signal_line_count,
-                generated=False,
-            )
-            return
+                grouped_message_count = len(known_refs)
+                covered_percentage = (
+                    round((len(covered_message_ids) / len(cached_messages)) * 100, 2) if cached_messages else 0.0
+                )
+                low_signal_line_count = max(len(groups.lines) - len(lines), 0)
+                if span is not None:
+                    span.set_attribute("line_count", len(lines))
+                stage = "persist"
+                if not lines:
+                    log.debug(
+                        "generate_chat_summaries: no summary lines generated", chat=chat.tid, summary_date=summary_date
+                    )
+                    ai_event("ai.summary.transition", transition="no_lines")
+                    await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, [])
+                    ai_event("ai.summary.transition", transition="persisted", line_count=0)
+                    _track_summary_metrics(
+                        len(cached_messages),
+                        grouped_message_count,
+                        covered_percentage,
+                        0,
+                        low_signal_line_count,
+                        generated=False,
+                    )
+                    if span is not None:
+                        span.set_attribute("outcome", "persisted_no_lines")
+                    return
 
-        await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, lines)
-        await self.send_summary(target_chat_tid or chat.tid, summary_date, groups.overview, lines)
-        _track_summary_metrics(
-            len(cached_messages),
-            grouped_message_count,
-            covered_percentage,
-            len(lines),
-            low_signal_line_count,
-            generated=True,
-        )
+                await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, lines)
+                ai_event("ai.summary.transition", transition="persisted", line_count=len(lines))
+                stage = "send"
+                await self.send_summary(target_chat_tid or chat.tid, summary_date, groups.overview, lines)
+                _track_summary_metrics(
+                    len(cached_messages),
+                    grouped_message_count,
+                    covered_percentage,
+                    len(lines),
+                    low_signal_line_count,
+                    generated=True,
+                )
+                if span is not None:
+                    span.set_attribute("outcome", "sent")
+            except Exception as exc:
+                ai_event("ai.summary.transition", transition="failure", stage=stage, error_type=type(exc).__name__)
+                if span is not None:
+                    span.set_attribute("outcome", "failure")
+                    span.set_attribute("failure_stage", stage)
+                    span.set_attribute("error_type", type(exc).__name__)
+                raise
 
     async def handle(self) -> None:
         current_time = datetime.now(UTC)

@@ -14,6 +14,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.middlewares import enable_middlewares
 from sophie_bot.runtime import BotModeRuntime, build_bot_runtime
 from sophie_bot.services.health import heartbeat_loop
+from sophie_bot.services.logfire import start_logfire, stop_logfire
 from sophie_bot.startup import initialize_bot_mode
 from sophie_bot.utils.logger import log
 
@@ -54,12 +55,16 @@ async def _prepare_runtime(runtime: BotModeRuntime) -> None:
 
 async def _polling_main() -> None:
     async with build_bot_runtime() as runtime:
-        await _prepare_runtime(runtime)
-        await runtime.dispatcher.start_polling(
-            runtime.services.bot,
-            allowed_updates=ALLOWED_UPDATES,
-            close_bot_session=False,
-        )
+        start_logfire(runtime.config)
+        try:
+            await _prepare_runtime(runtime)
+            await runtime.dispatcher.start_polling(
+                runtime.services.bot,
+                allowed_updates=ALLOWED_UPDATES,
+                close_bot_session=False,
+            )
+        finally:
+            stop_logfire()
 
 
 def _ssl_context() -> ssl.SSLContext | None:
@@ -74,36 +79,40 @@ def _ssl_context() -> ssl.SSLContext | None:
 
 async def _webhook_main() -> None:
     async with build_bot_runtime() as runtime:
-        await _prepare_runtime(runtime)
-        app = Application()
-        SimpleRequestHandler(
-            dispatcher=runtime.dispatcher,
-            bot=runtime.services.bot,
-            handle_in_background=CONFIG.webhooks_handle_in_background,
-            secret_token=CONFIG.webhooks_secret_token,
-        ).register(app, path=CONFIG.webhooks_path)
-        if CONFIG.webhooks_filter_ips:
-            log.info("Filtering IP addresses", ips=CONFIG.webhooks_allowed_networks)
-            app.middlewares.append(
-                cast(
-                    Middleware,
-                    ip_filter_middleware(IPFilter(CONFIG.webhooks_allowed_networks)),
-                )
-            )
-        setup_application(app, runtime.dispatcher, bot=runtime.services.bot)
-        runner = AppRunner(app)
-        await runner.setup()
-        site = TCPSite(
-            runner,
-            host=CONFIG.webhooks_listen,
-            port=CONFIG.webhooks_port,
-            ssl_context=_ssl_context(),
-        )
-        await site.start()
+        start_logfire(runtime.config)
         try:
-            await asyncio.Event().wait()
+            await _prepare_runtime(runtime)
+            app = Application()
+            SimpleRequestHandler(
+                dispatcher=runtime.dispatcher,
+                bot=runtime.services.bot,
+                handle_in_background=CONFIG.webhooks_handle_in_background,
+                secret_token=CONFIG.webhooks_secret_token,
+            ).register(app, path=CONFIG.webhooks_path)
+            if CONFIG.webhooks_filter_ips:
+                log.info("Filtering IP addresses", ips=CONFIG.webhooks_allowed_networks)
+                app.middlewares.append(
+                    cast(
+                        Middleware,
+                        ip_filter_middleware(IPFilter(CONFIG.webhooks_allowed_networks)),
+                    )
+                )
+            setup_application(app, runtime.dispatcher, bot=runtime.services.bot)
+            runner = AppRunner(app)
+            await runner.setup()
+            site = TCPSite(
+                runner,
+                host=CONFIG.webhooks_listen,
+                port=CONFIG.webhooks_port,
+                ssl_context=_ssl_context(),
+            )
+            await site.start()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                await runner.cleanup()
         finally:
-            await runner.cleanup()
+            stop_logfire()
 
 
 def start_bot_mode() -> None:

@@ -21,6 +21,8 @@ from stfu_tg import Code, Doc, KeyValue, Title
 from stfu_tg.doc import Element
 from tenacity import AsyncRetrying, RetryCallState, retry_if_exception, stop_after_attempt, wait_exponential
 
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
+from sophie_bot.services.logfire import capture_logfire_error
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
@@ -188,6 +190,18 @@ def capture_ai_error(
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> str | None:
     """Report an AI provider failure to Sentry with the model and operation attached."""
+    if not sentry_sdk.is_initialized():
+        ai_event(
+            "ai.provider_failure",
+            operation=context.operation,
+            model=context.model_name,
+            error_type=type(error).__name__,
+            status_code=_get_status_code(error),
+            outcome=level,
+        )
+        if level == "error":
+            capture_logfire_error(error)
+        return None
     message_str = str(user_facing_message or _DEFAULT_AI_FAILED_MESSAGE) if level == "error" else None
     details = _error_details(error, context, user_facing_message=message_str)
     with sentry_sdk.new_scope() as scope:
@@ -239,6 +253,14 @@ async def run_ai_request_with_retries[RetryableAIOutputT](
         outcome = retry_state.outcome
         if outcome is not None and (error := outcome.exception()) is not None:
             add_ai_retry_breadcrumb(error, context, retry_state.attempt_number)
+            ai_event(
+                "ai.retry",
+                operation=context.operation,
+                model=context.model_name,
+                attempt=retry_state.attempt_number,
+                error_type=type(error).__name__,
+                backoff_seconds=retry_state.next_action.sleep if retry_state.next_action else None,
+            )
         if on_retry is None:
             return
         await on_retry(retry_state.attempt_number, AI_REQUEST_RETRY_ATTEMPTS)

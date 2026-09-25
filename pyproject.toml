@@ -11,6 +11,7 @@ dependencies = [
     "ujson>=6,<7",
     "PyYAML>=6.0.3,<7",
     "sentry-sdk>=2.69.2,<3",
+    "logfire[fastapi,httpx,requests,system-metrics]>=5.1,<6",
     "Babel>=2.18.0,<3",
     "regex>=2026.9.10",
     "pydantic>=2.13.5,<3",
@@ -34,6 +35,7 @@ dependencies = [
     # Sophie speaks httpx2, but mistralai and the Tavily search tool still raise legacy httpx
     # exceptions that the AI retry classifier has to recognise. See ai_errors.py.
     "httpx>=0.28.1,<0.29",
+    "requests>=2.32,<3",
     "uvicorn>=0.53,<0.54",
     "uvloop>=0.22.1,<0.23",
     "pyjwt>=2.14.0,<3",

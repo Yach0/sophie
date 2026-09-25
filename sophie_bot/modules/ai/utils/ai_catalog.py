@@ -13,6 +13,7 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIProviderKind,
 )
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_event, ai_span
 from sophie_bot.utils.logger import log
 
 # Bumped on every catalog mutation. Processes compare it against the version their snapshot was
@@ -227,15 +228,25 @@ async def load_catalog(*, redis: Redis) -> AICatalog:
         models=models,
         roles=roles,
     )
+    ai_event(
+        "ai.catalog.loaded",
+        provider_count=len(providers),
+        model_count=len(models),
+        role_count=len(roles),
+    )
 
     log.info("AI catalog loaded", providers=len(providers), models=len(models), roles=len(roles))
     return _catalog
 
 
 async def get_catalog(*, redis: Redis) -> AICatalog:
-    if _catalog.version != await _current_version(redis=redis):
-        return await load_catalog(redis=redis)
-    return _catalog
+    with ai_span("ai.catalog.lookup") as span:
+        changed = _catalog.version != await _current_version(redis=redis)
+        if span is not None:
+            span.set_attribute("cache_hit", not changed)
+        if changed:
+            return await load_catalog(redis=redis)
+        return _catalog
 
 
 async def get_openrouter_api_key(*, redis: Redis) -> str | None:

@@ -15,6 +15,7 @@ from normality import normalize
 from openai.types.moderation_text_input_param import ModerationTextInputParam
 from pydantic_ai.messages import (
     BinaryContent,
+    ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
@@ -32,6 +33,7 @@ from stfu_tg.doc import Element
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -355,33 +357,73 @@ class AIMessageHistory:
         They are replayed right before that answer, so the model can reuse what it already looked up
         instead of running the same searches again.
         """
-        messages = await get_cached_messages(
-            chat_id,
-            limit=limit,
-            max_age=max_age,
-            redis=self.services.redis,
-        )
-        self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
-        exchanges = tool_exchanges or {}
+        with ai_span("ai.history.add_from_cache", fold_background=fold_background) as span:
+            if span is not None:
+                span.set_attribute("outcome", "failure")
+            history_size_before = len(self.message_history)
+            context_size_before = len(self.context_lines)
+            messages = await get_cached_messages(
+                chat_id,
+                limit=limit,
+                max_age=max_age,
+                redis=self.services.redis,
+            )
+            self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
+            exchanges = tool_exchanges or {}
+            dialogue_count = 0
+            background_count = 0
+            replay_count = 0
 
-        if not fold_background:
-            for msg, transformed in zip(
-                messages,
-                await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]),
-                strict=True,
-            ):
-                self.message_history.extend(exchanges.get(msg.message_id, ()))
-                self.message_history.append(transformed)
-            return
-
-        for msg in messages:
-            if msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg):
-                self.message_history.extend(exchanges.get(msg.message_id, ()))
-                self.message_history.append(await self._cache_transform_msg(chat_id, msg))
+            if not fold_background:
+                for msg, transformed in zip(
+                    messages,
+                    await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]),
+                    strict=True,
+                ):
+                    replayed = exchanges.get(msg.message_id, ())
+                    self.message_history.extend(replayed)
+                    replay_count += len(replayed)
+                    self.message_history.append(transformed)
+                dialogue_count = len(messages)
             else:
-                self.context_lines.append(await self._format_context_line(chat_id, msg))
+                for msg in messages:
+                    if msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg):
+                        replayed = exchanges.get(msg.message_id, ())
+                        self.message_history.extend(replayed)
+                        replay_count += len(replayed)
+                        self.message_history.append(await self._cache_transform_msg(chat_id, msg))
+                        dialogue_count += 1
+                    else:
+                        self.context_lines.append(await self._format_context_line(chat_id, msg))
+                        background_count += 1
 
-        self._fold_trailing_requests()
+                self._fold_trailing_requests()
+
+            if span is not None:
+                span.set_attribute("outcome", "success")
+                span.set_attribute("cached_message_count", len(messages))
+                span.set_attribute("dialogue_count", dialogue_count)
+                span.set_attribute("background_count", background_count)
+                span.set_attribute("replayed_tool_exchange_count", replay_count)
+                span.set_attribute("history_size_before", history_size_before)
+                span.set_attribute("history_size_after", len(self.message_history))
+                span.set_attribute("context_size_before", context_size_before)
+                span.set_attribute("context_size_after", len(self.context_lines))
+                snapshot_messages = messages[-CHATBOT_CACHE_MESSAGE_LIMIT:]
+                span.set_attribute(
+                    "cached_messages",
+                    [msg.model_dump_json() for msg in snapshot_messages],
+                )
+                snapshot_exchanges = [
+                    exchange
+                    for msg in snapshot_messages
+                    if not fold_background or msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg)
+                    for exchange in exchanges.get(msg.message_id, ())
+                ]
+                span.set_attribute(
+                    "replayed_tool_exchanges",
+                    ModelMessagesTypeAdapter.dump_json(snapshot_exchanges).decode(),
+                )
 
     async def add_from_message(
         self,

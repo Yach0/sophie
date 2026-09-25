@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
 from sophie_bot.modules.ai.utils.ai_catalog import get_openrouter_api_key
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 
 ai_http_client = AsyncClient(timeout=30)
 _pricing_cache_ttl_seconds = 3600.0
@@ -44,32 +45,36 @@ def parse_price_per_million(raw_price: object) -> float | None:
 
 
 async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[float | None, float | None]]:
-    cached_data = await redis.get(_PRICING_CACHE_KEY)
-    if cached_data is not None:
-        return ujson.loads(cached_data)
+    with ai_span("ai.pricing.cache") as span:
+        cached_data = await redis.get(_PRICING_CACHE_KEY)
+        if span is not None:
+            span.set_attribute("cache_hit", cached_data is not None)
+        if cached_data is not None:
+            return ujson.loads(cached_data)
 
-    cache: dict[str, tuple[float | None, float | None]] = {}
-    response = await ai_http_client.get(
-        "https://openrouter.ai/api/v1/models", headers=await openrouter_headers(redis=redis)
-    )
-    response.raise_for_status()
-
-    data = response.json().get("data", [])
-    for item in data:
-        model_name = item.get("id") or item.get("name")
-        if not model_name:
-            continue
-        pricing = item.get("pricing") or {}
-        cache[model_name] = (
-            parse_price_per_million(pricing.get("prompt") or pricing.get("input") or item.get("input_price")),
-            parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
+        cache: dict[str, tuple[float | None, float | None]] = {}
+        response = await ai_http_client.get(
+            "https://openrouter.ai/api/v1/models", headers=await openrouter_headers(redis=redis)
         )
+        response.raise_for_status()
 
-    serialized = ujson.dumps(cache)
-    await redis.set(_PRICING_CACHE_KEY, serialized)
-    await redis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
+        data = response.json().get("data", [])
+        for item in data:
+            model_name = item.get("id") or item.get("name")
+            if not model_name:
+                continue
+            pricing = item.get("pricing") or {}
+            cache[model_name] = (
+                parse_price_per_million(pricing.get("prompt") or pricing.get("input") or item.get("input_price")),
+                parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
+            )
 
-    return cache
+        serialized = ujson.dumps(cache)
+        await redis.set(_PRICING_CACHE_KEY, serialized)
+        await redis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
+        if span is not None:
+            span.set_attribute("model_count", len(cache))
+        return cache
 
 
 async def get_model_pricing(model_name: str, *, redis: Redis) -> tuple[float | None, float | None]:
@@ -85,23 +90,32 @@ async def estimate_model_credit_cost(
     *,
     redis: Redis,
 ) -> int:
-    input_price, output_price = await get_model_pricing(model_name, redis=redis)
-    if input_price is None and output_price is None:
-        return ceil(total_tokens / AI_CREDITS_PER_TOKEN)
+    with ai_span("ai.pricing.estimate") as span:
+        input_price, output_price = await get_model_pricing(model_name, redis=redis)
+        if span is not None:
+            span.set_attribute(
+                "fallback",
+                (input_price is None and output_price is None)
+                or (bool(input_tokens) and input_price is None)
+                or (bool(output_tokens) and output_price is None),
+            )
+            span.set_attribute("model_price_missing", input_price is None and output_price is None)
+        if input_price is None and output_price is None:
+            return ceil(total_tokens / AI_CREDITS_PER_TOKEN)
 
-    normalized_input_cost = 0.0
-    normalized_output_cost = 0.0
+        normalized_input_cost = 0.0
+        normalized_output_cost = 0.0
 
-    if input_tokens:
-        effective_input_price = input_price if input_price is not None else AI_BASE_INPUT_PRICE_PER_MILLION
-        normalized_input_cost = (input_tokens / AI_CREDITS_PER_TOKEN) * (
-            effective_input_price / AI_BASE_INPUT_PRICE_PER_MILLION
-        )
+        if input_tokens:
+            effective_input_price = input_price if input_price is not None else AI_BASE_INPUT_PRICE_PER_MILLION
+            normalized_input_cost = (input_tokens / AI_CREDITS_PER_TOKEN) * (
+                effective_input_price / AI_BASE_INPUT_PRICE_PER_MILLION
+            )
 
-    if output_tokens:
-        effective_output_price = output_price if output_price is not None else AI_BASE_OUTPUT_PRICE_PER_MILLION
-        normalized_output_cost = (output_tokens / AI_CREDITS_PER_TOKEN) * (
-            effective_output_price / AI_BASE_OUTPUT_PRICE_PER_MILLION
-        )
+        if output_tokens:
+            effective_output_price = output_price if output_price is not None else AI_BASE_OUTPUT_PRICE_PER_MILLION
+            normalized_output_cost = (output_tokens / AI_CREDITS_PER_TOKEN) * (
+                effective_output_price / AI_BASE_OUTPUT_PRICE_PER_MILLION
+            )
 
-    return max(ceil(normalized_input_cost + normalized_output_cost), 1)
+        return max(ceil(normalized_input_cost + normalized_output_cost), 1)

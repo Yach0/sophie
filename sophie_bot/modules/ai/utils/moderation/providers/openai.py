@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Final
 
 from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_openai_client
 from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_openai_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
@@ -96,15 +98,38 @@ class OpenAIModerationProvider:
         if not inputs:
             return {}
 
-        client = await get_openai_client(redis=redis)
-        response = await run_ai_request_with_retries(
-            lambda: client.moderations.create(model=OPENAI_MODERATION_MODEL, input=inputs),
-            AIErrorContext(operation="moderation", model_name=OPENAI_MODERATION_MODEL),
-        )
-        if not response.results:
-            return {}
+        with ai_span(
+            "ai.moderation",
+            provider="openai",
+            model=OPENAI_MODERATION_MODEL,
+            input_count=len(inputs),
+        ) as span:
+            started = perf_counter() if span is not None else 0.0
+            try:
+                client = await get_openai_client(redis=redis)
+                response = await run_ai_request_with_retries(
+                    lambda: client.moderations.create(model=OPENAI_MODERATION_MODEL, input=inputs),
+                    AIErrorContext(operation="moderation", model_name=OPENAI_MODERATION_MODEL),
+                )
+                if not response.results:
+                    if span is not None:
+                        span.set_attribute("outcome", "empty")
+                    return {}
 
-        # by_alias gives OpenAI's own names ("self-harm/intent"), matching NativeCategory.key.
-        # Scores are None for categories OpenAI does not score in the caller's jurisdiction.
-        scores = response.results[0].category_scores.model_dump(by_alias=True)
-        return {key: float(value) for key, value in scores.items() if value is not None}
+                # by_alias gives OpenAI's own names ("self-harm/intent"), matching NativeCategory.key.
+                # Scores are None for categories OpenAI does not score in the caller's jurisdiction.
+                scores = response.results[0].category_scores.model_dump(by_alias=True)
+                if span is not None:
+                    span.set_attribute("outcome", "success")
+                return {key: float(value) for key, value in scores.items() if value is not None}
+            except Exception as error:
+                if span is not None:
+                    span.set_attribute("outcome", "error")
+                    span.set_attribute("error_type", type(error).__name__)
+                    status_code = getattr(error, "status_code", None)
+                    if isinstance(status_code, int):
+                        span.set_attribute("status_code", status_code)
+                raise
+            finally:
+                if span is not None:
+                    span.set_attribute("duration_ms", (perf_counter() - started) * 1000)

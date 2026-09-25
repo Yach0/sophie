@@ -41,6 +41,18 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
 
+Optional Logfire telemetry is enabled by setting `LOGFIRE_TOKEN` in `data/config.env`.
+For Ansible deployment, set `LOGFIRE_TOKEN` privately in the operator environment; the
+beta, stable, scheduler and REST templates include it only when present. With no token,
+Logfire does not initialize or export data. With a token, every environment, including
+production, exports full AI conversations, cached chatbot context, model binary inputs,
+HTTP URLs/headers/bodies, application logs (including DEBUG records) and exception
+details without scrubbing. The existing console and file log thresholds do not change.
+Debug telemetry can be high-volume and can expose personal data and credentials to the
+configured Logfire project. Sentry remains independent: Logfire reports errors when
+Sentry is not enabled. Remove the token and restart every serving process to stop export.
+Rotate any write token exposed in chat or logs before use.
+
 ### 2. Run the Playbook
 
 To deploy the stable environment:
@@ -287,6 +299,7 @@ When enabled, the bot can route requests between instances based on configuratio
 | `REDIS_DB_FSM` | Redis Database index for FSM |
 | `OWNER_ID` | Telegram User ID of the bot owner |
 | `ENVIRONMENT` | Name of the environment (e.g., `production-stable`) |
+| `LOGFIRE_TOKEN` | Optional Pydantic Logfire write token; enables telemetry on serving processes |
 | `MODE` | Set to `scheduler` for the scheduler service |
 
 ---

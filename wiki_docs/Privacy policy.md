@@ -122,14 +122,25 @@ You will be notified of crashes via a "crash" message from Sophie (unless techni
 This data is not shared with any third parties, except for Sentry, and is only used internally by Sophie.
 By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy.
 
-### AI Telemetry (Pydantic logfire)
+### AI telemetry (Logfire)
 
-Sophie can use Pydantic's logfire feature to collect usage statistics and performance metrics of AI-related activities. This data is used to improve
-the user experience and identify potential issues. The data collected includes information about the user's device,
-operating system, and usage patterns.
-This data is not shared with any third parties, except for Pydantic, and is only used internally by Sophie.
-You can withdraw your consent at any time by contacting us, or by disabling the AI features with '/aimode' and choosing the Disabled mode.
-By using Sophie with AI-related activities, you agree to Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.
+When an operator configures `LOGFIRE_TOKEN`, Sophie sends telemetry to Pydantic Logfire
+in every environment, including staging and production. Logfire records AI agent, model,
+tool, cache and state traces; model usage; system and process metrics; HTTP requests;
+application logs; and exceptions. Scrubbing is disabled. Traces can contain full AI
+prompts, replies, tool arguments and results, cached chat messages and tool exchanges
+(limited to the existing 35-message chatbot history window), binary model inputs
+(such as images), HTTP URLs, headers and bodies, log messages (including DEBUG
+records) and exception details.
+These may contain personal data, credentials and large media payloads. Direct moderation
+and transcription spans do not attach uploaded media themselves, but HTTP client tracing
+can capture requests and responses. With no token, Sophie does not initialize or export
+Logfire telemetry. Sentry, when separately configured, retains its own crash-reporting
+policy above.
+
+An operator disables Logfire by removing `LOGFIRE_TOKEN` and restarting every serving process.
+Disabling one chat's AI mode does not disable deployment-wide telemetry for other activity.
+See Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.
 
 # Changes to This Policy
 

@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, AIRequestOptions, run_ai_structured
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.ai_features import AIFeature
@@ -41,35 +42,47 @@ async def run_structured_task[OutputT: BaseModel](
     Every structured mode — translation, filters, summaries, moderation reasons, note titles —
     arrives here, so the plan's failover applies to all of them without any of them looping itself.
     """
-    resolved_service_tier = service_tier or (
-        await get_service_tier(
-            task.service_tier_feature_key,
-            chat_tid=chat_tid,
-            redis=redis,
-        )
-        if task.service_tier_feature_key is not None
-        else None
-    )
-    request_options = AIRequestOptions(
-        user_tracking_id=chat_iid,
-        session_id=session_id,
-        service_tier=resolved_service_tier,
-    )
-    agent = cast(Agent[None, OutputT], Agent(model_plan.primary, output_type=task.output_type))
-    result = await run_ai_structured(
-        agent,
-        user_prompt=history.prompt,
-        message_history=history.message_history,
-        request_options=request_options,
-        model_settings=task.model_settings,
-        model_plan=model_plan,
-    )
-    if chat_iid is not None and task.feature is not None and result.usage and result.usage.total_tokens:
-        await charge_ai_usage(
-            chat_iid,
-            task.feature,
-            result.served_model or model_plan.primary,
-            result.usage,
-            redis=redis,
-        )
-    return result
+    with ai_span("ai.structured_task", feature=task.feature or "none") as span:
+        try:
+            resolved_service_tier = service_tier or (
+                await get_service_tier(
+                    task.service_tier_feature_key,
+                    chat_tid=chat_tid,
+                    redis=redis,
+                )
+                if task.service_tier_feature_key is not None
+                else None
+            )
+            request_options = AIRequestOptions(
+                user_tracking_id=chat_iid,
+                session_id=session_id,
+                service_tier=resolved_service_tier,
+            )
+            agent = cast(Agent[None, OutputT], Agent(model_plan.primary, output_type=task.output_type))
+            result = await run_ai_structured(
+                agent,
+                user_prompt=history.prompt,
+                message_history=history.message_history,
+                request_options=request_options,
+                model_settings=task.model_settings,
+                model_plan=model_plan,
+            )
+            if chat_iid is not None and task.feature is not None and result.usage and result.usage.total_tokens:
+                await charge_ai_usage(
+                    chat_iid,
+                    task.feature,
+                    result.served_model or model_plan.primary,
+                    result.usage,
+                    redis=redis,
+                )
+            if span is not None:
+                span.set_attribute("outcome", "success")
+            return result
+        except Exception as error:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(error).__name__)
+                status_code = getattr(error, "status_code", None)
+                if isinstance(status_code, int):
+                    span.set_attribute("status_code", status_code)
+            raise

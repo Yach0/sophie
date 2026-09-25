@@ -11,6 +11,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, catalog, get_catalog, resolve_roles
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_providers import get_openai_provider, get_openrouter_provider
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 _ai_models: dict[str, Model] = {}
@@ -64,19 +65,25 @@ def _build_model(model_name: str, reasoning_effort: str | None) -> Model:
 def get_ai_model(model_name: str, reasoning_effort: str | None = None) -> Model:
     global _cache_version
 
-    # A built model holds a provider client and its settings, both of which a catalog reload may
-    # have changed, so the cache is dropped whenever the snapshot it was built from is replaced.
-    version = catalog().version
-    if version != _cache_version:
-        _ai_models.clear()
-        _cache_version = version
+    with ai_span("ai.model.cache") as span:
+        # A built model holds a provider client and its settings, both of which a catalog reload may
+        # have changed, so the cache is dropped whenever the snapshot it was built from is replaced.
+        version = catalog().version
+        if version != _cache_version:
+            if span is not None:
+                span.set_attribute("invalidated_count", len(_ai_models))
+            _ai_models.clear()
+            _cache_version = version
 
-    # The same model can serve several roles at different reasoning efforts, so the effort is part
-    # of the cache key.
-    key = f"{model_name}\x00{reasoning_effort or ''}"
-    if key not in _ai_models:
-        _ai_models[key] = _build_model(model_name, reasoning_effort)
-    return _ai_models[key]
+        # The same model can serve several roles at different reasoning efforts, so the effort is part
+        # of the cache key.
+        key = f"{model_name}\x00{reasoning_effort or ''}"
+        hit = key in _ai_models
+        if span is not None:
+            span.set_attribute("cache_hit", hit)
+        if not hit:
+            _ai_models[key] = _build_model(model_name, reasoning_effort)
+        return _ai_models[key]
 
 
 def pinned_candidate(model_name: str) -> AIModelCandidate:

@@ -13,6 +13,7 @@ from pydantic_ai.messages import (
 )
 from redis.asyncio import Redis
 
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 ToolExchange = ModelRequest | ModelResponse
@@ -153,13 +154,37 @@ async def get_tool_exchanges(chat_tid: int, *, redis: Redis) -> dict[int, list[T
 
 async def reset_tool_exchanges(chat_tid: int, *, redis: Redis) -> None:
     """Drops every stored tool exchange of a chat."""
-    await redis.delete(tool_history_key(chat_tid))
+    with ai_span("ai.tool_history.reset") as span:
+        try:
+            deleted = await redis.delete(tool_history_key(chat_tid))
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(exc).__name__)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "deleted" if deleted else "empty")
 
 
 async def load_chatbot_tool_history(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
-    if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-        return {}
-    return await get_tool_exchanges(chat_tid, redis=redis)
+    with ai_span("ai.tool_history.load") as span:
+        try:
+            if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
+                if span is not None:
+                    span.set_attribute("outcome", "skipped")
+                    span.set_attribute("skip_reason", "feature_disabled")
+                return {}
+            exchanges = await get_tool_exchanges(chat_tid, redis=redis)
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(exc).__name__)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "hit" if exchanges else "miss")
+            span.set_attribute("stored_answer_count", len(exchanges))
+            span.set_attribute("replay_message_count", sum(map(len, exchanges.values())))
+        return exchanges
 
 
 async def remember_chatbot_tool_history(
@@ -171,18 +196,36 @@ async def remember_chatbot_tool_history(
     redis: Redis,
 ) -> None:
     """Store the tool exchanges a finished chatbot run performed, excluding replayed ones."""
-    if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-        return
-    max_content_chars = int(
-        await get_value(
-            "ai_chatbot_tool_history_max_chars",
-            chat_tid=chat_tid,
-            redis=redis,
-        )
-    )
-    exchanges = extract_tool_exchanges(
-        message_history,
-        max_content_chars=max_content_chars,
-        skip_tool_call_ids=collect_tool_call_ids(previous_history),
-    )
-    await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
+    with ai_span("ai.tool_history.remember") as span:
+        try:
+            if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
+                if span is not None:
+                    span.set_attribute("outcome", "skipped")
+                    span.set_attribute("skip_reason", "feature_disabled")
+                return
+            max_content_chars = int(
+                await get_value(
+                    "ai_chatbot_tool_history_max_chars",
+                    chat_tid=chat_tid,
+                    redis=redis,
+                )
+            )
+            skipped_call_ids = collect_tool_call_ids(previous_history)
+            exchanges = extract_tool_exchanges(
+                message_history,
+                max_content_chars=max_content_chars,
+                skip_tool_call_ids=skipped_call_ids,
+            )
+            if span is not None:
+                span.set_attribute("previous_call_count", len(skipped_call_ids))
+                span.set_attribute("exchange_message_count", len(exchanges))
+            await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(exc).__name__)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "stored" if exchanges else "skipped")
+            if not exchanges:
+                span.set_attribute("skip_reason", "no_new_exchanges")

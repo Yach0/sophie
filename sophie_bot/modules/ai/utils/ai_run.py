@@ -47,6 +47,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, request_has_images
 from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.logger import log
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
@@ -178,7 +179,9 @@ async def _run_with_model_candidates[FallbackOutputT](
     chain: CandidateChain,
     is_refusal: Callable[[FallbackOutputT], bool] | None = None,
     on_retry: AIRetryCallback | None = None,
-    operation_label: str = "agent",
+    operation_label: str = "text",
+    has_images: bool = False,
+    service_tier: str | None = None,
 ) -> tuple[FallbackOutputT, AIModelCandidate]:
     """Run ``operation`` against each candidate in turn until one answers.
 
@@ -199,52 +202,88 @@ async def _run_with_model_candidates[FallbackOutputT](
     """
     candidates = chain.candidates
     lead_model_name = candidates[0].model_name if candidates else None
-
-    for index, candidate in enumerate(candidates):
-        is_last = index == len(candidates) - 1
-        context = AIErrorContext(
-            operation=operation_label,
-            model_name=candidate.model_name,
-            primary_model_name=lead_model_name if index else None,
-        )
-        try:
-            async with track_ai_request(candidate.model, operation_label):
-                result = await run_ai_request_with_retries(partial(operation, candidate), context, on_retry=on_retry)
-        except AIModelRefused:
-            if is_last or not chain.refusal_failover:
-                raise
-            log.warning(
-                "AI request on %s produced no usable output; trying %s",
-                candidate.model_name,
-                candidates[index + 1].model_name,
+    with ai_span(
+        "ai.run",
+        operation=operation_label,
+        candidate_count=len(candidates),
+        failover_enabled=chain.refusal_failover,
+        has_images=has_images,
+        service_tier=service_tier,
+    ) as run_span:
+        for index, candidate in enumerate(candidates):
+            is_last = index == len(candidates) - 1
+            context = AIErrorContext(
+                operation=operation_label,
+                model_name=candidate.model_name,
+                primary_model_name=lead_model_name if index else None,
             )
-            continue
-        except AI_PROVIDER_EXCEPTIONS as error:
-            if not chain.should_try_next(error):
-                raise
-            if is_last:
-                raise ai_request_failed_from_error(error, context) from error
-            log.warning(
-                "AI request on %s failed (%s); trying %s",
-                candidate.model_name,
-                type(error).__name__,
-                candidates[index + 1].model_name,
-            )
-            # A request the chain rescues still returns an answer, so nothing else would ever
-            # surface a candidate that is failing every request in production. Warning level keeps
-            # it apart from the failures a user actually saw.
-            capture_ai_error(error, context, level="warning")
-            continue
+            with ai_span(
+                "ai.candidate",
+                model=candidate.model_name,
+                candidate_index=index,
+                candidate_count=len(candidates),
+                service_tier=candidate.resolve_service_tier(service_tier),
+            ) as candidate_span:
+                try:
+                    async with track_ai_request(candidate.model, operation_label):
+                        result = await run_ai_request_with_retries(
+                            partial(operation, candidate), context, on_retry=on_retry
+                        )
+                except AIModelRefused:
+                    if candidate_span is not None:
+                        candidate_span.set_attribute("outcome", "refusal")
+                    if is_last or not chain.refusal_failover:
+                        raise
+                    log.warning(
+                        "AI request on %s produced no usable output; trying %s",
+                        candidate.model_name,
+                        candidates[index + 1].model_name,
+                    )
+                    continue
+                except AI_PROVIDER_EXCEPTIONS as error:
+                    if candidate_span is not None:
+                        candidate_span.set_attribute(
+                            "outcome", "usage_limit" if isinstance(error, UsageLimitExceeded) else "provider_failure"
+                        )
+                        candidate_span.set_attribute("error_type", type(error).__name__)
+                    if not chain.should_try_next(error):
+                        raise
+                    if is_last:
+                        raise ai_request_failed_from_error(error, context) from error
+                    log.warning(
+                        "AI request on %s failed (%s); trying %s",
+                        candidate.model_name,
+                        type(error).__name__,
+                        candidates[index + 1].model_name,
+                    )
+                    capture_ai_error(error, context, level="warning")
+                    continue
 
-        if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
-            log.warning(
-                "AI request on %s produced no usable output; trying %s",
-                candidate.model_name,
-                candidates[index + 1].model_name,
-            )
-            continue
-
-        return result, candidate
+                if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
+                    if candidate_span is not None:
+                        candidate_span.set_attribute("outcome", "refusal")
+                    log.warning(
+                        "AI request on %s produced no usable output; trying %s",
+                        candidate.model_name,
+                        candidates[index + 1].model_name,
+                    )
+                    continue
+                if candidate_span is not None:
+                    candidate_span.set_attribute(
+                        "outcome", "refusal" if is_refusal is not None and is_refusal(result) else "success"
+                    )
+                    usage = getattr(result, "usage", None)
+                    if isinstance(usage, RunUsage):
+                        candidate_span.set_attribute("input_tokens", usage.input_tokens)
+                        candidate_span.set_attribute("output_tokens", usage.output_tokens)
+                        candidate_span.set_attribute("tool_calls", usage.tool_calls)
+                    if isinstance(result, _StreamOutcome):
+                        candidate_span.set_attribute("stream_chunks", result.chunk_count)
+                        candidate_span.set_attribute("first_token_seen", result.first_token_seen)
+                if run_span is not None:
+                    run_span.set_attribute("served_model", candidate.model_name)
+                    run_span.set_attribute("outcome", "success")
+                return result, candidate
 
     raise RuntimeError("AI model candidate loop finished without returning or raising")
 
@@ -461,6 +500,7 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
     model_settings: Mapping[str, object] | None = None,
     on_retry: AIRetryCallback | None = None,
     model_plan: AIModelPlan | None = None,
+    operation_label: str = "text",
 ) -> AIAgentResult[OutputT]:
     agent_model = _get_agent_model(agent)
     chain = build_candidate_chain(
@@ -479,6 +519,9 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
         chain,
         is_refusal=lambda run_result: is_refusal_output(run_result.output),
         on_retry=on_retry,
+        operation_label=operation_label,
+        has_images=request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
+        service_tier=request_options.service_tier if request_options else None,
     )
 
     served_model = served_candidate.model
@@ -551,6 +594,7 @@ async def run_ai_text[DepsT](
         request_options=request_options,
         model_settings=model_settings,
         on_retry=on_retry,
+        operation_label="text",
         model_plan=model_plan,
     )
 
@@ -576,6 +620,7 @@ async def run_ai_structured[DepsT, OutputT](
         request_options=request_options,
         model_settings=merged_model_settings,
         on_retry=on_retry,
+        operation_label="structured",
         model_plan=model_plan,
     )
 
@@ -805,6 +850,9 @@ async def run_ai_stream[DepsT](
         chain,
         is_refusal=lambda stream: is_refusal_output(stream.output_text),
         on_retry=on_retry,
+        operation_label="stream",
+        has_images=request_has_images(user_prompt, message_history),
+        service_tier=request_options.service_tier if request_options else None,
     )
 
     served_model = served_candidate.model
