@@ -27,7 +27,7 @@ from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME, AITool
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, apply_mention_usernames, resolve_mentions
-from sophie_bot.utils.feature_flags import is_enabled
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
 
@@ -214,11 +214,18 @@ class _ProtectedHTMLDoc(Element):
         return self._restore(self.doc.to_md())
 
 
-def _render_ai_markdown(text: str, *, strip_alien_html_tags: bool) -> Element:
+def _render_ai_markdown(
+    text: str,
+    *,
+    strip_alien_html_tags: bool,
+    max_columns: int,
+    max_rows: int,
+    card_threshold: int,
+) -> Element:
     if not strip_alien_html_tags or "<" not in text:
-        return ai_markdown_to_doc(text)
+        return ai_markdown_to_doc(text, max_columns=max_columns, max_rows=max_rows, card_threshold=card_threshold)
     protected_text, replacements, token_prefix, token_suffix = _protect_supported_html(text)
-    doc = ai_markdown_to_doc(protected_text)
+    doc = ai_markdown_to_doc(protected_text, max_columns=max_columns, max_rows=max_rows, card_threshold=card_threshold)
     if not replacements:
         return doc
     return _ProtectedHTMLDoc(doc, replacements, token_prefix, token_suffix)
@@ -323,9 +330,18 @@ async def build_reply_doc(
             chat_tid=chat_tid,
             redis=redis,
         )
+    max_columns = max(1, int(await get_value("ai_chatbot_table_max_columns", chat_tid=chat_tid, redis=redis)))
+    max_rows = max(1, int(await get_value("ai_chatbot_table_max_rows", chat_tid=chat_tid, redis=redis)))
+    card_threshold = int(await get_value("ai_chatbot_table_card_threshold", chat_tid=chat_tid, redis=redis))
     doc = build_ai_message_doc(
         header,
-        _render_ai_markdown(resolved_text, strip_alien_html_tags=strip_alien_html_tags),
+        _render_ai_markdown(
+            resolved_text,
+            strip_alien_html_tags=strip_alien_html_tags,
+            max_columns=max_columns,
+            max_rows=max_rows,
+            card_threshold=card_threshold,
+        ),
         tool_labels=tool_labels,
         emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
     )

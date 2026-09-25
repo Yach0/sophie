@@ -362,6 +362,17 @@ except TelegramAPIError:
     await message.reply(doc.to_html(), reply_markup=kb)
 ```
 
+### AI-generated tables
+
+Sophie limits AI Markdown tables to 15 columns and 50 rows (including the header).
+When a table has more than 8 columns, STFU displays each data row as a separate
+key/value table, with its first value as the caption and the column headings as keys.
+Only the first 15 columns and first 50 rows are rendered. These chat-scoped numeric
+feature flags control the limits and conversion threshold:
+`ai_chatbot_table_max_columns`, `ai_chatbot_table_max_rows`, and
+`ai_chatbot_table_card_threshold`. Set the threshold to `-1` to keep wide tables
+in their normal layout; the row and column limits still apply.
+
 ### Statistics Display
 
 ```python

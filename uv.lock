@@ -2594,7 +2594,7 @@ requires-dist = [
     { name = "regex", specifier = ">=2026.9.10" },
     { name = "requests", specifier = ">=2.32,<3" },
     { name = "sentry-sdk", specifier = ">=2.69.2,<3" },
-    { name = "stfu-tg", git = "https://gitlab.com/SophieBot/stf.git?tag=4.4" },
+    { name = "stfu-tg", git = "https://gitlab.com/SophieBot/stf.git?tag=4.7" },
     { name = "structlog", specifier = ">=26.1,<27" },
     { name = "tenacity", specifier = ">=9.1.4,<10" },
     { name = "torch", specifier = ">=2.13.0,<3", index = "https://download.pytorch.org/whl/cpu" },
@@ -2659,8 +2659,8 @@ wheels = [
 
 [[package]]
 name = "stfu-tg"
-version = "4.4"
-source = { git = "https://gitlab.com/SophieBot/stf.git?tag=4.4#e7c422f75ecf87ef50162f471523245962738dc7" }
+version = "4.7"
+source = { git = "https://gitlab.com/SophieBot/stf.git?tag=4.7#6917779d04ac2208d80b5640cff3777084741872" }
 
 [[package]]
 name = "structlog"

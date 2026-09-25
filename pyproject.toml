@@ -18,7 +18,7 @@ dependencies = [
     "emoji-country-flag>=2.1.0,<3",
     "pydantic-settings>=2.15.0,<3",
     "structlog>=26.1,<27",
-    "stfu-tg==4.4",
+    "stfu-tg==4.7",
     "ass-tg>=2.4.7",
     "beanie>=2.2.0,<3",
     "openai>=3.16.2,<4",
@@ -77,7 +77,7 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [tool.uv.sources]
-stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git", tag = "4.4" }
+stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git", tag = "4.7" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
 ussr = { git = "https://gitlab.com/SophieBot/ussr.git" }
