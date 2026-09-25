@@ -26,10 +26,12 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CUSTOM_EMOJI_ID,
     AIHeaderStyle,
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
+    get_ai_custom_emoji_id,
     get_ai_header_style,
 )
 from sophie_bot.modules.ai.utils.ai_progress import (
@@ -103,6 +105,7 @@ def _build_translate_reply_doc(
     is_voice: bool,
     quota_header: Element | None,
     header_style: AIHeaderStyle,
+    custom_emoji_id: str = AI_CUSTOM_EMOJI_ID,
 ) -> Doc:
     """Format the translation response document."""
     header = build_ai_header(header_style, quota_header or "")
@@ -125,6 +128,7 @@ def _build_translate_reply_doc(
             if translated.translation_explanations
             else None
         ),
+        custom_emoji_id=custom_emoji_id,
     )
 
 
@@ -289,6 +293,7 @@ class AiTranslate(SophieMessageHandler):
             is_voice,
             quota_header,
             header_style,
+            await get_ai_custom_emoji_id(self.event.chat.id, redis=self.services.redis),
         )
 
         await _edit_or_reply(self.event, progress_message, text=str(doc))

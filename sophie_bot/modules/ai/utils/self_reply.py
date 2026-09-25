@@ -7,7 +7,7 @@ from aiogram.types import Message, RichBlockParagraph, RichTextCustomEmoji
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
-from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS
 from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
 
 _LEGACY_AI_HEADER_LABEL = f"{AI_EMOJI} AI"
@@ -61,7 +61,9 @@ def _ai_marker(message: Message) -> RichTextCustomEmoji | None:
     first_item = rich.blocks[0].text
     while isinstance(first_item, list) and first_item:
         first_item = first_item[0]
-    if isinstance(first_item, RichTextCustomEmoji) and first_item.custom_emoji_id == AI_CUSTOM_EMOJI_ID:
+    # The marker ID is configurable and old replies must remain recognizable after it changes.
+    # The fallback glyph is stable and Telegram preserves it in both rich and plain messages.
+    if isinstance(first_item, RichTextCustomEmoji) and first_item.alternative_text == AI_EMOJI:
         return first_item
     return None
 

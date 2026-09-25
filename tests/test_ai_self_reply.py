@@ -133,7 +133,35 @@ def test_rich_ai_marker_identity_triggers_without_battery_footer() -> None:
     assert not is_ai_message(message.model_copy(update={"rich_message": None}))
 
 
-def test_other_rich_emoji_with_same_fallback_is_not_ai_marker() -> None:
+def test_rich_ai_marker_is_recognized_after_custom_emoji_id_changes() -> None:
+    message = Message.model_validate(
+        {
+            "message_id": 3084554,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": "9999999999999999999",
+                                "alternative_text": "✨",
+                            },
+                            " Answer rendered before or after a flag change",
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+
+    assert is_ai_message(message)
+    assert cut_titlebar(message) == "Answer rendered before or after a flag change"
+
+
+def test_other_rich_emoji_with_different_fallback_is_not_ai_marker() -> None:
     message = Message.model_validate(
         {
             "message_id": 1,
@@ -144,7 +172,7 @@ def test_other_rich_emoji_with_same_fallback_is_not_ai_marker() -> None:
                     {
                         "type": "paragraph",
                         "text": [
-                            {"type": "custom_emoji", "custom_emoji_id": "123", "alternative_text": "✨"},
+                            {"type": "custom_emoji", "custom_emoji_id": "123", "alternative_text": "🎉"},
                             " Lookalike ",
                             {
                                 "type": "custom_emoji",

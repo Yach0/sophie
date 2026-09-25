@@ -14,6 +14,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AIHeaderStyle,
     build_ai_header,
     build_ai_message_doc,
+    get_ai_custom_emoji_id,
     get_ai_header_style,
 )
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
@@ -141,7 +142,11 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         if not body:
             return sent_message_ids
 
-        doc = build_ai_message_doc(header, body)
+        doc = build_ai_message_doc(
+            header,
+            body,
+            custom_emoji_id=await get_ai_custom_emoji_id(message.chat.id, redis=services.redis),
+        )
 
         async def send_message() -> Message:
             return await services.bot.send_message(chat_id=message.chat.id, text=doc.to_html())

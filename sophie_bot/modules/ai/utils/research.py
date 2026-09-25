@@ -43,7 +43,7 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model_plan, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
+from sophie_bot.modules.ai.utils.ai_header import AI_CUSTOM_EMOJI_ID, build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -596,6 +596,7 @@ def build_research_doc(
     response: ResearchFinalResponse,
     header: Element | str | None = None,
     current_locale: str = "en_US",
+    custom_emoji_id: str = AI_CUSTOM_EMOJI_ID,
 ) -> Doc:
     return build_ai_message_doc(
         header,
@@ -604,6 +605,7 @@ def build_research_doc(
         BlockQuote(_build_research_sources_section(response.sources, current_locale), expandable=True)
         if response.sources
         else Section(Code(_("No sources."))),
+        custom_emoji_id=custom_emoji_id,
     )
 
 

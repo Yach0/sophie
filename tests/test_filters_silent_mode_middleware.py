@@ -11,6 +11,14 @@ from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddlewa
 from sophie_bot.modules.filters.filter_wizard import FilterDraft
 
 
+@pytest.fixture(autouse=True)
+def _default_ai_custom_emoji(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.filters.enforce_middleware.get_ai_custom_emoji_id",
+        AsyncMock(return_value="5325547803936572038"),
+    )
+
+
 def _message_stub(message_id: int) -> Message:
     message = AsyncMock(spec=Message)
     message.message_id = message_id
@@ -58,7 +66,6 @@ async def _run_process_filters(
         "sophie_bot.modules.filters.enforce_middleware.is_enabled",
         AsyncMock(return_value=flag_enabled),
     )
-
     with pytest.raises(SkipHandler):
         await middleware._process_filters(
             message,

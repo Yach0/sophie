@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
+    get_ai_custom_emoji_id,
 )
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
@@ -344,6 +345,7 @@ async def build_reply_doc(
         header,
         _render_ai_markdown(resolved_text, strip_alien_html_tags=strip_alien_html_tags),
         tool_labels=tool_labels,
+        custom_emoji_id=await get_ai_custom_emoji_id(chat_tid, redis=redis),
     )
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "

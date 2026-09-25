@@ -9,7 +9,16 @@ import pytest
 from aiogram.types import Message
 from stfu_tg import Doc
 
+from sophie_bot.modules.ai.utils.ai_header import AI_CUSTOM_EMOJI_ID
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
+
+
+@pytest.fixture(autouse=True)
+def _default_ai_custom_emoji(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_response.get_ai_custom_emoji_id",
+        AsyncMock(return_value=AI_CUSTOM_EMOJI_ID),
+    )
 
 
 def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer:

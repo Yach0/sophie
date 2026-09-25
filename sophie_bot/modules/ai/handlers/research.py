@@ -15,7 +15,7 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
+from sophie_bot.modules.ai.utils.ai_header import get_ai_custom_emoji_id, get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
@@ -138,5 +138,9 @@ class ResearchCmd(SophieMessageHandler):
                 result.response,
                 header=header,
                 current_locale=current_locale,
+                custom_emoji_id=await get_ai_custom_emoji_id(
+                    self.event.chat.id,
+                    redis=self.services.redis,
+                ),
             ),
         )

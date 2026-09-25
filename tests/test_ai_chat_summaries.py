@@ -544,6 +544,11 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
     rich_sender = AsyncMock()
     monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
     monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="simple"))
+    monkeypatch.setattr(
+        generate_chat_summaries,
+        "get_ai_custom_emoji_id",
+        AsyncMock(return_value=AI_CUSTOM_EMOJI_ID),
+    )
     summary_date = date(2026, 5, 3)
     lines = [
         AIChatSummaryLine(

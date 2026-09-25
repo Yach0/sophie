@@ -78,6 +78,11 @@ async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int, *, redis:
     return "disable" if configured_style == "disable" else "simple"
 
 
+async def get_ai_custom_emoji_id(chat_tid: int | None, *, redis: Redis) -> str:
+    """Resolve the AI marker at render time so per-chat flag changes take effect lazily."""
+    return str(await get_value("ai_custom_emoji_id", chat_tid=chat_tid, redis=redis))
+
+
 def build_ai_header(style: AIHeaderStyle, battery: Element | str = "") -> Element | str | None:
     if style == "disable":
         return None
@@ -88,6 +93,7 @@ def build_ai_message_doc(
     header: Element | str | None,
     *body: Element | str | None,
     tool_labels: Sequence[str] = (),
+    custom_emoji_id: str = AI_CUSTOM_EMOJI_ID,
 ) -> Doc:
     inline_body = tuple(_inline_body_item(item) for item in body)
     if header is None:
@@ -95,7 +101,7 @@ def build_ai_message_doc(
     tools = f"({', '.join(tool_labels)})" if tool_labels else None
     return Doc(
         HList(
-            HList(CustomEmoji(AI_CUSTOM_EMOJI_ID, AI_EMOJI), tools, *inline_body, divider=" "),
+            HList(CustomEmoji(custom_emoji_id, AI_EMOJI), tools, *inline_body, divider=" "),
             _LineBreak(),
             header,
             divider="",

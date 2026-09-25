@@ -13,9 +13,11 @@ from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CUSTOM_EMOJI_ID,
     AIHeaderStyle,
     build_ai_header,
     build_ai_message_doc,
+    get_ai_custom_emoji_id,
     get_ai_header_style,
 )
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
@@ -142,6 +144,7 @@ def _build_summary_doc(
     overview: str,
     lines: list[AIChatSummaryLine],
     header_style: AIHeaderStyle = "simple",
+    custom_emoji_id: str = AI_CUSTOM_EMOJI_ID,
 ) -> Doc:
     current_locale = get_i18n().current_locale
     sorted_lines = sorted(lines, key=lambda line: line.first_message_at)
@@ -160,6 +163,7 @@ def _build_summary_doc(
         title,
         overview,
         rendered_lines,
+        custom_emoji_id=custom_emoji_id,
     )
 
 
@@ -284,7 +288,14 @@ class GenerateChatSummaries:
         header_style = await get_ai_header_style("summary", chat_tid, redis=self.services.redis)
         await send_ai_rich_message_to_chat(
             chat_tid,
-            _build_summary_doc(chat_tid, summary_date, overview, lines, header_style),
+            _build_summary_doc(
+                chat_tid,
+                summary_date,
+                overview,
+                lines,
+                header_style,
+                await get_ai_custom_emoji_id(chat_tid, redis=self.services.redis),
+            ),
             bot=self.services.bot,
         )
 

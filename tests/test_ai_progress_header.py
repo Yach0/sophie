@@ -19,6 +19,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
+    get_ai_custom_emoji_id,
 )
 from sophie_bot.modules.ai.utils.ai_progress import (
     AI_PROGRESS_CUSTOM_EMOJI_IDS,
@@ -84,6 +85,21 @@ def _model() -> Model:
 
 def _custom_emoji_ids(html: str) -> list[str]:
     return re.findall(r'<tg-emoji emoji-id="(\d+)">', html)
+
+
+@pytest.mark.asyncio
+async def test_custom_ai_emoji_id_is_resolved_lazily_per_chat(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    configured_id = "9999999999999999999"
+    get_value = AsyncMock(return_value=configured_id)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_header.get_value", get_value)
+
+    emoji_id = await get_ai_custom_emoji_id(-100123, redis=cast(Any, test_redis))
+    text = build_ai_message_doc(build_ai_header("simple"), "Hello", custom_emoji_id=emoji_id).to_rich()
+
+    assert text.startswith(f'<tg-emoji emoji-id="{configured_id}">✨</tg-emoji> Hello')
+    get_value.assert_awaited_once_with("ai_custom_emoji_id", chat_tid=-100123, redis=test_redis)
 
 
 def _assert_plain_progress(text: str) -> None:
