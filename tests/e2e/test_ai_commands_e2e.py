@@ -17,13 +17,16 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from pydantic_ai.messages import BinaryContent
 
+from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageBreakdownItem,
     ChatUsageView,
 )
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
+from sophie_bot.utils.feature_flags import is_enabled
 from tests.e2e.helpers import grant_admin, send_reply_command
 
 # ---------------------------------------------------------------------------
@@ -490,3 +493,77 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
     assert requests, "Bot should respond with an error when AI fails"
     response_text = requests[-1].text or ""
     assert "AI provider did not complete" in response_text, f"Expected AI failure message, got: {response_text}"
+
+
+@pytest.mark.asyncio
+async def test_ai_summaries_pin_admin_can_enable_for_chat(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000043, title="Summary Pin Group")
+    admin_wrapper = test_client.create_user(user_id=929000043, first_name="AdminPin", username="admin_pin")
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        requests = await test_client.send_command(
+            command="ai_summaries_pin on", from_user=admin_wrapper.user, chat=group_chat
+        )
+
+    assert requests
+    assert await is_enabled("ai_chat_summaries_pin", chat_tid=group_chat.id, redis=test_services.redis)
+
+
+@pytest.mark.asyncio
+async def test_ai_summaries_time_admin_sets_chat_utc_time(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000044, title="Summary Time Group")
+    admin_wrapper = test_client.create_user(user_id=929000044, first_name="AdminTime", username="admin_time")
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        requests = await test_client.send_command(
+            command="ai_summaries_time 07:45", from_user=admin_wrapper.user, chat=group_chat
+        )
+
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert requests
+    assert chat is not None
+    assert chat.ai_summary_time_utc == "07:45"
+
+
+@pytest.mark.asyncio
+async def test_ai_summaries_time_rejects_invalid_time(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000045, title="Invalid Summary Time Group")
+    admin_wrapper = test_client.create_user(user_id=929000045, first_name="AdminTime", username="admin_time_bad")
+    await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, admin_wrapper.user.id)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        requests = await test_client.send_command(
+            command="ai_summaries_time 24:00", from_user=admin_wrapper.user, chat=group_chat
+        )
+
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert requests
+    assert "Invalid UTC time" in (requests[-1].text or "")
+    assert chat is not None
+    assert chat.ai_summary_time_utc == "23:30"
+
+
+@pytest.mark.asyncio
+async def test_ai_summaries_time_nonadmin_cannot_change_time(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000046, title="Protected Summary Time Group")
+    user_wrapper = test_client.create_user(user_id=929000046, first_name="Member", username="summary_member")
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        await test_client.send_command(command="ai_summaries_time 07:45", from_user=user_wrapper.user, chat=group_chat)
+
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert chat is not None
+    assert chat.ai_summary_time_utc == "23:30"

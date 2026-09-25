@@ -34,6 +34,17 @@ class AIChatSummariesSetting(AIFeatureSetting):
         return CMDFilter("ai_summaries"), UserRestricting(admin=True)
 
 
+@flags.handler_help(description=l_("Controls automatic pinning of AI chat summaries"))
+class AIChatSummariesPinSetting(AIFeatureSetting):
+    header_text = l_(lambda: Template(_("{ai_emoji} Pin AI Chat Summaries"), ai_emoji=AI_EMOJI).to_html())
+    change_command = "ai_summaries_pin"
+    feature = "ai_chat_summaries_pin"
+
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return CMDFilter("ai_summaries_pin"), UserRestricting(admin=True)
+
+
 @flags.handler_help(description=l_("Controls AI note title generation"))
 class AINoteTitlesSetting(AIFeatureSetting):
     header_text = l_(lambda: Template(_("{ai_emoji} AI Note Titles"), ai_emoji=AI_EMOJI).to_html())
