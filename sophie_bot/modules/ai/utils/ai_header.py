@@ -129,11 +129,16 @@ def build_ai_progress_doc(
     status: Element | None = None,
     *,
     reasoning: Element | None = None,
+    activity_history: Sequence[Element | str] = (),
 ) -> Doc:
     footer = HList(*(CustomEmoji(emoji_id, "〰️") for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS), divider="")
     return Doc(
         HList(
-            HList(CustomEmoji(AI_GENERATING_EMOJI_ID, AI_PROGRESS_MARKER), _inline_body_item(body), divider=" "),
+            HList(
+                CustomEmoji(AI_GENERATING_EMOJI_ID, AI_PROGRESS_MARKER),
+                _inline_body_item(body) if body else None,
+                divider=" ",
+            ),
             _LineBreak(),
             (
                 BlockQuote(
@@ -149,6 +154,12 @@ def build_ai_progress_doc(
             _LineBreak() if reasoning is not None else None,
             status,
             _LineBreak() if status is not None else None,
+            HList(
+                *(HList(Italic(label), _LineBreak(), divider="") for label in activity_history),
+                divider="",
+            )
+            if activity_history
+            else None,
             footer,
             divider="",
         )

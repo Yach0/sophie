@@ -312,7 +312,11 @@ async def _ai_chatbot_reply(
             ),
         )
         on_tool_call = message_streamer.update_thinking_for_tool if message_streamer else None
-        on_reasoning_stream = message_streamer.stream_reasoning if message_streamer and reasoning_enabled else None
+        on_reasoning_stream = (
+            message_streamer.stream_reasoning
+            if message_streamer and (reasoning_enabled or message_streamer.reasoning_as_tool)
+            else None
+        )
         stream_options = ChatbotStreamOptions(continuation=continuation)
         try:
             result = await run_chatbot(

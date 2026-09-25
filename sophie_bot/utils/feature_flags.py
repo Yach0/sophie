@@ -39,6 +39,8 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_chatbot_streaming_backoff_seconds",
     "ai_chatbot_stream_continuation",
     "ai_chatbot_stream_reasoning",
+    "ai_chatbot_reasoning_as_tool",
+    "ai_chatbot_stack_progress_tools",
     "ai_chatbot_request_limit",
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
@@ -268,6 +270,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     # production for a release.
     "ai_chatbot_stream_continuation": _feature(True),
     "ai_chatbot_stream_reasoning": _feature(False),
+    "ai_chatbot_reasoning_as_tool": _feature(False),
+    "ai_chatbot_stack_progress_tools": _feature(False),
     "ai_chatbot_request_limit": _feature(4),
     "ai_chatbot_tool_calls_limit": _feature(6),
     "ai_chatbot_response_tokens_limit": _feature(2048),

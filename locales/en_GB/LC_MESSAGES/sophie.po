@@ -1036,7 +1036,7 @@ msgstr "You summarise Telegram group discussions into structured topic lines."
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "By using AI features you agree to our Privacy Policy (/privacy) and to the third-party AI services used."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:418
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:422
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:444
 #: sophie_bot/modules/ai/utils/research.py:583
@@ -1056,7 +1056,7 @@ msgid "Thinking..."
 msgstr "Thinking..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:125
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:149
 msgid "Working on it..."
 msgstr "Working on it..."
 
@@ -1424,7 +1424,16 @@ msgstr "Related chat notes with content."
 msgid "You have the following information in your memory"
 msgstr "You have the following information in your memory"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:136
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:127
+msgid "Reasoning..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
+#, python-brace-format
+msgid "Retrying ({attempt}/{total_attempts})..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:174
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(Retrying {attempt}/{total_attempts}...)"

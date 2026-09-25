@@ -31,6 +31,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
+from sophie_bot.utils.feature_flags import delete_override, set_enabled
 
 BATTERY_EMOJI = "🔋"
 ANIMATED_LINE_IDS = AI_PROGRESS_LINE_EMOJI_IDS
@@ -127,6 +128,7 @@ async def test_progress_updates_stay_plain(
 
     edited_text = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert "(Retrying 1/5...)" in edited_text
+    assert edited_text.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
     _assert_plain_progress(edited_text)
     quota.assert_not_awaited()
 
@@ -160,6 +162,134 @@ async def test_draft_displays_action_below_body_and_removes_it_after_new_text(
     assert "Searching the web..." not in html
     assert _custom_emoji_ids(html) == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
 
+
+@pytest.mark.asyncio
+async def test_first_tool_clears_random_working_header_until_text_arrives(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_thinking_text", lambda: "Working on it...")
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
+    message = _message()
+    streamer = await _streamer(message, monkeypatch, test_redis)
+    assert streamer is not None
+    initial_html = message.bot.send_rich_message.await_args.kwargs["rich_message"].html
+    assert initial_html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> Working on it...<br>')
+
+    streamer.throttle_seconds = 0
+    await streamer.update_thinking_for_tool("web_search")
+    html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+    assert "<i>Searching the web...</i><br>" in html
+    assert "Working on it..." not in html
+    assert "web_search" not in html
+
+    await streamer.stream("Here is the answer.")
+    html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> Here is the answer.')
+    assert "Searching the web..." not in html
+
+
+@pytest.mark.asyncio
+async def test_reasoning_as_tool_shows_one_bottom_activity_without_leaking_content(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    await set_enabled("ai_chatbot_reasoning_as_tool", True, redis=cast(Any, test_redis))
+    try:
+        monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_thinking_text", lambda: "Working on it...")
+        message = _message()
+        streamer = await _streamer(message, monkeypatch, test_redis)
+        assert streamer is not None
+        streamer.throttle_seconds = 0
+        await streamer.stream_reasoning("I should check the details.")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+        assert "<i>Reasoning...</i><br>" in html
+        assert "I should check the details." not in html
+        assert "<blockquote>" not in html
+        assert "Working on it..." not in html
+
+        await streamer.update_thinking_for_tool("web_search")
+        previous_count = streamer.response_message.bot.edit_message_text.await_count
+        await streamer.stream_reasoning("The next reasoning pass stays private.")
+        assert streamer.response_message.bot.edit_message_text.await_count == previous_count
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert "The next reasoning pass" not in html
+        assert "Reasoning..." not in html
+    finally:
+        await delete_override("ai_chatbot_reasoning_as_tool", redis=cast(Any, test_redis))
+
+
+@pytest.mark.asyncio
+async def test_stacked_activity_keeps_every_tool_retry_and_only_first_reasoning(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    await set_enabled("ai_chatbot_stack_progress_tools", True, redis=cast(Any, test_redis))
+    await set_enabled("ai_chatbot_reasoning_as_tool", True, redis=cast(Any, test_redis))
+    try:
+        monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
+        monkeypatch.setitem(
+            AI_TOOLS_BY_NAME,
+            "web_search",
+            replace(AI_TOOLS_BY_NAME["web_search"], display_in_ai_header=False),
+        )
+        message = _message()
+        streamer = await _streamer(message, monkeypatch, test_redis)
+        assert streamer is not None
+        streamer.throttle_seconds = 0
+        await streamer.stream_reasoning("First private reasoning.")
+        await streamer.update_thinking_for_tool("web_search")
+        await streamer.update_thinking_for_tool("web_search")
+        await streamer.update_thinking_for_tool("get_notes")
+        await streamer.update_retrying(1, 5)
+        await streamer.stream_reasoning("Second private reasoning.")
+
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+        assert html.count("<i>Reasoning...</i>") == 1
+        assert html.count("<i>Searching the web...</i>") == 2
+        assert "<i>Scanning notes...</i><br><i>Retrying (1/5)...</i><br>" in html
+        assert html.index("Reasoning...") < html.index("Searching the web...") < html.rindex("Searching the web...")
+        assert html.rindex("Searching the web...") < html.index("Scanning notes...") < html.index("Retrying (1/5)...")
+        assert "First private reasoning" not in html
+        assert "Second private reasoning" not in html
+        assert "web_search" not in html
+
+        await streamer.stream("Yes, I am going to search the internet...")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert html.startswith(
+            f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> Yes, I am going to search the internet...'
+        )
+        assert "Reasoning..." not in html
+        assert "Searching the web..." not in html
+        assert "Retrying (1/5)..." not in html
+
+        await streamer.update_thinking_for_tool("web_search")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert html.index("Yes, I am going to search") < html.index("<i>Searching the web...</i>")
+        assert html.count("<i>Searching the web...</i>") == 1
+        assert "Scanning notes..." not in html
+
+        await streamer.update_thinking_for_tool("get_notes")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert "<i>Searching the web...</i><br><i>Scanning notes...</i><br>" in html
+
+        await streamer.stream("Yes, I am going to search the internet...")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert "Searching the web..." not in html
+        assert "Scanning notes..." not in html
+        await streamer.update_thinking_for_tool("get_notes")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert html.index("Yes, I am going to search") < html.index("<i>Scanning notes...</i>")
+
+        await streamer.stream("Here is the answer.")
+        html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> Here is the answer.')
+        assert "Searching the web..." not in html
+        assert "Scanning notes..." not in html
+        assert "Retrying (1/5)..." not in html
+    finally:
+        await delete_override("ai_chatbot_stack_progress_tools", redis=cast(Any, test_redis))
+        await delete_override("ai_chatbot_reasoning_as_tool", redis=cast(Any, test_redis))
 
 
 @pytest.mark.asyncio

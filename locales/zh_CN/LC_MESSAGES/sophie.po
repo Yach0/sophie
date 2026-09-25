@@ -1033,7 +1033,7 @@ msgstr "您将Telegram群组讨论总结为结构化的主题行。"
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "使用 AI 功能即表示您同意我们的隐私政策 (/privacy) 和使用的第三方 AI 服务。"
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:418
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:422
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:444
 #: sophie_bot/modules/ai/utils/research.py:583
@@ -1053,7 +1053,7 @@ msgid "Thinking..."
 msgstr "思考中……"
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:125
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:149
 msgid "Working on it..."
 msgstr "正在处理……"
 
@@ -1421,7 +1421,16 @@ msgstr "包含内容的相关聊天笔记。"
 msgid "You have the following information in your memory"
 msgstr "您在记忆中拥有以下信息"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:136
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:127
+msgid "Reasoning..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
+#, python-brace-format
+msgid "Retrying ({attempt}/{total_attempts})..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:174
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(重试中 {attempt}/{total_attempts}...)"

@@ -1033,7 +1033,7 @@ msgstr "Telegram grup tartışmalarını yapılandırılmış konu başlıkları
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "AI özelliklerini kullanarak, Gizlilik Politikamıza (/privacy) ve kullanılan üçüncü parti AI hizmetlerine onay vermiş olursunuz."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:418
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:422
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:444
 #: sophie_bot/modules/ai/utils/research.py:583
@@ -1053,7 +1053,7 @@ msgid "Thinking..."
 msgstr "Düşünüyorum..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:125
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:149
 msgid "Working on it..."
 msgstr "Üzerinde çalışıyor..."
 
@@ -1421,7 +1421,16 @@ msgstr "İçerikli ilgili sohbet notları."
 msgid "You have the following information in your memory"
 msgstr "Hafızada aşağıdaki bilgilere sahipsiniz"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:136
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:127
+msgid "Reasoning..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
+#, python-brace-format
+msgid "Retrying ({attempt}/{total_attempts})..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:174
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(Yeniden deneme {attempt}/{total_attempts}...)"

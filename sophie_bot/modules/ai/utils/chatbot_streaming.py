@@ -22,7 +22,7 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
-from sophie_bot.utils.feature_flags import get_value
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
@@ -64,6 +64,8 @@ class ChatbotMessageStreamer:
         throttle_seconds: float,
         *,
         redis: Redis,
+        reasoning_as_tool: bool = False,
+        stack_tools: bool = False,
         strip_alien_html_tags: bool = False,
     ) -> None:
         self.source_message = source_message
@@ -72,6 +74,11 @@ class ChatbotMessageStreamer:
         self._mention_index_resolved = False
         self.placeholder = status or ""
         self.status: Element | None = None
+        self.activity_history: list[Element | str] = []
+        self.activity_started = False
+        self.reasoning_as_tool = reasoning_as_tool
+        self.stack_tools = stack_tools
+        self.reasoning_seen = False
         self.reasoning: Element | None = None
         self.throttle_seconds = throttle_seconds
         self.strip_alien_html_tags = strip_alien_html_tags
@@ -83,7 +90,7 @@ class ChatbotMessageStreamer:
         self._pending_update_task: asyncio.Task[None] | None = None
 
     async def send_thinking_message(self) -> None:
-        doc = build_ai_progress_doc(self.placeholder)
+        doc = self._build_progress_doc(self.placeholder)
         self.response_message = await send_ai_rich_message(self.source_message, doc)
         self._last_sent_rich = doc.to_rich()
 
@@ -92,12 +99,17 @@ class ChatbotMessageStreamer:
             return
 
         draft_text = _truncate_stream_text(text)
+        had_status = self.status is not None
+        had_activity = bool(self.activity_history)
         self.status = None
+        self.activity_history.clear()
         self.latest_text = draft_text
         if draft_text == self.last_sent_text:
-            await self._cancel_pending_update()
+            if had_status or had_activity:
+                await self._refresh_progress()
+            else:
+                await self._cancel_pending_update()
             return
-
         if self._throttled():
             await self._schedule_pending_update()
             return
@@ -106,8 +118,21 @@ class ChatbotMessageStreamer:
         await self._flush_draft()
 
     async def stream_reasoning(self, reasoning_text: str) -> None:
-        """Show the tail of the model's reasoning below the draft, never in the final reply."""
+        """Show reasoning once as an activity or keep its latest tail below the draft."""
         if self.response_message is None:
+            return
+        if self.reasoning_as_tool:
+            if self.reasoning_seen or not reasoning_text.strip():
+                return
+            self.reasoning_seen = True
+            self.activity_started = True
+            label = _("Reasoning...")
+            if self.stack_tools:
+                self.activity_history.append(label)
+                self.status = None
+            else:
+                self.status = Italic(label)
+            await self._refresh_progress()
             return
 
         tail = _reasoning_tail(reasoning_text)
@@ -115,6 +140,7 @@ class ChatbotMessageStreamer:
             return
 
         self.reasoning = ai_markdown_to_doc(tail)
+        self.activity_started = True
         self.status = None
         if not self._throttled():
             await self._refresh_progress()
@@ -124,10 +150,24 @@ class ChatbotMessageStreamer:
         activity = (
             str(choice(tool.activity_texts)) if tool is not None and tool.activity_texts else _("Working on it...")
         )
-        await self._update_status(Italic(activity))
+        self.activity_started = True
+        if self.stack_tools:
+            self.activity_history.append(activity)
+            self.status = None
+            await self._refresh_progress()
+        else:
+            await self._update_status(Italic(activity))
 
     async def update_retrying(self, attempt: int, total_attempts: int) -> None:
         self.reasoning = None
+        if self.stack_tools:
+            self.activity_history.append(
+                Template(_("Retrying ({attempt}/{total_attempts})..."), attempt=attempt, total_attempts=total_attempts)
+            )
+            self.activity_started = True
+            self.status = None
+            await self._refresh_progress()
+            return
         await self._update_status(
             Italic(
                 HList(
@@ -169,8 +209,7 @@ class ChatbotMessageStreamer:
     # ── Private helpers ────────────────────────────────────────────────────────
 
     def _throttled(self) -> bool:
-        """Text and header updates edit the same message, so they share one operator-tunable rate
-        limit instead of each getting its own."""
+        """Text and progress edits share one operator-tunable rate limit."""
         return time.monotonic() - self.last_sent_at < self.throttle_seconds
 
     async def _schedule_pending_update(self) -> None:
@@ -223,9 +262,18 @@ class ChatbotMessageStreamer:
             mention_index=self.mention_index,
             strip_alien_html_tags=self.strip_alien_html_tags,
         )
-        return build_ai_progress_doc(body, self.status, reasoning=self.reasoning)
+        return self._build_progress_doc(body)
+
+    def _build_progress_doc(self, body: Element | str) -> Doc:
+        return build_ai_progress_doc(
+            body,
+            self.status,
+            reasoning=self.reasoning,
+            activity_history=self.activity_history,
+        )
 
     async def _update_status(self, status: Element) -> None:
+        self.activity_started = True
         self.status = status
         await self._refresh_progress()
 
@@ -237,7 +285,7 @@ class ChatbotMessageStreamer:
         doc = (
             await self._render_doc(draft_text)
             if draft_text
-            else build_ai_progress_doc(self.placeholder, self.status, reasoning=self.reasoning)
+            else self._build_progress_doc("" if self.activity_started else self.placeholder)
         )
         await self._update(doc)
         self.last_sent_text = draft_text
@@ -271,18 +319,17 @@ async def build_message_streamer(
     if explicit_debug_mode:
         return None
 
-    status = random_ai_thinking_text()
-    backoff_seconds = _coerce_stream_backoff_seconds(
-        await get_value(
-            "ai_chatbot_streaming_backoff_seconds",
-            chat_tid=message.chat.id,
-            redis=redis,
-        )
+    backoff, reasoning_as_tool, stack_tools = await asyncio.gather(
+        get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id, redis=redis),
+        is_enabled("ai_chatbot_reasoning_as_tool", chat_tid=message.chat.id, redis=redis),
+        is_enabled("ai_chatbot_stack_progress_tools", chat_tid=message.chat.id, redis=redis),
     )
     streamer = ChatbotMessageStreamer(
         source_message=message,
-        status=status,
-        throttle_seconds=backoff_seconds,
+        status=random_ai_thinking_text(),
+        throttle_seconds=_coerce_stream_backoff_seconds(backoff),
+        reasoning_as_tool=reasoning_as_tool,
+        stack_tools=stack_tools,
         redis=redis,
         strip_alien_html_tags=strip_alien_html_tags,
     )

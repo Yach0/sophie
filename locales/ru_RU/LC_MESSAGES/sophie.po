@@ -1038,7 +1038,7 @@ msgstr "Вы суммируете обсуждения в группах Telegra
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Используя функции AI, вы соглашаетесь с нашей Политикой конфиденциальности (/privacy) и использованными сторонними AI-сервисами."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:418
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:422
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:444
 #: sophie_bot/modules/ai/utils/research.py:583
@@ -1058,7 +1058,7 @@ msgid "Thinking..."
 msgstr "Думаю..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:125
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:149
 msgid "Working on it..."
 msgstr "Работаю над этим..."
 
@@ -1426,7 +1426,16 @@ msgstr "Связанные заметки чата с содержимым."
 msgid "You have the following information in your memory"
 msgstr "У вас есть следующая информация в вашей памяти"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:136
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:127
+msgid "Reasoning..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
+#, python-brace-format
+msgid "Retrying ({attempt}/{total_attempts})..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:174
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(Повторная попытка {attempt}/{total_attempts}...)"

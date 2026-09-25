@@ -11,6 +11,7 @@ from aiogram.types import Message
 from stfu_tg import Doc
 
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_GENERATING_EMOJI_ID,
     AI_REASONING_EMOJI_ID,
     ai_credit_header,
     build_ai_header,
@@ -83,6 +84,9 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
 
     # Whitespace collapsed, and a blank update never costs an edit.
     response_message.bot.edit_message_text.assert_awaited_once()
+    assert _edited_text(response_message).startswith(
+        f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>'
+    )
     assert (
         '<blockquote><tg-emoji emoji-id="5537353471893700616">💭</tg-emoji> '
         "<i>The user is asking about antiflood.</i></blockquote>"
