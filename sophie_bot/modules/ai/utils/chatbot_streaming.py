@@ -7,7 +7,6 @@ from enum import Enum
 from random import choice
 from typing import Any
 
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InputRichMessage, Message
 from pydantic_ai.models import Model
 from redis.asyncio import Redis
@@ -42,15 +41,11 @@ class StreamMode(Enum):
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:
-    if isinstance(value, (int, float)):
+    if value is None:
+        return _DEFAULT_STREAM_BACKOFF_SECONDS
+    if isinstance(value, (int, float, str)):
         return max(float(value), _MIN_STREAM_BACKOFF_SECONDS)
-
-    if isinstance(value, str):
-        try:
-            return max(float(value), _MIN_STREAM_BACKOFF_SECONDS)
-        except ValueError:
-            pass
-    return _DEFAULT_STREAM_BACKOFF_SECONDS
+    raise TypeError(f"Unsupported streaming backoff value: {value!r}")
 
 
 def _truncate_stream_text(output_text: str) -> str:
@@ -116,9 +111,10 @@ class ChatbotMessageStreamer:
             return
 
         if self._throttled():
-            self._schedule_pending_update()
+            await self._schedule_pending_update()
             return
 
+        await self._cancel_pending_update()
         await self._flush_draft()
 
     async def stream_reasoning(self, reasoning_text: str) -> None:
@@ -171,17 +167,14 @@ class ChatbotMessageStreamer:
         if rendered_rich == self._last_sent_rich and reply_markup is None:
             return self.response_message
 
-        try:
-            result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
-                chat_id=self.response_message.chat.id,
-                message_id=self.response_message.message_id,
-                rich_message=InputRichMessage(html=rendered_rich),
-                reply_markup=reply_markup,
-            )
-            self._last_sent_rich = rendered_rich
-            return result if isinstance(result, Message) else self.response_message
-        except TelegramAPIError:
-            return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
+        result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+            chat_id=self.response_message.chat.id,
+            message_id=self.response_message.message_id,
+            rich_message=InputRichMessage(html=rendered_rich),
+            reply_markup=reply_markup,
+        )
+        self._last_sent_rich = rendered_rich
+        return result if isinstance(result, Message) else self.response_message
 
     async def stop(self) -> None:
         """Cancel a deferred draft edit when the run ends without a normal final reply."""
@@ -194,27 +187,26 @@ class ChatbotMessageStreamer:
         limit instead of each getting its own."""
         return time.monotonic() - self.last_sent_at < self.throttle_seconds
 
-    def _schedule_pending_update(self) -> None:
-        if self._pending_update_task is not None and not self._pending_update_task.done():
-            return
+    async def _schedule_pending_update(self) -> None:
+        if self._pending_update_task is not None:
+            if not self._pending_update_task.done():
+                return
+            await self._cancel_pending_update()
 
         delay = max(0.0, self.throttle_seconds - (time.monotonic() - self.last_sent_at))
         self._pending_update_task = asyncio.create_task(self._send_pending_after(delay))
 
     async def _send_pending_after(self, delay: float) -> None:
-        try:
-            await asyncio.sleep(delay)
-            await self._flush_draft(force=True)
-        finally:
-            if self._pending_update_task is asyncio.current_task():
-                self._pending_update_task = None
+        await asyncio.sleep(delay)
+        await self._flush_draft(force=True)
 
     async def _cancel_pending_update(self) -> None:
         task = self._pending_update_task
         self._pending_update_task = None
-        if task is None or task is asyncio.current_task() or task.done():
+        if task is None or task is asyncio.current_task():
             return
-        task.cancel()
+        if not task.done():
+            task.cancel()
         with suppress(asyncio.CancelledError):
             await task
 
@@ -222,10 +214,10 @@ class ChatbotMessageStreamer:
         if not self.latest_text or self.latest_text == self.last_sent_text:
             return
         if not force and self._throttled():
-            self._schedule_pending_update()
+            await self._schedule_pending_update()
             return
-        if await self._update(await self._render_doc(self.latest_text)):
-            self.last_sent_text = self.latest_text
+        await self._update(await self._render_doc(self.latest_text))
+        self.last_sent_text = self.latest_text
 
     async def _render_doc(self, text: str) -> Doc:
         if not self._mention_index_resolved and "@" in text:
@@ -263,30 +255,26 @@ class ChatbotMessageStreamer:
             if draft_text
             else build_ai_progress_doc(self.placeholder, self.status, reasoning=self.reasoning)
         )
-        if await self._update(doc):
-            self.last_sent_text = draft_text
+        await self._update(doc)
+        self.last_sent_text = draft_text
 
-    async def _update(self, doc: Doc) -> bool:
-        """Edit the placeholder in place. Returns False if the edit failed and updates should stop."""
+    async def _update(self, doc: Doc) -> None:
+        """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
         rendered_rich = doc.to_rich()
         if rendered_rich == self._last_sent_rich:
-            return True
+            return
 
-        try:
-            if self.response_message is None:
-                self.response_message = await send_ai_rich_message(self.source_message, doc)
-            else:
-                await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
-                    chat_id=self.response_message.chat.id,
-                    message_id=self.response_message.message_id,
-                    rich_message=InputRichMessage(html=rendered_rich),
-                )
-        except TelegramAPIError:
-            return False
+        if self.response_message is None:
+            self.response_message = await send_ai_rich_message(self.source_message, doc)
+        else:
+            await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+                chat_id=self.response_message.chat.id,
+                message_id=self.response_message.message_id,
+                rich_message=InputRichMessage(html=rendered_rich),
+            )
 
         self._last_sent_rich = rendered_rich
         self.last_sent_at = time.monotonic()
-        return True
 
 
 async def build_message_streamer(

@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic_ai.messages import (
-    ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
     TextPart,
@@ -74,26 +73,15 @@ def test_extract_truncates_long_tool_output() -> None:
     assert exchanges[1].parts[0].content == "x" * 10 + "... [truncated]"
 
 
-async def test_get_tool_exchanges_drops_unreadable_payloads(
-    test_redis: object,
-) -> None:
+async def test_get_tool_exchanges_propagates_invalid_payload(test_redis: object) -> None:
     key = tool_history_key(CHAT_TID)
-    await test_redis.hset(
-        key,
-        "10",
-        ModelMessagesTypeAdapter.dump_json(_run_with_tool_call()[1:3]),
-    )
     await test_redis.hset(key, "11", b'{"not": "a message list"}')
-    await test_redis.hset(key, "not-a-message-id", b"[]")
 
-    exchanges = await get_tool_exchanges(CHAT_TID, redis=test_redis)
-
-    assert list(exchanges) == [10]
-    # The poisoned entries are pruned, so the next reply does not re-parse them.
-    assert sorted(await test_redis.hkeys(key)) == [b"10"]
+    with pytest.raises(ValueError):
+        await get_tool_exchanges(CHAT_TID, redis=test_redis)
 
 
-async def test_remember_swallows_redis_failures(
+async def test_remember_propagates_redis_failures(
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
 ) -> None:
@@ -105,6 +93,7 @@ async def test_remember_swallows_redis_failures(
     with (
         patch("sophie_bot.modules.ai.utils.chatbot_tool_history.is_enabled", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.ai.utils.chatbot_tool_history.get_value", AsyncMock(return_value=100)),
+        pytest.raises(RedisError, match="redis is down"),
     ):
         await remember_chatbot_tool_history(
             CHAT_TID,

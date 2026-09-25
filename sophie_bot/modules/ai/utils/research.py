@@ -510,15 +510,9 @@ def _parse_source_date(value: str | None) -> date | None:
     if not normalized_value:
         return None
 
-    try:
+    if normalized_value[:4].isdigit():
         return datetime.fromisoformat(normalized_value).date()
-    except ValueError:
-        pass
-
-    try:
-        return parsedate_to_datetime(normalized_value).date()
-    except (TypeError, ValueError):
-        return None
+    return parsedate_to_datetime(normalized_value).date()
 
 
 def _research_response_from_tool_content(content: object) -> ResearchFinalResponse | None:
@@ -526,10 +520,7 @@ def _research_response_from_tool_content(content: object) -> ResearchFinalRespon
         return content
 
     if isinstance(content, Mapping):
-        try:
-            return ResearchFinalResponse.model_validate(content)
-        except ValueError:
-            return None
+        return ResearchFinalResponse.model_validate(content)
 
     return None
 

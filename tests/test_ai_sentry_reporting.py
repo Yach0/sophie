@@ -206,7 +206,7 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
     assert terminal_event["contexts"]["ai_request"]["primary_model"] == "primary/model"
 
 
-async def test_a_configuration_error_ends_the_chain_without_walking_it(
+async def test_a_configuration_error_reaches_the_global_handler_without_walking_the_chain(
     sentry_events: list[dict[str, Any]], instant_retries: None
 ) -> None:
     attempted: list[str] = []
@@ -215,19 +215,16 @@ async def test_a_configuration_error_ends_the_chain_without_walking_it(
         attempted.append(active.model_name)
         raise ModelHTTPError(status_code=401, model_name="whatever", body={"error": {"message": "Invalid key"}})
 
-    with pytest.raises(AIRequestFailed):
+    with pytest.raises(ModelHTTPError):
         await ai_run._run_with_model_candidates(
             operation, _chain(_candidate("primary/model"), _candidate("backup/model"))
         )
 
-    # Every candidate is refused the same way, so the chain stops and reports exactly one failure.
     assert attempted == ["primary/model"]
-    (event,) = sentry_events
-    assert event["level"] == "error"
-    assert event["tags"]["ai.status_code"] == "401"
+    assert sentry_events == []
 
 
-async def test_ai_handler_timeout_is_captured_with_a_reference_id(
+async def test_ai_handler_timeout_reaches_the_global_handler(
     sentry_events: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from sophie_bot.modules.ai.middlewares import ai_timeout
@@ -239,13 +236,10 @@ async def test_ai_handler_timeout_is_captured_with_a_reference_id(
 
     data = {"handler": SimpleNamespace(flags={"status": "Thinking..."})}
 
-    with pytest.raises(AIRequestFailed) as raised:
+    with pytest.raises(TimeoutError):
         await AiTimeoutMiddleware()(hanging_handler, SimpleNamespace(), data)  # type: ignore[arg-type]
 
-    (event,) = sentry_events
-    assert raised.value.sentry_event_id == event["event_id"]
-    assert event["tags"]["ai.operation"] == "handler_timeout"
-    assert event["tags"]["ai.error_type"] == "TimeoutError"
+    assert sentry_events == []
 
 
 def test_error_handler_reuses_an_already_captured_event_id(sentry_events: list[dict[str, Any]]) -> None:

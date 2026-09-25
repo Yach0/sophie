@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import Sequence
 from typing import Any
 
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
@@ -35,7 +34,6 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     TELEGRAM_MESSAGE_SAFE_LIMIT,
     build_chatbot_header,
     build_reply_doc,
-    build_truncated_note,
     model_display_name,
     truncate_output,
     used_tool_labels,
@@ -54,7 +52,6 @@ from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
-from sophie_bot.utils.logger import log
 
 __all__ = ("ai_chatbot_reply",)
 
@@ -200,17 +197,14 @@ async def _send_chatbot_ai_failure_reply(
     failure_message = ai_request_failed_message(error=error)
     if message_streamer and message_streamer.response_message is not None:
         await message_streamer.stop()
-        try:
-            edited_message = await message_streamer.response_message.edit_text(
-                text=failure_message["text"],
-                disable_web_page_preview=True,
-                reply_markup=editable_reply_markup(reply_kwargs.get("reply_markup")),
-            )
-            if isinstance(edited_message, Message):
-                return edited_message
-            return message_streamer.response_message
-        except TelegramAPIError:
-            pass
+        edited_message = await message_streamer.response_message.edit_text(
+            text=failure_message["text"],
+            disable_web_page_preview=True,
+            reply_markup=editable_reply_markup(reply_kwargs.get("reply_markup")),
+        )
+        if isinstance(edited_message, Message):
+            return edited_message
+        return message_streamer.response_message
 
     return await message.reply(**failure_message, disable_web_page_preview=True, **reply_kwargs)
 
@@ -278,7 +272,7 @@ async def ai_chatbot_reply(
             mode,
             redis=services.redis,
         )
-        reasoning_enabled, continuation, partial_on_limit = await asyncio.gather(
+        reasoning_enabled, continuation = await asyncio.gather(
             is_enabled(
                 "ai_chatbot_stream_reasoning",
                 chat_tid=message.chat.id,
@@ -289,15 +283,10 @@ async def ai_chatbot_reply(
                 chat_tid=message.chat.id,
                 redis=services.redis,
             ),
-            is_enabled(
-                "ai_chatbot_partial_on_limit",
-                chat_tid=message.chat.id,
-                redis=services.redis,
-            ),
         )
         on_tool_call = message_streamer.update_thinking_for_tool if message_streamer else None
         on_reasoning_stream = message_streamer.stream_reasoning if message_streamer and reasoning_enabled else None
-        stream_options = ChatbotStreamOptions(continuation=continuation, partial_on_limit=partial_on_limit)
+        stream_options = ChatbotStreamOptions(continuation=continuation)
         try:
             result = await run_chatbot(
                 ChatbotRunRequest(
@@ -317,7 +306,6 @@ async def ai_chatbot_reply(
                         on_reasoning_stream=on_reasoning_stream,
                         on_retry=(message_streamer.update_retrying if message_streamer else None),
                     ),
-                    charge_failure_policy="best_effort",
                 )
             )
         except AIRequestFailed as err:
@@ -363,10 +351,6 @@ async def ai_chatbot_reply(
             tool_labels=tool_labels,
             strip_alien_html_tags=strip_alien_html_tags,
         )
-        # Appended to the doc rather than to the text, so the length-fitting loop above cannot eat
-        # it — a truncated reply is exactly the case where the loop is shrinking hardest.
-        if result.truncated:
-            doc += build_truncated_note()
         if await should_offer_help_mode(
             message,
             mode,
@@ -404,8 +388,6 @@ async def ai_chatbot_reply(
             redis=services.redis,
         )
 
-        # Best effort inside the helper: the reply is already out, so a storage failure only costs
-        # the next run its replay.
         await remember_chatbot_tool_history(
             message.chat.id,
             final_message.message_id,
@@ -414,10 +396,5 @@ async def ai_chatbot_reply(
             redis=services.redis,
         )
         if research_response is not None:
-            try:
-                await final_message.reply_document(
-                    build_research_markdown_file(research_response), caption=_("Research")
-                )
-            except TelegramAPIError as err:
-                log.warning("Failed to send research document", error=str(err))
+            await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))
         return final_message

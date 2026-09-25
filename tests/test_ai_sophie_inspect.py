@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiogram.enums import ChatType
 from beanie import PydanticObjectId
+from pydantic import ValidationError
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ToolCallPart
 
@@ -114,8 +115,7 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch, tes
             side_effect=lambda feature, chat_tid=None, **kwargs: values[feature]
         ),
     )
-    # The flag pins a model the catalog has never heard of, which must still run on its own.
-    _patch_model_resolution(monkeypatch)
+    _patch_model_resolution(monkeypatch, "catalog/model")
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     run = AsyncMock(
         return_value=SimpleNamespace(
@@ -167,8 +167,9 @@ async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch,
     assert run.await_args.kwargs["model_plan"].model_names == ("catalog/model", "catalog/backup")
 
 
-async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
-    """A bounded sub-agent hitting its limit is expected; the user must still get an answer."""
+async def test_running_out_of_budget_propagates_to_global_error_handler(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=True))
     monkeypatch.setattr(
@@ -179,16 +180,15 @@ async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch:
             )
         ),
     )
-    _patch_model_resolution(monkeypatch)
+    _patch_model_resolution(monkeypatch, "catalog/model")
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text",
         AsyncMock(side_effect=UsageLimitExceeded("Exceeded the output_tokens_limit")),
     )
 
-    answer = await run_sophie_inspect("how do notes work", PydanticObjectId(), services=test_services)
-
-    assert "could not find the answer" in answer
+    with pytest.raises(UsageLimitExceeded):
+        await run_sophie_inspect("how do notes work", PydanticObjectId(), services=test_services)
 
 
 @pytest.mark.parametrize(
@@ -197,12 +197,15 @@ async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch:
         ("-1001202504432", {-1001202504432}),
         ("-100120, -100999  -100888", {-100120, -100999, -100888}),
         ("", set()),
-        ("nonsense", set()),
+        ("nonsense", None),
     ],
 )
-def test_allowed_chat_ids_are_parsed_leniently(raw_value: str, expected: set[int]) -> None:
-    """The flag is a plain string, so a stray separator must not disable the whole list."""
-    assert _parse_chat_ids(raw_value) == expected
+def test_allowed_chat_ids_reject_invalid_entries(raw_value: str, expected: set[int] | None) -> None:
+    if expected is None:
+        with pytest.raises(ValueError):
+            _parse_chat_ids(raw_value)
+    else:
+        assert _parse_chat_ids(raw_value) == expected
 
 
 async def test_a_listed_group_may_use_source_inspection(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
@@ -289,8 +292,7 @@ def test_help_mode_prompt_refuses_off_topic_and_names_the_way_out() -> None:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_a_stale_catalog_row_does_not_stop_the_bot(test_redis: object, test_services: object) -> None:
-    """The catalog outlives the code that wrote it: an unreadable row costs that row, nothing more."""
+async def test_a_stale_catalog_row_propagates_schema_error(test_redis: object, test_services: object) -> None:
 
     providers = get_collection(
         test_services.db.database,
@@ -321,7 +323,8 @@ async def test_a_stale_catalog_row_does_not_stop_the_bot(test_redis: object, tes
         ]
     )
 
-    catalog = await load_catalog(redis=test_redis)
-
-    assert "good/model" in catalog.models
-    assert "stale/model" not in catalog.models
+    try:
+        with pytest.raises(ValidationError):
+            await load_catalog(redis=test_redis)
+    finally:
+        await models.delete_one({"name": "stale/model"})

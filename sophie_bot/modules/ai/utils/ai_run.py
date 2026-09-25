@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
-from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import Any, Final, TypeVar, cast
@@ -21,7 +20,6 @@ from pydantic_ai import (
     TextPartDelta,
     ThinkingPart,
     ThinkingPartDelta,
-    capture_run_messages,
 )
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent
@@ -196,11 +194,9 @@ async def _run_with_model_candidates[FallbackOutputT](
     that actually served the request comes back with the result so callers attribute post-completion
     metrics (usage, agent/stream results) and charges to it rather than to the first candidate.
 
-    This is also the single point where a provider failure becomes a reported, user-facing error:
-    only here is it known which candidate was in play, so the failure that ends the chain is raised
-    as :exc:`AIRequestFailed` carrying its Sentry event ID rather than escaping untagged.
+    A provider failure becomes a reported, user-facing error only after the retry/failover
+    candidates are exhausted. Failures that neither retry nor fail over propagate unchanged.
     """
-    last_error: BaseException | None = None
     candidates = chain.candidates
     lead_model_name = candidates[0].model_name if candidates else None
 
@@ -214,10 +210,9 @@ async def _run_with_model_candidates[FallbackOutputT](
         try:
             async with track_ai_request(candidate.model, operation_label):
                 result = await run_ai_request_with_retries(partial(operation, candidate), context, on_retry=on_retry)
-        except AIModelRefused as refusal:
+        except AIModelRefused:
             if is_last or not chain.refusal_failover:
                 raise
-            last_error = refusal
             log.warning(
                 "AI request on %s produced no usable output; trying %s",
                 candidate.model_name,
@@ -225,9 +220,10 @@ async def _run_with_model_candidates[FallbackOutputT](
             )
             continue
         except AI_PROVIDER_EXCEPTIONS as error:
-            if is_last or not chain.should_try_next(error):
+            if not chain.should_try_next(error):
+                raise
+            if is_last:
                 raise ai_request_failed_from_error(error, context) from error
-            last_error = error
             log.warning(
                 "AI request on %s failed (%s); trying %s",
                 candidate.model_name,
@@ -241,7 +237,6 @@ async def _run_with_model_candidates[FallbackOutputT](
             continue
 
         if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
-            last_error = AIModelRefused(candidate.model_name)
             log.warning(
                 "AI request on %s produced no usable output; trying %s",
                 candidate.model_name,
@@ -251,7 +246,7 @@ async def _run_with_model_candidates[FallbackOutputT](
 
         return result, candidate
 
-    raise last_error or RuntimeError("AI model candidate loop finished without returning or raising")
+    raise RuntimeError("AI model candidate loop finished without returning or raising")
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,8 +268,6 @@ class AIAgentResult[OutputT](BaseModel):
     retries: int | None = None
     message_history: list[ModelRequest | ModelResponse]
     usage: RunUsage
-    truncated: bool = False
-    """The run hit a usage limit and ``output`` is only what the model produced before that."""
     served_model: Model | None = None
     """The candidate that actually answered, which failover may have moved off the first one.
 
@@ -333,14 +326,9 @@ class _StreamChannel:
 
 @dataclass(frozen=True, slots=True)
 class ChatbotStreamOptions:
-    """Chat-level switches for how a streamed chatbot run behaves.
-
-    ``continuation`` off restores the pre-continuation `Agent.run_stream` path, which cannot report
-    reasoning or partial output — the other two switches do nothing while it is off.
-    """
+    """Controls whether the full agent event stream or legacy run_stream path is used."""
 
     continuation: bool = True
-    partial_on_limit: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -350,7 +338,6 @@ class _StreamOutcome:
     message_history: list[ModelRequest | ModelResponse]
     first_token_seen: bool
     chunk_count: int
-    truncated: bool = False
 
 
 def build_model_settings(
@@ -593,16 +580,6 @@ async def run_ai_structured[DepsT, OutputT](
     )
 
 
-def _usage_from_messages(messages: Sequence[ModelRequest | ModelResponse]) -> RunUsage:
-    """Rebuild run usage from captured messages, for a run that raised before reporting its own."""
-    usage = RunUsage()
-    for message in messages:
-        if isinstance(message, ModelResponse):
-            usage.requests += 1
-            usage.incr(message.usage)
-    return usage
-
-
 def _tool_call_notifier(
     on_tool_call: ToolCallCallback | None,
     seen_tool_names: set[str],
@@ -627,7 +604,6 @@ async def _stream_via_events[DepsT](
     on_before_tool_call: ToolCallCallback | None,
     on_tool_call: ToolCallCallback | None,
     seen_tool_names: set[str],
-    partial_on_limit: bool,
 ) -> _StreamOutcome:
     """Run the full agent loop while forwarding Pydantic AI stream events.
 
@@ -705,26 +681,7 @@ async def _stream_via_events[DepsT](
                         await on_before_tool_call(event.part.tool_name)
                     await notify_tool_call(event.part.tool_name)
 
-    # `partial_on_limit` is the only consumer, and capturing retains a second reference to the whole
-    # message list for the length of the run, so only pay for it when it can be read.
-    capture = capture_run_messages() if partial_on_limit else nullcontext([])
-
-    with capture as captured_messages:
-        try:
-            result = await agent.run(**run_kwargs, event_stream_handler=event_stream_handler)
-        except UsageLimitExceeded:
-            if not partial_on_limit:
-                raise
-            captured = list(captured_messages)
-            return _StreamOutcome(
-                output_text=text.render(),
-                usage=_usage_from_messages(captured),
-                message_history=captured,
-                first_token_seen=first_token_seen,
-                chunk_count=chunk_count,
-                truncated=True,
-            )
-
+    result = await agent.run(**run_kwargs, event_stream_handler=event_stream_handler)
     output_text = str(result.output)
     text.replace(output_text)
     await text.emit(force=True)
@@ -841,15 +798,12 @@ async def run_ai_stream[DepsT](
             on_before_tool_call,
             on_tool_call,
             seen_tool_names,
-            options.partial_on_limit,
         )
 
     outcome, served_candidate = await _run_with_model_candidates(
         run_stream_once,
         chain,
-        # A truncated run is never a refusal: it stopped on Sophie's own usage limit with text
-        # already delivered, and re-running it on another model would spend the budget twice.
-        is_refusal=lambda stream: not stream.truncated and is_refusal_output(stream.output_text),
+        is_refusal=lambda stream: is_refusal_output(stream.output_text),
         on_retry=on_retry,
     )
 
@@ -874,6 +828,5 @@ async def run_ai_stream[DepsT](
         retries=retries,
         message_history=outcome.message_history,
         usage=outcome.usage,
-        truncated=outcome.truncated,
         served_model=served_model,
     )

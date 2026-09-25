@@ -4,15 +4,11 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import Message, TelegramObject
-from mistralai.client.errors import SDKError
-from openai import OpenAIError
 from stfu_tg import Doc, Italic, KeyValue, Section, Title, UserLink, VList
 
 from sophie_bot.config import CONFIG
-from sophie_bot.constants import AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import AIModeratorModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
-from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, capture_ai_error
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities
 from sophie_bot.modules.ai.utils.moderation import (
     MODERATION_CATEGORIES_TRANSLATES,
@@ -20,7 +16,6 @@ from sophie_bot.modules.ai.utils.moderation import (
     check_moderator,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
@@ -36,13 +31,7 @@ async def _notice_delete_delay(chat_tid: int, *, services: ApplicationServices) 
         chat_tid=chat_tid,
         redis=services.redis,
     )
-    if isinstance(value, bool):
-        return AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
-    try:
-        delay = int(value)
-    except (TypeError, ValueError):
-        return AI_MODERATION_NOTICE_DELETE_DELAY_SECONDS
-    return max(delay, 0)
+    return max(int(value), 0)
 
 
 class AiModeratorMiddleware(BaseMiddleware):
@@ -54,7 +43,7 @@ class AiModeratorMiddleware(BaseMiddleware):
         *,
         services: ApplicationServices,
     ) -> None:
-        await common_try(message.delete())
+        await message.delete()
 
         delete_after = await _notice_delete_delay(chat_tid, services=services)
 
@@ -121,24 +110,19 @@ class AiModeratorMiddleware(BaseMiddleware):
             if CONFIG.debug_mode == "off" and await is_user_admin(chat_db.tid, event.from_user.id):
                 return await handler(event, data)
 
-            try:
-                result = await check_moderator(
+            result = await check_moderator(
+                event,
+                settings=settings,
+                chat_tid=chat_db.tid,
+                services=services,
+            )
+            if result.flagged:
+                await self._triggered(
                     event,
-                    settings=settings,
-                    chat_tid=chat_db.tid,
+                    result.triggered,
+                    chat_db.tid,
                     services=services,
                 )
-                if result.flagged:
-                    await self._triggered(
-                        event,
-                        result.triggered,
-                        chat_db.tid,
-                        services=services,
-                    )
-                    raise SkipHandler
-            except (SDKError, OpenAIError) as err:
-                # The provider is already distinguishable from the exception type, so no flag lookup
-                # is done here: this runs while the moderation backend is failing.
-                capture_ai_error(err, AIErrorContext(operation="moderation"))
+                raise SkipHandler
 
         return await handler(event, data)

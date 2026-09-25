@@ -222,13 +222,11 @@ class AIFilterAddHandler(SophieMessageHandler):
                 chat_tid=self.event.chat.id,
                 redis=self.services.redis,
             )
-            suggestions = _validate_suggestions(result.output.suggestions)
         except AIRequestFailed as err:
             await self.event.reply(**ai_request_failed_message(error=err, title=_("Could not generate suggestions")))
             return
-        except SophieException:
-            await self.event.reply(_("Could not generate suggestions. Please try again or use /addfilter directly."))
-            return
+
+        suggestions = _validate_suggestions(result.output.suggestions)
 
         doc_parts: list[Any] = [f"🪄 {_('AI Filter Suggestions')}"]
         for index, suggestion in enumerate(suggestions, start=1):

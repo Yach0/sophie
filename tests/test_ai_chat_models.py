@@ -91,6 +91,7 @@ def _patch_model_builder(monkeypatch: pytest.MonkeyPatch, failover: bool = False
     # Both the async accessor ``resolve_roles`` goes through and the cached snapshot the factory
     # reads a pinned model's capabilities from.
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_catalog.get_catalog", AsyncMock(return_value=_catalog()))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.get_catalog", AsyncMock(return_value=_catalog()))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.catalog", _catalog)
     # The plan always lists the whole chain; this flag only decides whether the runtime walks it.
     monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.is_enabled", AsyncMock(return_value=failover))

@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose, AIProviderKind
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, catalog, resolve_roles
+from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, catalog, get_catalog, resolve_roles
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_providers import get_openai_provider, get_openrouter_provider
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -128,20 +128,18 @@ async def build_purpose_plan(
 ) -> AIModelPlan:
     """The ordered candidates serving a (mode, purpose), with a flag-pinned model in front.
 
-    A pin still wins, but it now leads the list rather than replacing it: the pinned model runs
-    exactly as before and the mode's own candidates stay behind it as the failover chain the pin
-    never had. A pin is also a complete answer on its own, so only a purpose with neither a pin nor
-    a catalog model is the operator mistake worth failing loudly on.
+    A pin still wins, but it leads the list rather than replacing it: the pinned model runs
+    first and the mode's own candidates stay behind it as the failover chain the pin never had.
+    Missing catalog roles remain an operator mistake and fail loudly.
 
     Whether that chain is actually walked is the ``ai_model_failover`` flag, resolved here because
     this is where the chat is known.
     """
-    try:
-        roles = await resolve_roles(mode, purpose, redis=redis)
-    except ValueError:
-        if not override_name:
-            raise
-        roles = ()
+    roles = (
+        (await get_catalog(redis=redis)).roles_for(mode, purpose)
+        if override_name
+        else await resolve_roles(mode, purpose, redis=redis)
+    )
 
     return build_model_plan(
         [

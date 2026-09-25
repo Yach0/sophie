@@ -33,10 +33,7 @@ def search_source(query: str) -> list[str]:
 
     matches: list[str] = []
     for path in sorted(SOURCE_ROOT.rglob("*.py")):
-        try:
-            lines = path.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeDecodeError):
-            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
 
         for number, line in enumerate(lines, start=1):
             if needle in line.lower():

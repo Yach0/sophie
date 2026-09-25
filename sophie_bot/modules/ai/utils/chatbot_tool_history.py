@@ -4,7 +4,6 @@ from collections.abc import Iterable, Sequence
 from datetime import timedelta
 from typing import Final
 
-from pydantic import ValidationError
 from pydantic_ai.messages import (
     ModelMessagesTypeAdapter,
     ModelRequest,
@@ -12,12 +11,9 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_core import PydanticSerializationError
 from redis.asyncio import Redis
-from redis.exceptions import RedisError
 
 from sophie_bot.utils.feature_flags import get_value, is_enabled
-from sophie_bot.utils.logger import log
 
 ToolExchange = ModelRequest | ModelResponse
 
@@ -144,41 +140,15 @@ async def store_tool_exchanges(
     await _trim_tool_history(chat_tid, redis=redis)
 
 
-def _parse_tool_exchanges(chat_tid: int, field: str, raw_payload: bytes | str) -> list[ToolExchange] | None:
-    """Decode one stored entry, or ``None`` when it is not a payload this version can replay."""
-    try:
-        return list(ModelMessagesTypeAdapter.validate_json(raw_payload))
-    except ValidationError as err:
-        # Entries written by an older pydantic-ai schema — or truncated ones — must not take the
-        # whole reply down: the chat simply loses that replay.
-        log.warning(
-            "Dropping an unreadable AI tool history entry",
-            chat_tid=chat_tid,
-            message_id=field,
-            error=str(err),
-        )
-        return None
-
-
 async def get_tool_exchanges(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
     """Stored tool exchanges of a chat, keyed by the bot message the answer was sent as."""
     key = tool_history_key(chat_tid)
     raw_exchanges = await redis.hgetall(key)  # type: ignore[misc]
 
-    exchanges: dict[int, list[ToolExchange]] = {}
-    unusable: list[str] = []
-    for raw_field, raw_payload in raw_exchanges.items():
-        field = _decode_field(raw_field)
-        parsed = _parse_tool_exchanges(chat_tid, field, raw_payload) if field.isdigit() else None
-        if parsed is None:
-            unusable.append(field)
-            continue
-        exchanges[int(field)] = parsed
-
-    # Pruned right away so a poisoned entry costs one warning instead of one per reply.
-    if unusable:
-        await redis.hdel(key, *unusable)  # type: ignore[misc]
-    return exchanges
+    return {
+        int(_decode_field(raw_field)): list(ModelMessagesTypeAdapter.validate_json(raw_payload))
+        for raw_field, raw_payload in raw_exchanges.items()
+    }
 
 
 async def reset_tool_exchanges(chat_tid: int, *, redis: Redis) -> None:
@@ -200,31 +170,19 @@ async def remember_chatbot_tool_history(
     *,
     redis: Redis,
 ) -> None:
-    """Store the tool exchanges a finished chatbot run performed, excluding replayed ones.
-
-    Best effort by design: the answer is already delivered when this runs, so a Redis outage or a
-    part the serializer cannot dump may only cost the next run its replay, never the request.
-    """
-    try:
-        if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-            return
-        max_content_chars = int(
-            await get_value(
-                "ai_chatbot_tool_history_max_chars",
-                chat_tid=chat_tid,
-                redis=redis,
-            )
-        )
-        exchanges = extract_tool_exchanges(
-            message_history,
-            max_content_chars=max_content_chars,
-            skip_tool_call_ids=collect_tool_call_ids(previous_history),
-        )
-        await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
-    except (RedisError, PydanticSerializationError) as err:
-        log.warning(
-            "Failed to store the AI tool call history",
+    """Store the tool exchanges a finished chatbot run performed, excluding replayed ones."""
+    if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
+        return
+    max_content_chars = int(
+        await get_value(
+            "ai_chatbot_tool_history_max_chars",
             chat_tid=chat_tid,
-            message_id=message_id,
-            error=str(err),
+            redis=redis,
         )
+    )
+    exchanges = extract_tool_exchanges(
+        message_history,
+        max_content_chars=max_content_chars,
+        skip_tool_call_ids=collect_tool_call_ids(previous_history),
+    )
+    await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)

@@ -383,23 +383,19 @@ msgstr "Schlägt Filter-Handler basierend auf einer natürlicher Sprachbeschreib
 msgid "Describe what the filter should catch"
 msgstr "Beschreiben Sie, was der Filter erkennen soll"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:227
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:226
 msgid "Could not generate suggestions"
 msgstr "Konnte keine Vorschläge generieren"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:230
-msgid "Could not generate suggestions. Please try again or use /addfilter directly."
-msgstr "Vorschläge konnten nicht generiert werden. Bitte versuchen Sie es erneut oder verwenden Sie /addfilter direkt."
-
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:233
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:231
 msgid "AI Filter Suggestions"
 msgstr "KI-Filter-Vorschläge"
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:242
 msgid "Use /addfilter <handler> to create the filter."
 msgstr "Verwenden Sie /addfilter <handler>, um den Filter zu erstellen."
 
-#: sophie_bot/modules/ai/handlers/ai_addfilter.py:245
+#: sophie_bot/modules/ai/handlers/ai_addfilter.py:243
 #, python-brace-format
 msgid "For example, {cmd}"
 msgstr "Zum Beispiel, {cmd}"
@@ -413,115 +409,111 @@ msgid "Ask Sophie a question"
 msgstr "Fragen Sie Sophie eine Frage"
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:42
-#: sophie_bot/modules/ai/handlers/research.py:103
+#: sophie_bot/modules/ai/handlers/research.py:94
 msgid "You have been automatically disconnected from the chat to use AI."
 msgstr "Sie wurden automatisch vom Chat getrennt, um KI zu verwenden."
 
-#: sophie_bot/modules/ai/handlers/aimode.py:25
+#: sophie_bot/modules/ai/handlers/aimode.py:24
 msgid "🚫 Disabled"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:26
+#: sophie_bot/modules/ai/handlers/aimode.py:25
 msgid "🎉 Entertainment"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:27
+#: sophie_bot/modules/ai/handlers/aimode.py:26
 msgid "🛡 Moderation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:28
+#: sophie_bot/modules/ai/handlers/aimode.py:27
 msgid "💬 Support"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:32
+#: sophie_bot/modules/ai/handlers/aimode.py:31
 msgid "Every AI feature is off."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:33
+#: sophie_bot/modules/ai/handlers/aimode.py:32
 msgid "Chats along, joins conversations on its own and remembers people. Reduced privacy."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:35
+#: sophie_bot/modules/ai/handlers/aimode.py:34
 msgid "Only moderates. No chatbot, and no message history is kept at all. Best in class privacy protection."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:37
+#: sophie_bot/modules/ai/handlers/aimode.py:36
 msgid "Answers questions using the chat notes, and moderates."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:43
+#: sophie_bot/modules/ai/handlers/aimode.py:42
 msgid "Mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:43
+#: sophie_bot/modules/ai/handlers/aimode.py:42
 msgid "What Sophie does"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:67
+#: sophie_bot/modules/ai/handlers/aimode.py:66
 msgid "AI Mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:84
+#: sophie_bot/modules/ai/handlers/aimode.py:80
 msgid "Select what the AI does in this chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimode.py:102
-#: sophie_bot/modules/ai/handlers/aimoderator.py:114
+#: sophie_bot/modules/ai/handlers/aimode.py:98
+#: sophie_bot/modules/ai/handlers/aimoderator.py:110
 #: sophie_bot/modules/federations/handlers/delete.py:87
 msgid "Invalid message type"
 msgstr "Ungültiger Nachrichtentyp"
 
-#: sophie_bot/modules/ai/handlers/aimode.py:106
-#: sophie_bot/modules/ai/handlers/aimoderator.py:118
+#: sophie_bot/modules/ai/handlers/aimode.py:102
+#: sophie_bot/modules/ai/handlers/aimoderator.py:114
 msgid "You are not allowed to change this setting"
 msgstr "Sie dürfen diese Einstellung nicht ändern"
 
-#: sophie_bot/modules/ai/handlers/aimode.py:110
+#: sophie_bot/modules/ai/handlers/aimode.py:106
 msgid "Unknown mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:35
+#: sophie_bot/modules/ai/handlers/aimoderator.py:34
 msgid "🚫 Off"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:36
+#: sophie_bot/modules/ai/handlers/aimoderator.py:35
 msgid "🟢 Low"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:37
+#: sophie_bot/modules/ai/handlers/aimoderator.py:36
 msgid "🟡 Medium"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:38
+#: sophie_bot/modules/ai/handlers/aimoderator.py:37
 msgid "🔴 High"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:46
+#: sophie_bot/modules/ai/handlers/aimoderator.py:45
 msgid "Category"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:46
+#: sophie_bot/modules/ai/handlers/aimoderator.py:45
 msgid "What it detects"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:60
+#: sophie_bot/modules/ai/handlers/aimoderator.py:59
 msgid "AI Moderator"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:61
+#: sophie_bot/modules/ai/handlers/aimoderator.py:60
 msgid "Sophie deletes messages that cross a category's detection level."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:63
+#: sophie_bot/modules/ai/handlers/aimoderator.py:62
 msgid "Press a category to walk it through Off, Low, Medium and High."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:96
+#: sophie_bot/modules/ai/handlers/aimoderator.py:92
 msgid "Tune what the AI moderator detects in this chat"
-msgstr ""
-
-#: sophie_bot/modules/ai/handlers/aimoderator.py:123
-msgid "Unknown category"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:34
@@ -554,147 +546,147 @@ msgstr ""
 msgid "Controls AI note title generation"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:76
+#: sophie_bot/modules/ai/handlers/op_catalog.py:75
 #, python-brace-format
 msgid "Kinds: {kinds}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:77
+#: sophie_bot/modules/ai/handlers/op_catalog.py:76
 msgid "Only the given options change; the rest keep their current values."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:78
+#: sophie_bot/modules/ai/handlers/op_catalog.py:77
 msgid "A key can only be set in a private chat, and that message is deleted right away."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:80
-#: sophie_bot/modules/ai/handlers/op_catalog.py:115
+#: sophie_bot/modules/ai/handlers/op_catalog.py:79
+#: sophie_bot/modules/ai/handlers/op_catalog.py:114
 #: sophie_bot/modules/ai/handlers/usage.py:51
 msgid "Usage"
 msgstr "Nutzung"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:92
+#: sophie_bot/modules/ai/handlers/op_catalog.py:91
 #, python-brace-format
 msgid "Roles: {modes} paired with {purposes}, e.g. {example}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:98
+#: sophie_bot/modules/ai/handlers/op_catalog.py:97
 #, python-brace-format
 msgid "Drop the mode for purposes that are not per-chat, e.g. {example}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:102
+#: sophie_bot/modules/ai/handlers/op_catalog.py:101
 msgid "Several models can share one role: they are tried best-first, ordered by ^priority (lower runs earlier), and the next one takes over when the current one fails or answers with nothing."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:107
+#: sophie_bot/modules/ai/handlers/op_catalog.py:106
 #, python-brace-format
 msgid "A model that cannot be shown an image is skipped for image messages: set {option}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:111
+#: sophie_bot/modules/ai/handlers/op_catalog.py:110
 #, python-brace-format
 msgid "The upstream name defaults to the model name; set {option} when they differ."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:134
-#: sophie_bot/modules/ai/handlers/op_catalog.py:227
+#: sophie_bot/modules/ai/handlers/op_catalog.py:133
+#: sophie_bot/modules/ai/handlers/op_catalog.py:226
 msgid " (disabled)"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:138
 msgid "AI Providers"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:140
+#: sophie_bot/modules/ai/handlers/op_catalog.py:139
 msgid "No providers are configured."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:140
+#: sophie_bot/modules/ai/handlers/op_catalog.py:139
 msgid "Providers"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:146
+#: sophie_bot/modules/ai/handlers/op_catalog.py:145
 msgid "Create or update an AI provider (private chat only)"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:165
+#: sophie_bot/modules/ai/handlers/op_catalog.py:164
 msgid "Provider name"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:178
+#: sophie_bot/modules/ai/handlers/op_catalog.py:177
 #, python-brace-format
 msgid "No provider named {name}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:181
+#: sophie_bot/modules/ai/handlers/op_catalog.py:180
 #, python-brace-format
 msgid "Provider {name} deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:199
+#: sophie_bot/modules/ai/handlers/op_catalog.py:198
 msgid "AI Provider saved"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:232
 msgid "AI Models"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:234
+#: sophie_bot/modules/ai/handlers/op_catalog.py:233
 msgid "No models are configured."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:234
+#: sophie_bot/modules/ai/handlers/op_catalog.py:233
 #: sophie_bot/modules/ai/handlers/op_prices.py:48
 msgid "Models"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:236
+#: sophie_bot/modules/ai/handlers/op_catalog.py:235
 #, python-brace-format
 msgid "Loaded: {models}, {providers}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:238
+#: sophie_bot/modules/ai/handlers/op_catalog.py:237
 #, python-brace-format
 msgid "{count} model"
 msgid_plural "{count} models"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:242
+#: sophie_bot/modules/ai/handlers/op_catalog.py:241
 #, python-brace-format
 msgid "{count} provider"
 msgid_plural "{count} providers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:251
+#: sophie_bot/modules/ai/handlers/op_catalog.py:250
 msgid "Create or update an AI model"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:273
+#: sophie_bot/modules/ai/handlers/op_catalog.py:272
 msgid "Model name"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:283
+#: sophie_bot/modules/ai/handlers/op_catalog.py:282
 #, python-brace-format
 msgid "No model named {name}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:286
+#: sophie_bot/modules/ai/handlers/op_catalog.py:285
 #, python-brace-format
 msgid "Model {name} deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:293
+#: sophie_bot/modules/ai/handlers/op_catalog.py:292
 msgid "^priority only applies together with ^role."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:298
+#: sophie_bot/modules/ai/handlers/op_catalog.py:297
 msgid "A new model needs ^provider=<name>."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:333
+#: sophie_bot/modules/ai/handlers/op_catalog.py:332
 msgid "AI Model saved"
 msgstr ""
 
@@ -850,17 +842,21 @@ msgstr ""
 msgid "The AI mode has been exited."
 msgstr "Der KI-Modus wurde beendet."
 
-#: sophie_bot/modules/ai/handlers/research.py:49
+#: sophie_bot/modules/ai/handlers/research.py:45
 msgid "Starting the research..."
 msgstr "Starte die Recherche..."
 
-#: sophie_bot/modules/ai/handlers/research.py:82
+#: sophie_bot/modules/ai/handlers/research.py:73
 msgid "Research topic"
 msgstr "Recherche-Thema"
 
-#: sophie_bot/modules/ai/handlers/research.py:84
+#: sophie_bot/modules/ai/handlers/research.py:75
 msgid "Research a topic using multistage web search and return a summary with sources"
 msgstr "Ein Thema mithilfe mehrstufiger Websuche recherchieren und eine Zusammenfassung mit Quellen zurückgeben"
+
+#: sophie_bot/modules/ai/handlers/research.py:112
+msgid "Could not complete research"
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/reset_context.py:20
 msgid "Reset the chat's AI context and AI memory"
@@ -870,33 +866,33 @@ msgstr "Setze den AI-Kontext des Chats und das AI-Gedächtnis zurück"
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 AI-Kontext und AI-Gedächtnis wurden erfolgreich zurückgesetzt. AI wird jetzt im sauberen Zustand betrieben."
 
-#: sophie_bot/modules/ai/handlers/translate.py:115
+#: sophie_bot/modules/ai/handlers/translate.py:99
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "Von {from_lang} nach {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:125
+#: sophie_bot/modules/ai/handlers/translate.py:109
 msgid "Translation Notes"
 msgstr "Übersetzungsnotizen"
 
-#: sophie_bot/modules/ai/handlers/translate.py:136
+#: sophie_bot/modules/ai/handlers/translate.py:120
 msgid "Text to translate"
 msgstr "Text zur Übersetzung"
 
-#: sophie_bot/modules/ai/handlers/translate.py:143
+#: sophie_bot/modules/ai/handlers/translate.py:127
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Übersetzt den gegebenen (oder beantworteten) Text in die ausgewählte Sprache des Chats. Transkribiert auch die beantwortete Sprachnachricht in Text"
 
-#: sophie_bot/modules/ai/handlers/translate.py:181
+#: sophie_bot/modules/ai/handlers/translate.py:165
 msgid "Please provide text to translate."
 msgstr "Bitte geben Sie den zu übersetzenden Text an."
 
-#: sophie_bot/modules/ai/handlers/translate.py:202
+#: sophie_bot/modules/ai/handlers/translate.py:186
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Falls zutreffend, übersetzen Sie das Foto in {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:219
+#: sophie_bot/modules/ai/handlers/translate.py:203
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -905,7 +901,7 @@ msgstr ""
 "Übersetzen Sie den folgenden Text ins {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:260
+#: sophie_bot/modules/ai/handlers/translate.py:242
 msgid "Error generating translation"
 msgstr "Fehler beim Generieren der Übersetzung"
 
@@ -987,19 +983,19 @@ msgstr "Senden Sie eine KI-Antwort mit dem Prompt"
 msgid "{ai_emoji} AI Response"
 msgstr "{ai_emoji} KI-Antwort"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:62
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
 msgid "✋ AI Moderator"
 msgstr "✋ KI-Moderator"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:63
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr "Diese Nachricht verstößt gegen die Richtlinien des KI-Moderators und wurde daher gelöscht."
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:64
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
 msgid "Message author"
 msgstr "Autoren der Nachricht"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:70
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:59
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:43
@@ -1018,12 +1014,8 @@ msgid_plural "Reasons"
 msgstr[0] "Grund"
 msgstr[1] "Gründe"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:74
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:63
 msgid "This message will be deleted shortly."
-msgstr ""
-
-#: sophie_bot/modules/ai/middlewares/ai_timeout.py:37
-msgid "The AI request took too long and was cancelled. Please try again."
 msgstr ""
 
 #: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:131
@@ -1044,22 +1036,22 @@ msgstr "Sie fassen Telegram-Gruppendiskussionen in strukturierten Themenzeilen z
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Durch die Verwendung der KI-Funktionen stimmen Sie unserer Datenschutzrichtlinie (/privacy) und den verwendeten KI-Diensten Dritter zu."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:419
-#: sophie_bot/modules/ai/utils/ai_tool.py:124
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:399
+#: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:454
-#: sophie_bot/modules/ai/utils/research.py:602
+#: sophie_bot/modules/ai/utils/research.py:593
 msgid "Research"
 msgstr "Recherche"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:65
+#: sophie_bot/modules/ai/utils/ai_errors.py:64
 msgid "🤖 AI request failed"
 msgstr "🤖 KI-Anfrage fehlgeschlagen"
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:66
+#: sophie_bot/modules/ai/utils/ai_errors.py:65
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "Der KI-Anbieter hat die Anfrage nicht abgeschlossen. Bitte versuche es in einem Moment erneut."
 
-#: sophie_bot/modules/ai/utils/ai_errors.py:330
+#: sophie_bot/modules/ai/utils/ai_errors.py:301
 #: sophie_bot/modules/error/utils/error_message.py:50
 msgid "Reference ID"
 msgstr "Referenz-ID"
@@ -1069,7 +1061,7 @@ msgid "Thinking..."
 msgstr "Ich denke nach..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:44
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:139
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:137
 msgid "Working on it..."
 msgstr "Ich arbeite daran..."
 
@@ -1171,159 +1163,159 @@ msgstr "Führen Sie {cmd} aus, um die Nutzungsdetails zu überprüfen."
 msgid "AI features are disabled till {date}."
 msgstr "KI-Funktionen sind bis zum {date} deaktiviert."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:35
+#: sophie_bot/modules/ai/utils/ai_tool.py:24
 msgid "Search"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:39
+#: sophie_bot/modules/ai/utils/ai_tool.py:28
 msgid "Searching the web..."
 msgstr "Im Web suchen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:40
+#: sophie_bot/modules/ai/utils/ai_tool.py:29
 #: sophie_bot/modules/ai/utils/research.py:83
 msgid "Looking it up online..."
 msgstr "Suche es online..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:41
+#: sophie_bot/modules/ai/utils/ai_tool.py:30
 msgid "Browsing the internet..."
 msgstr "Im Internet recherchieren..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:42
+#: sophie_bot/modules/ai/utils/ai_tool.py:31
 msgid "Checking sources online..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:52
-#: sophie_bot/modules/ai/utils/ai_tool.py:64
+#: sophie_bot/modules/ai/utils/ai_tool.py:41
+#: sophie_bot/modules/ai/utils/ai_tool.py:53
 #: sophie_bot/modules/notes/__init__.py:99
 msgid "Notes"
 msgstr "Notizen"
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:56
+#: sophie_bot/modules/ai/utils/ai_tool.py:45
 msgid "Scanning notes..."
 msgstr "Notizen scannen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:57
+#: sophie_bot/modules/ai/utils/ai_tool.py:46
 msgid "Looking through notes..."
 msgstr "Durchsuche Notizen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:58
+#: sophie_bot/modules/ai/utils/ai_tool.py:47
 msgid "Checking saved notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:59
+#: sophie_bot/modules/ai/utils/ai_tool.py:48
 msgid "Gathering chat notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:68
+#: sophie_bot/modules/ai/utils/ai_tool.py:57
 msgid "Reading note..."
 msgstr "Notiz wird gelesen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:69
+#: sophie_bot/modules/ai/utils/ai_tool.py:58
 msgid "Fetching note content..."
 msgstr "Notizinhalt wird abgerufen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:70
+#: sophie_bot/modules/ai/utils/ai_tool.py:59
 msgid "Opening the note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:71
+#: sophie_bot/modules/ai/utils/ai_tool.py:60
 msgid "Checking the note contents..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:76
+#: sophie_bot/modules/ai/utils/ai_tool.py:65
 msgid "Save notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:80
+#: sophie_bot/modules/ai/utils/ai_tool.py:69
 msgid "Saving note..."
 msgstr "Notiz wird gespeichert..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:81
+#: sophie_bot/modules/ai/utils/ai_tool.py:70
 msgid "Writing to notes..."
 msgstr "Schreibe in Notizen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:82
+#: sophie_bot/modules/ai/utils/ai_tool.py:71
 msgid "Storing the note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:83
+#: sophie_bot/modules/ai/utils/ai_tool.py:72
 msgid "Updating saved notes..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:88
+#: sophie_bot/modules/ai/utils/ai_tool.py:77
 msgid "Delete notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:92
+#: sophie_bot/modules/ai/utils/ai_tool.py:81
 msgid "Deleting note..."
 msgstr "Notiz wird gelöscht..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:93
+#: sophie_bot/modules/ai/utils/ai_tool.py:82
 msgid "Removing note..."
 msgstr "Notiz wird entfernt..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:94
+#: sophie_bot/modules/ai/utils/ai_tool.py:83
 msgid "Removing the saved note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:95
+#: sophie_bot/modules/ai/utils/ai_tool.py:84
 msgid "Clearing the note..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:100
-#: sophie_bot/modules/ai/utils/ai_tool.py:112
+#: sophie_bot/modules/ai/utils/ai_tool.py:89
+#: sophie_bot/modules/ai/utils/ai_tool.py:101
 msgid "Memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:104
+#: sophie_bot/modules/ai/utils/ai_tool.py:93
 msgid "Updating memory..."
 msgstr "Speicher aktualisieren..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:105
+#: sophie_bot/modules/ai/utils/ai_tool.py:94
 msgid "Saving to memory..."
 msgstr "In den Speicher speichern..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:106
+#: sophie_bot/modules/ai/utils/ai_tool.py:95
 msgid "Recording that for later..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:107
+#: sophie_bot/modules/ai/utils/ai_tool.py:96
 msgid "Refreshing memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:116
+#: sophie_bot/modules/ai/utils/ai_tool.py:105
 msgid "Removing from memory..."
 msgstr "Aus dem Speicher entfernen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:117
+#: sophie_bot/modules/ai/utils/ai_tool.py:106
 msgid "Forgetting..."
 msgstr "Vergessen..."
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:118
+#: sophie_bot/modules/ai/utils/ai_tool.py:107
 msgid "Clearing that memory..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:119
+#: sophie_bot/modules/ai/utils/ai_tool.py:108
 msgid "Updating what I remember..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:128
+#: sophie_bot/modules/ai/utils/ai_tool.py:117
 msgid "Researching the topic..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:129
+#: sophie_bot/modules/ai/utils/ai_tool.py:118
 msgid "Comparing sources..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:130
+#: sophie_bot/modules/ai/utils/ai_tool.py:119
 msgid "Digging into the details..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:131
+#: sophie_bot/modules/ai/utils/ai_tool.py:120
 msgid "Following leads..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:136
+#: sophie_bot/modules/ai/utils/ai_tool.py:125
 #: sophie_bot/modules/help/__init__.py:44
 #: sophie_bot/modules/help/handlers/help_group.py:27
 #: sophie_bot/modules/help/handlers/pm_modules.py:89
@@ -1332,39 +1324,39 @@ msgstr ""
 msgid "Help"
 msgstr "Hilfe"
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:140
+#: sophie_bot/modules/ai/utils/ai_tool.py:129
 msgid "Checking the documentation..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:141
+#: sophie_bot/modules/ai/utils/ai_tool.py:130
 msgid "Looking up how Sophie works..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:142
+#: sophie_bot/modules/ai/utils/ai_tool.py:131
 msgid "Reading Sophie help..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:143
+#: sophie_bot/modules/ai/utils/ai_tool.py:132
 msgid "Finding the right guide..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:148
+#: sophie_bot/modules/ai/utils/ai_tool.py:137
 msgid "Source Inspection"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:151
+#: sophie_bot/modules/ai/utils/ai_tool.py:140
 msgid "Digging through my own sources..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:152
+#: sophie_bot/modules/ai/utils/ai_tool.py:141
 msgid "Reading my own code..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:153
+#: sophie_bot/modules/ai/utils/ai_tool.py:142
 msgid "Inspecting my source code..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_tool.py:154
+#: sophie_bot/modules/ai/utils/ai_tool.py:143
 msgid "Tracing how Sophie works..."
 msgstr ""
 
@@ -1450,11 +1442,7 @@ msgstr "Zugehörige Chat-Notizen. Verwende get_note_content mit dem Notennamen, 
 msgid "You have the following information in your memory"
 msgstr "Du hast die folgenden Informationen in deinem Speicher"
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:299
-msgid "⚠️ Cut short — the reply hit its step limit."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:149
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:148
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(Erneuter Versuch {attempt}/{total_attempts}...)"
@@ -1630,36 +1618,32 @@ msgstr "Recherche erfordert einen gespeicherten Chat-Kontext."
 msgid "I could not find enough search results to research this topic."
 msgstr "Ich konnte nicht genügend Suchergebnisse finden, um dieses Thema zu recherchieren."
 
-#: sophie_bot/modules/ai/utils/research.py:570
+#: sophie_bot/modules/ai/utils/research.py:561
 msgid "No snippet available."
 msgstr "Kein Ausschnitt verfügbar."
 
-#: sophie_bot/modules/ai/utils/research.py:592
+#: sophie_bot/modules/ai/utils/research.py:583
 msgid "Sources"
 msgstr "Quellen"
 
-#: sophie_bot/modules/ai/utils/research.py:606
+#: sophie_bot/modules/ai/utils/research.py:597
 msgid "No sources."
 msgstr "Keine Quellen."
 
-#: sophie_bot/modules/ai/utils/research.py:613
+#: sophie_bot/modules/ai/utils/research.py:604
 msgid "Original request"
 msgstr "Ursprüngliche Anfrage"
 
-#: sophie_bot/modules/ai/utils/research.py:614
+#: sophie_bot/modules/ai/utils/research.py:605
 msgid "Research model"
 msgstr "Recherche-Modell"
 
-#: sophie_bot/modules/ai/utils/sophie_inspect.py:152
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:140
 msgid "Source inspection is not available."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/sophie_inspect.py:159
+#: sophie_bot/modules/ai/utils/sophie_inspect.py:147
 msgid "The daily limit for source inspection in this chat has been reached."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/sophie_inspect.py:211
-msgid "I could not find the answer in my own sources within the allowed budget."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/summary_transcript.py:53
@@ -1670,7 +1654,7 @@ msgstr ""
 msgid "Every transcript line starts with its message ID as [id=<id>], followed by the timestamp and the author. Reference source messages by those IDs."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/transform_video.py:96
+#: sophie_bot/modules/ai/utils/transform_video.py:78
 msgid "Failed to download video file"
 msgstr "Video-Datei konnte nicht heruntergeladen werden"
 
@@ -8543,5 +8527,20 @@ msgstr "Benutzererwähnung konnte nicht gefunden werden"
 #~ msgstr ""
 
 #~ msgid "Tool"
+#~ msgstr ""
+
+#~ msgid "Could not generate suggestions. Please try again or use /addfilter directly."
+#~ msgstr "Vorschläge konnten nicht generiert werden. Bitte versuchen Sie es erneut oder verwenden Sie /addfilter direkt."
+
+#~ msgid "Unknown category"
+#~ msgstr ""
+
+#~ msgid "The AI request took too long and was cancelled. Please try again."
+#~ msgstr ""
+
+#~ msgid "⚠️ Cut short — the reply hit its step limit."
+#~ msgstr ""
+
+#~ msgid "I could not find the answer in my own sources within the allowed budget."
 #~ msgstr ""
 

@@ -25,7 +25,6 @@ from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.utils.logger import log
 
 # openai and pydantic-ai speak httpx2; mistralai and the Tavily search tool still speak legacy
 # httpx. The two libraries' exception trees are unrelated -- httpx2.HTTPError is not a subclass of
@@ -126,13 +125,8 @@ def _get_error_message(error: BaseException) -> str:
         if message:
             return message
 
-    if isinstance(error, _HTTP_STATUS_ERRORS):
-        try:
-            message = _get_response_error_message(error.response.json())
-        except ValueError:
-            message = error.response.text
-        if message:
-            return message
+    if isinstance(error, _HTTP_STATUS_ERRORS) and error.response.text:
+        return error.response.text
 
     body = getattr(error, "body", None)
     message = _get_response_error_message(body)
@@ -196,42 +190,34 @@ def capture_ai_error(
     """Report an AI provider failure to Sentry with the model and operation attached."""
     message_str = str(user_facing_message or _DEFAULT_AI_FAILED_MESSAGE) if level == "error" else None
     details = _error_details(error, context, user_facing_message=message_str)
-    try:
-        with sentry_sdk.new_scope() as scope:
-            scope.update_from_kwargs(
-                level=level,
-                fingerprint=[
-                    "ai-provider-error",
-                    context.operation,
-                    context.model_name or "unknown",
-                    details["error_type"],
-                    str(details["status_code"]),
-                ],
-            )
-            scope.set_context("ai_request", details)
-            scope.set_tag("ai.operation", context.operation)
-            scope.set_tag("ai.error_type", details["error_type"])
-            scope.set_tag("ai.is_fallback", context.primary_model_name is not None)
-            if context.model_name:
-                scope.set_tag("ai.model", context.model_name)
-            if details["status_code"] is not None:
-                scope.set_tag("ai.status_code", str(details["status_code"]))
-            if message_str is not None:
-                scope.set_tag("ai.user_facing_error", message_str)
-            event_id = sentry_sdk.capture_exception(error)
-            if event_id is not None:
-                # The SDK returns the ID before its background transport has handed the envelope off.
-                # Flush before exposing the ID to the user so a short-lived worker/restart cannot leave
-                # them with a reference that Sentry never received.
-                sentry_sdk.flush(timeout=2.0)
-            return event_id
-    except Exception as err:  # noqa: BLE001  # fallback to direct capture if scope customization fails
-        log.warning("Custom scope capture failed, falling back to direct capture", error=str(err))
-        try:
-            return sentry_sdk.capture_exception(error)
-        except Exception as direct_err:  # noqa: BLE001  # best effort fallback
-            log.warning("Direct capture also failed", error=str(direct_err))
-            return None
+    with sentry_sdk.new_scope() as scope:
+        scope.update_from_kwargs(
+            level=level,
+            fingerprint=[
+                "ai-provider-error",
+                context.operation,
+                context.model_name or "unknown",
+                details["error_type"],
+                str(details["status_code"]),
+            ],
+        )
+        scope.set_context("ai_request", details)
+        scope.set_tag("ai.operation", context.operation)
+        scope.set_tag("ai.error_type", details["error_type"])
+        scope.set_tag("ai.is_fallback", context.primary_model_name is not None)
+        if context.model_name:
+            scope.set_tag("ai.model", context.model_name)
+        if details["status_code"] is not None:
+            scope.set_tag("ai.status_code", str(details["status_code"]))
+        if message_str is not None:
+            scope.set_tag("ai.user_facing_error", message_str)
+        event_id = sentry_sdk.capture_exception(error)
+        if event_id is not None:
+            # The SDK returns the ID before its background transport has handed the envelope off.
+            # Flush before exposing the ID to the user so a short-lived worker/restart cannot leave
+            # them with a reference that Sentry never received.
+            sentry_sdk.flush(timeout=2.0)
+        return event_id
 
 
 def add_ai_retry_breadcrumb(error: BaseException, context: AIErrorContext, attempt: int) -> None:
@@ -272,17 +258,12 @@ async def run_ai_request_with_retries[RetryableAIOutputT](
 
 
 def ensure_sentry_event_id(error: AIRequestFailed) -> str | None:
-    """Ensure the failure has a Sentry event ID, falling back to direct capture if missing."""
-    if error.sentry_event_id is not None:
-        return error.sentry_event_id
-    if sentry_sdk.is_initialized():
+    """Ensure the failure has a Sentry event ID if it was not captured initially."""
+    if error.sentry_event_id is None and sentry_sdk.is_initialized():
         cause = error.__cause__ or error
-        try:
-            error.sentry_event_id = sentry_sdk.capture_exception(cause)
-            if error.sentry_event_id is not None:
-                sentry_sdk.flush(timeout=2.0)
-        except Exception as err:  # noqa: BLE001  # best effort fallback
-            log.warning("Failed to capture Sentry event for AI failure cause", error=str(err))
+        error.sentry_event_id = sentry_sdk.capture_exception(cause)
+        if error.sentry_event_id is not None:
+            sentry_sdk.flush(timeout=2.0)
     return error.sentry_event_id
 
 
@@ -291,17 +272,7 @@ def ai_request_failed_from_error(
     context: AIErrorContext,
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> AIRequestFailed:
-    if isinstance(error, AIRequestFailed):
-        if error.sentry_event_id is None:
-            ensure_sentry_event_id(error)
-        return error
     sentry_event_id = capture_ai_error(error, context, user_facing_message=user_facing_message)
-    if sentry_event_id is None and sentry_sdk.is_initialized():
-        try:
-            sentry_event_id = sentry_sdk.capture_exception(error)
-        except Exception as err:  # noqa: BLE001  # best effort fallback
-            log.warning("Fallback capture for AI request error failed", error=str(err))
-            sentry_event_id = None
     docs = (user_facing_message,) if user_facing_message is not None else ()
     return AIRequestFailed(sentry_event_id, *docs)
 

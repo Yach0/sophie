@@ -4,8 +4,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from beanie import Document
-from beanie.exceptions import CollectionWasNotInitialized
-from pydantic import ValidationError
 from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_catalog import (
@@ -160,32 +158,9 @@ async def bump_version(*, redis: Redis) -> None:
 async def load_documents[DocumentT: Document](
     document_type: type[DocumentT], query: dict | None = None
 ) -> list[DocumentT]:
-    """Parse rows one by one, dropping any the current code cannot read.
-
-    The catalog is edited at runtime and outlives the code that wrote it, so a row left behind by
-    an older version — a purpose that has since been renamed, a provider kind that no longer
-    exists — must cost that one row, not the bot's ability to start or the panel's ability to list.
-    """
-    parsed: list[DocumentT] = []
-    try:
-        collection = document_type.get_pymongo_collection()
-    except CollectionWasNotInitialized:
-        # Tools that load the modules without a database, such as the wiki generator, get an empty
-        # catalog rather than a crash.
-        log.warning("AI catalog is unavailable: the database is not initialised")
-        return parsed
-
-    async for raw_document in collection.find(query or {}):
-        try:
-            parsed.append(document_type.model_validate(raw_document))
-        except ValidationError as error:
-            log.warning(
-                "AI catalog row skipped: it does not match the current schema",
-                collection=document_type.get_collection_name(),
-                name=raw_document.get("name"),
-                error=str(error),
-            )
-    return parsed
+    """Load catalog rows, requiring each row to match the current schema."""
+    collection = document_type.get_pymongo_collection()
+    return [document_type.model_validate(raw_document) async for raw_document in collection.find(query or {})]
 
 
 async def load_catalog(*, redis: Redis) -> AICatalog:
@@ -206,12 +181,10 @@ async def load_catalog(*, redis: Redis) -> AICatalog:
     for stored_model in await load_documents(AICatalogModelModel, {"enabled": True}):
         provider = providers.get(stored_model.provider)
         if provider is None:
-            log.warning(
-                "AI catalog model skipped: its provider is missing or disabled",
-                model=stored_model.name,
-                provider=stored_model.provider,
+            raise ValueError(
+                f"AI catalog model {stored_model.name!r} refers to missing or disabled provider "
+                f"{stored_model.provider!r}"
             )
-            continue
 
         models[stored_model.name] = CatalogModel(
             name=stored_model.name,

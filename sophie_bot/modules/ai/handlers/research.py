@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from contextlib import suppress
 from typing import Any, cast
 
 from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from ass_tg.types import TextArg
 from stfu_tg import Doc
@@ -15,6 +13,7 @@ from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_progress_custom_emoji_id
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
@@ -26,14 +25,11 @@ from sophie_bot.modules.ai.utils.research import (
     run_research_workflow,
 )
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.utils.logger import log
 
 
 class ResearchProgressMessage:
@@ -54,28 +50,23 @@ class ResearchProgressMessage:
     async def update(self, stage: ResearchProgressStage) -> None:
         text = random_research_progress_text(stage)
         suffix = research_progress_suffix(stage)
-        with suppress(TelegramAPIError):
-            await self.bot.edit_message_text(
-                text=Doc(ai_progress_line(text, self.emoji_id, suffix)).to_html(),
-                chat_id=self.message.chat.id,
-                message_id=self.message.message_id,
-                disable_web_page_preview=True,
-            )
+        await self.bot.edit_message_text(
+            text=Doc(ai_progress_line(text, self.emoji_id, suffix)).to_html(),
+            chat_id=self.message.chat.id,
+            message_id=self.message.message_id,
+            disable_web_page_preview=True,
+        )
 
-    async def send_final(self, source_message: Message, doc: Doc) -> Message:
-        try:
-            edited_message = await self.bot.edit_message_text(
+    async def send_final(self, doc: Doc) -> Message:
+        return cast(
+            Message,
+            await self.bot.edit_message_text(
                 text=doc.to_html(),
                 chat_id=self.message.chat.id,
                 message_id=self.message.message_id,
                 disable_web_page_preview=True,
-            )
-            if isinstance(edited_message, Message):
-                return edited_message
-            return self.message
-        except TelegramAPIError:
-            sent = await common_try(source_message.reply(doc.to_html(), disable_web_page_preview=True))
-            return sent if isinstance(sent, Message) else self.message
+            ),
+        )
 
 
 @flags.args(
@@ -117,9 +108,8 @@ class ResearchCmd(SophieMessageHandler):
                 progress_callback=progress_message.update,
                 services=self.services,
             )
-        except SophieException as exc:
-            log.warning("research: SophieException during workflow", error=str(exc))
-            await self.event.reply(str(exc))
+        except AIRequestFailed as exc:
+            await self.event.reply(**ai_request_failed_message(error=exc, title=_("Could not complete research")))
             return None
         header_style = await get_ai_header_style(
             "chatbot",
@@ -133,7 +123,6 @@ class ResearchCmd(SophieMessageHandler):
         )
         current_locale = self.data["i18n"].current_locale
         return await progress_message.send_final(
-            self.event,
             build_research_doc(
                 result.response,
                 header=header,

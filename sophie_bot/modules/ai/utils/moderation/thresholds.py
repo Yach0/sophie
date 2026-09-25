@@ -12,27 +12,23 @@ _MIN_THRESHOLD: Final[float] = 0.01
 _MAX_THRESHOLD: Final[float] = 1.0
 
 # DetectionLevel.OFF has no multiplier: the category is skipped entirely rather than scaled to zero.
-_LEVEL_MULTIPLIER_FLAGS: Final[dict[DetectionLevel, tuple[FeatureType, float]]] = {
-    DetectionLevel.LOW: ("ai_moderation_level_low_multiplier", 0.7),
-    DetectionLevel.NORMAL: ("ai_moderation_level_normal_multiplier", 1.0),
-    DetectionLevel.HIGH: ("ai_moderation_level_high_multiplier", 1.3),
+_LEVEL_MULTIPLIER_FLAGS: Final[dict[DetectionLevel, FeatureType]] = {
+    DetectionLevel.LOW: "ai_moderation_level_low_multiplier",
+    DetectionLevel.NORMAL: "ai_moderation_level_normal_multiplier",
+    DetectionLevel.HIGH: "ai_moderation_level_high_multiplier",
 }
 
 
 async def _feature_float(
     feature: FeatureType,
     chat_tid: int | None,
-    default: float,
     *,
     redis: Redis,
 ) -> float:
     value = await get_value(feature, chat_tid=chat_tid, redis=redis)
     if isinstance(value, bool):
-        return default
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
+        raise TypeError("Moderation threshold must be numeric, not boolean")
+    return float(value)
 
 
 async def resolve_thresholds(
@@ -48,7 +44,6 @@ async def resolve_thresholds(
                 await _feature_float(
                     native.flag,
                     chat_tid,
-                    native.default_threshold,
                     redis=redis,
                 ),
                 _MIN_THRESHOLD,
@@ -65,10 +60,9 @@ async def resolve_level_multipliers(chat_tid: int | None, *, redis: Redis) -> di
         level: await _feature_float(
             flag,
             chat_tid,
-            default,
             redis=redis,
         )
-        for level, (flag, default) in _LEVEL_MULTIPLIER_FLAGS.items()
+        for level, flag in _LEVEL_MULTIPLIER_FLAGS.items()
     }
 
 

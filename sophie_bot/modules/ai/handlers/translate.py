@@ -2,7 +2,6 @@ from typing import Any
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InputRichMessage, Message
 from ass_tg.types import TextArg
 from stfu_tg import (
@@ -51,21 +50,6 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
-
-
-async def _edit_or_reply(source_message: Message, progress_message: Message | None, **kwargs: Any) -> None:
-    """Edit the in-progress message in place, falling back to a fresh reply."""
-    if progress_message and source_message.bot:
-        try:
-            await source_message.bot.edit_message_text(
-                chat_id=progress_message.chat.id,
-                message_id=progress_message.message_id,
-                **kwargs,
-            )
-            return
-        except TelegramAPIError:
-            pass
-    await source_message.reply(**kwargs)
 
 
 async def _resolve_translation_input(
@@ -255,10 +239,15 @@ class AiTranslate(SophieMessageHandler):
             )
             translated = result.output
         except AIRequestFailed as err:
-            if self.data.get("silent_error"):
-                return
             error_message = ai_request_failed_message(error=err, title=_("Error generating translation"))
-            await _edit_or_reply(self.event, progress_message, **error_message)
+            if progress_message and self.event.bot:
+                await self.event.bot.edit_message_text(
+                    chat_id=progress_message.chat.id,
+                    message_id=progress_message.message_id,
+                    **error_message,
+                )
+            else:
+                await self.event.reply(**error_message)
             return
 
         # Prevent extra translating
@@ -293,13 +282,10 @@ class AiTranslate(SophieMessageHandler):
         )
 
         if progress_message and self.event.bot:
-            try:
-                await self.event.bot.edit_message_text(
-                    chat_id=progress_message.chat.id,
-                    message_id=progress_message.message_id,
-                    rich_message=InputRichMessage(html=doc.to_rich()),
-                )
-                return
-            except TelegramAPIError:
-                pass
+            await self.event.bot.edit_message_text(
+                chat_id=progress_message.chat.id,
+                message_id=progress_message.message_id,
+                rich_message=InputRichMessage(html=doc.to_rich()),
+            )
+            return
         await send_ai_rich_message(self.event, doc)

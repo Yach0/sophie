@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from httpx2 import HTTPError
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
@@ -366,11 +365,8 @@ def _parse_models(items: list[dict]) -> list[OpenRouterModelInfo]:
 
 
 async def _fetch_models(url: str, headers: dict[str, str]) -> list[OpenRouterModelInfo]:
-    try:
-        response = await ai_http_client.get(url, headers=headers)
-        response.raise_for_status()
-    except HTTPError as err:
-        raise HTTPException(status_code=502, detail=f"Could not reach {url}: {err}") from err
+    response = await ai_http_client.get(url, headers=headers)
+    response.raise_for_status()
     return _parse_models(response.json().get("data", []))
 
 

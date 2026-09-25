@@ -400,44 +400,25 @@ async def test_run_ai_stream_routes_thinking_away_from_the_answer(no_stream_debo
     assert all("wants antiflood" not in text for text in streamed_text)
 
 
-async def test_run_ai_stream_returns_partial_text_when_usage_limit_is_hit(no_stream_debounce: None) -> None:
+async def test_run_ai_stream_propagates_usage_limit_after_partial_stream(no_stream_debounce: None) -> None:
     agent = FakeEventAgent(
         events=text_round("Partial answer"),
         final_output="",
         raises=UsageLimitExceeded("request limit exceeded"),
     )
+    streamed_text: list[str] = []
 
-    async def on_text_stream(_text: str) -> None:
-        return None
+    async def on_text_stream(text: str) -> None:
+        streamed_text.append(text)
 
-    result = await run_ai_stream(
-        cast(Agent[Any, str], agent),
-        user_prompt="How does antiflood work?",
-        on_text_stream=on_text_stream,
-        stream_options=ChatbotStreamOptions(partial_on_limit=True),
-    )
-
-    assert result.truncated is True
-    assert result.output == "Partial answer"
-
-
-async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_stream_debounce: None) -> None:
-    agent = FakeEventAgent(
-        events=text_round("Partial answer"),
-        final_output="",
-        raises=UsageLimitExceeded("request limit exceeded"),
-    )
-
-    async def on_text_stream(_text: str) -> None:
-        return None
-
-    with pytest.raises(AIRequestFailed):
+    with pytest.raises(UsageLimitExceeded):
         await run_ai_stream(
             cast(Agent[Any, str], agent),
             user_prompt="How does antiflood work?",
             on_text_stream=on_text_stream,
-            stream_options=ChatbotStreamOptions(partial_on_limit=False),
         )
+
+    assert streamed_text == ["Partial answer"]
 
 
 async def test_run_ai_stream_sends_output_limit_to_provider_as_generation_ceiling() -> None:
@@ -588,10 +569,8 @@ async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
         attempted.append(active)
         raise UsageLimitExceeded("request limit exceeded")
 
-    with pytest.raises(AIRequestFailed) as raised:
+    with pytest.raises(UsageLimitExceeded):
         await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
-
-    assert isinstance(raised.value.__cause__, UsageLimitExceeded)
     assert len(attempted) == 1
 
 
@@ -604,12 +583,12 @@ async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None,
         attempted.append(active)
         raise ModelHTTPError(status_code=status_code, model_name="primary", body="invalid api key")
 
-    with pytest.raises(AIRequestFailed) as raised:
+    with pytest.raises(ModelHTTPError) as raised:
         await ai_run._run_with_model_candidates(
             operation, chain(candidate("primary"), candidate("backup"), candidate("third"))
         )
 
-    assert isinstance(raised.value.__cause__, ModelHTTPError)
+    assert raised.value.status_code == status_code
     assert len(attempted) == 1
 
 
@@ -689,10 +668,10 @@ async def test_with_failover_off_only_a_retryable_error_moves_a_request(immediat
         attempted.append(active)
         raise ModelHTTPError(status_code=400, model_name="primary", body="malformed request")
 
-    with pytest.raises(AIRequestFailed) as raised:
+    with pytest.raises(ModelHTTPError) as raised:
         await ai_run._run_with_model_candidates(operation, chain(primary, backup, failover=False))
 
-    assert isinstance(raised.value.__cause__, ModelHTTPError)
+    assert raised.value.status_code == 400
     assert attempted == [primary]
 
 

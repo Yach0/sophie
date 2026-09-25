@@ -22,7 +22,6 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_catalog import bump_version, get_catalog, mask_api_key
-from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -167,7 +166,7 @@ class OpAIProvider(SophieMessageHandler):
 
     async def handle(self) -> Any:
         # The message carries an API key; drop it from history as soon as it is parsed.
-        await common_try(self.event.delete())
+        await self.event.delete()
 
         name: str = self.data["name"]
         options = self.data.get("options")

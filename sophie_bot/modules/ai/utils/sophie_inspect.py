@@ -4,13 +4,11 @@ from datetime import UTC, datetime, timedelta
 
 from beanie import PydanticObjectId
 from pydantic_ai import Agent, UsageLimits
-from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.models import Model
 from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_model_factory import build_purpose_plan
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -33,13 +31,7 @@ _SYSTEM_PROMPT = (
 
 
 def _parse_chat_ids(raw_value: str) -> frozenset[int]:
-    identifiers = set()
-    for entry in raw_value.replace(",", " ").split():
-        try:
-            identifiers.add(int(entry))
-        except ValueError:
-            log.warning("sophie_inspect: ignoring an unparsable chat id", entry=entry)
-    return frozenset(identifiers)
+    return frozenset(int(entry) for entry in raw_value.replace(",", " ").split())
 
 
 async def is_sophie_inspect_chat(chat_tid: int | None, *, redis: Redis) -> bool:
@@ -56,8 +48,7 @@ async def is_sophie_inspect_chat(chat_tid: int | None, *, redis: Redis) -> bool:
         redis=redis,
     )
     if not isinstance(raw_value, str):
-        log.error("sophie_inspect: chat allowlist feature must be a string", value_type=type(raw_value).__name__)
-        return False
+        raise TypeError(f"sophie_inspect: chat allowlist must be a string, got {type(raw_value).__name__}")
     return chat_tid in _parse_chat_ids(raw_value)
 
 
@@ -78,10 +69,7 @@ async def _feature_int(
     minimum: int = 1,
 ) -> int:
     value = await get_value(feature, chat_tid=chat_tid, redis=redis)
-    try:
-        return max(int(value), minimum)
-    except (TypeError, ValueError):
-        return minimum
+    return max(int(value), minimum)
 
 
 async def _consume_daily_quota(
@@ -196,19 +184,13 @@ async def run_sophie_inspect(
 
     model = model_plan.primary
     agent = _build_agent(model)
-    try:
-        result = await run_ai_text(
-            agent,
-            user_prompt=question,
-            usage_limits=usage_limits,
-            request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:sophie_inspect"),
-            model_plan=model_plan,
-        )
-    except (AIRequestFailed, UsageLimitExceeded) as error:
-        # Running out of budget is a normal outcome for a bounded sub-agent, and must not take the
-        # conversation down with it: the main agent gets a plain answer it can pass on.
-        log.info("sophie_inspect: gave up", chat_iid=str(chat_iid), error=str(error))
-        return _("I could not find the answer in my own sources within the allowed budget.")
+    result = await run_ai_text(
+        agent,
+        user_prompt=question,
+        usage_limits=usage_limits,
+        request_options=AIRequestOptions(user_tracking_id=chat_iid, session_id=f"{chat_iid}:sophie_inspect"),
+        model_plan=model_plan,
+    )
 
     await charge_ai_usage(
         chat_iid,

@@ -48,11 +48,8 @@ class ResearchWorkflowSettings:
 
 def coerce_positive_int(value: object, default: int, maximum: int) -> int:
     if isinstance(value, bool) or not isinstance(value, int | float | str):
-        return default
-    try:
-        parsed_value = int(value)
-    except ValueError:
-        return default
+        raise TypeError(f"Expected a numeric feature value, got {type(value).__name__}")
+    parsed_value = int(value)
     return default if parsed_value <= 0 else min(parsed_value, maximum)
 
 
@@ -65,10 +62,7 @@ async def _feature_int(
     redis: Redis,
 ) -> int:
     value = await get_value(feature, chat_tid=chat_tid, redis=redis)
-    try:
-        parsed_value = int(value)
-    except (TypeError, ValueError):
-        return default
+    parsed_value = int(value)
     return max(parsed_value, minimum)
 
 

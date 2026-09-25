@@ -6,12 +6,10 @@ and federations using AI when no reason is provided by the user.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from sophie_bot.db.models import ChatModel, RulesModel
-from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.ai.utils.ai_chat_models import get_moderation_reason_model_plan
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -67,7 +65,7 @@ async def generate_restriction_reason(
         services: Application services used for feature flags and AI requests.
 
     Returns:
-        The generated reason string, or None if generation failed or no message text provided
+        The generated reason string, or None if disabled or no message text is provided.
     """
     if not await should_generate_ai_reason(chat_db, services=services):
         return None
@@ -104,26 +102,18 @@ async def generate_restriction_reason(
     )
     history.add_custom(prompt, "Moderator")
 
-    try:
-        result = await run_structured_task(
-            AIStructuredTask(output_type=AIReasonResponse),
-            await get_moderation_reason_model_plan(
-                chat_db.iid,
-                chat_tid=chat_db.tid,
-                redis=services.redis,
-            ),
-            history,
-            chat_iid=chat_db.iid,
+    result = await run_structured_task(
+        AIStructuredTask(output_type=AIReasonResponse),
+        await get_moderation_reason_model_plan(
+            chat_db.iid,
             chat_tid=chat_db.tid,
             redis=services.redis,
-        )
-    except AIRequestFailed as err:
-        log.warning(
-            "Failed to generate AI reason for restriction",
-            chat_id=chat_db.tid,
-            sentry_event_id=err.sentry_event_id,
-        )
-        return None
+        ),
+        history,
+        chat_iid=chat_db.iid,
+        chat_tid=chat_db.tid,
+        redis=services.redis,
+    )
 
     # Clean up the reason
     reason = result.output.reason.strip()
@@ -139,32 +129,8 @@ async def generate_restriction_reason(
 
 
 def extract_rules_text(rules_model: RulesModel) -> str:
-    """Extract text content from rules model.
-
-    Args:
-        rules_model: The rules database model
-
-    Returns:
-        The rules text content
-    """
-    # Rules are stored as Saveable objects
-    # Try to get the text representation
-    if hasattr(rules_model, "text") and rules_model.text:
-        return str(rules_model.text)
-
-    # If it's a Saveable with text field
-    if isinstance(rules_model, Saveable):
-        # Try to get text from the saveable content
-        try:
-            content = rules_model.model_dump()
-            if content.get("text"):
-                return str(content["text"])
-        except (AttributeError, TypeError, ValueError, ValidationError) as err:
-            log.warning("Failed to extract text from Saveable rules model")
-            raise ValueError("Failed to extract text from Saveable rules model") from err
-
-    # Fallback: convert entire model to string representation
-    return str(rules_model)
+    """Extract the rules' text, which may be empty for a media-only rules entry."""
+    return rules_model.text or ""
 
 
 def build_reason_prompt(message_text: str, rules_text: str, base_prompt: str) -> str:

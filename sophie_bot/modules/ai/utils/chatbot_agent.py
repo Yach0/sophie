@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from beanie import PydanticObjectId
 from pydantic_ai import Agent, RunContext, UsageLimits
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.models import Model
-from pymongo.errors import PyMongoError
-from redis.exceptions import RedisError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
@@ -37,7 +35,6 @@ from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_value, is_enabled
-from sophie_bot.utils.logger import log
 
 CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
@@ -78,7 +75,6 @@ class ChatbotRunRequest:
     use_base_tools: bool = False
     stream_options: ChatbotStreamOptions | None = None
     callbacks: ChatbotRunCallbacks = field(default_factory=ChatbotRunCallbacks)
-    charge_failure_policy: Literal["raise", "best_effort"] = "raise"
 
 
 def build_chatbot_agent(model: Model, tools: list[Any]) -> Agent[SophieAIToolContext, str]:
@@ -137,10 +133,7 @@ def _coerce_usage_limit(value: object, default: int | None = None) -> int | None
     if value in {None, "", "none", "None", 0, "0"}:
         return default
     if isinstance(value, (int, float, str)):
-        try:
-            limit = int(value)
-        except ValueError:
-            return default
+        limit = int(value)
         return limit if limit > 0 else default
     return default
 
@@ -232,16 +225,11 @@ async def run_chatbot(request: ChatbotRunRequest) -> AIAgentResult[str]:
 
     if result.usage:
         served_model = result.served_model or model
-        try:
-            await charge_ai_usage(
-                context.chat_iid,
-                AI_FEATURE_CHATBOT,
-                served_model,
-                result.usage,
-                redis=context.services.redis,
-            )
-        except (PyMongoError, RedisError) as error:
-            if request.charge_failure_policy == "raise":
-                raise
-            log.warning("Failed to charge AI usage for chatbot", error=str(error))
+        await charge_ai_usage(
+            context.chat_iid,
+            AI_FEATURE_CHATBOT,
+            served_model,
+            result.usage,
+            redis=context.services.redis,
+        )
     return result

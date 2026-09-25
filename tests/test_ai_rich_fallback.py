@@ -4,9 +4,11 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest
 from stfu_tg import Doc
 
-from sophie_bot.modules.ai.utils import ai_send, chatbot_streaming, proactive_replies
+from sophie_bot.modules.ai.handlers.research import ResearchProgressMessage
+from sophie_bot.modules.ai.utils import ai_send, proactive_replies
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
 
 
@@ -15,15 +17,16 @@ class _RichFailure(Exception):
 
 
 @pytest.mark.asyncio
-async def test_chatbot_final_resend_uses_rich_message(
-    monkeypatch: pytest.MonkeyPatch,
+async def test_chatbot_final_edit_propagates_telegram_failure(
     test_redis: object,
 ) -> None:
     source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2)
+    error = _RichFailure()
+    edit_message_text = AsyncMock(side_effect=error)
     response = SimpleNamespace(
         chat=SimpleNamespace(id=1),
         message_id=3,
-        bot=SimpleNamespace(edit_message_text=AsyncMock(side_effect=_RichFailure())),
+        bot=SimpleNamespace(edit_message_text=edit_message_text),
     )
     streamer = ChatbotMessageStreamer(
         source,
@@ -33,14 +36,31 @@ async def test_chatbot_final_resend_uses_rich_message(
         redis=test_redis,
     )
     streamer.response_message = response
-    rich_resend = AsyncMock(return_value=SimpleNamespace())
-    monkeypatch.setattr(chatbot_streaming, "TelegramAPIError", _RichFailure)
-    monkeypatch.setattr(chatbot_streaming, "send_ai_rich_message", rich_resend)
 
-    await streamer.send_final(Doc("answer"))
+    with pytest.raises(_RichFailure) as raised:
+        await streamer.send_final(Doc("answer"))
 
-    rich_resend.assert_awaited_once()
+    assert raised.value is error
+    edit_message_text.assert_awaited_once()
 
+@pytest.mark.asyncio
+async def test_chatbot_progress_edit_propagates_telegram_failure(test_redis: object) -> None:
+    source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2)
+    error = _RichFailure()
+    edit_message_text = AsyncMock(side_effect=error)
+    response = SimpleNamespace(
+        chat=SimpleNamespace(id=1),
+        message_id=3,
+        bot=SimpleNamespace(edit_message_text=edit_message_text),
+    )
+    streamer = ChatbotMessageStreamer(source, "header", StreamMode.EDIT, 0, redis=test_redis)
+    streamer.response_message = response
+
+    with pytest.raises(_RichFailure) as raised:
+        await streamer.stream("partial answer")
+
+    assert raised.value is error
+    edit_message_text.assert_awaited_once()
 
 @pytest.mark.asyncio
 async def test_rich_sender_uses_rich_payload() -> None:
@@ -73,16 +93,27 @@ async def test_rich_sender_propagates_telegram_errors() -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_ai_rich_message_falls_back_when_reply_target_deleted() -> None:
-    from aiogram.exceptions import TelegramBadRequest
+async def test_research_final_edit_propagates_telegram_failure() -> None:
+    error = _RichFailure()
+    edit_message_text = AsyncMock(side_effect=error)
+    bot = SimpleNamespace(edit_message_text=edit_message_text)
+    progress = ResearchProgressMessage(SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2), "emoji", bot)
 
+    with pytest.raises(_RichFailure) as raised:
+        await progress.send_final(Doc("answer"))
+
+    assert raised.value is error
+    edit_message_text.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_send_ai_rich_message_propagates_deleted_reply_target() -> None:
     calls: list[dict] = []
+    error = TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")  # type: ignore[arg-type]
 
     async def mock_send_rich_message(**kwargs):
         calls.append(kwargs)
-        if "reply_parameters" in kwargs:
-            raise TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")  # type: ignore[arg-type]
-        return SimpleNamespace(message_id=99)
+        raise error
 
     message = SimpleNamespace(
         chat=SimpleNamespace(id=100),
@@ -91,12 +122,12 @@ async def test_send_ai_rich_message_falls_back_when_reply_target_deleted() -> No
         bot=SimpleNamespace(send_rich_message=mock_send_rich_message),
     )
 
-    result = await ai_send.send_ai_rich_message(message, Doc("answer"))
-    assert result.message_id == 99
-    assert len(calls) == 2
-    assert "reply_parameters" in calls[0]
-    assert "reply_parameters" not in calls[1]
+    with pytest.raises(TelegramBadRequest) as raised:
+        await ai_send.send_ai_rich_message(message, Doc("answer"))
 
+    assert raised.value is error
+    assert len(calls) == 1
+    assert "reply_parameters" in calls[0]
 
 
 @pytest.mark.asyncio

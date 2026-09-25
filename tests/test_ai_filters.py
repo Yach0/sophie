@@ -6,15 +6,36 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.dispatcher.event.bases import SkipHandler
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
+from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
 from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.filters.utils_.match_handler import (
     consume_ai_filter_daily_quota,
     match_ai_handler,
 )
+
+
+@pytest.mark.asyncio
+async def test_ai_capability_notice_propagates_telegram_failure() -> None:
+    error = TelegramBadRequest(method=None, message="message cannot be sent")  # type: ignore[arg-type]
+    message = AsyncMock(spec=Message)
+    message.reply.side_effect = error
+    context = SimpleNamespace(event_chat=SimpleNamespace(tid=-100123))
+
+    with (
+        patch(
+            "sophie_bot.modules.ai.filters.ai_mode.resolve_chat_capabilities",
+            AsyncMock(return_value=SimpleNamespace(ai_enabled=False)),
+        ),
+        pytest.raises(TelegramBadRequest) as raised,
+    ):
+        await AICapabilityFilter()(message, context)
+
+    assert raised.value is error
 
 
 @pytest.mark.asyncio

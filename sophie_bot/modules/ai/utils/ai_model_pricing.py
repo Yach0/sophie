@@ -3,12 +3,11 @@ from __future__ import annotations
 from math import ceil
 
 import ujson
-from httpx2 import AsyncClient, HTTPError
+from httpx2 import AsyncClient
 from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
 from sophie_bot.modules.ai.utils.ai_catalog import get_openrouter_api_key
-from sophie_bot.utils.logger import log
 
 ai_http_client = AsyncClient(timeout=30)
 _pricing_cache_ttl_seconds = 3600.0
@@ -38,34 +37,22 @@ async def openrouter_headers(*, redis: Redis) -> dict[str, str]:
 def parse_price_per_million(raw_price: object) -> float | None:
     if raw_price in (None, "", 0, "0"):
         return 0.0 if raw_price in (0, "0") else None
+    if not isinstance(raw_price, (int, float, str)):
+        raise TypeError(f"Unsupported model price: {raw_price!r}")
 
-    if not isinstance(raw_price, str | int | float):
-        return None
-
-    try:
-        return float(raw_price) * 1_000_000
-    except (TypeError, ValueError):
-        return None
+    return float(raw_price) * 1_000_000
 
 
 async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[float | None, float | None]]:
     cached_data = await redis.get(_PRICING_CACHE_KEY)
     if cached_data is not None:
-        try:
-            cache = ujson.loads(cached_data)
-            return cache
-        except (ujson.JSONDecodeError, TypeError):
-            pass
+        return ujson.loads(cached_data)
 
     cache: dict[str, tuple[float | None, float | None]] = {}
-    try:
-        response = await ai_http_client.get(
-            "https://openrouter.ai/api/v1/models", headers=await openrouter_headers(redis=redis)
-        )
-        response.raise_for_status()
-    except HTTPError as err:
-        log.warning("Failed to load OpenRouter pricing", error=str(err))
-        return cache
+    response = await ai_http_client.get(
+        "https://openrouter.ai/api/v1/models", headers=await openrouter_headers(redis=redis)
+    )
+    response.raise_for_status()
 
     data = response.json().get("data", [])
     for item in data:
