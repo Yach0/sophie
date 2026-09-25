@@ -874,33 +874,39 @@ msgstr "إعادة تعيين سياق الذكاء الاصطناعي للدر�
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 تمت إعادة تعيين سياق الذكاء الاصطناعي والذاكرة بنجاح. سيعمل الذكاء الاصطناعي الآن في حالة نظيفة."
 
-#: sophie_bot/modules/ai/handlers/translate.py:96
+#: sophie_bot/modules/ai/handlers/translate.py:109
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "من {from_lang} إلى {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:106
+#: sophie_bot/modules/ai/handlers/translate.py:119
 msgid "Translation Notes"
 msgstr "ملاحظات الترجمة"
 
-#: sophie_bot/modules/ai/handlers/translate.py:117
+#: sophie_bot/modules/ai/handlers/translate.py:130
 msgid "Text to translate"
 msgstr "النص لترجمته"
 
-#: sophie_bot/modules/ai/handlers/translate.py:124
+#: sophie_bot/modules/ai/handlers/translate.py:137
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "يترجم النص المحدد (أو المردود) إلى اللغة المختارة للدردشة. كما يقوم بكتابة الرسالة الصوتية المردودة إلى نص"
 
 #: sophie_bot/modules/ai/handlers/translate.py:162
+#: sophie_bot/modules/ai/utils/message_history.py:194
+msgid "Transcribing voice message..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/translate.py:185
+#: sophie_bot/modules/ai/handlers/translate.py:188
 msgid "Please provide text to translate."
 msgstr "يرجى تقديم نص للترجمة."
 
-#: sophie_bot/modules/ai/handlers/translate.py:182
+#: sophie_bot/modules/ai/handlers/translate.py:205
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "إذا لزم الأمر، ترجم الصورة إلى {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:199
+#: sophie_bot/modules/ai/handlers/translate.py:226
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -909,7 +915,11 @@ msgstr ""
 "ترجم النص التالي إلى {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:239
+#: sophie_bot/modules/ai/handlers/translate.py:251
+msgid "Translating..."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/translate.py:269
 msgid "Error generating translation"
 msgstr "خطأ في توليد الترجمة"
 
@@ -1048,7 +1058,7 @@ msgstr "أنت تلخص مناقشات مجموعات Telegram في سطور م�
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "باستخدام ميزات الذكاء الاصطناعي، فإنك توافق على سياسة الخصوصية لدينا (/privacy) والخدمات الذكية المستخدمة من طرف ثالث."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:422
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:426
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:444
 #: sophie_bot/modules/ai/utils/research.py:583
@@ -1068,7 +1078,7 @@ msgid "Thinking..."
 msgstr "أفكر..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:149
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:151
 msgid "Working on it..."
 msgstr "أعمل على ذلك..."
 
@@ -1436,16 +1446,16 @@ msgstr "ملاحظات الدردشة ذات الصلة مع المحتوى."
 msgid "You have the following information in your memory"
 msgstr "لديك المعلومات التالية في ذاكرتك"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:127
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:129
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:163
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:168
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:174
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:179
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr "(إعادة المحاولة {attempt}/{total_attempts}...)"
@@ -1458,26 +1468,38 @@ msgstr "⚠️ إذا أردت مساعدة أكثر تفصيلاً، استخد
 msgid "Sophie help mode"
 msgstr "وضع مساعدة Sophie"
 
-#: sophie_bot/modules/ai/utils/message_history.py:79
+#: sophie_bot/modules/ai/utils/message_history.py:80
 #: sophie_bot/modules/op/handlers/op_debug.py:162
 msgid "reply to"
 msgstr "رد على"
 
-#: sophie_bot/modules/ai/utils/message_history.py:124
-#: sophie_bot/modules/ai/utils/message_history.py:130
+#: sophie_bot/modules/ai/utils/message_history.py:125
+#: sophie_bot/modules/ai/utils/message_history.py:131
 msgid "<No text provided>"
 msgstr "<لا يوجد نص مقدم>"
 
 #: sophie_bot/modules/ai/utils/message_history.py:178
+msgid "Processing image..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/message_history.py:182
 msgid "Image is empty"
 msgstr "الصورة فارغة"
 
-#: sophie_bot/modules/ai/utils/message_history.py:222
+#: sophie_bot/modules/ai/utils/message_history.py:208
+msgid "Processing video..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/message_history.py:225
+msgid "Transcribing video audio..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/message_history.py:232
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[نسخ الفيديو: {text}]"
 
-#: sophie_bot/modules/ai/utils/message_history.py:297
+#: sophie_bot/modules/ai/utils/message_history.py:307
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr "رسائل الدردشة الأخيرة (للسياق فقط — رد فقط على الرسالة الأخيرة)"
 

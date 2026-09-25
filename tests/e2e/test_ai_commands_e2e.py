@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram import Bot
-from aiogram.types import PhotoSize, Video
+from aiogram.types import PhotoSize, Video, Voice
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
@@ -369,16 +369,20 @@ async def test_translate_success(test_client: TestClient, command: str) -> None:
 
     progress = [request for request in requests if request.request_type == RequestType.OTHER]
     edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
-    assert len(progress) == len(edits) == 1
+    assert len(progress) == 1
+    assert len(edits) == 2
     progress_html = progress[0].params["rich_message"]["html"]
     assert re.findall(r'<tg-emoji emoji-id="(\d+)">', progress_html) == [
         AI_GENERATING_EMOJI_ID,
         *AI_PROGRESS_LINE_EMOJI_IDS,
     ]
     assert not progress[0].text
-    assert edits[0].params["message_id"] == progress[0].response.message_id
-    response_text = edits[0].params["rich_message"]["html"]
-    assert not edits[0].text
+    assert all(edit.params["message_id"] == progress[0].response.message_id for edit in edits)
+    activity_html = edits[0].params["rich_message"]["html"]
+    assert activity_html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+    assert "<i>Translating...</i><br>" in activity_html
+    response_text = edits[-1].params["rich_message"]["html"]
+    assert not edits[-1].text
     assert "Hola mundo" in response_text
     assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text
     assert AI_GENERATING_EMOJI_ID not in response_text
@@ -514,6 +518,108 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
         isinstance(content, BinaryContent) and content.data == b"thumbnail-bytes" for content in ai_context.prompt
     )
     assert any("spoken words" in content for content in ai_context.prompt if isinstance(content, str))
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert len(edits) == 4
+    for edit, activity in zip(
+        edits[:-1], ("Processing video...", "Transcribing video audio...", "Translating..."), strict=True
+    ):
+        html = edit.params["rich_message"]["html"]
+        assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+        assert f"<i>{activity}</i><br>" in html
+    assert (
+        "<i>Processing video...</i><br><i>Transcribing video audio...</i><br><i>Translating...</i>"
+        in (edits[-2].params["rich_message"]["html"])
+    )
+    assert "Translated video speech" in edits[-1].params["rich_message"]["html"]
+
+
+@pytest.mark.asyncio
+async def test_translate_replied_voice_shows_transcription_before_starting_work(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000061, title="Translate Voice Group")
+    user_wrapper = test_client.create_user(user_id=929000061, first_name="VoiceUser", username="voice_user")
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    replied_voice = MessageFactory.create(text="placeholder", from_user=user_wrapper.user, chat=group_chat).model_copy(
+        update={
+            "text": None,
+            "voice": Voice(file_id="voice-file-id", file_unique_id="voice-unique-id", duration=5),
+        }
+    )
+    result = SimpleNamespace(
+        output=SimpleNamespace(
+            translated_text="Bonjour",
+            origin_language_name="English",
+            origin_language_emoji="🇬🇧",
+            needs_translation=True,
+            translation_explanations=None,
+        )
+    )
+
+    async def transcribe_voice(*args: Any, **kwargs: Any) -> str:
+        del args, kwargs
+        progress = [
+            request for request in test_client.capture.all_requests if request.request_type == RequestType.OTHER
+        ]
+        edits = [
+            request
+            for request in test_client.capture.all_requests
+            if request.request_type == RequestType.EDIT_MESSAGE_TEXT
+        ]
+        assert progress
+        assert edits
+        assert "<i>Transcribing voice message...</i>" in edits[-1].params["rich_message"]["html"]
+        return "spoken greeting"
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
+        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.transform_voice_to_text", transcribe_voice))
+        stack.enter_context(
+            patch("sophie_bot.modules.ai.handlers.translate.run_structured_task", AsyncMock(return_value=result))
+        )
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
+                AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            )
+        )
+        requests = await send_reply_command(
+            test_client, command="tr", from_user=user_wrapper.user, group=group_chat, replied=replied_voice
+        )
+
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert len(edits) == 3
+    assert "<i>Transcribing voice message...</i><br><i>Translating...</i>" in edits[1].params["rich_message"]["html"]
+    assert "Bonjour" in edits[-1].params["rich_message"]["html"]
+
+
+@pytest.mark.asyncio
+async def test_translate_empty_voice_replaces_transcription_progress(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000062, title="Empty Voice Group")
+    user_wrapper = test_client.create_user(user_id=929000062, first_name="SilentUser", username="silent_user")
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    replied_voice = MessageFactory.create(text="placeholder", from_user=user_wrapper.user, chat=group_chat).model_copy(
+        update={
+            "text": None,
+            "voice": Voice(file_id="empty-voice-id", file_unique_id="empty-voice-unique-id", duration=5),
+        }
+    )
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
+        stack.enter_context(
+            patch("sophie_bot.modules.ai.handlers.translate.transform_voice_to_text", AsyncMock(return_value=""))
+        )
+        requests = await send_reply_command(
+            test_client, command="tr", from_user=user_wrapper.user, group=group_chat, replied=replied_voice
+        )
+
+    progress = [request for request in requests if request.request_type == RequestType.OTHER]
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert len(progress) == 1
+    assert len(edits) == 2
+    assert edits[-1].params["message_id"] == progress[0].response.message_id
+    assert "<i>Transcribing voice message...</i>" in edits[0].params["rich_message"]["html"]
+    assert "Please provide text to translate." in (edits[-1].text or "")
 
 
 @pytest.mark.asyncio
@@ -580,10 +686,12 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
 
     progress = [request for request in requests if request.request_type == RequestType.OTHER]
     edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
-    assert len(progress) == len(edits) == 1
+    assert len(progress) == 1
+    assert len(edits) == 2
     assert re.findall(r'<tg-emoji emoji-id="(\d+)">', progress[0].params["rich_message"]["html"]) == [
         AI_GENERATING_EMOJI_ID,
         *AI_PROGRESS_LINE_EMOJI_IDS,
     ]
-    response_text = edits[0].text or ""
+    assert "<i>Translating...</i>" in edits[0].params["rich_message"]["html"]
+    response_text = edits[-1].text or ""
     assert "AI provider did not complete" in response_text, f"Expected AI failure message, got: {response_text}"

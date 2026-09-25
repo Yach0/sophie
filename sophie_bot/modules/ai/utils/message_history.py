@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asyncio import gather
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import BinaryIO
 
@@ -49,6 +49,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
+type ActivityCallback = Callable[[str], Awaitable[None]]
 
 
 def _user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
@@ -141,6 +142,7 @@ async def _build_message_parts(
     *,
     bot: Bot,
     redis: Redis,
+    on_activity: ActivityCallback | None = None,
 ) -> list[UserContent]:
     """Build the list of message parts for the AI context."""
     # Message's text
@@ -172,6 +174,8 @@ async def _build_message_parts(
             log.warning("Skipping visual media extraction: %s without thumbnail", message.animation)
             return prompt
 
+        if on_activity is not None:
+            await on_activity(_("Processing image..."))
         downloaded_image: BinaryIO | None = await bot.download(image_file_id)
 
         if not downloaded_image:
@@ -186,6 +190,8 @@ async def _build_message_parts(
 
     # Voice
     if message.voice:
+        if on_activity is not None:
+            await on_activity(_("Transcribing voice message..."))
         voice_text = await transform_voice_to_text(
             message.voice,
             bot=bot,
@@ -198,6 +204,8 @@ async def _build_message_parts(
     if message.video or message.video_note:
         video = message.video or message.video_note
 
+        if on_activity is not None:
+            await on_activity(_("Processing video..."))
         # Add video thumbnail if available
         if video and video.thumbnail:
             thumbnail_file_id = video.thumbnail.file_id
@@ -213,6 +221,8 @@ async def _build_message_parts(
 
         # Transcribe video audio
         if video:
+            if on_activity is not None:
+                await on_activity(_("Transcribing video audio..."))
             video_transcription = await transform_video_to_text(
                 video,
                 bot=bot,
@@ -423,6 +433,7 @@ class AIMessageHistory:
         normalize_texts: bool = False,
         allow_reply_messages: bool = True,
         disable_name: bool = False,
+        on_activity: ActivityCallback | None = None,
     ) -> None:
         """Adds a user message to the context, returns a list of additional messages to cache for future use."""
 
@@ -431,7 +442,9 @@ class AIMessageHistory:
         if allow_reply_messages and message.reply_to_message and message.reply_to_message.from_user:
             replied_user_name = message.reply_to_message.from_user.full_name
             if (message.chat.id, message.reply_to_message.message_id) not in self._cached_message_ids:
-                await self.add_from_message(message.reply_to_message, allow_reply_messages=False)
+                await self.add_from_message(
+                    message.reply_to_message, allow_reply_messages=False, on_activity=on_activity
+                )
 
         if not message.from_user:  # Linter insists on checking this
             return
@@ -456,6 +469,7 @@ class AIMessageHistory:
                 disable_name,
                 bot=self.services.bot,
                 redis=self.services.redis,
+                on_activity=on_activity,
             )
         )
 

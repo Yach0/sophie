@@ -6,6 +6,7 @@ from contextlib import suppress
 from random import choice
 from typing import Any
 
+from aiogram import Bot
 from aiogram.types import InputRichMessage, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, HList, Italic, Template
@@ -150,6 +151,9 @@ class ChatbotMessageStreamer:
         activity = (
             str(choice(tool.activity_texts)) if tool is not None and tool.activity_texts else _("Working on it...")
         )
+        await self.update_processing_activity(activity)
+
+    async def update_processing_activity(self, activity: str) -> None:
         self.activity_started = True
         if self.stack_tools:
             self.activity_history.append(activity)
@@ -193,7 +197,7 @@ class ChatbotMessageStreamer:
         if rendered_rich == self._last_sent_rich and reply_markup is None:
             return self.response_message
 
-        result = await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+        result = await self._editing_bot().edit_message_text(
             chat_id=self.response_message.chat.id,
             message_id=self.response_message.message_id,
             rich_message=InputRichMessage(html=rendered_rich),
@@ -290,6 +294,13 @@ class ChatbotMessageStreamer:
         await self._update(doc)
         self.last_sent_text = draft_text
 
+    def _editing_bot(self) -> Bot:
+        bot = self.response_message.bot if self.response_message else None
+        bot = bot or self.source_message.bot
+        if bot is None:
+            raise RuntimeError("No bot attached to AI progress message")
+        return bot
+
     async def _update(self, doc: Doc) -> None:
         """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
         rendered_rich = doc.to_rich()
@@ -299,7 +310,7 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            await self.response_message.bot.edit_message_text(  # ty: ignore[unresolved-attribute]
+            await self._editing_bot().edit_message_text(
                 chat_id=self.response_message.chat.id,
                 message_id=self.response_message.message_id,
                 rich_message=InputRichMessage(html=rendered_rich),

@@ -141,9 +141,10 @@ Chatbot replies show an in-progress message while they stream. Manual translatio
 (`/tr`, `/translate`) and `/research` also show progress. All three use STFU Rich
 rendering with a fixed animated AI emoji and a three-emoji footer; translation
 and research edit the same Rich message for the result.
-Automatic translation stays silent until its result is ready. The chatbot initially shows
-a random working message after the animated AI emoji. Once reasoning, a tool call, or a
-retry begins, that space stays empty until answer text streams in; progress appears below.
+Automatic translation stays silent until its result is ready. The chatbot and manual
+translation initially show a random working message after the animated AI emoji.
+When reasoning or an activity begins, that space stays empty until answer text streams
+in; progress appears below.
 By default, streamed reasoning renders Markdown in a block quote with a custom emoji
 before the italic text. The latest 400 reasoning characters remain visible (with an
 ellipsis when truncated), and pending reasoning is flushed before tool activity, even
@@ -159,6 +160,14 @@ the final header. When both flags are on, the one reasoning activity joins that 
 New streamed answer text clears the activity list. Later tool calls appear below the
 answer text already shown; the next text update clears those entries in turn.
 Without stacking, the most recent tool or retry status replaces the prior status.
+
+Manual `/tr` and `/translate` retain their current activity list until the final
+translation replaces the progress message. A replied voice starts with “Transcribing
+voice message...” before transcription, followed by “Translating...”. Replied images
+and videos show processing stages (including video audio transcription) before
+translation. Chatbot replies show the same media stages during context preparation;
+their entries stack when `ai_chatbot_stack_progress_tools` is on and otherwise show
+the current stage only.
 
 Completed replies replace the animation with a static AI emoji, eligible used-tool titles
 without tool icons (Search first when used), and a battery footer in its own paragraph.

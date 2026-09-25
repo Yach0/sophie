@@ -285,7 +285,11 @@ async def _ai_chatbot_reply(
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
             services=services,
         )
-        history = await prepare_chatbot_history(message, context)
+        history = await prepare_chatbot_history(
+            message,
+            context,
+            on_activity=(message_streamer.update_processing_activity if message_streamer else None),
+        )
         # Whatever tool calls history already contains were replayed from a previous
         # answer and must not be stored a second time.
         previous_history = list(history.message_history)

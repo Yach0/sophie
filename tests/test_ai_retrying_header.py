@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.types import Message
+from fakeredis.aioredis import FakeRedis
 from stfu_tg import Doc
 
 from sophie_bot.modules.ai.utils.ai_header import (
@@ -19,6 +20,8 @@ from sophie_bot.modules.ai.utils.ai_header import (
 )
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
+
+pytestmark = pytest.mark.usefixtures("db_init")
 
 
 def _response_message() -> SimpleNamespace:
@@ -37,7 +40,7 @@ def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer
         ),
         status=Doc("Initial"),
         throttle_seconds=1,
-        redis=object(),
+        redis=FakeRedis(),
     )
     streamer.response_message = cast(Message, response_message)
     return streamer
@@ -134,7 +137,7 @@ async def test_reasoning_markdown_and_tool_call_remain_visible_together(monkeypa
         source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
         status="Thinking...",
         throttle_seconds=0,
-        redis=object(),
+        redis=FakeRedis(),
     )
     streamer.response_message = cast(Message, response_message)
 
@@ -164,7 +167,7 @@ async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
         ),
         status=Doc("Initial"),
         throttle_seconds=60,
-        redis=object(),
+        redis=FakeRedis(),
     )
     streamer.response_message = cast(Message, response_message)
 
@@ -187,7 +190,7 @@ async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
         ),
         status=Doc("Initial"),
         throttle_seconds=0.01,
-        redis=object(),
+        redis=FakeRedis(),
     )
     streamer.response_message = cast(Message, response_message)
 
@@ -211,7 +214,7 @@ async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> 
         ),
         status=Doc("Initial"),
         throttle_seconds=0,
-        redis=object(),
+        redis=FakeRedis(),
     )
     streamer.response_message = cast(Message, response_message)
 

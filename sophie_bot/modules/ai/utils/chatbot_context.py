@@ -12,7 +12,7 @@ from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_tool_history import load_chatbot_tool_history
-from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
+from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, ActivityCallback, AIMessageHistory
 from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -142,7 +142,9 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
         return instructions
 
 
-async def prepare_chatbot_history(message: Message, context: SophieAIToolContext) -> AIMessageHistory:
+async def prepare_chatbot_history(
+    message: Message, context: SophieAIToolContext, *, on_activity: ActivityCallback | None = None
+) -> AIMessageHistory:
     with ai_span("ai.chatbot.history") as span:
         history = AIMessageHistory(services=context.services)
         max_age_minutes = int(
@@ -170,7 +172,7 @@ async def prepare_chatbot_history(message: Message, context: SophieAIToolContext
             span.set_attribute("replay_message_count", replay_count)
             span.set_attribute("dialogue_turn_count", len(history.message_history) - replay_count)
             span.set_attribute("background_context_count", len(history.context_lines))
-        await history.add_from_message(message, custom_text=context.user_text)
+        await history.add_from_message(message, custom_text=context.user_text, on_activity=on_activity)
         history.apply_context_block()
         if span is not None:
             span.set_attribute("history_message_count", len(history.message_history))

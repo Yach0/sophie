@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import replace
+from io import BytesIO
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram.types import Message
-from pydantic_ai.messages import ModelResponse, ToolCallPart
+from aiogram.types import Message, PhotoSize, Voice
+from pydantic_ai.messages import BinaryContent, ModelResponse, ToolCallPart
 from pydantic_ai.models import Model
 from stfu_tg.ai_md import ai_markdown_to_doc
 
@@ -31,10 +32,12 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
+from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.feature_flags import delete_override, set_enabled
 
 BATTERY_EMOJI = "🔋"
 ANIMATED_LINE_IDS = AI_PROGRESS_LINE_EMOJI_IDS
+
 
 async def _get_value(
     name: str,
@@ -164,10 +167,80 @@ async def test_draft_displays_action_below_body_and_removes_it_after_new_text(
 
 
 @pytest.mark.asyncio
+async def test_media_preparation_stacks_video_voice_and_image_activities(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Working on it...",
+        throttle_seconds=0,
+        redis=cast(Any, test_redis),
+        stack_tools=True,
+    )
+    streamer.response_message = cast(Message, response_message)
+    download = AsyncMock(side_effect=lambda file_id: BytesIO(b"image-bytes"))
+    history = AIMessageHistory(
+        services=cast(Any, SimpleNamespace(bot=SimpleNamespace(download=download), redis=test_redis))
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.message_history.transform_video_to_text",
+        AsyncMock(return_value="video speech"),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.message_history.transform_voice_to_text",
+        AsyncMock(return_value="voice speech"),
+    )
+    video_message = Message.model_validate(
+        {
+            "message_id": 1,
+            "date": 1790115467,
+            "chat": {"id": 123, "type": "private"},
+            "from": {"id": 456, "is_bot": False, "first_name": "Alice"},
+            "video": {
+                "file_id": "video-file",
+                "file_unique_id": "video-unique",
+                "width": 640,
+                "height": 480,
+                "duration": 3,
+                "thumbnail": PhotoSize(
+                    file_id="thumbnail-file", file_unique_id="thumbnail-unique", width=160, height=120
+                ),
+            },
+        }
+    )
+    await history.add_from_message(video_message, on_activity=streamer.update_processing_activity)
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+    assert "<i>Processing video...</i><br><i>Transcribing video audio...</i><br>" in html
+    assert any("video speech" in part for part in history.prompt if isinstance(part, str))
+
+    voice_message = video_message.model_copy(
+        update={"video": None, "voice": Voice(file_id="voice-file", file_unique_id="voice-unique", duration=3)}
+    )
+    await history.add_from_message(voice_message, on_activity=streamer.update_processing_activity)
+    image_message = video_message.model_copy(
+        update={
+            "video": None,
+            "photo": [PhotoSize(file_id="photo-file", file_unique_id="photo-unique", width=160, height=120)],
+        }
+    )
+    await history.add_from_message(image_message, on_activity=streamer.update_processing_activity)
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.index("Processing video...") < html.index("Transcribing video audio...")
+    assert html.index("Transcribing video audio...") < html.index("Transcribing voice message...")
+    assert html.index("Transcribing voice message...") < html.index("Processing image...")
+    assert any(part == "voice speech" for part in history.prompt if isinstance(part, str))
+    assert any(isinstance(part, BinaryContent) and part.data == b"image-bytes" for part in history.prompt)
+
+
+@pytest.mark.asyncio
 async def test_first_tool_clears_random_working_header_until_text_arrives(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_thinking_text", lambda: "Working on it...")
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_thinking_text", lambda: "Working on it..."
+    )
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
     message = _message()
     streamer = await _streamer(message, monkeypatch, test_redis)
