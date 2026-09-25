@@ -119,7 +119,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         )
 
         result = await run_ai_text(
-            Agent(model_plan.primary, output_type=str),
+            Agent(model_plan.primary, name="filter:ai_response", output_type=str),
             user_prompt=messages.prompt,
             message_history=messages.message_history,
             request_options=AIRequestOptions(user_tracking_id=chat_db.iid),

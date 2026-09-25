@@ -21,10 +21,7 @@ MODEL_OVERRIDE_FLAG_BY_PURPOSE: dict[AIModelPurpose, FeatureType] = {
     AIModelPurpose.sophie_inspect: "ai_sophie_inspect_model",
 }
 SERVICE_TIER_FLAG_BY_PURPOSE: dict[AIModelPurpose, FeatureType] = {
-    AIModelPurpose.chatbot: "ai_chatbot_service_tier",
     AIModelPurpose.translation: "ai_translations_service_tier",
-    AIModelPurpose.filters: "ai_filters_service_tier",
-    AIModelPurpose.summary: "ai_chat_summaries_service_tier",
     AIModelPurpose.research: "ai_research_service_tier",
 }
 
@@ -48,7 +45,6 @@ async def get_chat_model_plan(
         mode,
         purpose,
         await _get_override_name(purpose, chat_tid, redis=redis),
-        chat_tid=chat_tid,
         redis=redis,
     )
     log.debug(f"{purpose.value} models for chat {chat_iid}: {', '.join(plan.model_names)}", mode=mode.value)
@@ -64,6 +60,8 @@ async def resolve_chat_service_tier(
     redis: Redis,
 ) -> str | None:
     del chat_iid, mode
+    if purpose in {AIModelPurpose.chatbot, AIModelPurpose.filters, AIModelPurpose.summary}:
+        return "flex"
     flag = SERVICE_TIER_FLAG_BY_PURPOSE.get(purpose)
     return await get_service_tier(flag, chat_tid=chat_tid, redis=redis) if flag else None
 

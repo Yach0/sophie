@@ -103,7 +103,7 @@ async def generate_restriction_reason(
     history.add_custom(prompt, "Moderator")
 
     result = await run_structured_task(
-        AIStructuredTask(output_type=AIReasonResponse),
+        AIStructuredTask(output_type=AIReasonResponse, name="moderation:reason"),
         await get_moderation_reason_model_plan(
             chat_db.iid,
             chat_tid=chat_db.tid,

@@ -96,7 +96,7 @@ async def _consume_daily_quota(
 
 
 def _build_agent(model: Model) -> Agent[None, str]:
-    agent = Agent(model, output_type=str, instructions=_SYSTEM_PROMPT)
+    agent = Agent(model, name="sophie:source_inspection", output_type=str, instructions=_SYSTEM_PROMPT)
 
     @agent.tool_plain
     def search_sophie_source(query: str) -> list[str]:
@@ -158,7 +158,6 @@ async def run_sophie_inspect(
                 redis=services.redis,
             )
         ),
-        chat_tid=chat_tid,
         redis=services.redis,
     )
     model_name = model_plan.model_names[0]

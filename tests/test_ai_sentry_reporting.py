@@ -24,7 +24,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     ensure_sentry_event_id,
     run_ai_request_with_retries,
 )
-from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from sophie_bot.utils.exception import SophieException
 
@@ -80,14 +80,6 @@ class _NamedModel(TestModel):
 
 def _candidate(model_name: str) -> AIModelCandidate:
     return AIModelCandidate(model=_NamedModel(model_name), model_name=model_name)
-
-
-def _chain(*candidates: AIModelCandidate) -> ai_run.CandidateChain:
-    return ai_run.CandidateChain(
-        candidates=list(candidates),
-        should_try_next=ai_run._should_try_next_model,
-        refusal_failover=True,
-    )
 
 
 def _model_http_error(status_code: int = 503) -> ModelHTTPError:
@@ -175,7 +167,9 @@ async def test_a_rescued_candidate_failure_is_reported_as_a_warning(
             raise _model_http_error()
         return "from-backup"
 
-    result, served = await ai_run._run_with_model_candidates(operation, _chain(primary, backup))
+    result, served = await ai_run._run_with_model_candidates(
+        operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
+    )
 
     assert (result, served) == ("from-backup", backup)
     # The user got an answer, so nothing else would ever surface that primary/model is failing.
@@ -195,7 +189,9 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
         raise _model_http_error()
 
     with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(operation, _chain(primary, backup))
+        await ai_run._run_with_model_candidates(
+            operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
+        )
 
     rescue_event, terminal_event = sentry_events
     assert rescue_event["level"] == "warning"
@@ -215,9 +211,12 @@ async def test_a_configuration_error_reaches_the_global_handler_without_walking_
         attempted.append(active.model_name)
         raise ModelHTTPError(status_code=401, model_name="whatever", body={"error": {"message": "Invalid key"}})
 
+    primary = _candidate("primary/model")
+    backup = _candidate("backup/model")
+
     with pytest.raises(ModelHTTPError):
         await ai_run._run_with_model_candidates(
-            operation, _chain(_candidate("primary/model"), _candidate("backup/model"))
+            operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
         )
 
     assert attempted == ["primary/model"]

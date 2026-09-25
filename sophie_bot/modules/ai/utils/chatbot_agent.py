@@ -9,6 +9,7 @@ from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.models import Model
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
 from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_notes_tool
@@ -78,8 +79,8 @@ class ChatbotRunRequest:
     callbacks: ChatbotRunCallbacks = field(default_factory=ChatbotRunCallbacks)
 
 
-def build_chatbot_agent(model: Model, tools: list[Any]) -> Agent[SophieAIToolContext, str]:
-    agent = Agent(model, deps_type=SophieAIToolContext, output_type=str, tools=tools)
+def build_chatbot_agent(model: Model, tools: list[Any], mode: AIMode) -> Agent[SophieAIToolContext, str]:
+    agent = Agent(model, name=f"{mode.value}:chat", deps_type=SophieAIToolContext, output_type=str, tools=tools)
 
     @agent.instructions
     async def add_chatbot_instructions(ctx: RunContext[SophieAIToolContext]) -> str:
@@ -115,12 +116,7 @@ async def get_chatbot_tools(
     ]
     if search_tool := await _get_search_tool(context):
         tools.append(search_tool)
-    if await is_enabled(
-        "ai_research",
-        chat_tid=context.chat_tid,
-        redis=context.services.redis,
-    ):
-        tools.append(research_topic_tool)
+    tools.append(research_topic_tool)
     if await is_enabled(
         "ai_sophie_inspect",
         chat_tid=context.chat_tid,
@@ -187,7 +183,7 @@ async def _build_chatbot_run_config(
 ) -> ChatbotRunConfig:
     tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(context, get_capabilities(context.mode))
     return ChatbotRunConfig(
-        agent=build_chatbot_agent(model, tools),
+        agent=build_chatbot_agent(model, tools, context.mode),
         usage_limits=await build_chatbot_usage_limits(context),
         request_options=AIRequestOptions(
             user_tracking_id=context.chat_iid,

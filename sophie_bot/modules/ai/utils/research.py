@@ -230,6 +230,7 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
     return await run_structured_task(
         AIStructuredTask(
             output_type=output_type,
+            name=f"research:{output_type.__name__}",
             feature=AI_FEATURE_RESEARCH,
         ),
         model_plan,

@@ -19,7 +19,7 @@ def mock_update() -> Update:
 
 
 @pytest.mark.asyncio
-async def test_starts_transaction_when_flag_enabled(mock_update: Update):
+async def test_starts_transaction_for_update(mock_update: Update) -> None:
     middleware = SentryTracingMiddleware()
     handler = AsyncMock(return_value="ok")
     transaction = MagicMock()
@@ -28,7 +28,6 @@ async def test_starts_transaction_when_flag_enabled(mock_update: Update):
     data = {"services": SimpleNamespace(redis=object())}
 
     with (
-        patch("sophie_bot.middlewares.sentry_tracing.is_enabled", AsyncMock(return_value=True)),
         patch(
             "sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction", return_value=transaction
         ) as start_transaction,
@@ -45,24 +44,7 @@ async def test_starts_transaction_when_flag_enabled(mock_update: Update):
 
 
 @pytest.mark.asyncio
-async def test_no_transaction_when_flag_disabled(mock_update: Update):
-    middleware = SentryTracingMiddleware()
-    handler = AsyncMock(return_value="ok")
-    data = {"services": SimpleNamespace(redis=object())}
-
-    with (
-        patch("sophie_bot.middlewares.sentry_tracing.is_enabled", AsyncMock(return_value=False)),
-        patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction") as start_transaction,
-    ):
-        result = await middleware(handler, mock_update, data)
-
-    assert result == "ok"
-    handler.assert_awaited_once_with(mock_update, data)
-    start_transaction.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_transaction_wraps_handler_exception(mock_update: Update):
+async def test_transaction_wraps_handler_exception(mock_update: Update) -> None:
     """The transaction context must exit (via __exit__) even when the handler raises."""
     middleware = SentryTracingMiddleware()
     handler = AsyncMock(side_effect=ValueError("boom"))
@@ -72,7 +54,6 @@ async def test_transaction_wraps_handler_exception(mock_update: Update):
     data = {"services": SimpleNamespace(redis=object())}
 
     with (
-        patch("sophie_bot.middlewares.sentry_tracing.is_enabled", AsyncMock(return_value=True)),
         patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction", return_value=transaction),
         pytest.raises(ValueError, match="boom"),
     ):

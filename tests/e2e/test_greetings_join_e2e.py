@@ -110,26 +110,6 @@ async def test_clean_service_deletes_the_join_message(test_client: TestClient) -
 
 
 @pytest.mark.asyncio
-async def test_clean_welcome_tracks_and_replaces_the_previous_welcome(test_client: TestClient) -> None:
-    _adder, group = await _setup_group(test_client)
-    greetings = await _greetings(group.id)
-    await greetings.set_clean_welcome_status(True)
-
-    first = await join_group(test_client, group, User(id=next_user_id(), is_bot=False, first_name="First"))
-    first_send = _sends(first)[-1]
-    stored = await _greetings(group.id)
-    assert stored.clean_welcome is not None
-    assert stored.clean_welcome.last_msg == first_send.response.message_id, (
-        "clean_welcome should record the id of the welcome it just sent"
-    )
-
-    second = await join_group(test_client, group, User(id=next_user_id(), is_bot=False, first_name="Second"))
-    assert first_send.response.message_id in _deleted_ids(second), (
-        "The previous welcome should be deleted on the next join"
-    )
-
-
-@pytest.mark.asyncio
 async def test_welcome_carries_the_rules_button(test_client: TestClient) -> None:
     _adder, group = await _setup_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
@@ -200,7 +180,6 @@ async def test_ephemeral_greeting_is_per_member_and_untracked(test_client: TestC
     _adder, group = await _setup_group(test_client)
     greetings = await _greetings(group.id)
     await greetings.set_clean_welcome_status(True)
-    await set_feature(test_client, "greetings_ephemeral", True, chat_tid=group.id)
 
     first = User(id=next_user_id(), is_bot=False, first_name="AlphaJoiner")
     second = User(id=next_user_id(), is_bot=False, first_name="BetaJoiner")

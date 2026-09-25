@@ -21,6 +21,7 @@ from sophie_bot.utils.feature_flags import FeatureType, get_service_tier
 @dataclass(frozen=True, slots=True)
 class AIStructuredTask[OutputT: BaseModel]:
     output_type: type[OutputT]
+    name: str
     feature: AIFeature | None = None
     service_tier_feature_key: FeatureType | None = None
     model_settings: Mapping[str, object] | None = None
@@ -58,7 +59,10 @@ async def run_structured_task[OutputT: BaseModel](
                 session_id=session_id,
                 service_tier=resolved_service_tier,
             )
-            agent = cast(Agent[None, OutputT], Agent(model_plan.primary, output_type=task.output_type))
+            agent = cast(
+                Agent[None, OutputT],
+                Agent(model_plan.primary, name=task.name, output_type=task.output_type),
+            )
             result = await run_ai_structured(
                 agent,
                 user_prompt=history.prompt,

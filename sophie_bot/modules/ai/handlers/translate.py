@@ -224,6 +224,7 @@ class AiTranslate(SophieMessageHandler):
             result = await run_structured_task(
                 AIStructuredTask(
                     output_type=AITranslateResponseSchema,
+                    name="translation:auto" if is_autotranslate else "translation:manual",
                     feature=AI_FEATURE_AUTO_TRANSLATE if is_autotranslate else AI_FEATURE_TRANSLATE,
                 ),
                 model_plan,

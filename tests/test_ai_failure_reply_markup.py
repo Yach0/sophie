@@ -11,7 +11,7 @@ from stfu_tg import Doc
 
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _send_chatbot_ai_failure_reply
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
 REPLY_KEYBOARD = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Exit AI help")]], resize_keyboard=True)
 INLINE_KEYBOARD = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Help", callback_data="help")]])
@@ -40,7 +40,6 @@ def _streamer(bot: MockBot, test_redis: object) -> ChatbotMessageStreamer:
     streamer = ChatbotMessageStreamer(
         source_message=_message(bot, 1),
         status=Doc("Header"),
-        mode=StreamMode.EDIT,
         throttle_seconds=1,
         redis=test_redis,
     )

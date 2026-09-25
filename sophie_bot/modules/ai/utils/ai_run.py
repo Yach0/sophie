@@ -113,16 +113,13 @@ def resolve_candidates(
 ) -> list[AIModelCandidate]:
     """The candidates to try for one request, best first.
 
-    With ``ai_model_failover`` off — or with no plan at all — the chain is the pre-plan one: the
-    agent's own model, closed by the cheap last resort. With it on, the agent's own model still
-    leads unless the plan deliberately ruled it out: a caller that built an agent around a model it
-    chose by hand gets that model first, but a plan candidate skipped for lacking image support
-    must not sneak back in through the agent.
+    The agent's own model leads unless the plan deliberately ruled it out: a caller that built
+    an agent around a model it chose by hand gets that model first, but a plan candidate skipped
+    for lacking image support must not sneak back in through the agent.
     """
     agent_candidate = _agent_candidate(agent_model, model_plan)
-    if model_plan is None or not model_plan.failover:
+    if model_plan is None:
         return _closed_chain([agent_candidate])
-
     eligible = list(model_plan.eligible(has_images=has_images))
     # Identity, not equality: two distinct model objects for the same provider settings compare
     # equal, and "is this the very object the agent holds" is the question actually being asked.
@@ -135,7 +132,7 @@ def resolve_candidates(
 
 
 def _should_try_next_model(error: BaseException) -> bool:
-    """Whether another candidate is worth trying after this failure, with failover on.
+    """Whether another candidate is worth trying after this failure.
 
     Most provider failures earn a failover, not just the transient ones: the request that most
     needs a different model — an image sent to a model that cannot read one — comes back as a flat
@@ -147,36 +144,11 @@ def _should_try_next_model(error: BaseException) -> bool:
     return not isinstance(error, UsageLimitExceeded) and not is_provider_configuration_error(error)
 
 
-@dataclass(frozen=True, slots=True)
-class CandidateChain:
-    """One request's candidates plus the failover rules that go with them."""
-
-    candidates: list[AIModelCandidate]
-    should_try_next: Callable[[BaseException], bool]
-    refusal_failover: bool
-
-
-def build_candidate_chain(
-    agent_model: Model,
-    model_plan: AIModelPlan | None,
-    has_images: bool,
-) -> CandidateChain:
-    """The candidates for one request and how far it may walk them.
-
-    Flag off restores the pre-plan rules whole: one model plus the last resort, moved onto only by
-    an error another attempt could actually survive, and never by an unusable answer.
-    """
-    failover = model_plan is not None and model_plan.failover
-    return CandidateChain(
-        candidates=resolve_candidates(agent_model, model_plan, has_images),
-        should_try_next=_should_try_next_model if failover else is_retryable_ai_provider_error,
-        refusal_failover=failover,
-    )
-
-
 async def _run_with_model_candidates[FallbackOutputT](
     operation: Callable[[AIModelCandidate], Awaitable[FallbackOutputT]],
-    chain: CandidateChain,
+    candidates: list[AIModelCandidate],
+    *,
+    model_plan: AIModelPlan | None,
     is_refusal: Callable[[FallbackOutputT], bool] | None = None,
     on_retry: AIRetryCallback | None = None,
     operation_label: str = "text",
@@ -185,13 +157,10 @@ async def _run_with_model_candidates[FallbackOutputT](
 ) -> tuple[FallbackOutputT, AIModelCandidate]:
     """Run ``operation`` against each candidate in turn until one answers.
 
-    A candidate is given up on when it fails in a way another model could survive (see
-    :meth:`CandidateChain.should_try_next`), or — with failover on — when it finishes without
-    producing a usable answer, whether that is an empty output (:func:`is_refusal_output`) or an
-    :exc:`AIModelRefused` a caller's own output validator raised. The last candidate's *returned*
-    refusal is handed back rather than raised: an empty answer is still an answer, and turning the
-    end of the chain into an error would change what the user sees for every mode at once. A
-    *raised* refusal has no answer to hand back, so it reaches the caller that raised it.
+    A plan permits another model after provider failures or unusable answers. Without a plan,
+    preserve the agent's original retry behavior and only use the last resort for retryable
+    provider failures. The last candidate's *returned* refusal is handed back rather than raised;
+    a *raised* refusal has no answer to hand back and reaches the caller.
 
     Each attempt is tracked under its own model name via :func:`track_ai_request`, and the candidate
     that actually served the request comes back with the result so callers attribute post-completion
@@ -200,13 +169,14 @@ async def _run_with_model_candidates[FallbackOutputT](
     A provider failure becomes a reported, user-facing error only after the retry/failover
     candidates are exhausted. Failures that neither retry nor fail over propagate unchanged.
     """
-    candidates = chain.candidates
     lead_model_name = candidates[0].model_name if candidates else None
+    allow_plan_failover = model_plan is not None
+    should_try_next = _should_try_next_model if allow_plan_failover else is_retryable_ai_provider_error
     with ai_span(
         "ai.run",
         operation=operation_label,
         candidate_count=len(candidates),
-        failover_enabled=chain.refusal_failover,
+        failover_enabled=allow_plan_failover,
         has_images=has_images,
         service_tier=service_tier,
     ) as run_span:
@@ -232,7 +202,7 @@ async def _run_with_model_candidates[FallbackOutputT](
                 except AIModelRefused:
                     if candidate_span is not None:
                         candidate_span.set_attribute("outcome", "refusal")
-                    if is_last or not chain.refusal_failover:
+                    if is_last or not allow_plan_failover:
                         raise
                     log.warning(
                         "AI request on %s produced no usable output; trying %s",
@@ -246,7 +216,7 @@ async def _run_with_model_candidates[FallbackOutputT](
                             "outcome", "usage_limit" if isinstance(error, UsageLimitExceeded) else "provider_failure"
                         )
                         candidate_span.set_attribute("error_type", type(error).__name__)
-                    if not chain.should_try_next(error):
+                    if not should_try_next(error):
                         raise
                     if is_last:
                         raise ai_request_failed_from_error(error, context) from error
@@ -259,7 +229,7 @@ async def _run_with_model_candidates[FallbackOutputT](
                     capture_ai_error(error, context, level="warning")
                     continue
 
-                if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
+                if allow_plan_failover and is_refusal is not None and not is_last and is_refusal(result):
                     if candidate_span is not None:
                         candidate_span.set_attribute("outcome", "refusal")
                     log.warning(
@@ -503,7 +473,7 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
     operation_label: str = "text",
 ) -> AIAgentResult[OutputT]:
     agent_model = _get_agent_model(agent)
-    chain = build_candidate_chain(
+    candidates = resolve_candidates(
         agent_model,
         model_plan,
         request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
@@ -516,8 +486,9 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
 
     result, served_candidate = await _run_with_model_candidates(
         run_agent_once,
-        chain,
+        candidates,
         is_refusal=lambda run_result: is_refusal_output(run_result.output),
+        model_plan=model_plan,
         on_retry=on_retry,
         operation_label=operation_label,
         has_images=request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
@@ -810,7 +781,7 @@ async def run_ai_stream[DepsT](
 ) -> AIAgentResult[str]:
     options = stream_options or ChatbotStreamOptions()
     agent_model = _get_agent_model(agent)
-    chain = build_candidate_chain(agent_model, model_plan, request_has_images(user_prompt, message_history))
+    candidates = resolve_candidates(agent_model, model_plan, request_has_images(user_prompt, message_history))
     base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
     merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     base_run_kwargs.update(extra_run_kwargs)
@@ -847,8 +818,9 @@ async def run_ai_stream[DepsT](
 
     outcome, served_candidate = await _run_with_model_candidates(
         run_stream_once,
-        chain,
+        candidates,
         is_refusal=lambda stream: is_refusal_output(stream.output_text),
+        model_plan=model_plan,
         on_retry=on_retry,
         operation_label="stream",
         has_images=request_has_images(user_prompt, message_history),

@@ -234,7 +234,7 @@ class GenerateChatSummaries:
             redis=self.services.redis,
         )
         result = await run_structured_task(
-            AIStructuredTask(output_type=AIChatSummaryGroups, feature=AI_FEATURE_CHATBOT),
+            AIStructuredTask(output_type=AIChatSummaryGroups, name="summary:chat", feature=AI_FEATURE_CHATBOT),
             model_plan,
             history,
             chat_iid=chat_iid,

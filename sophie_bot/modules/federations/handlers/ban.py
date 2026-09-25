@@ -29,7 +29,6 @@ from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -191,10 +190,9 @@ class FederationBanHandler(FederationCommandHandler):
         Returns ``(banner, banner_is_anonymous)``, or ``None`` when the banner could not
         be resolved (a user-facing reply has already been sent in that case).
 
-        When the ``fban_anonymous_admin`` flag is enabled and the command comes from an
-        anonymous admin (Telegram's anonymous-admin bot as sender, with the group as
-        ``sender_chat``), the real admin behind the custom author signature is resolved so
-        the federation permission check and the fed log use their true identity.
+        For an anonymous admin (Telegram's anonymous-admin bot as sender, with the
+        group as ``sender_chat``), resolve the real admin behind the custom author
+        signature for the federation permission check and fed log.
         """
         from_user = self.event.from_user
         assert from_user is not None  # guarded by the caller
@@ -204,9 +202,7 @@ class FederationBanHandler(FederationCommandHandler):
             and self.event.sender_chat is not None
             and self.event.sender_chat.id == current_chat.tid
         )
-        if is_anonymous_sender and await is_enabled(
-            "fban_anonymous_admin", chat_tid=current_chat.tid, redis=self.services.redis
-        ):
+        if is_anonymous_sender:
             return await self._resolve_anonymous_banner(current_chat)
 
         banner = await ChatModel.get_by_tid(from_user.id)

@@ -13,7 +13,6 @@ from sophie_bot.db.models.communities import CommunityTask
 from sophie_bot.db.models.communities_enums import CommunityTaskType
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.communities.services import CommunityBanService, CommunityManageService
 from sophie_bot.modules.communities.utils.ban_docs import build_unban_reply_doc
 from sophie_bot.modules.federations.services.common import normalize_chat_iids
@@ -36,7 +35,6 @@ class CommunityUnbanHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("uncban", "cunban")),
-            FeatureFlagFilter("communities"),
             UserRestricting(can_restrict_members=True),
             BotHasPermissions(can_restrict_members=True),
         )

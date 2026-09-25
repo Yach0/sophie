@@ -13,7 +13,6 @@ from sophie_bot.db.models.communities import CommunityTask
 from sophie_bot.db.models.communities_enums import CommunityTaskType
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.ai.utils.ai_restriction_reasons import generate_restriction_reason
 from sophie_bot.modules.communities.exceptions import CommunityBanValidationError
 from sophie_bot.modules.communities.services import CommunityBanService, CommunityManageService
@@ -39,7 +38,6 @@ class CommunityBanHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("cban", "scban")),
-            FeatureFlagFilter("communities"),
             UserRestricting(can_restrict_members=True),
             BotHasPermissions(can_restrict_members=True),
         )

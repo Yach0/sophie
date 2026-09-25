@@ -52,13 +52,12 @@ from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabl
 
 
 @pytest.mark.asyncio
-async def test_research_feature_flags_have_safe_defaults(db_init: object, test_redis: object, test_services: object) -> None:
+async def test_research_settings_have_safe_defaults(db_init: object, test_redis: object, test_services: object) -> None:
     assert await is_enabled(
         "ai_chatbot_research_quote",
         redis=test_redis,
     ) is True
-    assert await is_enabled("ai_research", redis=test_redis) is False
-    # Empty by default now: research resolves from the catalog, the flag is only an override.
+    # Empty by default: research resolves from the catalog; this flag is only a model override.
     assert await get_value("ai_research_model", redis=test_redis) == ""
     assert await get_value("ai_research_max_rounds", redis=test_redis) == 3
     assert await get_value("ai_research_queries_per_round", redis=test_redis) == 5
@@ -174,7 +173,6 @@ async def test_the_reported_research_model_is_the_one_that_summarised(
                             model=cast(Model, SimpleNamespace(model_name="primary-model")), model_name="primary-model"
                         ),
                     ),
-                    failover=True,
                 )
             ),
         ),
@@ -304,16 +302,11 @@ def test_research_markdown_file_uses_sanitized_title() -> None:
 
 @pytest.mark.asyncio
 async def test_chatbot_prompt_mentions_research_for_complicated_topics(test_redis: object, test_services: object) -> None:
-    async def enabled_side_effect(
-        feature: str,
-        chat_tid: int | None = None,
-        **kwargs: object,
-    ) -> bool:
-        return feature == "ai_research"
-
     with (
         patch("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(return_value="Base system prompt")),
-        patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
+        patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(return_value=False)),
+        patch("sophie_bot.modules.ai.utils.chatbot_context.ChatModel.get_by_tid", AsyncMock(return_value=None)),
+        patch("sophie_bot.modules.ai.utils.chatbot_context.AIChatSummaryModel.get_recent_lines", AsyncMock(return_value=[])),
         patch("sophie_bot.modules.ai.utils.chatbot_context.AIMemoryModel.get_lines", AsyncMock(return_value=[])),
     ):
         instructions = await build_chatbot_instructions(
@@ -331,25 +324,7 @@ async def test_chatbot_prompt_mentions_research_for_complicated_topics(test_redi
 
 
 @pytest.mark.asyncio
-async def test_chatbot_tools_include_research_only_when_enabled(test_redis: object, test_services: object) -> None:
-    async def enabled_side_effect(
-        feature: str,
-        chat_tid: int | None = None,
-        **kwargs: object,
-    ) -> bool:
-        return feature == "ai_research"
-
-    with (
-        patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(side_effect=enabled_side_effect)),
-        patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
-    ):
-        tools = await get_chatbot_tools(
-            SimpleNamespace(chat_tid=-100123, services=test_services),
-            get_capabilities(AIMode.support),
-        )
-
-    assert research_topic_tool in tools
-
+async def test_chatbot_tools_include_research(test_redis: object, test_services: object) -> None:
     with (
         patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)),
         patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
@@ -359,7 +334,8 @@ async def test_chatbot_tools_include_research_only_when_enabled(test_redis: obje
             get_capabilities(AIMode.support),
         )
 
-    assert research_topic_tool not in tools
+    assert research_topic_tool in tools
+
 
 
 @pytest.mark.asyncio

@@ -71,7 +71,6 @@ AIHeaderStyle = Literal["disable", "simple"]
 AIHeaderPurpose = Literal["chatbot", "filters", "translation", "summary"]
 
 _HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
-    "chatbot": "ai_chatbot_header_style",
     "filters": "ai_filters_header_style",
     "translation": "ai_translations_header_style",
     "summary": "ai_chat_summaries_header_style",
@@ -79,6 +78,8 @@ _HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
 
 
 async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int, *, redis: Redis) -> AIHeaderStyle:
+    if purpose == "chatbot":
+        return "simple"
     configured_style = await get_value(
         _HEADER_STYLE_FLAG_BY_PURPOSE[purpose],
         chat_tid=chat_tid,

@@ -46,13 +46,6 @@ class AIModelPlan:
     """
 
     candidates: tuple[AIModelCandidate, ...] = ()
-    failover: bool = False
-    """Whether the runtime may walk past the first candidate — the ``ai_model_failover`` flag.
-
-    Resolved where the plan is built, because that is the only place the chat is known, and carried
-    on the plan so the runtime stays synchronous. Off, the plan still lists every candidate — the
-    catalog and the operator panel keep showing the chain — but only the first one is run.
-    """
 
     @property
     def primary(self) -> Model:
@@ -82,7 +75,7 @@ class AIModelPlan:
         return tuple(candidate.model for candidate in self.eligible(has_images=has_images))
 
 
-def build_model_plan(candidates: Iterable[AIModelCandidate], failover: bool = False) -> AIModelPlan:
+def build_model_plan(candidates: Iterable[AIModelCandidate]) -> AIModelPlan:
     """A plan from candidates in priority order, dropping any model that already appears earlier."""
     seen: set[str] = set()
     ordered: list[AIModelCandidate] = []
@@ -91,7 +84,7 @@ def build_model_plan(candidates: Iterable[AIModelCandidate], failover: bool = Fa
             continue
         seen.add(candidate.model_name)
         ordered.append(candidate)
-    return AIModelPlan(candidates=tuple(ordered), failover=failover)
+    return AIModelPlan(candidates=tuple(ordered))
 
 
 def _contents_have_image(contents: Sequence[UserContent]) -> bool:

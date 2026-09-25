@@ -3,8 +3,12 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic_ai.models.test import TestModel
 
 from sophie_bot.config import Config
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.utils.chatbot_agent import build_chatbot_agent
+from sophie_bot.modules.ai.utils.sophie_inspect import _build_agent
 from sophie_bot.services import logfire as telemetry
 
 
@@ -87,3 +91,36 @@ def test_logfire_initialization_failure_shuts_down(monkeypatch: pytest.MonkeyPat
         telemetry.start_logfire(Config(_env_file=None, logfire_token="dummy-token"))
     sdk.shutdown.assert_called_once_with(flush=True)
     assert not telemetry.logfire_enabled()
+
+
+def test_unhandled_error_span_names_the_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    error = ValueError("No AI model in the catalog serves entertainment:translation")
+    sdk = MagicMock()
+    span = sdk.span.return_value.__enter__.return_value
+    span.get_span_context.return_value = None
+    monkeypatch.setattr(telemetry, "_enabled", True)
+    monkeypatch.setattr(telemetry, "logfire", sdk)
+
+    telemetry.capture_logfire_error(error)
+
+    call = sdk.span.call_args
+    assert call.args[0].format(**call.kwargs) == (
+        "Error: ValueError: No AI model in the catalog serves entertainment:translation"
+    )
+    span.record_exception.assert_called_once_with(error)
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected_name"),
+    [
+        (AIMode.entertainment, "entertainment:chat"),
+        (AIMode.support, "support:chat"),
+        (AIMode.sophie_help, "sophie_help:chat"),
+    ],
+)
+def test_chat_agent_name_identifies_its_mode(mode: AIMode, expected_name: str) -> None:
+    assert build_chatbot_agent(TestModel(), [], mode).name == expected_name
+
+
+def test_source_inspection_agent_has_its_own_name() -> None:
+    assert _build_agent(TestModel()).name == "sophie:source_inspection"

@@ -9,12 +9,11 @@ from ass_tg.types import TextArg
 from stfu_tg import Doc
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc, get_ai_header_style
+from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
@@ -74,7 +73,6 @@ class ResearchCmd(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter("research"),
-            FeatureFlagFilter("ai_research"),
             AICapabilityFilter(),
             AIQuotaFilter(AI_FEATURE_RESEARCH),
         )
@@ -104,14 +102,8 @@ class ResearchCmd(SophieMessageHandler):
         except AIRequestFailed as exc:
             await self.event.reply(**ai_request_failed_message(error=exc, title=_("Could not complete research")))
             return None
-        header_style = await get_ai_header_style(
-            "chatbot",
-            self.event.chat.id,
-            redis=self.services.redis,
-        )
         header = await build_chatbot_header(
             self.connection.db_model.iid,
-            header_style,
             redis=self.services.redis,
         )
         current_locale = self.data["i18n"].current_locale

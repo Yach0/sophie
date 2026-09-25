@@ -8,11 +8,11 @@ from redis.asyncio import Redis
 
 from sophie_bot.utils.feature_flags import FeatureType, get_service_tier, get_value
 
-_DEFAULT_PROACTIVE_BATCH_SIZE: Final[int] = 30
+_DEFAULT_PROACTIVE_BATCH_SIZE: Final[int] = 15
 _DEFAULT_PROACTIVE_WINDOW_SECONDS: Final[int] = 180
 _DEFAULT_PROACTIVE_MAX_ANSWERS: Final[int] = 1
 _DEFAULT_PROACTIVE_MAX_REACTIONS: Final[int] = 1
-_DEFAULT_PROACTIVE_MIN_MESSAGES: Final[int] = 12
+_DEFAULT_PROACTIVE_MIN_MESSAGES: Final[int] = 15
 _MAX_PROACTIVE_DECISION_ANSWERS: Final[int] = 1
 _MAX_PROACTIVE_DECISION_REACTIONS: Final[int] = 2
 _DEFAULT_PROACTIVE_PROMPT: Final[str] = (
@@ -67,9 +67,6 @@ async def _feature_int(
 
 
 async def get_proactive_reply_settings(chat_tid: int, *, redis: Redis) -> ProactiveReplySettings:
-    batch_size = await _feature_int(
-        "ai_proactive_replies_batch_size", chat_tid, _DEFAULT_PROACTIVE_BATCH_SIZE, redis=redis
-    )
     window_seconds = await _feature_int(
         "ai_proactive_replies_window_seconds", chat_tid, _DEFAULT_PROACTIVE_WINDOW_SECONDS, redis=redis
     )
@@ -87,16 +84,13 @@ async def get_proactive_reply_settings(chat_tid: int, *, redis: Redis) -> Proact
         minimum=0,
         redis=redis,
     )
-    min_messages = await _feature_int(
-        "ai_proactive_replies_min_messages", chat_tid, _DEFAULT_PROACTIVE_MIN_MESSAGES, redis=redis
-    )
     prompt = str(await get_value("ai_proactive_replies_prompt", chat_tid=chat_tid, redis=redis))
     return ProactiveReplySettings(
-        batch_size=batch_size,
+        batch_size=_DEFAULT_PROACTIVE_BATCH_SIZE,
         window_seconds=window_seconds,
         max_answers=min(max_answers, _MAX_PROACTIVE_DECISION_ANSWERS),
         max_reactions=min(max_reactions, _MAX_PROACTIVE_DECISION_REACTIONS),
-        min_messages=min(min_messages, batch_size),
+        min_messages=_DEFAULT_PROACTIVE_MIN_MESSAGES,
         prompt=prompt,
     )
 

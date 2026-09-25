@@ -17,7 +17,6 @@ from sophie_bot.modules.ai.json_schemas.research import ResearchFinalResponse, R
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_header import AI_GENERATING_EMOJI_ID, AI_PROGRESS_LINE_EMOJI_IDS
 from sophie_bot.modules.ai.utils.research import ResearchProgressCallback, ResearchWorkflowResult
-from tests.e2e.helpers import set_feature
 
 
 def _apply_ai_research_patches(stack: ExitStack, test_client: TestClient) -> None:
@@ -54,32 +53,7 @@ def _rich_html(request: CapturedRequest) -> str:
 
 
 @pytest.mark.asyncio
-async def test_research_command_is_silent_when_feature_flag_disabled(test_client: TestClient) -> None:
-    await set_feature(test_client, "ai_research", False)
-    group_chat = ChatFactory.create_group(chat_id=-1002910000001, title="Research Disabled Group")
-    user_wrapper = test_client.create_user(user_id=929100001, first_name="ResearchUser", username="research_user")
-
-    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
-
-    with ExitStack() as stack:
-        _apply_ai_research_patches(stack, test_client)
-        workflow_mock = stack.enter_context(
-            patch("sophie_bot.modules.ai.handlers.research.run_research_workflow", AsyncMock())
-        )
-        requests = await test_client.send_command(
-            command="research",
-            args="telegram bot news",
-            from_user=user_wrapper.user,
-            chat=group_chat,
-        )
-
-    assert not requests
-    workflow_mock.assert_not_awaited()
-
-
-@pytest.mark.asyncio
 async def test_research_command_returns_summary_and_sources(test_client: TestClient) -> None:
-    await set_feature(test_client, "ai_research", True)
     group_chat = ChatFactory.create_group(chat_id=-1002910000002, title="Research Enabled Group")
     user_wrapper = test_client.create_user(user_id=929100002, first_name="ResearchUser", username="research_enabled")
     response = ResearchFinalResponse(
@@ -149,12 +123,9 @@ async def test_research_command_returns_summary_and_sources(test_client: TestCli
     assert all(emoji_id not in response_text for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS)
     workflow_mock.assert_awaited_once()
 
-    await set_feature(test_client, "ai_research", False)
-
 
 @pytest.mark.asyncio
 async def test_research_provider_failure_replies_after_rich_progress(test_client: TestClient) -> None:
-    await set_feature(test_client, "ai_research", True)
     group_chat = ChatFactory.create_group(chat_id=-1002910000003, title="Research Failure Group")
     user_wrapper = test_client.create_user(user_id=929100003, first_name="ResearchUser", username="research_failure")
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)

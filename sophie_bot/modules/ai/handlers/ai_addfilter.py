@@ -214,6 +214,7 @@ class AIFilterAddHandler(SophieMessageHandler):
             result = await run_structured_task(
                 AIStructuredTask(
                     output_type=AIFilterSuggestionsResponse,
+                    name="filter:suggestions",
                     feature=AI_FEATURE_FILTER,
                 ),
                 model_plan,

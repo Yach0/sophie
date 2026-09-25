@@ -41,7 +41,7 @@ class GenerateAITitles:
             redis=self.services.redis,
         )
         result = await run_structured_task(
-            AIStructuredTask(output_type=AIUpdateNoteData),
+            AIStructuredTask(output_type=AIUpdateNoteData, name="notes:metadata"),
             model_plan,
             messages,
             chat_iid=chat_iid,

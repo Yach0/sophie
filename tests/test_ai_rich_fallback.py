@@ -10,7 +10,7 @@ from stfu_tg import Doc
 from sophie_bot.modules.ai.handlers.research import ResearchProgressMessage
 from sophie_bot.modules.ai.utils import ai_send, proactive_replies
 from sophie_bot.modules.ai.utils.ai_header import AI_GENERATING_EMOJI_ID, AI_PROGRESS_LINE_EMOJI_IDS
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
 
 class _RichFailure(Exception):
@@ -32,7 +32,6 @@ async def test_chatbot_final_edit_propagates_telegram_failure(
     streamer = ChatbotMessageStreamer(
         source,
         "header",
-        StreamMode.EDIT,
         0,
         redis=test_redis,
     )
@@ -54,7 +53,7 @@ async def test_chatbot_progress_edit_propagates_telegram_failure(test_redis: obj
         message_id=3,
         bot=SimpleNamespace(edit_message_text=edit_message_text),
     )
-    streamer = ChatbotMessageStreamer(source, "header", StreamMode.EDIT, 0, redis=test_redis)
+    streamer = ChatbotMessageStreamer(source, "header", 0, redis=test_redis)
     streamer.response_message = response
 
     with pytest.raises(_RichFailure) as raised:
@@ -168,9 +167,7 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
         "get_chat_default_model_plan",
         AsyncMock(return_value=SimpleNamespace(primary=model)),
     )
-    monkeypatch.setattr(proactive_replies, "get_service_tier", AsyncMock(return_value=None))
-    get_ai_header_style = AsyncMock(return_value="simple")
-    monkeypatch.setattr(proactive_replies, "get_ai_header_style", get_ai_header_style)
+    monkeypatch.setattr(proactive_replies, "resolve_chat_service_tier", AsyncMock(return_value=None))
     monkeypatch.setattr(
         proactive_replies,
         "is_enabled",
@@ -202,13 +199,6 @@ async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.Monk
         services=services,
     )
 
-    get_ai_header_style.assert_awaited_once_with("chatbot", 1, redis=services.redis)
-    build_chatbot_header.assert_awaited_once_with(
-        "chat",
-        "simple",
-        None,
-        redis=services.redis,
-    )
     assert build_reply_doc.await_args is not None
     rich_sender.assert_awaited_once_with(
         1,

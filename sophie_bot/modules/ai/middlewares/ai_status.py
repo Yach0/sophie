@@ -6,8 +6,6 @@ from aiogram.dispatcher.flags import get_flag
 from aiogram.types import Message, TelegramObject
 from aiogram.utils.chat_action import ChatActionSender
 
-from sophie_bot.utils.feature_flags import is_enabled
-
 
 class AiStatusMiddleware(BaseMiddleware):
     """Sends continuous typing status for handlers decorated with @flags.status(value="typing").
@@ -27,11 +25,7 @@ class AiStatusMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         is_ai_chatbot_response = get_flag(data, "ai_chatbot_response", default=None) is not None
-        if (
-            is_ai_chatbot_response
-            and event.chat.type != "private"
-            and await is_enabled("ai_chatbot_thinking_message", chat_tid=event.chat.id, redis=data["services"].redis)
-        ):
+        if is_ai_chatbot_response and event.chat.type != "private":
             return await handler(event, data)
 
         async with ChatActionSender.typing(

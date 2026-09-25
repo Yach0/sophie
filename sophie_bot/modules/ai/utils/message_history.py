@@ -45,7 +45,6 @@ from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -87,14 +86,8 @@ async def _admin_context_name(
     user_tid: int,
     name: str,
     is_group: bool,
-    *,
-    services: ApplicationServices,
 ) -> str:
-    if not is_group or not await is_enabled(
-        "ai_chatbot_admin_status",
-        chat_tid=chat_tid,
-        redis=services.redis,
-    ):
+    if not is_group:
         return name
 
     chat_model = await ChatModel.get_by_tid(chat_tid)
@@ -271,7 +264,6 @@ class AIMessageHistory:
             msg.user_id,
             first_name,
             is_group=True,
-            services=self.services,
         )
         return AIUserMessageFormatter.user_message(
             msg.text,
@@ -323,7 +315,6 @@ class AIMessageHistory:
             msg.user_id,
             first_name,
             is_group=True,
-            services=self.services,
         )
         return ModelRequest(
             parts=[
@@ -455,7 +446,6 @@ class AIMessageHistory:
             message.from_user.id,
             message.from_user.full_name,
             message.chat.type != "private",
-            services=self.services,
         )
         prompt.extend(
             await _build_message_parts(

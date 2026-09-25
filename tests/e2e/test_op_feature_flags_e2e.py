@@ -65,7 +65,7 @@ async def test_op_ff_alias_lists_features(test_client: TestClient) -> None:
         test_client,
         chat_tid=-1002950000086,
         user_tid=929500086,
-        command="op_ff ai_proactive_replies true",
+        command="op_ff ai_chatbot_show_model_name true",
     )
     response_text = await _send_op_ff(
         test_client,
@@ -73,7 +73,7 @@ async def test_op_ff_alias_lists_features(test_client: TestClient) -> None:
         user_tid=929500086,
     )
 
-    assert "ai_proactive_replies: false -&gt; true ✅" in response_text
+    assert "ai_chatbot_show_model_name: false -&gt; true ✅" in response_text
     assert "<blockquote expandable>All feature flags" in response_text
 
 
@@ -98,10 +98,10 @@ async def test_op_ff_set_global(test_client: TestClient) -> None:
         test_client,
         chat_tid=-1002950000082,
         user_tid=929500082,
-        command="op_ff ai_chatbot false",
+        command="op_ff ai_chatbot_show_model_name true",
     )
 
-    assert "ai_chatbot</code>: <code>false</code>" in response_text
+    assert "ai_chatbot_show_model_name</code>: <code>true</code>" in response_text
 
 
 @pytest.mark.asyncio
@@ -110,10 +110,10 @@ async def test_op_ff_set_rollout(test_client: TestClient) -> None:
         test_client,
         chat_tid=-1002950088,
         user_tid=929500088,
-        command="op_ff ^rollout=10 ai_proactive_replies true",
+        command="op_ff ^rollout=10 ai_chatbot_show_model_name true",
     )
 
-    assert "ai_proactive_replies</code>: <code>rollout 10% -&gt; true</code>" in response_text
+    assert "ai_chatbot_show_model_name</code>: <code>rollout 10% -&gt; true</code>" in response_text
 
     list_text = await _send_op_ff(
         test_client,
@@ -121,7 +121,7 @@ async def test_op_ff_set_rollout(test_client: TestClient) -> None:
         user_tid=929500088,
     )
 
-    assert "ai_proactive_replies: false -&gt; true ✅ (rollout 10% -&gt; true)" in list_text
+    assert "ai_chatbot_show_model_name: false -&gt; true ✅ (rollout 10% -&gt; true)" in list_text
     assert "Args: <code>^chat[=&lt;chat_id&gt;]" in list_text
 
 
@@ -131,10 +131,10 @@ async def test_op_ff_set_timed_rollout(test_client: TestClient) -> None:
         test_client,
         chat_tid=-1002950089,
         user_tid=929500089,
-        command="op_ff ^days=7 ai_proactive_replies true",
+        command="op_ff ^days=7 ai_chatbot_show_model_name true",
     )
 
-    assert "ai_proactive_replies</code>: <code>rollout 0%/100% over 7d -&gt; true</code>" in response_text
+    assert "ai_chatbot_show_model_name</code>: <code>rollout 0%/100% over 7d -&gt; true</code>" in response_text
 
 
 @pytest.mark.asyncio
@@ -143,16 +143,16 @@ async def test_op_ff_bump_rollout(test_client: TestClient) -> None:
         test_client,
         chat_tid=-1002950090,
         user_tid=929500090,
-        command="op_ff ^rollout=10 ai_proactive_replies true",
+        command="op_ff ^rollout=10 ai_chatbot_show_model_name true",
     )
     response_text = await _send_op_ff(
         test_client,
         chat_tid=-1002950090,
         user_tid=929500090,
-        command="op_ff ^rollout_bump=15 ai_proactive_replies",
+        command="op_ff ^rollout_bump=15 ai_chatbot_show_model_name",
     )
 
-    assert "ai_proactive_replies</code>: <code>rollout 25% -&gt; true</code>" in response_text
+    assert "ai_chatbot_show_model_name</code>: <code>rollout 25% -&gt; true</code>" in response_text
 
 
 @pytest.mark.asyncio
@@ -162,7 +162,7 @@ async def test_op_ff_set_chat_override_current_chat(test_client: TestClient) -> 
         test_client,
         chat_tid=chat_tid,
         user_tid=929500083,
-        command="op_ff ^chat ai_chatbot true",
+        command="op_ff ^chat ai_chatbot_show_model_name true",
     )
 
     assert f"for chat {chat_tid}:" in response_text
@@ -177,19 +177,19 @@ async def test_op_ff_lists_chat_override_sources(test_client: TestClient) -> Non
         test_client,
         chat_tid=manual_chat_tid,
         user_tid=929500091,
-        command="op_ff ^chat ai_chatbot true",
+        command="op_ff ^chat ai_chatbot_show_model_name true",
     )
     await _send_op_ff(
         test_client,
         chat_tid=rollout_chat_tid,
         user_tid=929500092,
-        command="op_ff ^rollout=100 ai_proactive_replies true",
+        command="op_ff ^rollout=100 ai_chatbot_show_model_name true",
     )
     await _send_op_ff(
         test_client,
         chat_tid=rollout_chat_tid,
         user_tid=929500092,
-        command="op_ff ^chat ai_proactive_replies",
+        command="op_ff ^chat ai_chatbot_show_model_name",
     )
 
     response_text = await _send_op_ff(
@@ -200,9 +200,9 @@ async def test_op_ff_lists_chat_override_sources(test_client: TestClient) -> Non
     )
 
     assert "<blockquote expandable>Manual per-chat overrides" in response_text
-    assert f"{manual_chat_tid}: ai_chatbot -&gt; true ✅ (manual)" in response_text
+    assert f"{manual_chat_tid}: ai_chatbot_show_model_name -&gt; true ✅ (manual)" in response_text
     assert "<blockquote expandable>Rollout-created per-chat overrides" in response_text
-    assert f"{rollout_chat_tid}: ai_proactive_replies -&gt; true ✅ (rollout)" in response_text
+    assert f"{rollout_chat_tid}: ai_chatbot_show_model_name -&gt; true ✅ (rollout)" in response_text
 
 
 @pytest.mark.asyncio
@@ -242,19 +242,19 @@ async def test_op_ff_accepts_only_supported_ai_header_styles(test_client: TestCl
         test_client,
         chat_tid=-1002950000094,
         user_tid=929500094,
-        command="op_ff ai_chatbot_header_style simple",
+        command="op_ff ai_translations_header_style disable",
     )
 
     assert "Invalid value" not in response_text
-    override = await FeatureFlagOverride.find_one(FeatureFlagOverride.feature == "ai_chatbot_header_style")
+    override = await FeatureFlagOverride.find_one(FeatureFlagOverride.feature == "ai_translations_header_style")
     assert override is not None
-    assert override.value == "simple"
+    assert override.value == "disable"
 
     invalid_response = await _send_op_ff(
         test_client,
         chat_tid=-1002950000095,
         user_tid=929500095,
-        command="op_ff ai_chatbot_header_style table",
+        command="op_ff ai_translations_header_style table",
     )
 
     assert "Invalid value" in invalid_response

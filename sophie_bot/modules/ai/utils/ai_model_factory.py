@@ -12,7 +12,7 @@ from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, c
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_providers import get_openai_provider, get_openrouter_provider
 from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 
 _ai_models: dict[str, Model] = {}
 _cache_version = ""
@@ -129,7 +129,6 @@ async def build_purpose_plan(
     mode: AIMode,
     purpose: AIModelPurpose,
     override_name: str = "",
-    chat_tid: int | None = None,
     *,
     redis: Redis,
 ) -> AIModelPlan:
@@ -139,8 +138,6 @@ async def build_purpose_plan(
     first and the mode's own candidates stay behind it as the failover chain the pin never had.
     Missing catalog roles remain an operator mistake and fail loudly.
 
-    Whether that chain is actually walked is the ``ai_model_failover`` flag, resolved here because
-    this is where the chat is known.
     """
     roles = (
         (await get_catalog(redis=redis)).roles_for(mode, purpose)
@@ -152,8 +149,7 @@ async def build_purpose_plan(
         [
             *((pinned_candidate(override_name),) if override_name else ()),
             *(role_candidate(role) for role in roles),
-        ],
-        failover=await is_enabled("ai_model_failover", chat_tid=chat_tid, redis=redis),
+        ]
     )
 
 

@@ -37,7 +37,6 @@ def _apply_ai_patches(stack: ExitStack) -> None:
     stack.enter_context(
         patch("sophie_bot.modules.ai.middlewares.ai_moderator.is_enabled", AsyncMock(return_value=False))
     )
-    stack.enter_context(patch("sophie_bot.modules.ai.utils.message_history.is_enabled", AsyncMock(return_value=False)))
 
 
 def _history_capture(

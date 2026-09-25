@@ -10,6 +10,7 @@ from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.metrics import (
     track_ai_conversation,
@@ -18,8 +19,7 @@ from sophie_bot.metrics import (
     track_ai_proactive_event,
 )
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
-from sophie_bot.modules.ai.utils.ai_header import get_ai_header_style
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
@@ -239,6 +239,7 @@ async def _generate_decision(
     result = await run_structured_task(
         AIStructuredTask(
             output_type=ProactiveDecision,
+            name="proactive:decision",
             feature=AI_FEATURE_CHATBOT,
         ),
         model_plan,
@@ -349,10 +350,8 @@ async def _answer_message(
     )
     model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid, redis=services.redis)
     model = model_plan.primary
-    service_tier = await get_service_tier(
-        "ai_chatbot_service_tier",
-        chat_tid=chat_tid,
-        redis=services.redis,
+    service_tier = await resolve_chat_service_tier(
+        AIModelPurpose.chatbot, chat.iid, chat_tid, AIMode.support, redis=services.redis
     )
     _log_proactive_info(
         "Proactive AI answer generation started",
@@ -388,7 +387,6 @@ async def _answer_message(
     model = result.served_model or model
     # Proactive answers are chatbot replies selected by a different trigger. They must use the
     # same per-chat rendering contract as commands, reply-to-AI, streaming, and model fallback.
-    header_style = await get_ai_header_style("chatbot", chat_tid, redis=services.redis)
     show_model_name = await is_enabled(
         "ai_chatbot_show_model_name",
         chat_tid=chat_tid,
@@ -396,8 +394,7 @@ async def _answer_message(
     )
     header = await build_chatbot_header(
         chat.iid,
-        header_style,
-        model_display_name(model) if show_model_name else None,
+        model_label=model_display_name(model) if show_model_name else None,
         redis=services.redis,
     )
     output_text = truncate_output(header, str(result.output))
@@ -518,14 +515,6 @@ async def maybe_run_proactive_reply(
             span.set_attribute("outcome", "failure")
         try:
             chat_tid = chat.tid
-            if not await is_enabled(
-                "ai_proactive_replies",
-                chat_tid=chat_tid,
-                redis=services.redis,
-            ):
-                if span is not None:
-                    span.set_attribute("outcome", "disabled")
-                return
             if message.chat.type not in {"group", "supergroup"}:
                 if span is not None:
                     span.set_attribute("outcome", "non_group")

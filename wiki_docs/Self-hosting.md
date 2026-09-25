@@ -78,14 +78,12 @@ registered in Sophie's database still receives HTTP 403. The successful token re
 
 ## Greetings and welcome security
 
-`greetings_ephemeral` sends the welcome only to the members it greets, one message each, filled
-with their own name. Nothing is posted to the chat, so the clean-welcome cleanup has nothing to
-delete afterwards.
+Welcome messages go only to the members they greet, one message per member with their
+own name. Nothing is posted to the chat, so clean-welcome cleanup has nothing to delete.
 
-`welcomecaptcha_ephemeral` sends the captcha prompt as an ephemeral message to each new member
-instead of posting it in the chat. Only they see it, one prompt per member rather than one for the
-batch, and nothing is left behind to clean up — so the prompt is not deleted when the captcha is
-passed, because there is nothing there to delete.
+Captcha prompts also go to each new member as ephemeral messages, rather than into the
+chat. Only new members see them, one prompt each; nothing is left to delete after
+the captcha is passed.
 
 A prompt whose security note is an album is still posted to the chat: `sendMediaGroup` cannot
 address one member, and splitting the album into separate ephemeral messages is no way around it —
@@ -129,16 +127,20 @@ A mode with no model for a purpose falls back to the `support` tier, so you only
 roles you want to differ. Changes take effect on every process within a few seconds without a
 restart.
 
+Logfire identifies PydanticAI runs by role in `gen_ai.agent.name`: chat agents use
+`<mode>:chat` (for example `entertainment:chat`); structured tasks have distinct names
+such as `summary:chat`, `filter:matching`, and `proactive:decision`.
+
 > **Warning:** AI requests require a configured catalog model and a key on its provider. Check
 > `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
 ### AI progress
 
-When `ai_chatbot_thinking_message` or `ai_chatbot_streaming` is enabled, chatbot replies
-show an in-progress message. Manual translation (`/tr`, `/translate`) and `/research` also
-show progress. All three use STFU Rich rendering with a fixed animated AI emoji and a
-three-emoji footer; translation and research edit the same Rich message for the result.
+Chatbot replies show an in-progress message while they stream. Manual translation
+(`/tr`, `/translate`) and `/research` also show progress. All three use STFU Rich
+rendering with a fixed animated AI emoji and a three-emoji footer; translation
+and research edit the same Rich message for the result.
 Automatic translation stays silent until its result is ready. Streamed chatbot reasoning
 renders Markdown and is flushed before tool activity, even during edit backoff.
 An active tool shows one of its localized activity messages in italics, without an emoji,
@@ -150,10 +152,9 @@ Each tool has its own `display_in_ai_header` setting in
 final header without hiding its in-progress activity. Custom emoji IDs remain in the
 tool metadata but are not rendered in the progress activity or completed header.
 The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66–100%.
-`ai_chatbot_show_model_name` adds the model beside the battery reading. The
-`ai_chatbot_header_style` flag can disable the final prefix and quota footer.
-Only the assistant's answer is stored in conversation history; the displayed header, tool
-titles, and battery footer are not.
+`ai_chatbot_show_model_name` adds the model beside the battery reading.
+Only the assistant's answer is stored in conversation history; the displayed header,
+tool titles, and battery footer are not.
 
 ## AI moderation
 

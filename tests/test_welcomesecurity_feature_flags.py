@@ -21,7 +21,7 @@ async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_fl
     chat_iid = PydanticObjectId()
     user_iid = PydanticObjectId()
     event = SimpleNamespace(
-        new_chat_members=[SimpleNamespace(id=123)],
+        new_chat_members=[SimpleNamespace(id=123, is_bot=False)],
         from_user=SimpleNamespace(id=123),
         chat=SimpleNamespace(id=-100123, join_by_request=False),
         date=None,

@@ -6,8 +6,7 @@ buffers those updates and hands the handler a single ``album`` list.
 
 Ported from aiogram PR aiogram/aiogram#1777 and adapted to aiogram 3.29:
 the storage key is derived directly from the message (aiogram 3.29 has no
-``EventContext``/``EVENT_CONTEXT_KEY``), and aggregation is gated behind the
-``notes_media_groups`` feature flag.
+``EventContext``/``EVENT_CONTEXT_KEY``).
 
 The middleware MUST run *before* the FSM ``FSMContextMiddleware``: that
 middleware holds a per-``(chat, user, thread)`` isolation lock, and every item
@@ -32,7 +31,6 @@ from aiogram.fsm.storage.redis import DefaultKeyBuilder, KeyBuilder
 from aiogram.types import Message, TelegramObject, Update
 from redis.asyncio import Redis
 
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.serialization import serialize_bot_default
 
 DELAY_SEC = 1.0
@@ -229,11 +227,6 @@ class MediaGroupAggregatorMiddleware(BaseMiddleware):
 
         message = event.event
         if not isinstance(message, Message) or not message.media_group_id:
-            return await handler(event, data)
-
-        # Only aggregate when the feature is enabled for this chat. Otherwise fall
-        # back to per-item behavior, keeping today's dispatch unchanged.
-        if not await is_enabled("notes_media_groups", chat_tid=message.chat.id, redis=data["services"].redis):
             return await handler(event, data)
 
         bot = cast(Bot, data.get("bot"))

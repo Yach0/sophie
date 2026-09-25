@@ -367,36 +367,42 @@ async def test_notes_initial_page_has_navigation_and_preserves_search(test_clien
         first_name="NavigationLister",
         username="navigation_lister",
     )
-    for note_index in range(1, 10):
+    notes = [
         await _save_note_directly(chat_model, (f"note{note_index}",), f"Note {note_index}")
+        for note_index in range(1, 10)
+    ]
 
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
-    requests = await test_client.send_command(
-        command="notes",
-        from_user=user_wrapper.user,
-        chat=group_chat,
-        args="note",
-    )
-    assert requests[-1].reply_markup is not None
-    inline_buttons = [
-        btn
-        for row in requests[-1].reply_markup.get("inline_keyboard", [])
-        for btn in row
-    ]
-    next_button = next(
-        (btn for btn in inline_buttons if "▶️" in btn.get("text", "") or btn.get("text") == "Next"),
-        None,
-    )
-    assert next_button is not None
-    next_callback_data = next_button.get("callback_data")
-    assert next_callback_data is not None
+    with patch(
+        "sophie_bot.modules.notes.handlers.list.semantic_search_notes",
+        AsyncMock(return_value=notes),
+    ):
+        requests = await test_client.send_command(
+            command="notes",
+            from_user=user_wrapper.user,
+            chat=group_chat,
+            args="note",
+        )
+        assert requests[-1].reply_markup is not None
+        inline_buttons = [
+            button
+            for row in requests[-1].reply_markup.get("inline_keyboard", [])
+            for button in row
+        ]
+        next_button = next(
+            (button for button in inline_buttons if "▶️" in button.get("text", "") or button.get("text") == "Next"),
+            None,
+        )
+        assert next_button is not None
+        next_callback_data = next_button.get("callback_data")
+        assert next_callback_data is not None
 
-    wizard_message = MessageFactory.create(text="Notes", from_user=bot_user, chat=group_chat)
-    next_requests = await test_client.send_callback(
-        next_callback_data,
-        from_user=user_wrapper.user,
-        message=wizard_message,
-    )
+        wizard_message = MessageFactory.create(text="Notes", from_user=bot_user, chat=group_chat)
+        next_requests = await test_client.send_callback(
+            next_callback_data,
+            from_user=user_wrapper.user,
+            message=wizard_message,
+        )
     assert any("note9" in str(request.params) for request in next_requests)
 
 
@@ -410,40 +416,48 @@ async def test_notes_pagination_keeps_each_list_search_context(test_client: Test
         first_name="ConcurrentLister",
         username="concurrent_lister",
     )
-    for note_index in range(1, 10):
+    alpha_notes = [
         await _save_note_directly(chat_model, (f"alpha{note_index}",), f"Alpha {note_index}")
-        await _save_note_directly(chat_model, (f"beta{note_index}",), f"Beta {note_index}")
-
-    first_requests = await test_client.send_command(
-        command="notes",
-        from_user=user_wrapper.user,
-        chat=group_chat,
-        args="alpha",
-    )
-    first_buttons = [
-        button
-        for row in (first_requests[-1].reply_markup or {}).get("inline_keyboard", [])
-        for button in row
+        for note_index in range(1, 10)
     ]
-    first_next_callback = next(
-        button["callback_data"]
-        for button in first_buttons
-        if "▶️" in button.get("text", "") or button.get("text") == "Next"
-    )
+    beta_notes = [
+        await _save_note_directly(chat_model, (f"beta{note_index}",), f"Beta {note_index}")
+        for note_index in range(1, 10)
+    ]
+    with patch(
+        "sophie_bot.modules.notes.handlers.list.semantic_search_notes",
+        AsyncMock(side_effect=lambda chat_iid, search, **kwargs: alpha_notes if search == "alpha" else beta_notes),
+    ):
+        first_requests = await test_client.send_command(
+            command="notes",
+            from_user=user_wrapper.user,
+            chat=group_chat,
+            args="alpha",
+        )
+        first_buttons = [
+            button
+            for row in (first_requests[-1].reply_markup or {}).get("inline_keyboard", [])
+            for button in row
+        ]
+        first_next_callback = next(
+            button["callback_data"]
+            for button in first_buttons
+            if "▶️" in button.get("text", "") or button.get("text") == "Next"
+        )
 
-    await test_client.send_command(
-        command="notes",
-        from_user=user_wrapper.user,
-        chat=group_chat,
-        args="beta",
-    )
-    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
-    first_list_message = MessageFactory.create(text="Alpha notes", from_user=bot_user, chat=group_chat)
-    page_requests = await test_client.send_callback(
-        first_next_callback,
-        from_user=user_wrapper.user,
-        message=first_list_message,
-    )
+        await test_client.send_command(
+            command="notes",
+            from_user=user_wrapper.user,
+            chat=group_chat,
+            args="beta",
+        )
+        bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
+        first_list_message = MessageFactory.create(text="Alpha notes", from_user=bot_user, chat=group_chat)
+        page_requests = await test_client.send_callback(
+            first_next_callback,
+            from_user=user_wrapper.user,
+            message=first_list_message,
+        )
     rendered_text = "\n".join(request.text or "" for request in page_requests)
 
     assert "alpha9" in rendered_text
@@ -490,7 +504,7 @@ async def test_notes_list_empty(
 async def test_notes_list_with_search(
     test_client: TestClient,
 ) -> None:
-    """Listing notes with a search term filters the results."""
+    """Search uses the selected semantic results rather than filtering note names."""
 
     user_wrapper, group_chat, chat_model = await _setup_group_and_user(
         test_client,
@@ -502,26 +516,24 @@ async def test_notes_list_with_search(
     )
 
     note_welcome = await _save_note_directly(chat_model, ("welcome",), "Welcome to the group!")
-    note_rules = await _save_note_directly(chat_model, ("rules",), "Group rules here")
+    await _save_note_directly(chat_model, ("rules",), "Group rules here")
     note_welcome_back = await _save_note_directly(chat_model, ("welcome-back",), "Welcome back!")
 
-    # Return all notes; the handler filters by name matching the search term
-    get_chat_notes_mock = AsyncMock(return_value=[note_welcome, note_rules, note_welcome_back])
-    with patch.object(NoteModel, "get_chat_notes", get_chat_notes_mock):
+    with patch(
+        "sophie_bot.modules.notes.handlers.list.semantic_search_notes",
+        AsyncMock(return_value=[note_welcome, note_welcome_back]),
+    ):
         requests = await test_client.send_command(
             command="notes",
             from_user=user_wrapper.user,
             chat=group_chat,
-            args="welcome",
+            args="how do I greet new members?",
         )
 
     assert requests, "Bot should respond to /notes with search"
     response_text = requests[-1].text or ""
     assert "welcome" in response_text, f"Response should include matching notes, got: {response_text}"
-    # The 'rules' note name does NOT contain 'welcome', so it should be filtered out
-    assert "rules" not in response_text or "Search pattern" in response_text, (
-        f"Non-matching notes should be filtered, got: {response_text}"
-    )
+    assert "rules" not in response_text
 
 
 # ---------------------------------------------------------------------------

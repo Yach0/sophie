@@ -75,61 +75,23 @@ async def test_middleware_aggregates_album_into_single_handler_call(test_client:
 
     updates = [_photo_update(index, _photo_message(index, media_group_id="album-A")) for index in range(1, 4)]
 
-    with patch("sophie_bot.middlewares.media_group.is_enabled", AsyncMock(return_value=True)):
-        await asyncio.gather(
-            *(
-                middleware(
-                    handler,
-                    update,
-                    {
-                        "bot": test_client.bot,
-                        "services": test_client.dispatcher.workflow_data[
-                            "services"
-                        ],
-                    },
-                )
-                for update in updates
+    await asyncio.gather(
+        *(
+            middleware(
+                handler,
+                update,
+                {
+                    "bot": test_client.bot,
+                    "services": test_client.dispatcher.workflow_data["services"],
+                },
             )
+            for update in updates
         )
+    )
 
     non_empty_albums = [album for album in albums_seen if album]
     assert len(non_empty_albums) == 1, f"Handler should fire once with the album, got {albums_seen}"
     assert len(non_empty_albums[0]) == 3, "The album should contain all three photos"
-
-
-@pytest.mark.asyncio
-async def test_middleware_passes_through_when_flag_disabled(test_client: TestClient) -> None:
-    """With the flag off, each album item is handled individually (no aggregation)."""
-    middleware = MediaGroupAggregatorMiddleware(MemoryMediaGroupAggregator(), delay=0.05)
-
-    call_count = 0
-
-    async def handler(event: Any, data: dict[str, Any]) -> str:
-        nonlocal call_count
-        call_count += 1
-        assert data.get("album") is None
-        return "handled"
-
-    updates = [_photo_update(index, _photo_message(index, media_group_id="album-B")) for index in range(1, 4)]
-
-    with patch("sophie_bot.middlewares.media_group.is_enabled", AsyncMock(return_value=False)):
-        await asyncio.gather(
-            *(
-                middleware(
-                    handler,
-                    update,
-                    {
-                        "bot": test_client.bot,
-                        "services": test_client.dispatcher.workflow_data[
-                            "services"
-                        ],
-                    },
-                )
-                for update in updates
-            )
-        )
-
-    assert call_count == 3, "Every item should reach the handler when the feature is disabled"
 
 
 # ---------------------------------------------------------------------------

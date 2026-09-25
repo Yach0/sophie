@@ -12,7 +12,7 @@ from stfu_tg import Doc
 
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, build_ai_header, build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
 
 def _response_message() -> SimpleNamespace:
@@ -30,7 +30,6 @@ def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
         status=Doc("Initial"),
-        mode=StreamMode.EDIT,
         throttle_seconds=1,
         redis=object(),
     )
@@ -105,7 +104,6 @@ async def test_reasoning_markdown_and_tool_call_remain_visible_together(monkeypa
     streamer = ChatbotMessageStreamer(
         source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
         status="Thinking...",
-        mode=StreamMode.EDIT,
         throttle_seconds=0,
         redis=object(),
     )
@@ -132,7 +130,6 @@ async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
         status=Doc("Initial"),
-        mode=StreamMode.EDIT,
         throttle_seconds=60,
         redis=object(),
     )
@@ -156,7 +153,6 @@ async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
         status=Doc("Initial"),
-        mode=StreamMode.EDIT,
         throttle_seconds=0.01,
         redis=object(),
     )
@@ -181,7 +177,6 @@ async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> 
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
         status=Doc("Initial"),
-        mode=StreamMode.EDIT,
         throttle_seconds=0,
         redis=object(),
     )

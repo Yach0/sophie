@@ -17,7 +17,6 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
-from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, get_ai_header_style
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
@@ -39,7 +38,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
     used_tool_labels,
 )
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
 from sophie_bot.modules.ai.utils.chatbot_tool_history import remember_chatbot_tool_history
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
@@ -80,11 +79,7 @@ async def _resolve_model_plan(
     *,
     services: ApplicationServices,
 ) -> AIModelPlan:
-    """The chatbot's candidates for this chat, with a caller's own model pinned in front.
-
-    A caller that hand-picked a model still gets exactly that model first; what it gains is the
-    mode's own candidates behind it, so a pin that fails is no longer a dead end.
-    """
+    """The chatbot's candidates for this chat, with a caller's own model pinned in front."""
     plan = await get_chat_default_model_plan(
         connection.db_model.iid,
         chat_tid=connection.db_model.tid,
@@ -94,20 +89,18 @@ async def _resolve_model_plan(
     if model is None:
         return plan
     pinned = AIModelCandidate(model=model, model_name=model.model_name)
-    return build_model_plan([pinned, *plan.candidates], failover=plan.failover)
+    return build_model_plan([pinned, *plan.candidates])
 
 
 async def _build_chatbot_header(
     connection: ChatConnection,
-    style: AIHeaderStyle,
     model_label: str | None = None,
     *,
     services: ApplicationServices,
 ) -> Element | str | None:
     return await build_chatbot_header(
         connection.db_model.iid,
-        style,
-        model_label,
+        model_label=model_label,
         redis=services.redis,
     )
 
@@ -271,7 +264,6 @@ async def _ai_chatbot_reply(
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         model_plan = await _resolve_model_plan(connection, model, mode, services=services)
         model = model_plan.primary
-        header_style = await get_ai_header_style("chatbot", message.chat.id, redis=services.redis)
         strip_alien_html_tags = await is_enabled(
             "ai_chatbot_strip_alien_html_tags",
             chat_tid=message.chat.id,
@@ -279,9 +271,7 @@ async def _ai_chatbot_reply(
         )
         message_streamer = await build_message_streamer(
             message,
-            model,
             explicit_debug_mode,
-            header_style,
             redis=services.redis,
             strip_alien_html_tags=strip_alien_html_tags,
         )
@@ -334,11 +324,7 @@ async def _ai_chatbot_reply(
                     thread_id=message.message_thread_id,
                     stream_options=stream_options,
                     callbacks=ChatbotRunCallbacks(
-                        on_text_stream=(
-                            message_streamer.stream
-                            if message_streamer and message_streamer.mode != StreamMode.THINKING_ONLY
-                            else None
-                        ),
+                        on_text_stream=(message_streamer.stream if message_streamer else None),
                         on_tool_call=on_tool_call,
                         on_reasoning_stream=on_reasoning_stream,
                         on_retry=(message_streamer.update_retrying if message_streamer else None),
@@ -352,17 +338,13 @@ async def _ai_chatbot_reply(
         # the header both follow the model that actually answered.
         model = result.served_model or model
 
-        header_style, show_model_name = await asyncio.gather(
-            get_ai_header_style("chatbot", message.chat.id, redis=services.redis),
-            is_enabled(
-                "ai_chatbot_show_model_name",
-                chat_tid=message.chat.id,
-                redis=services.redis,
-            ),
+        show_model_name = await is_enabled(
+            "ai_chatbot_show_model_name",
+            chat_tid=message.chat.id,
+            redis=services.redis,
         )
         header = await _build_chatbot_header(
             connection,
-            header_style,
             model_display_name(model) if show_model_name else None,
             services=services,
         )

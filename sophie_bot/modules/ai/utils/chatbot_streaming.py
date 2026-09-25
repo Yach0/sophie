@@ -3,18 +3,16 @@ from __future__ import annotations
 import asyncio
 import time
 from contextlib import suppress
-from enum import Enum
 from random import choice
 from typing import Any
 
 from aiogram.types import InputRichMessage, Message
-from pydantic_ai.models import Model
 from redis.asyncio import Redis
 from stfu_tg import Doc, HList, Italic, Template
 from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
-from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, build_ai_progress_doc
+from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
 from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
@@ -24,7 +22,7 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
@@ -32,11 +30,6 @@ _MIN_STREAM_BACKOFF_SECONDS = 0.5
 # Telegram's limit also includes the animated marker, action status and three custom emoji.
 _MAX_STREAM_TEXT_LENGTH = 4096 - 512
 _MAX_REASONING_TAIL_LENGTH = 200
-
-
-class StreamMode(Enum):
-    THINKING_ONLY = "thinking_only"
-    EDIT = "edit"
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:
@@ -68,9 +61,7 @@ class ChatbotMessageStreamer:
         self,
         source_message: Message,
         status: Element | str | None,
-        mode: StreamMode,
         throttle_seconds: float,
-        header_style: AIHeaderStyle = "simple",
         *,
         redis: Redis,
         strip_alien_html_tags: bool = False,
@@ -82,9 +73,7 @@ class ChatbotMessageStreamer:
         self.placeholder = status or ""
         self.status: Element | None = None
         self.reasoning: Element | None = None
-        self.mode = mode
         self.throttle_seconds = throttle_seconds
-        self.header_style = header_style
         self.strip_alien_html_tags = strip_alien_html_tags
         self.response_message: Message | None = None
         self.latest_text: str = ""
@@ -99,7 +88,7 @@ class ChatbotMessageStreamer:
         self._last_sent_rich = doc.to_rich()
 
     async def stream(self, text: str) -> None:
-        if self.mode == StreamMode.THINKING_ONLY or not text.strip():
+        if not text.strip():
             return
 
         draft_text = _truncate_stream_text(text)
@@ -234,8 +223,6 @@ class ChatbotMessageStreamer:
             mention_index=self.mention_index,
             strip_alien_html_tags=self.strip_alien_html_tags,
         )
-        if self.header_style == "disable":
-            return body
         return build_ai_progress_doc(body, self.status, reasoning=self.reasoning)
 
     async def _update_status(self, status: Element) -> None:
@@ -276,9 +263,7 @@ class ChatbotMessageStreamer:
 
 async def build_message_streamer(
     message: Message,
-    model: Model,
     explicit_debug_mode: bool,
-    header_style: AIHeaderStyle = "simple",
     *,
     redis: Redis,
     strip_alien_html_tags: bool = False,
@@ -286,16 +271,7 @@ async def build_message_streamer(
     if explicit_debug_mode:
         return None
 
-    thinking_enabled = await is_enabled("ai_chatbot_thinking_message", chat_tid=message.chat.id, redis=redis)
-    streaming_enabled = await is_enabled("ai_chatbot_streaming", chat_tid=message.chat.id, redis=redis)
-    if streaming_enabled:
-        mode = StreamMode.EDIT
-    elif thinking_enabled:
-        mode = StreamMode.THINKING_ONLY
-    else:
-        return None
-
-    status = random_ai_thinking_text() if thinking_enabled else model.model_name
+    status = random_ai_thinking_text()
     backoff_seconds = _coerce_stream_backoff_seconds(
         await get_value(
             "ai_chatbot_streaming_backoff_seconds",
@@ -306,9 +282,7 @@ async def build_message_streamer(
     streamer = ChatbotMessageStreamer(
         source_message=message,
         status=status,
-        mode=mode,
         throttle_seconds=backoff_seconds,
-        header_style=header_style,
         redis=redis,
         strip_alien_html_tags=strip_alien_html_tags,
     )
