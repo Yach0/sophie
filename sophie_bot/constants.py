@@ -130,7 +130,6 @@ WARN_MAX_ACTIONS: Final[int] = 2  # Maximum number of actions allowed per warn s
 
 # AI Emoji used in messages
 AI_EMOJI: Final[str] = "✨"
-AI_CREDIT_EMOJI: Final[str] = "🥡"
 
 
 # =============================================================================

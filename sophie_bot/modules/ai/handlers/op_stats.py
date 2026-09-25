@@ -6,11 +6,12 @@ from aiogram.types import Message
 from stfu_tg import Bold, Code, Doc, KeyValue, Section, Template, UserLink
 from stfu_tg.doc import Element
 
-from sophie_bot.constants import AI_CREDIT_EMOJI
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
+from sophie_bot.modules.ai.utils.ai_header import battery_custom_emoji
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_usage_service import OperatorAIStats, get_operator_ai_stats
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -48,7 +49,7 @@ def _format_feature_top(stats: OperatorAIStats) -> list[Template]:
                 icon=item.icon,
                 title=Bold(item.title),
                 requests=Code(item.requests),
-                credit_emoji=AI_CREDIT_EMOJI,
+                credit_emoji=battery_custom_emoji(),
                 credits=Code(f"{item.credits:,}"),
             )
         )
@@ -64,7 +65,7 @@ def _build_doc(stats: OperatorAIStats) -> Doc:
             KeyValue(_("Requests today"), Code(stats.total_requests_today)),
             KeyValue(_("Requests this week"), Code(stats.total_requests_week)),
             KeyValue(_("Requests this month"), Code(stats.total_requests_month)),
-            KeyValue(_("Credits this month"), Code(format_credit_amount(stats.total_credits_month))),
+            KeyValue(_("Credits this month"), format_credit_amount(stats.total_credits_month)),
             title=_("AI usage"),
         ),
         Section(Bold(_("Top chats by requests")), *_format_top(stats.top_chats_by_requests)),
@@ -76,7 +77,7 @@ def _build_doc(stats: OperatorAIStats) -> Doc:
 
 
 async def op_ai_stats_handler(message: Message) -> None:
-    await message.reply(str(_build_doc(await get_operator_ai_stats())))
+    await send_ai_rich_message(message, _build_doc(await get_operator_ai_stats()))
 
 
 class OpAIStatsHandler(SophieMessageHandler):

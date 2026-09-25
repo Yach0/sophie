@@ -54,7 +54,7 @@ def _get_battery_custom_emoji_id(percentage: int) -> str:
     return _LOW_BATTERY_CUSTOM_EMOJI_ID
 
 
-def _battery_custom_emoji(percentage: int) -> Element:
+def battery_custom_emoji(percentage: int = 100) -> Element:
     return CustomEmoji(_get_battery_custom_emoji_id(percentage), "🔋")
 
 
@@ -105,4 +105,4 @@ def build_ai_message_doc(
 
 def ai_credit_header(percentage: int, model_label: str | None = None) -> Element:
     model = f"({model_label})" if model_label else None
-    return HList(_battery_custom_emoji(percentage), str(percentage) + "%", model, divider=" ")
+    return HList(battery_custom_emoji(percentage), str(percentage) + "%", model, divider=" ")

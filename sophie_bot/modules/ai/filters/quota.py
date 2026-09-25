@@ -15,6 +15,7 @@ from sophie_bot.modules.ai.utils.ai_quota_docs import (
     build_chatbot_quota_exhausted_doc,
     build_feature_quota_exhausted_doc,
 )
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AIFeature
 
@@ -45,8 +46,9 @@ class AIQuotaFilter(Filter):
         period_end = quota_info.period_end if quota_info else get_period_end(period_start)
 
         if self._is_chatbot:
-            await message.reply(
-                str(build_chatbot_quota_exhausted_doc(quota_info.total_credits if quota_info else "?", period_end))
+            await send_ai_rich_message(
+                message,
+                build_chatbot_quota_exhausted_doc(quota_info.total_credits if quota_info else "?", period_end),
             )
         else:
             quota_model = await AIQuotaModel.get_for_chat(chat_db.iid)

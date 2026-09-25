@@ -5,10 +5,12 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template, Title, VList
 
-from sophie_bot.constants import AI_CREDIT_EMOJI, AI_EMOJI
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
+from sophie_bot.modules.ai.utils.ai_header import battery_custom_emoji
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_usage_service import get_chat_usage_view
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -39,7 +41,7 @@ class AiUsage(SophieMessageHandler):
                     "{icon} {label}: {credit_emoji} {credits} ({percentage}%)",
                     icon=item.icon,
                     label=Bold(item.title),
-                    credit_emoji=AI_CREDIT_EMOJI,
+                    credit_emoji=battery_custom_emoji(),
                     credits=Code(f"{item.credits:,}"),
                     percentage=Code(item.percentage),
                 )
@@ -77,4 +79,4 @@ class AiUsage(SophieMessageHandler):
                 date=Italic(usage_view.period_end.strftime("%B %d, %Y")),
             )
 
-        await self.event.reply(str(doc))
+        await send_ai_rich_message(self.event, doc)

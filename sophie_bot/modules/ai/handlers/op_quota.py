@@ -6,11 +6,13 @@ from aiogram.dispatcher.event.handler import CallbackType
 from ass_tg.types import IntArg
 from stfu_tg import Code, Doc, KeyValue, Section, Template, Title
 
-from sophie_bot.constants import AI_CREDIT_EMOJI, AI_EMOJI
+from sophie_bot.constants import AI_EMOJI
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
+from sophie_bot.modules.ai.utils.ai_header import battery_custom_emoji
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info, reset_period_usage, set_monthly_quota
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -31,8 +33,11 @@ class SetQuota(SophieMessageHandler):
         connection = self.connection
 
         if credit_amount < 0:
-            await self.event.reply(
-                str(Template(_("{credit_emoji} amount must be a positive number."), credit_emoji=AI_CREDIT_EMOJI))
+            await send_ai_rich_message(
+                self.event,
+                Doc(
+                    Template(_("{credit_emoji} amount must be a positive number."), credit_emoji=battery_custom_emoji())
+                ),
             )
             return
 
@@ -45,15 +50,15 @@ class SetQuota(SophieMessageHandler):
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Quota Updated')}"),
             Section(
-                KeyValue(_("Monthly quota"), Code(format_credit_amount(credit_amount))),
+                KeyValue(_("Monthly quota"), format_credit_amount(credit_amount)),
                 KeyValue(
                     _("Remaining"),
-                    Code(format_credit_amount(quota_info.remaining_credits)) if quota_info else Code("N/A"),
+                    format_credit_amount(quota_info.remaining_credits) if quota_info else Code("N/A"),
                 ),
                 title=Template(_("New quota for {chat}"), chat=connection.title),
             ),
         )
-        await self.event.reply(str(doc))
+        await send_ai_rich_message(self.event, doc)
 
 
 @flags.handler_help(description=l_("Reset AI quota usage for a chat"))
@@ -75,7 +80,7 @@ class ResetQuota(SophieMessageHandler):
             Template(_("Quota usage has been reset for this period.")),
             Template(
                 _("New remaining: {remaining}"),
-                remaining=Code(format_credit_amount(quota_info.remaining_credits)) if quota_info else Code("N/A"),
+                remaining=format_credit_amount(quota_info.remaining_credits) if quota_info else Code("N/A"),
             ),
         )
-        await self.event.reply(str(doc))
+        await send_ai_rich_message(self.event, doc)
