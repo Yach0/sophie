@@ -10,7 +10,12 @@ import pytest
 from aiogram.types import Message
 from stfu_tg import Doc
 
-from sophie_bot.modules.ai.utils.ai_header import ai_credit_header, build_ai_header, build_ai_message_doc
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_REASONING_EMOJI_ID,
+    ai_credit_header,
+    build_ai_header,
+    build_ai_message_doc,
+)
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
@@ -78,7 +83,10 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
 
     # Whitespace collapsed, and a blank update never costs an edit.
     response_message.bot.edit_message_text.assert_awaited_once()
-    assert "The user is asking about antiflood." in _edited_text(response_message)
+    assert (
+        '<blockquote><tg-emoji emoji-id="5537353471893700616">💭</tg-emoji> '
+        "<i>The user is asking about antiflood.</i></blockquote>"
+    ) in _edited_text(response_message)
 
 
 @pytest.mark.asyncio
@@ -93,8 +101,10 @@ async def test_tool_status_keeps_reasoning_received_during_edit_backoff() -> Non
     await streamer.update_thinking_for_tool("web_search")
 
     html = _edited_text(response_message)
-    assert "First five words and the rest of the reasoning." in html
-    assert "<i>" in html
+    assert (
+        f'<blockquote><tg-emoji emoji-id="{AI_REASONING_EMOJI_ID}">💭</tg-emoji> '
+        "<i>First five words and the rest of the reasoning.</i></blockquote><br><i>"
+    ) in html
 
 
 @pytest.mark.asyncio
@@ -115,6 +125,10 @@ async def test_reasoning_markdown_and_tool_call_remain_visible_together(monkeypa
 
     html = _edited_text(response_message)
     assert html.count("Let me check.") == 1
+    assert (
+        f'<blockquote><tg-emoji emoji-id="{AI_REASONING_EMOJI_ID}">💭</tg-emoji> '
+        "<i>I should <b>check docs</b> first.</i></blockquote><br><i>Searching the web...</i>"
+    ) in html
     assert html.index("<b>check docs</b>") < html.index("Searching the web...") < html.index("5348210173104134595")
     assert "<i>Searching the web...</i><br>" in html
     assert "web_search" not in html

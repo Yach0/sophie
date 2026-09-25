@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Any, Final, Literal
 
 from redis.asyncio import Redis
-from stfu_tg import CustomEmoji, Doc, HList, Italic, Paragraph
+from stfu_tg import BlockQuote, CustomEmoji, Doc, HList, Italic, Paragraph
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI
@@ -13,6 +13,7 @@ AI_CUSTOM_EMOJI_ID: Final[str] = "5325547803936572038"
 AI_CHATBOT_CUSTOM_EMOJI_ID: Final[str] = "5573451671289200650"
 AI_GENERATING_EMOJI_ID: Final[str] = "5573333417954639880"
 AI_PROGRESS_MARKER: Final[str] = "💭"
+AI_REASONING_EMOJI_ID: Final[str] = "5537353471893700616"
 AI_PROGRESS_LINE_EMOJI_IDS: Final[tuple[str, str, str]] = (
     "5348210173104134595",
     "5350601434800889611",
@@ -134,7 +135,17 @@ def build_ai_progress_doc(
         HList(
             HList(CustomEmoji(AI_GENERATING_EMOJI_ID, AI_PROGRESS_MARKER), _inline_body_item(body), divider=" "),
             _LineBreak(),
-            Italic(reasoning) if reasoning is not None else None,
+            (
+                BlockQuote(
+                    HList(
+                        CustomEmoji(AI_REASONING_EMOJI_ID, AI_PROGRESS_MARKER),
+                        Italic(_InlineElement(reasoning)),
+                        divider=" ",
+                    )
+                )
+                if reasoning is not None
+                else None
+            ),
             _LineBreak() if reasoning is not None else None,
             status,
             _LineBreak() if status is not None else None,

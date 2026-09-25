@@ -142,7 +142,8 @@ Chatbot replies show an in-progress message while they stream. Manual translatio
 rendering with a fixed animated AI emoji and a three-emoji footer; translation
 and research edit the same Rich message for the result.
 Automatic translation stays silent until its result is ready. Streamed chatbot reasoning
-renders Markdown and is flushed before tool activity, even during edit backoff.
+renders Markdown in a block quote with a custom emoji before the italic text. It is flushed
+before tool activity, even during edit backoff.
 An active tool shows one of its localized activity messages in italics, without an emoji,
 title, or internal name. Tool arguments are not displayed.
 Completed replies replace the animation with a static AI emoji, eligible used-tool titles
