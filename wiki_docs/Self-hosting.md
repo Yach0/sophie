@@ -169,6 +169,9 @@ translation. Chatbot replies show the same media stages during context preparati
 their entries stack when `ai_chatbot_stack_progress_tools` is on and otherwise show
 the current stage only.
 
+Video transcription reads the first audio stream even when the container lists a
+video stream before it.
+
 Completed replies replace the animation with a static AI emoji, eligible used-tool titles
 without tool icons (Search first when used), and a battery footer in its own paragraph.
 Each tool has its own `display_in_ai_header` setting in

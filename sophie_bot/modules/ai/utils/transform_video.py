@@ -82,12 +82,11 @@ async def extract_audio_from_video(video: Video | VideoNote, *, bot: Bot) -> byt
     video_bytes = downloaded_video.read()
 
     with av.open(BytesIO(video_bytes), mode="r") as input_container:
-        audio_stream = next((stream for stream in input_container.streams if stream.type == "audio"), None)
-        if audio_stream is None:
+        if not input_container.streams.audio:
             log.debug("No audio stream found in video")
             return None
 
-        audio_bytes = _encode_audio_frames_as_ogg(input_container.decode(audio=audio_stream.index))
+        audio_bytes = _encode_audio_frames_as_ogg(input_container.decode(audio=0))
 
     if not audio_bytes:
         log.debug("Extracted audio is empty")
