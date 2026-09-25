@@ -112,39 +112,15 @@ by an AI provider Sophie's operators have configured directly, without OpenRoute
 determines it needs to search the internet for up-to-date information, the relevant data may be sent to the search provider
 configured for the chat (Tavily, Kagi, or TinyFish) to enhance response accuracy.
 
-### Crashlytics (Sentry):
+### Crashlytics and Telemetry (Sentry and Logfire):
 
-Crashlytics helps us improve Sophie's stability.
-We collect crash tracebacks and, in some cases, code variable states,
+Crashlytics and Telemetry helps us improve Sophie's stability.
+We collect logs, crash tracebacks and, in some cases, code variable states,
 which may include raw update data that caused the crash.
 This data is automatically purged after the issues are resolved or after 48 hours.
 You will be notified of crashes via a "crash" message from Sophie (unless technical limitations prevent delivery).
 This data is not shared with any third parties, except for Sentry, and is only used internally by Sophie.
-By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy.
-
-### AI telemetry (Logfire)
-
-When an operator configures `LOGFIRE_TOKEN`, Sophie sends telemetry to Pydantic Logfire
-in every environment, including staging and production. Logfire records AI agent, model,
-tool, cache and state traces; model usage; system and process metrics; HTTP requests;
-application logs; and exceptions. Scrubbing is disabled. Traces can contain full AI
-prompts, replies, tool arguments and results, cached chat messages and tool exchanges
-(limited to the existing 35-message chatbot history window), binary model inputs
-(such as images), HTTP URLs, headers and bodies, log messages (including DEBUG
-records) and exception details.
-These may contain personal data, credentials and large media payloads. Direct moderation
-and transcription spans do not attach uploaded media themselves, but HTTP client tracing
-can capture requests and responses. With no token, Sophie does not initialize or export
-Logfire telemetry. Sentry, when separately configured, retains its own crash-reporting
-policy above.
-
-Crash and AI-failure messages show a `Reference ID` for a reported Sentry error
-and a `Trace ID` for a recorded Logfire error. When both record the error,
-the message shows each ID on its own line.
-
-An operator disables Logfire by removing `LOGFIRE_TOKEN` and restarting every serving process.
-Disabling one chat's AI mode does not disable deployment-wide telemetry for other activity.
-See Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.
+By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy and Logfire's privacy policy: https://pydantic.dev/legal/privacy-policy.
 
 # Changes to This Policy
 
