@@ -29,7 +29,7 @@ _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
 # Telegram's limit also includes the animated marker, action status and three custom emoji.
 _MAX_STREAM_TEXT_LENGTH = 4096 - 512
-_MAX_REASONING_TAIL_LENGTH = 200
+_MAX_REASONING_TAIL_LENGTH = 400
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:

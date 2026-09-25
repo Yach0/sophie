@@ -90,6 +90,21 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
 
 
 @pytest.mark.asyncio
+async def test_reasoning_tail_keeps_four_hundred_characters() -> None:
+    response_message = _response_message()
+    streamer = _build_streamer(response_message)
+    streamer.throttle_seconds = 0
+
+    await streamer.stream_reasoning("first-" + "x" * 394)
+    assert "first-" in _edited_text(response_message)
+
+    await streamer.stream_reasoning("first-" + "x" * 400)
+    html = _edited_text(response_message)
+    assert f"<i>...{'x' * 400}</i>" in html
+    assert "first-" not in html
+
+
+@pytest.mark.asyncio
 async def test_tool_status_keeps_reasoning_received_during_edit_backoff() -> None:
     response_message = _response_message()
     streamer = _build_streamer(response_message)
