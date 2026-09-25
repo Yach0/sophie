@@ -41,8 +41,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_chatbot_chat_name",
     "ai_chatbot_research_quote",
     "ai_chatbot_thinking_message",
-    "ai_chatbot_tool_thinking",
-    "ai_chatbot_random_emoji",
     "ai_chatbot_streaming",
     "ai_chatbot_streaming_backoff_seconds",
     "ai_chatbot_stream_continuation",
@@ -137,7 +135,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_research_queries_per_round",
     "ai_research_results_per_query",
     "ai_research_service_tier",
-    "ai_chatbot_rich_streaming",
     "ai_chatbot_tables",
     "ai_chatbot_mention_usernames",
     "ussr_spam_detection",
@@ -302,8 +299,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_chat_name": _feature(False),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_thinking_message": _feature(False),
-    "ai_chatbot_tool_thinking": _feature(False),
-    "ai_chatbot_random_emoji": _feature(False),
     "ai_chatbot_streaming": _feature(False),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
     # Off restores `Agent.run_stream`, which ends the agent loop at the first text token and so
@@ -421,7 +416,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_research_queries_per_round": _feature(5),
     "ai_research_results_per_query": _feature(5),
     "ai_research_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
-    "ai_chatbot_rich_streaming": _feature(False),
     "ai_chatbot_tables": _feature(True),
     # Rewrites @DisplayName mentions the model wrote into real @usernames on the way out.
     # Output-side only: usernames never enter the prompt, so this cannot leak into the model.

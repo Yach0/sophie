@@ -12,14 +12,22 @@ from stfu_tg import Doc
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode
 
 
+def _response_message() -> SimpleNamespace:
+    return SimpleNamespace(
+        chat=SimpleNamespace(id=-100123),
+        message_id=8,
+        bot=SimpleNamespace(edit_message_text=AsyncMock()),
+    )
+
+
 def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer:
     streamer = ChatbotMessageStreamer(
         source_message=cast(
             Message,
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
-        header=Doc("Initial"),
-        mode=StreamMode.HTML_EDIT,
+        status=Doc("Initial"),
+        mode=StreamMode.EDIT,
         throttle_seconds=1,
         redis=object(),
     )
@@ -28,18 +36,17 @@ def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer
 
 
 def _edited_text(response_message: SimpleNamespace) -> str:
-    call_kwargs = response_message.edit_text.await_args.kwargs
-    return call_kwargs.get("text") or response_message.edit_text.await_args.args[0]
+    return response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
 
 
 @pytest.mark.asyncio
 async def test_retrying_updates_chatbot_header() -> None:
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = _build_streamer(response_message)
 
     await streamer.update_retrying(1, 5)
 
-    response_message.edit_text.assert_awaited_once()
+    response_message.bot.edit_message_text.assert_awaited_once()
     assert "(Retrying 1/5...)" in _edited_text(response_message)
 
 
@@ -47,7 +54,7 @@ async def test_retrying_updates_chatbot_header() -> None:
 async def test_header_update_keeps_already_streamed_text() -> None:
     """The agent loop can narrate, call a tool, then answer — a header-only edit would erase the
     narration the user is already reading."""
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = _build_streamer(response_message)
     streamer.last_sent_text = "Let me check the docs."
 
@@ -60,7 +67,7 @@ async def test_header_update_keeps_already_streamed_text() -> None:
 
 @pytest.mark.asyncio
 async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None:
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = _build_streamer(response_message)
     streamer.throttle_seconds = 0
 
@@ -68,22 +75,46 @@ async def test_stream_reasoning_shows_the_tail_of_the_models_reasoning() -> None
     await streamer.stream_reasoning("   ")
 
     # Whitespace collapsed, and a blank update never costs an edit.
-    response_message.edit_text.assert_awaited_once()
+    response_message.bot.edit_message_text.assert_awaited_once()
     assert "The user is asking about antiflood." in _edited_text(response_message)
 
 
 @pytest.mark.asyncio
+async def test_reasoning_markdown_and_tool_call_remain_visible_together(monkeypatch: pytest.MonkeyPatch) -> None:
+    response_message = _response_message()
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, SimpleNamespace(chat=SimpleNamespace(id=-100123))),
+        status="Thinking...",
+        mode=StreamMode.EDIT,
+        throttle_seconds=0,
+        redis=object(),
+    )
+    streamer.response_message = cast(Message, response_message)
+
+    await streamer.stream("Let me check.")
+    await streamer.stream_reasoning("I should **check docs** first.")
+    await streamer.update_thinking_for_tool("web_search")
+
+    html = _edited_text(response_message)
+    assert html.count("Let me check.") == 1
+    assert html.index("<b>check docs</b>") < html.index("Searching the web...") < html.index("5348210173104134595")
+    assert "<i>Searching the web...</i><br>" in html
+    assert "web_search" not in html
+    assert "**" not in html
+
+
+@pytest.mark.asyncio
 async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = ChatbotMessageStreamer(
         source_message=cast(
             Message,
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
-        header=Doc("Initial"),
-        mode=StreamMode.HTML_EDIT,
+        status=Doc("Initial"),
+        mode=StreamMode.EDIT,
         throttle_seconds=60,
-        tool_thinking_texts={"lookup": ("Looking it up...",)},
         redis=object(),
     )
     streamer.response_message = cast(Message, response_message)
@@ -92,21 +123,21 @@ async def test_tool_update_flushes_the_latest_throttled_draft() -> None:
     await streamer.stream("Let me check the docs.")
     await streamer.update_thinking_for_tool("lookup")
 
-    assert response_message.edit_text.await_count == 2
-    assert "Looking it up..." in _edited_text(response_message)
+    assert response_message.bot.edit_message_text.await_count == 2
+    assert "<i>Working on it...</i>" in _edited_text(response_message)
     assert "Let me check the docs." in _edited_text(response_message)
 
 
 @pytest.mark.asyncio
 async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = ChatbotMessageStreamer(
         source_message=cast(
             Message,
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
-        header=Doc("Initial"),
-        mode=StreamMode.HTML_EDIT,
+        status=Doc("Initial"),
+        mode=StreamMode.EDIT,
         throttle_seconds=0.01,
         redis=object(),
     )
@@ -114,26 +145,25 @@ async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
 
     await streamer.stream("First draft")
     await streamer.stream("Latest draft")
-    assert response_message.edit_text.await_count == 1
+    assert response_message.bot.edit_message_text.await_count == 1
 
     await asyncio.sleep(0.02)
 
-    assert response_message.edit_text.await_count == 2
+    assert response_message.bot.edit_message_text.await_count == 2
     assert "Latest draft" in _edited_text(response_message)
 
 
 @pytest.mark.asyncio
 async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> None:
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = ChatbotMessageStreamer(
         source_message=cast(
             Message,
             SimpleNamespace(chat=SimpleNamespace(id=-100123)),
         ),
-        header=Doc("Initial"),
-        mode=StreamMode.HTML_EDIT,
+        status=Doc("Initial"),
+        mode=StreamMode.EDIT,
         throttle_seconds=0,
-        tool_thinking_texts={"lookup": ("Looking it up...",)},
         redis=object(),
     )
     streamer.response_message = cast(Message, response_message)
@@ -141,4 +171,4 @@ async def test_identical_rendered_tool_update_does_not_edit_telegram_twice() -> 
     await streamer.update_thinking_for_tool("lookup")
     await streamer.update_thinking_for_tool("lookup")
 
-    response_message.edit_text.assert_awaited_once()
+    response_message.bot.edit_message_text.assert_awaited_once()

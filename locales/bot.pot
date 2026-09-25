@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 18:21+0200\n"
+"POT-Creation-Date: 2026-09-25 16:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -849,40 +849,40 @@ msgstr ""
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:114
+#: sophie_bot/modules/ai/handlers/translate.py:115
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:124
+#: sophie_bot/modules/ai/handlers/translate.py:125
 msgid "Translation Notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:135
+#: sophie_bot/modules/ai/handlers/translate.py:136
 msgid "Text to translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:142
+#: sophie_bot/modules/ai/handlers/translate.py:143
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:180
+#: sophie_bot/modules/ai/handlers/translate.py:181
 msgid "Please provide text to translate."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:201
+#: sophie_bot/modules/ai/handlers/translate.py:202
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:218
+#: sophie_bot/modules/ai/handlers/translate.py:219
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:259
+#: sophie_bot/modules/ai/handlers/translate.py:260
 msgid "Error generating translation"
 msgstr ""
 
@@ -1021,7 +1021,8 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:417
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:419
+#: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:454
 #: sophie_bot/modules/ai/utils/research.py:602
 msgid "Research"
@@ -1045,6 +1046,7 @@ msgid "Thinking..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:44
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:140
 msgid "Working on it..."
 msgstr ""
 
@@ -1146,6 +1148,203 @@ msgstr ""
 msgid "AI features are disabled till {date}."
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/ai_tool.py:24
+msgid "Search"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:28
+msgid "Searching the web..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:29
+#: sophie_bot/modules/ai/utils/research.py:83
+msgid "Looking it up online..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:30
+msgid "Browsing the internet..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:31
+msgid "Checking sources online..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:41
+#: sophie_bot/modules/ai/utils/ai_tool.py:53
+#: sophie_bot/modules/notes/__init__.py:99
+msgid "Notes"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:45
+msgid "Scanning notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:46
+msgid "Looking through notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:47
+msgid "Checking saved notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:48
+msgid "Gathering chat notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:57
+msgid "Reading note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:58
+msgid "Fetching note content..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:59
+msgid "Opening the note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:60
+msgid "Checking the note contents..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:65
+msgid "Save notes"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:69
+msgid "Saving note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:70
+msgid "Writing to notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:71
+msgid "Storing the note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:72
+msgid "Updating saved notes..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:77
+msgid "Delete notes"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:81
+msgid "Deleting note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:82
+msgid "Removing note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:83
+msgid "Removing the saved note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:84
+msgid "Clearing the note..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:89
+#: sophie_bot/modules/ai/utils/ai_tool.py:101
+msgid "Memory"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:93
+msgid "Updating memory..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:94
+msgid "Saving to memory..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:95
+msgid "Recording that for later..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:96
+msgid "Refreshing memory..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:105
+msgid "Removing from memory..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:106
+msgid "Forgetting..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:107
+msgid "Clearing that memory..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:108
+msgid "Updating what I remember..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:117
+msgid "Researching the topic..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:118
+msgid "Comparing sources..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:119
+msgid "Digging into the details..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:120
+msgid "Following leads..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:125
+#: sophie_bot/modules/help/__init__.py:44
+#: sophie_bot/modules/help/handlers/help_group.py:27
+#: sophie_bot/modules/help/handlers/pm_modules.py:89
+#: sophie_bot/modules/help/handlers/start_group.py:34
+#: sophie_bot/modules/help/handlers/start_pm.py:54
+msgid "Help"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:129
+msgid "Checking the documentation..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:130
+msgid "Looking up how Sophie works..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:131
+msgid "Reading Sophie help..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:132
+msgid "Finding the right guide..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:137
+msgid "Source Inspection"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:140
+msgid "Digging through my own sources..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:141
+msgid "Reading my own code..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:142
+msgid "Inspecting my source code..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/ai_tool.py:143
+msgid "Tracing how Sophie works..."
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/chatbot_context.py:22
 msgid "Prefer to use tables when comparing items"
 msgstr ""
@@ -1206,149 +1405,42 @@ msgstr ""
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:119
+#: sophie_bot/modules/ai/utils/chatbot_context.py:121
 #, python-brace-format
 msgid "{notename} | title: {title} | content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:126
+#: sophie_bot/modules/ai/utils/chatbot_context.py:128
 msgid "Related chat notes with content."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:130
+#: sophie_bot/modules/ai/utils/chatbot_context.py:132
 #, python-brace-format
 msgid "{notename} | title: {title}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:137
+#: sophie_bot/modules/ai/utils/chatbot_context.py:139
 msgid "Related chat notes. Use get_note_content with the notename when note details may help."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:144
+#: sophie_bot/modules/ai/utils/chatbot_context.py:146
 msgid "You have the following information in your memory"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_response.py:229
-msgid "🔍 Internet Search"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:231
-msgid "📝 Notes"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:233
-msgid "🧠 Memory"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:235
-msgid "🔬 Research"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:237
-msgid "📖 Help"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:239
-msgid "🔧 Source Inspection"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_response.py:310
+#: sophie_bot/modules/ai/utils/chatbot_response.py:299
 msgid "⚠️ Cut short — the reply hit its step limit."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:44
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:49
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:54
-msgid "Searching the web..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:45
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:50
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:55
-#: sophie_bot/modules/ai/utils/research.py:83
-msgid "Looking it up online..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:46
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:51
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:56
-msgid "Browsing the internet..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:59
-msgid "Updating memory..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:60
-msgid "Saving to memory..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:63
-msgid "Removing from memory..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:64
-msgid "Forgetting..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:67
-msgid "Checking the documentation..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:68
-msgid "Looking up how Sophie works..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:71
-msgid "Digging through my own sources..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:72
-msgid "Reading my own code..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:75
-msgid "Scanning notes..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:76
-msgid "Looking through notes..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:79
-msgid "Reading note..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:80
-msgid "Fetching note content..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:83
-msgid "Saving note..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:84
-msgid "Writing to notes..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:87
-msgid "Deleting note..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:88
-msgid "Removing note..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:226
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:151
 #, python-brace-format
 msgid "(Retrying {attempt}/{total_attempts}...)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/help_tip.py:43
+#: sophie_bot/modules/ai/utils/help_tip.py:45
 msgid "⚠️ If you want more detailed help, use the special Sophie help mode."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/help_tip.py:48
+#: sophie_bot/modules/ai/utils/help_tip.py:50
 msgid "Sophie help mode"
 msgstr ""
 
@@ -1358,7 +1450,7 @@ msgid "reply to"
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/message_history.py:129
-#: sophie_bot/modules/ai/utils/message_history.py:131
+#: sophie_bot/modules/ai/utils/message_history.py:135
 msgid "<No text provided>"
 msgstr ""
 
@@ -1719,8 +1811,8 @@ msgstr ""
 #: sophie_bot/modules/federations/utils/ban_docs.py:39
 #: sophie_bot/modules/federations/utils/ban_docs.py:88
 #: sophie_bot/modules/federations/utils/ban_docs.py:130
-#: sophie_bot/modules/promotes/handlers/demote.py:40
-#: sophie_bot/modules/promotes/handlers/demote.py:78
+#: sophie_bot/modules/promotes/handlers/demote.py:42
+#: sophie_bot/modules/promotes/handlers/demote.py:80
 #: sophie_bot/modules/promotes/handlers/promote.py:69
 #: sophie_bot/modules/promotes/handlers/promote.py:150
 #: sophie_bot/modules/restrictions/handlers/base.py:70
@@ -2001,7 +2093,7 @@ msgstr ""
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
 #: sophie_bot/modules/op/handlers/set_mode.py:111
 #: sophie_bot/modules/op/handlers/set_mode.py:148
-#: sophie_bot/modules/promotes/handlers/demote.py:77
+#: sophie_bot/modules/promotes/handlers/demote.py:79
 #: sophie_bot/modules/promotes/handlers/promote.py:149
 #: sophie_bot/modules/restrictions/handlers/base.py:142
 #: sophie_bot/modules/restrictions/services/silent.py:45
@@ -3799,11 +3891,11 @@ msgstr ""
 msgid "When {handler} in message"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:228
+#: sophie_bot/modules/filters/utils_/match_handler.py:284
 msgid "You are a content moderation assistant. Evaluate whether the provided message content matches the filter criteria. Be precise and objective in your assessment."
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:235
+#: sophie_bot/modules/filters/utils_/match_handler.py:291
 #, python-brace-format
 msgid ""
 "Filter criteria: {criteria}\n"
@@ -3811,7 +3903,7 @@ msgid ""
 "Message content: {content}"
 msgstr ""
 
-#: sophie_bot/modules/filters/utils_/match_handler.py:237
+#: sophie_bot/modules/filters/utils_/match_handler.py:293
 msgid "(no text content)"
 msgstr ""
 
@@ -4016,14 +4108,6 @@ msgstr ""
 
 #: sophie_bot/modules/greetings/middlewares/new_user.py:95
 msgid "Support Chat"
-msgstr ""
-
-#: sophie_bot/modules/help/__init__.py:44
-#: sophie_bot/modules/help/handlers/help_group.py:27
-#: sophie_bot/modules/help/handlers/pm_modules.py:89
-#: sophie_bot/modules/help/handlers/start_group.py:34
-#: sophie_bot/modules/help/handlers/start_pm.py:54
-msgid "Help"
 msgstr ""
 
 #: sophie_bot/modules/help/__init__.py:46
@@ -4761,10 +4845,6 @@ msgstr ""
 
 #: sophie_bot/modules/logging/events.py:60
 msgid "Group whitelist exemption"
-msgstr ""
-
-#: sophie_bot/modules/notes/__init__.py:99
-msgid "Notes"
 msgstr ""
 
 #: sophie_bot/modules/notes/__init__.py:101
@@ -6197,23 +6277,23 @@ msgstr ""
 msgid "Manage user permissions and administrative privileges."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:28
+#: sophie_bot/modules/promotes/handlers/demote.py:29
 msgid "Demotes the user from admins."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:51
+#: sophie_bot/modules/promotes/handlers/demote.py:53
 msgid "I cannot demote myself."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:54
+#: sophie_bot/modules/promotes/handlers/demote.py:56
 msgid "You cannot demote yourself."
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:79
+#: sophie_bot/modules/promotes/handlers/demote.py:81
 msgid "Demoted by"
 msgstr ""
 
-#: sophie_bot/modules/promotes/handlers/demote.py:80
+#: sophie_bot/modules/promotes/handlers/demote.py:82
 msgid "User demoted successfully"
 msgstr ""
 

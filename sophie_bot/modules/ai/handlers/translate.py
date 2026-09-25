@@ -3,7 +3,7 @@ from typing import Any
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import Message
+from aiogram.types import InputRichMessage, Message
 from ass_tg.types import TextArg
 from stfu_tg import (
     BlockQuote,
@@ -38,6 +38,7 @@ from sophie_bot.modules.ai.utils.ai_progress import (
     random_ai_thinking_text,
 )
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
@@ -291,4 +292,14 @@ class AiTranslate(SophieMessageHandler):
             header_style,
         )
 
-        await _edit_or_reply(self.event, progress_message, text=str(doc))
+        if progress_message and self.event.bot:
+            try:
+                await self.event.bot.edit_message_text(
+                    chat_id=progress_message.chat.id,
+                    message_id=progress_message.message_id,
+                    rich_message=InputRichMessage(html=doc.to_rich()),
+                )
+                return
+            except TelegramAPIError:
+                pass
+        await send_ai_rich_message(self.event, doc)

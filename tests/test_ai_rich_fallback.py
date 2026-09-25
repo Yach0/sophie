@@ -28,7 +28,7 @@ async def test_chatbot_final_resend_uses_rich_message(
     streamer = ChatbotMessageStreamer(
         source,
         "header",
-        StreamMode.RICH_EDIT,
+        StreamMode.EDIT,
         0,
         redis=test_redis,
     )
@@ -97,43 +97,6 @@ async def test_send_ai_rich_message_falls_back_when_reply_target_deleted() -> No
     assert "reply_parameters" in calls[0]
     assert "reply_parameters" not in calls[1]
 
-
-@pytest.mark.asyncio
-async def test_chatbot_final_resend_falls_back_to_direct_send_when_reply_fails(
-    test_redis: object,
-) -> None:
-    from aiogram.exceptions import TelegramBadRequest
-
-    direct_send_mock = AsyncMock(return_value=SimpleNamespace(message_id=77))
-    source = SimpleNamespace(
-        chat=SimpleNamespace(id=1),
-        message_id=2,
-        message_thread_id=None,
-        reply=AsyncMock(
-            side_effect=TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")
-        ),  # type: ignore[arg-type]
-        bot=SimpleNamespace(send_message=direct_send_mock),
-    )
-    response = SimpleNamespace(
-        chat=SimpleNamespace(id=1),
-        message_id=3,
-        edit_text=AsyncMock(
-            side_effect=TelegramBadRequest(method=None, message="Bad Request: message to edit not found")
-        ),  # type: ignore[arg-type]
-    )
-    streamer = ChatbotMessageStreamer(
-        source,
-        "header",
-        StreamMode.HTML_EDIT,
-        0,
-        redis=test_redis,
-    )
-    streamer.response_message = response
-
-    await streamer.send_final(Doc("answer"))
-
-    direct_send_mock.assert_awaited_once()
-    assert direct_send_mock.call_args.kwargs["chat_id"] == 1
 
 
 @pytest.mark.asyncio

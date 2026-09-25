@@ -344,7 +344,7 @@ async def test_translate_success(test_client: TestClient) -> None:
         )
 
     assert requests, "Bot should respond to /translate"
-    response_text = requests[-1].text or ""
+    response_text = requests[-1].params.get("rich_message", {}).get("html", "") or requests[-1].text or ""
     assert "Hola mundo" in response_text, f"Expected translated text in response, got: {response_text}"
     assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text, (
         f"Expected origin language info in response, got: {response_text}"

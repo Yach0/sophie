@@ -8,12 +8,15 @@ from stfu_tg import Doc
 from sophie_bot.config import CONFIG
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
     AI_CUSTOM_EMOJI_ID,
+    AI_GENERATING_EMOJI_ID,
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_progress import ai_progress_line, random_ai_thinking_text
+from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.help_tip import build_help_mode_tip
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 
@@ -64,14 +67,14 @@ def test_rendered_simple_header_is_removed_from_cached_multiline_body() -> None:
 
     assert doc.to_rich() == (
         f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {body}'
-        '<br><tg-emoji emoji-id="5816915599019741395">🔋</tg-emoji> 95%'
+        '<br><p><tg-emoji emoji-id="5841233274352963797">🔋</tg-emoji> 95%</p>'
     )
     assert cut_titlebar(doc.to_md()) == body
 
 
 def test_rendered_tool_labels_and_model_footer_are_removed_from_cached_body() -> None:
     body = "Reply here"
-    tool_labels = ("🔍 Internet Search", "📝 Notes")
+    tool_labels = (AI_TOOLS_BY_NAME["web_search"], AI_TOOLS_BY_NAME["get_notes"])
     header = build_ai_header("simple", ai_credit_header(45, "Gemini 5"))
     doc = build_ai_message_doc(header, body, tool_labels=tool_labels)
 
@@ -90,6 +93,36 @@ def test_old_custom_battery_markup_is_removed_from_cached_body() -> None:
     assert cut_titlebar(text) == "Hello there! How are you?\nNew line test text\nThird line"
 
 
+def test_old_rich_battery_footer_is_not_reused_as_reply_context() -> None:
+    message = Message.model_validate(
+        {
+            "message_id": 1,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {"type": "custom_emoji", "custom_emoji_id": AI_CUSTOM_EMOJI_ID, "alternative_text": "✨"},
+                            " Hello",
+                        ],
+                    },
+                    {
+                        "type": "paragraph",
+                        "text": [
+                            {"type": "custom_emoji", "custom_emoji_id": "5816915599019741395", "alternative_text": "🔋"},
+                            " 95%",
+                        ],
+                    },
+                ]
+            },
+        }
+    )
+
+    assert cut_titlebar(message) == "Hello"
+
+
 def test_help_tip_after_simple_footer_is_excluded_from_cached_answer() -> None:
     doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(92)), "test")
     doc += build_help_mode_tip()
@@ -105,7 +138,15 @@ def test_battery_mention_in_body_is_not_an_ai_footer() -> None:
     assert not is_ai_message("✨ Battery status\n🔋 92% of charge remains")
 
 
-def test_rich_ai_marker_identity_triggers_without_battery_footer() -> None:
+@pytest.mark.parametrize(
+    ("emoji_id", "fallback"),
+    [
+        (AI_CUSTOM_EMOJI_ID, "✨"),
+        (AI_CHATBOT_CUSTOM_EMOJI_ID, "✨"),
+        (AI_GENERATING_EMOJI_ID, "💭"),
+    ],
+)
+def test_rich_ai_marker_identity_triggers_without_battery_footer(emoji_id: str, fallback: str) -> None:
     message = Message.model_validate(
         {
             "message_id": 3084553,
@@ -118,8 +159,8 @@ def test_rich_ai_marker_identity_triggers_without_battery_footer() -> None:
                         "text": [
                             {
                                 "type": "custom_emoji",
-                                "custom_emoji_id": "5325547803936572038",
-                                "alternative_text": "✨",
+                                "custom_emoji_id": emoji_id,
+                                "alternative_text": fallback,
                             },
                             " Answer without a battery footer",
                         ],

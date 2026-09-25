@@ -2,16 +2,24 @@ from collections.abc import Sequence
 from typing import Any, Final, Literal
 
 from redis.asyncio import Redis
-from stfu_tg import CustomEmoji, Doc, HList
+from stfu_tg import CustomEmoji, Doc, HList, Italic, Paragraph
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI
+from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.utils.feature_flags import FeatureType, get_value
 
 AI_CUSTOM_EMOJI_ID: Final[str] = "5325547803936572038"
-_LOW_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5819177212833697095"
-_MIDDLE_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5818860416045945285"
-_HIGH_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5816915599019741395"
+AI_CHATBOT_CUSTOM_EMOJI_ID: Final[str] = "5573451671289200650"
+AI_GENERATING_EMOJI_ID: Final[str] = "5573333417954639880"
+AI_PROGRESS_LINE_EMOJI_IDS: Final[tuple[str, str, str]] = (
+    "5348210173104134595",
+    "5350601434800889611",
+    "5348267111485581196",
+)
+_LOW_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5841410188350852356"
+_MIDDLE_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5841424383217766066"
+_HIGH_BATTERY_CUSTOM_EMOJI_ID: Final[str] = "5841233274352963797"
 AI_BATTERY_CUSTOM_EMOJI_IDS: Final[frozenset[str]] = frozenset(
     {_LOW_BATTERY_CUSTOM_EMOJI_ID, _MIDDLE_BATTERY_CUSTOM_EMOJI_ID, _HIGH_BATTERY_CUSTOM_EMOJI_ID}
 )
@@ -87,17 +95,48 @@ def build_ai_header(style: AIHeaderStyle, battery: Element | str = "") -> Elemen
 def build_ai_message_doc(
     header: Element | str | None,
     *body: Element | str | None,
-    tool_labels: Sequence[str] = (),
+    tool_labels: Sequence[AITool] = (),
+    emoji_id: str = AI_CUSTOM_EMOJI_ID,
 ) -> Doc:
     inline_body = tuple(_inline_body_item(item) for item in body)
     if header is None:
         return Doc(*inline_body)
-    tools = f"({', '.join(tool_labels)})" if tool_labels else None
+    tools = (
+        HList("(", HList(*(tool.display_label() for tool in tool_labels), divider=", "), ")", divider="")
+        if tool_labels
+        else None
+    )
     return Doc(
         HList(
-            HList(CustomEmoji(AI_CUSTOM_EMOJI_ID, AI_EMOJI), tools, *inline_body, divider=" "),
+            HList(
+                CustomEmoji(emoji_id, AI_EMOJI),
+                tools,
+                *inline_body,
+                divider=" ",
+            ),
             _LineBreak(),
-            header,
+            Paragraph(header),
+            divider="",
+        )
+    )
+
+
+def build_ai_progress_doc(
+    body: Element | str,
+    status: Element | None = None,
+    *,
+    reasoning: Element | None = None,
+) -> Doc:
+    footer = HList(*(CustomEmoji(emoji_id, "〰️") for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS), divider="")
+    return Doc(
+        HList(
+            HList(CustomEmoji(AI_GENERATING_EMOJI_ID, "💭"), _inline_body_item(body), divider=" "),
+            _LineBreak(),
+            Italic(reasoning) if reasoning is not None else None,
+            _LineBreak() if reasoning is not None else None,
+            status,
+            _LineBreak() if status is not None else None,
+            footer,
             divider="",
         )
     )

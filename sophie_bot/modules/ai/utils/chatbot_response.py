@@ -17,12 +17,14 @@ from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
     AIHeaderStyle,
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME, AITool
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, apply_mention_usernames, resolve_mentions
 from sophie_bot.utils.feature_flags import is_enabled
@@ -223,37 +225,24 @@ def _render_ai_markdown(text: str, *, strip_alien_html_tags: bool) -> Element:
     return _ProtectedHTMLDoc(doc, replacements, token_prefix, token_suffix)
 
 
-def _tool_label(tool_name: str) -> str | None:
-    match tool_name:
-        case "kagi_search" | "tinyfish_search" | "tavily_search" | "web_search":
-            return _("🔍 Internet Search")
-        case "get_notes" | "get_note_content":
-            return _("📝 Notes")
-        case "write_memory" | "forget_memory":
-            return _("🧠 Memory")
-        case "research_topic":
-            return _("🔬 Research")
-        case "sophie_help":
-            return _("📖 Help")
-        case "sophie_inspect":
-            return _("🔧 Source Inspection")
-        case _:
-            return None
-
-
-def used_tool_labels(message_history: Sequence[ModelRequest | ModelResponse]) -> tuple[str, ...]:
-    used_labels: set[str] = set()
-    labels: list[str] = []
+def used_tool_labels(message_history: Sequence[ModelRequest | ModelResponse]) -> tuple[AITool, ...]:
+    used_labels: set[tuple[str, str]] = set()
+    tools: list[AITool] = []
     for message in message_history:
         for part in message.parts:
             if not isinstance(part, ToolCallPart):
                 continue
-            label = _tool_label(part.tool_name)
-            if label is None or label in used_labels:
+            tool = AI_TOOLS_BY_NAME.get(part.tool_name)
+            if tool is None or not tool.display_in_ai_header:
                 continue
-            used_labels.add(label)
-            labels.append(label)
-    return tuple(labels)
+            category = (tool.emoji, tool.display_label())
+            if category in used_labels:
+                continue
+            used_labels.add(category)
+            tools.append(tool)
+    search_emoji = AI_TOOLS_BY_NAME["web_search"].emoji
+    tools.sort(key=lambda tool: tool.emoji != search_emoji)
+    return tuple(tools)
 
 
 def model_display_name(model: Model) -> str:
@@ -320,7 +309,7 @@ async def build_reply_doc(
     mention_index: MentionIndex | None = None,
     *,
     redis: Redis,
-    tool_labels: Sequence[str] = (),
+    tool_labels: Sequence[AITool] = (),
     strip_alien_html_tags: bool | None = None,
 ) -> Doc:
     # The single rendering chokepoint for both streamed drafts and the final message, so mention
@@ -344,6 +333,7 @@ async def build_reply_doc(
         header,
         _render_ai_markdown(resolved_text, strip_alien_html_tags=strip_alien_html_tags),
         tool_labels=tool_labels,
+        emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
     )
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "

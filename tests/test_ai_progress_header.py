@@ -1,8 +1,9 @@
-"""AI progress messages stay plain; completed messages use the simple AI prefix and quota footer."""
+"""Streaming replies show an animated progress marker; final replies show a static AI marker and quota."""
 
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any, Protocol, cast
 from unittest.mock import AsyncMock
@@ -14,27 +15,26 @@ from pydantic_ai.models import Model
 from stfu_tg.ai_md import ai_markdown_to_doc
 
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
     AI_CUSTOM_EMOJI_ID,
+    AI_GENERATING_EMOJI_ID,
+    AI_PROGRESS_LINE_EMOJI_IDS,
     AIHeaderStyle,
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
 )
-from sophie_bot.modules.ai.utils.ai_progress import (
-    AI_PROGRESS_CUSTOM_EMOJI_IDS,
-    AI_PROGRESS_DEFAULT_CUSTOM_EMOJI_ID,
-)
+from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.chatbot_response import (
     build_chatbot_header,
+    build_reply_doc,
     model_display_name,
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, StreamMode, build_message_streamer
 
 BATTERY_EMOJI = "🔋"
-_RANDOM_EMOJI_ID = AI_PROGRESS_CUSTOM_EMOJI_IDS[-1]
-
-
+ANIMATED_LINE_IDS = AI_PROGRESS_LINE_EMOJI_IDS
 class _IsEnabled(Protocol):
     async def __call__(
         self,
@@ -69,12 +69,20 @@ def _quota(remaining_credits: int = 500, total_credits: int = 1000) -> AsyncMock
     return AsyncMock(return_value=SimpleNamespace(remaining_credits=remaining_credits, total_credits=total_credits))
 
 
+def _response_message() -> SimpleNamespace:
+    return SimpleNamespace(
+        chat=SimpleNamespace(id=-100123),
+        message_id=8,
+        bot=SimpleNamespace(edit_message_text=AsyncMock()),
+    )
+
+
 def _message() -> SimpleNamespace:
     return SimpleNamespace(
         chat=SimpleNamespace(id=-100123),
         message_id=7,
         message_thread_id=None,
-        reply=AsyncMock(return_value=SimpleNamespace(edit_text=AsyncMock())),
+        bot=SimpleNamespace(send_rich_message=AsyncMock(return_value=_response_message())),
     )
 
 
@@ -87,7 +95,8 @@ def _custom_emoji_ids(html: str) -> list[str]:
 
 
 def _assert_plain_progress(text: str) -> None:
-    assert AI_CUSTOM_EMOJI_ID not in text
+    assert _custom_emoji_ids(text) == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
+    assert AI_CHATBOT_CUSTOM_EMOJI_ID not in text
     assert BATTERY_EMOJI not in text
 
 
@@ -95,15 +104,11 @@ async def _streamer_with_flags(
     message: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
-    header_style: AIHeaderStyle = "table",
+    header_style: AIHeaderStyle = "simple",
     **flags: bool,
 ) -> Any:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.is_enabled", _flags(**flags))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.get_value", _get_value)
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_progress_custom_emoji_id",
-        lambda: _RANDOM_EMOJI_ID,
-    )
     return await build_message_streamer(
         cast(Message, message),
         _model(),
@@ -130,7 +135,7 @@ async def test_thinking_placeholder_is_not_a_table_row(
     )
 
     assert streamer is not None
-    _assert_plain_progress(message.reply.await_args.args[0])
+    _assert_plain_progress(message.bot.send_rich_message.await_args.kwargs["rich_message"].html)
     quota.assert_not_awaited()
 
 
@@ -151,7 +156,7 @@ async def test_streaming_placeholder_shows_no_battery(
     )
 
     assert streamer is not None
-    _assert_plain_progress(message.reply.await_args.args[0])
+    _assert_plain_progress(message.bot.send_rich_message.await_args.kwargs["rich_message"].html)
     quota.assert_not_awaited()
 
 
@@ -169,7 +174,7 @@ async def test_disabled_header_keeps_initial_progress_placeholder(
     )
 
     assert streamer is not None
-    initial_text = message.reply.await_args.args[0]
+    initial_text = message.bot.send_rich_message.await_args.kwargs["rich_message"].html
     assert initial_text
     _assert_plain_progress(initial_text)
 
@@ -181,11 +186,11 @@ async def test_progress_updates_stay_plain(
     quota = _quota()
     monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_response.get_quota_info", quota)
 
-    response_message = SimpleNamespace(edit_text=AsyncMock())
+    response_message = _response_message()
     streamer = ChatbotMessageStreamer(
         source_message=cast(Message, _message()),
-        header=cast(Any, "Initial"),
-        mode=StreamMode.HTML_EDIT,
+        status="Initial",
+        mode=StreamMode.EDIT,
         throttle_seconds=0,
         redis=test_redis,
     )
@@ -193,29 +198,159 @@ async def test_progress_updates_stay_plain(
 
     await streamer.update_retrying(1, 5)
 
-    edited_text = response_message.edit_text.await_args.kwargs["text"]
+    edited_text = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert "(Retrying 1/5...)" in edited_text
     _assert_plain_progress(edited_text)
     quota.assert_not_awaited()
 
-
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mode", [StreamMode.HTML_EDIT, StreamMode.RICH_EDIT])
-async def test_retrying_draft_uses_the_configured_simple_layout(
-    mode: StreamMode,
-    test_redis: object,
+async def test_tool_before_draft_is_italic_below_thinking_text(
+    test_redis: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A retry/failover edit must keep one simple prefix and omit the completed footer."""
-    response_message = SimpleNamespace(
-        chat=SimpleNamespace(id=-100123),
-        message_id=8,
-        edit_text=AsyncMock(),
-        bot=SimpleNamespace(edit_message_text=AsyncMock()),
-    )
+    response_message = _response_message()
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
     streamer = ChatbotMessageStreamer(
         source_message=cast(Message, _message()),
-        header=cast(Any, "Initial"),
-        mode=mode,
+        status="Thinking...",
+        mode=StreamMode.THINKING_ONLY,
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    await streamer.update_thinking_for_tool("web_search")
+
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert (
+        html.index("Thinking...")
+        < html.index("<i>Searching the web...</i>")
+        < html.index(ANIMATED_LINE_IDS[0])
+    )
+    assert " Search</i>" not in html
+    assert _custom_emoji_ids(html) == [
+        "5573333417954639880",
+        "5348210173104134595",
+        "5350601434800889611",
+        "5348267111485581196",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_draft_displays_action_below_body_and_removes_it_after_new_text(
+    test_redis: object, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    response_message = _response_message()
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Thinking...",
+        mode=StreamMode.EDIT,
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    await streamer.stream("Let me check.")
+    await streamer.update_thinking_for_tool("web_search")
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert _custom_emoji_ids(html) == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
+    assert html.count("Let me check.") == 1
+    assert (
+        html.index("Let me check.")
+        < html.index("<i>Searching the web...</i>")
+        < html.index(ANIMATED_LINE_IDS[0])
+    )
+
+    await streamer.stream("Here is the answer.")
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert "Searching the web..." not in html
+    assert _custom_emoji_ids(html) == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool_name",
+    ["web_search", "get_note_content", "write_memory", "sophie_help", "research_topic"],
+)
+async def test_tool_call_displays_only_italic_activity(tool_name: str, test_redis: object) -> None:
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Thinking...",
+        mode=StreamMode.EDIT,
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    await streamer.update_thinking_for_tool(tool_name)
+
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    tool = AI_TOOLS_BY_NAME[tool_name]
+    assert any(f"<i>{activity}</i>" in html for activity in tool.activity_texts)
+    assert tool.custom_emoji_id not in html
+    assert tool.display_label() not in html
+    assert tool_name not in html
+
+@pytest.mark.asyncio
+async def test_source_inspection_uses_italic_activity_without_emoji(test_redis: object) -> None:
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Thinking...",
+        mode=StreamMode.EDIT,
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+
+    await streamer.update_thinking_for_tool("sophie_inspect")
+
+    rich_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert "🔧" not in rich_html
+    assert any(
+        f"<i>{activity}</i>" in rich_html
+        for activity in (
+            "Digging through my own sources...",
+            "Reading my own code...",
+            "Inspecting my source code...",
+            "Tracing how Sophie works...",
+        )
+    )
+    assert "Source Inspection</i>" not in rich_html
+    assert "sophie_inspect" not in rich_html
+
+
+
+@pytest.mark.asyncio
+async def test_note_write_uses_its_own_activity_without_a_title(test_redis: object) -> None:
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Thinking...",
+        mode=StreamMode.EDIT,
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+
+    await streamer.update_thinking_for_tool("save_note")
+
+    rich_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert any(
+        f"<i>{activity}</i>" in rich_html
+        for activity in ("Saving note...", "Writing to notes...", "Storing the note...", "Updating saved notes...")
+    )
+    assert '<tg-emoji emoji-id="5537203062138994712">📝</tg-emoji>' not in rich_html
+    assert "Notes</i>" not in rich_html
+
+
+@pytest.mark.asyncio
+async def test_retrying_draft_uses_the_configured_simple_layout(test_redis: object) -> None:
+    """A retry/failover edit must keep one simple prefix and omit the completed footer."""
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Initial",
+        mode=StreamMode.EDIT,
         throttle_seconds=0,
         header_style="simple",
         redis=test_redis,
@@ -224,30 +359,21 @@ async def test_retrying_draft_uses_the_configured_simple_layout(
     await streamer.stream("The fallback answer")
     await streamer.update_retrying(1, 5)
 
-    if mode == StreamMode.RICH_EDIT:
-        assert response_message.bot.edit_message_text.await_count == 2
-        rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-    else:
-        assert response_message.edit_text.await_count == 2
-        rendered_html = response_message.edit_text.await_args.kwargs["text"]
+    assert response_message.bot.edit_message_text.await_count == 2
+    rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert "(Retrying 1/5...)" in rendered_html
     assert rendered_html.count("The fallback answer") == 1
     assert BATTERY_EMOJI not in rendered_html
-    if mode == StreamMode.RICH_EDIT:
-        assert _custom_emoji_ids(rendered_html).count(AI_CUSTOM_EMOJI_ID) == 1
+    assert _custom_emoji_ids(rendered_html) == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
 
 
 @pytest.mark.asyncio
 async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test_redis: object) -> None:
-    response_message = SimpleNamespace(
-        chat=SimpleNamespace(id=-100123),
-        message_id=8,
-        edit_text=AsyncMock(),
-    )
+    response_message = _response_message()
     streamer = ChatbotMessageStreamer(
         source_message=cast(Message, _message()),
-        header=cast(Any, "Retrying"),
-        mode=StreamMode.HTML_EDIT,
+        status="Retrying",
+        mode=StreamMode.EDIT,
         throttle_seconds=0,
         header_style="simple",
         redis=cast(Any, test_redis),
@@ -257,35 +383,38 @@ async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test
     await streamer.update_retrying(2, 5)
 
     final_header = build_ai_header("simple", ai_credit_header(50, "fallback-model"))
-    final_doc = build_ai_message_doc(final_header, "Fallback answer")
+    final_doc = build_ai_message_doc(
+        final_header,
+        "Fallback answer",
+        tool_labels=(AI_TOOLS_BY_NAME["web_search"],),
+        emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
+    )
     await streamer.send_final(final_doc)
 
-    assert response_message.edit_text.await_args is not None
-    rendered_html = response_message.edit_text.await_args.kwargs["text"]
-    assert rendered_html.count("✨") == 1
+    assert response_message.bot.edit_message_text.await_args is not None
+    rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert _custom_emoji_ids(rendered_html) == [
+        "5573451671289200650",
+        "5841424383217766066",
+    ]
+    assert rendered_html.startswith(
+        f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">✨</tg-emoji> (Search)'
+    )
+    assert "Fallback answer<br><p>" in rendered_html
     assert rendered_html.count(BATTERY_EMOJI) == 1
+    assert "50% (fallback-model)" in rendered_html
     assert rendered_html.count("Fallback answer") == 1
     assert "Partial primary answer" not in rendered_html
     assert "Retrying" not in rendered_html
 
-
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mode", [StreamMode.HTML_EDIT, StreamMode.RICH_EDIT])
-async def test_streaming_and_retrying_drafts_respect_disabled_layout(
-    mode: StreamMode,
-    test_redis: object,
-) -> None:
-    """Disabled headers must not render progress content in either edit mode."""
-    response_message = SimpleNamespace(
-        chat=SimpleNamespace(id=-100123),
-        message_id=8,
-        edit_text=AsyncMock(),
-        bot=SimpleNamespace(edit_message_text=AsyncMock()),
-    )
+async def test_streaming_and_retrying_drafts_respect_disabled_layout(test_redis: object) -> None:
+    """Disabled headers must not render progress content in the edit."""
+    response_message = _response_message()
     streamer = ChatbotMessageStreamer(
         source_message=cast(Message, _message()),
-        header=cast(Any, "Initial"),
-        mode=mode,
+        status="Initial",
+        mode=StreamMode.EDIT,
         throttle_seconds=0,
         header_style="disable",
         redis=test_redis,
@@ -294,10 +423,7 @@ async def test_streaming_and_retrying_drafts_respect_disabled_layout(
     await streamer.stream("The fallback answer")
     await streamer.update_retrying(1, 5)
 
-    if mode == StreamMode.RICH_EDIT:
-        rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-    else:
-        rendered_html = response_message.edit_text.await_args.kwargs["text"]
+    rendered_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert "The fallback answer" in rendered_html
     assert "Initial" not in rendered_html
     assert "Retrying" not in rendered_html
@@ -308,7 +434,7 @@ async def test_streaming_and_retrying_drafts_respect_disabled_layout(
 async def test_placeholder_emoji_stays_the_same_on_every_edit(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    """Without the random-emoji flag the placeholder keeps one emoji instead of flickering."""
+    """The animated marker and line stay stable across placeholder edits."""
     message = _message()
     streamer = await _streamer_with_flags(
         message,
@@ -322,32 +448,14 @@ async def test_placeholder_emoji_stays_the_same_on_every_edit(
     streamer.throttle_seconds = 0
     await streamer.update_retrying(1, 5)
 
-    initial_emoji_ids = _custom_emoji_ids(message.reply.await_args.args[0])
-    edited_emoji_ids = _custom_emoji_ids(streamer.response_message.edit_text.await_args.kwargs["text"])
-    assert initial_emoji_ids == [AI_PROGRESS_DEFAULT_CUSTOM_EMOJI_ID]
+    initial_emoji_ids = _custom_emoji_ids(message.bot.send_rich_message.await_args.kwargs["rich_message"].html)
+    edited_emoji_ids = _custom_emoji_ids(
+        streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    )
+    assert initial_emoji_ids == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
     assert edited_emoji_ids == initial_emoji_ids
 
 
-@pytest.mark.asyncio
-async def test_random_emoji_flag_applies_without_the_thinking_placeholder(
-    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
-) -> None:
-    """The flag picks the placeholder emoji; whether the thinking text is shown is a separate flag."""
-    message = _message()
-    streamer = await _streamer_with_flags(
-        message,
-        monkeypatch,
-        test_redis,
-        ai_chatbot_streaming=True,
-        ai_chatbot_random_emoji=True,
-    )
-
-    assert streamer is not None
-    streamer.throttle_seconds = 0
-    await streamer.update_retrying(1, 5)
-
-    assert _custom_emoji_ids(message.reply.await_args.args[0]) == [_RANDOM_EMOJI_ID]
-    assert _custom_emoji_ids(streamer.response_message.edit_text.await_args.kwargs["text"]) == [_RANDOM_EMOJI_ID]
 
 
 @pytest.mark.asyncio
@@ -358,22 +466,23 @@ async def test_finished_reply_uses_custom_ai_emoji_and_battery_footer(
 
     header = await build_chatbot_header(cast(Any, "chat-iid"), redis=test_redis)
 
-    text = build_ai_message_doc(header, "Hello").to_rich()
-    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello')
-    assert "<br><tg-emoji" in text
+    doc = await build_reply_doc(header, "Hello", None, None, False, -100123, redis=test_redis, strip_alien_html_tags=False)
+    text = doc.to_rich()
+    assert text.startswith(f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello')
+    assert "<br><p><tg-emoji" in text
     assert BATTERY_EMOJI in text
     assert "50%" in text
     assert "<table" not in text
 
 
-def test_simple_header_is_inline_and_places_battery_on_next_line() -> None:
+def test_simple_header_renders_battery_in_separate_paragraph() -> None:
     header = build_ai_header("simple", ai_credit_header(50))
 
     assert header is not None
     text = build_ai_message_doc(header, "Hello\nSecond line").to_rich()
     assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello\nSecond line')
-    assert "<br><tg-emoji" in text
-    assert text.endswith(" 50%")
+    assert "<br><p><tg-emoji" in text
+    assert text.endswith(" 50%</p>")
     assert "<table" not in text
 
 
@@ -383,28 +492,99 @@ def test_simple_header_renders_first_markdown_paragraph_inline() -> None:
     assert header is not None
     text = build_ai_message_doc(header, ai_markdown_to_doc("Hello *world*.\n\nSecond paragraph.")).to_rich()
     assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello <i>world</i>.')
-    assert "<p>" not in text
+    assert "<p>" in text
     assert "\nSecond paragraph.<br>" in text
 
 
 def test_used_tool_categories_render_before_reply_body() -> None:
     labels = used_tool_labels(
         [
+            ModelResponse(parts=[ToolCallPart(tool_name="get_note_content", args={})]),
             ModelResponse(parts=[ToolCallPart(tool_name="kagi_search", args={})]),
             ModelResponse(parts=[ToolCallPart(tool_name="tinyfish_search", args={})]),
-            ModelResponse(parts=[ToolCallPart(tool_name="get_note_content", args={})]),
         ]
     )
     header = build_ai_header("simple", ai_credit_header(45))
 
     text = build_ai_message_doc(header, "Reply here", tool_labels=labels).to_rich()
 
-    assert labels == ("🔍 Internet Search", "📝 Notes")
-    assert text.startswith(
-        f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> (🔍 Internet Search, 📝 Notes) Reply here'
+    assert tuple(tool.display_label() for tool in labels) == ("Search", "Notes")
+    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> (Search, Notes) Reply here')
+    assert 'emoji-id="5535248817659576336"' not in text
+    assert 'emoji-id="5537203062138994712"' not in text
+    assert build_ai_message_doc(header, "Reply here", tool_labels=labels).to_md().startswith(
+        "✨ (Search, Notes) Reply here"
     )
-    assert "<br><tg-emoji" in text
-    assert text.endswith(" 45%")
+    assert "<br><p><tg-emoji" in text
+    assert text.endswith(" 45%</p>")
+
+
+def test_memory_help_and_research_tool_titles_omit_custom_emojis() -> None:
+    labels = used_tool_labels(
+        [
+            ModelResponse(parts=[ToolCallPart(tool_name="write_memory", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="sophie_help", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="research_topic", args={})]),
+        ]
+    )
+    doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(80)), "Answer", tool_labels=labels)
+
+    assert all(tool.custom_emoji_id not in doc.to_rich() for tool in labels)
+    assert doc.to_md().startswith("✨ (Memory, Help, Research) Answer")
+
+
+def test_header_visibility_is_per_tool_and_preserves_visible_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        AI_TOOLS_BY_NAME,
+        "web_search",
+        replace(AI_TOOLS_BY_NAME["web_search"], display_in_ai_header=False),
+    )
+    monkeypatch.setitem(
+        AI_TOOLS_BY_NAME,
+        "write_memory",
+        replace(AI_TOOLS_BY_NAME["write_memory"], display_in_ai_header=False),
+    )
+    labels = used_tool_labels(
+        [
+            ModelResponse(parts=[ToolCallPart(tool_name="web_search", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="write_memory", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="get_notes", args={})]),
+            ModelResponse(parts=[ToolCallPart(tool_name="kagi_search", args={})]),
+        ]
+    )
+
+    doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(70)), "Answer", tool_labels=labels)
+    assert doc.to_md().startswith("✨ (Search, Notes) Answer")
+    assert "Memory" not in doc.to_rich()
+
+    monkeypatch.setitem(
+        AI_TOOLS_BY_NAME,
+        "save_note",
+        replace(AI_TOOLS_BY_NAME["save_note"], display_in_ai_header=False),
+    )
+    hidden_only = used_tool_labels(
+        [ModelResponse(parts=[ToolCallPart(tool_name="save_note", args={})])]
+    )
+    hidden_doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(70)), "Answer", tool_labels=hidden_only)
+    assert hidden_doc.to_md().startswith("✨ Answer")
+
+
+@pytest.mark.parametrize(
+    ("percentage", "emoji_id"),
+    [
+        (0, "5841410188350852356"),
+        (32, "5841410188350852356"),
+        (33, "5841424383217766066"),
+        (65, "5841424383217766066"),
+        (66, "5841233274352963797"),
+        (100, "5841233274352963797"),
+    ],
+)
+def test_battery_emoji_matches_remaining_charge(percentage: int, emoji_id: str) -> None:
+    expected = f'<tg-emoji emoji-id="{emoji_id}">🔋</tg-emoji> {percentage}%'
+    assert ai_credit_header(percentage).to_rich().startswith(expected)
 
 
 def test_model_name_is_optional_after_battery_percentage() -> None:

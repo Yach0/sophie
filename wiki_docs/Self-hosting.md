@@ -121,6 +121,22 @@ restart.
 > `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
+### Chatbot progress
+
+When `ai_chatbot_thinking_message` or `ai_chatbot_streaming` is enabled, the in-progress
+reply uses STFU rich rendering with an animated AI emoji and a three-emoji footer. Streamed
+reasoning renders Markdown; an active tool shows one of its localized activity messages in
+italics, without an emoji, title, or internal name. Tool arguments are not displayed.
+Completed replies replace the animation with a static AI emoji, eligible used-tool titles
+without tool icons (Search first when used), and a battery footer in its own paragraph.
+Each tool has its own `display_in_ai_header` setting in
+`sophie_bot/modules/ai/utils/ai_tool.py`; set it to `False` to hide that tool from the
+final header without hiding its in-progress activity. Custom emoji IDs remain in the
+tool metadata but are not rendered in the progress activity or completed header.
+The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66–100%.
+`ai_chatbot_show_model_name` adds the model beside the battery reading. The
+`ai_chatbot_header_style` flag can disable the final prefix and quota footer.
+
 ## AI moderation
 
 The AI moderator classifies messages against nine categories and deletes anything that crosses a

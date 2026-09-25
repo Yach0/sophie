@@ -7,8 +7,14 @@ from aiogram.types import Message, RichBlockParagraph, RichTextCustomEmoji
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
-from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_BATTERY_CUSTOM_EMOJI_IDS,
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
+    AI_CUSTOM_EMOJI_ID,
+    AI_GENERATING_EMOJI_ID,
+)
 from sophie_bot.modules.ai.utils.ai_progress import AI_PROGRESS_MARKER
+from sophie_bot.modules.ai.utils.ai_tool import AITool
 
 _LEGACY_AI_HEADER_LABEL = f"{AI_EMOJI} AI"
 _LEGACY_AI_HEADER_SEPARATOR = " | "
@@ -17,6 +23,13 @@ _BATTERY_MARKER_PATTERN = r'(?:<tg-emoji emoji-id="\d+">)?🔋(?:</tg-emoji>)?'
 _SIMPLE_FOOTER_PATTERN = re.compile(
     rf"\n+{_BATTERY_MARKER_PATTERN}(?: \d+%)?(?: \([^()\n]+\))?(?=[ \t]*(?:\n|$)|[ \t]+\*?⚠️)"
 )
+
+
+_KNOWN_BATTERY_EMOJI_IDS = AI_BATTERY_CUSTOM_EMOJI_IDS | {
+    "5819177212833697095",
+    "5818860416045945285",
+    "5816915599019741395",
+}
 
 
 def _rich_text(value: object) -> str:
@@ -61,7 +74,11 @@ def _ai_marker(message: Message) -> RichTextCustomEmoji | None:
     first_item = rich.blocks[0].text
     while isinstance(first_item, list) and first_item:
         first_item = first_item[0]
-    if isinstance(first_item, RichTextCustomEmoji) and first_item.custom_emoji_id == AI_CUSTOM_EMOJI_ID:
+    if isinstance(first_item, RichTextCustomEmoji) and first_item.custom_emoji_id in {
+        AI_CUSTOM_EMOJI_ID,
+        AI_CHATBOT_CUSTOM_EMOJI_ID,
+        AI_GENERATING_EMOJI_ID,
+    }:
         return first_item
     return None
 
@@ -77,7 +94,7 @@ def _rich_battery_offset(value: object) -> tuple[int, int | None]:
             length += item_length
         return length, battery_offset
     if isinstance(value, RichTextCustomEmoji):
-        battery_offset = 0 if value.custom_emoji_id in AI_BATTERY_CUSTOM_EMOJI_IDS else None
+        battery_offset = 0 if value.custom_emoji_id in _KNOWN_BATTERY_EMOJI_IDS else None
         return len(value.alternative_text), battery_offset
     if isinstance(value, str):
         return len(value), None
@@ -128,16 +145,16 @@ def is_ai_message(message: str | Message) -> bool:
     return first_line.startswith((f"[{AI_GENERATED_TEXT}]", f"[{_LEGACY_AI_HEADER_LABEL}]"))
 
 
-def _strip_tool_label_prefix(text: str, tool_labels: Sequence[str]) -> str:
+def _strip_tool_label_prefix(text: str, tool_labels: Sequence[AITool]) -> str:
     if not tool_labels:
         return text
-    prefix = f"({', '.join(tool_labels)})"
+    prefix = f"({', '.join(tool.display_label() for tool in tool_labels)})"
     if text == prefix:
         return ""
     return text.removeprefix(prefix + " ")
 
 
-def cut_titlebar(message: str | Message, *, tool_labels: Sequence[str] = ()) -> str:
+def cut_titlebar(message: str | Message, *, tool_labels: Sequence[AITool] = ()) -> str:
     if isinstance(message, Message):
         text = message_text(message)
         marker = _ai_marker(message)

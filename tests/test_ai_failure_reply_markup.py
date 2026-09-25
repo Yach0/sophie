@@ -39,8 +39,8 @@ def _message(bot: MockBot, message_id: int) -> Message:
 def _streamer(bot: MockBot, test_redis: object) -> ChatbotMessageStreamer:
     streamer = ChatbotMessageStreamer(
         source_message=_message(bot, 1),
-        header=Doc("Header"),
-        mode=StreamMode.HTML_EDIT,
+        status=Doc("Header"),
+        mode=StreamMode.EDIT,
         throttle_seconds=1,
         redis=test_redis,
     )

@@ -225,6 +225,7 @@ async def run_chatbot(request: ChatbotRunRequest) -> AIAgentResult[str]:
             deps=context,
             usage_limits=run_config.usage_limits,
             request_options=run_config.request_options,
+            on_before_tool_call=callbacks.on_tool_call,
             on_retry=callbacks.on_retry,
             model_plan=request.model_plan,
         )

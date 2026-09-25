@@ -534,10 +534,22 @@ async def run_ai_text[DepsT](
     usage_limits: UsageLimits | None = None,
     request_options: AIRequestOptions | None = None,
     model_settings: Mapping[str, object] | None = None,
+    on_before_tool_call: ToolCallCallback | None = None,
     on_retry: AIRetryCallback | None = None,
     model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[str]:
     run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
+    if on_before_tool_call is not None:
+
+        async def event_stream_handler(
+            _ctx: RunContext[DepsT],
+            events: AsyncIterable[AgentStreamEvent],
+        ) -> None:
+            async for event in events:
+                if isinstance(event, FunctionToolCallEvent):
+                    await on_before_tool_call(event.part.tool_name)
+
+        run_kwargs["event_stream_handler"] = event_stream_handler
     return await _run_with_retries_and_metrics(
         agent,
         run_kwargs,

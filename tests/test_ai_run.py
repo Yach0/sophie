@@ -181,6 +181,23 @@ async def test_run_ai_text_wraps_output_usage_and_messages() -> None:
     assert result.retries == 0
 
 
+async def test_nonstreamed_chatbot_reports_each_tool_execution() -> None:
+    agent = FakeEventAgent([tool_call("web_search"), tool_call("web_search")], "Done")
+    actions: list[str] = []
+
+    async def on_before_tool_call(tool_name: str) -> None:
+        actions.append(tool_name)
+
+    result = await run_ai_text(
+        cast(Agent[Any, str], agent),
+        "Search twice",
+        on_before_tool_call=on_before_tool_call,
+    )
+
+    assert result.output == "Done"
+    assert actions == ["web_search", "web_search"]
+
+
 async def test_run_ai_structured_wraps_typed_output() -> None:
     agent = Agent(TestModel(custom_output_args={"value": "ok"}), output_type=StructuredOutput)
 

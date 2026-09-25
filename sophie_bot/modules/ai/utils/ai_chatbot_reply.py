@@ -22,6 +22,7 @@ from sophie_bot.modules.ai.utils.ai_header import AIHeaderStyle, get_ai_header_s
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
+from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
@@ -138,7 +139,7 @@ async def _build_fitting_reply_doc(
     result: AIAgentResult[str] | None,
     explicit_debug_mode: bool,
     chat_tid: int,
-    tool_labels: Sequence[str] = (),
+    tool_labels: Sequence[AITool] = (),
     strip_alien_html_tags: bool = False,
     *,
     services: ApplicationServices,
