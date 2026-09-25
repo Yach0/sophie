@@ -8437,14 +8437,7 @@ msgstr "Не вдалося знайти згадку користувача"
 #~ msgid "I could not find the answer in my own sources within the allowed budget."
 #~ msgstr "Я не зміг знайти відповідь у власних джерелах у межах дозволеного бюджету."
 
-#: sophie_bot/utils/error_references.py:12
-msgid "Reference IDs"
-msgstr ""
-
-#: sophie_bot/utils/error_references.py:14
-msgid "Sentry"
-msgstr ""
-
-#: sophie_bot/utils/error_references.py:15
-msgid "Logfire"
+#: sophie_bot/utils/error_references.py:13
+#: sophie_bot/utils/error_references.py:18
+msgid "Trace ID"
 msgstr ""

@@ -14,48 +14,45 @@ from sophie_bot.services import logfire as telemetry
 
 
 @pytest.mark.parametrize(
-    ("sentry_event_id", "logfire_trace_id", "heading"),
+    ("sentry_event_id", "logfire_trace_id"),
     [
-        (None, None, None),
-        ("sentry-event", None, "Reference ID"),
-        (None, "logfire-trace", "Reference ID"),
-        ("sentry-event", "logfire-trace", "Reference IDs"),
+        (None, None),
+        ("sentry-event", None),
+        (None, "logfire-trace"),
+        ("sentry-event", "logfire-trace"),
     ],
 )
 def test_crash_message_shows_available_references(
-    sentry_event_id: str | None, logfire_trace_id: str | None, heading: str | None
+    sentry_event_id: str | None, logfire_trace_id: str | None
 ) -> None:
     message = generic_error_message(
         ValueError("Crash"), sentry_event_id, logfire_trace_id=logfire_trace_id, hide_contact=True
     )["text"]
-    if heading is None:
-        assert "Reference ID" not in message
-    else:
-        assert heading in message
-        assert ("Reference IDs" in message) == (sentry_event_id is not None and logfire_trace_id is not None)
+    assert ("Reference ID" in message) == (sentry_event_id is not None)
+    assert ("Trace ID" in message) == (logfire_trace_id is not None)
+    assert "Reference IDs" not in message
     if sentry_event_id:
         assert sentry_event_id in message
     if logfire_trace_id:
         assert logfire_trace_id in message
-    if sentry_event_id and logfire_trace_id:
-        assert "Sentry" in message and "Logfire" in message
 
 
 @pytest.mark.parametrize(
-    ("sentry_event_id", "logfire_trace_id", "heading"),
+    ("sentry_event_id", "logfire_trace_id"),
     [
-        ("sentry-event", None, "Reference ID"),
-        (None, "logfire-trace", "Reference ID"),
-        ("sentry-event", "logfire-trace", "Reference IDs"),
+        ("sentry-event", None),
+        (None, "logfire-trace"),
+        ("sentry-event", "logfire-trace"),
     ],
 )
 def test_ai_failure_reuses_captured_references(
-    sentry_event_id: str | None, logfire_trace_id: str | None, heading: str
+    sentry_event_id: str | None, logfire_trace_id: str | None
 ) -> None:
     failure = AIRequestFailed(sentry_event_id, "The provider failed", logfire_trace_id=logfire_trace_id)
     message = ai_request_failed_message(error=failure)["text"]
-    assert heading in message
-    assert ("Reference IDs" in message) == (sentry_event_id is not None and logfire_trace_id is not None)
+    assert ("Reference ID" in message) == (sentry_event_id is not None)
+    assert ("Trace ID" in message) == (logfire_trace_id is not None)
+    assert "Reference IDs" not in message
     if sentry_event_id:
         assert sentry_event_id in message
     if logfire_trace_id:
@@ -76,7 +73,7 @@ def test_global_handler_reports_same_crash_to_both_providers(monkeypatch: pytest
 
     sentry_capture.assert_called_once_with(error)
     logfire_capture.assert_called_once_with(error)
-    assert "Reference IDs" in message["text"]
+    assert "Reference ID" in message["text"] and "Trace ID" in message["text"]
     assert "sentry-event" in message["text"] and "logfire-trace" in message["text"]
 
 
@@ -97,7 +94,7 @@ def test_ai_terminal_error_preserves_both_ids_without_recapture(monkeypatch: pyt
     sentry_capture.assert_called_once()
     logfire_capture.assert_called_once_with(cause)
     global_logfire_capture.assert_not_called()
-    assert "Reference IDs" in message
+    assert "Reference ID" in message and "Trace ID" in message
     assert "sentry-event" in message and "logfire-trace" in message
 
 
