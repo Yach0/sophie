@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputRichMessage, Message
 from stfu_tg import Doc, RichTable, RichTableCell, Title
 
@@ -70,15 +69,12 @@ def _build_doc() -> Doc:
 async def _send_picker(message: Message, selected: AIMode) -> None:
     doc = _build_doc()
     keyboard = _build_keyboard(selected)
-    try:
-        await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
-            chat_id=message.chat.id,
-            message_thread_id=message.message_thread_id,
-            rich_message=InputRichMessage(html=doc.to_rich()),
-            reply_markup=keyboard,
-        )
-    except TelegramAPIError:
-        await message.reply(doc.to_html(), reply_markup=keyboard)
+    await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
+        chat_id=message.chat.id,
+        message_thread_id=message.message_thread_id,
+        rich_message=InputRichMessage(html=doc.to_rich()),
+        reply_markup=keyboard,
+    )
 
 
 @flags.handler_help(description=l_("Select what the AI does in this chat"))

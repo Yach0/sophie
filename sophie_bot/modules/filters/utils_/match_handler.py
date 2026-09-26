@@ -321,6 +321,7 @@ async def match_ai_handler(
         result = await run_structured_task(
             AIStructuredTask(
                 output_type=AIFilterResponseSchema,
+                name="filter:matching",
                 model_settings=OpenRouterModelSettings(openrouter_reasoning={"effort": "low"}),
             ),
             model_plan,

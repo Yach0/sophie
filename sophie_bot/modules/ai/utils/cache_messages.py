@@ -5,6 +5,8 @@ from datetime import UTC, datetime, timedelta
 from pydantic import BaseModel
 from redis.asyncio import Redis
 
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
+
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
 
@@ -69,44 +71,61 @@ async def cache_message(
     proactively_reacted: bool = False,
 ) -> None:
     """Caches a message if text is provided."""
-    if not text:
-        return
+    with ai_span("ai.cache.message.write") as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+            span.set_attribute("message_count", 0)
+        if not text:
+            if span is not None:
+                span.set_attribute("outcome", "skipped")
+                span.set_attribute("skip_reason", "empty_text")
+            return
 
-    msg = MessageType(
-        user_id=user_id,
-        is_bot=is_bot,
-        message_id=message_id,
-        text=text,
-        created_at=created_at,
-        username=username,
-        message_thread_id=message_thread_id,
-        handled_by_ai=handled_by_ai,
-        eligible_for_proactive_ai=eligible_for_proactive_ai,
-        reply_to_message_id=reply_to_message_id,
-        reply_to_user_id=reply_to_user_id,
-        reply_to_username=reply_to_username,
-        reply_to_is_sophie_ai=reply_to_is_sophie_ai,
-        has_ai_command=has_ai_command,
-        is_ai_filter_reply=is_ai_filter_reply,
-        proactively_answered=proactively_answered,
-        proactively_reacted=proactively_reacted,
-    )
-    json_str = msg.model_dump_json()
-    key = get_message_cache_key(chat_id)
-    message_score = created_at.timestamp()
-    cutoff_score = _build_cutoff(created_at).timestamp()
+        msg = MessageType(
+            user_id=user_id,
+            is_bot=is_bot,
+            message_id=message_id,
+            text=text,
+            created_at=created_at,
+            username=username,
+            message_thread_id=message_thread_id,
+            handled_by_ai=handled_by_ai,
+            eligible_for_proactive_ai=eligible_for_proactive_ai,
+            reply_to_message_id=reply_to_message_id,
+            reply_to_user_id=reply_to_user_id,
+            reply_to_username=reply_to_username,
+            reply_to_is_sophie_ai=reply_to_is_sophie_ai,
+            has_ai_command=has_ai_command,
+            is_ai_filter_reply=is_ai_filter_reply,
+            proactively_answered=proactively_answered,
+            proactively_reacted=proactively_reacted,
+        )
+        json_str = msg.model_dump_json()
+        key = get_message_cache_key(chat_id)
+        message_score = created_at.timestamp()
+        cutoff_score = _build_cutoff(created_at).timestamp()
 
-    async with redis.pipeline(transaction=True) as pipe:
-        pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
-        pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
-        pipe.expire(key, 86400 * 2, lt=True)
-        await pipe.execute()
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
+            pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
+            pipe.expire(key, 86400 * 2, lt=True)
+            await pipe.execute()
+        if span is not None:
+            span.set_attribute("outcome", "success")
+            span.set_attribute("message_count", 1)
 
 
 async def reset_messages(chat_id: int, *, redis: Redis) -> None:
     """Resets the cached messages for a given chat."""
-    key = get_message_cache_key(chat_id)
-    await redis.delete(key)
+    with ai_span("ai.cache.message.reset") as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        key = get_message_cache_key(chat_id)
+        removed = await redis.delete(key)
+        if span is not None:
+            span.set_attribute("outcome", "success")
+            span.set_attribute("hit", bool(removed))
+            span.set_attribute("removed_count", int(removed))
 
 
 def _parse_cached_message(raw_message: object) -> MessageType | None:
@@ -123,15 +142,23 @@ async def get_cached_messages_between(
     redis: Redis,
 ) -> tuple[MessageType, ...]:
     """Retrieve cached messages in a given inclusive time window."""
-    key = get_message_cache_key(chat_id)
-    raw_messages = await redis.zrangebyscore(  # type: ignore[misc]
-        key, start_at.timestamp(), end_at.timestamp()
-    )
-    messages = [message for raw_message in raw_messages if (message := _parse_cached_message(raw_message))]
-    valid_messages = [
-        message for message in messages if message.created_at and start_at <= message.created_at <= end_at
-    ]
-    return tuple(sorted(valid_messages, key=lambda message: (message.created_at, message.message_id)))
+    with ai_span("ai.cache.message.read_between") as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        key = get_message_cache_key(chat_id)
+        raw_messages = await redis.zrangebyscore(  # type: ignore[misc]
+            key, start_at.timestamp(), end_at.timestamp()
+        )
+        messages = [message for raw_message in raw_messages if (message := _parse_cached_message(raw_message))]
+        valid_messages = [
+            message for message in messages if message.created_at and start_at <= message.created_at <= end_at
+        ]
+        result = tuple(sorted(valid_messages, key=lambda message: (message.created_at, message.message_id)))
+        if span is not None:
+            span.set_attribute("outcome", "success")
+            span.set_attribute("hit", bool(result))
+            span.set_attribute("message_count", len(result))
+        return result
 
 
 async def get_cached_messages(
@@ -147,12 +174,21 @@ async def get_cached_messages(
     ``max_age`` further restricts the window to messages newer than ``now - max_age`` (never
     older than the cache TTL cutoff), on top of the optional trailing-``limit`` count cap.
     """
-    current_time = now or datetime.now(UTC)
-    start_at = _build_cutoff(current_time)
-    if max_age is not None:
-        start_at = max(start_at, current_time - max_age)
-    messages = await get_cached_messages_between(chat_id, start_at, current_time, redis=redis)
-    if limit is None:
-        return messages
-    start_index = max(len(messages) - limit, 0)
-    return messages[start_index:]
+    with ai_span("ai.cache.message.read", age_restricted=max_age is not None, limited=limit is not None) as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        current_time = now or datetime.now(UTC)
+        start_at = _build_cutoff(current_time)
+        if max_age is not None:
+            start_at = max(start_at, current_time - max_age)
+        messages = await get_cached_messages_between(chat_id, start_at, current_time, redis=redis)
+        if limit is None:
+            result = messages
+        else:
+            start_index = max(len(messages) - limit, 0)
+            result = messages[start_index:]
+        if span is not None:
+            span.set_attribute("outcome", "success")
+            span.set_attribute("hit", bool(result))
+            span.set_attribute("message_count", len(result))
+        return result

@@ -15,6 +15,7 @@ from openai import AsyncOpenAI
 from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.logger import log
 
 MISTRAL_PROVIDER_NAME: Final[str] = "mistral"
@@ -40,10 +41,15 @@ async def _api_key(provider_name: str, *, redis: Redis) -> str:
 
 def _cached(provider_name: str, api_key: str, build) -> Any:
     """Cache by name and key, so rotating the key in the catalog builds a fresh client."""
-    cache_key = (provider_name, api_key)
-    if cache_key not in _clients:
-        _clients[cache_key] = build()
-    return _clients[cache_key]
+    provider_type = provider_name if provider_name in (MISTRAL_PROVIDER_NAME, OPENAI_PROVIDER_NAME) else "other"
+    with ai_span("ai.client.cache", provider_type=provider_type) as span:
+        cache_key = (provider_name, api_key)
+        hit = cache_key in _clients
+        if span is not None:
+            span.set_attribute("cache_hit", hit)
+        if not hit:
+            _clients[cache_key] = build()
+        return _clients[cache_key]
 
 
 async def get_mistral_client(*, redis: Redis) -> Mistral:

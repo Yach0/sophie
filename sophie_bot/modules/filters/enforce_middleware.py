@@ -145,7 +145,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         doc = build_ai_message_doc(
             header,
             body,
-            custom_emoji_id=await get_ai_custom_emoji_id(message.chat.id, redis=services.redis),
+            emoji_id=await get_ai_custom_emoji_id(message.chat.id, redis=services.redis),
         )
 
         async def send_message() -> Message:

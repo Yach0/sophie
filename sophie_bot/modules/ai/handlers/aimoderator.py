@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputRichMessage, Message
 from stfu_tg import Doc, Italic, RichTable, RichTableCell, Title
 
@@ -82,15 +81,12 @@ def _build_keyboard(levels: Mapping[ModerationCategory, DetectionLevel]) -> Inli
 async def _send_picker(message: Message, settings: AIModeratorModel | None) -> None:
     doc = _build_doc()
     keyboard = _build_keyboard(get_levels(settings))
-    try:
-        await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
-            chat_id=message.chat.id,
-            message_thread_id=message.message_thread_id,
-            rich_message=InputRichMessage(html=doc.to_rich()),
-            reply_markup=keyboard,
-        )
-    except TelegramAPIError:
-        await message.reply(doc.to_html(), reply_markup=keyboard)
+    await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
+        chat_id=message.chat.id,
+        message_thread_id=message.message_thread_id,
+        rich_message=InputRichMessage(html=doc.to_rich()),
+        reply_markup=keyboard,
+    )
 
 
 @flags.handler_help(description=l_("Tune what the AI moderator detects in this chat"))
@@ -117,10 +113,7 @@ class AIModeratorCategoryToggle(SophieCallbackQueryHandler):
         if not await is_user_admin(message.chat.id, self.event.from_user.id):
             return await self.event.answer(_("You are not allowed to change this setting"))
 
-        try:
-            category = ModerationCategory(self.callback_data.category)
-        except ValueError:
-            return await self.event.answer(_("Unknown category"))
+        category = ModerationCategory(self.callback_data.category)
 
         chat = self.connection.db_model
         levels = get_levels(await get_moderator_settings(chat.iid))

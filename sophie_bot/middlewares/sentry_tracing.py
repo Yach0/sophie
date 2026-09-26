@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Any, Final, override
+from typing import Any, override
 
 import sentry_sdk
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
 from sophie_bot.metrics.update_info import extract_command_name, extract_update_info
-from sophie_bot.utils.feature_flags import FeatureType, is_enabled
-
-# Feature flag gating per-update Sentry transactions (runtime kill switch).
-TRACING_FLAG: Final[FeatureType] = "sentry_update_tracing"
 
 
 class SentryTracingMiddleware(BaseMiddleware):
@@ -26,8 +22,8 @@ class SentryTracingMiddleware(BaseMiddleware):
     aggregator: that keeps album-collection idle time out of the transaction duration.
 
     Effective sampling is still governed by ``sentry_traces_sample_rate`` — when that is
-    unset, ``start_transaction`` returns a cheap unsampled transaction, so the flag being
-    on does not force traces to be recorded.
+    unset, ``start_transaction`` returns a cheap unsampled transaction, so wrapping
+    every update does not force traces to be recorded.
     """
 
     @override
@@ -37,9 +33,6 @@ class SentryTracingMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        if not await is_enabled(TRACING_FLAG, redis=data["services"].redis):
-            return await handler(event, data)
-
         update_info = extract_update_info(event)
         command_name = extract_command_name(event)
 

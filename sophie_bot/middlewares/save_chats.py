@@ -17,7 +17,6 @@ from sophie_bot.utils.community_api import (
     extract_community_change,
     fetch_chat_community,
 )
-from sophie_bot.utils.feature_flags import is_enabled
 
 logger = structlog.get_logger(__name__)
 
@@ -98,9 +97,6 @@ class SaveChatsMiddleware(BaseMiddleware):
         Mirrors ``save_topic``: builds Sophie's own community→chats registry passively,
         since Telegram exposes no way to enumerate a community's chats.
         """
-        if not await is_enabled("communities", chat_tid=group.tid, redis=services.redis):
-            return
-
         change = extract_community_change(message)
         if change is None:
             return

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterable, Iterator
+from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager
-from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -24,7 +23,7 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.modules.ai.utils import ai_run
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, is_retryable_ai_provider_error
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_model_plan import (
     AIModelCandidate,
     AIModelPlan,
@@ -181,6 +180,23 @@ async def test_run_ai_text_wraps_output_usage_and_messages() -> None:
     assert result.retries == 0
 
 
+async def test_nonstreamed_chatbot_reports_each_tool_execution() -> None:
+    agent = FakeEventAgent([tool_call("web_search"), tool_call("web_search")], "Done")
+    actions: list[str] = []
+
+    async def on_before_tool_call(tool_name: str) -> None:
+        actions.append(tool_name)
+
+    result = await run_ai_text(
+        cast(Agent[Any, str], agent),
+        "Search twice",
+        on_before_tool_call=on_before_tool_call,
+    )
+
+    assert result.output == "Done"
+    assert actions == ["web_search", "web_search"]
+
+
 async def test_run_ai_structured_wraps_typed_output() -> None:
     agent = Agent(TestModel(custom_output_args={"value": "ok"}), output_type=StructuredOutput)
 
@@ -321,6 +337,41 @@ async def test_run_ai_stream_forces_latest_text_before_a_tool_call() -> None:
     assert callback_order[tool_index - 1] == ("text", "Let me check the docs.")
 
 
+@pytest.mark.asyncio
+async def test_run_ai_stream_flushes_reasoning_before_a_tool_call() -> None:
+    callback_order: list[tuple[str, str]] = []
+
+    async def on_text_stream(_text: str) -> None:
+        return None
+
+    async def on_reasoning_stream(text: str) -> None:
+        callback_order.append(("reasoning", text))
+
+    async def on_before_tool_call(tool_name: str) -> None:
+        callback_order.append(("tool", tool_name))
+
+    agent = FakeEventAgent(
+        events=[
+            *thinking_round("First five words ", "and the rest of the reasoning."),
+            tool_call("web_search"),
+            tool_call("sophie_help"),
+        ],
+        final_output="Answer",
+    )
+
+    await run_ai_stream(
+        cast(Agent[Any, str], agent),
+        user_prompt="Research this",
+        on_text_stream=on_text_stream,
+        on_reasoning_stream=on_reasoning_stream,
+        on_before_tool_call=on_before_tool_call,
+    )
+
+    tool_index = callback_order.index(("tool", "web_search"))
+    assert callback_order[tool_index - 1] == ("reasoning", "First five words and the rest of the reasoning.")
+    assert callback_order.count(("reasoning", "First five words and the rest of the reasoning.")) == 1
+
+
 async def test_run_ai_stream_routes_thinking_away_from_the_answer(no_stream_debounce: None) -> None:
     streamed_text: list[str] = []
     streamed_reasoning: list[str] = []
@@ -348,44 +399,25 @@ async def test_run_ai_stream_routes_thinking_away_from_the_answer(no_stream_debo
     assert all("wants antiflood" not in text for text in streamed_text)
 
 
-async def test_run_ai_stream_returns_partial_text_when_usage_limit_is_hit(no_stream_debounce: None) -> None:
+async def test_run_ai_stream_propagates_usage_limit_after_partial_stream(no_stream_debounce: None) -> None:
     agent = FakeEventAgent(
         events=text_round("Partial answer"),
         final_output="",
         raises=UsageLimitExceeded("request limit exceeded"),
     )
+    streamed_text: list[str] = []
 
-    async def on_text_stream(_text: str) -> None:
-        return None
+    async def on_text_stream(text: str) -> None:
+        streamed_text.append(text)
 
-    result = await run_ai_stream(
-        cast(Agent[Any, str], agent),
-        user_prompt="How does antiflood work?",
-        on_text_stream=on_text_stream,
-        stream_options=ChatbotStreamOptions(partial_on_limit=True),
-    )
-
-    assert result.truncated is True
-    assert result.output == "Partial answer"
-
-
-async def test_run_ai_stream_fails_on_usage_limit_without_partial_delivery(no_stream_debounce: None) -> None:
-    agent = FakeEventAgent(
-        events=text_round("Partial answer"),
-        final_output="",
-        raises=UsageLimitExceeded("request limit exceeded"),
-    )
-
-    async def on_text_stream(_text: str) -> None:
-        return None
-
-    with pytest.raises(AIRequestFailed):
+    with pytest.raises(UsageLimitExceeded):
         await run_ai_stream(
             cast(Agent[Any, str], agent),
             user_prompt="How does antiflood work?",
             on_text_stream=on_text_stream,
-            stream_options=ChatbotStreamOptions(partial_on_limit=False),
         )
+
+    assert streamed_text == ["Partial answer"]
 
 
 async def test_run_ai_stream_sends_output_limit_to_provider_as_generation_ceiling() -> None:
@@ -464,12 +496,16 @@ def candidate(
     )
 
 
-def chain(*candidates: AIModelCandidate, failover: bool = True) -> ai_run.CandidateChain:
-    """A chain with the rules the flag would give it, without going through plan resolution."""
-    return ai_run.CandidateChain(
-        candidates=list(candidates),
-        should_try_next=ai_run._should_try_next_model if failover else is_retryable_ai_provider_error,
-        refusal_failover=failover,
+async def run_chain[OutputT](
+    operation: Callable[[AIModelCandidate], Awaitable[OutputT]],
+    *candidates: AIModelCandidate,
+    is_refusal: Callable[[OutputT], bool] | None = None,
+) -> tuple[OutputT, AIModelCandidate]:
+    return await ai_run._run_with_model_candidates(
+        operation,
+        list(candidates),
+        model_plan=AIModelPlan(candidates=candidates),
+        is_refusal=is_refusal,
     )
 
 
@@ -486,7 +522,7 @@ async def test_the_first_candidate_serves_when_it_succeeds(immediate_retries: No
         attempted.append(active)
         return "from-primary"
 
-    result, served = await ai_run._run_with_model_candidates(operation, chain(primary))
+    result, served = await run_chain(operation, primary)
 
     assert result == "from-primary"
     assert served is primary
@@ -504,7 +540,7 @@ async def test_a_failing_candidate_hands_over_to_the_next(immediate_retries: Non
             raise TimeoutError("primary provider is down")
         return "from-backup"
 
-    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, backup))
+    result, served = await run_chain(operation, primary, backup)
 
     # The served model must be the one that answered, so callers attribute usage/metrics correctly.
     assert result == "from-backup"
@@ -522,7 +558,7 @@ async def test_a_flat_provider_rejection_also_hands_over(immediate_retries: None
             raise ModelHTTPError(status_code=400, model_name="primary", body="no image support")
         return "from-backup"
 
-    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, backup))
+    result, served = await run_chain(operation, primary, backup)
 
     assert result == "from-backup"
     assert served is backup
@@ -536,10 +572,8 @@ async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
         attempted.append(active)
         raise UsageLimitExceeded("request limit exceeded")
 
-    with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
-
-    assert isinstance(raised.value.__cause__, UsageLimitExceeded)
+    with pytest.raises(UsageLimitExceeded):
+        await run_chain(operation, candidate("primary"), candidate("backup"))
     assert len(attempted) == 1
 
 
@@ -552,12 +586,10 @@ async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None,
         attempted.append(active)
         raise ModelHTTPError(status_code=status_code, model_name="primary", body="invalid api key")
 
-    with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(
-            operation, chain(candidate("primary"), candidate("backup"), candidate("third"))
-        )
+    with pytest.raises(ModelHTTPError) as raised:
+        await run_chain(operation, candidate("primary"), candidate("backup"), candidate("third"))
 
-    assert isinstance(raised.value.__cause__, ModelHTTPError)
+    assert raised.value.status_code == status_code
     assert len(attempted) == 1
 
 
@@ -568,7 +600,7 @@ async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> N
         raise TimeoutError("everything is down")
 
     with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(operation, chain(candidate("primary"), candidate("backup")))
+        await run_chain(operation, candidate("primary"), candidate("backup"))
 
     assert str(raised.value.__cause__) == "everything is down"
 
@@ -580,9 +612,7 @@ async def test_an_empty_answer_hands_over_to_the_next_candidate(immediate_retrie
     async def operation(active: AIModelCandidate) -> str:
         return "" if active is primary else "a real answer"
 
-    result, served = await ai_run._run_with_model_candidates(
-        operation, chain(primary, backup), is_refusal=is_refusal_output
-    )
+    result, served = await run_chain(operation, primary, backup, is_refusal=is_refusal_output)
 
     assert result == "a real answer"
     assert served is backup
@@ -595,7 +625,7 @@ async def test_the_last_candidates_empty_answer_is_returned(immediate_retries: N
     async def operation(active: AIModelCandidate) -> str:
         return ""
 
-    result, served = await ai_run._run_with_model_candidates(operation, chain(primary), is_refusal=is_refusal_output)
+    result, served = await run_chain(operation, primary, is_refusal=is_refusal_output)
 
     assert result == ""
     assert served is primary
@@ -611,7 +641,7 @@ async def test_a_raised_refusal_hands_over_to_the_next_candidate(immediate_retri
             raise AIModelRefused("primary")
         return "a real answer"
 
-    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, backup))
+    result, served = await run_chain(operation, primary, backup)
 
     assert result == "a real answer"
     assert served is backup
@@ -624,90 +654,15 @@ async def test_the_last_candidates_raised_refusal_reaches_the_caller(immediate_r
         raise AIModelRefused(active.model_name)
 
     with pytest.raises(AIModelRefused):
-        await ai_run._run_with_model_candidates(operation, chain(candidate("primary")))
+        await run_chain(operation, candidate("primary"))
 
-
-async def test_with_failover_off_only_a_retryable_error_moves_a_request(immediate_retries: None) -> None:
-    """The pre-plan rule: a flat rejection fails fast instead of walking the chain."""
-    primary = candidate("primary")
-    backup = candidate("backup")
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        raise ModelHTTPError(status_code=400, model_name="primary", body="malformed request")
-
-    with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(operation, chain(primary, backup, failover=False))
-
-    assert isinstance(raised.value.__cause__, ModelHTTPError)
-    assert attempted == [primary]
-
-
-async def test_with_failover_off_a_retryable_error_still_reaches_the_last_resort(immediate_retries: None) -> None:
-    primary = candidate("primary")
-    last_resort = candidate("last-resort")
-
-    async def operation(active: AIModelCandidate) -> str:
-        if active is primary:
-            raise TimeoutError("primary provider is down")
-        return "from-last-resort"
-
-    result, served = await ai_run._run_with_model_candidates(operation, chain(primary, last_resort, failover=False))
-
-    assert result == "from-last-resort"
-    assert served is last_resort
-
-
-async def test_with_failover_off_an_empty_answer_is_kept(immediate_retries: None) -> None:
-    """Refusal failover is part of the new behaviour, so the flag has to hold it back too."""
-    primary = candidate("primary")
-    backup = candidate("backup")
-
-    async def operation(active: AIModelCandidate) -> str:
-        return "" if active is primary else "a real answer"
-
-    result, served = await ai_run._run_with_model_candidates(
-        operation, chain(primary, backup, failover=False), is_refusal=is_refusal_output
-    )
-
-    assert result == ""
-    assert served is primary
-
-
-def test_with_failover_off_only_the_agents_model_and_the_last_resort_are_tried(monkeypatch: Any) -> None:
-    agent_model = NamedTestModel("agent")
-    last_resort = candidate("last-resort")
-    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: last_resort)
-    plan = AIModelPlan(
-        candidates=(
-            AIModelCandidate(model=agent_model, model_name="agent"),
-            candidate("backup"),
-        )
-    )
-
-    resolved = ai_run.build_candidate_chain(agent_model, plan, has_images=False)
-
-    assert [item.model_name for item in resolved.candidates] == ["agent", "last-resort"]
-    assert resolved.refusal_failover is False
-    assert resolved.should_try_next is is_retryable_ai_provider_error
-
-
-def test_a_plan_without_the_flag_never_walks_its_chain(monkeypatch: Any) -> None:
-    """The plan still lists every candidate — the panel shows them — but only the first one runs."""
-    no_last_resort(monkeypatch)
-    agent_model = NamedTestModel("agent")
-    plan = AIModelPlan(candidates=(AIModelCandidate(model=agent_model, model_name="agent"), candidate("backup")))
-
-    assert len(ai_run.resolve_candidates(agent_model, plan, has_images=False)) == 1
-    assert len(ai_run.resolve_candidates(agent_model, replace(plan, failover=True), has_images=False)) == 2
 
 
 def test_the_agents_own_model_leads_and_the_last_resort_closes(monkeypatch: Any) -> None:
     agent_model = NamedTestModel("agent")
     last_resort = candidate("last-resort")
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: last_resort)
-    plan = AIModelPlan(candidates=(candidate("plan"),), failover=True)
+    plan = AIModelPlan(candidates=(candidate("plan"),))
 
     resolved = ai_run.resolve_candidates(agent_model, plan, has_images=False)
 
@@ -718,7 +673,7 @@ def test_the_agents_model_keeps_the_settings_of_the_plan_entry_it_came_from(monk
     """Otherwise the primary would lose the tier its own role declared the moment plans got involved."""
     no_last_resort(monkeypatch)
     primary = candidate("primary", service_tier="flex")
-    plan = AIModelPlan(candidates=(primary,), failover=True)
+    plan = AIModelPlan(candidates=(primary,))
 
     resolved = ai_run.resolve_candidates(primary.model, plan, has_images=False)
 
@@ -729,7 +684,7 @@ def test_a_candidate_ruled_out_for_images_cannot_return_through_the_agent(monkey
     no_last_resort(monkeypatch)
     text_only = candidate("text-only", supports_images=False)
     visual = candidate("visual")
-    plan = AIModelPlan(candidates=(text_only, visual), failover=True)
+    plan = AIModelPlan(candidates=(text_only, visual))
 
     # The agent was built with the plan's primary, which is exactly the model an image turn must skip.
     assert ai_run.resolve_candidates(text_only.model, plan, has_images=True) == [visual]
@@ -741,7 +696,7 @@ def test_a_hand_picked_model_the_plan_never_had_still_leads(monkeypatch: Any) ->
     no_last_resort(monkeypatch)
     hand_picked = NamedTestModel("hand-picked")
     visual = candidate("visual")
-    plan = AIModelPlan(candidates=(visual,), failover=True)
+    plan = AIModelPlan(candidates=(visual,))
 
     resolved = ai_run.resolve_candidates(hand_picked, plan, has_images=True)
 
@@ -752,7 +707,7 @@ def test_a_long_chain_is_capped(monkeypatch: Any) -> None:
     """An operator may declare more candidates than one request should ever wait through."""
     last_resort = candidate("last-resort")
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: last_resort)
-    plan = AIModelPlan(candidates=tuple(candidate(f"model-{index}") for index in range(6)), failover=True)
+    plan = AIModelPlan(candidates=tuple(candidate(f"model-{index}") for index in range(6)))
 
     resolved = ai_run.resolve_candidates(plan.candidates[0].model, plan, has_images=False)
 

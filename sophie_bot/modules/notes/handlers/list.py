@@ -182,11 +182,7 @@ async def _query_notes(
     *,
     redis: Redis,
 ) -> list[NoteModel]:
-    rag_allowed = (
-        search
-        and await is_enabled("notes_rag_list_search", chat_tid=chat_tid, redis=redis)
-        and await is_enabled("ai_chatbot", chat_tid=chat_tid, redis=redis)
-    )
+    rag_allowed = bool(search) and await is_enabled("ai_chatbot", chat_tid=chat_tid, redis=redis)
     if rag_allowed:
         quota_result = await check_quota(chat_iid, redis=redis)
         rag_allowed = quota_result.allowed

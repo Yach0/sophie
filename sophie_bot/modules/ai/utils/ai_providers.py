@@ -8,6 +8,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 from sophie_bot.modules.ai.utils.ai_catalog import CatalogProvider
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 
 TESTING = "pytest" in sys.modules or os.environ.get("TESTING") == "1"
 
@@ -27,10 +28,15 @@ def _api_key(configured_key: str) -> str:
 
 def _cached(provider: CatalogProvider | None, build) -> Provider:
     """Cache by name and key so rotating a key in the catalog builds a fresh client."""
-    key = (provider.name, provider.api_key) if provider else ("", "")
-    if key not in _providers:
-        _providers[key] = build()
-    return _providers[key]
+    provider_type = "openai_compatible" if provider and provider.kind == "openai_compatible" else "openrouter"
+    with ai_span("ai.provider.cache", provider_type=provider_type) as span:
+        key = (provider.name, provider.api_key) if provider else ("", "")
+        hit = key in _providers
+        if span is not None:
+            span.set_attribute("cache_hit", hit)
+        if not hit:
+            _providers[key] = build()
+        return _providers[key]
 
 
 def get_openrouter_provider(provider: CatalogProvider | None = None) -> Provider:
