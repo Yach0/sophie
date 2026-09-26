@@ -7,7 +7,6 @@ from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template, Title
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
@@ -69,7 +68,7 @@ def _extract_reply_context(message: Message) -> str | None:
 class OpTaskHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple:
-        return CMDFilter("op_task"), IsOP(True), FeatureFlagFilter("op_task")
+        return CMDFilter("op_task"), IsOP(True)
 
     async def handle(self) -> None:
         message: Message = self.event
@@ -124,6 +123,7 @@ class OpTaskHandler(SophieMessageHandler):
             result = await run_structured_task(
                 AIStructuredTask(
                     output_type=OpTaskAIResult,
+                    name="operator:task",
                     feature=AI_FEATURE_CHATBOT,
                 ),
                 model_plan,

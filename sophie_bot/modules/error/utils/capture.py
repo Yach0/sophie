@@ -1,5 +1,7 @@
-from sentry_sdk import capture_exception
+import sentry_sdk
 
 
 def capture_sentry(exception: Exception) -> str | None:
-    return capture_exception(exception)
+    if not sentry_sdk.is_initialized():
+        return None
+    return sentry_sdk.capture_exception(exception)

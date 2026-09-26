@@ -18,6 +18,7 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
+| `/research` | `<Research topic>` | Research a topic using multistage web search and return a summary with sources | *Disable-able* |
 | `/aitranslate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text | *Disable-able* |
 | `/aiusage` | - | Check AI quota and usage details |  |
 | `/ai` | `<Prompt>` | Ask Sophie a question | *Disable-able* |
@@ -38,6 +39,8 @@ icon: ✨
 | `/aimoderator` | - | Tune what the AI moderator detects in this chat |  |
 | `/aiautotranslate` `/autotranslate` | `<?New status>` `<?Language code>` | Controls AI Auto translator |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries |  |
+| `/ai_summaries_pin` | `<?New status>` | Controls automatic pinning of AI chat summaries |  |
+| `/ai_summaries_time` | `<UTC time (HH:MM)>` | Sets the daily AI chat summary generation time in UTC |  |
 | `/ai_note_titles` | `<?New status>` | Controls AI note title generation |  |
 | `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
 | `/aireset` | - | Reset the chat's AI context and AI memory |  |

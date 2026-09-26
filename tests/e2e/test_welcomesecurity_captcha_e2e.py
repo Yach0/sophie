@@ -207,7 +207,6 @@ async def test_ephemeral_captcha_prompts_each_member_privately(test_client: Test
     _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Ephemeral Group")
     await grant_bot_admin(group.id)
     await _enable_ws(group.id)
-    await set_feature(test_client, "welcomecaptcha_ephemeral", True, chat_tid=group.id)
 
     first = User(id=next_user_id(), is_bot=False, first_name="AlphaJoiner")
     second = User(id=next_user_id(), is_bot=False, first_name="BetaJoiner")

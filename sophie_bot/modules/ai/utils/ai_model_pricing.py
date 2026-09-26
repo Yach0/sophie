@@ -3,12 +3,12 @@ from __future__ import annotations
 from math import ceil
 
 import ujson
-from httpx2 import AsyncClient, HTTPError
+from httpx2 import AsyncClient
 from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_BASE_INPUT_PRICE_PER_MILLION, AI_BASE_OUTPUT_PRICE_PER_MILLION, AI_CREDITS_PER_TOKEN
 from sophie_bot.modules.ai.utils.ai_catalog import get_openrouter_api_key
-from sophie_bot.utils.logger import log
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 
 ai_http_client = AsyncClient(timeout=30)
 _pricing_cache_ttl_seconds = 3600.0
@@ -38,51 +38,43 @@ async def openrouter_headers(*, redis: Redis) -> dict[str, str]:
 def parse_price_per_million(raw_price: object) -> float | None:
     if raw_price in (None, "", 0, "0"):
         return 0.0 if raw_price in (0, "0") else None
+    if not isinstance(raw_price, (int, float, str)):
+        raise TypeError(f"Unsupported model price: {raw_price!r}")
 
-    if not isinstance(raw_price, str | int | float):
-        return None
-
-    try:
-        return float(raw_price) * 1_000_000
-    except (TypeError, ValueError):
-        return None
+    return float(raw_price) * 1_000_000
 
 
 async def _load_openrouter_pricing_cache(*, redis: Redis) -> dict[str, tuple[float | None, float | None]]:
-    cached_data = await redis.get(_PRICING_CACHE_KEY)
-    if cached_data is not None:
-        try:
-            cache = ujson.loads(cached_data)
-            return cache
-        except (ujson.JSONDecodeError, TypeError):
-            pass
+    with ai_span("ai.pricing.cache") as span:
+        cached_data = await redis.get(_PRICING_CACHE_KEY)
+        if span is not None:
+            span.set_attribute("cache_hit", cached_data is not None)
+        if cached_data is not None:
+            return ujson.loads(cached_data)
 
-    cache: dict[str, tuple[float | None, float | None]] = {}
-    try:
+        cache: dict[str, tuple[float | None, float | None]] = {}
         response = await ai_http_client.get(
             "https://openrouter.ai/api/v1/models", headers=await openrouter_headers(redis=redis)
         )
         response.raise_for_status()
-    except HTTPError as err:
-        log.warning("Failed to load OpenRouter pricing", error=str(err))
+
+        data = response.json().get("data", [])
+        for item in data:
+            model_name = item.get("id") or item.get("name")
+            if not model_name:
+                continue
+            pricing = item.get("pricing") or {}
+            cache[model_name] = (
+                parse_price_per_million(pricing.get("prompt") or pricing.get("input") or item.get("input_price")),
+                parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
+            )
+
+        serialized = ujson.dumps(cache)
+        await redis.set(_PRICING_CACHE_KEY, serialized)
+        await redis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
+        if span is not None:
+            span.set_attribute("model_count", len(cache))
         return cache
-
-    data = response.json().get("data", [])
-    for item in data:
-        model_name = item.get("id") or item.get("name")
-        if not model_name:
-            continue
-        pricing = item.get("pricing") or {}
-        cache[model_name] = (
-            parse_price_per_million(pricing.get("prompt") or pricing.get("input") or item.get("input_price")),
-            parse_price_per_million(pricing.get("completion") or pricing.get("output") or item.get("output_price")),
-        )
-
-    serialized = ujson.dumps(cache)
-    await redis.set(_PRICING_CACHE_KEY, serialized)
-    await redis.expire(_PRICING_CACHE_KEY, int(_pricing_cache_ttl_seconds))
-
-    return cache
 
 
 async def get_model_pricing(model_name: str, *, redis: Redis) -> tuple[float | None, float | None]:
@@ -98,23 +90,32 @@ async def estimate_model_credit_cost(
     *,
     redis: Redis,
 ) -> int:
-    input_price, output_price = await get_model_pricing(model_name, redis=redis)
-    if input_price is None and output_price is None:
-        return ceil(total_tokens / AI_CREDITS_PER_TOKEN)
+    with ai_span("ai.pricing.estimate") as span:
+        input_price, output_price = await get_model_pricing(model_name, redis=redis)
+        if span is not None:
+            span.set_attribute(
+                "fallback",
+                (input_price is None and output_price is None)
+                or (bool(input_tokens) and input_price is None)
+                or (bool(output_tokens) and output_price is None),
+            )
+            span.set_attribute("model_price_missing", input_price is None and output_price is None)
+        if input_price is None and output_price is None:
+            return ceil(total_tokens / AI_CREDITS_PER_TOKEN)
 
-    normalized_input_cost = 0.0
-    normalized_output_cost = 0.0
+        normalized_input_cost = 0.0
+        normalized_output_cost = 0.0
 
-    if input_tokens:
-        effective_input_price = input_price if input_price is not None else AI_BASE_INPUT_PRICE_PER_MILLION
-        normalized_input_cost = (input_tokens / AI_CREDITS_PER_TOKEN) * (
-            effective_input_price / AI_BASE_INPUT_PRICE_PER_MILLION
-        )
+        if input_tokens:
+            effective_input_price = input_price if input_price is not None else AI_BASE_INPUT_PRICE_PER_MILLION
+            normalized_input_cost = (input_tokens / AI_CREDITS_PER_TOKEN) * (
+                effective_input_price / AI_BASE_INPUT_PRICE_PER_MILLION
+            )
 
-    if output_tokens:
-        effective_output_price = output_price if output_price is not None else AI_BASE_OUTPUT_PRICE_PER_MILLION
-        normalized_output_cost = (output_tokens / AI_CREDITS_PER_TOKEN) * (
-            effective_output_price / AI_BASE_OUTPUT_PRICE_PER_MILLION
-        )
+        if output_tokens:
+            effective_output_price = output_price if output_price is not None else AI_BASE_OUTPUT_PRICE_PER_MILLION
+            normalized_output_cost = (output_tokens / AI_CREDITS_PER_TOKEN) * (
+                effective_output_price / AI_BASE_OUTPUT_PRICE_PER_MILLION
+            )
 
-    return max(ceil(normalized_input_cost + normalized_output_cost), 1)
+        return max(ceil(normalized_input_cost + normalized_output_cost), 1)

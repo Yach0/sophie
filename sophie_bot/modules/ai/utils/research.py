@@ -63,13 +63,6 @@ _RESEARCH_SOURCE_SNIPPET_LIMIT: Final[int] = 700
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
 ResearchProgressCallback = Callable[[ResearchProgressStage], Awaitable[None]]
 
-_RESEARCH_PROGRESS_SUFFIXES: Final[dict[ResearchProgressStage, str]] = {
-    "planning": "🧑‍🔬",
-    "searching": "🔎",
-    "reviewing": "🧐",
-    "summarizing": "🧾",
-}
-
 
 def _research_progress_texts(stage: ResearchProgressStage) -> tuple[str, ...]:
     return {
@@ -98,10 +91,6 @@ def _research_progress_texts(stage: ResearchProgressStage) -> tuple[str, ...]:
 
 def random_research_progress_text(stage: ResearchProgressStage) -> str:
     return choice(_research_progress_texts(stage))
-
-
-def research_progress_suffix(stage: ResearchProgressStage) -> str:
-    return _RESEARCH_PROGRESS_SUFFIXES[stage]
 
 
 @dataclass(frozen=True)
@@ -241,6 +230,7 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
     return await run_structured_task(
         AIStructuredTask(
             output_type=output_type,
+            name=f"research:{output_type.__name__}",
             feature=AI_FEATURE_RESEARCH,
         ),
         model_plan,
@@ -510,15 +500,9 @@ def _parse_source_date(value: str | None) -> date | None:
     if not normalized_value:
         return None
 
-    try:
+    if normalized_value[:4].isdigit():
         return datetime.fromisoformat(normalized_value).date()
-    except ValueError:
-        pass
-
-    try:
-        return parsedate_to_datetime(normalized_value).date()
-    except (TypeError, ValueError):
-        return None
+    return parsedate_to_datetime(normalized_value).date()
 
 
 def _research_response_from_tool_content(content: object) -> ResearchFinalResponse | None:
@@ -526,10 +510,7 @@ def _research_response_from_tool_content(content: object) -> ResearchFinalRespon
         return content
 
     if isinstance(content, Mapping):
-        try:
-            return ResearchFinalResponse.model_validate(content)
-        except ValueError:
-            return None
+        return ResearchFinalResponse.model_validate(content)
 
     return None
 

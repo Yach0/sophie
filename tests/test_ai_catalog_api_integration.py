@@ -168,14 +168,14 @@ async def test_the_feature_flags_flow_works_through_the_real_app(
         assert reset.json()["overridden"] is False
 
         # A bad value for a constrained flag is rejected, not stored.
-        bad = await client.put("/op/feature-flags/ai_chatbot_service_tier", json={"value": "turbo"})
+        bad = await client.put("/op/feature-flags/ai_translations_service_tier", json={"value": "turbo"})
         assert bad.status_code == 422
 
         # A rollout, then a per-chat override, each round-tripping through routing.
-        rollout = await client.put("/op/feature-flags/ai_research/rollout", json={"value": True, "percentage": 20})
+        rollout = await client.put("/op/feature-flags/ai_filters_jev/rollout", json={"value": True, "percentage": 20})
         assert rollout.status_code == 200 and rollout.json()["current_percentage"] == 20
-        assert any(r["feature"] == "ai_research" for r in (await client.get("/op/feature-flags/rollouts")).json())
-        assert (await client.delete("/op/feature-flags/ai_research/rollout")).status_code == 204
+        assert any(r["feature"] == "ai_filters_jev" for r in (await client.get("/op/feature-flags/rollouts")).json())
+        assert (await client.delete("/op/feature-flags/ai_filters_jev/rollout")).status_code == 204
 
         chat = await client.put("/op/feature-flags/ai_chatbot/chat/-100777", json={"value": False})
         assert chat.status_code == 200 and chat.json()["value"] is False

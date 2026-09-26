@@ -24,7 +24,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     ensure_sentry_event_id,
     run_ai_request_with_retries,
 )
-from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from sophie_bot.utils.exception import SophieException
 
@@ -80,14 +80,6 @@ class _NamedModel(TestModel):
 
 def _candidate(model_name: str) -> AIModelCandidate:
     return AIModelCandidate(model=_NamedModel(model_name), model_name=model_name)
-
-
-def _chain(*candidates: AIModelCandidate) -> ai_run.CandidateChain:
-    return ai_run.CandidateChain(
-        candidates=list(candidates),
-        should_try_next=ai_run._should_try_next_model,
-        refusal_failover=True,
-    )
 
 
 def _model_http_error(status_code: int = 503) -> ModelHTTPError:
@@ -175,7 +167,9 @@ async def test_a_rescued_candidate_failure_is_reported_as_a_warning(
             raise _model_http_error()
         return "from-backup"
 
-    result, served = await ai_run._run_with_model_candidates(operation, _chain(primary, backup))
+    result, served = await ai_run._run_with_model_candidates(
+        operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
+    )
 
     assert (result, served) == ("from-backup", backup)
     # The user got an answer, so nothing else would ever surface that primary/model is failing.
@@ -195,7 +189,9 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
         raise _model_http_error()
 
     with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(operation, _chain(primary, backup))
+        await ai_run._run_with_model_candidates(
+            operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
+        )
 
     rescue_event, terminal_event = sentry_events
     assert rescue_event["level"] == "warning"
@@ -206,7 +202,7 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
     assert terminal_event["contexts"]["ai_request"]["primary_model"] == "primary/model"
 
 
-async def test_a_configuration_error_ends_the_chain_without_walking_it(
+async def test_a_configuration_error_reaches_the_global_handler_without_walking_the_chain(
     sentry_events: list[dict[str, Any]], instant_retries: None
 ) -> None:
     attempted: list[str] = []
@@ -215,19 +211,19 @@ async def test_a_configuration_error_ends_the_chain_without_walking_it(
         attempted.append(active.model_name)
         raise ModelHTTPError(status_code=401, model_name="whatever", body={"error": {"message": "Invalid key"}})
 
-    with pytest.raises(AIRequestFailed):
+    primary = _candidate("primary/model")
+    backup = _candidate("backup/model")
+
+    with pytest.raises(ModelHTTPError):
         await ai_run._run_with_model_candidates(
-            operation, _chain(_candidate("primary/model"), _candidate("backup/model"))
+            operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
         )
 
-    # Every candidate is refused the same way, so the chain stops and reports exactly one failure.
     assert attempted == ["primary/model"]
-    (event,) = sentry_events
-    assert event["level"] == "error"
-    assert event["tags"]["ai.status_code"] == "401"
+    assert sentry_events == []
 
 
-async def test_ai_handler_timeout_is_captured_with_a_reference_id(
+async def test_ai_handler_timeout_reaches_the_global_handler(
     sentry_events: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from sophie_bot.modules.ai.middlewares import ai_timeout
@@ -239,13 +235,10 @@ async def test_ai_handler_timeout_is_captured_with_a_reference_id(
 
     data = {"handler": SimpleNamespace(flags={"status": "Thinking..."})}
 
-    with pytest.raises(AIRequestFailed) as raised:
+    with pytest.raises(TimeoutError):
         await AiTimeoutMiddleware()(hanging_handler, SimpleNamespace(), data)  # type: ignore[arg-type]
 
-    (event,) = sentry_events
-    assert raised.value.sentry_event_id == event["event_id"]
-    assert event["tags"]["ai.operation"] == "handler_timeout"
-    assert event["tags"]["ai.error_type"] == "TimeoutError"
+    assert sentry_events == []
 
 
 def test_error_handler_reuses_an_already_captured_event_id(sentry_events: list[dict[str, Any]]) -> None:

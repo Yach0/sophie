@@ -4,7 +4,6 @@ from collections.abc import Iterable, Sequence
 from datetime import timedelta
 from typing import Final
 
-from pydantic import ValidationError
 from pydantic_ai.messages import (
     ModelMessagesTypeAdapter,
     ModelRequest,
@@ -12,12 +11,10 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_core import PydanticSerializationError
 from redis.asyncio import Redis
-from redis.exceptions import RedisError
 
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.feature_flags import get_value, is_enabled
-from sophie_bot.utils.logger import log
 
 ToolExchange = ModelRequest | ModelResponse
 
@@ -144,52 +141,50 @@ async def store_tool_exchanges(
     await _trim_tool_history(chat_tid, redis=redis)
 
 
-def _parse_tool_exchanges(chat_tid: int, field: str, raw_payload: bytes | str) -> list[ToolExchange] | None:
-    """Decode one stored entry, or ``None`` when it is not a payload this version can replay."""
-    try:
-        return list(ModelMessagesTypeAdapter.validate_json(raw_payload))
-    except ValidationError as err:
-        # Entries written by an older pydantic-ai schema — or truncated ones — must not take the
-        # whole reply down: the chat simply loses that replay.
-        log.warning(
-            "Dropping an unreadable AI tool history entry",
-            chat_tid=chat_tid,
-            message_id=field,
-            error=str(err),
-        )
-        return None
-
-
 async def get_tool_exchanges(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
     """Stored tool exchanges of a chat, keyed by the bot message the answer was sent as."""
     key = tool_history_key(chat_tid)
     raw_exchanges = await redis.hgetall(key)  # type: ignore[misc]
 
-    exchanges: dict[int, list[ToolExchange]] = {}
-    unusable: list[str] = []
-    for raw_field, raw_payload in raw_exchanges.items():
-        field = _decode_field(raw_field)
-        parsed = _parse_tool_exchanges(chat_tid, field, raw_payload) if field.isdigit() else None
-        if parsed is None:
-            unusable.append(field)
-            continue
-        exchanges[int(field)] = parsed
-
-    # Pruned right away so a poisoned entry costs one warning instead of one per reply.
-    if unusable:
-        await redis.hdel(key, *unusable)  # type: ignore[misc]
-    return exchanges
+    return {
+        int(_decode_field(raw_field)): list(ModelMessagesTypeAdapter.validate_json(raw_payload))
+        for raw_field, raw_payload in raw_exchanges.items()
+    }
 
 
 async def reset_tool_exchanges(chat_tid: int, *, redis: Redis) -> None:
     """Drops every stored tool exchange of a chat."""
-    await redis.delete(tool_history_key(chat_tid))
+    with ai_span("ai.tool_history.reset") as span:
+        try:
+            deleted = await redis.delete(tool_history_key(chat_tid))
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(exc).__name__)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "deleted" if deleted else "empty")
 
 
 async def load_chatbot_tool_history(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
-    if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-        return {}
-    return await get_tool_exchanges(chat_tid, redis=redis)
+    with ai_span("ai.tool_history.load") as span:
+        try:
+            if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
+                if span is not None:
+                    span.set_attribute("outcome", "skipped")
+                    span.set_attribute("skip_reason", "feature_disabled")
+                return {}
+            exchanges = await get_tool_exchanges(chat_tid, redis=redis)
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(exc).__name__)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "hit" if exchanges else "miss")
+            span.set_attribute("stored_answer_count", len(exchanges))
+            span.set_attribute("replay_message_count", sum(map(len, exchanges.values())))
+        return exchanges
 
 
 async def remember_chatbot_tool_history(
@@ -200,31 +195,37 @@ async def remember_chatbot_tool_history(
     *,
     redis: Redis,
 ) -> None:
-    """Store the tool exchanges a finished chatbot run performed, excluding replayed ones.
-
-    Best effort by design: the answer is already delivered when this runs, so a Redis outage or a
-    part the serializer cannot dump may only cost the next run its replay, never the request.
-    """
-    try:
-        if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-            return
-        max_content_chars = int(
-            await get_value(
-                "ai_chatbot_tool_history_max_chars",
-                chat_tid=chat_tid,
-                redis=redis,
+    """Store the tool exchanges a finished chatbot run performed, excluding replayed ones."""
+    with ai_span("ai.tool_history.remember") as span:
+        try:
+            if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
+                if span is not None:
+                    span.set_attribute("outcome", "skipped")
+                    span.set_attribute("skip_reason", "feature_disabled")
+                return
+            max_content_chars = int(
+                await get_value(
+                    "ai_chatbot_tool_history_max_chars",
+                    chat_tid=chat_tid,
+                    redis=redis,
+                )
             )
-        )
-        exchanges = extract_tool_exchanges(
-            message_history,
-            max_content_chars=max_content_chars,
-            skip_tool_call_ids=collect_tool_call_ids(previous_history),
-        )
-        await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
-    except (RedisError, PydanticSerializationError) as err:
-        log.warning(
-            "Failed to store the AI tool call history",
-            chat_tid=chat_tid,
-            message_id=message_id,
-            error=str(err),
-        )
+            skipped_call_ids = collect_tool_call_ids(previous_history)
+            exchanges = extract_tool_exchanges(
+                message_history,
+                max_content_chars=max_content_chars,
+                skip_tool_call_ids=skipped_call_ids,
+            )
+            if span is not None:
+                span.set_attribute("previous_call_count", len(skipped_call_ids))
+                span.set_attribute("exchange_message_count", len(exchanges))
+            await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("outcome", "error")
+                span.set_attribute("error_type", type(exc).__name__)
+            raise
+        if span is not None:
+            span.set_attribute("outcome", "stored" if exchanges else "skipped")
+            if not exchanges:
+                span.set_attribute("skip_reason", "no_new_exchanges")

@@ -11,22 +11,23 @@ from beanie import PydanticObjectId
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models import Model
 from redis.asyncio import Redis
-from stfu_tg import BlockQuote, Doc, Italic, KeyValue, Section
+from stfu_tg import BlockQuote, Doc, KeyValue, Section
 from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
     AIHeaderStyle,
     ai_credit_header,
     build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME, AITool
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, apply_mention_usernames, resolve_mentions
-from sophie_bot.utils.feature_flags import is_enabled
-from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
 
@@ -213,47 +214,41 @@ class _ProtectedHTMLDoc(Element):
         return self._restore(self.doc.to_md())
 
 
-def _render_ai_markdown(text: str, *, strip_alien_html_tags: bool) -> Element:
+def _render_ai_markdown(
+    text: str,
+    *,
+    strip_alien_html_tags: bool,
+    max_columns: int,
+    max_rows: int,
+    card_threshold: int,
+) -> Element:
     if not strip_alien_html_tags or "<" not in text:
-        return ai_markdown_to_doc(text)
+        return ai_markdown_to_doc(text, max_columns=max_columns, max_rows=max_rows, card_threshold=card_threshold)
     protected_text, replacements, token_prefix, token_suffix = _protect_supported_html(text)
-    doc = ai_markdown_to_doc(protected_text)
+    doc = ai_markdown_to_doc(protected_text, max_columns=max_columns, max_rows=max_rows, card_threshold=card_threshold)
     if not replacements:
         return doc
     return _ProtectedHTMLDoc(doc, replacements, token_prefix, token_suffix)
 
 
-def _tool_label(tool_name: str) -> str | None:
-    match tool_name:
-        case "kagi_search" | "tinyfish_search" | "tavily_search" | "web_search":
-            return _("🔍 Internet Search")
-        case "get_notes" | "get_note_content":
-            return _("📝 Notes")
-        case "write_memory" | "forget_memory":
-            return _("🧠 Memory")
-        case "research_topic":
-            return _("🔬 Research")
-        case "sophie_help":
-            return _("📖 Help")
-        case "sophie_inspect":
-            return _("🔧 Source Inspection")
-        case _:
-            return None
-
-
-def used_tool_labels(message_history: Sequence[ModelRequest | ModelResponse]) -> tuple[str, ...]:
-    used_labels: set[str] = set()
-    labels: list[str] = []
+def used_tool_labels(message_history: Sequence[ModelRequest | ModelResponse]) -> tuple[AITool, ...]:
+    used_labels: set[tuple[str, str]] = set()
+    tools: list[AITool] = []
     for message in message_history:
         for part in message.parts:
             if not isinstance(part, ToolCallPart):
                 continue
-            label = _tool_label(part.tool_name)
-            if label is None or label in used_labels:
+            tool = AI_TOOLS_BY_NAME.get(part.tool_name)
+            if tool is None or not tool.display_in_ai_header:
                 continue
-            used_labels.add(label)
-            labels.append(label)
-    return tuple(labels)
+            category = (tool.emoji, tool.display_label())
+            if category in used_labels:
+                continue
+            used_labels.add(category)
+            tools.append(tool)
+    search_emoji = AI_TOOLS_BY_NAME["web_search"].emoji
+    tools.sort(key=lambda tool: tool.emoji != search_emoji)
+    return tuple(tools)
 
 
 def model_display_name(model: Model) -> str:
@@ -305,11 +300,6 @@ def truncate_output(header: Element | str | None, output_text: str) -> str:
     return output_text
 
 
-def build_truncated_note() -> Doc:
-    """Shown when the agent loop hit a usage limit and the answer stops mid-thought."""
-    return Doc(Italic(_("⚠️ Cut short — the reply hit its step limit.")))
-
-
 async def build_reply_doc(
     header: Element | str | None,
     output_text: str,
@@ -320,7 +310,7 @@ async def build_reply_doc(
     mention_index: MentionIndex | None = None,
     *,
     redis: Redis,
-    tool_labels: Sequence[str] = (),
+    tool_labels: Sequence[AITool] = (),
     strip_alien_html_tags: bool | None = None,
 ) -> Doc:
     # The single rendering chokepoint for both streamed drafts and the final message, so mention
@@ -340,10 +330,20 @@ async def build_reply_doc(
             chat_tid=chat_tid,
             redis=redis,
         )
+    max_columns = max(1, int(await get_value("ai_chatbot_table_max_columns", chat_tid=chat_tid, redis=redis)))
+    max_rows = max(1, int(await get_value("ai_chatbot_table_max_rows", chat_tid=chat_tid, redis=redis)))
+    card_threshold = int(await get_value("ai_chatbot_table_card_threshold", chat_tid=chat_tid, redis=redis))
     doc = build_ai_message_doc(
         header,
-        _render_ai_markdown(resolved_text, strip_alien_html_tags=strip_alien_html_tags),
+        _render_ai_markdown(
+            resolved_text,
+            strip_alien_html_tags=strip_alien_html_tags,
+            max_columns=max_columns,
+            max_rows=max_rows,
+            card_threshold=card_threshold,
+        ),
         tool_labels=tool_labels,
+        emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
     )
     if explicit_debug_mode and model is not None and result is not None:
         doc += " "
