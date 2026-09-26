@@ -40,8 +40,18 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `TOKEN`: Your Telegram Bot API token.
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
-- `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`: Seed the AI catalog on first
-  migration, and are never read again. See below.
+
+Optional Logfire telemetry is enabled by setting `LOGFIRE_TOKEN` in `data/config.env`.
+For Ansible deployment, set `LOGFIRE_TOKEN` privately in the operator environment; the
+beta, stable, scheduler and REST templates include it only when present. With no token,
+Logfire does not initialize or export data. With a token, every environment, including
+production, exports full AI conversations, cached chatbot context, model binary inputs,
+HTTP URLs/headers/bodies, application logs (including DEBUG records) and exception
+details without scrubbing. The existing console and file log thresholds do not change.
+Debug telemetry can be high-volume and can expose personal data and credentials to the
+configured Logfire project. Sentry remains independent: Logfire reports errors when
+Sentry is not enabled. Remove the token and restart every serving process to stop export.
+Rotate any write token exposed in chat or logs before use.
 
 ### 2. Run the Playbook
 
@@ -68,14 +78,12 @@ registered in Sophie's database still receives HTTP 403. The successful token re
 
 ## Greetings and welcome security
 
-`greetings_ephemeral` sends the welcome only to the members it greets, one message each, filled
-with their own name. Nothing is posted to the chat, so the clean-welcome cleanup has nothing to
-delete afterwards.
+Welcome messages go only to the members they greet, one message per member with their
+own name. Nothing is posted to the chat, so clean-welcome cleanup has nothing to delete.
 
-`welcomecaptcha_ephemeral` sends the captcha prompt as an ephemeral message to each new member
-instead of posting it in the chat. Only they see it, one prompt per member rather than one for the
-batch, and nothing is left behind to clean up — so the prompt is not deleted when the captcha is
-passed, because there is nothing there to delete.
+Captcha prompts also go to each new member as ephemeral messages, rather than into the
+chat. Only new members see them, one prompt each; nothing is left to delete after
+the captcha is passed.
 
 A prompt whose security note is an album is still posted to the chat: `sendMediaGroup` cannot
 address one member, and splitting the album into separate ephemeral messages is no way around it —
@@ -89,20 +97,15 @@ adding a model or rotating a key never needs a redeploy.
 
 ### Seeding
 
-The `seed_ai_catalog` migration creates the initial catalog from your environment:
+The `seed_ai_catalog` migration creates catalog models and the `openrouter` provider; the
+`seed_vendor_sdk_provider_keys` migration creates `mistral` and `openai` providers for
+moderation and transcription. All three start without keys. Configure credentials in the
+database before enabling AI, using `/op_aiprovider <name> ^key=<your-key>` in a private chat
+with the bot or updating the provider through the operator API.
 
-- `OPENROUTER_API_KEY` becomes the `openrouter` provider.
-- `MISTRAL_API_KEY` and `OPENAI_API_KEY` become the `mistral` and `openai` providers, of kind
-  `moderation`. These carry no models: they hold the key for a service Sophie calls with the
-  vendor's own SDK — the moderation classifiers, and Mistral's voice and video transcription.
-- `CUSTOM_PROVIDERS` becomes one provider per entry, for OpenAI-compatible endpoints:
-
-```
-CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://example.com/compatible-mode/v1","api_key":"sk-..."}]'
-```
-
-Every one of these variables is read **only** by a seed migration. Once the catalog exists, changing
-them has no effect — use the commands below instead.
+The initial catalog also includes a `qwencloud` model. To use it, create an OpenAI-compatible
+provider named `qwencloud` with its endpoint and key via `/op_aiprovider` or the operator API.
+No AI provider credentials are read from environment variables.
 
 ### Managing the catalog
 
@@ -124,9 +127,61 @@ A mode with no model for a purpose falls back to the `support` tier, so you only
 roles you want to differ. Changes take effect on every process within a few seconds without a
 restart.
 
-> **Warning:** with an empty catalog no AI feature can resolve a model and every AI request fails.
-> Check `/op_aimodels` after deploying.
+Logfire identifies PydanticAI runs by role in `gen_ai.agent.name`: chat agents use
+`<mode>:chat` (for example `entertainment:chat`); structured tasks have distinct names
+such as `summary:chat`, `filter:matching`, and `proactive:decision`.
+
+> **Warning:** AI requests require a configured catalog model and a key on its provider. Check
+> `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
+
+### AI progress
+
+Chatbot replies show an in-progress message while they stream. Manual translation
+(`/tr`, `/translate`) and `/research` also show progress. All three use STFU Rich
+rendering with a fixed animated AI emoji and a three-emoji footer; translation
+and research edit the same Rich message for the result.
+Automatic translation stays silent until its result is ready. The chatbot and manual
+translation initially show a random working message after the animated AI emoji.
+When reasoning or an activity begins, that space stays empty until answer text streams
+in; progress appears below.
+By default, streamed reasoning renders Markdown in a block quote with a custom emoji
+before the italic text. The latest 400 reasoning characters remain visible (with an
+ellipsis when truncated), and pending reasoning is flushed before tool activity, even
+during edit backoff. An active tool shows one of its localized activity messages in
+italics, without an emoji, title, internal name, or arguments.
+
+`ai_chatbot_reasoning_as_tool` (off by default) instead shows a single italic
+“Reasoning...” activity below the header, without revealing reasoning text. Later
+reasoning passes, including those after tool calls, do not add another activity.
+`ai_chatbot_stack_progress_tools` (off by default) retains every tool invocation
+and retry in the bottom activity list, including repeated calls and tools hidden from
+the final header. When both flags are on, the one reasoning activity joins that list.
+New streamed answer text clears the activity list. Later tool calls appear below the
+answer text already shown; the next text update clears those entries in turn.
+Without stacking, the most recent tool or retry status replaces the prior status.
+
+Manual `/tr` and `/translate` retain their current activity list until the final
+translation replaces the progress message. A replied voice starts with “Transcribing
+voice message...” before transcription, followed by “Translating...”. Replied images
+and videos show processing stages (including video audio transcription) before
+translation. Chatbot replies show the same media stages during context preparation;
+their entries stack when `ai_chatbot_stack_progress_tools` is on and otherwise show
+the current stage only.
+
+Video transcription reads the first audio stream even when the container lists a
+video stream before it.
+
+Completed replies replace the animation with a static AI emoji, eligible used-tool titles
+without tool icons (Search first when used), and a battery footer in its own paragraph.
+Each tool has its own `display_in_ai_header` setting in
+`sophie_bot/modules/ai/utils/ai_tool.py`; set it to `False` to hide that tool from the
+final header without hiding its in-progress activity. Custom emoji IDs remain in the
+tool metadata but are not rendered in the progress activity or completed header.
+The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66–100%.
+`ai_chatbot_show_model_name` adds the model beside the battery reading.
+Only the assistant's answer is stored in conversation history; the displayed header,
+tool titles, and battery footer are not.
 
 ## AI moderation
 
@@ -272,6 +327,7 @@ When enabled, the bot can route requests between instances based on configuratio
 | `REDIS_DB_FSM` | Redis Database index for FSM |
 | `OWNER_ID` | Telegram User ID of the bot owner |
 | `ENVIRONMENT` | Name of the environment (e.g., `production-stable`) |
+| `LOGFIRE_TOKEN` | Optional Pydantic Logfire write token; enables telemetry on serving processes |
 | `MODE` | Set to `scheduler` for the scheduler service |
 
 ---

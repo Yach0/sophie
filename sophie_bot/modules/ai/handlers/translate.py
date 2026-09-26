@@ -2,14 +2,13 @@ from typing import Any
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from ass_tg.types import TextArg
+from redis.asyncio import Redis
 from stfu_tg import (
     BlockQuote,
     Bold,
     Doc,
-    HList,
     PreformattedHTML,
     Section,
     Template,
@@ -33,13 +32,11 @@ from sophie_bot.modules.ai.utils.ai_header import (
     build_ai_message_doc,
     get_ai_header_style,
 )
-from sophie_bot.modules.ai.utils.ai_progress import (
-    ai_progress_line,
-    random_ai_progress_custom_emoji_id,
-    random_ai_thinking_text,
-)
+from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
@@ -51,21 +48,6 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
-
-
-async def _edit_or_reply(source_message: Message, progress_message: Message | None, **kwargs: Any) -> None:
-    """Edit the in-progress message in place, falling back to a fresh reply."""
-    if progress_message and source_message.bot:
-        try:
-            await source_message.bot.edit_message_text(
-                chat_id=progress_message.chat.id,
-                message_id=progress_message.message_id,
-                **kwargs,
-            )
-            return
-        except TelegramAPIError:
-            pass
-    await source_message.reply(**kwargs)
 
 
 async def _resolve_translation_input(
@@ -97,6 +79,18 @@ async def _resolve_translation_input(
     return to_translate, is_voice
 
 
+async def _start_translation_progress(message: Message, *, redis: Redis) -> ChatbotMessageStreamer:
+    streamer = ChatbotMessageStreamer(
+        message,
+        status=random_ai_thinking_text(),
+        throttle_seconds=0,
+        redis=redis,
+        stack_tools=True,
+    )
+    await streamer.send_thinking_message()
+    return streamer
+
+
 def _build_translate_reply_doc(
     translated: AITranslateResponseSchema,
     language_name: str,
@@ -106,13 +100,8 @@ def _build_translate_reply_doc(
     header_style: AIHeaderStyle,
 ) -> Doc:
     """Format the translation response document."""
-    status = HList(
-        _("Auto Translator") if is_autotranslate else _("Translator"),
-        f"({_('Voice')})" if is_voice else None,
-    )
-    header = build_ai_header(header_style, status, quota_header or "")
+    header = build_ai_header(header_style, quota_header or "")
     return build_ai_message_doc(
-        header_style,
         header,
         (
             Bold(
@@ -166,9 +155,14 @@ class AiTranslate(SophieMessageHandler):
 
         language_name = self.data["i18n"].current_locale_display
 
+        reply_to_message = self.event.reply_to_message
+        progress_streamer: ChatbotMessageStreamer | None = None
+        if reply_to_message and reply_to_message.voice and not is_autotranslate:
+            progress_streamer = await _start_translation_progress(self.event, redis=self.services.redis)
+            await progress_streamer.update_processing_activity(_("Transcribing voice message..."))
+
         to_translate, is_voice = await _resolve_translation_input(self.event, self.data, services=self.services)
 
-        reply_to_message = self.event.reply_to_message
         reply_has_translatable_media = bool(
             reply_to_message
             and (
@@ -183,15 +177,19 @@ class AiTranslate(SophieMessageHandler):
         if not to_translate.strip() and not reply_has_translatable_media:
             if self.data.get("silent_error"):
                 return
-            await self.event.reply(_("Please provide text to translate."))
+            progress_message = progress_streamer.response_message if progress_streamer else None
+            if progress_message and self.event.bot:
+                await self.event.bot.edit_message_text(
+                    chat_id=progress_message.chat.id,
+                    message_id=progress_message.message_id,
+                    text=_("Please provide text to translate."),
+                )
+            else:
+                await self.event.reply(_("Please provide text to translate."))
             return
 
-        # In-progress message (skipped for auto-translate, which runs silently)
-        progress_message: Message | None = None
-        if not is_autotranslate:
-            progress_message = await self.event.reply(
-                Doc(ai_progress_line(random_ai_thinking_text(), random_ai_progress_custom_emoji_id())).to_html()
-            )
+        if not is_autotranslate and progress_streamer is None:
+            progress_streamer = await _start_translation_progress(self.event, redis=self.services.redis)
 
         # AI Context
         ai_context = AIMessageHistory(services=self.services)
@@ -207,7 +205,11 @@ class AiTranslate(SophieMessageHandler):
                     _("If applicable, translate the photo to {language_name}"), language_name=language_name
                 ).to_html()
             )
-            await ai_context.add_from_message(reply_to_message, disable_name=True)
+            await ai_context.add_from_message(
+                reply_to_message,
+                disable_name=True,
+                on_activity=(progress_streamer.update_processing_activity if progress_streamer else None),
+            )
 
         # User prompt — ensure content is always present
         if not ai_context.prompt:
@@ -245,10 +247,14 @@ class AiTranslate(SophieMessageHandler):
             mode=self.data.get("ai_mode"),
         )
 
+        if progress_streamer:
+            await progress_streamer.update_processing_activity(_("Translating..."))
+
         try:
             result = await run_structured_task(
                 AIStructuredTask(
                     output_type=AITranslateResponseSchema,
+                    name="translation:auto" if is_autotranslate else "translation:manual",
                     feature=AI_FEATURE_AUTO_TRANSLATE if is_autotranslate else AI_FEATURE_TRANSLATE,
                 ),
                 model_plan,
@@ -260,10 +266,16 @@ class AiTranslate(SophieMessageHandler):
             )
             translated = result.output
         except AIRequestFailed as err:
-            if self.data.get("silent_error"):
-                return
             error_message = ai_request_failed_message(error=err, title=_("Error generating translation"))
-            await _edit_or_reply(self.event, progress_message, **error_message)
+            progress_message = progress_streamer.response_message if progress_streamer else None
+            if progress_message and self.event.bot:
+                await self.event.bot.edit_message_text(
+                    chat_id=progress_message.chat.id,
+                    message_id=progress_message.message_id,
+                    **error_message,
+                )
+            else:
+                await self.event.reply(**error_message)
             return
 
         # Prevent extra translating
@@ -297,4 +309,7 @@ class AiTranslate(SophieMessageHandler):
             header_style,
         )
 
-        await _edit_or_reply(self.event, progress_message, text=str(doc))
+        if progress_streamer:
+            await progress_streamer.send_final(doc)
+            return
+        await send_ai_rich_message(self.event, doc)

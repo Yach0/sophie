@@ -27,14 +27,16 @@ async def should_offer_help_mode(
     mode: AIMode,
     message_history: list[ModelRequest | ModelResponse],
     *,
+    previous_message_count: int,
     redis: Redis,
 ) -> bool:
     """Whether to point the user at the Sophie-help assistant after a documentation answer.
 
     Not when they are already in it, and not where source inspection is available, since that chat
-    can already answer more than the documentation does.
+    can already answer more than the documentation does. Only consider tools used for this answer,
+    not calls replayed from earlier answers.
     """
-    if mode is AIMode.sophie_help or not _used_help_tool(message_history):
+    if mode is AIMode.sophie_help or not _used_help_tool(message_history[previous_message_count:]):
         return False
     return not await is_sophie_inspect_chat(message.chat.id, redis=redis)
 

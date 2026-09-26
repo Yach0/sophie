@@ -2,9 +2,8 @@
 
 Description:
     Seeds the AI provider and model catalog from what used to be hardcoded in
-    `ai_model_registry.py` and configured through env vars. After this runs, models, endpoints and
-    API keys are managed at runtime with the /op_aiprovider and /op_aimodel commands; OPENROUTER_API_KEY
-    and CUSTOM_PROVIDERS are only ever read here.
+    `ai_model_registry.py`. Providers start without a key; credentials are managed in
+    the catalog through /op_aiprovider after this migration.
 
 Affected Collections:
     - ai_catalog_provider (created)
@@ -13,7 +12,7 @@ Affected Collections:
 Impact:
     - High risk: with an empty catalog no AI feature can resolve a model. Forward is idempotent per
       document, so re-running it will not duplicate entries.
-    - Keys are copied from the environment into the database, where the /op_ commands can rotate them.
+    - Provider keys are configured in the catalog after this migration.
 
 Rollback:
     Drops both collections. The previous code read its models from source, so nothing is lost.
@@ -21,7 +20,6 @@ Rollback:
 
 from beanie import free_fall_migration
 
-from sophie_bot.config import CONFIG
 from sophie_bot.services.db import get_collection
 from sophie_bot.services.migrations import MigrationResources
 
@@ -78,27 +76,15 @@ _MODELS: list[dict] = [
 ]
 
 
-def _providers() -> list[dict]:
-    providers = [
-        {
-            "name": _OPENROUTER,
-            "kind": "openrouter",
-            "base_url": None,
-            "api_key": CONFIG.openrouter_api_key or "",
-            "enabled": True,
-        }
-    ]
-    providers.extend(
-        {
-            "name": custom.name,
-            "kind": "openai_compatible",
-            "base_url": custom.base_url,
-            "api_key": custom.api_key,
-            "enabled": True,
-        }
-        for custom in CONFIG.custom_providers
-    )
-    return providers
+_PROVIDERS: tuple[dict, ...] = (
+    {
+        "name": _OPENROUTER,
+        "kind": "openrouter",
+        "base_url": None,
+        "api_key": "",
+        "enabled": True,
+    },
+)
 
 
 class Forward:
@@ -107,7 +93,7 @@ class Forward:
     @free_fall_migration(document_models=[])
     async def migrate(self, session, *, resources: MigrationResources) -> None:
         providers = get_collection(resources.database.database, "ai_catalog_provider")
-        for provider in _providers():
+        for provider in _PROVIDERS:
             await providers.update_one(
                 {"name": provider["name"]}, {"$setOnInsert": provider}, upsert=True, session=session
             )
@@ -119,7 +105,7 @@ class Forward:
                 {"name": document["name"]}, {"$setOnInsert": document}, upsert=True, session=session
             )
 
-        print(f"Seeded {len(_providers())} AI providers and {len(_MODELS)} AI models")
+        print(f"Seeded {len(_PROVIDERS)} AI providers and {len(_MODELS)} AI models")
 
 
 class Backward:

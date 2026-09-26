@@ -13,6 +13,7 @@ from sophie_bot.modules.locks.callbacks import UnlockAllCallback
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.i18n import ngettext as pl_
 
 
 class UnlockAllCmdHandler(SophieMessageHandler):
@@ -59,7 +60,11 @@ class UnlockAllCmdHandler(SophieMessageHandler):
         await self.event.reply(
             text=str(
                 Template(
-                    _(str(l_("Do you want to unlock all {count} lock types in {chat_name}?"))),
+                    pl_(
+                        "Do you want to unlock all {count} lock type in {chat_name}?",
+                        "Do you want to unlock all {count} lock types in {chat_name}?",
+                        len(locked_types),
+                    ),
                     count=len(locked_types),
                     chat_name=Italic(connection.title),
                 )

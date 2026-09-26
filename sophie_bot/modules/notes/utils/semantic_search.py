@@ -6,9 +6,10 @@ from typing import Final
 
 from beanie import PydanticObjectId
 from openai import AsyncOpenAI
+from redis.asyncio import Redis
 
-from sophie_bot.config import CONFIG
 from sophie_bot.db.models import NoteModel
+from sophie_bot.modules.ai.utils.ai_catalog import get_openrouter_api_key
 from sophie_bot.utils.logger import log
 
 EMBEDDING_MODEL: Final[str] = "openai/text-embedding-3-small"
@@ -26,18 +27,13 @@ def build_note_embedding_text(note: NoteModel) -> str:
     return "\n".join(parts)[:MAX_EMBEDDING_TEXT_LENGTH]
 
 
-def _embedding_client() -> AsyncOpenAI | None:
-    if not CONFIG.openrouter_api_key:
+async def create_embedding(text: str, *, redis: Redis) -> list[float] | None:
+    api_key = await get_openrouter_api_key(redis=redis)
+    if api_key is None:
+        log.debug("notes_rag: no OpenRouter catalog key configured, skipping embeddings")
         return None
-    return AsyncOpenAI(api_key=CONFIG.openrouter_api_key, base_url="https://openrouter.ai/api/v1")
-
-
-async def create_embedding(text: str) -> list[float] | None:
-    client = _embedding_client()
-    if client is None:
-        log.debug("notes_rag: no OpenRouter API key configured, skipping embeddings")
-        return None
-    response = await client.embeddings.create(model=EMBEDDING_MODEL, input=text)
+    async with AsyncOpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1") as client:
+        response = await client.embeddings.create(model=EMBEDDING_MODEL, input=text)
     return list(response.data[0].embedding)
 
 
@@ -56,13 +52,13 @@ def cosine_similarity(left: Iterable[float], right: Iterable[float]) -> float:
     return dot_product / (left_norm * right_norm)
 
 
-async def update_note_embedding(note: NoteModel) -> bool:
+async def update_note_embedding(note: NoteModel, *, redis: Redis) -> bool:
     embedding_text = build_note_embedding_text(note)
     if not embedding_text.strip():
         return False
     if note.embedding and note.embedding_text == embedding_text and note.embedding_model == EMBEDDING_MODEL:
         return False
-    embedding = await create_embedding(embedding_text)
+    embedding = await create_embedding(embedding_text, redis=redis)
     if embedding is None:
         return False
     note.embedding = embedding
@@ -73,9 +69,9 @@ async def update_note_embedding(note: NoteModel) -> bool:
 
 
 async def semantic_search_notes(
-    chat_iid: PydanticObjectId, query: str, limit: int = MAX_SEARCH_RESULTS
+    chat_iid: PydanticObjectId, query: str, limit: int = MAX_SEARCH_RESULTS, *, redis: Redis
 ) -> list[NoteModel]:
-    query_embedding = await create_embedding(query)
+    query_embedding = await create_embedding(query, redis=redis)
     if query_embedding is None:
         return await NoteModel.search_chat_notes(chat_iid, query)
 

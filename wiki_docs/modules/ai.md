@@ -18,6 +18,7 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
+| `/research` | `<Research topic>` | Research a topic using multistage web search and return a summary with sources | *Disable-able* |
 | `/aitranslate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text | *Disable-able* |
 | `/aiusage` | - | Check AI quota and usage details |  |
 | `/ai` | `<Prompt>` | Ask Sophie a question | *Disable-able* |

@@ -18,6 +18,7 @@ from sophie_bot.modules.ai.schedules.generate_chat_summaries import (
     _build_summary_window,
     _derive_summary_line,
 )
+from sophie_bot.modules.ai.utils.ai_header import AI_CUSTOM_EMOJI_ID
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
 from sophie_bot.modules.ai.utils.summary_transcript import UNKNOWN_TIME, build_summary_transcript
 
@@ -533,16 +534,16 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
     assert "alice&amp;bob" in rich_html
     assert "Overview &lt;with details&gt;" in rich_html
 
-    table_html, _, body_html = rich_html.partition("</table>")
-    assert "<h1>" not in table_html
-    assert body_html.index("<h1>") < body_html.index("<ul>")
+    assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> <h1>')
+    assert "<table" not in rich_html
+    assert rich_html.index("<h1>") < rich_html.index("<ul>")
 
 
 @pytest.mark.asyncio
 async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) -> None:
     rich_sender = AsyncMock()
     monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
-    monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="table"))
+    monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="simple"))
     summary_date = date(2026, 5, 3)
     lines = [
         AIChatSummaryLine(
@@ -569,7 +570,7 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
             summary_date,
             "General overview",
             lines,
-            "table",
+            "simple",
         ).to_rich()
     )
 
@@ -584,8 +585,8 @@ def test_build_summary_doc_places_simple_battery_after_body() -> None:
     assert html.rstrip().endswith("🔋")
     assert html.rfind("🔋") > html.find("General overview")
     assert "\nChat history" not in html
-    assert "Chat history" in html
-    assert "<ul>" not in rich_html
+    assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> ')
+    assert "<table" not in rich_html
 
 
 def test_build_summary_doc_can_disable_ai_header() -> None:

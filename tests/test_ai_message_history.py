@@ -2,14 +2,57 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from aiogram import Router
+from aiogram.types import Chat, Message, TelegramObject, User
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
+from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
+from sophie_bot.modules.ai.handlers.pm import AiPmHandle
+from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
+from sophie_bot.modules.ai.middlewares.cache_bot_messages import CacheBotMessagesMiddleware
 from sophie_bot.modules.ai.utils import message_history
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
+from sophie_bot.utils.handlers import SophieMessageHandler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("handler_type", [AiCmd, AiReplyHandler, AiPmHandle])
+async def test_chatbot_response_caches_only_the_answer(
+    handler_type: type[SophieMessageHandler], monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    router = Router()
+    handler_type.register(router)
+    sent = Message(
+        message_id=51,
+        date=datetime.now(UTC),
+        chat=Chat(id=-100123, type="supergroup"),
+        text="✨ (🙂 Search, 🙂 Memory) Answer\n🔋 50%",
+    )
+    cached = AsyncMock()
+    monkeypatch.setattr("sophie_bot.modules.ai.middlewares.cache_bot_messages.cache_message", cached)
+
+    async def reply(_event: TelegramObject, _data: dict[str, Any]) -> Message:
+        await cached("Answer")
+        return sent
+
+    result = await CacheBotMessagesMiddleware()(
+        reply,
+        sent,
+        {
+            "handler": router.message.handlers[-1],
+            "context": SimpleNamespace(event_chat=SimpleNamespace(tid=sent.chat.id)),
+            "ai_capabilities": SimpleNamespace(message_cache=True),
+            "services": SimpleNamespace(redis=test_redis),
+        },
+    )
+
+    assert result is sent
+    cached.assert_awaited_once_with("Answer")
 
 
 def test_user_message_formatter_localizes_and_sanitizes_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -143,6 +186,52 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
     cached_answer = history.message_history[0]
     assert isinstance(cached_answer, ModelResponse)
     assert cached_answer.parts[0].content == "prior answer"
+
+
+@pytest.mark.asyncio
+async def test_cached_reply_target_is_not_added_to_prompt_twice(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+    test_services: object,
+) -> None:
+    answer_time = datetime.now(UTC)
+    await cache_message(
+        "prior answer",
+        10,
+        message_history.CONFIG.bot_id,
+        20,
+        answer_time,
+        "Sophie",
+        is_bot=True,
+        redis=test_redis,
+    )
+    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
+    chat = Chat(id=10, type="group", title="Test chat")
+    sophie = User(id=message_history.CONFIG.bot_id, is_bot=True, first_name="Sophie")
+    alice = User(id=1, is_bot=False, first_name="Alice")
+    prior_answer = Message(
+        message_id=20,
+        date=answer_time,
+        chat=chat,
+        from_user=sophie,
+        text="✨ prior answer\n🔋 90%",
+    )
+    follow_up = Message(
+        message_id=21,
+        date=answer_time,
+        chat=chat,
+        from_user=alice,
+        text="follow up",
+        reply_to_message=prior_answer,
+    )
+
+    history = AIMessageHistory(services=test_services)
+    await history.add_from_cache(10)
+    await history.add_from_message(follow_up)
+
+    assert len(history.message_history) == 1
+    assert history.prompt == ["Alice (reply to Sophie): follow up"]
 
 
 def test_message_history_adds_system_custom_and_debug_output(

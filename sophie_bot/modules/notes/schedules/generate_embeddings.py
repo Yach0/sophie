@@ -6,7 +6,6 @@ from sophie_bot.modules.notes.utils.semantic_search import update_note_embedding
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.application import ApplicationServices
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -14,25 +13,15 @@ class GenerateNoteEmbeddings:
     def __init__(self, services: ApplicationServices) -> None:
         self.services = services
 
-    @staticmethod
-    async def process_chat(chat: ChatModel) -> None:
+    async def process_chat(self, chat: ChatModel) -> None:
         chat_notes = NoteModel.find(NoteModel.chat.id == chat.iid)
         async for note in chat_notes:  # skipcq: PYL-E1133
-            updated = await update_note_embedding(note)
+            updated = await update_note_embedding(note, redis=self.services.redis)
             if updated:
                 log.debug("notes_rag: updated note embedding", chat=chat.tid, note=note.names)
 
     async def handle(self) -> None:
-        if not await is_enabled("notes_rag_embeddings", redis=self.services.redis):
-            return
-
         async for chat in ForChats():
-            if not await is_enabled(
-                "notes_rag_embeddings",
-                chat_tid=chat.tid,
-                redis=self.services.redis,
-            ):
-                continue
             if not (await resolve_chat_capabilities(chat)).ai_enabled:
                 log.debug("notes_rag: AI features are not enabled, skipping", chat=chat.tid)
                 continue

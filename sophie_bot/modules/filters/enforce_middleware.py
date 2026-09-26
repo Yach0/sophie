@@ -10,7 +10,6 @@ from stfu_tg import Doc
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
-from sophie_bot.modules.ai.utils.ai_filter_texts import AI_FILTER_STATUS
 from sophie_bot.modules.ai.utils.ai_header import (
     AIHeaderStyle,
     build_ai_header,
@@ -123,9 +122,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         )
         header = None
         if ai_matched:
-            # An AI filter decided this, so the reply carries the AI header and can be replied to
-            # like any other AI message to carry on the conversation.
-            header = build_ai_header(header_style, str(AI_FILTER_STATUS))
+            header = build_ai_header(header_style)
 
         body = Doc()
 
@@ -144,7 +141,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         if not body:
             return sent_message_ids
 
-        doc = build_ai_message_doc(header_style, header, body)
+        doc = build_ai_message_doc(header, body)
 
         async def send_message() -> Message:
             return await services.bot.send_message(chat_id=message.chat.id, text=doc.to_html())

@@ -9,6 +9,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIResetContext
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_RESET
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.cache_messages import reset_messages
 from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
 from sophie_bot.utils import flags
@@ -41,7 +42,10 @@ class AIContextReset(SophieMessageHandler):
         await reset_tool_exchanges(self.connection.tid, redis=self.services.redis)
 
         if self.connection.db_model:
-            await AIMemoryModel.clear(self.connection.db_model.iid)
+            with ai_span("ai.memory.clear") as span:
+                await AIMemoryModel.clear(self.connection.db_model.iid)
+                if span is not None:
+                    span.set_attribute("outcome", "success")
 
         return await self.event.reply(
             _("🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state.")

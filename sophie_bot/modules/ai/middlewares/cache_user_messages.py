@@ -10,7 +10,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
-from sophie_bot.modules.ai.utils.self_reply import is_ai_message, message_text
+from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.utils.logger import log
 
 
@@ -50,7 +50,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 reply_to_message
                 and reply_to_user
                 and reply_to_user.id == CONFIG.bot_id
-                and is_ai_message(message_text(reply_to_message))
+                and is_ai_message(reply_to_message)
             )
             has_ai_command = text.startswith("/ai") or " /ai" in text
             handled_by_ai = bool(data.get("ai_message_handled", False))

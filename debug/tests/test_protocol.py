@@ -29,6 +29,8 @@ from debug.protocol import (
     read_frame,
     strict_json_loads,
 )
+from debug.worker import _known_secrets
+from sophie_bot.config import CONFIG
 
 
 def make_event(summary: str = "ordinary message", payload: object = None) -> CapturedEvent:
@@ -68,6 +70,17 @@ def test_normalization_redacts_without_mutating_source() -> None:
     assert normalized["token_usage"] == {"prompt_tokens": 12, "completion_tokens": 7}
     assert redacted is True
     assert truncated is False
+
+
+def test_worker_redacts_configured_token_in_unstructured_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(CONFIG, "token", "999999:private-bot-token")
+
+    normalized, _truncated, redacted = normalize_payload(
+        "Telegram call failed for 999999:private-bot-token", _known_secrets()
+    )
+
+    assert normalized == "Telegram call failed for [REDACTED]"
+    assert redacted is True
 
 
 def test_text_capture_reconstructs_partial_lines_without_changing_output() -> None:

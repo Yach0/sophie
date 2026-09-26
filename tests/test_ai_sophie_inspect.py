@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiogram.enums import ChatType
 from beanie import PydanticObjectId
+from pydantic import ValidationError
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ToolCallPart
 
@@ -96,7 +97,6 @@ def _patch_model_resolution(monkeypatch: pytest.MonkeyPatch, *role_models: str) 
         "sophie_bot.modules.ai.utils.ai_model_factory.get_ai_model",
         lambda model_name, reasoning_effort=None: SimpleNamespace(model_name=model_name),
     )
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_model_factory.is_enabled", AsyncMock(return_value=True))
 
 
 async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
@@ -114,8 +114,7 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch, tes
             side_effect=lambda feature, chat_tid=None, **kwargs: values[feature]
         ),
     )
-    # The flag pins a model the catalog has never heard of, which must still run on its own.
-    _patch_model_resolution(monkeypatch)
+    _patch_model_resolution(monkeypatch, "catalog/model")
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     run = AsyncMock(
         return_value=SimpleNamespace(
@@ -167,8 +166,9 @@ async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch,
     assert run.await_args.kwargs["model_plan"].model_names == ("catalog/model", "catalog/backup")
 
 
-async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
-    """A bounded sub-agent hitting its limit is expected; the user must still get an answer."""
+async def test_running_out_of_budget_propagates_to_global_error_handler(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=True))
     monkeypatch.setattr(
@@ -179,16 +179,15 @@ async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch:
             )
         ),
     )
-    _patch_model_resolution(monkeypatch)
+    _patch_model_resolution(monkeypatch, "catalog/model")
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text",
         AsyncMock(side_effect=UsageLimitExceeded("Exceeded the output_tokens_limit")),
     )
 
-    answer = await run_sophie_inspect("how do notes work", PydanticObjectId(), services=test_services)
-
-    assert "could not find the answer" in answer
+    with pytest.raises(UsageLimitExceeded):
+        await run_sophie_inspect("how do notes work", PydanticObjectId(), services=test_services)
 
 
 @pytest.mark.parametrize(
@@ -197,12 +196,15 @@ async def test_running_out_of_budget_does_not_fail_the_conversation(monkeypatch:
         ("-1001202504432", {-1001202504432}),
         ("-100120, -100999  -100888", {-100120, -100999, -100888}),
         ("", set()),
-        ("nonsense", set()),
+        ("nonsense", None),
     ],
 )
-def test_allowed_chat_ids_are_parsed_leniently(raw_value: str, expected: set[int]) -> None:
-    """The flag is a plain string, so a stray separator must not disable the whole list."""
-    assert _parse_chat_ids(raw_value) == expected
+def test_allowed_chat_ids_reject_invalid_entries(raw_value: str, expected: set[int] | None) -> None:
+    if expected is None:
+        with pytest.raises(ValueError):
+            _parse_chat_ids(raw_value)
+    else:
+        assert _parse_chat_ids(raw_value) == expected
 
 
 async def test_a_listed_group_may_use_source_inspection(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
@@ -219,28 +221,55 @@ def _history_with_tool(tool_name: str) -> list:
     return [SimpleNamespace(parts=[ToolCallPart(tool_name=tool_name, args={})])]
 
 
-async def test_the_help_mode_tip_follows_a_documentation_answer(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_the_help_mode_tip_follows_a_documentation_answer(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=False))
     message = SimpleNamespace(chat=SimpleNamespace(id=-100123, type="supergroup"))
 
-    assert await should_offer_help_mode(message, AIMode.support, _history_with_tool("sophie_help"), redis=test_redis)
+    assert await should_offer_help_mode(
+        message, AIMode.support, _history_with_tool("sophie_help"), previous_message_count=0, redis=test_redis
+    )
     # Nothing to upsell when the answer did not come from the documentation.
-    assert not await should_offer_help_mode(message, AIMode.support, _history_with_tool("get_notes"), redis=test_redis)
+    assert not await should_offer_help_mode(
+        message, AIMode.support, _history_with_tool("get_notes"), previous_message_count=0, redis=test_redis
+    )
 
 
-async def test_no_tip_where_the_assistant_is_already_the_help_one(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_help_mode_tip_does_not_follow_replayed_help_calls(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=False))
+    message = SimpleNamespace(chat=SimpleNamespace(id=-100123, type="supergroup"))
+    previous_history = _history_with_tool("sophie_help")
+    result_history = previous_history + _history_with_tool("get_notes")
+
+    assert not await should_offer_help_mode(
+        message, AIMode.support, result_history, previous_message_count=len(previous_history), redis=test_redis
+    )
+
+
+async def test_no_tip_where_the_assistant_is_already_the_help_one(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=False))
     message = SimpleNamespace(chat=SimpleNamespace(id=1, type="private"))
 
-    assert not await should_offer_help_mode(message, AIMode.sophie_help, _history_with_tool("sophie_help"), redis=test_redis)
+    assert not await should_offer_help_mode(
+        message, AIMode.sophie_help, _history_with_tool("sophie_help"), previous_message_count=0, redis=test_redis
+    )
 
 
-async def test_no_tip_where_source_inspection_is_available(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_no_tip_where_source_inspection_is_available(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     """That chat already answers more than the documentation, so the tip would be a downgrade."""
     monkeypatch.setattr("sophie_bot.modules.ai.utils.help_tip.is_sophie_inspect_chat", AsyncMock(return_value=True))
     message = SimpleNamespace(chat=SimpleNamespace(id=-1001202504432, type="supergroup"))
 
-    assert not await should_offer_help_mode(message, AIMode.support, _history_with_tool("sophie_help"), redis=test_redis)
+    assert not await should_offer_help_mode(
+        message, AIMode.support, _history_with_tool("sophie_help"), previous_message_count=0, redis=test_redis
+    )
 
 
 def test_the_tip_button_leads_into_help_mode_from_both_places() -> None:
@@ -262,8 +291,7 @@ def test_help_mode_prompt_refuses_off_topic_and_names_the_way_out() -> None:
 
 
 @pytest.mark.usefixtures("db_init")
-async def test_a_stale_catalog_row_does_not_stop_the_bot(test_redis: object, test_services: object) -> None:
-    """The catalog outlives the code that wrote it: an unreadable row costs that row, nothing more."""
+async def test_a_stale_catalog_row_propagates_schema_error(test_redis: object, test_services: object) -> None:
 
     providers = get_collection(
         test_services.db.database,
@@ -294,7 +322,8 @@ async def test_a_stale_catalog_row_does_not_stop_the_bot(test_redis: object, tes
         ]
     )
 
-    catalog = await load_catalog(redis=test_redis)
-
-    assert "good/model" in catalog.models
-    assert "stale/model" not in catalog.models
+    try:
+        with pytest.raises(ValidationError):
+            await load_catalog(redis=test_redis)
+    finally:
+        await models.delete_one({"name": "stale/model"})

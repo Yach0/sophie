@@ -13,13 +13,12 @@ def _chat(tid: int, iid: str) -> SimpleNamespace:
     return SimpleNamespace(tid=tid, iid=iid, is_bot=False)
 
 
-async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[SimpleNamespace]):
+async def _run_on_captcha(muted: list[bool], new_users: list[SimpleNamespace]):
     chat_db = _chat(-100123, "chat-iid")
     message = SimpleNamespace(chat=SimpleNamespace(id=-100123), message_id=1, message_thread_id=None, from_user=None)
-    redis_set = AsyncMock()
     services = SimpleNamespace(
         bot=object(),
-        redis=SimpleNamespace(set=redis_set),
+        redis=object(),
     )
 
     with (
@@ -27,7 +26,6 @@ async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[Si
             "sophie_bot.modules.greetings.middlewares.new_user.ws_on_new_users_mute",
             AsyncMock(return_value=muted),
         ),
-        patch("sophie_bot.modules.greetings.middlewares.new_user.is_enabled", AsyncMock(return_value=ephemeral)),
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.send_welcome",
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
@@ -44,45 +42,33 @@ async def _run_on_captcha(ephemeral: bool, muted: list[bool], new_users: list[Si
             services=services,
         )
 
-    return send_welcome, redis_set
+    return send_welcome
 
 
 @pytest.mark.asyncio
 async def test_ephemeral_prompt_goes_to_every_new_member() -> None:
     users = [_chat(1, "u1"), _chat(2, "u2")]
 
-    send_welcome, redis_set = await _run_on_captcha(ephemeral=True, muted=[True, True], new_users=users)
+    send_welcome = await _run_on_captcha(muted=[True, True], new_users=users)
 
     receivers = [call.kwargs["receiver_user_id"] for call in send_welcome.await_args_list]
     assert receivers == [1, 2]
-    # Nothing is left in the chat, so nothing is recorded for the cleanup that deletes it later.
-    redis_set.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_ephemeral_prompt_skips_members_that_were_not_muted() -> None:
     users = [_chat(1, "u1"), _chat(2, "u2")]
 
-    send_welcome, _ = await _run_on_captcha(ephemeral=True, muted=[False, True], new_users=users)
+    send_welcome = await _run_on_captcha(muted=[False, True], new_users=users)
 
     assert [call.kwargs["receiver_user_id"] for call in send_welcome.await_args_list] == [2]
-
-
-@pytest.mark.asyncio
-async def test_without_the_flag_one_prompt_is_sent_to_the_chat_and_tracked() -> None:
-    users = [_chat(1, "u1")]
-
-    send_welcome, redis_set = await _run_on_captcha(ephemeral=False, muted=[True], new_users=users)
-
-    assert send_welcome.await_args.kwargs["receiver_user_id"] is None
-    redis_set.assert_awaited_once()
 
 
 def _member(user_id: int, is_bot: bool = False) -> SimpleNamespace:
     return SimpleNamespace(id=user_id, is_bot=is_bot)
 
 
-async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
+async def _run_welcome(members: list[SimpleNamespace]):
     chat_db = _chat(-100123, "chat-iid")
     # The middleware only acts on a real Message, so construct one without validating it.
     event = Message.model_construct(
@@ -105,15 +91,8 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
     for chat_model, member in zip(new_users, members):
         chat_model.is_bot = member.is_bot
 
-    async def flag(
-        feature: str,
-        chat_tid: int | None = None,
-        **_kwargs: object,
-    ) -> bool:
-        return ephemeral if feature == "greetings_ephemeral" else False
-
     with (
-        patch("sophie_bot.modules.greetings.middlewares.new_user.is_enabled", AsyncMock(side_effect=flag)),
+        patch("sophie_bot.modules.greetings.middlewares.new_user.is_enabled", AsyncMock(return_value=False)),
         patch("sophie_bot.modules.greetings.middlewares.new_user.is_user_admin", AsyncMock(return_value=False)),
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.GreetingsModel.get_by_chat_iid",
@@ -148,9 +127,7 @@ async def _run_welcome(ephemeral: bool, members: list[SimpleNamespace]):
 
 @pytest.mark.asyncio
 async def test_ephemeral_welcome_greets_every_human_member_separately() -> None:
-    send_welcome, cleanup = await _run_welcome(
-        ephemeral=True, members=[_member(1), _member(2), _member(3, is_bot=True)]
-    )
+    send_welcome, cleanup = await _run_welcome(members=[_member(1), _member(2), _member(3, is_bot=True)])
 
     calls = send_welcome.await_args_list
     assert [call.kwargs["receiver_user_id"] for call in calls] == [1, 2]
@@ -160,10 +137,3 @@ async def test_ephemeral_welcome_greets_every_human_member_separately() -> None:
     assert cleanup.await_args.args[2] is None
 
 
-@pytest.mark.asyncio
-async def test_without_the_flag_one_welcome_goes_to_the_chat() -> None:
-    send_welcome, cleanup = await _run_welcome(ephemeral=False, members=[_member(1), _member(2)])
-
-    assert send_welcome.await_count == 1
-    assert "receiver_user_id" not in send_welcome.await_args.kwargs
-    assert cleanup.await_args.args[2] is not None

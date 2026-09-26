@@ -5,23 +5,15 @@ from typing import Annotated, Literal
 from aiogram.webhook.security import DEFAULT_TELEGRAM_NETWORKS
 from pydantic import (
     AnyHttpUrl,
-    BaseModel,
     Field,
     FilePath,
+    SecretStr,
     ValidationInfo,
     computed_field,
     field_validator,
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class CustomProviderConfig(BaseModel):
-    """An OpenAI-compatible AI provider used to seed the AI catalog on first migration."""
-
-    name: str
-    base_url: str
-    api_key: str
 
 
 class Config(BaseSettings):
@@ -107,6 +99,7 @@ class Config(BaseSettings):
     sentry_enable_metrics: bool = True
     sentry_traces_sample_rate: float | None = None
     sentry_profile_session_sample_rate: float | None = 0.2
+    logfire_token: SecretStr | None = None
 
     devs_managed_languages: list[str] = ["en_US"]
     # A list of languages that are managed by developers; Will disable
@@ -131,21 +124,9 @@ class Config(BaseSettings):
     proxy_stable_instance_url: str = "http://host.container.internal:8071"
     proxy_beta_instance_url: str = "http://host.container.internal:8072"
 
-    # OpenRouter API key for routing non-Mistral models and note embeddings via OpenAI-compatible API
-    openrouter_api_key: str | None = None
     tavily_api_key: str = ""
     kagi_api_key: str = ""
     tinyfish_api_key: str = ""
-    # TODO: delete both, with the seed_vendor_sdk_provider_keys migration, once every deployment
-    # has run it. They are read only by that migration, which copies them into the AI catalog;
-    # afterwards the keys are managed with /op_aiprovider.
-    mistral_api_key: str | None = None
-    openai_api_key: str | None = None
-
-    # Seed values for the AI provider catalog, read only by the seed_ai_catalog migration. Once the
-    # catalog exists, providers and keys are managed with /op_aiprovider; changing these does nothing.
-    # CUSTOM_PROVIDERS='[{"name":"qwencloud","base_url":"https://dashscope-intl.aliyuncs.com/compatible-mode/v1","api_key":"sk-..."}]'
-    custom_providers: list[CustomProviderConfig] = []
 
     gitlab_token: str | None = None
     gitlab_project_id: str | None = None  # GitLab project ID or URL-encoded path
@@ -161,6 +142,7 @@ class Config(BaseSettings):
         env_parse_none_str="None",
         env_file=os.environ.get("SOPHIE_CONFIG_FILE", "data/config.env"),
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     @computed_field
@@ -190,6 +172,14 @@ class Config(BaseSettings):
     # what happened during development. Truncated on every (re)start, including
     # dev hot-reloads, so it always reflects only the current run.
     runtime_log_file: str = "data/runtime.logs"
+
+    @field_validator("logfire_token", mode="before")
+    @classmethod
+    def validate_logfire_token(cls, value: str | SecretStr | None) -> SecretStr | None:
+        if value is None:
+            return None
+        stripped = (value.get_secret_value() if isinstance(value, SecretStr) else value).strip()
+        return SecretStr(stripped) if stripped else None
 
     @field_validator("redis_username")
     @classmethod

@@ -52,9 +52,9 @@ from sophie_bot.utils.feature_flags import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
-FEATURE = "op_task"
+FEATURE = "ai_filters_jev"
 BOOL_FEATURE_DEFAULT_TRUE = "welcomecaptcha"
-STRING_FEATURE = "ai_chatbot_service_tier"
+STRING_FEATURE = "ai_translations_service_tier"
 CHAT_TID_A = -1002950100
 CHAT_TID_B = -1002950101
 CHAT_TID_C = -1002950102
@@ -77,8 +77,6 @@ _REDIS_BOUND_FUNCTIONS = (
     "set_timed_rollout",
     "set_value",
 )
-
-
 
 
 def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
@@ -205,20 +203,24 @@ class TestFeatureMetadata:
         assert get_allowed_string_values("ai_summary_model") is None
 
     def test_service_tier_values_are_declared_in_metadata(self) -> None:
-        assert get_value_kind("ai_chatbot_service_tier") == "service_tier"
-        assert get_allowed_string_values("ai_chatbot_service_tier") == frozenset(
+        assert get_value_kind(STRING_FEATURE) == "service_tier"
+        assert get_allowed_string_values(STRING_FEATURE) == frozenset(
             {"none", "auto", "default", "flex", "priority"}
         )
 
     def test_ai_header_style_values_are_declared_in_metadata(self) -> None:
-        assert get_value_kind("ai_chatbot_header_style") == "ai_header_style"
-        assert get_allowed_string_values("ai_chatbot_header_style") == frozenset({"table", "disable", "simple"})
+        assert get_value_kind("ai_translations_header_style") == "ai_header_style"
+        assert get_allowed_string_values("ai_translations_header_style") == frozenset({"disable", "simple"})
 
-    def test_every_ai_header_style_defaults_to_table(self) -> None:
+    def test_every_ai_header_style_defaults_to_simple(self) -> None:
         header_flags = [feature for feature in FEATURE_FLAGS if feature.endswith("header_style")]
         assert header_flags
-        assert "ai_proactive_replies_header_style" not in header_flags
-        assert {get_default_value(feature) for feature in header_flags} == {"table"}
+        assert "ai_translations_header_style" in header_flags
+        assert {get_default_value(feature) for feature in header_flags} == {"simple"}
+
+    def test_ai_output_sanitizer_and_model_label_defaults(self) -> None:
+        assert get_default_value("ai_chatbot_strip_alien_html_tags") is True
+        assert get_default_value("ai_chatbot_show_model_name") is False
 
     def test_plain_string_values_are_unrestricted(self) -> None:
         assert get_value_kind("ai_chatbot_system_prompt") == "plain"
@@ -526,19 +528,20 @@ class TestDefaults:
         assert await is_enabled(FEATURE) is False
 
     async def test_string_default(self) -> None:
-        assert await get_value(STRING_FEATURE) == "none"
+        assert await get_value(STRING_FEATURE) == "flex"
 
     async def test_get_default_value(self) -> None:
         assert get_default_value(FEATURE) is False
         assert get_default_value(BOOL_FEATURE_DEFAULT_TRUE) is True
-        assert get_default_value("ai_chatbot_service_tier") == "none"
+        assert get_default_value(STRING_FEATURE) == "flex"
 
     async def test_get_service_tier_returns_none_for_none_string(self) -> None:
+        await set_value(STRING_FEATURE, "none")
         assert await get_service_tier(STRING_FEATURE) is None
 
     async def test_get_service_tier_returns_value_when_set(self) -> None:
-        await set_value(STRING_FEATURE, "flex")
-        assert await get_service_tier(STRING_FEATURE) == "flex"
+        await set_value(STRING_FEATURE, "priority")
+        assert await get_service_tier(STRING_FEATURE) == "priority"
 
 
 class TestSetGetValue:
@@ -574,7 +577,6 @@ class TestSetGetValue:
         assert await get_value("ai_chatbot_streaming_backoff_seconds") is not True
 
 
-
 class TestSetEnabled:
     async def test_set_enabled_true(self) -> None:
         await set_enabled(FEATURE, True)
@@ -583,7 +585,6 @@ class TestSetEnabled:
     async def test_set_enabled_false(self) -> None:
         await set_enabled(BOOL_FEATURE_DEFAULT_TRUE, False)
         assert await is_enabled(BOOL_FEATURE_DEFAULT_TRUE) is False
-
 
 
 class TestDeleteOverride:
@@ -597,7 +598,6 @@ class TestDeleteOverride:
     async def test_delete_nonexistent_override_is_safe(self) -> None:
         await delete_override(FEATURE)
         assert await is_enabled(FEATURE) is False
-
 
 
 class TestListAll:
@@ -633,8 +633,6 @@ class TestRedisFallback:
         assert states[FEATURE] is False
 
 
-
-
 # ===========================================================================
 # Chat overrides
 # ===========================================================================
@@ -664,7 +662,6 @@ class TestChatOverrides:
     async def test_delete_nonexistent_chat_override_is_safe(self) -> None:
         await delete_chat_override(FEATURE, CHAT_TID_A)
         assert await get_chat_override(FEATURE, CHAT_TID_A) is None
-
 
     async def test_chat_override_with_string_value(self) -> None:
         await set_chat_override("ai_summary_model", CHAT_TID_A, "openai/gpt-4o")
@@ -824,7 +821,6 @@ class TestDeleteRollout:
         assert await get_rollout(FEATURE) is None
 
 
-
 class TestListRollouts:
     async def test_empty_when_none_set(self) -> None:
         assert await list_rollouts() == {}
@@ -837,7 +833,6 @@ class TestListRollouts:
         assert BOOL_FEATURE_DEFAULT_TRUE in rollouts
         assert rollouts[FEATURE]["value"] is True
         assert rollouts[BOOL_FEATURE_DEFAULT_TRUE]["value"] is False
-
 
 
 class TestTimedRollout:

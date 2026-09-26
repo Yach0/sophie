@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from httpx2 import HTTPError
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
@@ -366,18 +365,17 @@ def _parse_models(items: list[dict]) -> list[OpenRouterModelInfo]:
 
 
 async def _fetch_models(url: str, headers: dict[str, str]) -> list[OpenRouterModelInfo]:
-    try:
-        response = await ai_http_client.get(url, headers=headers)
-        response.raise_for_status()
-    except HTTPError as err:
-        raise HTTPException(status_code=502, detail=f"Could not reach {url}: {err}") from err
+    response = await ai_http_client.get(url, headers=headers)
+    response.raise_for_status()
     return _parse_models(response.json().get("data", []))
 
 
 @router.get("/openrouter/models", response_model=list[OpenRouterModelInfo])
-async def list_openrouter_models() -> list[OpenRouterModelInfo]:
-    """Proxy OpenRouter's model list so the panel can pick a model without an OpenRouter key of its own."""
-    return await _fetch_models(_OPENROUTER_MODELS_URL, openrouter_headers())
+async def list_openrouter_models(
+    services: Annotated[ApplicationServices, Depends(get_services)],
+) -> list[OpenRouterModelInfo]:
+    """Proxy OpenRouter's model list using the configured catalog provider."""
+    return await _fetch_models(_OPENROUTER_MODELS_URL, await openrouter_headers(redis=services.redis))
 
 
 @router.get("/providers/{name:path}/models", response_model=list[OpenRouterModelInfo])
@@ -392,7 +390,7 @@ async def list_provider_models(name: str) -> list[OpenRouterModelInfo]:
         raise HTTPException(status_code=404, detail="Provider not found")
 
     if provider.kind is AIProviderKind.openrouter:
-        headers = {"Authorization": f"Bearer {provider.api_key}"} if provider.api_key else openrouter_headers()
+        headers = {"Authorization": f"Bearer {provider.api_key}"} if provider.api_key else {}
         return await _fetch_models(_OPENROUTER_MODELS_URL, headers)
 
     if not provider.base_url:

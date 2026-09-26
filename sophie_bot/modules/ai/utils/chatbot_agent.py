@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from beanie import PydanticObjectId
 from pydantic_ai import Agent, RunContext, UsageLimits
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 from pydantic_ai.models import Model
-from pymongo.errors import PyMongoError
-from redis.exceptions import RedisError
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.agent_tools.kagi_search import kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.memory import forget_memory_tool, write_memory_tool
 from sophie_bot.modules.ai.agent_tools.notes import get_note_content_tool, get_notes_tool
@@ -30,6 +29,7 @@ from sophie_bot.modules.ai.utils.ai_run import (
     run_ai_stream,
     run_ai_text,
 )
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
@@ -37,7 +37,6 @@ from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_value, is_enabled
-from sophie_bot.utils.logger import log
 
 CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
@@ -78,11 +77,10 @@ class ChatbotRunRequest:
     use_base_tools: bool = False
     stream_options: ChatbotStreamOptions | None = None
     callbacks: ChatbotRunCallbacks = field(default_factory=ChatbotRunCallbacks)
-    charge_failure_policy: Literal["raise", "best_effort"] = "raise"
 
 
-def build_chatbot_agent(model: Model, tools: list[Any]) -> Agent[SophieAIToolContext, str]:
-    agent = Agent(model, deps_type=SophieAIToolContext, output_type=str, tools=tools)
+def build_chatbot_agent(model: Model, tools: list[Any], mode: AIMode) -> Agent[SophieAIToolContext, str]:
+    agent = Agent(model, name=f"{mode.value}:chat", deps_type=SophieAIToolContext, output_type=str, tools=tools)
 
     @agent.instructions
     async def add_chatbot_instructions(ctx: RunContext[SophieAIToolContext]) -> str:
@@ -118,18 +116,20 @@ async def get_chatbot_tools(
     ]
     if search_tool := await _get_search_tool(context):
         tools.append(search_tool)
-    if await is_enabled(
-        "ai_research",
-        chat_tid=context.chat_tid,
-        redis=context.services.redis,
-    ):
-        tools.append(research_topic_tool)
+    tools.append(research_topic_tool)
     if await is_enabled(
         "ai_sophie_inspect",
         chat_tid=context.chat_tid,
         redis=context.services.redis,
     ) and (capabilities.sophie_inspect or await is_sophie_inspect_chat(context.chat_tid, redis=context.services.redis)):
         tools.append(sophie_inspect_tool)
+    ai_event(
+        "ai.tools_selected",
+        tools=",".join(tool.name for tool in tools),
+        memory_enabled=capabilities.memory,
+        notes_enabled=capabilities.notes_read,
+        search_enabled=search_tool is not None,
+    )
     return tools
 
 
@@ -137,10 +137,7 @@ def _coerce_usage_limit(value: object, default: int | None = None) -> int | None
     if value in {None, "", "none", "None", 0, "0"}:
         return default
     if isinstance(value, (int, float, str)):
-        try:
-            limit = int(value)
-        except ValueError:
-            return default
+        limit = int(value)
         return limit if limit > 0 else default
     return default
 
@@ -157,6 +154,12 @@ async def build_chatbot_usage_limits(context: SophieAIToolContext) -> UsageLimit
     )
     output_tokens_limit = _coerce_usage_limit(
         await get_value("ai_chatbot_response_tokens_limit", chat_tid=context.chat_tid, redis=redis)
+    )
+    ai_event(
+        "ai.usage_limits",
+        request_limit=request_limit,
+        tool_calls_limit=tool_calls_limit,
+        output_tokens_limit=output_tokens_limit,
     )
     return UsageLimits(
         request_limit=request_limit,
@@ -180,7 +183,7 @@ async def _build_chatbot_run_config(
 ) -> ChatbotRunConfig:
     tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(context, get_capabilities(context.mode))
     return ChatbotRunConfig(
-        agent=build_chatbot_agent(model, tools),
+        agent=build_chatbot_agent(model, tools, context.mode),
         usage_limits=await build_chatbot_usage_limits(context),
         request_options=AIRequestOptions(
             user_tracking_id=context.chat_iid,
@@ -225,22 +228,18 @@ async def run_chatbot(request: ChatbotRunRequest) -> AIAgentResult[str]:
             deps=context,
             usage_limits=run_config.usage_limits,
             request_options=run_config.request_options,
+            on_before_tool_call=callbacks.on_tool_call,
             on_retry=callbacks.on_retry,
             model_plan=request.model_plan,
         )
 
     if result.usage:
         served_model = result.served_model or model
-        try:
-            await charge_ai_usage(
-                context.chat_iid,
-                AI_FEATURE_CHATBOT,
-                served_model,
-                result.usage,
-                redis=context.services.redis,
-            )
-        except (PyMongoError, RedisError) as error:
-            if request.charge_failure_policy == "raise":
-                raise
-            log.warning("Failed to charge AI usage for chatbot", error=str(error))
+        await charge_ai_usage(
+            context.chat_iid,
+            AI_FEATURE_CHATBOT,
+            served_model,
+            result.usage,
+            redis=context.services.redis,
+        )
     return result

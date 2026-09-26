@@ -70,13 +70,13 @@ async def test_a_constrained_string_flag_rejects_a_value_outside_its_set(
     services: SimpleNamespace,
 ) -> None:
     with pytest.raises(HTTPException) as error:
-        await api.set_feature_flag("ai_chatbot_service_tier", FeatureFlagUpdate(value="turbo"), services)
+        await api.set_feature_flag("ai_translations_service_tier", FeatureFlagUpdate(value="turbo"), services)
     assert error.value.status_code == 422
 
     # A value from the allowed set is accepted, and the flag reports the set for a dropdown.
-    updated = await api.set_feature_flag("ai_chatbot_service_tier", FeatureFlagUpdate(value="flex"), services)
-    assert updated.value == "flex"
-    assert updated.allowed_values is not None and "flex" in updated.allowed_values
+    updated = await api.set_feature_flag("ai_translations_service_tier", FeatureFlagUpdate(value="priority"), services)
+    assert updated.value == "priority"
+    assert updated.allowed_values is not None and "priority" in updated.allowed_values
 
 
 async def test_a_float_flag_accepts_a_whole_number(
@@ -89,32 +89,32 @@ async def test_a_float_flag_accepts_a_whole_number(
 async def test_instant_rollout_sets_a_target_percentage(
     services: SimpleNamespace,
 ) -> None:
-    info = await api.set_feature_rollout("ai_research", RolloutSet(value=True, percentage=25), services)
+    info = await api.set_feature_rollout("ai_filters_jev", RolloutSet(value=True, percentage=25), services)
     assert info.current_percentage == 25
     assert info.value is True
 
     listed = await api.list_feature_rollouts(services)
-    assert any(rollout.feature == "ai_research" for rollout in listed)
+    assert any(rollout.feature == "ai_filters_jev" for rollout in listed)
 
-    await api.delete_feature_rollout("ai_research", services)
-    assert all(rollout.feature != "ai_research" for rollout in await api.list_feature_rollouts(services))
+    await api.delete_feature_rollout("ai_filters_jev", services)
+    assert all(rollout.feature != "ai_filters_jev" for rollout in await api.list_feature_rollouts(services))
 
 
 async def test_timed_rollout_ramps_to_full(
     services: SimpleNamespace,
 ) -> None:
-    info = await api.set_feature_rollout("ai_research", RolloutSet(value=True, days=7), services)
+    info = await api.set_feature_rollout("ai_filters_jev", RolloutSet(value=True, days=7), services)
     assert info.target_percentage == 100
     assert info.duration_days == 7
-    await api.delete_feature_rollout("ai_research", services)
+    await api.delete_feature_rollout("ai_filters_jev", services)
 
 
 async def test_bumping_without_a_rollout_is_a_conflict(
     services: SimpleNamespace,
 ) -> None:
-    await api.delete_feature_rollout("ai_research", services)
+    await api.delete_feature_rollout("ai_filters_jev", services)
     with pytest.raises(HTTPException) as error:
-        await api.bump_feature_rollout("ai_research", RolloutBump(percentage=10), services)
+        await api.bump_feature_rollout("ai_filters_jev", RolloutBump(percentage=10), services)
     assert error.value.status_code == 409
 
 
@@ -122,7 +122,7 @@ async def test_a_rollout_needs_a_percentage_or_days(
     services: SimpleNamespace,
 ) -> None:
     with pytest.raises(HTTPException) as error:
-        await api.set_feature_rollout("ai_research", RolloutSet(value=True), services)
+        await api.set_feature_rollout("ai_filters_jev", RolloutSet(value=True), services)
     assert error.value.status_code == 422
 
 

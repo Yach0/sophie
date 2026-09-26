@@ -26,7 +26,7 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
-        if get_flag(data, "ai_chatbot_response", default=False):
+        if get_flag(data, "ai_chatbot_response", default=None) is not None:
             return result
 
         sent_message_text = message_text(result) if isinstance(result, Message) else None
@@ -38,8 +38,8 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
         to_cache: str | None = sent_message_text if cache_handler_result else None
 
         if capabilities and capabilities.message_cache and to_cache and sent_message_id and chat_db:
-            if is_ai_message(to_cache):
-                to_cache = cut_titlebar(to_cache)
+            if isinstance(result, Message) and is_ai_message(result):
+                to_cache = cut_titlebar(result)
 
             log.debug("CacheBotMessagesMiddleware: caching message", message=to_cache)
             created_at = (

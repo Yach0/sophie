@@ -12,6 +12,7 @@ from aiogram.methods import TelegramMethod
 
 from sophie_bot.modules.utils_.telegram_exceptions import (
     CAN_NOT_BE_DELETED,
+    CHANNEL_PRIVATE,
     CHAT_WRITE_FORBIDDEN,
     INVALID_BUTTON_URL,
     MSG_NOT_MODIFIED,
@@ -34,6 +35,7 @@ _REPLY_NOT_FOUND_ERRORS = (REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID)
 _IGNORED_BAD_REQUEST_ERRORS = (
     *_REPLY_NOT_FOUND_ERRORS,
     CAN_NOT_BE_DELETED,
+    CHANNEL_PRIVATE,
     MSG_TO_DEL_NOT_FOUND,
     MSG_TEXT_EMPTY,
     MSG_NOT_MODIFIED,

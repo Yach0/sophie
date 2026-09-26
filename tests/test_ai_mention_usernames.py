@@ -184,7 +184,7 @@ def _enabled_with(monkeypatch: pytest.MonkeyPatch) -> Any:
     return _install
 
 
-async def _render(text: str, test_redis: object) -> str:
+async def _render(text: str, test_redis: object, *, strip_alien_html_tags: bool = True) -> str:
     doc = await build_reply_doc(
         HEADER,
         text,
@@ -193,12 +193,15 @@ async def _render(text: str, test_redis: object) -> str:
         explicit_debug_mode=False,
         chat_tid=CHAT_TID,
         redis=test_redis,
+        strip_alien_html_tags=strip_alien_html_tags,
     )
     return doc.to_html()
 
 
 @pytest.mark.asyncio
-async def test_rendered_reply_contains_the_resolved_username(_enabled_with: Any, test_redis: object, test_services: object) -> None:
+async def test_rendered_reply_contains_the_resolved_username(
+    _enabled_with: Any, test_redis: object, test_services: object
+) -> None:
     _enabled_with(MentionCandidate(display_names=("John Smith", "John"), username="john_s"))
     html = await _render("Hey @John Smith, done!", test_redis)
     assert "@john_s" in html
@@ -206,7 +209,9 @@ async def test_rendered_reply_contains_the_resolved_username(_enabled_with: Any,
 
 
 @pytest.mark.asyncio
-async def test_display_name_with_markup_characters_is_replaced_and_escaped(_enabled_with: Any, test_redis: object, test_services: object) -> None:
+async def test_display_name_with_markup_characters_is_replaced_and_escaped(
+    _enabled_with: Any, test_redis: object, test_services: object
+) -> None:
     # A display name is attacker-controlled text; replacing it must not smuggle raw HTML through,
     # and the surrounding text must still be escaped by the renderer.
     _enabled_with(MentionCandidate(display_names=("<b>Bold</b> & Co",), username="bold_co"))
@@ -216,11 +221,31 @@ async def test_display_name_with_markup_characters_is_replaced_and_escaped(_enab
     )
     assert "@bold_co" in html
     assert "<b>Bold</b>" not in html
-    assert "&lt;i&gt;this&lt;/i&gt;" in html
+    assert "<i>this</i>" in html
 
 
 @pytest.mark.asyncio
-async def test_markdown_formatting_around_a_mention_survives(_enabled_with: Any, test_redis: object, test_services: object) -> None:
+async def test_rendered_reply_removes_only_unsupported_html(test_redis: object) -> None:
+    html = await _render("<section><div>Before</div></section><b>Bold</b>", test_redis)
+
+    assert "<section>" not in html
+    assert "<div>" not in html
+    assert "Before" in html
+    assert "<b>Bold</b>" in html
+
+
+@pytest.mark.asyncio
+async def test_disabled_alien_html_filter_escapes_all_raw_tags(test_redis: object) -> None:
+    html = await _render("<div>Before</div><b>Bold</b>", test_redis, strip_alien_html_tags=False)
+
+    assert "&lt;div&gt;Before&lt;/div&gt;" in html
+    assert "&lt;b&gt;Bold&lt;/b&gt;" in html
+
+
+@pytest.mark.asyncio
+async def test_markdown_formatting_around_a_mention_survives(
+    _enabled_with: Any, test_redis: object, test_services: object
+) -> None:
     _enabled_with(MentionCandidate(display_names=("Maria",), username="maria99"))
     html = await _render("**bold** and @Maria and `@Maria`", test_redis)
     assert "@maria99" in html
@@ -233,7 +258,9 @@ async def test_markdown_formatting_around_a_mention_survives(_enabled_with: Any,
 
 
 @pytest.mark.asyncio
-async def test_disabled_flag_leaves_the_reply_untouched(_enabled_with: Any, test_redis: object, test_services: object) -> None:
+async def test_disabled_flag_leaves_the_reply_untouched(
+    _enabled_with: Any, test_redis: object, test_services: object
+) -> None:
     _enabled_with(MentionCandidate(display_names=("John",), username="john_s"), enabled=False)
     assert await apply_mention_usernames("Hey @John", CHAT_TID, redis=test_redis) == "Hey @John"
 
@@ -245,7 +272,9 @@ async def test_enabled_flag_resolves_the_mention(_enabled_with: Any, test_redis:
 
 
 @pytest.mark.asyncio
-async def test_resolve_mention_index_collects_candidates_once(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_resolve_mention_index_collects_candidates_once(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     calls = 0
 
     async def fake_collect(
@@ -274,7 +303,9 @@ async def test_resolve_mention_index_collects_candidates_once(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_text_without_an_at_sign_never_touches_the_flag_or_the_cache(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_text_without_an_at_sign_never_touches_the_flag_or_the_cache(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     async def explode(*args: Any, **kwargs: Any) -> Any:
         raise AssertionError("must not be reached")
 
@@ -308,7 +339,9 @@ class _FakeUser:
 
 
 @pytest.mark.asyncio
-async def test_collect_candidates_uses_the_message_cache(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_collect_candidates_uses_the_message_cache(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     users = {
         11: _FakeUser("John", "Smith", "john_s"),
         12: _FakeUser("Maria", None, "maria99"),
@@ -335,7 +368,9 @@ async def test_collect_candidates_uses_the_message_cache(monkeypatch: pytest.Mon
 
 
 @pytest.mark.asyncio
-async def test_collect_candidates_without_cached_messages(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_collect_candidates_without_cached_messages(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     async def fake_cached_messages(chat_tid: int, **kwargs: Any) -> tuple[MessageType, ...]:
         return ()
 

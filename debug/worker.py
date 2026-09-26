@@ -279,8 +279,6 @@ def _known_secrets() -> tuple[str, ...]:
             values[name] = value
         elif name in {"sentry_url", "botapi_server"} and value is not None:
             values[name] = str(value)
-    for index, provider in enumerate(CONFIG.custom_providers):
-        values[f"custom_provider_{index}_api_key"] = provider.api_key
     return known_secret_values(values)
 
 
