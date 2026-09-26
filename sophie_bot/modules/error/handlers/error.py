@@ -13,6 +13,7 @@ from sophie_bot.modules.error.utils.permission_errors import (
     handle_no_rights_error,
     is_no_rights_error,
 )
+from sophie_bot.services.logfire import capture_logfire_error
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.logger import log
 
@@ -37,9 +38,10 @@ class SophieErrorHandler(ErrorHandler):
         sys_exception = sys.exception()
 
         sentry_event_id = self.capture_sentry(exception)
-        self.log_to_console(etype, value, tb, sentry_event_id=sentry_event_id)
+        logfire_trace_id = self.capture_logfire(exception)
+        self.log_to_console(etype, value, tb, sentry_event_id=sentry_event_id, logfire_trace_id=logfire_trace_id)
 
-        if not sys_exception:
+        if not isinstance(sys_exception, Exception):
             log.warning("No sys exception", from_aiogram=exception, from_sys=sys_exception)
             return
 
@@ -68,8 +70,10 @@ class SophieErrorHandler(ErrorHandler):
             log.info("Suppressing error notification", signature=signature)
             return
 
-        # Pyright doesn't know that we are returning out of the function if there's no sys_exception
-        await self.bot.send_message(chat.id, **generic_error_message(sys_exception, sentry_event_id))  # type: ignore
+        await self.bot.send_message(
+            chat.id,
+            **generic_error_message(sys_exception, sentry_event_id, logfire_trace_id=logfire_trace_id),
+        )
 
     @staticmethod
     def log_to_console(etype, value, tb, **kwargs):
@@ -83,20 +87,24 @@ class SophieErrorHandler(ErrorHandler):
             log.warning("Additional error data", **kwargs)
 
     @staticmethod
-    def capture_sentry(exception: Exception) -> str | None:
-        # Already reported by the raiser, with context this handler does not have (the AI paths
-        # attach the model and operation). Capturing again would split one failure across two
-        # issues and show the user a reference ID matching neither.
-        if isinstance(exception, SophieException) and exception.sentry_event_id:
-            return exception.sentry_event_id
-
-        # Prefer capturing the active system exception to preserve full traceback. An AI failure
-        # may have been raised from the provider exception after its contextual capture failed; in
-        # that case capture the provider exception rather than the wrapper.
+    def _exception_to_report(exception: Exception) -> Exception:
         sys_exc = sys.exception()
         if isinstance(sys_exc, Exception):
             exception = sys_exc
         cause = exception.__cause__
         if isinstance(exception, AIRequestFailed) and isinstance(cause, Exception):
-            exception = cause
-        return capture_sentry(exception)
+            return cause
+        return exception
+
+    @staticmethod
+    def capture_sentry(exception: Exception) -> str | None:
+        # The AI path already captured the provider failure with its model and operation.
+        if isinstance(exception, SophieException) and exception.sentry_event_id:
+            return exception.sentry_event_id
+        return capture_sentry(SophieErrorHandler._exception_to_report(exception))
+
+    @staticmethod
+    def capture_logfire(exception: Exception) -> str | None:
+        if isinstance(exception, AIRequestFailed) and exception.logfire_trace_id:
+            return exception.logfire_trace_id
+        return capture_logfire_error(SophieErrorHandler._exception_to_report(exception))

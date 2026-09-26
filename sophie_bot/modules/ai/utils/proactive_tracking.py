@@ -9,6 +9,7 @@ from aiogram.types import Message
 from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
 from sophie_bot.utils.logger import log
@@ -53,24 +54,32 @@ async def get_recent_candidates(
     *,
     redis: Redis,
 ) -> tuple[MessageType, ...]:
-    now = datetime.now(UTC)
-    messages = await get_cached_messages(chat_tid, now=now, redis=redis)
-    min_created_at = now - timedelta(seconds=settings.window_seconds)
-    candidates = tuple(
-        message
-        for message in messages
-        if message.created_at and message.created_at >= min_created_at and is_candidate(message)
-    )
-    selected_candidates = candidates[-settings.batch_size :]
-    log_proactive_info(
-        "Proactive AI candidates loaded",
-        chat_id=chat_tid,
-        cached_messages=len(messages),
-        eligible_candidates=len(candidates),
-        selected_candidates=len(selected_candidates),
-        window_seconds=settings.window_seconds,
-    )
-    return selected_candidates
+    with ai_span("ai.proactive.select_candidates", window_seconds=settings.window_seconds) as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        now = datetime.now(UTC)
+        messages = await get_cached_messages(chat_tid, now=now, redis=redis)
+        min_created_at = now - timedelta(seconds=settings.window_seconds)
+        candidates = tuple(
+            message
+            for message in messages
+            if message.created_at and message.created_at >= min_created_at and is_candidate(message)
+        )
+        selected_candidates = candidates[-settings.batch_size :]
+        if span is not None:
+            span.set_attribute("cached_count", len(messages))
+            span.set_attribute("eligible_count", len(candidates))
+            span.set_attribute("selected_count", len(selected_candidates))
+            span.set_attribute("outcome", "selected" if selected_candidates else "empty")
+        log_proactive_info(
+            "Proactive AI candidates loaded",
+            chat_id=chat_tid,
+            cached_messages=len(messages),
+            eligible_candidates=len(candidates),
+            selected_candidates=len(selected_candidates),
+            window_seconds=settings.window_seconds,
+        )
+        return selected_candidates
 
 
 async def track_eligible_message(
@@ -105,24 +114,41 @@ async def clear_tracked_messages(
     *,
     redis: Redis,
 ) -> None:
-    if not messages:
-        return
-    key = eligible_key(chat_tid)
-    await redis.zrem(key, *(str(message.message_id) for message in messages))
-    log_proactive_info("Proactive AI tracked messages cleared", chat_id=chat_tid, message_count=len(messages))
+    with ai_span("ai.proactive.clear", message_count=len(messages)) as span:
+        if not messages:
+            if span is not None:
+                span.set_attribute("outcome", "empty")
+            return
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        key = eligible_key(chat_tid)
+        await redis.zrem(key, *(str(message.message_id) for message in messages))
+        if span is not None:
+            span.set_attribute("outcome", "cleared")
+        log_proactive_info("Proactive AI tracked messages cleared", chat_id=chat_tid, message_count=len(messages))
 
 
 async def acquire_lock(chat_tid: int, *, redis: Redis) -> bool:
-    acquired = bool(
-        await cast(
-            Awaitable[bool | None],
-            redis.set(lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True),
+    with ai_span("ai.proactive.acquire_lock") as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        acquired = bool(
+            await cast(
+                Awaitable[bool | None],
+                redis.set(lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True),
+            )
         )
-    )
-    log_proactive_info("Proactive AI lock state resolved", chat_id=chat_tid, acquired=acquired)
-    return acquired
+        if span is not None:
+            span.set_attribute("outcome", "acquired" if acquired else "busy")
+        log_proactive_info("Proactive AI lock state resolved", chat_id=chat_tid, acquired=acquired)
+        return acquired
 
 
 async def release_lock(chat_tid: int, *, redis: Redis) -> None:
-    await redis.delete(lock_key(chat_tid))
-    log_proactive_info("Proactive AI lock released", chat_id=chat_tid)
+    with ai_span("ai.proactive.release_lock") as span:
+        if span is not None:
+            span.set_attribute("outcome", "failure")
+        await redis.delete(lock_key(chat_tid))
+        if span is not None:
+            span.set_attribute("outcome", "released")
+        log_proactive_info("Proactive AI lock released", chat_id=chat_tid)

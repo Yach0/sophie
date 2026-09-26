@@ -8,32 +8,37 @@ from sophie_bot.config import CONFIG
 from sophie_bot.modules import track_scheduler_callback
 from sophie_bot.runtime import build_scheduler_runtime
 from sophie_bot.services.health import HEARTBEAT_INTERVAL_SECONDS, write_heartbeat_guarded
+from sophie_bot.services.logfire import start_logfire, stop_logfire
 from sophie_bot.startup import initialize_scheduler_mode
 
 
 async def _scheduler_main() -> None:
     async with build_scheduler_runtime() as runtime:
-        await initialize_scheduler_mode(runtime)
-        runtime.scheduler.add_job(
-            track_scheduler_callback(
-                partial(
-                    write_heartbeat_guarded,
-                    CONFIG.mode,
-                    redis=runtime.services.redis,
-                ),
-                runtime.services,
-            ),
-            "interval",
-            seconds=HEARTBEAT_INTERVAL_SECONDS,
-            jobstore="ram",
-            next_run_time=datetime.now(UTC),
-        )
-        runtime.scheduler.start()
+        start_logfire(runtime.config)
         try:
-            await asyncio.Event().wait()
+            await initialize_scheduler_mode(runtime)
+            runtime.scheduler.add_job(
+                track_scheduler_callback(
+                    partial(
+                        write_heartbeat_guarded,
+                        CONFIG.mode,
+                        redis=runtime.services.redis,
+                    ),
+                    runtime.services,
+                ),
+                "interval",
+                seconds=HEARTBEAT_INTERVAL_SECONDS,
+                jobstore="ram",
+                next_run_time=datetime.now(UTC),
+            )
+            runtime.scheduler.start()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                runtime.scheduler.shutdown(wait=True)
+                await asyncio.sleep(0)
         finally:
-            runtime.scheduler.shutdown(wait=True)
-            await asyncio.sleep(0)
+            stop_logfire()
 
 
 def start_scheduler_mode() -> None:

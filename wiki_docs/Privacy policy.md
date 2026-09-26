@@ -112,24 +112,15 @@ by an AI provider Sophie's operators have configured directly, without OpenRoute
 determines it needs to search the internet for up-to-date information, the relevant data may be sent to the search provider
 configured for the chat (Tavily, Kagi, or TinyFish) to enhance response accuracy.
 
-### Crashlytics (Sentry):
+### Crashlytics and Telemetry (Sentry and Logfire):
 
-Crashlytics helps us improve Sophie's stability.
-We collect crash tracebacks and, in some cases, code variable states,
+Crashlytics and Telemetry helps us improve Sophie's stability.
+We collect logs, crash tracebacks and, in some cases, code variable states,
 which may include raw update data that caused the crash.
 This data is automatically purged after the issues are resolved or after 48 hours.
 You will be notified of crashes via a "crash" message from Sophie (unless technical limitations prevent delivery).
 This data is not shared with any third parties, except for Sentry, and is only used internally by Sophie.
-By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy.
-
-### AI Telemetry (Pydantic logfire)
-
-Sophie can use Pydantic's logfire feature to collect usage statistics and performance metrics of AI-related activities. This data is used to improve
-the user experience and identify potential issues. The data collected includes information about the user's device,
-operating system, and usage patterns.
-This data is not shared with any third parties, except for Pydantic, and is only used internally by Sophie.
-You can withdraw your consent at any time by contacting us, or by disabling the AI features with '/aimode' and choosing the Disabled mode.
-By using Sophie with AI-related activities, you agree to Pydantic's privacy policy: https://pydantic.dev/legal/privacy-policy.
+By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy and Logfire's privacy policy: https://pydantic.dev/legal/privacy-policy.
 
 # Changes to This Policy
 

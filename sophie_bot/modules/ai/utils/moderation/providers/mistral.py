@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Final
 
 from mistralai.client.models.moderationobject import ModerationObject
@@ -8,6 +9,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
 from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
@@ -55,16 +57,39 @@ class MistralModerationProvider:
         redis: Redis,
     ) -> dict[str, float]:
         moderation_messages = convert_to_moderation_format(history.to_moderation)
-        client = await get_mistral_client(redis=redis)
-        response: ModerationResponse = await run_ai_request_with_retries(
-            lambda: client.classifiers.moderate_chat_async(
-                inputs=moderation_messages,
-                model=MISTRAL_MODERATION_MODEL,
-            ),
-            AIErrorContext(operation="moderation", model_name=MISTRAL_MODERATION_MODEL),
-        )
-        if not response.results:
-            return {}
+        with ai_span(
+            "ai.moderation",
+            provider="mistral",
+            model=MISTRAL_MODERATION_MODEL,
+            input_count=len(moderation_messages),
+        ) as span:
+            started = perf_counter() if span is not None else 0.0
+            try:
+                client = await get_mistral_client(redis=redis)
+                response: ModerationResponse = await run_ai_request_with_retries(
+                    lambda: client.classifiers.moderate_chat_async(
+                        inputs=moderation_messages,
+                        model=MISTRAL_MODERATION_MODEL,
+                    ),
+                    AIErrorContext(operation="moderation", model_name=MISTRAL_MODERATION_MODEL),
+                )
+                if not response.results:
+                    if span is not None:
+                        span.set_attribute("outcome", "empty")
+                    return {}
 
-        result: ModerationObject = response.results[0]
-        return dict(result.category_scores or {})
+                result: ModerationObject = response.results[0]
+                if span is not None:
+                    span.set_attribute("outcome", "success")
+                return dict(result.category_scores or {})
+            except Exception as error:
+                if span is not None:
+                    span.set_attribute("outcome", "error")
+                    span.set_attribute("error_type", type(error).__name__)
+                    status_code = getattr(error, "status_code", None)
+                    if isinstance(status_code, int):
+                        span.set_attribute("status_code", status_code)
+                raise
+            finally:
+                if span is not None:
+                    span.set_attribute("duration_ms", (perf_counter() - started) * 1000)

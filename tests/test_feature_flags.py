@@ -52,9 +52,9 @@ from sophie_bot.utils.feature_flags import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
-FEATURE = "op_task"
+FEATURE = "ai_filters_jev"
 BOOL_FEATURE_DEFAULT_TRUE = "welcomecaptcha"
-STRING_FEATURE = "ai_chatbot_service_tier"
+STRING_FEATURE = "ai_translations_service_tier"
 CHAT_TID_A = -1002950100
 CHAT_TID_B = -1002950101
 CHAT_TID_C = -1002950102
@@ -203,19 +203,19 @@ class TestFeatureMetadata:
         assert get_allowed_string_values("ai_summary_model") is None
 
     def test_service_tier_values_are_declared_in_metadata(self) -> None:
-        assert get_value_kind("ai_chatbot_service_tier") == "service_tier"
-        assert get_allowed_string_values("ai_chatbot_service_tier") == frozenset(
+        assert get_value_kind(STRING_FEATURE) == "service_tier"
+        assert get_allowed_string_values(STRING_FEATURE) == frozenset(
             {"none", "auto", "default", "flex", "priority"}
         )
 
     def test_ai_header_style_values_are_declared_in_metadata(self) -> None:
-        assert get_value_kind("ai_chatbot_header_style") == "ai_header_style"
-        assert get_allowed_string_values("ai_chatbot_header_style") == frozenset({"disable", "simple"})
+        assert get_value_kind("ai_translations_header_style") == "ai_header_style"
+        assert get_allowed_string_values("ai_translations_header_style") == frozenset({"disable", "simple"})
 
     def test_every_ai_header_style_defaults_to_simple(self) -> None:
         header_flags = [feature for feature in FEATURE_FLAGS if feature.endswith("header_style")]
         assert header_flags
-        assert "ai_proactive_replies_header_style" not in header_flags
+        assert "ai_translations_header_style" in header_flags
         assert {get_default_value(feature) for feature in header_flags} == {"simple"}
 
     def test_ai_output_sanitizer_and_model_label_defaults(self) -> None:
@@ -528,19 +528,20 @@ class TestDefaults:
         assert await is_enabled(FEATURE) is False
 
     async def test_string_default(self) -> None:
-        assert await get_value(STRING_FEATURE) == "none"
+        assert await get_value(STRING_FEATURE) == "flex"
 
     async def test_get_default_value(self) -> None:
         assert get_default_value(FEATURE) is False
         assert get_default_value(BOOL_FEATURE_DEFAULT_TRUE) is True
-        assert get_default_value("ai_chatbot_service_tier") == "none"
+        assert get_default_value(STRING_FEATURE) == "flex"
 
     async def test_get_service_tier_returns_none_for_none_string(self) -> None:
+        await set_value(STRING_FEATURE, "none")
         assert await get_service_tier(STRING_FEATURE) is None
 
     async def test_get_service_tier_returns_value_when_set(self) -> None:
-        await set_value(STRING_FEATURE, "flex")
-        assert await get_service_tier(STRING_FEATURE) == "flex"
+        await set_value(STRING_FEATURE, "priority")
+        assert await get_service_tier(STRING_FEATURE) == "priority"
 
 
 class TestSetGetValue:

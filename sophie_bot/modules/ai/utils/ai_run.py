@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
-from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import Any, Final, TypeVar, cast
@@ -21,7 +20,6 @@ from pydantic_ai import (
     TextPartDelta,
     ThinkingPart,
     ThinkingPartDelta,
-    capture_run_messages,
 )
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent
@@ -49,6 +47,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, request_has_images
 from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.logger import log
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
@@ -114,16 +113,13 @@ def resolve_candidates(
 ) -> list[AIModelCandidate]:
     """The candidates to try for one request, best first.
 
-    With ``ai_model_failover`` off — or with no plan at all — the chain is the pre-plan one: the
-    agent's own model, closed by the cheap last resort. With it on, the agent's own model still
-    leads unless the plan deliberately ruled it out: a caller that built an agent around a model it
-    chose by hand gets that model first, but a plan candidate skipped for lacking image support
-    must not sneak back in through the agent.
+    The agent's own model leads unless the plan deliberately ruled it out: a caller that built
+    an agent around a model it chose by hand gets that model first, but a plan candidate skipped
+    for lacking image support must not sneak back in through the agent.
     """
     agent_candidate = _agent_candidate(agent_model, model_plan)
-    if model_plan is None or not model_plan.failover:
+    if model_plan is None:
         return _closed_chain([agent_candidate])
-
     eligible = list(model_plan.eligible(has_images=has_images))
     # Identity, not equality: two distinct model objects for the same provider settings compare
     # equal, and "is this the very object the agent holds" is the question actually being asked.
@@ -136,7 +132,7 @@ def resolve_candidates(
 
 
 def _should_try_next_model(error: BaseException) -> bool:
-    """Whether another candidate is worth trying after this failure, with failover on.
+    """Whether another candidate is worth trying after this failure.
 
     Most provider failures earn a failover, not just the transient ones: the request that most
     needs a different model — an image sent to a model that cannot read one — comes back as a flat
@@ -148,110 +144,118 @@ def _should_try_next_model(error: BaseException) -> bool:
     return not isinstance(error, UsageLimitExceeded) and not is_provider_configuration_error(error)
 
 
-@dataclass(frozen=True, slots=True)
-class CandidateChain:
-    """One request's candidates plus the failover rules that go with them."""
-
-    candidates: list[AIModelCandidate]
-    should_try_next: Callable[[BaseException], bool]
-    refusal_failover: bool
-
-
-def build_candidate_chain(
-    agent_model: Model,
-    model_plan: AIModelPlan | None,
-    has_images: bool,
-) -> CandidateChain:
-    """The candidates for one request and how far it may walk them.
-
-    Flag off restores the pre-plan rules whole: one model plus the last resort, moved onto only by
-    an error another attempt could actually survive, and never by an unusable answer.
-    """
-    failover = model_plan is not None and model_plan.failover
-    return CandidateChain(
-        candidates=resolve_candidates(agent_model, model_plan, has_images),
-        should_try_next=_should_try_next_model if failover else is_retryable_ai_provider_error,
-        refusal_failover=failover,
-    )
-
-
 async def _run_with_model_candidates[FallbackOutputT](
     operation: Callable[[AIModelCandidate], Awaitable[FallbackOutputT]],
-    chain: CandidateChain,
+    candidates: list[AIModelCandidate],
+    *,
+    model_plan: AIModelPlan | None,
     is_refusal: Callable[[FallbackOutputT], bool] | None = None,
     on_retry: AIRetryCallback | None = None,
-    operation_label: str = "agent",
+    operation_label: str = "text",
+    has_images: bool = False,
+    service_tier: str | None = None,
 ) -> tuple[FallbackOutputT, AIModelCandidate]:
     """Run ``operation`` against each candidate in turn until one answers.
 
-    A candidate is given up on when it fails in a way another model could survive (see
-    :meth:`CandidateChain.should_try_next`), or — with failover on — when it finishes without
-    producing a usable answer, whether that is an empty output (:func:`is_refusal_output`) or an
-    :exc:`AIModelRefused` a caller's own output validator raised. The last candidate's *returned*
-    refusal is handed back rather than raised: an empty answer is still an answer, and turning the
-    end of the chain into an error would change what the user sees for every mode at once. A
-    *raised* refusal has no answer to hand back, so it reaches the caller that raised it.
+    A plan permits another model after provider failures or unusable answers. Without a plan,
+    preserve the agent's original retry behavior and only use the last resort for retryable
+    provider failures. The last candidate's *returned* refusal is handed back rather than raised;
+    a *raised* refusal has no answer to hand back and reaches the caller.
 
     Each attempt is tracked under its own model name via :func:`track_ai_request`, and the candidate
     that actually served the request comes back with the result so callers attribute post-completion
     metrics (usage, agent/stream results) and charges to it rather than to the first candidate.
 
-    This is also the single point where a provider failure becomes a reported, user-facing error:
-    only here is it known which candidate was in play, so the failure that ends the chain is raised
-    as :exc:`AIRequestFailed` carrying its Sentry event ID rather than escaping untagged.
+    A provider failure becomes a reported, user-facing error only after the retry/failover
+    candidates are exhausted. Failures that neither retry nor fail over propagate unchanged.
     """
-    last_error: BaseException | None = None
-    candidates = chain.candidates
     lead_model_name = candidates[0].model_name if candidates else None
-
-    for index, candidate in enumerate(candidates):
-        is_last = index == len(candidates) - 1
-        context = AIErrorContext(
-            operation=operation_label,
-            model_name=candidate.model_name,
-            primary_model_name=lead_model_name if index else None,
-        )
-        try:
-            async with track_ai_request(candidate.model, operation_label):
-                result = await run_ai_request_with_retries(partial(operation, candidate), context, on_retry=on_retry)
-        except AIModelRefused as refusal:
-            if is_last or not chain.refusal_failover:
-                raise
-            last_error = refusal
-            log.warning(
-                "AI request on %s produced no usable output; trying %s",
-                candidate.model_name,
-                candidates[index + 1].model_name,
+    allow_plan_failover = model_plan is not None
+    should_try_next = _should_try_next_model if allow_plan_failover else is_retryable_ai_provider_error
+    with ai_span(
+        "ai.run",
+        operation=operation_label,
+        candidate_count=len(candidates),
+        failover_enabled=allow_plan_failover,
+        has_images=has_images,
+        service_tier=service_tier,
+    ) as run_span:
+        for index, candidate in enumerate(candidates):
+            is_last = index == len(candidates) - 1
+            context = AIErrorContext(
+                operation=operation_label,
+                model_name=candidate.model_name,
+                primary_model_name=lead_model_name if index else None,
             )
-            continue
-        except AI_PROVIDER_EXCEPTIONS as error:
-            if is_last or not chain.should_try_next(error):
-                raise ai_request_failed_from_error(error, context) from error
-            last_error = error
-            log.warning(
-                "AI request on %s failed (%s); trying %s",
-                candidate.model_name,
-                type(error).__name__,
-                candidates[index + 1].model_name,
-            )
-            # A request the chain rescues still returns an answer, so nothing else would ever
-            # surface a candidate that is failing every request in production. Warning level keeps
-            # it apart from the failures a user actually saw.
-            capture_ai_error(error, context, level="warning")
-            continue
+            with ai_span(
+                "ai.candidate",
+                model=candidate.model_name,
+                candidate_index=index,
+                candidate_count=len(candidates),
+                service_tier=candidate.resolve_service_tier(service_tier),
+            ) as candidate_span:
+                try:
+                    async with track_ai_request(candidate.model, operation_label):
+                        result = await run_ai_request_with_retries(
+                            partial(operation, candidate), context, on_retry=on_retry
+                        )
+                except AIModelRefused:
+                    if candidate_span is not None:
+                        candidate_span.set_attribute("outcome", "refusal")
+                    if is_last or not allow_plan_failover:
+                        raise
+                    log.warning(
+                        "AI request on %s produced no usable output; trying %s",
+                        candidate.model_name,
+                        candidates[index + 1].model_name,
+                    )
+                    continue
+                except AI_PROVIDER_EXCEPTIONS as error:
+                    if candidate_span is not None:
+                        candidate_span.set_attribute(
+                            "outcome", "usage_limit" if isinstance(error, UsageLimitExceeded) else "provider_failure"
+                        )
+                        candidate_span.set_attribute("error_type", type(error).__name__)
+                    if not should_try_next(error):
+                        raise
+                    if is_last:
+                        raise ai_request_failed_from_error(error, context) from error
+                    log.warning(
+                        "AI request on %s failed (%s); trying %s",
+                        candidate.model_name,
+                        type(error).__name__,
+                        candidates[index + 1].model_name,
+                    )
+                    capture_ai_error(error, context, level="warning")
+                    continue
 
-        if chain.refusal_failover and is_refusal is not None and not is_last and is_refusal(result):
-            last_error = AIModelRefused(candidate.model_name)
-            log.warning(
-                "AI request on %s produced no usable output; trying %s",
-                candidate.model_name,
-                candidates[index + 1].model_name,
-            )
-            continue
+                if allow_plan_failover and is_refusal is not None and not is_last and is_refusal(result):
+                    if candidate_span is not None:
+                        candidate_span.set_attribute("outcome", "refusal")
+                    log.warning(
+                        "AI request on %s produced no usable output; trying %s",
+                        candidate.model_name,
+                        candidates[index + 1].model_name,
+                    )
+                    continue
+                if candidate_span is not None:
+                    candidate_span.set_attribute(
+                        "outcome", "refusal" if is_refusal is not None and is_refusal(result) else "success"
+                    )
+                    usage = getattr(result, "usage", None)
+                    if isinstance(usage, RunUsage):
+                        candidate_span.set_attribute("input_tokens", usage.input_tokens)
+                        candidate_span.set_attribute("output_tokens", usage.output_tokens)
+                        candidate_span.set_attribute("tool_calls", usage.tool_calls)
+                    if isinstance(result, _StreamOutcome):
+                        candidate_span.set_attribute("stream_chunks", result.chunk_count)
+                        candidate_span.set_attribute("first_token_seen", result.first_token_seen)
+                if run_span is not None:
+                    run_span.set_attribute("served_model", candidate.model_name)
+                    run_span.set_attribute("outcome", "success")
+                return result, candidate
 
-        return result, candidate
-
-    raise last_error or RuntimeError("AI model candidate loop finished without returning or raising")
+    raise RuntimeError("AI model candidate loop finished without returning or raising")
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,8 +277,6 @@ class AIAgentResult[OutputT](BaseModel):
     retries: int | None = None
     message_history: list[ModelRequest | ModelResponse]
     usage: RunUsage
-    truncated: bool = False
-    """The run hit a usage limit and ``output`` is only what the model produced before that."""
     served_model: Model | None = None
     """The candidate that actually answered, which failover may have moved off the first one.
 
@@ -290,6 +292,7 @@ class _StreamChannel:
     callback: TextStreamCallback | None
     parts: dict[int, list[str]] = field(default_factory=dict)
     last_emit: float = 0.0
+    last_emitted_text: str = ""
 
     @property
     def empty(self) -> bool:
@@ -297,6 +300,7 @@ class _StreamChannel:
 
     def reset(self) -> None:
         self.parts.clear()
+        self.last_emitted_text = ""
 
     def start(self, part_index: int, content: str) -> None:
         self.parts[part_index] = [content] if content else []
@@ -319,20 +323,21 @@ class _StreamChannel:
         now = time.monotonic()
         if not force and now - self.last_emit < _STREAM_DEBOUNCE_SECONDS:
             return
+        if self.empty:
+            return
+        rendered = self.render()
+        if rendered == self.last_emitted_text:
+            return
         self.last_emit = now
-        await self.callback(self.render())
+        self.last_emitted_text = rendered
+        await self.callback(rendered)
 
 
 @dataclass(frozen=True, slots=True)
 class ChatbotStreamOptions:
-    """Chat-level switches for how a streamed chatbot run behaves.
-
-    ``continuation`` off restores the pre-continuation `Agent.run_stream` path, which cannot report
-    reasoning or partial output — the other two switches do nothing while it is off.
-    """
+    """Controls whether the full agent event stream or legacy run_stream path is used."""
 
     continuation: bool = True
-    partial_on_limit: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -342,7 +347,6 @@ class _StreamOutcome:
     message_history: list[ModelRequest | ModelResponse]
     first_token_seen: bool
     chunk_count: int
-    truncated: bool = False
 
 
 def build_model_settings(
@@ -466,9 +470,10 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
     model_settings: Mapping[str, object] | None = None,
     on_retry: AIRetryCallback | None = None,
     model_plan: AIModelPlan | None = None,
+    operation_label: str = "text",
 ) -> AIAgentResult[OutputT]:
     agent_model = _get_agent_model(agent)
-    chain = build_candidate_chain(
+    candidates = resolve_candidates(
         agent_model,
         model_plan,
         request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
@@ -481,9 +486,13 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
 
     result, served_candidate = await _run_with_model_candidates(
         run_agent_once,
-        chain,
+        candidates,
         is_refusal=lambda run_result: is_refusal_output(run_result.output),
+        model_plan=model_plan,
         on_retry=on_retry,
+        operation_label=operation_label,
+        has_images=request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
+        service_tier=request_options.service_tier if request_options else None,
     )
 
     served_model = served_candidate.model
@@ -534,16 +543,29 @@ async def run_ai_text[DepsT](
     usage_limits: UsageLimits | None = None,
     request_options: AIRequestOptions | None = None,
     model_settings: Mapping[str, object] | None = None,
+    on_before_tool_call: ToolCallCallback | None = None,
     on_retry: AIRetryCallback | None = None,
     model_plan: AIModelPlan | None = None,
 ) -> AIAgentResult[str]:
     run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
+    if on_before_tool_call is not None:
+
+        async def event_stream_handler(
+            _ctx: RunContext[DepsT],
+            events: AsyncIterable[AgentStreamEvent],
+        ) -> None:
+            async for event in events:
+                if isinstance(event, FunctionToolCallEvent):
+                    await on_before_tool_call(event.part.tool_name)
+
+        run_kwargs["event_stream_handler"] = event_stream_handler
     return await _run_with_retries_and_metrics(
         agent,
         run_kwargs,
         request_options=request_options,
         model_settings=model_settings,
         on_retry=on_retry,
+        operation_label="text",
         model_plan=model_plan,
     )
 
@@ -569,18 +591,9 @@ async def run_ai_structured[DepsT, OutputT](
         request_options=request_options,
         model_settings=merged_model_settings,
         on_retry=on_retry,
+        operation_label="structured",
         model_plan=model_plan,
     )
-
-
-def _usage_from_messages(messages: Sequence[ModelRequest | ModelResponse]) -> RunUsage:
-    """Rebuild run usage from captured messages, for a run that raised before reporting its own."""
-    usage = RunUsage()
-    for message in messages:
-        if isinstance(message, ModelResponse):
-            usage.requests += 1
-            usage.incr(message.usage)
-    return usage
 
 
 def _tool_call_notifier(
@@ -607,7 +620,6 @@ async def _stream_via_events[DepsT](
     on_before_tool_call: ToolCallCallback | None,
     on_tool_call: ToolCallCallback | None,
     seen_tool_names: set[str],
-    partial_on_limit: bool,
 ) -> _StreamOutcome:
     """Run the full agent loop while forwarding Pydantic AI stream events.
 
@@ -679,31 +691,13 @@ async def _stream_via_events[DepsT](
                     reasoning.end(part_index, content)
                     await reasoning.emit()
                 case FunctionToolCallEvent():
+                    await reasoning.emit(force=True)
                     await text.emit(force=True)
                     if on_before_tool_call is not None:
                         await on_before_tool_call(event.part.tool_name)
                     await notify_tool_call(event.part.tool_name)
 
-    # `partial_on_limit` is the only consumer, and capturing retains a second reference to the whole
-    # message list for the length of the run, so only pay for it when it can be read.
-    capture = capture_run_messages() if partial_on_limit else nullcontext([])
-
-    with capture as captured_messages:
-        try:
-            result = await agent.run(**run_kwargs, event_stream_handler=event_stream_handler)
-        except UsageLimitExceeded:
-            if not partial_on_limit:
-                raise
-            captured = list(captured_messages)
-            return _StreamOutcome(
-                output_text=text.render(),
-                usage=_usage_from_messages(captured),
-                message_history=captured,
-                first_token_seen=first_token_seen,
-                chunk_count=chunk_count,
-                truncated=True,
-            )
-
+    result = await agent.run(**run_kwargs, event_stream_handler=event_stream_handler)
     output_text = str(result.output)
     text.replace(output_text)
     await text.emit(force=True)
@@ -787,7 +781,7 @@ async def run_ai_stream[DepsT](
 ) -> AIAgentResult[str]:
     options = stream_options or ChatbotStreamOptions()
     agent_model = _get_agent_model(agent)
-    chain = build_candidate_chain(agent_model, model_plan, request_has_images(user_prompt, message_history))
+    candidates = resolve_candidates(agent_model, model_plan, request_has_images(user_prompt, message_history))
     base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
     merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     base_run_kwargs.update(extra_run_kwargs)
@@ -820,16 +814,17 @@ async def run_ai_stream[DepsT](
             on_before_tool_call,
             on_tool_call,
             seen_tool_names,
-            options.partial_on_limit,
         )
 
     outcome, served_candidate = await _run_with_model_candidates(
         run_stream_once,
-        chain,
-        # A truncated run is never a refusal: it stopped on Sophie's own usage limit with text
-        # already delivered, and re-running it on another model would spend the budget twice.
-        is_refusal=lambda stream: not stream.truncated and is_refusal_output(stream.output_text),
+        candidates,
+        is_refusal=lambda stream: is_refusal_output(stream.output_text),
+        model_plan=model_plan,
         on_retry=on_retry,
+        operation_label="stream",
+        has_images=request_has_images(user_prompt, message_history),
+        service_tier=request_options.service_tier if request_options else None,
     )
 
     served_model = served_candidate.model
@@ -853,6 +848,5 @@ async def run_ai_stream[DepsT](
         retries=retries,
         message_history=outcome.message_history,
         usage=outcome.usage,
-        truncated=outcome.truncated,
         served_model=served_model,
     )

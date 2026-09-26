@@ -8,10 +8,11 @@ from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose, AIProviderKind
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, catalog, resolve_roles
+from sophie_bot.modules.ai.utils.ai_catalog import CatalogModel, ResolvedRole, catalog, get_catalog, resolve_roles
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_providers import get_openai_provider, get_openrouter_provider
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
+from sophie_bot.utils.feature_flags import get_value
 
 _ai_models: dict[str, Model] = {}
 _cache_version = ""
@@ -64,19 +65,25 @@ def _build_model(model_name: str, reasoning_effort: str | None) -> Model:
 def get_ai_model(model_name: str, reasoning_effort: str | None = None) -> Model:
     global _cache_version
 
-    # A built model holds a provider client and its settings, both of which a catalog reload may
-    # have changed, so the cache is dropped whenever the snapshot it was built from is replaced.
-    version = catalog().version
-    if version != _cache_version:
-        _ai_models.clear()
-        _cache_version = version
+    with ai_span("ai.model.cache") as span:
+        # A built model holds a provider client and its settings, both of which a catalog reload may
+        # have changed, so the cache is dropped whenever the snapshot it was built from is replaced.
+        version = catalog().version
+        if version != _cache_version:
+            if span is not None:
+                span.set_attribute("invalidated_count", len(_ai_models))
+            _ai_models.clear()
+            _cache_version = version
 
-    # The same model can serve several roles at different reasoning efforts, so the effort is part
-    # of the cache key.
-    key = f"{model_name}\x00{reasoning_effort or ''}"
-    if key not in _ai_models:
-        _ai_models[key] = _build_model(model_name, reasoning_effort)
-    return _ai_models[key]
+        # The same model can serve several roles at different reasoning efforts, so the effort is part
+        # of the cache key.
+        key = f"{model_name}\x00{reasoning_effort or ''}"
+        hit = key in _ai_models
+        if span is not None:
+            span.set_attribute("cache_hit", hit)
+        if not hit:
+            _ai_models[key] = _build_model(model_name, reasoning_effort)
+        return _ai_models[key]
 
 
 def pinned_candidate(model_name: str) -> AIModelCandidate:
@@ -122,33 +129,27 @@ async def build_purpose_plan(
     mode: AIMode,
     purpose: AIModelPurpose,
     override_name: str = "",
-    chat_tid: int | None = None,
     *,
     redis: Redis,
 ) -> AIModelPlan:
     """The ordered candidates serving a (mode, purpose), with a flag-pinned model in front.
 
-    A pin still wins, but it now leads the list rather than replacing it: the pinned model runs
-    exactly as before and the mode's own candidates stay behind it as the failover chain the pin
-    never had. A pin is also a complete answer on its own, so only a purpose with neither a pin nor
-    a catalog model is the operator mistake worth failing loudly on.
+    A pin still wins, but it leads the list rather than replacing it: the pinned model runs
+    first and the mode's own candidates stay behind it as the failover chain the pin never had.
+    Missing catalog roles remain an operator mistake and fail loudly.
 
-    Whether that chain is actually walked is the ``ai_model_failover`` flag, resolved here because
-    this is where the chat is known.
     """
-    try:
-        roles = await resolve_roles(mode, purpose, redis=redis)
-    except ValueError:
-        if not override_name:
-            raise
-        roles = ()
+    roles = (
+        (await get_catalog(redis=redis)).roles_for(mode, purpose)
+        if override_name
+        else await resolve_roles(mode, purpose, redis=redis)
+    )
 
     return build_model_plan(
         [
             *((pinned_candidate(override_name),) if override_name else ()),
             *(role_candidate(role) for role in roles),
-        ],
-        failover=await is_enabled("ai_model_failover", chat_tid=chat_tid, redis=redis),
+        ]
     )
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asyncio import gather
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import BinaryIO
 
@@ -15,6 +15,7 @@ from normality import normalize
 from openai.types.moderation_text_input_param import ModerationTextInputParam
 from pydantic_ai.messages import (
     BinaryContent,
+    ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
@@ -32,6 +33,7 @@ from stfu_tg.doc import Element
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -43,11 +45,11 @@ from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
+type ActivityCallback = Callable[[str], Awaitable[None]]
 
 
 def _user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
@@ -85,14 +87,8 @@ async def _admin_context_name(
     user_tid: int,
     name: str,
     is_group: bool,
-    *,
-    services: ApplicationServices,
 ) -> str:
-    if not is_group or not await is_enabled(
-        "ai_chatbot_admin_status",
-        chat_tid=chat_tid,
-        redis=services.redis,
-    ):
+    if not is_group:
         return name
 
     chat_model = await ChatModel.get_by_tid(chat_tid)
@@ -146,6 +142,7 @@ async def _build_message_parts(
     *,
     bot: Bot,
     redis: Redis,
+    on_activity: ActivityCallback | None = None,
 ) -> list[UserContent]:
     """Build the list of message parts for the AI context."""
     # Message's text
@@ -177,6 +174,8 @@ async def _build_message_parts(
             log.warning("Skipping visual media extraction: %s without thumbnail", message.animation)
             return prompt
 
+        if on_activity is not None:
+            await on_activity(_("Processing image..."))
         downloaded_image: BinaryIO | None = await bot.download(image_file_id)
 
         if not downloaded_image:
@@ -191,6 +190,8 @@ async def _build_message_parts(
 
     # Voice
     if message.voice:
+        if on_activity is not None:
+            await on_activity(_("Transcribing voice message..."))
         voice_text = await transform_voice_to_text(
             message.voice,
             bot=bot,
@@ -203,6 +204,8 @@ async def _build_message_parts(
     if message.video or message.video_note:
         video = message.video or message.video_note
 
+        if on_activity is not None:
+            await on_activity(_("Processing video..."))
         # Add video thumbnail if available
         if video and video.thumbnail:
             thumbnail_file_id = video.thumbnail.file_id
@@ -218,6 +221,8 @@ async def _build_message_parts(
 
         # Transcribe video audio
         if video:
+            if on_activity is not None:
+                await on_activity(_("Transcribing video audio..."))
             video_transcription = await transform_video_to_text(
                 video,
                 bot=bot,
@@ -269,7 +274,6 @@ class AIMessageHistory:
             msg.user_id,
             first_name,
             is_group=True,
-            services=self.services,
         )
         return AIUserMessageFormatter.user_message(
             msg.text,
@@ -321,7 +325,6 @@ class AIMessageHistory:
             msg.user_id,
             first_name,
             is_group=True,
-            services=self.services,
         )
         return ModelRequest(
             parts=[
@@ -355,33 +358,73 @@ class AIMessageHistory:
         They are replayed right before that answer, so the model can reuse what it already looked up
         instead of running the same searches again.
         """
-        messages = await get_cached_messages(
-            chat_id,
-            limit=limit,
-            max_age=max_age,
-            redis=self.services.redis,
-        )
-        self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
-        exchanges = tool_exchanges or {}
+        with ai_span("ai.history.add_from_cache", fold_background=fold_background) as span:
+            if span is not None:
+                span.set_attribute("outcome", "failure")
+            history_size_before = len(self.message_history)
+            context_size_before = len(self.context_lines)
+            messages = await get_cached_messages(
+                chat_id,
+                limit=limit,
+                max_age=max_age,
+                redis=self.services.redis,
+            )
+            self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
+            exchanges = tool_exchanges or {}
+            dialogue_count = 0
+            background_count = 0
+            replay_count = 0
 
-        if not fold_background:
-            for msg, transformed in zip(
-                messages,
-                await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]),
-                strict=True,
-            ):
-                self.message_history.extend(exchanges.get(msg.message_id, ()))
-                self.message_history.append(transformed)
-            return
-
-        for msg in messages:
-            if msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg):
-                self.message_history.extend(exchanges.get(msg.message_id, ()))
-                self.message_history.append(await self._cache_transform_msg(chat_id, msg))
+            if not fold_background:
+                for msg, transformed in zip(
+                    messages,
+                    await gather(*[self._cache_transform_msg(chat_id, msg) for msg in messages]),
+                    strict=True,
+                ):
+                    replayed = exchanges.get(msg.message_id, ())
+                    self.message_history.extend(replayed)
+                    replay_count += len(replayed)
+                    self.message_history.append(transformed)
+                dialogue_count = len(messages)
             else:
-                self.context_lines.append(await self._format_context_line(chat_id, msg))
+                for msg in messages:
+                    if msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg):
+                        replayed = exchanges.get(msg.message_id, ())
+                        self.message_history.extend(replayed)
+                        replay_count += len(replayed)
+                        self.message_history.append(await self._cache_transform_msg(chat_id, msg))
+                        dialogue_count += 1
+                    else:
+                        self.context_lines.append(await self._format_context_line(chat_id, msg))
+                        background_count += 1
 
-        self._fold_trailing_requests()
+                self._fold_trailing_requests()
+
+            if span is not None:
+                span.set_attribute("outcome", "success")
+                span.set_attribute("cached_message_count", len(messages))
+                span.set_attribute("dialogue_count", dialogue_count)
+                span.set_attribute("background_count", background_count)
+                span.set_attribute("replayed_tool_exchange_count", replay_count)
+                span.set_attribute("history_size_before", history_size_before)
+                span.set_attribute("history_size_after", len(self.message_history))
+                span.set_attribute("context_size_before", context_size_before)
+                span.set_attribute("context_size_after", len(self.context_lines))
+                snapshot_messages = messages[-CHATBOT_CACHE_MESSAGE_LIMIT:]
+                span.set_attribute(
+                    "cached_messages",
+                    [msg.model_dump_json() for msg in snapshot_messages],
+                )
+                snapshot_exchanges = [
+                    exchange
+                    for msg in snapshot_messages
+                    if not fold_background or msg.user_id == CONFIG.bot_id or self._is_ai_dialogue(msg)
+                    for exchange in exchanges.get(msg.message_id, ())
+                ]
+                span.set_attribute(
+                    "replayed_tool_exchanges",
+                    ModelMessagesTypeAdapter.dump_json(snapshot_exchanges).decode(),
+                )
 
     async def add_from_message(
         self,
@@ -390,6 +433,7 @@ class AIMessageHistory:
         normalize_texts: bool = False,
         allow_reply_messages: bool = True,
         disable_name: bool = False,
+        on_activity: ActivityCallback | None = None,
     ) -> None:
         """Adds a user message to the context, returns a list of additional messages to cache for future use."""
 
@@ -398,7 +442,9 @@ class AIMessageHistory:
         if allow_reply_messages and message.reply_to_message and message.reply_to_message.from_user:
             replied_user_name = message.reply_to_message.from_user.full_name
             if (message.chat.id, message.reply_to_message.message_id) not in self._cached_message_ids:
-                await self.add_from_message(message.reply_to_message, allow_reply_messages=False)
+                await self.add_from_message(
+                    message.reply_to_message, allow_reply_messages=False, on_activity=on_activity
+                )
 
         if not message.from_user:  # Linter insists on checking this
             return
@@ -413,7 +459,6 @@ class AIMessageHistory:
             message.from_user.id,
             message.from_user.full_name,
             message.chat.type != "private",
-            services=self.services,
         )
         prompt.extend(
             await _build_message_parts(
@@ -424,6 +469,7 @@ class AIMessageHistory:
                 disable_name,
                 bot=self.services.bot,
                 redis=self.services.redis,
+                on_activity=on_activity,
             )
         )
 

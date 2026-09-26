@@ -14,7 +14,7 @@ from sophie_bot.modules.ai.utils.chatbot_agent import (
 )
 
 
-def _request(*, charge_failure_policy: str = "raise") -> ChatbotRunRequest:
+def _request() -> ChatbotRunRequest:
     context = SimpleNamespace(
         chat_iid="chat-iid",
         services=SimpleNamespace(redis=object()),
@@ -23,7 +23,6 @@ def _request(*, charge_failure_policy: str = "raise") -> ChatbotRunRequest:
         context=context,
         history=SimpleNamespace(prompt=["hello"], message_history=[]),
         model_plan=SimpleNamespace(primary=SimpleNamespace(model_name="model")),
-        charge_failure_policy=charge_failure_policy,
     )
 
 
@@ -69,23 +68,9 @@ async def test_run_chatbot_charges_successful_usage(
     charge.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_run_chatbot_best_effort_charge_policy_preserves_answer(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    expected, charge = _patch_run(
-        monkeypatch,
-        charge_side_effect=RedisError("unavailable"),
-    )
-
-    result = await run_chatbot(_request(charge_failure_policy="best_effort"))
-
-    assert result is expected
-    charge.assert_awaited_once()
-
 
 @pytest.mark.asyncio
-async def test_run_chatbot_strict_charge_policy_propagates_failure(
+async def test_run_chatbot_charge_failure_propagates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _patch_run(

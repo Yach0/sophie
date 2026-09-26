@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
+from httpx2 import HTTPError
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
@@ -161,16 +162,12 @@ async def test_openrouter_proxy_trims_the_upstream_shape(test_services: object) 
     assert model.modalities == ["text", "image"]
 
 
-async def test_openrouter_proxy_reports_upstream_failure_as_502(test_services: object) -> None:
-    from httpx2 import HTTPError
-
+async def test_openrouter_proxy_propagates_upstream_failure(test_services: object) -> None:
     with (
         patch.object(catalog.ai_http_client, "get", AsyncMock(side_effect=HTTPError("boom"))),
-        pytest.raises(HTTPException) as error,
+        pytest.raises(HTTPError, match="boom"),
     ):
         await catalog.list_openrouter_models(test_services)
-
-    assert error.value.status_code == 502
 
 
 async def test_openrouter_model_picker_uses_the_current_catalog_key(

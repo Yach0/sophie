@@ -6,6 +6,7 @@ from pydantic import (
     AnyHttpUrl,
     Field,
     FilePath,
+    SecretStr,
     ValidationInfo,
     computed_field,
     field_validator,
@@ -97,6 +98,7 @@ class Config(BaseSettings):
     sentry_enable_metrics: bool = True
     sentry_traces_sample_rate: float | None = None
     sentry_profile_session_sample_rate: float | None = 0.2
+    logfire_token: SecretStr | None = None
 
     devs_managed_languages: list[str] = ["en_US"]
     # A list of languages that are managed by developers; Will disable
@@ -166,6 +168,14 @@ class Config(BaseSettings):
     # what happened during development. Truncated on every (re)start, including
     # dev hot-reloads, so it always reflects only the current run.
     runtime_log_file: str = "data/runtime.logs"
+
+    @field_validator("logfire_token", mode="before")
+    @classmethod
+    def validate_logfire_token(cls, value: str | SecretStr | None) -> SecretStr | None:
+        if value is None:
+            return None
+        stripped = (value.get_secret_value() if isinstance(value, SecretStr) else value).strip()
+        return SecretStr(stripped) if stripped else None
 
     @field_validator("redis_username")
     @classmethod
