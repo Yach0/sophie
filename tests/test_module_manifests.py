@@ -35,7 +35,6 @@ def test_modern_action_modules_do_not_export_legacy_filter_actions(module_name: 
 
 
 def test_ai_context_reset_registers_both_filter_sets() -> None:
-
     router = Router(name="test-ai-reset")
     AIContextReset.register(router)
 
