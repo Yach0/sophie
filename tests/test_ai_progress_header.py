@@ -36,6 +36,8 @@ from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.utils.feature_flags import delete_override, set_enabled
 
+pytestmark = pytest.mark.usefixtures("db_init")
+
 BATTERY_EMOJI = "🔋"
 ANIMATED_LINE_IDS = AI_PROGRESS_LINE_EMOJI_IDS
 
