@@ -4937,31 +4937,31 @@ msgstr ""
 msgid "This list has expired. Please run the command again."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:200
+#: sophie_bot/modules/notes/handlers/list.py:197
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:205
+#: sophie_bot/modules/notes/handlers/list.py:202
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:212
+#: sophie_bot/modules/notes/handlers/list.py:209
 msgid "Search pattern"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:214
+#: sophie_bot/modules/notes/handlers/list.py:211
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:218
+#: sophie_bot/modules/notes/handlers/list.py:215
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:219
+#: sophie_bot/modules/notes/handlers/list.py:216
 msgid "#(Note name)"
 msgstr ""
 
