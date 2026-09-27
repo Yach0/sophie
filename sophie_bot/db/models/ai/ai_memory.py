@@ -23,8 +23,7 @@ class AIMemoryModel(Document):
         model = await AIMemoryModel.find_one(AIMemoryModel.chat.id == chat.iid)
         if not model:
             model = AIMemoryModel(chat=chat)
-
-        model.lines = [*model.lines, new_line] if model else [new_line]
+        model.lines.append(new_line)
         await model.save()
 
     @staticmethod
