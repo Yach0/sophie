@@ -47,6 +47,7 @@ from debug.protocol import (
 )
 from sophie_bot.config import CONFIG
 from sophie_bot.modes import bot as bot_mode
+from sophie_bot.modules.ai.utils.ai_catalog import catalog
 from sophie_bot.runtime import BotModeRuntime
 
 _MUTATION_OPERATIONS = frozenset(
@@ -279,8 +280,8 @@ def _known_secrets() -> tuple[str, ...]:
             values[name] = value
         elif name in {"sentry_url", "botapi_server"} and value is not None:
             values[name] = str(value)
-    for index, provider in enumerate(CONFIG.custom_providers):
-        values[f"custom_provider_{index}_api_key"] = provider.api_key
+    for name, provider in catalog().providers.items():
+        values[f"ai_provider_{name}_api_key"] = provider.api_key
     return known_secret_values(values)
 
 
@@ -365,6 +366,9 @@ def _install_lifecycle(
 
     async def prepare_runtime(runtime: BotModeRuntime) -> None:
         await original_prepare_runtime(runtime)
+        secrets = _known_secrets()
+        recorder.known_secrets = secrets
+        controller.known_secrets = secrets
         manager = runtime.dispatcher.update.outer_middleware
         installed = tuple(manager)
         for middleware in installed:
