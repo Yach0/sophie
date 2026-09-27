@@ -14,7 +14,7 @@ from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
     [
         ("disabling", 6),
         ("notes", 14),
-        ("ai", 28),
+        ("ai", 30),
         ("help", 7),
         ("privacy", 2),
         ("locks", 8),
