@@ -14,7 +14,11 @@ from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
     AutoTranslateLanguageHandler,
 )
-from sophie_bot.modules.ai.handlers.feature_setting import AIChatSummariesSetting, AINoteTitlesSetting
+from sophie_bot.modules.ai.handlers.feature_setting import (
+    AIChatSummariesPinSetting,
+    AIChatSummariesSetting,
+    AINoteTitlesSetting,
+)
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -29,6 +33,7 @@ from sophie_bot.modules.ai.handlers.pm import (
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.handlers.research import ResearchCmd
 from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
+from sophie_bot.modules.ai.handlers.summary_time import AIChatSummariesTimeSetting
 from sophie_bot.modules.ai.handlers.translate import AiTranslate
 from sophie_bot.modules.ai.handlers.usage import AiUsage
 from sophie_bot.modules.ai.magic_handlers.modern_action import (
@@ -76,8 +81,7 @@ def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) 
     scheduler.add_job(
         track_scheduler_callback(GenerateChatSummaries(services).handle, services),
         "cron",
-        hour=23,
-        minute=30,
+        minute="*",
         timezone="UTC",
         jobstore="ram",
     )
@@ -101,6 +105,8 @@ module_manifest = ModuleManifest(
         AIAutotrans,
         AutoTranslateLanguageHandler,
         AIChatSummariesSetting,
+        AIChatSummariesPinSetting,
+        AIChatSummariesTimeSetting,
         AINoteTitlesSetting,
         AIFilterAddHandler,
         AiPmInitialize,

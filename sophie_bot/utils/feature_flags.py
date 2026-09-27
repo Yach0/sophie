@@ -85,6 +85,7 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_filters_jev_model",
     "ai_filters_header_style",
     "ai_chat_summaries",
+    "ai_chat_summaries_pin",
     "ai_chat_summaries_header_style",
     "ai_summary_improved_privacy",
     "ai_note_titles",
@@ -327,6 +328,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filters_jev_model": _feature("typesafe/jev-1.13", _AI_MODEL_FEATURE),
     "ai_filters_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     "ai_chat_summaries": _feature(True),
+    "ai_chat_summaries_pin": _feature(False),
     "ai_chat_summaries_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     # Sends the summary transcript with positional references and pseudonymous speakers instead of
     # real Telegram message IDs, usernames, and absolute timestamps.
