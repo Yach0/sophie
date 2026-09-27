@@ -25,6 +25,8 @@ class AIChatSummaryModel(Document):
     summary_date: date
     overview: str
     lines: list[AIChatSummaryLine] = Field(default_factory=list)
+    sent_message_id: int | None = None
+    pinned: bool = False
 
     class Settings:
         name = "ai_chat_summaries"

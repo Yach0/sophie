@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from itertools import chain
 
+from aiogram.exceptions import TelegramAPIError
 from babel.dates import format_date, format_time
 from beanie import PydanticObjectId
 from stfu_tg import Doc, Heading, HList, Italic, ListItem, Template, UnorderedList, Url
@@ -45,6 +46,17 @@ def _build_summary_window(now: datetime) -> tuple[datetime, datetime]:
     window_end = now.astimezone(UTC)
     window_start = datetime.combine(window_end.date(), time.min, tzinfo=UTC)
     return window_start, window_end
+
+
+def _build_chat_summary_window(now: datetime, summary_time_utc: str) -> tuple[date, datetime, datetime]:
+    """Return the latest completed daily window for a chat's UTC schedule."""
+    current_time = now.astimezone(UTC)
+    scheduled_time = time.fromisoformat(summary_time_utc)
+    window_end = datetime.combine(current_time.date(), scheduled_time, tzinfo=UTC)
+    if current_time < window_end:
+        window_end -= timedelta(days=1)
+    window_start = window_end - timedelta(days=1)
+    return window_start.date(), window_start, window_end
 
 
 def _build_summary_prompt(transcript: SummaryTranscript, instructions: str) -> str:
@@ -140,7 +152,7 @@ def _build_summary_line_doc(chat_tid: int, line: AIChatSummaryLine, current_loca
 def _build_summary_doc(
     chat_tid: int,
     summary_date: date,
-    overview: str,
+    _overview: str,
     lines: list[AIChatSummaryLine],
     header_style: AIHeaderStyle = "simple",
 ) -> Doc:
@@ -159,7 +171,6 @@ def _build_summary_doc(
     return build_ai_message_doc(
         header,
         title,
-        overview,
         rendered_lines,
     )
 
@@ -281,13 +292,36 @@ class GenerateChatSummaries:
         summary_date: date,
         overview: str,
         lines: list[AIChatSummaryLine],
-    ) -> None:
+    ) -> int:
         header_style = await get_ai_header_style("summary", chat_tid, redis=self.services.redis)
-        await send_ai_rich_message_to_chat(
+        sent_message = await send_ai_rich_message_to_chat(
             chat_tid,
             _build_summary_doc(chat_tid, summary_date, overview, lines, header_style),
             bot=self.services.bot,
         )
+        return sent_message.message_id
+
+    async def pin_summary(self, summary: AIChatSummaryModel, chat_tid: int) -> None:
+        if summary.pinned or summary.sent_message_id is None:
+            return
+        if not await is_enabled("ai_chat_summaries_pin", chat_tid=chat_tid, redis=self.services.redis):
+            return
+        try:
+            await self.services.bot.pin_chat_message(
+                chat_tid,
+                summary.sent_message_id,
+                disable_notification=True,
+            )
+        except TelegramAPIError:
+            log.exception(
+                "generate_chat_summaries: failed to pin summary",
+                chat=chat_tid,
+                summary_date=summary.summary_date,
+                message_id=summary.sent_message_id,
+            )
+            return
+        summary.pinned = True
+        await summary.save()
 
     async def process_chat(
         self,
@@ -296,6 +330,8 @@ class GenerateChatSummaries:
         force: bool = False,
         target_chat_tid: int | None = None,
         now: datetime | None = None,
+        window_start: datetime | None = None,
+        window_end: datetime | None = None,
     ) -> None:
         with ai_span("ai.summary.process", forced=force) as span:
             stage = "lookup"
@@ -313,11 +349,13 @@ class GenerateChatSummaries:
                         summary_date=summary_date,
                         has_lines=bool(existing_summary.lines),
                     )
+                    await self.pin_summary(existing_summary, target_chat_tid or chat.tid)
                     return
 
                 stage = "load_messages"
                 current_time = now or datetime.now(UTC)
-                window_start, window_end = _build_summary_window(current_time)
+                if window_start is None or window_end is None:
+                    window_start, window_end = _build_summary_window(current_time)
                 cached_messages = await get_cached_messages_between(
                     chat.tid,
                     window_start,
@@ -399,10 +437,15 @@ class GenerateChatSummaries:
                         span.set_attribute("outcome", "persisted_no_lines")
                     return
 
-                await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, lines)
+                summary = await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, lines)
                 ai_event("ai.summary.transition", transition="persisted", line_count=len(lines))
                 stage = "send"
-                await self.send_summary(target_chat_tid or chat.tid, summary_date, groups.overview, lines)
+                summary.sent_message_id = await self.send_summary(
+                    target_chat_tid or chat.tid, summary_date, groups.overview, lines
+                )
+                await summary.save()
+                stage = "pin"
+                await self.pin_summary(summary, target_chat_tid or chat.tid)
                 _track_summary_metrics(
                     len(cached_messages),
                     grouped_message_count,
@@ -421,9 +464,8 @@ class GenerateChatSummaries:
                     span.set_attribute("error_type", type(exc).__name__)
                 raise
 
-    async def handle(self) -> None:
-        current_time = datetime.now(UTC)
-        summary_date = current_time.date()
+    async def handle(self, now: datetime | None = None) -> None:
+        current_time = (now or datetime.now(UTC)).astimezone(UTC)
         async for chat in ForChats():
             if not await is_enabled(
                 "ai_chat_summaries",
@@ -436,5 +478,11 @@ class GenerateChatSummaries:
                 log.debug("generate_chat_summaries: AI disabled for chat, skipping", chat=chat.tid)
                 continue
 
+            summary_date, window_start, window_end = _build_chat_summary_window(current_time, chat.ai_summary_time_utc)
             async with UseChatLanguage(chat.iid, locales=self.services.locales):
-                await self.process_chat(chat, summary_date, now=current_time)
+                await self.process_chat(
+                    chat,
+                    summary_date,
+                    window_start=window_start,
+                    window_end=window_end,
+                )

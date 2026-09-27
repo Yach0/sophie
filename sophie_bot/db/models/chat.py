@@ -43,6 +43,7 @@ class ChatModel(Document):
     # Telegram community this chat belongs to (Bot API 10.2). Maintained by
     # SaveChatsMiddleware; never touched by the upsert_group path so it survives updates.
     community_tid: Annotated[int | None, Indexed()] = None
+    ai_summary_time_utc: str = "23:30"
 
     first_saw: datetime = Field(default_factory=lambda: datetime.now(UTC))
     last_saw: datetime
@@ -165,6 +166,11 @@ class ChatModel(Document):
             return
         self.community_tid = None
         await ChatModel.find_one(ChatModel.tid == self.tid).update(Set({ChatModel.community_tid: None}))
+
+    async def set_ai_summary_time_utc(self, summary_time: str) -> None:
+        """Set the daily AI summary time without replacing other chat fields."""
+        self.ai_summary_time_utc = summary_time
+        await ChatModel.find_one(ChatModel.tid == self.tid).update(Set({ChatModel.ai_summary_time_utc: summary_time}))
 
     @staticmethod
     async def get_by_tid(chat_id: int) -> Optional["ChatModel"]:
