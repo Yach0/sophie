@@ -20,6 +20,7 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
     CHANNELS_TOO_MUCH,
     CHAT_ADMIN_REQUIRED,
     HIDE_REQUESTER_MISSING,
+    USER_ALREADY_PARTICIPANT,
     USER_CHANNELS_TOO_MUCH,
 )
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError, initiate_captcha
@@ -70,6 +71,9 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             try:
                 await common_try(self.event.approve())
             except TelegramBadRequest as err:
+                if USER_ALREADY_PARTICIPANT in err.message:
+                    return
+
                 log.warning("Could not approve join request", err=err)
 
                 if CHANNELS_TOO_MUCH in err.message or USER_CHANNELS_TOO_MUCH in err.message:

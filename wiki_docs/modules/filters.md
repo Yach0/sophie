@@ -30,6 +30,8 @@ icon: 🪄
 | --- | --- | --- | --- |
 | `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
 ---
+Use `/filters` to browse filters with Previous and Next buttons. Sophie keeps each page within Telegram's message limit; very long handlers are shortened in the list, but the saved filter and its edit/delete controls are unchanged.
+
 ## Filter handlers
 
 When you create a filter with `/addfilter`, the first argument is the **handler**.

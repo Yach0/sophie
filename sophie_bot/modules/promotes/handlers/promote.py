@@ -19,7 +19,12 @@ from sophie_bot.modules.utils_.admin import get_admin_record, get_admins_rights
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
-from sophie_bot.modules.utils_.telegram_exceptions import NOT_ENOUGH_RIGHTS, RIGHT_FORBIDDEN, USER_NOT_ADMIN
+from sophie_bot.modules.utils_.telegram_exceptions import (
+    CHAT_ADMIN_REQUIRED,
+    NOT_ENOUGH_RIGHTS,
+    RIGHT_FORBIDDEN,
+    USER_NOT_ADMIN,
+)
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -126,9 +131,11 @@ class PromoteUserHandler(SophieMessageHandler):
                 **granted_permissions,
             )
         except TelegramBadRequest as err:
-            if RIGHT_FORBIDDEN in err.message:
-                log.debug("PromoteUser: Bot lacks required right, ignoring", error=str(err))
-                return None
+            if any(reason in err.message for reason in (CHAT_ADMIN_REQUIRED, RIGHT_FORBIDDEN)):
+                log.info("PromoteUser: Bot cannot promote member", error=str(err))
+                return await self.event.reply(
+                    _("I cannot promote this user because I no longer have the required administrator rights.")
+                )
             raise
 
         if admin_title:
