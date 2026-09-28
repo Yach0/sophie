@@ -158,7 +158,13 @@ async def test_throttled_draft_is_sent_after_the_backoff_expires() -> None:
     await streamer.stream("Latest draft")
     assert response_message.bot.edit_message_text.await_count == 1
 
-    await asyncio.sleep(0.02)
+    second_edit = asyncio.Event()
+
+    async def signal_second_edit(**kwargs: object) -> None:
+        second_edit.set()
+
+    response_message.bot.edit_message_text.side_effect = signal_second_edit
+    await asyncio.wait_for(second_edit.wait(), timeout=1)
 
     assert response_message.bot.edit_message_text.await_count == 2
     assert "Latest draft" in _edited_text(response_message)

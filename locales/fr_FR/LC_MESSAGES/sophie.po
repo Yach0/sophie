@@ -168,27 +168,27 @@ msgstr "Chat connecté introuvable dans la base de données. Vous avez été dé
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr "Vous n'avez plus la permission de vous connecter à ce chat. Vous avez été déconnecté."
 
-#: sophie_bot/modules/ai/__init__.py:123
+#: sophie_bot/modules/ai/__init__.py:129
 msgid "Sophie AI"
 msgstr "Sophie IA"
 
-#: sophie_bot/modules/ai/__init__.py:125
+#: sophie_bot/modules/ai/__init__.py:131
 msgid "Rainbow sparkles and shininess"
 msgstr "Paillettes et brillance arc-en-ciel"
 
-#: sophie_bot/modules/ai/__init__.py:128
+#: sophie_bot/modules/ai/__init__.py:134
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr "Sophie prend en charge plusieurs manières d'utiliser les fonctionnalités de l'IA."
 
-#: sophie_bot/modules/ai/__init__.py:129
+#: sophie_bot/modules/ai/__init__.py:135
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr "D'un simple chatbot à un traducteur automatique. Amusez-vous."
 
-#: sophie_bot/modules/ai/__init__.py:132
+#: sophie_bot/modules/ai/__init__.py:138
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Veuillez noter que chaque discussion a un quota mensuel limité pour l'IA."
 
-#: sophie_bot/modules/ai/__init__.py:133
+#: sophie_bot/modules/ai/__init__.py:139
 msgid "Use /aiusage to check your remaining quota."
 msgstr "Utilisez /aiusage pour vérifier votre quota restant."
 
@@ -543,6 +543,10 @@ msgid "Controls AI chat summaries"
 msgstr "Contrôle les résumés de conversation par l'IA"
 
 #: sophie_bot/modules/ai/handlers/feature_setting.py:37
+msgid "Controls automatic pinning of AI chat summaries"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/feature_setting.py:48
 msgid "Controls AI note title generation"
 msgstr "Contrôle la génération de titres de notes par l'IA"
 
@@ -866,7 +870,54 @@ msgstr "Réinitialiser le contexte IA du chat et la mémoire de l'IA"
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 Le contexte IA et la mémoire de l'IA ont été réinitialisés avec succès. L'IA fonctionnera désormais dans un état propre."
 
-#: sophie_bot/modules/ai/handlers/translate.py:108
+#: sophie_bot/modules/ai/handlers/summary_time.py:27
+msgid "Sets the daily AI chat summary generation time in UTC"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/summary_time.py:35
+msgid "UTC time (HH:MM)"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/summary_time.py:46
+msgid "Current UTC time"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/summary_time.py:47
+#: sophie_bot/modules/ai/handlers/summary_time.py:60
+msgid "AI Chat Summary Schedule"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/summary_time.py:53
+msgid "Invalid UTC time. Use HH:MM, for example 07:45."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/summary_time.py:58
+msgid "New UTC time"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/summary_time.py:59
+#: sophie_bot/modules/connections/handlers/connect_dm.py:42
+#: sophie_bot/modules/disabling/handlers/disable.py:59
+#: sophie_bot/modules/disabling/handlers/enable.py:54
+#: sophie_bot/modules/locks/handlers/base.py:58
+#: sophie_bot/modules/locks/handlers/locks_list.py:73
+#: sophie_bot/modules/locks/handlers/locksticker.py:52
+#: sophie_bot/modules/locks/handlers/locksticker.py:66
+#: sophie_bot/modules/notes/handlers/delete.py:56
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
+#: sophie_bot/modules/op/handlers/set_mode.py:111
+#: sophie_bot/modules/op/handlers/set_mode.py:148
+#: sophie_bot/modules/promotes/handlers/demote.py:79
+#: sophie_bot/modules/promotes/handlers/promote.py:149
+#: sophie_bot/modules/restrictions/handlers/base.py:142
+#: sophie_bot/modules/restrictions/services/silent.py:45
+#: sophie_bot/modules/utils_/status_handler.py:45
+#: sophie_bot/modules/utils_/status_handler.py:68
+#: sophie_bot/modules/utils_/status_handler.py:124
+msgid "Chat"
+msgstr "Chat"
+
+#: sophie_bot/modules/ai/handlers/translate.py:109
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "De {from_lang} à {to_lang}"
@@ -1028,17 +1079,17 @@ msgstr[1] "Raisons"
 msgid "This message will be deleted shortly."
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:131
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:144
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr "{time} - {emoji} {title}, {users}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:154
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:167
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr "Historique de discussion du {today}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:221
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:233
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr "Vous résumez les discussions de groupe Telegram en lignes thématiques structurées."
 
@@ -1066,7 +1117,7 @@ msgid "Thinking..."
 msgstr "Je réfléchis..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:117
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:152
 msgid "Working on it..."
 msgstr "J'y travaille..."
 
@@ -1434,11 +1485,11 @@ msgstr "Notes de chat liées avec leur contenu."
 msgid "You have the following information in your memory"
 msgstr "Vous avez les informations suivantes dans votre mémoire"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:110
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:130
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:129
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:169
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
@@ -2093,26 +2144,6 @@ msgstr "Permet de gérer les paramètres du chat et d'utiliser les commandes san
 msgid "Connects to the chat."
 msgstr "Se connecte au chat."
 
-#: sophie_bot/modules/connections/handlers/connect_dm.py:42
-#: sophie_bot/modules/disabling/handlers/disable.py:59
-#: sophie_bot/modules/disabling/handlers/enable.py:54
-#: sophie_bot/modules/locks/handlers/base.py:58
-#: sophie_bot/modules/locks/handlers/locks_list.py:73
-#: sophie_bot/modules/locks/handlers/locksticker.py:52
-#: sophie_bot/modules/locks/handlers/locksticker.py:66
-#: sophie_bot/modules/notes/handlers/delete.py:56
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/op/handlers/set_mode.py:111
-#: sophie_bot/modules/op/handlers/set_mode.py:148
-#: sophie_bot/modules/promotes/handlers/demote.py:79
-#: sophie_bot/modules/promotes/handlers/promote.py:156
-#: sophie_bot/modules/restrictions/handlers/base.py:142
-#: sophie_bot/modules/restrictions/services/silent.py:45
-#: sophie_bot/modules/utils_/status_handler.py:45
-#: sophie_bot/modules/utils_/status_handler.py:68
-#: sophie_bot/modules/utils_/status_handler.py:124
-msgid "Chat"
-msgstr "Chat"
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:57
 #: sophie_bot/modules/connections/handlers/connect_dm.py:137
@@ -8452,9 +8483,6 @@ msgstr "Impossible de trouver la mention d'utilisateur"
 
 #~ msgid "Sentry"
 #~ msgstr ""
-
-#~ msgid "(Retrying {attempt}/{total_attempts}...)"
-#~ msgstr "(Réessai {attempt}/{total_attempts}...)"
 
 #~ msgid "Source inspection is not available."
 #~ msgstr "L'inspection des sources n'est pas disponible."
