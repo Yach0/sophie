@@ -10,7 +10,6 @@ from redis.asyncio import Redis
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode
-from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
 from sophie_bot.modules.ai.utils.cache_messages import reset_messages
 
 
@@ -116,7 +115,6 @@ async def get_chat_mode(chat_iid: PydanticObjectId, default: AIMode = AIMode.sup
     usable tier rather than ``disabled``.
     """
     mode = await AIModeModel.get_mode(chat_iid)
-    ai_event("ai.mode.resolve", mode=(mode or default).value, source="stored" if mode else "default")
     return mode or default
 
 
@@ -130,7 +128,6 @@ async def resolve_chat_mode(chat: ChatModel, state: FSMContext | None = None) ->
     if chat.type == ChatType.private:
         help_mode = await is_help_mode(state)
         mode = AIMode.sophie_help if help_mode else AIMode.sophie_pm
-        ai_event("ai.mode.resolve", chat_type="private", mode=mode.value, help_mode=help_mode)
         return mode
     return await get_chat_mode(chat.iid, AIMode.disabled)
 
@@ -146,4 +143,3 @@ async def set_chat_mode(chat: ChatModel, mode: AIMode, *, redis: Redis) -> None:
     reset_history = not get_capabilities(mode).message_cache
     if reset_history:
         await reset_messages(chat.tid, redis=redis)
-    ai_event("ai.mode.change", mode=mode.value, history_reset=reset_history)

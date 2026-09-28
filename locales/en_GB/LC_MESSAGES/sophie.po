@@ -7952,11 +7952,6 @@ msgstr "Messages with dice rolls"
 msgid "Reference ID"
 msgstr "Reference ID"
 
-#: sophie_bot/utils/error_references.py:13
-#: sophie_bot/utils/error_references.py:18
-msgid "Trace ID"
-msgstr ""
-
 #: sophie_bot/utils/errors.py:45
 msgid "Setup data not found. Please try again."
 msgstr "Setup data not found. Please try again."
@@ -8449,9 +8444,6 @@ msgstr "Could not find the user mention."
 #~ msgstr ""
 
 #~ msgid "Sentry"
-#~ msgstr ""
-
-#~ msgid "Logfire"
 #~ msgstr ""
 
 #~ msgid "(Retrying {attempt}/{total_attempts}...)"

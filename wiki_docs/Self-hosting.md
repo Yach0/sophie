@@ -41,17 +41,21 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
 
-Optional Logfire telemetry is enabled by setting `LOGFIRE_TOKEN` in `data/config.env`.
-For Ansible deployment, set `LOGFIRE_TOKEN` privately in the operator environment; the
-beta, stable, scheduler and REST templates include it only when present. With no token,
-Logfire does not initialize or export data. With a token, every environment, including
-production, exports full AI conversations, cached chatbot context, model binary inputs,
-HTTP URLs/headers/bodies, application logs (including DEBUG records) and exception
-details without scrubbing. The existing console and file log thresholds do not change.
-Debug telemetry can be high-volume and can expose personal data and credentials to the
-configured Logfire project. Sentry remains independent: Logfire reports errors when
-Sentry is not enabled. Remove the token and restart every serving process to stop export.
-Rotate any write token exposed in chat or logs before use.
+### AI telemetry with Sentry
+
+Set `SENTRY_URL` to a Sentry DSN to enable error reporting and performance traces. With
+a DSN, Sophie traces every transaction by default (`SENTRY_TRACES_SAMPLE_RATE=1.0`);
+lower this rate to reduce volume, or set it to `0` to disable traces while keeping
+error reporting. Sampling is at the parent transaction level, so the same rate also
+applies to non-AI requests. The Pydantic AI integration records agent/model/tool spans,
+token usage, prompts, replies, and tool inputs/outputs in captured traces. These can
+contain personal data and produce high Sentry volume; set an appropriate retention policy.
+For Ansible deployments, set `SENTRY_TRACES_SAMPLE_RATE` in the operator environment to
+override the default in all bot, scheduler, and REST processes.
+
+Sophie also adds spans for its own AI caches and state transitions. AI request metrics
+still use the existing `METRICS_ENABLE` and `SENTRY_ENABLE_METRICS` settings.
+
 
 ### 2. Run the Playbook
 
@@ -127,9 +131,6 @@ A mode with no model for a purpose falls back to the `support` tier, so you only
 roles you want to differ. Changes take effect on every process within a few seconds without a
 restart.
 
-Logfire identifies PydanticAI runs by role in `gen_ai.agent.name`: chat agents use
-`<mode>:chat` (for example `entertainment:chat`); structured tasks have distinct names
-such as `summary:chat`, `filter:matching`, and `proactive:decision`.
 
 > **Warning:** AI requests require a configured catalog model and a key on its provider. Check
 > `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
@@ -319,7 +320,6 @@ When enabled, the bot can route requests between instances based on configuratio
 | `REDIS_DB_FSM` | Redis Database index for FSM |
 | `OWNER_ID` | Telegram User ID of the bot owner |
 | `ENVIRONMENT` | Name of the environment (e.g., `production-stable`) |
-| `LOGFIRE_TOKEN` | Optional Pydantic Logfire write token; enables telemetry on serving processes |
 | `MODE` | Set to `scheduler` for the scheduler service |
 
 ---

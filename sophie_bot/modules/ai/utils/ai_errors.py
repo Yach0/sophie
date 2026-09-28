@@ -21,8 +21,6 @@ from stfu_tg import Doc, Title
 from stfu_tg.doc import Element
 from tenacity import AsyncRetrying, RetryCallState, retry_if_exception, stop_after_attempt, wait_exponential
 
-from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
-from sophie_bot.services.logfire import capture_logfire_error
 from sophie_bot.utils.error_references import error_reference_elements
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
@@ -70,12 +68,9 @@ _DEFAULT_AI_FAILED_MESSAGE: Final = l_("The AI provider did not complete the req
 class AIRequestFailed(SophieException):
     """Raised when an AI provider request fails after retry handling."""
 
-    def __init__(
-        self, sentry_event_id: str | None, *docs: str | Element | LazyProxy, logfire_trace_id: str | None = None
-    ) -> None:
+    def __init__(self, sentry_event_id: str | None, *docs: str | Element | LazyProxy) -> None:
         super().__init__(*(docs or (_DEFAULT_AI_FAILED_MESSAGE,)))
         self.sentry_event_id = sentry_event_id
-        self.logfire_trace_id = logfire_trace_id
         Exception.__init__(self, "AI request failed")
 
 
@@ -194,14 +189,6 @@ def capture_ai_error(
 ) -> str | None:
     """Report an AI provider failure to Sentry with the model and operation attached."""
     if not sentry_sdk.is_initialized():
-        ai_event(
-            "ai.provider_failure",
-            operation=context.operation,
-            model=context.model_name,
-            error_type=type(error).__name__,
-            status_code=_get_status_code(error),
-            outcome=level,
-        )
         return None
     message_str = str(user_facing_message or _DEFAULT_AI_FAILED_MESSAGE) if level == "error" else None
     details = _error_details(error, context, user_facing_message=message_str)
@@ -254,14 +241,6 @@ async def run_ai_request_with_retries[RetryableAIOutputT](
         outcome = retry_state.outcome
         if outcome is not None and (error := outcome.exception()) is not None:
             add_ai_retry_breadcrumb(error, context, retry_state.attempt_number)
-            ai_event(
-                "ai.retry",
-                operation=context.operation,
-                model=context.model_name,
-                attempt=retry_state.attempt_number,
-                error_type=type(error).__name__,
-                backoff_seconds=retry_state.next_action.sleep if retry_state.next_action else None,
-            )
         if on_retry is None:
             return
         await on_retry(retry_state.attempt_number, AI_REQUEST_RETRY_ATTEMPTS)
@@ -296,9 +275,8 @@ def ai_request_failed_from_error(
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> AIRequestFailed:
     sentry_event_id = capture_ai_error(error, context, user_facing_message=user_facing_message)
-    logfire_trace_id = capture_logfire_error(error)
     docs = (user_facing_message,) if user_facing_message is not None else ()
-    return AIRequestFailed(sentry_event_id, *docs, logfire_trace_id=logfire_trace_id)
+    return AIRequestFailed(sentry_event_id, *docs)
 
 
 def ai_request_failed_message(
@@ -319,7 +297,7 @@ def ai_request_failed_message(
             Doc(
                 Title(title),
                 *body_elements,
-                *error_reference_elements(sentry_event_id, error.logfire_trace_id if error else None),
+                *error_reference_elements(sentry_event_id),
             )
         )
     }

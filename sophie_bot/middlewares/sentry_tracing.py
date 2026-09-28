@@ -21,9 +21,9 @@ class SentryTracingMiddleware(BaseMiddleware):
     Registered as the first inner ``update`` middleware, so it runs after the media-group
     aggregator: that keeps album-collection idle time out of the transaction duration.
 
-    Effective sampling is still governed by ``sentry_traces_sample_rate`` — when that is
-    unset, ``start_transaction`` returns a cheap unsampled transaction, so wrapping
-    every update does not force traces to be recorded.
+    Effective sampling is governed by ``sentry_traces_sample_rate`` (default 1.0
+    when a Sentry DSN is set). Lower it to reduce volume, or set it to zero to
+    disable traces without disabling error reporting.
     """
 
     @override

@@ -7959,11 +7959,6 @@ msgstr "Сообщения с бросками кубиков"
 msgid "Reference ID"
 msgstr "Идентификатор для поддержки"
 
-#: sophie_bot/utils/error_references.py:13
-#: sophie_bot/utils/error_references.py:18
-msgid "Trace ID"
-msgstr ""
-
 #: sophie_bot/utils/errors.py:45
 msgid "Setup data not found. Please try again."
 msgstr "Данные настройки не найдены. Пожалуйста, попробуйте снова."
@@ -8456,9 +8451,6 @@ msgstr "Невозможно найти упоминание пользоват�
 #~ msgstr ""
 
 #~ msgid "Sentry"
-#~ msgstr ""
-
-#~ msgid "Logfire"
 #~ msgstr ""
 
 #~ msgid "(Retrying {attempt}/{total_attempts}...)"

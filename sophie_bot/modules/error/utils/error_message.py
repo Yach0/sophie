@@ -29,7 +29,6 @@ _DEFAULT_ERROR_TITLE = l_("😞 I've got an error trying to process this update"
 def generic_error_message(
     exception: Exception,
     sentry_event_id: str | None,
-    logfire_trace_id: str | None = None,
     hide_contact: bool = False,
     title: str | LazyProxy | Element = _DEFAULT_ERROR_TITLE,
 ) -> dict[str, Any]:
@@ -46,7 +45,7 @@ def generic_error_message(
                         BlockQuote(Doc(*random.choice(HAIKUS))),
                     )
                 ),
-                *error_reference_elements(sentry_event_id, logfire_trace_id),
+                *error_reference_elements(sentry_event_id),
             )
         ),
         "reply_markup": InlineKeyboardMarkup(

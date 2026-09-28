@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 import sentry_sdk
+from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models.test import TestModel
 from sentry_sdk.envelope import Envelope
@@ -26,6 +27,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
 )
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
+from sophie_bot.services import sentry
 from sophie_bot.utils.exception import SophieException
 
 
@@ -45,6 +47,16 @@ class _CapturingTransport(Transport):
     def kill(self) -> None:
         return None
 
+
+class _TraceCaptureTransport(_CapturingTransport):
+    def __init__(self) -> None:
+        super().__init__([])
+        self.payloads: list[tuple[str | None, dict[str, Any]]] = []
+
+    def capture_envelope(self, envelope: Envelope) -> None:
+        for item in envelope.items:
+            if item.payload.json is not None:
+                self.payloads.append((item.headers.get("type"), item.payload.json))
 
 @pytest.fixture
 def instant_retries(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
@@ -279,24 +291,33 @@ def test_ai_provider_exceptions_include_tool_failed_error() -> None:
     assert ToolRetryError not in AI_PROVIDER_EXCEPTIONS
     assert UserError not in AI_PROVIDER_EXCEPTIONS
 
-def test_init_sentry_includes_pydantic_ai_integration(monkeypatch: pytest.MonkeyPatch) -> None:
-    from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
+@pytest.mark.asyncio
+async def test_sentry_agent_trace_includes_model_and_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+    transport = _TraceCaptureTransport()
+    actual_init = sentry_sdk.init
 
-    from sophie_bot.services import sentry
+    def init_with_capture(*args: Any, **kwargs: Any) -> None:
+        actual_init(*args, **kwargs, transport=transport)
 
-    captured_integrations: list[Any] = []
-
-    def mock_init(*args: Any, **kwargs: Any) -> None:
-        captured_integrations.extend(kwargs.get("integrations", []))
-
+    monkeypatch.setattr(sentry_sdk, "init", init_with_capture)
     monkeypatch.setattr(sentry.CONFIG, "sentry_url", "https://public@sentry.invalid/1")
-    monkeypatch.setattr(sentry_sdk, "init", mock_init)
-
+    monkeypatch.setattr(sentry.CONFIG, "sentry_traces_sample_rate", 1.0)
     sentry.init_sentry()
+    try:
+        agent = Agent(TestModel(custom_output_text="telemetry reply"), name="sophie:chat")
+        with sentry_sdk.start_transaction(op="bot.update", name="chatbot test"):
+            result = await agent.run("telemetry prompt")
+        sentry_sdk.flush()
 
-    pydantic_ai_integrations = [i for i in captured_integrations if isinstance(i, PydanticAIIntegration)]
-    assert len(pydantic_ai_integrations) == 1
-    assert pydantic_ai_integrations[0].handled_tool_call_exceptions is False
+        assert result.output == "telemetry reply"
+        payloads = transport.payloads
+        serialized = str(payloads)
+        assert any(kind in {"transaction", "span"} for kind, _ in payloads)
+        assert "sophie:chat" in serialized
+        assert "telemetry prompt" in serialized
+        assert "telemetry reply" in serialized
+    finally:
+        sentry_sdk.get_global_scope().set_client(None)
 
 
 def test_capture_ai_error_includes_user_facing_message_in_context_and_tags(

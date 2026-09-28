@@ -7952,11 +7952,6 @@ msgstr "Nachrichten mit Würfelwürfen"
 msgid "Reference ID"
 msgstr "Referenz-ID"
 
-#: sophie_bot/utils/error_references.py:13
-#: sophie_bot/utils/error_references.py:18
-msgid "Trace ID"
-msgstr ""
-
 #: sophie_bot/utils/errors.py:45
 msgid "Setup data not found. Please try again."
 msgstr "Einrichtungsdaten nicht gefunden. Bitte erneut versuchen."
@@ -8566,9 +8561,6 @@ msgstr "Benutzererwähnung konnte nicht gefunden werden"
 #~ msgstr ""
 
 #~ msgid "Sentry"
-#~ msgstr ""
-
-#~ msgid "Logfire"
 #~ msgstr ""
 
 #~ msgid "(Retrying {attempt}/{total_attempts}...)"

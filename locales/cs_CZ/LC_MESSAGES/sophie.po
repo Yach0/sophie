@@ -7962,11 +7962,6 @@ msgstr "Zprávy s hodem kostkou"
 msgid "Reference ID"
 msgstr "Referenční ID"
 
-#: sophie_bot/utils/error_references.py:13
-#: sophie_bot/utils/error_references.py:18
-msgid "Trace ID"
-msgstr ""
-
 #: sophie_bot/utils/errors.py:45
 msgid "Setup data not found. Please try again."
 msgstr "Data pro nastavení nebyla nalezena. Prosím zkuste to znovu."
@@ -8459,9 +8454,6 @@ msgstr "Nepodařilo se najít zmínku o uživateli"
 #~ msgstr ""
 
 #~ msgid "Sentry"
-#~ msgstr ""
-
-#~ msgid "Logfire"
 #~ msgstr ""
 
 #~ msgid "(Retrying {attempt}/{total_attempts}...)"

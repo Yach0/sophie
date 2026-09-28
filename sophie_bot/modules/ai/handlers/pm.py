@@ -21,7 +21,6 @@ from sophie_bot.modules.ai.fsm.pm import (
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode, set_help_mode
-from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler, SophieMessageHandler
@@ -72,7 +71,6 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
         state = self.data["state"]
         await state.set_state(AiPMFSM.in_ai)
         await set_help_mode(state, help_mode)
-        ai_event("ai.pm.mode_change", mode="help" if help_mode else "normal", action="enter")
 
         await self.answer(str(doc), disable_web_page_preview=True)
 
@@ -91,7 +89,6 @@ class AiPmNormalMode(SophieMessageHandler):
 
     async def handle(self) -> Any:
         await set_help_mode(self.data["state"], False)
-        ai_event("ai.pm.mode_change", mode="normal", action="switch")
         await self.event.reply(_("Switched to the normal AI mode."), reply_markup=_build_keyboard(help_mode=False))
 
 
@@ -104,7 +101,6 @@ class AiPmHelpMode(SophieMessageHandler):
 
     async def handle(self) -> Any:
         await set_help_mode(self.data["state"], True)
-        ai_event("ai.pm.mode_change", mode="help", action="switch")
         await self.event.reply(
             _("Switched to the Sophie help mode, ask me anything about using Sophie."),
             reply_markup=_build_keyboard(help_mode=True),
@@ -120,7 +116,6 @@ class AiPmStop(SophieMessageHandler):
     async def handle(self) -> Any:
         # Clearing the state drops the Sophie-help flag stored alongside it.
         await self.data["state"].clear()
-        ai_event("ai.pm.mode_change", mode="off", action="exit")
         await self.event.reply(_("The AI mode has been exited."), reply_markup=ReplyKeyboardRemove())
 
 

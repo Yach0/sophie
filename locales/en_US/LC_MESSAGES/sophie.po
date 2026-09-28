@@ -7921,11 +7921,6 @@ msgstr ""
 msgid "Reference ID"
 msgstr ""
 
-#: sophie_bot/utils/error_references.py:13
-#: sophie_bot/utils/error_references.py:18
-msgid "Trace ID"
-msgstr ""
-
 #: sophie_bot/utils/errors.py:45
 msgid "Setup data not found. Please try again."
 msgstr ""
@@ -9413,9 +9408,6 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "Sentry"
-#~ msgstr ""
-
-#~ msgid "Logfire"
 #~ msgstr ""
 
 #~ msgid "(Retrying {attempt}/{total_attempts}...)"
