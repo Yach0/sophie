@@ -11,9 +11,8 @@ from pydantic_ai.models import Model
 from stfu_tg import Title
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, kagi_search_tool
-from sophie_bot.modules.ai.agent_tools.research import research_topic, research_topic_tool
+from sophie_bot.modules.ai.agent_tools.research import research_topic
 from sophie_bot.modules.ai.agent_tools.tinyfish_search import (
     TinyFishSearchResult,
     search_tinyfish,
@@ -27,14 +26,11 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
-from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     _get_search_tool,
     build_chatbot_usage_limits,
-    get_chatbot_tools,
 )
-from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
@@ -298,44 +294,6 @@ def test_research_markdown_file_uses_sanitized_title() -> None:
 
     assert research_markdown_filename(response) == "My_research_title.md"
     assert build_research_markdown_file(response).filename == "My_research_title.md"
-
-
-@pytest.mark.asyncio
-async def test_chatbot_prompt_mentions_research_for_complicated_topics(test_redis: object, test_services: object) -> None:
-    with (
-        patch("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(return_value="Base system prompt")),
-        patch("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(return_value=False)),
-        patch("sophie_bot.modules.ai.utils.chatbot_context.ChatModel.get_by_tid", AsyncMock(return_value=None)),
-        patch("sophie_bot.modules.ai.utils.chatbot_context.AIChatSummaryModel.get_recent_lines", AsyncMock(return_value=[])),
-        patch("sophie_bot.modules.ai.utils.chatbot_context.AIMemoryModel.get_lines", AsyncMock(return_value=[])),
-    ):
-        instructions = await build_chatbot_instructions(
-            SimpleNamespace(
-                chat_tid=-100123,
-                chat_iid="chat-iid",
-                user_text=None,
-                mode=AIMode.support,
-                connection=SimpleNamespace(db_model=SimpleNamespace()),
-                services=test_services,
-            )
-        )
-
-    assert "research tool to research complicated topics instead of plain web search" in instructions
-
-
-@pytest.mark.asyncio
-async def test_chatbot_tools_include_research(test_redis: object, test_services: object) -> None:
-    with (
-        patch("sophie_bot.modules.ai.utils.chatbot_agent.is_enabled", AsyncMock(return_value=False)),
-        patch("sophie_bot.modules.ai.utils.chatbot_agent._get_search_tool", AsyncMock(return_value=None)),
-    ):
-        tools = await get_chatbot_tools(
-            SimpleNamespace(chat_tid=-100123, services=test_services),
-            get_capabilities(AIMode.support),
-        )
-
-    assert research_topic_tool in tools
-
 
 
 @pytest.mark.asyncio

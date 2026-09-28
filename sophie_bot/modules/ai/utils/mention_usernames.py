@@ -25,7 +25,6 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT
-from sophie_bot.utils.feature_flags import is_enabled
 
 # A one-character display name matches far too much prose to be worth resolving.
 MIN_MENTION_NAME_LENGTH = 2
@@ -184,7 +183,7 @@ async def apply_mention_usernames(
     *,
     redis: Redis,
 ) -> str:
-    """Flag-gated entry point used by the reply renderer, for both streamed and final output."""
+    """Rewrite confidently resolved mentions in both streamed and final output."""
     if not text or "@" not in text or chat_tid is None:
         return text
     index = await resolve_mention_index(chat_tid, redis=redis)
@@ -194,12 +193,8 @@ async def apply_mention_usernames(
 
 
 async def resolve_mention_index(chat_tid: int | None, *, redis: Redis) -> MentionIndex | None:
-    """Resolve the flag-gated mention index once for a reply/run."""
-    if chat_tid is None or not await is_enabled(
-        "ai_chatbot_mention_usernames",
-        chat_tid=chat_tid,
-        redis=redis,
-    ):
+    """Resolve the mention index once for a reply/run."""
+    if chat_tid is None:
         return None
     candidates = await collect_mention_candidates(chat_tid, redis=redis)
     return build_mention_index(candidates) if candidates else None

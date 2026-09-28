@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Sequence
 from typing import Any
 
@@ -303,24 +302,13 @@ async def _ai_chatbot_reply(
             mode,
             redis=services.redis,
         )
-        reasoning_enabled, continuation = await asyncio.gather(
-            is_enabled(
-                "ai_chatbot_stream_reasoning",
-                chat_tid=message.chat.id,
-                redis=services.redis,
-            ),
-            is_enabled(
-                "ai_chatbot_stream_continuation",
-                chat_tid=message.chat.id,
-                redis=services.redis,
-            ),
+        continuation = await is_enabled(
+            "ai_chatbot_stream_continuation",
+            chat_tid=message.chat.id,
+            redis=services.redis,
         )
         on_tool_call = message_streamer.update_thinking_for_tool if message_streamer else None
-        on_reasoning_stream = (
-            message_streamer.stream_reasoning
-            if message_streamer and (reasoning_enabled or message_streamer.reasoning_as_tool)
-            else None
-        )
+        on_reasoning_stream = message_streamer.stream_reasoning if message_streamer else None
         stream_options = ChatbotStreamOptions(continuation=continuation)
         try:
             result = await run_chatbot(

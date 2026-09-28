@@ -1,6 +1,5 @@
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, Message, User
-from redis.asyncio import Redis
 
 from sophie_bot.db.models import RulesModel
 from sophie_bot.db.models.notes import Saveable
@@ -21,7 +20,6 @@ async def send_welcome(
     owner_chat_tid: int | None = None,
     *,
     bot: Bot,
-    redis: Redis,
 ) -> Message | None:
     chat_id = send_to_chat_id or message.chat.id
 
@@ -42,5 +40,4 @@ async def send_welcome(
         receiver_user_id=receiver_user_id,
         owner_chat_tid=owner_chat_tid or message.chat.id,
         bot=bot,
-        redis=redis,
     )

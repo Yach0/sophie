@@ -44,6 +44,5 @@ class LegacyRulesButton(SophieMessageHandler):
             connection=self.connection,
             owner_chat_tid=chat.tid,
             bot=self.services.bot,
-            redis=self.services.redis,
         )
         return None

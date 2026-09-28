@@ -15,6 +15,11 @@ sent and replied message's contents).
 But if the media type does not support the text (for example the sticker or the video circle), it will be ignored.
 However, those types support buttons, so you can simply attach them.
 
+If you reply to a Rich message, Sophie saves its structured text, media, and
+buttons and sends them as a Rich message when the saveable is used. Rich messages
+cannot be combined with additional note text. Buttons that invoke bot actions
+can be saved only when the source message was sent by Sophie.
+
 ## Buttons
 
 There's support for some button types.

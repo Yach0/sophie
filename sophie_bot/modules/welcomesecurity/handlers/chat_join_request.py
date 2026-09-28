@@ -159,7 +159,6 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
                 user=self.event.from_user,
                 owner_chat_tid=chat_tid,
                 bot=self.services.bot,
-                redis=self.services.redis,
             )
         except CaptchaDMBlockedError:
             sent_message = await send_dm_unblock_message(chat_tid, bot=self.services.bot)

@@ -41,9 +41,7 @@ class SetSecurityMessageHandler(SophieMessageHandler):
             raw_text,
             offset=text_offset,
             buttons=buttons,
-            owner_chat_tid=connection.db_model.tid,
             bot=self.services.bot,
-            redis=self.services.redis,
         )
         await GreetingsModel.change_security_message(connection.db_model.iid, saveable)
 

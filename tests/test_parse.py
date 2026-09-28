@@ -26,7 +26,6 @@ async def test_parse_saveable_with_text_only(test_services: ApplicationServices)
         message,
         text="This is a note.",
         bot=test_services.bot,
-        redis=test_services.redis,
     )
     assert result.text == "This is a note."
     assert result.file is None
@@ -48,7 +47,6 @@ async def test_parse_saveable_with_reply_message(test_services: ApplicationServi
             message,
             text="This is a note.",
             bot=test_services.bot,
-            redis=test_services.redis,
         )
         assert result.text == "Replied message text\nThis is a note."
         assert result.file is None
@@ -70,7 +68,6 @@ async def test_parse_saveable_exceeding_length_limit(test_services: ApplicationS
             message,
             text=text,
             bot=test_services.bot,
-            redis=test_services.redis,
         )
 
 
@@ -95,7 +92,6 @@ async def test_parse_saveable_rejects_caption_over_media_limit(
                 text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
                 buttons=ButtonsList(),
                 bot=test_services.bot,
-                redis=test_services.redis,
             )
 
 
@@ -115,7 +111,6 @@ async def test_parse_saveable_allows_caption_length_text_without_caption_support
             text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
             buttons=ButtonsList(),
             bot=test_services.bot,
-            redis=test_services.redis,
         )
 
     assert result.text == "A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1)
@@ -134,7 +129,6 @@ async def test_parse_saveable_with_file_data(test_services: ApplicationServices)
             message,
             text=None,
             bot=test_services.bot,
-            redis=test_services.redis,
         )
         assert result.file.id == "file_123"
         assert result.file.type == ContentType.PHOTO
@@ -197,7 +191,6 @@ async def test_parse_saveable_preserves_inline_custom_emoji(
         offset=11,
         buttons=ButtonsList(),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert result.text == 'Hello <tg-emoji emoji-id="123456789">🙂</tg-emoji>'

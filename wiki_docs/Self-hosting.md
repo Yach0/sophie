@@ -145,29 +145,19 @@ Automatic translation stays silent until its result is ready. The chatbot and ma
 translation initially show a random working message after the animated AI emoji.
 When reasoning or an activity begins, that space stays empty until answer text streams
 in; progress appears below.
-By default, streamed reasoning renders Markdown in a block quote with a custom emoji
-before the italic text. The latest 400 reasoning characters remain visible (with an
-ellipsis when truncated), and pending reasoning is flushed before tool activity, even
-during edit backoff. An active tool shows one of its localized activity messages in
-italics, without an emoji, title, internal name, or arguments.
-
-`ai_chatbot_reasoning_as_tool` (off by default) instead shows a single italic
-“Reasoning...” activity below the header, without revealing reasoning text. Later
-reasoning passes, including those after tool calls, do not add another activity.
-`ai_chatbot_stack_progress_tools` (off by default) retains every tool invocation
-and retry in the bottom activity list, including repeated calls and tools hidden from
-the final header. When both flags are on, the one reasoning activity joins that list.
-New streamed answer text clears the activity list. Later tool calls appear below the
-answer text already shown; the next text update clears those entries in turn.
-Without stacking, the most recent tool or retry status replaces the prior status.
+Streamed reasoning appears once as an italic “Reasoning...” activity below the
+header, without revealing reasoning text. Later reasoning passes, including
+those after tool calls, do not add another activity. Every tool invocation and
+retry stays in the bottom activity list, including repeated calls and tools
+hidden from the final header. New streamed answer text clears the activity list.
+Later tool calls appear below the answer text already shown; the next text
+update clears those entries in turn.
 
 Manual `/tr` and `/translate` retain their current activity list until the final
 translation replaces the progress message. A replied voice starts with “Transcribing
 voice message...” before transcription, followed by “Translating...”. Replied images
 and videos show processing stages (including video audio transcription) before
-translation. Chatbot replies show the same media stages during context preparation;
-their entries stack when `ai_chatbot_stack_progress_tools` is on and otherwise show
-the current stage only.
+translation. Chatbot replies stack the same media stages during context preparation.
 
 Video transcription reads the first audio stream even when the container lists a
 video stream before it.
@@ -182,6 +172,8 @@ The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66�
 `ai_chatbot_show_model_name` adds the model beside the battery reading.
 Only the assistant's answer is stored in conversation history; the displayed header,
 tool titles, and battery footer are not.
+Recent tool calls and results are replayed for follow-up questions, with each
+stored result capped by `ai_chatbot_tool_history_max_chars`.
 
 ## AI moderation
 
@@ -248,11 +240,11 @@ level above.
 The "message deleted" notice removes itself after `ai_moderation_notice_delete_after_seconds`
 (30 by default); set it to `0` to keep the notices in the chat.
 
-### Experimental: source inspection
+### Source inspection
 
-`ai_sophie_inspect` lets the Sophie-help assistant start a sub-agent that reads Sophie's own source code
-when the documentation cannot answer a question. It is **off by default** because it costs several
-model requests per question.
+The Sophie-help assistant can start a sub-agent that reads Sophie's own source code
+when the documentation cannot answer a question. It costs several model requests
+per question, so usage is limited per chat.
 
 Groups do not get it from their AI mode. `ai_sophie_inspect_chats` is a space or comma separated list of
 group IDs allowed to use it anyway, for the chats where people ask how Sophie works.

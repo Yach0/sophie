@@ -45,14 +45,9 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
 
     context_doc += _("You can use the research tool to research complicated topics instead of plain web search.")
 
-    if await is_enabled(
-        "ai_chatbot_tool_history",
-        chat_tid=context.chat_tid,
-        redis=context.services.redis,
-    ):
-        context_doc += _(
-            "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
-        )
+    context_doc += _(
+        "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
+    )
 
     chat_model = await ChatModel.get_by_tid(context.chat_tid)
     if chat_model and chat_model.first_name_or_title:

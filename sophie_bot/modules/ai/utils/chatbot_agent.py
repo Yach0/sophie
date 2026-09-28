@@ -36,7 +36,7 @@ from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructio
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 
 CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
@@ -117,11 +117,7 @@ async def get_chatbot_tools(
     if search_tool := await _get_search_tool(context):
         tools.append(search_tool)
     tools.append(research_topic_tool)
-    if await is_enabled(
-        "ai_sophie_inspect",
-        chat_tid=context.chat_tid,
-        redis=context.services.redis,
-    ) and (capabilities.sophie_inspect or await is_sophie_inspect_chat(context.chat_tid, redis=context.services.redis)):
+    if capabilities.sophie_inspect or await is_sophie_inspect_chat(context.chat_tid, redis=context.services.redis):
         tools.append(sophie_inspect_tool)
     ai_event(
         "ai.tools_selected",

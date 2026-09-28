@@ -15,7 +15,7 @@ from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
 from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.ai_features import AIFeature
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.logger import log
 
 
@@ -100,11 +100,9 @@ async def get_or_create_quota_model(chat_iid: PydanticObjectId) -> AIQuotaModel 
 async def get_entertainment_boost_credits(chat_iid: PydanticObjectId, *, redis: Redis) -> int:
     """Extra monthly credits granted while a chat is in entertainment mode.
 
-    Derived on every read instead of persisted, so turning ``ai_entertainment_boost`` off or
-    lowering ``ai_entertainment_monthly_credits`` takes effect immediately for chats already in it.
+    Derived on every read instead of persisted, so lowering ``ai_entertainment_monthly_credits``
+    takes effect immediately for chats already in entertainment mode.
     """
-    if not await is_enabled("ai_entertainment_boost", redis=redis):
-        return 0
     if await get_chat_mode(chat_iid, AIMode.disabled) != AIMode.entertainment:
         return 0
     return max(

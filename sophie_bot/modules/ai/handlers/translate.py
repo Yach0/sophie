@@ -85,7 +85,6 @@ async def _start_translation_progress(message: Message, *, redis: Redis) -> Chat
         status=random_ai_thinking_text(),
         throttle_seconds=0,
         redis=redis,
-        stack_tools=True,
     )
     await streamer.send_thinking_message()
     return streamer

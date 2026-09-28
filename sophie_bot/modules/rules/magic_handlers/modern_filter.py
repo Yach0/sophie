@@ -52,7 +52,6 @@ class SendRulesAction(ModernActionABC[None]):
                 owner_chat_tid=connection.db_model.tid,
                 collect_sent=sent_messages,
                 bot=data["services"].bot,
-                redis=data["services"].redis,
             )
         )
         return sent_messages

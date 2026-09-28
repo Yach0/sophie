@@ -14,7 +14,7 @@ from pydantic_ai.messages import (
 from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 
 ToolExchange = ModelRequest | ModelResponse
 
@@ -169,11 +169,6 @@ async def reset_tool_exchanges(chat_tid: int, *, redis: Redis) -> None:
 async def load_chatbot_tool_history(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
     with ai_span("ai.tool_history.load") as span:
         try:
-            if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-                if span is not None:
-                    span.set_attribute("outcome", "skipped")
-                    span.set_attribute("skip_reason", "feature_disabled")
-                return {}
             exchanges = await get_tool_exchanges(chat_tid, redis=redis)
         except Exception as exc:
             if span is not None:
@@ -198,11 +193,6 @@ async def remember_chatbot_tool_history(
     """Store the tool exchanges a finished chatbot run performed, excluding replayed ones."""
     with ai_span("ai.tool_history.remember") as span:
         try:
-            if not await is_enabled("ai_chatbot_tool_history", chat_tid=chat_tid, redis=redis):
-                if span is not None:
-                    span.set_attribute("outcome", "skipped")
-                    span.set_attribute("skip_reason", "feature_disabled")
-                return
             max_content_chars = int(
                 await get_value(
                     "ai_chatbot_tool_history_max_chars",

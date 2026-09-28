@@ -11,7 +11,6 @@ from aiogram.utils.text_decorations import HtmlDecoration
 from aiogram_test_framework import TestClient
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.notes.utils import parse as parse_module
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.services.application import ApplicationServices
@@ -122,7 +121,6 @@ async def e2e_parse_saveable_raw_handler(
         buttons=ButtonsList(),
         offset=content_offset,
         bot=services.bot,
-        redis=services.redis,
     )
     await message.reply(saveable.text or "<EMPTY>")
 
@@ -157,7 +155,6 @@ async def e2e_parse_saveable_html_handler(
         buttons=ButtonsList(),
         offset=content_offset,
         bot=services.bot,
-        redis=services.redis,
     )
     await message.reply(saveable.text or "<EMPTY>")
 
@@ -171,9 +168,7 @@ async def e2e_parse_saveable_rich_handler(
         text=None,
         allow_reply_message=False,
         buttons=ButtonsList(),
-        owner_chat_tid=message.chat.id,
         bot=services.bot,
-        redis=services.redis,
     )
     await message.reply(saveable.text or "<EMPTY>")
 
@@ -292,13 +287,7 @@ async def test_parse_saveable_e2e_plain_text_stays_plain(
 @pytest.mark.asyncio
 async def test_parse_saveable_e2e_captures_rich_fallback(
     test_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(parse_module, "is_enabled", lambda *_args, **_kwargs: _enabled())
-
-    async def _enabled() -> bool:
-        return True
-
     rich_message = types.RichMessage(
         blocks=[types.RichBlockParagraph(text=types.RichTextBold(text="Rich content"))]
     )

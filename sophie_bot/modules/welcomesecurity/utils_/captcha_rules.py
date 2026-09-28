@@ -61,7 +61,6 @@ async def captcha_send_rules(
             additional_keyboard=buttons.as_markup(),
             owner_chat_tid=owner_chat.tid,
             bot=bot,
-            redis=redis,
         )
 
     return await send_captcha_message(

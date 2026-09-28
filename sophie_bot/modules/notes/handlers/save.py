@@ -71,9 +71,7 @@ class SaveNote(SophieMessageHandler):
                 offset=text_offset,
                 buttons=buttons,
                 album=album,
-                owner_chat_tid=connection.db_model.tid,
                 bot=self.services.bot,
-                redis=self.services.redis,
             )
         except SophieException as exc:
             log.warning("SaveNote: validation failed", error="\n".join(str(doc) for doc in exc.docs))

@@ -6,7 +6,6 @@ from unittest.mock import Mock
 
 import pytest
 from aiogram.enums import ContentType
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import SendVideo, SendVideoNote, SendVoice
 from stfu_tg import Bold
 
@@ -57,7 +56,6 @@ async def test_send_saveable_forwards_message_thread_id(
         saveable=Saveable(text="Threaded note", version=2),
         message_thread_id=987,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert result is not None
@@ -86,7 +84,6 @@ async def test_send_saveable_video_note_uses_send_video_note(
             version=2,
         ),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendVideoNote)
@@ -111,7 +108,6 @@ async def test_send_saveable_video_keeps_caption_and_buttons(
             version=2,
         ),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendVideo)
@@ -138,7 +134,6 @@ async def test_send_saveable_voice_keeps_caption_and_buttons(
             version=2,
         ),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendVoice)
@@ -164,7 +159,6 @@ async def test_send_saveable_sticker_keeps_buttons_without_caption(
             version=2,
         ),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert emitted[0].sticker == "sticker-file-id"
@@ -194,7 +188,6 @@ async def test_send_saveable_rejects_over_long_caption(
                 version=2,
             ),
             bot=test_services.bot,
-            redis=test_services.redis,
         )
 
     assert emitted == []
@@ -216,18 +209,15 @@ async def test_send_saveable_allows_long_text_without_media(
             version=2,
         ),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert len(emitted) == 1
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("split_long_text", [False, True])
 async def test_send_saveable_measures_text_after_html_parsing(
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
-    split_long_text: bool,
 ) -> None:
     """HTML tags do not count toward Telegram's post-entity-parsing text limit."""
     emitted = _capture_emitted(monkeypatch)
@@ -237,20 +227,16 @@ async def test_send_saveable_measures_text_after_html_parsing(
         message=None,
         send_to=-100123,
         saveable=Saveable(text=text, version=2),
-        split_long_text=split_long_text,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert emitted[0].text == text
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("split_long_text", [False, True])
 async def test_send_saveable_omits_title_when_note_fills_message_limit(
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
-    split_long_text: bool,
 ) -> None:
     """Retrieval decoration must not make an otherwise valid saved note unretrievable."""
     emitted = _capture_emitted(monkeypatch)
@@ -261,9 +247,7 @@ async def test_send_saveable_omits_title_when_note_fills_message_limit(
         send_to=-100123,
         saveable=Saveable(text=text, version=2),
         title=Bold("Note title"),
-        split_long_text=split_long_text,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert len(emitted) == 1
@@ -284,34 +268,9 @@ async def test_send_saveable_keeps_title_when_rendered_text_fits(
         saveable=Saveable(text="Note text", version=2),
         title=Bold("Note title"),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert emitted[0].text == "<b>Note title</b>\nNote text"
-
-
-@pytest.mark.asyncio
-async def test_send_saveable_keeps_title_when_splitting_long_text(
-    monkeypatch: pytest.MonkeyPatch,
-    test_services: ApplicationServices,
-) -> None:
-    emitted = _capture_emitted(monkeypatch)
-    text = "a" * (TELEGRAM_MESSAGE_LENGTH_LIMIT + 1)
-
-    await send_module.send_saveable(
-        message=None,
-        send_to=-100123,
-        saveable=Saveable(text=text, version=2),
-        title=Bold("Note title"),
-        split_long_text=True,
-        bot=test_services.bot,
-        redis=test_services.redis,
-    )
-
-    assert len(emitted) == 2
-    assert "".join(method.text for method in emitted) == f"Note title\n{text}"
-    assert all(len(method.text) <= TELEGRAM_MESSAGE_LENGTH_LIMIT for method in emitted)
-    assert all(method.parse_mode is None for method in emitted)
 
 
 @pytest.mark.parametrize(
@@ -357,7 +316,6 @@ async def test_send_saveable_reference_at_limit(
         saveable=Saveable(text=text, file=note_file, version=2),
         title=Bold("Title"),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
     assert len(emitted) == 1
     assert (emitted[0].caption if caption else emitted[0].text) == text
@@ -367,7 +325,6 @@ async def test_send_saveable_reference_at_limit(
             send_to=-100123,
             saveable=Saveable(text=text + "a", file=note_file, version=2),
             bot=test_services.bot,
-            redis=test_services.redis,
         )
     assert len(emitted) == 1
 
@@ -388,7 +345,6 @@ async def test_album_uses_rendered_caption_length(
             version=2,
         ),
         bot=test_services.bot,
-        redis=test_services.redis,
     )
     assert len(emitted) == 1
     assert emitted[0].media[0].caption == text
@@ -396,56 +352,20 @@ async def test_album_uses_rendered_caption_length(
 
 
 @pytest.mark.asyncio
-async def test_split_literal_html_retry_disables_parse_mode(
-    monkeypatch: pytest.MonkeyPatch,
-    test_services: ApplicationServices,
-) -> None:
-    emitted: list[Any] = []
-
-    async def fake_emit(self: Any, bot: object) -> object:
-        emitted.append(self)
-        if len(emitted) == 1:
-            raise TelegramBadRequest(method=self, message="Bad Request: message to be replied not found")
-        return SimpleNamespace(message_id=42)
-
-    monkeypatch.setattr("aiogram.methods.base.TelegramMethod.emit", fake_emit)
-    source = "&lt;b&gt;&amp;lt;&nbsp;" + "a" * TELEGRAM_MESSAGE_LENGTH_LIMIT
-    await send_module.send_saveable(
-        message=None,
-        send_to=-100123,
-        saveable=Saveable(text=source, version=2),
-        reply_to=123,
-        split_long_text=True,
-        bot=test_services.bot,
-        redis=test_services.redis,
-    )
-    assert len(emitted) == 3
-    assert emitted[0].text == emitted[1].text
-    assert emitted[0].reply_parameters.message_id == 123
-    assert emitted[1].reply_parameters is None
-    assert "".join(method.text for method in emitted[1:]) == "<b>&lt;&nbsp;" + "a" * TELEGRAM_MESSAGE_LENGTH_LIMIT
-    assert all(method.parse_mode is None for method in emitted)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("split", [False, True])
 async def test_title_randomness_is_processed_independently_before_assembly(
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
-    split: bool,
 ) -> None:
     emitted = _capture_emitted(monkeypatch)
     choice = Mock(return_value="T")
     monkeypatch.setattr("sophie_bot.modules.notes.utils._random_parser.choice", choice)
-    text = "a" * (TELEGRAM_MESSAGE_LENGTH_LIMIT + 1 if split else TELEGRAM_MESSAGE_LENGTH_LIMIT - 2)
+    text = "a" * (TELEGRAM_MESSAGE_LENGTH_LIMIT - 2)
     await send_module.send_saveable(
         message=None,
         send_to=-100123,
         saveable=Saveable(text=text, version=2),
         title=Bold("%%%T%%%Long title%%%"),
-        split_long_text=split,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
     choice.assert_called_once_with(["T", "Long title"])
-    assert "".join(method.text for method in emitted) == ("T\n" if split else "<b>T</b>\n") + text
+    assert "".join(method.text for method in emitted) == "<b>T</b>\n" + text
