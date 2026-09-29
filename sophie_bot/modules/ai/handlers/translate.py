@@ -39,6 +39,7 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
@@ -69,7 +70,7 @@ async def _resolve_translation_input(
         is_voice = True
     elif event.reply_to_message and not is_autotranslate:
         sticker_emoji = event.reply_to_message.sticker.emoji if event.reply_to_message.sticker else ""
-        to_translate = event.reply_to_message.text or event.reply_to_message.caption or sticker_emoji or ""
+        to_translate = cut_titlebar(event.reply_to_message) or event.reply_to_message.caption or sticker_emoji or ""
     elif data.get("voice"):
         to_translate = ""
         is_voice = True
