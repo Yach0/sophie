@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from typing import cast
 
-from aiogram.types import Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji
+from aiogram.types import Message, RichBlockParagraph, RichBlockUnion, RichMessage, RichTextCustomEmoji
 from pydantic import BaseModel
 
 from sophie_bot.constants import AI_EMOJI
@@ -56,7 +57,7 @@ def _rich_block_text(block: object) -> str:
         )
 
     if isinstance(block, BaseModel):
-        return rich_message_to_plain_text(RichMessage(blocks=[block]))
+        return rich_message_to_plain_text(RichMessage(blocks=[cast("RichBlockUnion", block)]))
 
     return _rich_text(getattr(block, "text", None))
 
