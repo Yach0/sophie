@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from functools import partial
 
-from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramRetryAfter
 from beanie.odm.operators.find.comparison import In
 
 from sophie_bot.db.models import ChatModel
@@ -19,23 +18,13 @@ from sophie_bot.modules.federations.utils.ban_docs import (
 )
 from sophie_bot.modules.federations.utils.task_failure import notify_task_failed
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_EDIT_NOT_FOUND
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
 
-async def send_replacement(
-    task: FederationTask,
-    chat_id: int,
-    text: str,
-    *,
-    services: ApplicationServices,
-) -> None:
-    message = await services.bot.send_message(chat_id, text)
-    task.reply_message_id = message.message_id
-
-
-async def _edit_or_resend_reply(
+async def _edit_reply(
     task: FederationTask,
     text: str,
     *,
@@ -48,15 +37,11 @@ async def _edit_or_resend_reply(
                     text,
                     chat_id=task.reply_chat_id,
                     message_id=task.reply_message_id,
-                ),
-                edit_not_found=partial(
-                    send_replacement,
-                    task,
-                    task.reply_chat_id,
-                    text,
-                    services=services,
-                ),
+                )
             )
+        except TelegramBadRequest as err:
+            if MSG_TO_EDIT_NOT_FOUND not in str(err):
+                raise
         except TelegramRetryAfter as err:
             log.warning(
                 "Telegram flood control exceeded while editing federation reply",
@@ -139,7 +124,7 @@ class ProcessFederationBans:
             # Edit the queued reply to a terminal state so it doesn't stay on "Propagating…".
             log.warning("Federation ban record missing, skipping propagation", task_id=str(task.id))
             text = build_ban_superseded_doc().to_html()
-            await _edit_or_resend_reply(task, text, services=self.services)
+            await _edit_reply(task, text, services=self.services)
             return
 
         banned_count = await FederationBanService.ban_user_in_federation_chats(
@@ -176,12 +161,13 @@ class ProcessFederationBans:
             banner_anonymous=task.banner_anonymous,
         )
         text = reply_doc.to_html()
-        await _edit_or_resend_reply(task, text, services=self.services)
+        await _edit_reply(task, text, services=self.services)
 
         total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
             federation,
             user,
+            by_user.tid,
             banner_name,
             banned_count,
             total_chats,
@@ -217,7 +203,7 @@ class ProcessFederationBans:
             unbanned_count=unbanned_count,
         )
         text = reply_doc.to_html()
-        await _edit_or_resend_reply(task, text, services=self.services)
+        await _edit_reply(task, text, services=self.services)
 
         log_text = build_unban_log_text(user, by_user.tid, unbanner_name)
         await FederationManageService.post_federation_log(federation, log_text, self.services.bot)

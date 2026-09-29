@@ -158,7 +158,7 @@ async def test_silent_ban_deletes_reply_only_after_final_edit(db_init: Any, monk
 
 
 @pytest.mark.asyncio
-async def test_deleted_progress_reply_is_resent(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
+async def test_deleted_progress_reply_is_not_resent(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services)
     edit_message.side_effect = TelegramBadRequest(method=None, message=MSG_TO_EDIT_NOT_FOUND)  # type: ignore[arg-type]
     send_message = AsyncMock(return_value=Mock(message_id=4343))
@@ -170,11 +170,11 @@ async def test_deleted_progress_reply_is_resent(db_init: Any, monkeypatch: pytes
 
     await ProcessFederationBans(test_services).handle()
 
-    send_message.assert_awaited_once()
+    send_message.assert_not_awaited()
     reloaded = await FederationTask.get(task.id)
     assert reloaded is not None
     assert reloaded.status == TaskStatus.COMPLETED
-    assert reloaded.reply_message_id == 4343
+    assert reloaded.reply_message_id == REPLY_MESSAGE_ID
 
 
 @pytest.mark.asyncio
