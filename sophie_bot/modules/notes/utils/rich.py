@@ -27,6 +27,8 @@ from pydantic import BaseModel
 
 from sophie_bot.modules.notes.utils._random_parser import parse_random_text
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.rich_message import _visible_text
+from sophie_bot.utils.rich_message import rich_message_to_plain_text as _rich_message_to_plain_text
 
 _MEDIA_INPUT_TYPES: dict[str, type[BaseModel]] = {
     "animation": InputMediaAnimation,
@@ -222,71 +224,6 @@ def _convert_block(block: Any) -> InputRichBlockUnion:
 def rich_message_to_input(message: RichMessage) -> InputRichMessage:
     """Convert received RichMessage output blocks into reusable input blocks."""
     return InputRichMessage(blocks=[_convert_block(block) for block in message.blocks], is_rtl=message.is_rtl)
-
-
-def _visible_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, list):
-        return "".join(_visible_text(item) for item in value)
-    if isinstance(value, str):
-        return value
-    if isinstance(value, RichMessageButton):
-        return _visible_text(value.text)
-    if not isinstance(value, BaseModel):
-        return str(value)
-    name = value.__class__.__name__
-    if name.startswith("RichText"):
-        if name == "RichTextCustomEmoji":
-            return str(value.alternative_text or "")
-        if name == "RichTextButton":
-            return _visible_text(value.button)
-        if name == "RichTextAnchor":
-            return ""
-        if hasattr(value, "text"):
-            return _visible_text(value.text)
-        if hasattr(value, "expression"):
-            return str(value.expression)
-    if name == "RichBlockListItem":
-        return f"{value.label} {_visible_text(value.blocks)}"
-    if name == "RichBlockTableCell":
-        return _visible_text(value.text)
-    if name == "RichBlockCaption":
-        return _visible_text(value.text) + (f" ({_visible_text(value.credit)})" if value.credit else "")
-    if name == "RichBlockButtons":
-        return " ".join(_visible_text(button) for button in value.buttons)
-    if name in {
-        "RichBlockAnimation",
-        "RichBlockAudio",
-        "RichBlockDocument",
-        "RichBlockMap",
-        "RichBlockPhoto",
-        "RichBlockVideo",
-        "RichBlockVoiceNote",
-    }:
-        media = next(
-            (
-                getattr(value, field, None)
-                for field in ("animation", "audio", "document", "photo", "video", "voice_note")
-                if getattr(value, field, None)
-            ),
-            None,
-        )
-        if isinstance(media, list) and media:
-            media = _largest_media_candidate(media)
-        media_label = getattr(media, "file_name", None) or name.removeprefix("RichBlock")
-        return f"[{media_label}]" + (f" {_visible_text(value.caption)}" if value.caption else "")
-    if hasattr(value, "blocks"):
-        return _visible_text(value.blocks)
-    if hasattr(value, "items"):
-        return _visible_text(value.items)
-    if hasattr(value, "cells"):
-        return _visible_text(value.cells)
-    if hasattr(value, "text"):
-        return _visible_text(value.text)
-    if hasattr(value, "caption"):
-        return _visible_text(value.caption)
-    return ""
 
 
 def _text_to_html(value: Any) -> str:
@@ -601,4 +538,4 @@ def rich_message_to_html_fallback(message: RichMessage) -> str:
 
 def rich_message_to_plain_text(message: RichMessage) -> str:
     """Project a RichMessage to visible text without Telegram markup."""
-    return _visible_text(message)
+    return _rich_message_to_plain_text(message)

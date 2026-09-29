@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
-from aiogram.types import Message, RichBlockParagraph, RichTextCustomEmoji
+from aiogram.types import Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
@@ -15,6 +15,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_PROGRESS_MARKER,
 )
 from sophie_bot.modules.ai.utils.ai_tool import AITool
+from sophie_bot.utils.rich_message import rich_message_to_plain_text
 
 _LEGACY_AI_HEADER_LABEL = f"{AI_EMOJI} AI"
 _LEGACY_AI_HEADER_SEPARATOR = " | "
@@ -59,7 +60,17 @@ def _rich_block_text(block: object) -> str:
 def message_text(message: Message | object) -> str:
     rich = getattr(message, "rich_message", None)
     if rich is not None:
-        rich_text = "\n".join(text for block in rich.blocks if (text := _rich_block_text(block)))
+        rich_text = "\n".join(
+            text
+            for block in rich.blocks
+            if (
+                text := (
+                    rich_message_to_plain_text(rich.model_copy(update={"blocks": [block]}))
+                    if isinstance(rich, RichMessage)
+                    else _rich_block_text(block)
+                )
+            )
+        )
         if rich_text:
             return rich_text
 

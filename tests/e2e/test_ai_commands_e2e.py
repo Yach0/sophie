@@ -15,7 +15,19 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram import Bot
-from aiogram.types import PhotoSize, RichBlockParagraph, RichMessage, RichTextCustomEmoji, User, Video, Voice
+from aiogram.types import (
+    PhotoSize,
+    RichBlockBlockQuotation,
+    RichBlockList,
+    RichBlockListItem,
+    RichBlockParagraph,
+    RichBlockSectionHeading,
+    RichMessage,
+    RichTextCustomEmoji,
+    User,
+    Video,
+    Voice,
+)
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
@@ -411,9 +423,17 @@ async def test_translate_replied_rich_message(test_client: TestClient, command: 
                                 custom_emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
                                 alternative_text="✨",
                             ),
-                            " Hello from a Rich Message",
+                            " AI",
                         ]
-                    )
+                    ),
+                    RichBlockSectionHeading(text="Travel plan", size=2),
+                    RichBlockBlockQuotation(blocks=[RichBlockParagraph(text="Visit the old town")]),
+                    RichBlockList(
+                        items=[
+                            RichBlockListItem(label="1.", blocks=[RichBlockParagraph(text="Book a hotel")]),
+                            RichBlockListItem(label="2.", blocks=[RichBlockParagraph(text="Pack a camera")]),
+                        ]
+                    ),
                 ]
             ),
         }
@@ -449,7 +469,7 @@ async def test_translate_replied_rich_message(test_client: TestClient, command: 
 
     assert requests
     ai_context = run_task.await_args.args[2]
-    assert ai_context.prompt == ["Hello from a Rich Message"]
+    assert ai_context.prompt == ["AI\nTravel plan\nVisit the old town\n1. Book a hotel2. Pack a camera"]
     edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
     assert "Bonjour depuis un message riche" in edits[-1].params["rich_message"]["html"]
 
