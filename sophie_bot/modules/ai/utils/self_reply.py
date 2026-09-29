@@ -4,6 +4,7 @@ import re
 from collections.abc import Sequence
 
 from aiogram.types import Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji
+from pydantic import BaseModel
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
@@ -54,23 +55,16 @@ def _rich_block_text(block: object) -> str:
             _LEGACY_AI_HEADER_SEPARATOR.join(_rich_text(cell) for cell in row) for row in cells if isinstance(row, list)
         )
 
+    if isinstance(block, BaseModel):
+        return rich_message_to_plain_text(RichMessage(blocks=[block]))
+
     return _rich_text(getattr(block, "text", None))
 
 
 def message_text(message: Message | object) -> str:
     rich = getattr(message, "rich_message", None)
     if rich is not None:
-        rich_text = "\n".join(
-            text
-            for block in rich.blocks
-            if (
-                text := (
-                    rich_message_to_plain_text(rich.model_copy(update={"blocks": [block]}))
-                    if isinstance(rich, RichMessage)
-                    else _rich_block_text(block)
-                )
-            )
-        )
+        rich_text = "\n".join(text for block in rich.blocks if (text := _rich_block_text(block)))
         if rich_text:
             return rich_text
 
