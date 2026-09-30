@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from aiogram.exceptions import TelegramAPIError
 
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.greetings import (
     WELCOMESECURITY_EXPIRE_DEFAULT_TIME,
     GreetingsModel,
@@ -18,6 +18,17 @@ from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
+
+
+async def _is_current_session(ws_user: WSUserModel) -> bool:
+    membership = await UserInGroupModel.get_user_in_group(ws_user.user.ref.id, ws_user.group.ref.id)
+    if ws_user.membership_id is None and ws_user.membership_join_message_id is None:
+        return membership is None or membership.joined_message_id is None
+    return (
+        membership is not None
+        and membership.id == ws_user.membership_id
+        and membership.joined_message_id == ws_user.membership_join_message_id
+    )
 
 
 class KickUnpassedUsers:
@@ -71,8 +82,12 @@ class KickUnpassedUsers:
         if not ws_user.id:
             log.error("kick_unpassed_users: skipping ws_user due to missing id", ws_user_tid=str(ws_user.id))
             return
+        if not await _is_current_session(ws_user):
+            return
         if await is_user_group_whitelisted(group.tid, user.tid, redis=self.services.redis):
             await log_group_whitelist_exemption(group.tid, user.tid, "welcome_security_captcha_autokick")
+            if not await _is_current_session(ws_user):
+                return
             result = await execute_restriction(
                 self.services.bot,
                 RestrictionAction.UNMUTE,
@@ -103,6 +118,9 @@ class KickUnpassedUsers:
         if not ws_user.added_at:
             log.warning("kick_unpassed_users: skipping ws_user due to missing added_at", ws_user_tid=str(ws_user.id))
             await ws_user.delete()
+            return
+
+        if not await _is_current_session(ws_user):
             return
 
         track_captcha_failed("timeout")

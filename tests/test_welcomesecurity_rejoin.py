@@ -1,7 +1,9 @@
 import asyncio
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any, Literal
+from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.types import Chat, Message, User
@@ -10,6 +12,10 @@ from beanie import PydanticObjectId
 from sophie_bot.db.models.chat import ChatModel, ChatType, UserInGroupModel
 from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
+from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
+from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user_mute
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 from tests.utils.db_fixture import cleanup_beanie
 
 
@@ -244,3 +250,87 @@ async def test_newer_member_message_survives_older_edit_and_delayed_leave(db_ini
     stored_user = await WSUserModel.is_user(user.iid, group.iid)
     assert stored_user is not None
     assert stored_user.id == pending.id
+
+
+@pytest.mark.parametrize("expiry_operation", ["kick", "unmute", "decline"])
+@pytest.mark.asyncio
+async def test_pending_rejoin_initialization_waits_for_inflight_expiry(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    expiry_operation: Literal["kick", "unmute", "decline"],
+) -> None:
+    user, group = await _create_user_and_group(991013, -991014)
+    if expiry_operation != "decline":
+        await _join_user(user, group, message_id=1)
+    pending = await WSUserModel.ensure_user(user, group, is_join_request=expiry_operation == "decline")
+    pending.added_at = datetime.now(UTC) - timedelta(hours=100)
+    await pending.save()
+
+    scheduler_module = "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users"
+    new_user_module = "sophie_bot.modules.welcomesecurity.utils_.on_new_user"
+    expiry_loaded = asyncio.Event()
+    finish_expiry = asyncio.Event()
+    initialization_waiting = asyncio.Event()
+    initialization: asyncio.Task[bool] | None = None
+    original_set = test_services.redis.set
+
+    async def observe_lock_attempt(key: str, owner: str, *, nx: bool, px: int) -> bool | None:
+        if asyncio.current_task() is initialization:
+            initialization_waiting.set()
+        return await original_set(key, owner, nx=nx, px=px)
+
+    async def pause_expiry_after_loading_session(chat_iid: PydanticObjectId) -> SimpleNamespace:
+        expiry_loaded.set()
+        await finish_expiry.wait()
+        return SimpleNamespace(welcome_security=SimpleNamespace(expire=None))
+
+    async def pause_whitelist_action(group_tid: int, user_tid: int, reason: str) -> None:
+        expiry_loaded.set()
+        await finish_expiry.wait()
+
+    monkeypatch.setattr(test_services.redis, "set", observe_lock_attempt)
+    monkeypatch.setattr(f"{scheduler_module}.GreetingsModel.get_by_chat_iid", pause_expiry_after_loading_session)
+    monkeypatch.setattr(f"{scheduler_module}.is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        f"{scheduler_module}.is_user_group_whitelisted", AsyncMock(return_value=expiry_operation == "unmute")
+    )
+    monkeypatch.setattr(f"{scheduler_module}.log_group_whitelist_exemption", pause_whitelist_action)
+    monkeypatch.setattr(f"{new_user_module}.is_user_group_whitelisted", AsyncMock(return_value=False))
+    monkeypatch.setattr(f"{new_user_module}.is_user_admin", AsyncMock(return_value=False))
+    expiry_restriction = AsyncMock(return_value=RestrictionResult(action=RestrictionAction.KICK, applied=True))
+    monkeypatch.setattr(f"{scheduler_module}.execute_restriction", expiry_restriction)
+    decline_request = AsyncMock()
+    monkeypatch.setattr(test_services.bot, "decline_chat_join_request", decline_request)
+    monkeypatch.setattr(
+        f"{new_user_module}.execute_restriction",
+        AsyncMock(return_value=RestrictionResult(action=RestrictionAction.MUTE, applied=True)),
+    )
+    expiry = asyncio.create_task(KickUnpassedUsers(test_services).process_user(pending))
+    lock_attempt: asyncio.Task[bool] | None = None
+    try:
+        await asyncio.wait_for(expiry_loaded.wait(), timeout=2)
+        await _join_user(user, group, message_id=3)
+        initialization = asyncio.create_task(
+            ws_on_new_user_mute(user, group, bot=test_services.bot, redis=test_services.redis)
+        )
+        lock_attempt = asyncio.create_task(initialization_waiting.wait())
+        await asyncio.wait({initialization, lock_attempt}, return_when=asyncio.FIRST_COMPLETED)
+        finish_expiry.set()
+        await expiry
+        assert await initialization
+    finally:
+        finish_expiry.set()
+        for operation in (expiry, initialization, lock_attempt):
+            if operation is not None and not operation.done():
+                operation.cancel()
+        await asyncio.gather(
+            *(operation for operation in (expiry, initialization, lock_attempt) if operation is not None),
+            return_exceptions=True,
+        )
+
+    rejoined = await WSUserModel.is_user(user.iid, group.iid)
+    assert rejoined is not None
+    assert rejoined.membership_join_message_id == 3
+    assert rejoined.added_at.replace(tzinfo=UTC) > datetime.now(UTC) - timedelta(minutes=1)
+    expiry_restriction.assert_not_awaited()
+    decline_request.assert_not_awaited()
