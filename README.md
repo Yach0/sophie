@@ -173,6 +173,10 @@ git worktree remove ../sophie-feature
 git branch -D feature/my-feature
 ```
 
+## Federation progress replies
+
+A failed final progress-message edit does not undo applied federation bans or prevent federation logging. If the progress message was deleted, Sophie does not send a replacement. Other Telegram edit errors are logged while the completed task retains its result.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)

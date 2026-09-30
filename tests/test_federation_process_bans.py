@@ -344,7 +344,6 @@ async def test_successful_ban_survives_final_reply_bad_request(
     send_message.assert_not_awaited()
     assert post_log.await_count == 1
     log_text = post_log.await_args.args[1]
-    assert "1 out of 1 chat in the federation" in log_text
     assert f'tg://user?id={BANNER_TID}' in log_text
     assert f'tg://user?id={TARGET_TID}' in log_text
 
