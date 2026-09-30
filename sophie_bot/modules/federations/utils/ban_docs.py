@@ -18,6 +18,7 @@ def build_ban_reply_doc(
     *,
     banned_count: int | None = None,
     lazy_ban_count: int = 0,
+    subscribed_banned_count: int = 0,
     propagating: bool = False,
     immediate_chat_banned: bool = False,
     banner_anonymous: bool = False,
@@ -64,6 +65,17 @@ def build_ban_reply_doc(
                     count=Code(lazy_ban_count),
                 ),
             )
+            doc += KeyValue(
+                _("Also banned in"),
+                Template(
+                    pl_(
+                        "{count} chat in subscribed federations",
+                        "{count} chats in subscribed federations",
+                        subscribed_banned_count,
+                    ),
+                    count=Code(subscribed_banned_count),
+                ),
+            )
 
     if silent:
         doc += _("🤫 The action is silent, all related messages would be deleted shortly")
@@ -80,6 +92,8 @@ def build_ban_log_doc(
     total_chats: int,
     reason: str | None,
     original_message_text: str | None,
+    subscribed_banned_count: int = 0,
+    subscribed_federation_count: int = 0,
 ) -> Doc:
     """Format the federation log entry document for a ban."""
     log_doc = Doc(
@@ -104,6 +118,15 @@ def build_ban_log_doc(
             total_chats=total_chats,
         ),
     )
+    if subscribed_federation_count > 0:
+        log_doc += Template(
+            pl_(
+                "User banned in {count} chat in subscribed federations",
+                "User banned in {count} chats in subscribed federations",
+                subscribed_banned_count,
+            ),
+            count=subscribed_banned_count,
+        )
     if reason:
         log_doc += KeyValue(_("Reason"), reason)
     if original_message_text:

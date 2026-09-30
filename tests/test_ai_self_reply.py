@@ -264,15 +264,17 @@ async def test_reply_handler_requires_sophie_as_sender() -> None:
         }
     )
 
-    assert not await AiReplyHandler.filter(SimpleNamespace(reply_to_message=rich_message))
+    assert not await AiReplyHandler.filter(SimpleNamespace(pinned_message=None, reply_to_message=rich_message))
     sophie = rich_message.from_user.model_copy(update={"id": CONFIG.bot_id})
-    assert await AiReplyHandler.filter(
-        SimpleNamespace(reply_to_message=rich_message.model_copy(update={"from_user": sophie}))
+    sophie_message = rich_message.model_copy(update={"from_user": sophie})
+    assert await AiReplyHandler.filter(SimpleNamespace(pinned_message=None, reply_to_message=sophie_message))
+    assert not await AiReplyHandler.filter(
+        SimpleNamespace(pinned_message=sophie_message, reply_to_message=sophie_message)
     )
     untagged_reply = rich_message.model_copy(
         update={"from_user": sophie, "rich_message": None, "text": "✨ Old answer\n🔋 90%"}
     )
-    assert not await AiReplyHandler.filter(SimpleNamespace(reply_to_message=untagged_reply))
+    assert not await AiReplyHandler.filter(SimpleNamespace(pinned_message=None, reply_to_message=untagged_reply))
 
 
 def test_disabled_header_text_is_not_mistaken_for_an_ai_message() -> None:
