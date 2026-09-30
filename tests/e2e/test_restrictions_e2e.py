@@ -11,11 +11,14 @@ from datetime import UTC, datetime
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import ChatPermissions
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
-from sophie_bot.db.models import ChatModel, WSUserModel
+from sophie_bot.db.models import ChatModel, MutePermissionsModel, WSUserModel
 from sophie_bot.db.models.federations import Federation, FederationBan
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
+from sophie_bot.shared.actions import RestrictionAction
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
 
 # What each command must end up asking Telegram to do.
@@ -101,6 +104,8 @@ async def test_restriction_calls_telegram_and_confirms(
     keyword: str,
 ) -> None:
     admin_user, group, target_id = await _setup_moderated_group(test_client)
+    if command == "unmute":
+        await execute_restriction(test_client.bot, RestrictionAction.MUTE, group.id, target_id)
     args = f"{target_id} {duration}" if duration else str(target_id)
 
     requests = await test_client.send_command(command=command, from_user=admin_user, args=args, chat=group)
@@ -162,6 +167,12 @@ async def test_unmute_clears_pending_welcome_security_user_after_success(test_cl
     group_model = await ChatModel.get_by_tid(group.id)
     assert target_model is not None and group_model is not None
     await WSUserModel.ensure_user(target_model, group_model, is_join_request=False)
+    await MutePermissionsModel(
+        chat_tid=group.id,
+        user_tid=target_id,
+        permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True)),
+        applied=True,
+    ).insert()
 
     requests = await test_client.send_command(command="unmute", from_user=admin_user, args=str(target_id), chat=group)
 
@@ -177,6 +188,12 @@ async def test_unmute_preserves_pending_welcome_security_user_when_telegram_fail
     group_model = await ChatModel.get_by_tid(group.id)
     assert target_model is not None and group_model is not None
     await WSUserModel.ensure_user(target_model, group_model, is_join_request=False)
+    await MutePermissionsModel(
+        chat_tid=group.id,
+        user_tid=target_id,
+        permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True)),
+        applied=True,
+    ).insert()
 
     async def _reject(*args: object, **kwargs: object) -> bool:
         raise TelegramBadRequest(method=None, message="not enough rights")  # type: ignore[arg-type]

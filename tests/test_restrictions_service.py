@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from datetime import timedelta
+import asyncio
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramUnauthorizedError
-from aiogram.types import ChatPermissions
+from aiogram.types import ChatMemberRestricted, ChatPermissions, User
 
+from sophie_bot.db.models.mute_permissions import MutePermissionsModel
 from sophie_bot.modules.restrictions.services.silent import (
     build_silent_action_doc,
     collect_message_ids_for_cleanup,
@@ -15,6 +18,15 @@ from sophie_bot.modules.restrictions.services.silent import (
 )
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.shared.actions import RestrictionAction
+
+pytestmark = pytest.mark.usefixtures("db_init")
+
+
+@pytest.fixture(autouse=True)
+async def clean_mute_snapshots() -> AsyncGenerator[None]:
+    await MutePermissionsModel.delete_all()
+    yield
+    await MutePermissionsModel.delete_all()
 
 
 @pytest.fixture
@@ -152,11 +164,7 @@ async def test_restriction_executor_forwards_duration(
     )
 
     assert result.applied is True
-    bot_method = (
-        mock_bot.ban_chat_member
-        if action is RestrictionAction.BAN
-        else mock_bot.restrict_chat_member
-    )
+    bot_method = mock_bot.ban_chat_member if action is RestrictionAction.BAN else mock_bot.restrict_chat_member
     assert bot_method.await_args.kwargs["until_date"] == duration
 
 
@@ -273,6 +281,13 @@ async def test_restriction_executor_builds_expected_permissions(
     action: RestrictionAction,
     expected_permissions: dict[str, bool],
 ) -> None:
+    if action is RestrictionAction.UNMUTE:
+        await MutePermissionsModel(
+            chat_tid=CHAT_TID,
+            user_tid=USER_TID,
+            permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True)),
+            applied=True,
+        ).insert()
     result = await execute_restriction(
         mock_bot,
         action,
@@ -287,3 +302,139 @@ async def test_restriction_executor_builds_expected_permissions(
         assert getattr(permissions, permission) is expected
     if action is not RestrictionAction.UNMUTE:
         assert call_kwargs["until_date"] is None
+
+
+@pytest.mark.asyncio
+async def test_mute_snapshots_existing_restrictions_and_unmute_restores_them(
+    mock_bot: AsyncMock,
+) -> None:
+    existing_permissions = ChatPermissions(
+        can_send_messages=True,
+        can_send_audios=False,
+        can_send_documents=False,
+        can_send_photos=True,
+        can_send_videos=False,
+        can_send_video_notes=False,
+        can_send_voice_notes=False,
+        can_send_polls=False,
+        can_send_other_messages=False,
+        can_add_web_page_previews=False,
+        can_invite_users=False,
+    )
+    member_data = existing_permissions.model_dump()
+    member_data = {field_name: value if value is not None else True for field_name, value in member_data.items()}
+    expected_permissions = ChatPermissions(**member_data)
+    mock_bot.get_chat_member = AsyncMock(
+        return_value=ChatMemberRestricted(
+            user=User(id=USER_TID, is_bot=False, first_name="Target"),
+            status="restricted",
+            is_member=True,
+            until_date=datetime.now(UTC),
+            **member_data,
+        )
+    )
+
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    snapshot = await MutePermissionsModel.find_one(
+        MutePermissionsModel.chat_tid == CHAT_TID,
+        MutePermissionsModel.user_tid == USER_TID,
+    )
+    assert snapshot is not None
+
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+
+    restored_permissions = mock_bot.restrict_chat_member.await_args_list[-1].kwargs["permissions"]
+    assert restored_permissions == expected_permissions
+    assert (
+        await MutePermissionsModel.find_one(
+            MutePermissionsModel.chat_tid == CHAT_TID,
+            MutePermissionsModel.user_tid == USER_TID,
+        )
+        is None
+    )
+    mock_bot.get_chat_member.assert_awaited_once_with(chat_id=CHAT_TID, user_id=USER_TID)
+
+
+@pytest.mark.asyncio
+async def test_failed_mute_does_not_leave_a_snapshot(mock_bot: AsyncMock) -> None:
+    member_permissions = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))
+    mock_bot.get_chat_member = AsyncMock(
+        return_value=ChatMemberRestricted(
+            user=User(id=USER_TID, is_bot=False, first_name="Target"),
+            status="restricted",
+            is_member=True,
+            until_date=datetime.now(UTC),
+            **member_permissions.model_dump(),
+        )
+    )
+    mock_bot.restrict_chat_member.side_effect = TelegramBadRequest(method="test", message="not enough rights")
+
+    result = await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+
+    assert result.applied is False
+    assert (
+        await MutePermissionsModel.find_one(
+            MutePermissionsModel.chat_tid == CHAT_TID,
+            MutePermissionsModel.user_tid == USER_TID,
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_unmute_without_snapshot_does_not_grant_permissions(mock_bot: AsyncMock) -> None:
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+
+    assert result.applied is False
+    mock_bot.restrict_chat_member.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_mutes_keep_one_original_snapshot(mock_bot: AsyncMock) -> None:
+    member_permissions = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))
+    mock_bot.get_chat_member = AsyncMock(
+        return_value=ChatMemberRestricted(
+            user=User(id=USER_TID, is_bot=False, first_name="Target"),
+            status="restricted",
+            is_member=True,
+            until_date=datetime.now(UTC),
+            **member_permissions.model_dump(),
+        )
+    )
+
+    results = await asyncio.gather(
+        execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID),
+        execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID),
+    )
+
+    assert all(result.applied for result in results)
+    assert (
+        await MutePermissionsModel.find(
+            MutePermissionsModel.chat_tid == CHAT_TID,
+            MutePermissionsModel.user_tid == USER_TID,
+        ).count()
+        == 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_failed_unmute_keeps_snapshot_for_retry(mock_bot: AsyncMock) -> None:
+    permissions = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))
+    await MutePermissionsModel(
+        chat_tid=CHAT_TID,
+        user_tid=USER_TID,
+        permissions=permissions,
+        applied=True,
+    ).insert()
+    mock_bot.restrict_chat_member.side_effect = TelegramBadRequest(method="test", message="not enough rights")
+
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+
+    assert result.applied is False
+    assert (
+        await MutePermissionsModel.find_one(
+            MutePermissionsModel.chat_tid == CHAT_TID,
+            MutePermissionsModel.user_tid == USER_TID,
+        )
+        is not None
+    )

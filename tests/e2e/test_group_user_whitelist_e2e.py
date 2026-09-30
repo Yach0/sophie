@@ -8,7 +8,9 @@ from redis.asyncio import Redis
 
 from sophie_bot.db.models import ChatModel, GreetingsModel, GroupUserWhitelistModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeSecurity
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.modules.whitelist.callbacks import WhitelistPageCallback, WhitelistRemoveCallback
+from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import (
     add_user_to_group_whitelist,
     group_user_whitelist_cache_key,
@@ -309,6 +311,7 @@ async def test_whitelist_unmutes_and_clears_pending_captcha_user(test_client: Te
     user_db = await ChatModel.get_by_tid(target.id)
     assert group_db is not None and user_db is not None
     await WSUserModel.ensure_user(user_db, group_db, is_join_request=False)
+    assert (await execute_restriction(test_client.bot, RestrictionAction.MUTE, group.id, target.id)).applied
 
     requests = await test_client.send_command(command="whitelist", from_user=admin, args=str(target.id), chat=group)
 
