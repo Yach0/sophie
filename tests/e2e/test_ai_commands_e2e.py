@@ -15,7 +15,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram import Bot
-from aiogram.types import PhotoSize, Video, Voice
+from aiogram.types import (
+    PhotoSize,
+    Video,
+    Voice,
+)
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
@@ -388,6 +392,8 @@ async def test_translate_success(test_client: TestClient, command: str) -> None:
     assert "Hola mundo" in response_text
     assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text
     assert AI_GENERATING_EMOJI_ID not in response_text
+
+
 
 
 @pytest.mark.asyncio
