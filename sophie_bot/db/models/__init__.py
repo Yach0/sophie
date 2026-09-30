@@ -48,7 +48,7 @@ from sophie_bot.db.models.language import LanguageModel
 from sophie_bot.db.models.locks import LocksModel
 from sophie_bot.db.models.log import LogModel
 from sophie_bot.db.models.migrations import MigrationState
-from sophie_bot.db.models.mute_permissions import MutePermissionsModel
+from sophie_bot.db.models.mute_permissions import MutePermissionsLockModel, MutePermissionsModel
 from sophie_bot.db.models.notes import NoteModel
 from sophie_bot.db.models.op_debug_snapshot import OpDebugSnapshotModel
 from sophie_bot.db.models.privatenotes import PrivateNotesModel
@@ -70,6 +70,7 @@ models: list[type[Document]] = [
     LogModel,
     MigrationState,
     MutePermissionsModel,
+    MutePermissionsLockModel,
     ChatConnectionModel,
     ChatConnectionSettingsModel,
     NoteModel,
@@ -148,6 +149,7 @@ __all__ = [
     "LocksModel",
     "LogModel",
     "MigrationState",
+    "MutePermissionsLockModel",
     "MutePermissionsModel",
     "NoteModel",
     "OpDebugSnapshotModel",

@@ -7,8 +7,13 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramUnauthorizedError
-from aiogram.types import ChatMemberRestricted, ChatPermissions, User
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramNetworkError,
+    TelegramUnauthorizedError,
+)
+from aiogram.types import ChatMemberMember, ChatMemberRestricted, ChatPermissions, User
 
 from sophie_bot.db.models.mute_permissions import MutePermissionsModel
 from sophie_bot.modules.restrictions.services.silent import (
@@ -16,7 +21,7 @@ from sophie_bot.modules.restrictions.services.silent import (
     collect_message_ids_for_cleanup,
     log_silent_action,
 )
-from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction, restore_expired_permissions
 from sophie_bot.shared.actions import RestrictionAction
 
 pytestmark = pytest.mark.usefixtures("db_init")
@@ -35,6 +40,10 @@ def mock_bot() -> AsyncMock:
     bot.ban_chat_member = AsyncMock(return_value=True)
     bot.unban_chat_member = AsyncMock(return_value=True)
     bot.restrict_chat_member = AsyncMock(return_value=True)
+    bot.get_chat_member = AsyncMock(return_value=make_member(True))
+    bot.get_chat = AsyncMock(
+        return_value=SimpleNamespace(permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True)))
+    )
     return bot
 
 
@@ -165,7 +174,10 @@ async def test_restriction_executor_forwards_duration(
 
     assert result.applied is True
     bot_method = mock_bot.ban_chat_member if action is RestrictionAction.BAN else mock_bot.restrict_chat_member
-    assert bot_method.await_args.kwargs["until_date"] == duration
+    assert bot_method.await_args.kwargs["until_date"] == (duration if action is RestrictionAction.BAN else None)
+    if action is not RestrictionAction.BAN:
+        snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
+        assert snapshot is not None and snapshot.expires_at is not None
 
 
 @pytest.mark.asyncio
@@ -282,11 +294,13 @@ async def test_restriction_executor_builds_expected_permissions(
     expected_permissions: dict[str, bool],
 ) -> None:
     if action is RestrictionAction.UNMUTE:
+        mock_bot.get_chat_member.return_value = make_member(False)
         await MutePermissionsModel(
             chat_tid=CHAT_TID,
             user_tid=USER_TID,
             permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True)),
             applied=True,
+            applied_permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, False)),
         ).insert()
     result = await execute_restriction(
         mock_bot,
@@ -324,15 +338,21 @@ async def test_mute_snapshots_existing_restrictions_and_unmute_restores_them(
     member_data = existing_permissions.model_dump()
     member_data = {field_name: value if value is not None else True for field_name, value in member_data.items()}
     expected_permissions = ChatPermissions(**member_data)
-    mock_bot.get_chat_member = AsyncMock(
-        return_value=ChatMemberRestricted(
-            user=User(id=USER_TID, is_bot=False, first_name="Target"),
-            status="restricted",
-            is_member=True,
-            until_date=datetime.now(UTC),
-            **member_data,
-        )
+    original_member = ChatMemberRestricted(
+        user=User(id=USER_TID, is_bot=False, first_name="Target"),
+        status="restricted",
+        is_member=True,
+        until_date=datetime.fromtimestamp(0, UTC),
+        **member_data,
     )
+    muted_member = ChatMemberRestricted(
+        user=User(id=USER_TID, is_bot=False, first_name="Target"),
+        status="restricted",
+        is_member=True,
+        until_date=datetime.fromtimestamp(0, UTC),
+        **dict.fromkeys(ChatPermissions.model_fields, False),
+    )
+    mock_bot.get_chat_member = AsyncMock(side_effect=[original_member, muted_member])
 
     await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
     snapshot = await MutePermissionsModel.find_one(
@@ -352,7 +372,7 @@ async def test_mute_snapshots_existing_restrictions_and_unmute_restores_them(
         )
         is None
     )
-    mock_bot.get_chat_member.assert_awaited_once_with(chat_id=CHAT_TID, user_id=USER_TID)
+    assert mock_bot.get_chat_member.await_count == 2
 
 
 @pytest.mark.asyncio
@@ -363,7 +383,7 @@ async def test_failed_mute_does_not_leave_a_snapshot(mock_bot: AsyncMock) -> Non
             user=User(id=USER_TID, is_bot=False, first_name="Target"),
             status="restricted",
             is_member=True,
-            until_date=datetime.now(UTC),
+            until_date=datetime.fromtimestamp(0, UTC),
             **member_permissions.model_dump(),
         )
     )
@@ -397,11 +417,12 @@ async def test_concurrent_mutes_keep_one_original_snapshot(mock_bot: AsyncMock) 
             user=User(id=USER_TID, is_bot=False, first_name="Target"),
             status="restricted",
             is_member=True,
-            until_date=datetime.now(UTC),
+            until_date=datetime.fromtimestamp(0, UTC),
             **member_permissions.model_dump(),
         )
     )
 
+    mock_bot.get_chat_member.side_effect = [mock_bot.get_chat_member.return_value, make_member(False)]
     results = await asyncio.gather(
         execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID),
         execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID),
@@ -425,7 +446,9 @@ async def test_failed_unmute_keeps_snapshot_for_retry(mock_bot: AsyncMock) -> No
         user_tid=USER_TID,
         permissions=permissions,
         applied=True,
+        applied_permissions=ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, False)),
     ).insert()
+    mock_bot.get_chat_member.return_value = make_member(False)
     mock_bot.restrict_chat_member.side_effect = TelegramBadRequest(method="test", message="not enough rights")
 
     result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
@@ -438,3 +461,267 @@ async def test_failed_unmute_keeps_snapshot_for_retry(mock_bot: AsyncMock) -> No
         )
         is not None
     )
+
+
+@pytest.mark.asyncio
+async def test_mute_of_normal_member_restores_group_defaults_without_all_true_snapshot(
+    mock_bot: AsyncMock,
+) -> None:
+    mock_bot.get_chat_member = AsyncMock(
+        return_value=ChatMemberMember(
+            user=User(id=USER_TID, is_bot=False, first_name="Target"),
+            status="member",
+        )
+    )
+
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+
+    snapshot = await MutePermissionsModel.find_one(
+        MutePermissionsModel.chat_tid == CHAT_TID,
+        MutePermissionsModel.user_tid == USER_TID,
+    )
+    assert snapshot is not None
+    assert snapshot.permissions is None
+    assert snapshot.restore_group_defaults is True
+
+    mock_bot.get_chat_member.return_value = make_member(False)
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+
+    restored_permissions = mock_bot.restrict_chat_member.await_args_list[-1].kwargs["permissions"]
+    assert all(getattr(restored_permissions, field_name) is True for field_name in ChatPermissions.model_fields)
+
+
+@pytest.mark.asyncio
+async def test_false_telegram_result_is_not_treated_as_applied(mock_bot: AsyncMock) -> None:
+    mock_bot.restrict_chat_member.return_value = False
+
+    result = await execute_restriction(mock_bot, RestrictionAction.RESTRICT, CHAT_TID, USER_TID)
+
+    assert result.applied is False
+
+
+def make_member(allowed: bool, until_date: datetime | None = None) -> ChatMemberRestricted:
+    return ChatMemberRestricted(
+        user=User(id=USER_TID, is_bot=False, first_name="Target"),
+        status="restricted",
+        is_member=True,
+        until_date=until_date or datetime.fromtimestamp(0, UTC),
+        **dict.fromkeys(ChatPermissions.model_fields, allowed),
+    )
+
+
+@pytest.mark.asyncio
+async def test_timed_mute_restores_original_at_expiry(mock_bot: AsyncMock) -> None:
+    original = make_member(True, datetime.now(UTC).replace(microsecond=0) + timedelta(hours=3))
+    original = original.model_copy(update={"can_invite_users": False})
+    mock_bot.get_chat_member.side_effect = [original, make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID, until_date=timedelta(hours=1))
+    assert mock_bot.restrict_chat_member.await_args.kwargs["until_date"] is None
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID, "user_tid": USER_TID})
+    assert snapshot is not None
+    snapshot.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    await snapshot.save()
+    await restore_expired_permissions(mock_bot)
+    restored = mock_bot.restrict_chat_member.await_args.kwargs
+    assert restored["permissions"].can_invite_users is False
+    assert restored["until_date"] == original.until_date
+    assert restored["use_independent_chat_permissions"] is True
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None
+
+
+@pytest.mark.asyncio
+async def test_expired_original_restriction_releases_to_defaults(mock_bot: AsyncMock) -> None:
+    original = make_member(True, datetime.now(UTC) - timedelta(minutes=1))
+    original = original.model_copy(update={"can_invite_users": False})
+    mock_bot.get_chat_member.side_effect = [original, make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert all(mock_bot.restrict_chat_member.await_args.kwargs["permissions"].model_dump().values())
+
+
+@pytest.mark.asyncio
+async def test_newer_admin_restriction_is_preserved(mock_bot: AsyncMock) -> None:
+    changed = make_member(False, datetime.now(UTC) + timedelta(hours=2))
+    mock_bot.get_chat_member.side_effect = [make_member(True), changed]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is False
+    assert mock_bot.restrict_chat_member.await_count == 1
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None
+
+
+@pytest.mark.asyncio
+async def test_newer_admin_release_is_preserved(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [
+        make_member(True),
+        ChatMemberMember(user=make_member(True).user, status="member"),
+    ]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is True
+    assert mock_bot.restrict_chat_member.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_remute_after_external_change_captures_new_state(mock_bot: AsyncMock) -> None:
+    changed = make_member(True)
+    changed = changed.model_copy(update={"can_invite_users": False})
+    mock_bot.get_chat_member.side_effect = [make_member(True), changed, make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert mock_bot.restrict_chat_member.await_args.kwargs["permissions"].can_invite_users is False
+
+
+@pytest.mark.asyncio
+async def test_welcome_restriction_reuses_captcha_snapshot(mock_bot: AsyncMock) -> None:
+    original = make_member(True)
+    original = original.model_copy(update={"can_invite_users": False})
+    mock_bot.get_chat_member.side_effect = [original, make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    await execute_restriction(mock_bot, RestrictionAction.RESTRICT, CHAT_TID, USER_TID, until_date=timedelta(hours=1))
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
+    assert snapshot is not None
+    assert snapshot.permissions.can_invite_users is False
+    assert snapshot.applied_permissions.can_invite_users is False
+    assert snapshot.expires_at is not None
+
+
+@pytest.mark.asyncio
+async def test_restore_respects_tightened_group_defaults(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [make_member(True), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    defaults = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))
+    defaults.can_invite_users = False
+    mock_bot.get_chat.return_value.permissions = defaults
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert mock_bot.restrict_chat_member.await_args.kwargs["permissions"].can_invite_users is False
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_network_failure_retains_snapshot_for_retry(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [make_member(True), make_member(False)]
+    mock_bot.restrict_chat_member.side_effect = [TelegramNetworkError(method="test", message="timeout"), True]
+    result = await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    assert result.applied is False
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is not None
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is True
+
+
+@pytest.mark.asyncio
+async def test_false_unmute_keeps_snapshot_for_retry(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [make_member(True), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    mock_bot.restrict_chat_member.return_value = False
+    assert not (await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)).applied
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ambiguous", [False, True])
+async def test_nearly_expired_original_restriction_is_released_after_restore(
+    mock_bot: AsyncMock, ambiguous: bool
+) -> None:
+    deadline = datetime.now(UTC) + timedelta(seconds=20)
+    original = make_member(True, deadline).model_copy(update={"can_invite_users": False})
+    mock_bot.get_chat_member.side_effect = [
+        original,
+        make_member(False),
+        original.model_copy(update={"until_date": datetime.fromtimestamp(0, UTC)}),
+    ]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    if ambiguous:
+        mock_bot.restrict_chat_member.side_effect = [TelegramNetworkError(method="test", message="timeout"), True]
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
+    assert snapshot is not None
+    assert snapshot.restore_group_defaults is True
+    assert snapshot.expires_at == deadline.replace(microsecond=deadline.microsecond // 1000 * 1000)
+    snapshot.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    await snapshot.save()
+    await restore_expired_permissions(mock_bot)
+    assert all(mock_bot.restrict_chat_member.await_args.kwargs["permissions"].model_dump().values())
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None
+
+
+@pytest.mark.asyncio
+async def test_legacy_snapshot_loads_without_inventing_ownership(mock_bot: AsyncMock) -> None:
+    await MutePermissionsModel.get_pymongo_collection().insert_one(
+        {
+            "chat_tid": CHAT_TID,
+            "user_tid": USER_TID,
+            "permissions": make_member(True).model_dump(include=set(ChatPermissions.model_fields)),
+            "applied": True,
+        }
+    )
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
+    assert snapshot is not None and snapshot.applied_permissions is None
+    mock_bot.get_chat_member.return_value = make_member(False)
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is False
+    mock_bot.restrict_chat_member.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_expiry_sweep_does_not_restore_a_renewed_mute(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [make_member(True), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID, until_date=timedelta(hours=1))
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID, expired_only=True)
+    assert result.applied is False
+    assert mock_bot.get_chat_member.await_count == 1
+    assert mock_bot.restrict_chat_member.await_count == 1
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is not None
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_welcome_replacement_can_restore_when_telegram_kept_captcha_mute(mock_bot: AsyncMock) -> None:
+    original = make_member(True).model_copy(update={"can_invite_users": False})
+    mock_bot.get_chat_member.side_effect = [original, make_member(False), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    mock_bot.restrict_chat_member.side_effect = [TelegramNetworkError(method="test", message="timeout"), True]
+    result = await execute_restriction(
+        mock_bot, RestrictionAction.RESTRICT, CHAT_TID, USER_TID, until_date=timedelta(hours=1)
+    )
+    assert result.applied is False
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is True
+    assert mock_bot.restrict_chat_member.await_args.kwargs["permissions"].can_invite_users is False
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_near_expiry_restore_can_release_when_telegram_kept_mute(mock_bot: AsyncMock) -> None:
+    original = make_member(True, datetime.now(UTC) + timedelta(seconds=20)).model_copy(
+        update={"can_invite_users": False}
+    )
+    mock_bot.get_chat_member.side_effect = [original, make_member(False), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    mock_bot.restrict_chat_member.side_effect = [TelegramNetworkError(method="test", message="timeout"), True]
+    await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
+    assert snapshot is not None
+    snapshot.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    await snapshot.save()
+    await restore_expired_permissions(mock_bot)
+    assert all(mock_bot.restrict_chat_member.await_args.kwargs["permissions"].model_dump().values())
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None
+
+
+@pytest.mark.asyncio
+async def test_welcome_replacement_respects_tightened_group_defaults(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [make_member(True), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    mock_bot.get_chat.return_value.permissions.can_send_messages = False
+    result = await execute_restriction(mock_bot, RestrictionAction.RESTRICT, CHAT_TID, USER_TID)
+    assert result.applied is True
+    assert mock_bot.restrict_chat_member.await_args.kwargs["permissions"].can_send_messages is False
+
+
+@pytest.mark.asyncio
+async def test_successful_welcome_replacement_no_longer_owns_old_mute_state(mock_bot: AsyncMock) -> None:
+    mock_bot.get_chat_member.side_effect = [make_member(True), make_member(False), make_member(False)]
+    await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
+    await execute_restriction(mock_bot, RestrictionAction.RESTRICT, CHAT_TID, USER_TID)
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is False
+    assert mock_bot.restrict_chat_member.await_count == 2
