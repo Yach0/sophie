@@ -69,7 +69,7 @@ export function AiCachePanel() {
             {inspector.data.has_more && kind !== 'pricing' && (
               <button
                 type="button"
-                onClick={() => setPosition(kind === 'tools' ? inspector.data?.next_cursor ?? 0 : position + entries.length)}
+                onClick={() => setPosition(kind === 'tools' ? inspector.data?.next_cursor ?? 0 : position + entries.length + invalidEntries.length)}
               >
                 {t`Load next bounded page`}
               </button>
