@@ -105,11 +105,13 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
         if mode not in SELECTABLE_MODES:
             return await self.event.answer(_("Unknown mode"))
 
+        answer_result = await self.event.answer(str(MODE_TITLES[mode]))
+
         # Re-selecting the current mode would rebuild a byte-identical keyboard, which Telegram
         # rejects with "message is not modified"; nothing changed, so only acknowledge the tap.
         current_mode: AIMode = await get_chat_mode(self.connection.db_model.iid, AIMode.disabled)
         if mode == current_mode:
-            return await self.event.answer(str(MODE_TITLES[mode]))
+            return answer_result
 
         await set_chat_mode(
             self.connection.db_model,
@@ -120,4 +122,4 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
         # The picker may have been sent as a rich message, which cannot be edited; only the keyboard
         # is refreshed so the checkmark follows the selection.
         await message.edit_reply_markup(reply_markup=_build_keyboard(mode))
-        return await self.event.answer(str(MODE_TITLES[mode]))
+        return answer_result

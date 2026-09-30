@@ -16,7 +16,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, User
 
 from sophie_bot.constants import FEDERATION_EXPORT_TTL_DAYS, FEDERATION_TASK_STALE_AFTER_MINUTES
-from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.federations import Federation, FederationBan, FederationTask
 from sophie_bot.db.models.federations_enums import FederationTaskType, TaskStatus
 from sophie_bot.modules.federations.schedules.cleanup_tasks import CleanupOldTasks
@@ -57,6 +57,8 @@ async def _make_ban_task(
     *,
     banned_count: int = 2,
     propagation_error: Exception | None = None,
+    mock_propagation: bool = True,
+    mock_lazy_bans: bool = True,
 ) -> tuple[FederationTask, AsyncMock]:
     """Build a ready-to-run BAN task with the federation side-effects mocked out."""
     banner = await _make_user(BANNER_TID, "yachu")
@@ -72,15 +74,17 @@ async def _make_ban_task(
     ban_in_chats = (
         AsyncMock(side_effect=propagation_error) if propagation_error else AsyncMock(return_value=banned_count)
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
-        ban_in_chats,
-    )
-    monkeypatch.setattr(
-        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
-        "lazy_ban_in_subscribing_federations",
-        AsyncMock(return_value=[]),
-    )
+    if mock_propagation:
+        monkeypatch.setattr(
+            "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
+            ban_in_chats,
+        )
+    if mock_lazy_bans:
+        monkeypatch.setattr(
+            "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
+            "lazy_ban_in_subscribing_federations",
+            AsyncMock(return_value=[]),
+        )
     monkeypatch.setattr(
         "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
         AsyncMock(),
@@ -135,6 +139,131 @@ async def test_ban_task_edits_reply_with_banner_name(db_init: Any, monkeypatch: 
     assert reloaded is not None
     assert reloaded.status == TaskStatus.COMPLETED
     assert reloaded.banned_count == 2
+
+
+@pytest.mark.asyncio
+async def test_ban_task_restricts_present_users_in_subscribed_federation(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object
+) -> None:
+    """A lazy ban restricts a present user and persists the subscriber ban chat."""
+    task, _edit_message = await _make_ban_task(
+        monkeypatch,
+        test_services=test_services,
+        mock_propagation=False,
+        mock_lazy_bans=False,
+    )
+    origin_federation = await Federation.find_one(Federation.fed_id == task.fed_id)
+    subscriber_chat = await _make_group(-100_900_004, "Subscriber Group")
+    target_user = await ChatModel.get_by_tid(TARGET_TID)
+    assert origin_federation is not None
+    assert target_user is not None
+
+    subscribing_federation = Federation(
+        fed_name="SubscriberFed",
+        fed_id="fed-subscriber",
+        creator=origin_federation.creator,
+        chats=[subscriber_chat],
+        subscribed=[origin_federation.fed_id],
+    )
+    await subscribing_federation.insert()
+    await UserInGroupModel(
+        user=target_user,
+        group=subscriber_chat,
+        last_saw=target_user.last_saw,
+    ).insert()
+
+    await ProcessFederationBans(test_services).handle()
+
+    subscriber_ban = await FederationBan.find_one(
+        FederationBan.fed_id == subscribing_federation.fed_id,
+        FederationBan.user_id == TARGET_TID,
+    )
+    assert subscriber_ban is not None
+    assert subscriber_ban.origin_fed == origin_federation.fed_id
+    assert [chat.to_ref().id for chat in subscriber_ban.banned_chats] == [subscriber_chat.iid]
+    assert test_services.bot.ban_chat_member.await_args_list == [
+        ((REPLY_CHAT_TID, TARGET_TID), {"until_date": None}),
+        ((subscriber_chat.tid, TARGET_TID), {"until_date": None}),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_ban_task_reports_successful_subscriber_chat_count_in_reply_and_log(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object
+) -> None:
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services, banned_count=2)
+    origin_federation = await Federation.find_one(Federation.fed_id == task.fed_id)
+    assert origin_federation is not None
+    second_origin_chat = await _make_group(-100_900_005, "Second Origin Group")
+    origin_federation.chats.append(second_origin_chat)
+    await origin_federation.save()
+
+    first_subscriber_federation = Mock(fed_id="fed-subscriber-1", fed_name="SubscriberFed1")
+    first_subscriber_ban = Mock()
+    second_subscriber_federation = Mock(fed_id="fed-subscriber-2", fed_name="SubscriberFed2")
+    second_subscriber_ban = Mock()
+    ban_in_chats = AsyncMock(side_effect=[2, 2, 1])
+    lazy_ban = AsyncMock(
+        return_value=[
+            (first_subscriber_federation, first_subscriber_ban),
+            (second_subscriber_federation, second_subscriber_ban),
+        ]
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
+        ban_in_chats,
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
+        "lazy_ban_in_subscribing_federations",
+        lazy_ban,
+    )
+    post_log = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
+        post_log,
+    )
+
+    await ProcessFederationBans(test_services).handle()
+
+    reply_text = _edited_text(edit_message)
+    assert "Banned in <code>2</code> chats" in reply_text
+    assert "<code>3</code> chats in subscribed federations" in reply_text
+    assert "<code>2</code> subscribed federations" in reply_text
+    log_text = post_log.await_args.args[1]
+    assert "2 out of 2 chats in the federation" in log_text
+    assert "3 chats in subscribed federations" in log_text
+    reloaded = await FederationTask.get(task.id)
+    assert reloaded is not None
+    assert reloaded.banned_count == 2
+    assert reloaded.lazy_ban_count == 2
+
+
+@pytest.mark.asyncio
+async def test_ban_task_reports_zero_successful_subscriber_chats(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object
+) -> None:
+    _task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services, banned_count=2)
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
+        AsyncMock(side_effect=[2, 0]),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
+        "lazy_ban_in_subscribing_federations",
+        AsyncMock(return_value=[(Mock(), Mock())]),
+    )
+    post_log = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
+        post_log,
+    )
+
+    await ProcessFederationBans(test_services).handle()
+
+    reply_text = _edited_text(edit_message)
+    assert "<code>0</code> chats in subscribed federations" in reply_text
+    assert "0 chats in subscribed federations" in post_log.await_args.args[1]
 
 
 @pytest.mark.asyncio
