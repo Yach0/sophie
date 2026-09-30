@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 22:30+0200\n"
+"POT-Creation-Date: 2026-09-30 23:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -896,50 +896,50 @@ msgstr ""
 msgid "Chat"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:129
+#: sophie_bot/modules/ai/handlers/translate.py:135
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:142
+#: sophie_bot/modules/ai/handlers/translate.py:148
 msgid "Translation Notes"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:153
+#: sophie_bot/modules/ai/handlers/translate.py:159
 msgid "Text to translate"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:160
+#: sophie_bot/modules/ai/handlers/translate.py:166
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:185
+#: sophie_bot/modules/ai/handlers/translate.py:191
 #: sophie_bot/modules/ai/utils/message_history.py:192
 msgid "Transcribing voice message..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:208
-#: sophie_bot/modules/ai/handlers/translate.py:211
+#: sophie_bot/modules/ai/handlers/translate.py:214
+#: sophie_bot/modules/ai/handlers/translate.py:217
 msgid "Please provide text to translate."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:228
+#: sophie_bot/modules/ai/handlers/translate.py:234
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:249
+#: sophie_bot/modules/ai/handlers/translate.py:255
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
 "{to_translate}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:274
+#: sophie_bot/modules/ai/handlers/translate.py:280
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:292
+#: sophie_bot/modules/ai/handlers/translate.py:298
 msgid "Error generating translation"
 msgstr ""
 
@@ -5321,35 +5321,35 @@ msgstr ""
 msgid "Note is too long."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:141
+#: sophie_bot/modules/notes/utils/rich.py:143
 msgid "Thinking Rich blocks cannot be sent as final messages"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:412
+#: sophie_bot/modules/notes/utils/rich.py:349
 msgid "Rich button labels may contain only plain text, custom emoji, or date-time text"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:422
+#: sophie_bot/modules/notes/utils/rich.py:359
 msgid "Thinking Rich blocks cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:426
+#: sophie_bot/modules/notes/utils/rich.py:363
 msgid "Rich button rows must contain between 1 and 8 buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:436
+#: sophie_bot/modules/notes/utils/rich.py:373
 msgid "Rich buttons must contain exactly one action"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:439
+#: sophie_bot/modules/notes/utils/rich.py:376
 msgid "Rich callback data is too long"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:459
+#: sophie_bot/modules/notes/utils/rich.py:396
 msgid "Rich buttons from an untrusted source cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:465
+#: sophie_bot/modules/notes/utils/rich.py:402
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
