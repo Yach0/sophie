@@ -62,6 +62,7 @@ export function DebugProvider({ initialSession, children }: { initialSession: Se
   const [gap, setGap] = useState(false)
   const [connection, setConnection] = useState<'connecting' | 'live' | 'reconnecting'>('connecting')
   const sourceRef = useRef<EventSource | null>(null)
+  const previousRunRef = useRef(initialSession.run_id)
 
   const sessionQuery = useQuery({
     queryKey: ['session'],
@@ -140,10 +141,11 @@ export function DebugProvider({ initialSession, children }: { initialSession: Se
   }, [feedQuery.isSuccess, queryClient])
 
   useEffect(() => {
-    if (pauseAt !== null && session.run_id !== initialSession.run_id) {
+    if (session.run_id !== previousRunRef.current) {
+      previousRunRef.current = session.run_id
       setPauseAt(null)
     }
-  }, [initialSession.run_id, pauseAt, session.run_id])
+  }, [session.run_id])
 
   const allEvents = feedQuery.data?.events ?? []
   const events = pauseAt === null ? allEvents : allEvents.filter((event) => event.seq <= pauseAt)

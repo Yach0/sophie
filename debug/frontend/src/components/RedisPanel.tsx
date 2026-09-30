@@ -107,6 +107,22 @@ export function RedisPanel() {
               : <ResultGrid values={resultValues} />}
           </div>
         )}
+        {query.data && request && ['scan', 'hash', 'set'].includes(query.data.type) && (
+          <div className="pagination">
+            <p>{t`Next cursor`}: <code>{query.data.next_cursor}</code></p>
+            <button
+              type="button"
+              disabled={!query.data.has_more || query.isFetching}
+              onClick={() => {
+                const cursor = query.data!.next_cursor
+                form.setFieldValue('cursor', String(cursor))
+                setRequest({ ...request, cursor })
+              }}
+            >
+              {t`Load next bounded page`}
+            </button>
+          </div>
+        )}
       </div>
 
       <div>

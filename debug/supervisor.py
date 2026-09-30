@@ -490,76 +490,113 @@ class Supervisor:
         self.state.sanitized_targets = config.sanitized_targets
         self.state.known_secrets = config.known_secrets
         run_id = uuid.uuid4().hex
-        telemetry_parent, telemetry_child = socket.socketpair()
-        control_parent, control_child = socket.socketpair()
-        for child_socket in (telemetry_child, control_child):
-            child_socket.set_inheritable(True)
-        environment = sanitized_child_environment(
-            config,
-            {
-                "SOPHIE_DEBUG_CONTROL_FD": str(control_child.fileno()),
-                "SOPHIE_DEBUG_RUN_ID": run_id,
-                "SOPHIE_DEBUG_TELEMETRY_FD": str(telemetry_child.fileno()),
-            },
-        )
-        self.state.run_id = run_id
-        self.state.worker_pid = None
-        self.state.state = "starting"
-        self.state.detail = None
-        await self.state.notify_status_change()
-        try:
-            process = await asyncio.create_subprocess_exec(
-                sys.executable,
-                "-m",
-                self.worker_module,
-                cwd=self.root,
-                env=environment,
-                pass_fds=(telemetry_child.fileno(), control_child.fileno()),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                start_new_session=True,
-            )
-        except (OSError, asyncio.CancelledError):
-            telemetry_parent.close()
-            control_parent.close()
-            raise
-        finally:
-            telemetry_child.close()
-            control_child.close()
-        telemetry_parent.setblocking(False)
-        control_parent.setblocking(False)
-        telemetry_reader, telemetry_writer = await asyncio.open_connection(
-            sock=telemetry_parent,
-            limit=TELEMETRY_FRAME_LIMIT,
-        )
-        control_reader, control_writer = await asyncio.open_connection(sock=control_parent, limit=CONTROL_FRAME_LIMIT)
-        channel_generation = await self.state.set_worker_channel(run_id, process.pid)
-        worker = WorkerRun(
-            run_id=run_id,
-            channel_generation=channel_generation,
-            process=process,
-            telemetry_reader=telemetry_reader,
-            telemetry_writer=telemetry_writer,
-            control_reader=control_reader,
-            control_writer=control_writer,
-        )
-        self.worker = worker
-        self.state.worker_pid = process.pid
-        stderr_tail: deque[bytes] = deque()
-        worker.tasks.update(
-            {
-                asyncio.create_task(self._read_telemetry(worker), name=f"debug-telemetry-{run_id}"),
-                asyncio.create_task(self._read_control(worker), name=f"debug-control-{run_id}"),
-                asyncio.create_task(
-                    self._forward_pipe(process.stdout, sys.stdout), name=f"debug-worker-stdout-{run_id}"
-                ),
-                asyncio.create_task(
-                    self._forward_worker_stderr(process.stderr, stderr_tail, config.known_secrets),
-                    name=f"debug-worker-stderr-{run_id}",
-                ),
-                asyncio.create_task(self._wait_worker(worker, stderr_tail), name=f"debug-worker-wait-{run_id}"),
-            }
-        )
+        with contextlib.ExitStack() as socket_cleanup:
+            telemetry_parent, telemetry_child = socket.socketpair()
+            socket_cleanup.callback(telemetry_parent.close)
+            socket_cleanup.callback(telemetry_child.close)
+            control_parent, control_child = socket.socketpair()
+            socket_cleanup.callback(control_parent.close)
+            socket_cleanup.callback(control_child.close)
+            process: asyncio.subprocess.Process | None = None
+            writers: list[asyncio.StreamWriter] = []
+            transferred = False
+            try:
+                for child_socket in (telemetry_child, control_child):
+                    child_socket.set_inheritable(True)
+                environment = sanitized_child_environment(
+                    config,
+                    {
+                        "SOPHIE_DEBUG_CONTROL_FD": str(control_child.fileno()),
+                        "SOPHIE_DEBUG_RUN_ID": run_id,
+                        "SOPHIE_DEBUG_TELEMETRY_FD": str(telemetry_child.fileno()),
+                    },
+                )
+                self.state.run_id = run_id
+                self.state.worker_pid = None
+                self.state.state = "starting"
+                self.state.detail = None
+                await self.state.notify_status_change()
+                try:
+                    process = await asyncio.create_subprocess_exec(
+                        sys.executable,
+                        "-m",
+                        self.worker_module,
+                        cwd=self.root,
+                        env=environment,
+                        pass_fds=(telemetry_child.fileno(), control_child.fileno()),
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        start_new_session=True,
+                    )
+                finally:
+                    telemetry_child.close()
+                    control_child.close()
+                telemetry_parent.setblocking(False)
+                control_parent.setblocking(False)
+                telemetry_reader, telemetry_writer = await asyncio.open_connection(
+                    sock=telemetry_parent,
+                    limit=TELEMETRY_FRAME_LIMIT,
+                )
+                writers.append(telemetry_writer)
+                control_reader, control_writer = await asyncio.open_connection(
+                    sock=control_parent, limit=CONTROL_FRAME_LIMIT
+                )
+                writers.append(control_writer)
+                channel_generation = await self.state.set_worker_channel(run_id, process.pid)
+                worker = WorkerRun(
+                    run_id=run_id,
+                    channel_generation=channel_generation,
+                    process=process,
+                    telemetry_reader=telemetry_reader,
+                    telemetry_writer=telemetry_writer,
+                    control_reader=control_reader,
+                    control_writer=control_writer,
+                )
+                self.worker = worker
+                transferred = True
+                socket_cleanup.pop_all()
+                self.state.worker_pid = process.pid
+                stderr_tail: deque[bytes] = deque()
+                worker.tasks.update(
+                    {
+                        asyncio.create_task(self._read_telemetry(worker), name=f"debug-telemetry-{run_id}"),
+                        asyncio.create_task(self._read_control(worker), name=f"debug-control-{run_id}"),
+                        asyncio.create_task(
+                            self._forward_pipe(process.stdout, sys.stdout), name=f"debug-worker-stdout-{run_id}"
+                        ),
+                        asyncio.create_task(
+                            self._forward_worker_stderr(process.stderr, stderr_tail, config.known_secrets),
+                            name=f"debug-worker-stderr-{run_id}",
+                        ),
+                        asyncio.create_task(self._wait_worker(worker, stderr_tail), name=f"debug-worker-wait-{run_id}"),
+                    }
+                )
+            finally:
+                if not transferred and process is not None:
+                    cleanup_task = asyncio.create_task(self._cleanup_worker_setup(run_id, process, writers))
+                    cancelled = False
+                    while not cleanup_task.done():
+                        try:
+                            await asyncio.shield(cleanup_task)
+                        except asyncio.CancelledError:
+                            cancelled = True
+                    cleanup_task.result()
+                    if cancelled:
+                        raise asyncio.CancelledError
+
+    async def _cleanup_worker_setup(
+        self, run_id: str, process: asyncio.subprocess.Process, writers: list[asyncio.StreamWriter]
+    ) -> None:
+        for writer in writers:
+            writer.close()
+        await self._stop_worker_process(process)
+        for writer in writers:
+            with contextlib.suppress(ConnectionError, OSError):
+                await writer.wait_closed()
+        assert self.state is not None
+        if self.state.run_id == run_id:
+            self.state.worker_pid = None
+            await self.state.worker_channel_closed(run_id)
 
     async def _read_telemetry(self, worker: WorkerRun) -> None:
         assert self.state is not None
@@ -765,15 +802,7 @@ class Supervisor:
             return
         assert self.state is not None
         worker.stopping = True
-        process = worker.process
-        if process.returncode is None:
-            await self._signal_and_wait(process, signal.SIGINT, 10)
-        if process.returncode is None:
-            await self._signal_and_wait(process, signal.SIGTERM, 2)
-        if process.returncode is None:
-            with contextlib.suppress(ProcessLookupError):
-                os.killpg(process.pid, signal.SIGKILL)
-            await process.wait()
+        await self._stop_worker_process(worker.process)
         worker.control_writer.close()
         worker.telemetry_writer.close()
         with contextlib.suppress(Exception):
@@ -789,6 +818,16 @@ class Supervisor:
             if not future.done():
                 future.set_exception(ConnectionError("Worker control channel closed"))
         self.worker = None
+
+    async def _stop_worker_process(self, process: asyncio.subprocess.Process) -> None:
+        if process.returncode is None:
+            await self._signal_and_wait(process, signal.SIGINT, 10)
+        if process.returncode is None:
+            await self._signal_and_wait(process, signal.SIGTERM, 2)
+        if process.returncode is None:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(process.pid, signal.SIGKILL)
+            await process.wait()
 
     async def _signal_and_wait(self, process: asyncio.subprocess.Process, signal_number: int, timeout: float) -> None:
         with contextlib.suppress(ProcessLookupError):

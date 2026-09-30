@@ -219,16 +219,33 @@ class WorkerActions:
         except TimeoutError as error:
             raise WorkerActionError("read_timeout", "Inspector operation exceeded the 5 second limit") from error
 
-    def _output(self, value: Any) -> JsonValue:
-        normalized, truncated, _redacted = normalize_payload(value, self._known_secrets)
-        if truncated and isinstance(normalized, dict):
-            normalized.setdefault("truncated", True)
+    def _output(self, value: Any, *, row_fields: tuple[str, ...] = ()) -> JsonValue:
+        if row_fields:
+            # Keep every consumed row and its continuation metadata; normalization
+            # may truncate a row's contents, but must not discard later rows.
+            metadata = {key: item for key, item in value.items() if key not in row_fields}
+            normalized, truncated, _redacted = normalize_payload(metadata, self._known_secrets)
+            for field_name in row_fields:
+                normalized_rows: list[JsonValue] = []
+                for row in value[field_name]:
+                    normalized_row, row_truncated, _row_redacted = normalize_payload(row, self._known_secrets)
+                    normalized_rows.append(normalized_row)
+                    truncated |= row_truncated
+                normalized[field_name] = normalized_rows
+            if truncated:
+                normalized["truncated"] = True
+        else:
+            normalized, truncated, _redacted = normalize_payload(value, self._known_secrets)
+            if truncated and isinstance(normalized, dict):
+                normalized.setdefault("truncated", True)
         try:
             size = len(json.dumps(normalized, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode())
         except (TypeError, ValueError) as error:
             raise WorkerActionError("serialization_failed", "Result is not strict JSON") from error
         if size <= REPLY_DATA_LIMIT:
             return normalized
+        if row_fields:
+            raise WorkerActionError("result_too_large", "Inspector result exceeded the 1 MiB response limit")
         if isinstance(normalized, dict):
             for field_name in ("collections", "items", "entries", "invalid_entries", "data"):
                 values = normalized.get(field_name)
@@ -316,14 +333,14 @@ class WorkerActions:
             cursor = _strict_nonnegative_int(payload.get("cursor", 0), "cursor")
             pattern = _redis_bytes(payload.get("pattern", "*"))
             next_cursor, keys = await redis.scan(cursor=cursor, match=pattern, count=limit)
-            data: JsonValue = [_redis_value(key) for key in list(keys)[:limit]]
+            data: JsonValue = [_redis_value(key) for key in keys]
             result = {
                 "type": "scan",
                 "ttl": None,
                 "data": data,
                 "next_cursor": int(next_cursor),
                 "has_more": bool(next_cursor),
-                "truncated": len(keys) > limit,
+                "truncated": False,
             }
         else:
             key = _redis_bytes(payload.get("key"))
@@ -359,14 +376,14 @@ class WorkerActions:
                 next_cursor, values = await redis.hscan(key, cursor=cursor, count=limit)
                 if not isinstance(values, dict):
                     raise WorkerActionError("invalid_redis_response", "Redis HSCAN returned an unexpected value")
-                pairs = [[_redis_value(field), _redis_value(value)] for field, value in list(values.items())[:limit]]
+                pairs = [[_redis_value(field), _redis_value(value)] for field, value in values.items()]
                 result = {
                     "type": "hash",
                     "ttl": ttl,
                     "data": pairs,
                     "next_cursor": int(next_cursor),
                     "has_more": bool(next_cursor),
-                    "truncated": len(values) > limit,
+                    "truncated": False,
                 }
             elif operation == "set":
                 self._require_redis_type(redis_type, "set")
@@ -375,10 +392,10 @@ class WorkerActions:
                 result = {
                     "type": "set",
                     "ttl": ttl,
-                    "data": [_redis_value(value) for value in list(values)[:limit]],
+                    "data": [_redis_value(value) for value in values],
                     "next_cursor": int(next_cursor),
                     "has_more": bool(next_cursor),
-                    "truncated": len(values) > limit,
+                    "truncated": False,
                 }
             elif operation == "list":
                 self._require_redis_type(redis_type, "list")
@@ -411,7 +428,7 @@ class WorkerActions:
             else:
                 raise WorkerActionError("invalid_redis_operation", "Unsupported Redis inspector operation")
         result["duration_ms"] = (time.monotonic() - started) * 1000
-        return self._output(result)
+        return self._output(result, row_fields=("data",) if result["type"] in {"scan", "hash", "set"} else ())
 
     @staticmethod
     def _require_redis_type(actual: str, expected: str) -> None:
@@ -461,7 +478,8 @@ class WorkerActions:
                 "offset": offset,
                 "has_more": len(rows) > limit,
                 "truncated": len(rows) > limit,
-            }
+            },
+            row_fields=("entries", "invalid_entries"),
         )
 
     async def _ai_tools(self, payload: dict[str, JsonValue]) -> JsonValue:
@@ -477,7 +495,7 @@ class WorkerActions:
         count = int(await redis.hlen(key))
         entries: list[dict[str, Any]] = []
         invalid_entries: list[dict[str, JsonValue]] = []
-        for raw_field, raw_payload in list(rows.items())[:limit]:
+        for raw_field, raw_payload in rows.items():
             field_value = _redis_value(raw_field)
             if not isinstance(raw_payload, (str, bytes)):
                 invalid_entries.append({"field": field_value, "error": "invalid_value_type"})
@@ -512,9 +530,10 @@ class WorkerActions:
                 "invalid_entries": invalid_entries,
                 "next_cursor": int(next_cursor),
                 "has_more": bool(next_cursor),
-                "truncated": len(rows) > limit,
+                "truncated": False,
                 "replay_status": "not_evaluated",
-            }
+            },
+            row_fields=("entries", "invalid_entries"),
         )
 
     async def _ai_pricing(self) -> JsonValue:
