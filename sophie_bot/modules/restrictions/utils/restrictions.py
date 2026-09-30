@@ -109,15 +109,21 @@ async def _restore(bot: Bot, chat_tid: int, user_tid: int, *, expired_only: bool
         await snapshot.delete()
         log.warning("Discarded superseded mute snapshot", chat_tid=chat_tid, user_tid=user_tid)
         return isinstance(member, ChatMemberMember)
+    return await _restore_owned_snapshot(bot, snapshot, member, now)
+
+
+async def _restoration_permissions(
+    bot: Bot, snapshot: MutePermissionsModel, now: datetime
+) -> tuple[ChatPermissions | None, datetime | None]:
     permissions = snapshot.permissions
     previous_until = snapshot.previous_until
     if snapshot.restore_group_defaults or (previous_until is not None and previous_until <= now):
         permissions = _ALL_PERMISSIONS
         previous_until = None
     elif permissions is not None:
-        chat = await bot.get_chat(chat_tid)
+        chat = await bot.get_chat(snapshot.chat_tid)
         if chat.permissions is None:
-            return False
+            return None, previous_until
         # Never grant rights removed from the group's defaults since the snapshot.
         permissions = ChatPermissions(
             **{
@@ -125,6 +131,13 @@ async def _restore(bot: Bot, chat_tid: int, user_tid: int, *, expired_only: bool
                 for field_name in ChatPermissions.model_fields
             }
         )
+    return permissions, previous_until
+
+
+async def _restore_owned_snapshot(
+    bot: Bot, snapshot: MutePermissionsModel, member: ChatMemberRestricted, now: datetime
+) -> bool:
+    permissions, previous_until = await _restoration_permissions(bot, snapshot, now)
     if permissions is None:
         return False
     # Telegram interprets deadlines <30s away as forever. A nearly expired old
@@ -145,8 +158,8 @@ async def _restore(bot: Bot, chat_tid: int, user_tid: int, *, expired_only: bool
         await snapshot.save()
     try:
         applied = await bot.restrict_chat_member(
-            chat_tid,
-            user_tid,
+            snapshot.chat_tid,
+            snapshot.user_tid,
             permissions=permissions,
             use_independent_chat_permissions=True,
             until_date=restore_until,

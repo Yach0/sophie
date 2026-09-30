@@ -338,12 +338,14 @@ async def test_mute_snapshots_existing_restrictions_and_unmute_restores_them(
     member_data = existing_permissions.model_dump()
     member_data = {field_name: value if value is not None else True for field_name, value in member_data.items()}
     expected_permissions = ChatPermissions(**member_data)
-    original_member = ChatMemberRestricted(
-        user=User(id=USER_TID, is_bot=False, first_name="Target"),
-        status="restricted",
-        is_member=True,
-        until_date=datetime.fromtimestamp(0, UTC),
-        **member_data,
+    original_member = ChatMemberRestricted.model_validate(
+        {
+            "user": User(id=USER_TID, is_bot=False, first_name="Target"),
+            "status": "restricted",
+            "is_member": True,
+            "until_date": datetime.fromtimestamp(0, UTC),
+            **member_data,
+        }
     )
     muted_member = ChatMemberRestricted(
         user=User(id=USER_TID, is_bot=False, first_name="Target"),
@@ -501,12 +503,14 @@ async def test_false_telegram_result_is_not_treated_as_applied(mock_bot: AsyncMo
 
 
 def make_member(allowed: bool, until_date: datetime | None = None) -> ChatMemberRestricted:
-    return ChatMemberRestricted(
-        user=User(id=USER_TID, is_bot=False, first_name="Target"),
-        status="restricted",
-        is_member=True,
-        until_date=until_date or datetime.fromtimestamp(0, UTC),
-        **dict.fromkeys(ChatPermissions.model_fields, allowed),
+    return ChatMemberRestricted.model_validate(
+        {
+            "user": User(id=USER_TID, is_bot=False, first_name="Target"),
+            "status": "restricted",
+            "is_member": True,
+            "until_date": until_date or datetime.fromtimestamp(0, UTC),
+            **dict.fromkeys(ChatPermissions.model_fields, allowed),
+        }
     )
 
 
