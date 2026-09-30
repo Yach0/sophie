@@ -1,4 +1,5 @@
-from typing import Any
+from math import ceil
+from typing import Any, Final
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
@@ -48,6 +49,24 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
+
+# Telegram's expandable blockquote is useful when a translation is likely to
+# exceed three visible lines. Actual wrapping varies by client, font, and
+# device, so this is deliberately a conservative character-based estimate.
+_TRANSLATION_MAX_VISIBLE_LINES: Final[int] = 3
+_TRANSLATION_ESTIMATED_CHARS_PER_VISIBLE_LINE: Final[int] = 40
+
+
+def _translation_likely_exceeds_visible_lines(text: str) -> bool:
+    """Estimate whether translation text will exceed Telegram's visible-line limit."""
+    if not text:
+        return False
+
+    estimated_visible_lines = sum(
+        max(1, ceil(len(line.rstrip("\r")) / _TRANSLATION_ESTIMATED_CHARS_PER_VISIBLE_LINE))
+        for line in text.split("\n")
+    )
+    return estimated_visible_lines > _TRANSLATION_MAX_VISIBLE_LINES
 
 
 async def _resolve_translation_input(
@@ -113,7 +132,10 @@ def _build_translate_reply_doc(
             if not is_voice
             else None
         ),
-        BlockQuote(PreformattedHTML(ai_markdown_to_html(translated.translated_text)), expandable=True),
+        BlockQuote(
+            PreformattedHTML(ai_markdown_to_html(translated.translated_text)),
+            expandable=_translation_likely_exceeds_visible_lines(translated.translated_text),
+        ),
         (
             Section(translated.translation_explanations, title=_("Translation Notes"))
             if translated.translation_explanations
