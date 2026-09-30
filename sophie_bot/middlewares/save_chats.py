@@ -10,6 +10,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatTopicModel, UserInGroupModel
 from sophie_bot.db.models.communities import CommunityModel
+from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.community_api import (
@@ -29,10 +30,15 @@ class SaveChatsMiddleware(BaseMiddleware):
             # not found - already deleted or didn't exist in a first place
             return
 
-        if not (user_in_chat := await UserInGroupModel.ensure_delete(user, group)):
+        membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+        if membership is None or membership.id is None:
+            return
+        if not await UserInGroupModel.ensure_delete(user, group, membership.id):
             return
 
-        await user_in_chat.delete()
+        ws_user = await WSUserModel.is_user(user.iid, group.iid)
+        if ws_user and ws_user.id is not None and not ws_user.passed:
+            await WSUserModel.remove_unpassed_user(ws_user.id, membership.id)
 
     @staticmethod
     async def _chats_update(chats: Iterable[Chat | User]):

@@ -255,11 +255,11 @@ class UserInGroupModel(Document):
         return user_in_chat
 
     @staticmethod
-    async def ensure_delete(user: "ChatModel", group: "ChatModel") -> Optional["UserInGroupModel"]:
-        if user_in_chat := await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}):
-            await user_in_chat.delete()
-            return user_in_chat
-        return None
+    async def ensure_delete(user: "ChatModel", group: "ChatModel", membership_id: PydanticObjectId) -> bool:
+        deleted_user_in_chat = await UserInGroupModel.get_pymongo_collection().find_one_and_delete(
+            {"_id": membership_id, "user.$id": user.iid, "group.$id": group.iid}
+        )
+        return deleted_user_in_chat is not None
 
     @staticmethod
     async def get_user_in_group(
