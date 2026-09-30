@@ -328,13 +328,20 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
         remove_user.assert_not_awaited()
 
 
-async def test_admin_captcha_pass_is_a_successful_noop(
+@pytest.mark.parametrize("unmute_succeeded", [False, True])
+async def test_admin_captcha_pass_unmutes_and_removes_pending_only_after_success(
     monkeypatch: pytest.MonkeyPatch,
+    unmute_succeeded: bool,
     test_services: ApplicationServices,
 ) -> None:
     user = SimpleNamespace(tid=700_000_013, iid="user-iid")
     group = SimpleNamespace(tid=-1_007_000_000_013, iid="group-iid")
-    execute_restriction = AsyncMock()
+    execute_restriction = AsyncMock(
+        return_value=RestrictionResult(
+            action=RestrictionAction.UNMUTE,
+            applied=unmute_succeeded,
+        )
+    )
     remove_user = AsyncMock()
 
     monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=True))
@@ -349,10 +356,18 @@ async def test_admin_captcha_pass_is_a_successful_noop(
             bot=test_services.bot,
             redis=test_services.redis,
         )
-        is True
+        is unmute_succeeded
     )
-    execute_restriction.assert_not_awaited()
-    remove_user.assert_not_awaited()
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot,
+        RestrictionAction.UNMUTE,
+        group.tid,
+        user.tid,
+    )
+    if unmute_succeeded:
+        remove_user.assert_awaited_once_with(user.iid, group.iid)
+    else:
+        remove_user.assert_not_awaited()
 
 
 @pytest.mark.parametrize("unmute_succeeded", [False, True])
