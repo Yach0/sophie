@@ -173,6 +173,10 @@ git worktree remove ../sophie-feature
 git branch -D feature/my-feature
 ```
 
+## Translation of rich replies
+
+Reply translation preserves rich-message list boundaries, details summaries, table captions, and nested visible content. AI headers and quota footers are stripped only from replies authored by Sophie; matching custom emoji in user messages remain part of the translation input.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)

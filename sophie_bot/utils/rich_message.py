@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from aiogram.types import (
-    RichBlockAnimation,
     RichBlockAnchor,
+    RichBlockAnimation,
     RichBlockAudio,
     RichBlockBlockQuotation,
     RichBlockButtons,

@@ -72,7 +72,9 @@ async def _resolve_translation_input(
     elif event.reply_to_message and not is_autotranslate:
         reply = event.reply_to_message
         sticker_emoji = reply.sticker.emoji if reply.sticker else ""
-        reply_text = cut_titlebar(reply) if reply.from_user and reply.from_user.id == CONFIG.bot_id else message_text(reply)
+        reply_text = (
+            cut_titlebar(reply) if reply.from_user and reply.from_user.id == CONFIG.bot_id else message_text(reply)
+        )
         to_translate = reply_text or reply.caption or sticker_emoji or ""
     elif data.get("voice"):
         to_translate = ""
