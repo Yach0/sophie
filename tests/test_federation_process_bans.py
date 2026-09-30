@@ -23,6 +23,7 @@ from sophie_bot.modules.federations.schedules.cleanup_tasks import CleanupOldTas
 from sophie_bot.modules.federations.schedules.process_bans import ProcessFederationBans
 from sophie_bot.modules.federations.utils.task_failure import build_task_failed_doc
 from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_EDIT_NOT_FOUND
+from sophie_bot.services.application import ApplicationServices
 
 BANNER_TID = 900_001
 TARGET_TID = 900_002
@@ -57,6 +58,7 @@ async def _make_ban_task(
     *,
     banned_count: int = 2,
     propagation_error: Exception | None = None,
+    mock_propagation: bool = True,
 ) -> tuple[FederationTask, AsyncMock]:
     """Build a ready-to-run BAN task with the federation side-effects mocked out."""
     banner = await _make_user(BANNER_TID, "yachu")
@@ -72,10 +74,11 @@ async def _make_ban_task(
     ban_in_chats = (
         AsyncMock(side_effect=propagation_error) if propagation_error else AsyncMock(return_value=banned_count)
     )
-    monkeypatch.setattr(
-        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
-        ban_in_chats,
-    )
+    if mock_propagation:
+        monkeypatch.setattr(
+            "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
+            ban_in_chats,
+        )
     monkeypatch.setattr(
         "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
         "lazy_ban_in_subscribing_federations",
@@ -176,6 +179,47 @@ async def test_deleted_progress_reply_is_not_resent(db_init: Any, monkeypatch: p
     assert reloaded.status == TaskStatus.COMPLETED
     assert reloaded.reply_message_id == REPLY_MESSAGE_ID
 
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("edit_error", [MSG_TO_EDIT_NOT_FOUND, "Bad Request: can't parse entities"])
+async def test_successful_ban_survives_final_reply_bad_request(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices, edit_error: str
+) -> None:
+    """Reply delivery errors must not undo propagation or skip the federation log."""
+    task, edit_message = await _make_ban_task(
+        monkeypatch, test_services=test_services, mock_propagation=False
+    )
+    ban_chat_member = AsyncMock(return_value=True)
+    monkeypatch.setattr(test_services.bot, "ban_chat_member", ban_chat_member)
+    edit_message.side_effect = TelegramBadRequest(method=None, message=edit_error)  # type: ignore[arg-type]
+    send_message = AsyncMock()
+    monkeypatch.setattr(test_services.bot, "send_message", send_message)
+    post_log = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
+        post_log,
+    )
+
+    await ProcessFederationBans(test_services).handle()
+
+    ban_chat_member.assert_awaited_once_with(REPLY_CHAT_TID, TARGET_TID, until_date=None)
+    ban = await FederationBan.get(task.ban_id)
+    assert ban is not None
+    assert [chat.to_ref().id for chat in ban.banned_chats] == [task.current_chat_iid]
+    reloaded = await FederationTask.get(task.id)
+    assert reloaded is not None
+    assert reloaded.status == TaskStatus.COMPLETED
+    assert reloaded.banned_count == 1
+    assert reloaded.error_message is None
+    assert reloaded.reply_message_id == REPLY_MESSAGE_ID
+    assert edit_message.await_count == 1
+    send_message.assert_not_awaited()
+    assert post_log.await_count == 1
+    log_text = post_log.await_args.args[1]
+    assert "1 out of 1 chat in the federation" in log_text
+    assert f'tg://user?id={BANNER_TID}' in log_text
+    assert f'tg://user?id={TARGET_TID}' in log_text
 
 @pytest.mark.asyncio
 async def test_anonymous_banner_is_hidden_in_reply_but_kept_in_log(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:

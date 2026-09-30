@@ -39,9 +39,6 @@ async def _edit_reply(
                     message_id=task.reply_message_id,
                 )
             )
-        except TelegramBadRequest as err:
-            if MSG_TO_EDIT_NOT_FOUND not in str(err):
-                raise
         except TelegramRetryAfter as err:
             log.warning(
                 "Telegram flood control exceeded while editing federation reply",
@@ -50,6 +47,8 @@ async def _edit_reply(
                 chat_id=task.reply_chat_id,
             )
         except TelegramAPIError as err:
+            if isinstance(err, TelegramBadRequest) and MSG_TO_EDIT_NOT_FOUND in str(err):
+                return
             log.warning(
                 "Telegram API error while editing federation reply",
                 error=str(err),
