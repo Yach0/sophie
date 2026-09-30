@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
@@ -9,6 +10,14 @@ from beanie import PydanticObjectId
 from sophie_bot.db.models.chat import ChatModel, ChatType, UserInGroupModel
 from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
+from tests.utils.db_fixture import cleanup_beanie
+
+
+@pytest.fixture(autouse=True)
+async def _clean_rejoin_db(db_init: Any) -> AsyncIterator[None]:
+    await cleanup_beanie()
+    yield
+    await cleanup_beanie()
 
 
 async def _create_user_and_group(user_tid: int, group_tid: int) -> tuple[ChatModel, ChatModel]:

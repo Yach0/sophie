@@ -24,9 +24,7 @@ logger = structlog.get_logger(__name__)
 
 class SaveChatsMiddleware(BaseMiddleware):
     @staticmethod
-    async def _delete_user_in_chat_by_user_id(
-        user_id: int, group: ChatModel, *, left_message_id: int
-    ) -> None:
+    async def _delete_user_in_chat_by_user_id(user_id: int, group: ChatModel, *, left_message_id: int) -> None:
         logger.debug("SaveChatsMiddleware: Deleting user from chat", user_id=user_id, group=group)
         if not (user := await ChatModel.get_by_tid(user_id)):
             # not found - already deleted or didn't exist in a first place
@@ -35,9 +33,7 @@ class SaveChatsMiddleware(BaseMiddleware):
         membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
         if membership is None or membership.id is None:
             return
-        if not await UserInGroupModel.ensure_delete(
-            user, group, membership.id, left_message_id=left_message_id
-        ):
+        if not await UserInGroupModel.ensure_delete(user, group, membership.id, left_message_id=left_message_id):
             return
 
         ws_user = await WSUserModel.is_user(user.iid, group.iid)
@@ -269,9 +265,7 @@ class SaveChatsMiddleware(BaseMiddleware):
         for member in message.new_chat_members:
             logger.debug("SaveChatsMiddleware: Saving new chat member", user_id=member.id)
             new_user = await ChatModel.upsert_user(member)
-            await UserInGroupModel.ensure_user_in_group(
-                new_user, group, message_id=message.message_id, is_join=True
-            )
+            await UserInGroupModel.ensure_user_in_group(new_user, group, message_id=message.message_id, is_join=True)
             new_users.append(new_user)
 
         return new_users
