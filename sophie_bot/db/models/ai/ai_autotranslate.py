@@ -21,7 +21,7 @@ class AIAutotranslateModel(Document):
     @staticmethod
     async def get_state(chat_id: PydanticObjectId) -> bool:
         model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat_id)
-        return getattr(model, "enabled", True) if model else False
+        return bool(model and getattr(model, "enabled", True))
 
     @staticmethod
     async def set_state(chat: ChatModel, new_state: bool):
@@ -57,9 +57,6 @@ class AIAutotranslateModel(Document):
         model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.iid)
         if not model:
             model = AIAutotranslateModel(chat=chat)
-        if language_code in model.excluded_languages:
-            model.excluded_languages.remove(language_code)
-        else:
-            model.excluded_languages.add(language_code)
+        model.excluded_languages.symmetric_difference_update({language_code})
         await model.save()
         return model.excluded_languages
