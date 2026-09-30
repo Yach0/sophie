@@ -31,7 +31,9 @@ async def ws_on_user_passed(
 
     # Check for admin permissions
     if await is_user_admin(chat=group.tid, user=user.tid):
-        return False
+        # Admins already bypass the restriction transition; completion cleanup
+        # should retain the existing behavior for this successful no-op.
+        return True
 
     # Unmute / restrict user
     if await is_user_group_whitelisted(group.tid, user.tid, redis=redis):
@@ -65,4 +67,4 @@ async def ws_on_user_passed(
     if restriction_succeeded:
         await WSUserModel.remove_user(user.iid, group.iid)
 
-    return True
+    return restriction_succeeded

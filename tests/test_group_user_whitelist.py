@@ -280,7 +280,7 @@ async def test_whitelisted_captcha_pass_removes_pending_only_after_successful_un
             bot=test_services.bot,
             redis=test_services.redis,
         )
-        is True
+        is unmute_succeeded
     )
     log_exemption.assert_awaited_once_with(group.tid, user.tid, "welcome_security_welcome_mute")
     expected_events = ["unmute", "remove"] if unmute_succeeded else ["unmute"]
@@ -313,7 +313,7 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
             bot=test_services.bot,
             redis=test_services.redis,
         )
-        is True
+        is welcome_mute_succeeded
     )
     on_welcome_mute.assert_awaited_once_with(
         group.tid,
@@ -326,6 +326,33 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
         remove_user.assert_awaited_once_with(user.iid, group.iid)
     else:
         remove_user.assert_not_awaited()
+
+
+async def test_admin_captcha_pass_is_a_successful_noop(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    user = SimpleNamespace(tid=700_000_013, iid="user-iid")
+    group = SimpleNamespace(tid=-1_007_000_000_013, iid="group-iid")
+    execute_restriction = AsyncMock()
+    remove_user = AsyncMock()
+
+    monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=True))
+    monkeypatch.setattr(on_user_passed, "execute_restriction", execute_restriction)
+    monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", remove_user)
+
+    assert (
+        await on_user_passed.ws_on_user_passed(
+            user,
+            group,
+            SimpleNamespace(enabled=False, time=None),
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
+        is True
+    )
+    execute_restriction.assert_not_awaited()
+    remove_user.assert_not_awaited()
 
 
 @pytest.mark.parametrize("unmute_succeeded", [False, True])
