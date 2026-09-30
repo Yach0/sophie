@@ -919,39 +919,39 @@ msgstr ""
 msgid "Chat"
 msgstr "Чат"
 
-#: sophie_bot/modules/ai/handlers/translate.py:108
+#: sophie_bot/modules/ai/handlers/translate.py:129
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "З {from_lang} на {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:118
+#: sophie_bot/modules/ai/handlers/translate.py:142
 msgid "Translation Notes"
 msgstr "Примітки до перекладу"
 
-#: sophie_bot/modules/ai/handlers/translate.py:129
+#: sophie_bot/modules/ai/handlers/translate.py:153
 msgid "Text to translate"
 msgstr "Текст для перекладу"
 
-#: sophie_bot/modules/ai/handlers/translate.py:136
+#: sophie_bot/modules/ai/handlers/translate.py:160
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Перекладає даний (або відповіданий) текст на вибрану мову чату. Також транскрибує відповідане голосове повідомлення в текст"
 
-#: sophie_bot/modules/ai/handlers/translate.py:161
+#: sophie_bot/modules/ai/handlers/translate.py:185
 #: sophie_bot/modules/ai/utils/message_history.py:192
 msgid "Transcribing voice message..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:184
-#: sophie_bot/modules/ai/handlers/translate.py:187
+#: sophie_bot/modules/ai/handlers/translate.py:208
+#: sophie_bot/modules/ai/handlers/translate.py:211
 msgid "Please provide text to translate."
 msgstr "Будь ласка, введіть текст для перекладу."
 
-#: sophie_bot/modules/ai/handlers/translate.py:204
+#: sophie_bot/modules/ai/handlers/translate.py:228
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Якщо можливо, перекладіть це фото на {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:225
+#: sophie_bot/modules/ai/handlers/translate.py:249
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -960,11 +960,11 @@ msgstr ""
 "Перекладіть наступний текст на {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:250
+#: sophie_bot/modules/ai/handlers/translate.py:274
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:268
+#: sophie_bot/modules/ai/handlers/translate.py:292
 msgid "Error generating translation"
 msgstr "Помилка при генерації перекладу"
 

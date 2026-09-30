@@ -173,6 +173,10 @@ git worktree remove ../sophie-feature
 git branch -D feature/my-feature
 ```
 
+## Translation display
+
+Translation quotations become expandable only when the rendered text is estimated to exceed three visible lines. Markdown delimiters and link URLs do not count toward visible length. Client wrapping can differ because fonts and screen widths vary.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)

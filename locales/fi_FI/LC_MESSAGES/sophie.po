@@ -917,39 +917,39 @@ msgstr ""
 msgid "Chat"
 msgstr "Keskustelu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:108
+#: sophie_bot/modules/ai/handlers/translate.py:129
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "Kielestä {from_lang} kieleen {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:118
+#: sophie_bot/modules/ai/handlers/translate.py:142
 msgid "Translation Notes"
 msgstr "Käännösmuistiinpanoja"
 
-#: sophie_bot/modules/ai/handlers/translate.py:129
+#: sophie_bot/modules/ai/handlers/translate.py:153
 msgid "Text to translate"
 msgstr "Käännettävä teksti"
 
-#: sophie_bot/modules/ai/handlers/translate.py:136
+#: sophie_bot/modules/ai/handlers/translate.py:160
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Kääntää annetun (tai vastatun) tekstin keskustelun valitulle kielelle. Kääntää myös vastatun ääniviestin tekstiksi"
 
-#: sophie_bot/modules/ai/handlers/translate.py:161
+#: sophie_bot/modules/ai/handlers/translate.py:185
 #: sophie_bot/modules/ai/utils/message_history.py:192
 msgid "Transcribing voice message..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:184
-#: sophie_bot/modules/ai/handlers/translate.py:187
+#: sophie_bot/modules/ai/handlers/translate.py:208
+#: sophie_bot/modules/ai/handlers/translate.py:211
 msgid "Please provide text to translate."
 msgstr "Anna käännettävä teksti."
 
-#: sophie_bot/modules/ai/handlers/translate.py:204
+#: sophie_bot/modules/ai/handlers/translate.py:228
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Jos mahdollista, käännä valokuva kielelle {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:225
+#: sophie_bot/modules/ai/handlers/translate.py:249
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -958,11 +958,11 @@ msgstr ""
 "Käännä seuraava teksti {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:250
+#: sophie_bot/modules/ai/handlers/translate.py:274
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:268
+#: sophie_bot/modules/ai/handlers/translate.py:292
 msgid "Error generating translation"
 msgstr "Virhe käännöksen luomisessa"
 
