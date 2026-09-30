@@ -111,7 +111,11 @@ def test_old_rich_battery_footer_is_not_reused_as_reply_context() -> None:
                     {
                         "type": "paragraph",
                         "text": [
-                            {"type": "custom_emoji", "custom_emoji_id": "5816915599019741395", "alternative_text": "🔋"},
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": "5816915599019741395",
+                                "alternative_text": "🔋",
+                            },
                             " 95%",
                         ],
                     },

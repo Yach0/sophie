@@ -57,9 +57,7 @@ def test_details_keep_summaries_nested_contents_and_credits() -> None:
                     RichBlockDetails(
                         summary="Nested summary",
                         blocks=[
-                            RichBlockBlockQuotation(
-                                blocks=[RichBlockParagraph(text="Quoted text")], credit="Author"
-                            )
+                            RichBlockBlockQuotation(blocks=[RichBlockParagraph(text="Quoted text")], credit="Author")
                         ],
                     ),
                     RichBlockCollage(

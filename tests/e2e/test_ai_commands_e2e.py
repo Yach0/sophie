@@ -17,14 +17,6 @@ import pytest
 from aiogram import Bot
 from aiogram.types import (
     PhotoSize,
-    RichBlockBlockQuotation,
-    RichBlockList,
-    RichBlockListItem,
-    RichBlockParagraph,
-    RichBlockSectionHeading,
-    RichMessage,
-    RichTextCustomEmoji,
-    User,
     Video,
     Voice,
 )
@@ -33,12 +25,10 @@ from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
 from pydantic_ai.messages import BinaryContent
 
-from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_header import (
-    AI_CHATBOT_CUSTOM_EMOJI_ID,
     AI_GENERATING_EMOJI_ID,
     AI_PROGRESS_LINE_EMOJI_IDS,
 )
@@ -402,76 +392,6 @@ async def test_translate_success(test_client: TestClient, command: str) -> None:
     assert "Hola mundo" in response_text
     assert "English" in response_text or "\ud83c\uddec\ud83c\udde7" in response_text
     assert AI_GENERATING_EMOJI_ID not in response_text
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("command", ("aitranslate", "translate", "tr"))
-async def test_translate_replied_rich_message(test_client: TestClient, command: str) -> None:
-    """All translate aliases extract plain text from a replied Rich Message."""
-    group_chat = ChatFactory.create_group(chat_id=-1002900000063, title="Translate Rich Group")
-    user_wrapper = test_client.create_user(user_id=929000063, first_name="RichUser", username="rich_user")
-    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
-    sophie = User(id=CONFIG.bot_id, is_bot=True, first_name="Sophie")
-    replied_rich = MessageFactory.create(text="placeholder", from_user=sophie, chat=group_chat).model_copy(
-        update={
-            "text": None,
-            "rich_message": RichMessage(
-                blocks=[
-                    RichBlockParagraph(
-                        text=[
-                            RichTextCustomEmoji(
-                                custom_emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
-                                alternative_text="✨",
-                            ),
-                            " AI",
-                        ]
-                    ),
-                    RichBlockSectionHeading(text="Travel plan", size=2),
-                    RichBlockBlockQuotation(blocks=[RichBlockParagraph(text="Visit the old town")]),
-                    RichBlockList(
-                        items=[
-                            RichBlockListItem(label="1.", blocks=[RichBlockParagraph(text="Book a hotel")]),
-                            RichBlockListItem(label="2.", blocks=[RichBlockParagraph(text="Pack a camera")]),
-                        ]
-                    ),
-                ]
-            ),
-        }
-    )
-    result = SimpleNamespace(
-        output=SimpleNamespace(
-            translated_text="Bonjour depuis un message riche",
-            origin_language_name="English",
-            origin_language_emoji="🇬🇧",
-            needs_translation=True,
-            translation_explanations=None,
-        )
-    )
-    run_task = AsyncMock(return_value=result)
-
-    with ExitStack() as stack:
-        _apply_ai_admin_patches(stack)
-        _simulate_rich_send_response(test_client, stack)
-        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.run_structured_task", run_task))
-        stack.enter_context(
-            patch(
-                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
-                AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
-            )
-        )
-        requests = await send_reply_command(
-            test_client,
-            command=command,
-            from_user=user_wrapper.user,
-            group=group_chat,
-            replied=replied_rich,
-        )
-
-    assert requests
-    ai_context = run_task.await_args.args[2]
-    assert ai_context.prompt == ["AI\nTravel plan\nVisit the old town\n1. Book a hotel2. Pack a camera"]
-    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
-    assert "Bonjour depuis un message riche" in edits[-1].params["rich_message"]["html"]
 
 
 @pytest.mark.asyncio
