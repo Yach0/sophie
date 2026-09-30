@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram.exceptions import (
@@ -623,24 +623,33 @@ async def test_false_unmute_keeps_snapshot_for_retry(mock_bot: AsyncMock) -> Non
 async def test_nearly_expired_original_restriction_is_released_after_restore(
     mock_bot: AsyncMock, ambiguous: bool
 ) -> None:
-    deadline = datetime.now(UTC) + timedelta(seconds=20)
+    deadline = datetime.now(UTC) + timedelta(seconds=50)
     original = make_member(True, deadline).model_copy(update={"can_invite_users": False})
     mock_bot.get_chat_member.side_effect = [
         original,
         make_member(False),
         original.model_copy(update={"until_date": datetime.fromtimestamp(0, UTC)}),
+        original.model_copy(update={"until_date": datetime.fromtimestamp(0, UTC)}),
     ]
     await execute_restriction(mock_bot, RestrictionAction.MUTE, CHAT_TID, USER_TID)
     if ambiguous:
-        mock_bot.restrict_chat_member.side_effect = [TelegramNetworkError(method="test", message="timeout"), True]
+        mock_bot.restrict_chat_member.side_effect = [TelegramNetworkError(method="test", message="timeout"), True, True]
     await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
     snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
     assert snapshot is not None
-    assert snapshot.restore_group_defaults is True
-    assert snapshot.expires_at == deadline.replace(microsecond=deadline.microsecond // 1000 * 1000)
-    snapshot.expires_at = datetime.now(UTC) - timedelta(seconds=1)
-    await snapshot.save()
-    await restore_expired_permissions(mock_bot)
+    assert mock_bot.restrict_chat_member.await_args.kwargs["permissions"].can_invite_users is False
+    result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
+    assert result.applied is True
+    assert mock_bot.restrict_chat_member.await_args.kwargs["permissions"].can_invite_users is False
+    assert mock_bot.restrict_chat_member.await_args.kwargs["until_date"] is None
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
+    assert snapshot is not None
+    assert snapshot.restore_group_defaults is False
+    assert snapshot.previous_until == deadline.replace(microsecond=deadline.microsecond // 1000 * 1000)
+    assert snapshot.expires_at == snapshot.previous_until
+    with patch("sophie_bot.modules.restrictions.utils.restrictions.datetime", wraps=datetime) as clock:
+        clock.now.return_value = deadline
+        await restore_expired_permissions(mock_bot)
     assert all(mock_bot.restrict_chat_member.await_args.kwargs["permissions"].model_dump().values())
     assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None
 
@@ -700,9 +709,9 @@ async def test_ambiguous_near_expiry_restore_can_release_when_telegram_kept_mute
     await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
     snapshot = await MutePermissionsModel.find_one({"chat_tid": CHAT_TID})
     assert snapshot is not None
-    snapshot.expires_at = datetime.now(UTC) - timedelta(seconds=1)
-    await snapshot.save()
-    await restore_expired_permissions(mock_bot)
+    with patch("sophie_bot.modules.restrictions.utils.restrictions.datetime", wraps=datetime) as clock:
+        clock.now.return_value = original.until_date
+        await restore_expired_permissions(mock_bot)
     assert all(mock_bot.restrict_chat_member.await_args.kwargs["permissions"].model_dump().values())
     assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None
 

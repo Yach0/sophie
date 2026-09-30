@@ -141,7 +141,7 @@ async def _restore(bot: Bot, chat_tid: int, user_tid: int, *, expired_only: bool
         snapshot.applied_permissions = permissions
         snapshot.applied_until = None
         snapshot.expires_at = previous_until
-        snapshot.restore_group_defaults = True
+        # Keep the original restoration policy for retries before its deadline.
         await snapshot.save()
     try:
         applied = await bot.restrict_chat_member(
