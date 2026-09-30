@@ -158,6 +158,13 @@ class ProcessFederationBans:
             task.original_message_text,
             redis=self.services.redis,
         )
+        for subscribing_federation, subscribing_ban in lazy_bans:
+            await FederationBanService.ban_user_in_federation_chats(
+                subscribing_federation,
+                subscribing_ban,
+                task.target_user_id,
+                bot=self.services.bot,
+            )
         lazy_ban_count = len(lazy_bans)
 
         task.banned_count = banned_count
