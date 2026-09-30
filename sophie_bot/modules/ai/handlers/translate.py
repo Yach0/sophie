@@ -4,6 +4,7 @@ from typing import Any, Final
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
+from aiogram.utils.text_decorations import HtmlDecoration
 from ass_tg.types import TextArg
 from redis.asyncio import Redis
 from stfu_tg import (
@@ -38,9 +39,9 @@ from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
+from sophie_bot.modules.notes.utils.extract_markdown_entities import extract_markdown_entities
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
@@ -119,6 +120,7 @@ def _build_translate_reply_doc(
 ) -> Doc:
     """Format the translation response document."""
     header = build_ai_header(header_style, quota_header or "")
+    visible_text, entities = extract_markdown_entities(translated.translated_text)
     return build_ai_message_doc(
         header,
         (
@@ -133,8 +135,8 @@ def _build_translate_reply_doc(
             else None
         ),
         BlockQuote(
-            PreformattedHTML(ai_markdown_to_html(translated.translated_text)),
-            expandable=_translation_likely_exceeds_visible_lines(translated.translated_text),
+            PreformattedHTML(HtmlDecoration().unparse(visible_text, entities)),
+            expandable=_translation_likely_exceeds_visible_lines(visible_text),
         ),
         (
             Section(translated.translation_explanations, title=_("Translation Notes"))

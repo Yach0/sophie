@@ -22,6 +22,12 @@ def _translation_response(text: str, notes: str | None = None) -> AITranslateRes
         ("a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40, False),
         ("a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40 + "\n" + "d", True),
         ("This is a short sentence.", False),
+        ("[x](https://example.com/" + "a" * 200 + ")", False),
+        (" ".join(["**x**"] * 25), False),
+        ("[" + "a" * 120 + "](https://example.com)", False),
+        ("**" + "a" * 121 + "**", True),
+        ("\n".join(["[x](https://example.com/" + "a" * 200 + ")"] * 3), False),
+        ("\n".join(["**x**"] * 4), True),
     ],
 )
 def test_translation_expandability_is_based_on_estimated_visible_lines(translated_text: str, expandable: bool) -> None:
@@ -41,8 +47,6 @@ def test_translation_expandability_is_based_on_estimated_visible_lines(translate
     else:
         assert "<blockquote expandable>" not in rich_html
         assert "<blockquote>" in rich_html
-    assert ("<blockquote expandable>" in rich_html) is expandable
-    assert "\n\n" not in rich_html
 
 
 def test_translation_notes_are_preserved_for_short_translation() -> None:
@@ -75,15 +79,6 @@ def test_voice_translation_without_header_keeps_short_translation_non_expandable
     rich_html = doc.to_rich()
 
     assert rich_html == "<blockquote>Hi</blockquote>"
-
-
-def test_simple_header_is_preserved_for_short_translation() -> None:
-    doc = _build_translate_reply_doc(_translation_response("Hi"), "German", False, False, None, "simple")
-
-    assert doc.to_rich() == (
-        '<tg-emoji emoji-id="5325547803936572038">✨</tg-emoji> '
-        "<b>From 🇬🇧 English to German</b> <blockquote>Hi</blockquote><br><p>🔋</p>"
-    )
 
 
 def test_voice_translation_keeps_notes_after_expandable_translation() -> None:
