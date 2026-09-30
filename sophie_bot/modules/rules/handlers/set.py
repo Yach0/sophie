@@ -31,9 +31,7 @@ class SetRulesHandler(SophieMessageHandler):
         saveable = await parse_saveable(
             self.event,
             content,
-            owner_chat_tid=self.event.chat.id,
             bot=self.services.bot,
-            redis=self.services.redis,
         )
 
         # `content` is optional because the rules may come from a replied message instead,

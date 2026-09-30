@@ -9,8 +9,7 @@ from typing import Any
 from aiogram import Bot
 from aiogram.types import InputRichMessage, Message
 from redis.asyncio import Redis
-from stfu_tg import Doc, HList, Italic, Template
-from stfu_tg.ai_md import ai_markdown_to_doc
+from stfu_tg import Doc, Italic, Template
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
@@ -23,14 +22,13 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
 # Telegram's limit also includes the animated marker, action status and three custom emoji.
 _MAX_STREAM_TEXT_LENGTH = 4096 - 512
-_MAX_REASONING_TAIL_LENGTH = 400
 
 
 def _coerce_stream_backoff_seconds(value: object) -> float:
@@ -47,16 +45,6 @@ def _truncate_stream_text(output_text: str) -> str:
     return f"{output_text[: _MAX_STREAM_TEXT_LENGTH - 3]}..."
 
 
-def _reasoning_tail(reasoning_text: str) -> str:
-    # Collapse only the slice that can survive truncation: reasoning traces run to thousands of
-    # characters and this is called for every update.
-    tail = reasoning_text[-(_MAX_REASONING_TAIL_LENGTH * 4) :]
-    collapsed = " ".join(tail.split())
-    if len(collapsed) <= _MAX_REASONING_TAIL_LENGTH and len(tail) == len(reasoning_text):
-        return collapsed
-    return f"...{collapsed[-_MAX_REASONING_TAIL_LENGTH:]}"
-
-
 class ChatbotMessageStreamer:
     def __init__(
         self,
@@ -65,8 +53,6 @@ class ChatbotMessageStreamer:
         throttle_seconds: float,
         *,
         redis: Redis,
-        reasoning_as_tool: bool = False,
-        stack_tools: bool = False,
         strip_alien_html_tags: bool = False,
     ) -> None:
         self.source_message = source_message
@@ -77,10 +63,7 @@ class ChatbotMessageStreamer:
         self.status: Element | None = None
         self.activity_history: list[Element | str] = []
         self.activity_started = False
-        self.reasoning_as_tool = reasoning_as_tool
-        self.stack_tools = stack_tools
         self.reasoning_seen = False
-        self.reasoning: Element | None = None
         self.throttle_seconds = throttle_seconds
         self.strip_alien_html_tags = strip_alien_html_tags
         self.response_message: Message | None = None
@@ -119,32 +102,14 @@ class ChatbotMessageStreamer:
         await self._flush_draft()
 
     async def stream_reasoning(self, reasoning_text: str) -> None:
-        """Show reasoning once as an activity or keep its latest tail below the draft."""
-        if self.response_message is None:
+        """Show the first nonempty reasoning pass as a private progress activity."""
+        if self.response_message is None or self.reasoning_seen or not reasoning_text.strip():
             return
-        if self.reasoning_as_tool:
-            if self.reasoning_seen or not reasoning_text.strip():
-                return
-            self.reasoning_seen = True
-            self.activity_started = True
-            label = _("Reasoning...")
-            if self.stack_tools:
-                self.activity_history.append(label)
-                self.status = None
-            else:
-                self.status = Italic(label)
-            await self._refresh_progress()
-            return
-
-        tail = _reasoning_tail(reasoning_text)
-        if not tail:
-            return
-
-        self.reasoning = ai_markdown_to_doc(tail)
+        self.reasoning_seen = True
         self.activity_started = True
+        self.activity_history.append(_("Reasoning..."))
         self.status = None
-        if not self._throttled():
-            await self._refresh_progress()
+        await self._refresh_progress()
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
         tool = AI_TOOLS_BY_NAME.get(tool_name)
@@ -155,34 +120,17 @@ class ChatbotMessageStreamer:
 
     async def update_processing_activity(self, activity: str) -> None:
         self.activity_started = True
-        if self.stack_tools:
-            self.activity_history.append(activity)
-            self.status = None
-            await self._refresh_progress()
-        else:
-            await self._update_status(Italic(activity))
+        self.activity_history.append(activity)
+        self.status = None
+        await self._refresh_progress()
 
     async def update_retrying(self, attempt: int, total_attempts: int) -> None:
-        self.reasoning = None
-        if self.stack_tools:
-            self.activity_history.append(
-                Template(_("Retrying ({attempt}/{total_attempts})..."), attempt=attempt, total_attempts=total_attempts)
-            )
-            self.activity_started = True
-            self.status = None
-            await self._refresh_progress()
-            return
-        await self._update_status(
-            Italic(
-                HList(
-                    random_ai_thinking_text(),
-                    Template(
-                        _("(Retrying {attempt}/{total_attempts}...)"), attempt=attempt, total_attempts=total_attempts
-                    ),
-                    divider=" ",
-                )
-            )
+        self.activity_history.append(
+            Template(_("Retrying ({attempt}/{total_attempts})..."), attempt=attempt, total_attempts=total_attempts)
         )
+        self.activity_started = True
+        self.status = None
+        await self._refresh_progress()
 
     async def update_research_progress(self, stage: ResearchProgressStage) -> None:
         await self._update_status(Italic(random_research_progress_text(stage)))
@@ -271,8 +219,6 @@ class ChatbotMessageStreamer:
     def _build_progress_doc(self, body: Element | str) -> Doc:
         return build_ai_progress_doc(
             body,
-            self.status,
-            reasoning=self.reasoning,
             activity_history=self.activity_history,
         )
 
@@ -330,17 +276,11 @@ async def build_message_streamer(
     if explicit_debug_mode:
         return None
 
-    backoff, reasoning_as_tool, stack_tools = await asyncio.gather(
-        get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id, redis=redis),
-        is_enabled("ai_chatbot_reasoning_as_tool", chat_tid=message.chat.id, redis=redis),
-        is_enabled("ai_chatbot_stack_progress_tools", chat_tid=message.chat.id, redis=redis),
-    )
+    backoff = await get_value("ai_chatbot_streaming_backoff_seconds", chat_tid=message.chat.id, redis=redis)
     streamer = ChatbotMessageStreamer(
         source_message=message,
         status=random_ai_thinking_text(),
         throttle_seconds=_coerce_stream_backoff_seconds(backoff),
-        reasoning_as_tool=reasoning_as_tool,
-        stack_tools=stack_tools,
         redis=redis,
         strip_alien_html_tags=strip_alien_html_tags,
     )

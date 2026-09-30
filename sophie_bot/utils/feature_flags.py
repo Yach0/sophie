@@ -41,14 +41,10 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_chatbot_research_quote",
     "ai_chatbot_streaming_backoff_seconds",
     "ai_chatbot_stream_continuation",
-    "ai_chatbot_stream_reasoning",
-    "ai_chatbot_reasoning_as_tool",
-    "ai_chatbot_stack_progress_tools",
     "ai_chatbot_request_limit",
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
     "ai_chatbot_history_max_age_minutes",
-    "ai_chatbot_tool_history",
     "ai_chatbot_tool_history_max_chars",
     "ai_translations",
     "ai_moderation",
@@ -85,6 +81,7 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_filters_jev_model",
     "ai_filters_header_style",
     "ai_chat_summaries",
+    "ai_chat_summaries_pin",
     "ai_chat_summaries_header_style",
     "ai_summary_improved_privacy",
     "ai_note_titles",
@@ -105,7 +102,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_proactive_replies_max_answers",
     "ai_proactive_replies_max_reactions",
     "ai_research_model",
-    "ai_sophie_inspect",
     "ai_sophie_inspect_model",
     "ai_sophie_inspect_chats",
     "ai_sophie_inspect_daily_chat_limit",
@@ -116,11 +112,8 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_research_queries_per_round",
     "ai_research_results_per_query",
     "ai_research_service_tier",
-    "ai_chatbot_mention_usernames",
-    "ai_entertainment_boost",
     "ai_entertainment_monthly_credits",
     "connection_webapp_notice",
-    "saveable_rich_messages",
 ]
 
 
@@ -269,22 +262,14 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot": _feature(True),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
-    # Off restores `Agent.run_stream`, which ends the agent loop at the first text token and so
-    # drops any tool call the model makes after narrating. Rollback switch only: it also disables
-    # `ai_chatbot_stream_reasoning`, which the old path cannot support.
-    # Delete it, `_stream_via_run_stream`, and its test once the new path has held in
-    # production for a release.
+    # Off restores `Agent.run_stream`, which stops at the first text token and can drop
+    # later tool calls. That path also cannot show reasoning progress.
+    # Delete this rollback switch and `_stream_via_run_stream` after the new path holds in production.
     "ai_chatbot_stream_continuation": _feature(True),
-    "ai_chatbot_stream_reasoning": _feature(False),
-    "ai_chatbot_reasoning_as_tool": _feature(False),
-    "ai_chatbot_stack_progress_tools": _feature(False),
     "ai_chatbot_request_limit": _feature(4),
     "ai_chatbot_tool_calls_limit": _feature(6),
     "ai_chatbot_response_tokens_limit": _feature(2048),
     "ai_chatbot_history_max_age_minutes": _feature(30),
-    # Replays previous tool calls and their results into the chatbot history, so a follow-up
-    # question reuses what was already looked up instead of repeating the same search.
-    "ai_chatbot_tool_history": _feature(False),
     "ai_chatbot_tool_history_max_chars": _feature(4000),
     "ai_translations": _feature(True),
     "ai_moderation": _feature(True),
@@ -327,6 +312,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filters_jev_model": _feature("typesafe/jev-1.13", _AI_MODEL_FEATURE),
     "ai_filters_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     "ai_chat_summaries": _feature(True),
+    "ai_chat_summaries_pin": _feature(False),
     "ai_chat_summaries_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     # Sends the summary transcript with positional references and pseudonymous speakers instead of
     # real Telegram message IDs, usernames, and absolute timestamps.
@@ -351,8 +337,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_proactive_replies_max_answers": _feature(1),
     "ai_proactive_replies_max_reactions": _feature(1),
     "ai_research_model": _feature("", _AI_MODEL_FEATURE),
-    # Experimental: a sub-agent reading Sophie's own sources. Every limit below bounds one run.
-    "ai_sophie_inspect": _feature(False),
     "ai_sophie_inspect_model": _feature("", _AI_MODEL_FEATURE),
     # Group chats allowed to use source inspection, beyond the Sophie-help assistant.
     "ai_sophie_inspect_chats": _feature("-1001202504432"),
@@ -366,14 +350,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_research_queries_per_round": _feature(5),
     "ai_research_results_per_query": _feature(5),
     "ai_research_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
-    # Rewrites @DisplayName mentions the model wrote into real @usernames on the way out.
-    # Output-side only: usernames never enter the prompt, so this cannot leak into the model.
-    "ai_chatbot_mention_usernames": _feature(False),
-    "ai_entertainment_boost": _feature(False),
     "ai_entertainment_monthly_credits": _feature(200000),
     # Announces the /connection deprecation; stays off until the replacement webapp is deployed.
     "connection_webapp_notice": _feature(False),
-    "saveable_rich_messages": _feature(False),
 }
 
 _DEFAULT_STATES: Final[dict[FeatureType, FeatureValue]] = {

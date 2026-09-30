@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import sentry_sdk
 from pydantic_ai import ModelRetry, RunContext, Tool
 
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.metrics import track_ai_tool
-from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.utils_.admin import is_user_admin
 
@@ -29,28 +29,15 @@ async def write_memory(ctx: RunContext[SophieAIToolContext], information_to_save
         )
 
     async with track_ai_tool("write_memory"):
-        with ai_span("ai.memory.write") as span:
-            if span is not None:
-                span.set_attribute("outcome", "failure")
-            current_lines = await AIMemoryModel.get_lines(ctx.deps.chat_iid)
-            memory_count = len(current_lines)
-            if span is not None:
-                span.set_attribute("memory_present", bool(current_lines))
-                span.set_attribute("memory_count", memory_count)
+        with sentry_sdk.start_span(op="ai.state", name="Write chat memory") as span:
+            memory_count = len(await AIMemoryModel.get_lines(ctx.deps.chat_iid))
+            span.set_data("ai.memory.count_before", memory_count)
             if memory_count >= _MAX_MEMORY_LINES:
-                if span is not None:
-                    span.set_attribute("outcome", "full")
-            else:
-                await AIMemoryModel.append_line(ctx.deps.connection.db_model, normalized_information)
-                if span is not None:
-                    span.set_attribute("outcome", "saved")
-                    span.set_attribute("memory_count_after", memory_count + 1)
-
-        if memory_count >= _MAX_MEMORY_LINES:
-            raise ModelRetry(
-                f"Memory is full ({_MAX_MEMORY_LINES} items maximum). "
-                "Use forget_memory to remove outdated items before adding new ones."
-            )
+                raise ModelRetry(
+                    f"Memory is full ({_MAX_MEMORY_LINES} items maximum). "
+                    "Use forget_memory to remove outdated items before adding new ones."
+                )
+            await AIMemoryModel.append_line(ctx.deps.connection.db_model, normalized_information)
 
     return "Saved to memory."
 
@@ -72,15 +59,11 @@ async def forget_memory(ctx: RunContext[SophieAIToolContext], index: int) -> str
         raise ModelRetry("Memory indexes start at 1. Provide a valid memory index from the memory list.")
 
     async with track_ai_tool("forget_memory"):
-        with ai_span("ai.memory.forget") as span:
-            if span is not None:
-                span.set_attribute("outcome", "failure")
+        with sentry_sdk.start_span(op="ai.state", name="Forget chat memory") as span:
             removed = await AIMemoryModel.remove_line_by_index(ctx.deps.chat_iid, index - 1)
-            if span is not None:
-                span.set_attribute("outcome", "removed" if removed else "not_found")
-
-    if not removed:
-        raise ModelRetry("No memory exists at that index. Use an index from the current memory list.")
+            span.set_data("ai.memory.removed", removed)
+            if not removed:
+                raise ModelRetry("No memory exists at that index. Use an index from the current memory list.")
 
     return "Memory forgotten."
 

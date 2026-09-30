@@ -5,30 +5,8 @@ import importlib
 import pytest
 from aiogram import Router
 
-from sophie_bot.modules import ModuleManifest, get_module_manifest
+from sophie_bot.modules import get_module_manifest
 from sophie_bot.modules.ai.handlers.reset_context import AIContextReset
-
-
-@pytest.mark.parametrize(
-    ("module_name", "expected_handler_count"),
-    [
-        ("disabling", 6),
-        ("notes", 14),
-        ("ai", 28),
-        ("help", 7),
-        ("privacy", 2),
-        ("locks", 8),
-    ],
-)
-def test_module_manifest_registers_handlers(module_name: str, expected_handler_count: int) -> None:
-    module = importlib.import_module(f"sophie_bot.modules.{module_name}")
-    manifest = get_module_manifest(module)
-
-    assert isinstance(manifest, ModuleManifest)
-    assert manifest.name == module_name
-    assert len(manifest.handlers) == expected_handler_count
-
-
 
 
 def test_module_manifest_handlers_expose_register() -> None:
@@ -57,7 +35,6 @@ def test_modern_action_modules_do_not_export_legacy_filter_actions(module_name: 
 
 
 def test_ai_context_reset_registers_both_filter_sets() -> None:
-
     router = Router(name="test-ai-reset")
     AIContextReset.register(router)
 

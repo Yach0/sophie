@@ -1,6 +1,5 @@
 import re
 from html.parser import HTMLParser
-from typing import Final
 
 from aiogram import Bot
 from aiogram.enums import ContentType
@@ -24,7 +23,6 @@ from aiogram.types import (
     ReplyParameters,
     User,
 )
-from redis.asyncio import Redis
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
@@ -38,7 +36,6 @@ from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT, MED
 from sophie_bot.modules.notes.utils.rich import render_rich_message, rich_message_to_input, strip_rich_buttons
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 _TELEGRAM_ENTITY = re.compile(r"&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);?")
@@ -153,60 +150,6 @@ async def _send_rich_saveable(
     return sent
 
 
-TEXT_LENGTH_LIMIT: Final[int] = 4090
-
-
-async def _send_text_chunks(
-    send_to: int,
-    text: str,
-    inline_markup: InlineKeyboardMarkup,
-    reply_to: int | None,
-    message_thread_id: int | None,
-    receiver_user_id: int | None,
-    collect_sent: list[Message] | None,
-    *,
-    bot: Bot,
-) -> Message | None:
-    first_message: Message | None = None
-    text_chunks = [text[start : start + TEXT_LENGTH_LIMIT] for start in range(0, len(text), TEXT_LENGTH_LIMIT)]
-    for chunk_index, text_chunk in enumerate(text_chunks):
-        chunk_markup = inline_markup if chunk_index == 0 else None
-        has_reply = chunk_index == 0 and reply_to is not None
-
-        async def reply_not_found(
-            fallback_text: str = text_chunk,
-            fallback_markup: InlineKeyboardMarkup | None = chunk_markup,
-        ) -> Message:
-            return await SendMessage(
-                chat_id=send_to,
-                text=fallback_text,
-                parse_mode=None,
-                reply_markup=fallback_markup,
-                link_preview_options=LinkPreviewOptions(is_disabled=True),
-                message_thread_id=message_thread_id,
-                receiver_user_id=receiver_user_id,
-            ).emit(bot)
-
-        sent = await common_try(
-            to_try=SendMessage(
-                chat_id=send_to,
-                text=text_chunk,
-                parse_mode=None,
-                reply_markup=chunk_markup,
-                link_preview_options=LinkPreviewOptions(is_disabled=True),
-                reply_parameters=ReplyParameters(message_id=reply_to) if has_reply else None,
-                message_thread_id=message_thread_id,
-                receiver_user_id=receiver_user_id,
-            ).emit(bot),
-            reply_not_found=reply_not_found,
-        )
-        if first_message is None and isinstance(sent, Message):
-            first_message = sent
-        if collect_sent is not None and isinstance(sent, Message):
-            collect_sent.append(sent)
-    return first_message
-
-
 def _build_input_media(note_file: NoteFile, caption: str | None) -> MediaUnion:
     """Builds a sendMediaGroup item from a stored note file.
 
@@ -306,10 +249,8 @@ async def send_saveable(
     receiver_user_id: int | None = None,
     collect_sent: list[Message] | None = None,
     owner_chat_tid: int | None = None,
-    split_long_text: bool = False,
     *,
     bot: Bot,
-    redis: Redis,
 ) -> Message | None:
     """Sends a saveable, returning its primary message.
 
@@ -352,54 +293,28 @@ async def send_saveable(
         if additional_keyboard:
             inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 
-    rich_enabled = False
     if saveable.rich_message is not None:
-        rich_owner_chat_tid = owner_chat_tid or (
-            connection.db_model.tid if connection else (message.chat.id if message else send_to)
+        return await _send_rich_saveable(
+            send_to,
+            saveable,
+            message=message,
+            reply_to=reply_to,
+            title=title,
+            raw=bool(raw),
+            inline_markup=inline_markup,
+            message_thread_id=message_thread_id,
+            receiver_user_id=receiver_user_id,
+            additional_fillings=additional_fillings,
+            user=user,
+            collect_sent=collect_sent,
+            bot=bot,
         )
-        rich_enabled = await is_enabled(
-            "saveable_rich_messages",
-            chat_tid=rich_owner_chat_tid,
-            redis=redis,
-        )
-        if rich_enabled:
-            return await _send_rich_saveable(
-                send_to,
-                saveable,
-                message=message,
-                reply_to=reply_to,
-                title=title,
-                raw=bool(raw),
-                inline_markup=inline_markup,
-                message_thread_id=message_thread_id,
-                receiver_user_id=receiver_user_id,
-                additional_fillings=additional_fillings,
-                user=user,
-                collect_sent=collect_sent,
-                bot=bot,
-            )
-    # Process fillings
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)
 
     # Apply random choice sections (%%%...%%%)
     if text:
         text = parse_random_text(text)
     title_html = parse_random_text(title.to_html()) if title else None
-    should_split_long_text = split_long_text or (saveable.rich_message is not None and not rich_enabled)
-    if should_split_long_text and _telegram_text_length(text) > TELEGRAM_MESSAGE_LENGTH_LIMIT and not single_file:
-        if title_html:
-            text = f"{title_html}\n{text}"
-        text = _telegram_plain_text(text)
-        return await _send_text_chunks(
-            send_to,
-            text,
-            inline_markup,
-            reply_to,
-            message_thread_id,
-            receiver_user_id,
-            collect_sent,
-            bot=bot,
-        )
 
     text_limit = (
         MEDIA_CAPTION_LENGTH_LIMIT

@@ -114,7 +114,6 @@ async def test_parse_saveable_collects_album_files(test_services: ApplicationSer
         buttons=ButtonsList(),
         album=album,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert saveable.file is None, "Album notes must not set the single `file`"
@@ -193,7 +192,6 @@ async def test_send_saveable_sends_media_group(test_client: TestClient, monkeypa
         send_to=CHAT_ID,
         saveable=_album_saveable(text="Album caption"),
         bot=test_client.bot,
-        redis=test_client.dispatcher.workflow_data["services"].redis,
     )
 
     media_group_requests = test_client.capture.get_by_type(RequestType.SEND_MEDIA_GROUP)
@@ -218,7 +216,6 @@ async def test_send_saveable_single_photo_note(test_client: TestClient, monkeypa
         send_to=CHAT_ID,
         saveable=saveable,
         bot=test_client.bot,
-        redis=test_client.dispatcher.workflow_data["services"].redis,
     )
 
     photo_requests = test_client.capture.get_by_type(RequestType.SEND_PHOTO)
@@ -252,7 +249,6 @@ async def test_send_saveable_album_buttons_go_to_followup(
         send_to=CHAT_ID,
         saveable=saveable,
         bot=test_client.bot,
-        redis=test_client.dispatcher.workflow_data["services"].redis,
     )
 
     assert len(test_client.capture.get_by_type(RequestType.SEND_MEDIA_GROUP)) == 1, "Album should still be sent"

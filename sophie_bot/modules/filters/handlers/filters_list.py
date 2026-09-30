@@ -1,3 +1,4 @@
+from html.parser import HTMLParser
 from typing import Any
 
 from aiogram import F
@@ -31,6 +32,23 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.pagination import build_pagination_row, paginate
 
 _PAGE_SIZE = 8
+_MAX_FILTER_TEXT_LENGTH = 3900  # Keep room below Telegram's 4096-character text limit.
+_FILTER_EXCERPT_LENGTH = 512
+
+
+class _VisibleTextLength(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.length = 0
+
+    def handle_data(self, data: str) -> None:
+        self.length += len(data.encode("utf-16-le")) // 2
+
+
+def _fits_telegram_message(document: Doc) -> bool:
+    counter = _VisibleTextLength()
+    counter.feed(document.to_rich())
+    return counter.length <= _MAX_FILTER_TEXT_LENGTH
 
 
 @flags.disableable(name="filters")
@@ -209,14 +227,28 @@ async def _render_filter_page(
         await reply_or_edit_rich(event, document, bot=services.bot)
         return
 
-    page = paginate(all_filters, _PAGE_SIZE, requested_page)
+    # Page boundaries are rebuilt from the same ordered filters for commands and callbacks.
+    # Include the title, controls and fixed footer in every size check.
     edit_enabled = await is_enabled(
         "action_config_wizard",
         chat_tid=chat_tid,
         redis=services.redis,
     )
+    title = Template(_("Filters in {chat_name}"), chat_name=chat_title or "Unknown")
+
+    def document_for(rows: list[Any]) -> Doc:
+        document = Doc(Section(*rows, title=title))
+        document += " "
+        document += _("Additionally rules from 'Antiflood' module can be enforced.")
+        document += _("Additionally rules from 'Locks' module can be enforced.")
+        return document
+
+    pages: list[list[Any]] = []
     rows: list[Any] = []
-    for item in page.items:
+    count = 0
+    for item in all_filters:
+        action_text = filter_action_text(item.action, list(item.actions), services.modules.actions)
+        handler = item.handler
         controls: list[Button] = []
         if edit_enabled:
             controls.append(
@@ -229,24 +261,27 @@ async def _render_filter_page(
                 style="danger",
             )
         )
-        rows.extend(
-            (
-                KeyValue(
-                    item.handler,
-                    filter_action_text(
-                        item.action,
-                        list(item.actions),
-                        services.modules.actions,
-                    ),
-                    suffix=" -> ",
-                ),
-                Buttons(ButtonRow(*controls)),
-            )
-        )
-    document = Doc(Section(*rows, title=Template(_("Filters in {chat_name}"), chat_name=chat_title or "Unknown")))
-    document += " "
-    document += _("Additionally rules from 'Antiflood' module can be enforced.")
-    document += _("Additionally rules from 'Locks' module can be enforced.")
+        buttons = Buttons(ButtonRow(*controls))
+
+        candidate = [KeyValue(handler, action_text, suffix=" -> "), buttons]
+        if not _fits_telegram_message(document_for(candidate)):
+            # Truncate source text, not rendered markup, so STFU still escapes it.
+            if len(handler) > _FILTER_EXCERPT_LENGTH:
+                handler = handler[:_FILTER_EXCERPT_LENGTH] + "…"
+                candidate = [KeyValue(handler, action_text, suffix=" -> "), buttons]
+            if not _fits_telegram_message(document_for(candidate)):
+                action_text = _("Action description is too long to display.")
+                candidate = [KeyValue(handler, action_text, suffix=" -> "), buttons]
+
+        if rows and (count == _PAGE_SIZE or not _fits_telegram_message(document_for(rows + candidate))):
+            pages.append(rows)
+            rows = []
+            count = 0
+        rows.extend(candidate)
+        count += 1
+    pages.append(rows)
+    page = paginate(pages, 1, requested_page)
+    document = document_for(page.items[0])
 
     navigation = build_pagination_row(page, lambda page_number: FiltersPageCallback(page=page_number).pack())
     markup: InlineKeyboardMarkup | None = None

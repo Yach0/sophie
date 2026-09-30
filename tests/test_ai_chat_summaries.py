@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import ANY, AsyncMock, Mock
+from typing import cast
+from unittest.mock import ANY, AsyncMock, Mock, call
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import SendMessage
 from babel.dates import format_date, format_time
 
-from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine
+from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine, AIChatSummaryModel
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup
 from sophie_bot.modules.ai.schedules import generate_chat_summaries
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import (
@@ -25,7 +28,7 @@ from sophie_bot.modules.ai.utils.summary_transcript import UNKNOWN_TIME, build_s
 
 def _summaries() -> GenerateChatSummaries:
     return GenerateChatSummaries(
-        SimpleNamespace(redis=object(), bot=object()),
+        SimpleNamespace(redis=object(), bot=object(), locales=object()),
     )
 
 
@@ -395,7 +398,7 @@ async def test_process_chat_skips_when_summary_already_exists(monkeypatch: pytes
         )
         monkeypatch.setattr(
             "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.get_for_date",
-            AsyncMock(return_value=SimpleNamespace(lines=existing_lines)),
+            AsyncMock(return_value=SimpleNamespace(lines=existing_lines, pinned=False, sent_message_id=None)),
         )
         get_cached_messages_between = AsyncMock()
         monkeypatch.setattr(
@@ -499,7 +502,7 @@ def test_build_summary_doc_renders_lines() -> None:
     expected_time = format_time(datetime(2026, 5, 3, 8, 0, tzinfo=UTC), format="short", locale=locale)
 
     assert f"Chat history of {expected_day}" in html
-    assert "General overview" in html
+    assert "General overview" not in html
     assert "Topic" in html
     assert expected_time in html
     assert "💡" in html
@@ -532,7 +535,7 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
     assert "<blockquote" not in rich_html
     assert "Topic &lt;one&gt;" in rich_html
     assert "alice&amp;bob" in rich_html
-    assert "Overview &lt;with details&gt;" in rich_html
+    assert "Overview &lt;with details&gt;" not in rich_html
 
     assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> <h1>')
     assert "<table" not in rich_html
@@ -544,6 +547,7 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
     rich_sender = AsyncMock()
     monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
     monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="simple"))
+    monkeypatch.setattr(generate_chat_summaries, "is_enabled", AsyncMock(return_value=False))
     summary_date = date(2026, 5, 3)
     lines = [
         AIChatSummaryLine(
@@ -832,3 +836,111 @@ async def test_process_chat_drops_unknown_references_without_retrying_when_flag_
     assert generate_summary_groups.await_count == 1
     upsert_for_date.assert_awaited_once()
     send_summary.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_pin_summary_pins_generated_message_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(generate_chat_summaries, "is_enabled", AsyncMock(return_value=True))
+    summaries = _summaries()
+    summaries.services.bot = SimpleNamespace(pin_chat_message=AsyncMock())
+    summary = SimpleNamespace(
+        summary_date=date(2026, 5, 3),
+        sent_message_id=42,
+        pinned=False,
+        save=AsyncMock(),
+    )
+
+    await summaries.pin_summary(cast(AIChatSummaryModel, summary), -100123)
+
+    summaries.services.bot.pin_chat_message.assert_awaited_once_with(-100123, 42, disable_notification=True)
+    assert summary.pinned is True
+    summary.save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_pin_summary_failure_stays_retryable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(generate_chat_summaries, "is_enabled", AsyncMock(return_value=True))
+    pin_error = TelegramBadRequest(SendMessage(chat_id=-100123, text="test"), "not enough rights")
+    summaries = _summaries()
+    summaries.services.bot = SimpleNamespace(pin_chat_message=AsyncMock(side_effect=pin_error))
+    summary = SimpleNamespace(
+        summary_date=date(2026, 5, 3),
+        sent_message_id=42,
+        pinned=False,
+        save=AsyncMock(),
+    )
+
+    await summaries.pin_summary(cast(AIChatSummaryModel, summary), -100123)
+
+    assert summary.pinned is False
+    summary.save.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_uses_each_chats_latest_completed_schedule_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    morning_chat = SimpleNamespace(iid="morning-iid", tid=-1001, ai_summary_time_utc="07:45")
+    evening_chat = SimpleNamespace(iid="evening-iid", tid=-1002, ai_summary_time_utc="23:30")
+
+    async def chats():
+        for chat in (morning_chat, evening_chat):
+            yield chat
+
+    monkeypatch.setattr(generate_chat_summaries, "ForChats", chats)
+    monkeypatch.setattr(generate_chat_summaries, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        generate_chat_summaries,
+        "resolve_chat_capabilities",
+        AsyncMock(return_value=SimpleNamespace(message_cache=True)),
+    )
+    language_context = AsyncMock()
+    language_context.__aenter__.return_value = None
+    language_context.__aexit__.return_value = None
+    monkeypatch.setattr(generate_chat_summaries, "UseChatLanguage", Mock(return_value=language_context))
+    process_chat = AsyncMock()
+    monkeypatch.setattr(GenerateChatSummaries, "process_chat", process_chat)
+
+    now = datetime(2026, 5, 3, 12, 34, 47, tzinfo=UTC)
+    await _summaries().handle(now=now)
+
+    assert process_chat.await_args_list == [
+        call(
+            morning_chat,
+            date(2026, 5, 2),
+            window_start=datetime(2026, 5, 2, 7, 45, tzinfo=UTC),
+            window_end=datetime(2026, 5, 3, 7, 45, tzinfo=UTC),
+        ),
+        call(
+            evening_chat,
+            date(2026, 5, 1),
+            window_start=datetime(2026, 5, 1, 23, 30, tzinfo=UTC),
+            window_end=datetime(2026, 5, 2, 23, 30, tzinfo=UTC),
+        ),
+    ]
+
+
+def test_build_chat_summary_window_uses_previous_scheduled_boundary() -> None:
+    summary_date, window_start, window_end = generate_chat_summaries._build_chat_summary_window(
+        datetime(2026, 5, 3, 7, 50, tzinfo=UTC), "07:45"
+    )
+
+    assert summary_date == date(2026, 5, 2)
+    assert window_start == datetime(2026, 5, 2, 7, 45, tzinfo=UTC)
+    assert window_end == datetime(2026, 5, 3, 7, 45, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_existing_summary_retries_unfinished_pin(monkeypatch: pytest.MonkeyPatch) -> None:
+    existing_summary = SimpleNamespace(lines=[], sent_message_id=42, pinned=False)
+    monkeypatch.setattr(AIChatSummaryModel, "get_for_date", AsyncMock(return_value=existing_summary))
+    retry_pin = AsyncMock()
+    monkeypatch.setattr(GenerateChatSummaries, "pin_summary", retry_pin)
+    chat = SimpleNamespace(iid="chat-iid", tid=-1001)
+
+    await _summaries().process_chat(
+        chat,
+        date(2026, 5, 2),
+        window_start=datetime(2026, 5, 2, 7, 45, tzinfo=UTC),
+        window_end=datetime(2026, 5, 3, 7, 45, tzinfo=UTC),
+    )
+
+    retry_pin.assert_awaited_once_with(existing_summary, -1001)

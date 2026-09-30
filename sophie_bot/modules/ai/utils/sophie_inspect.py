@@ -15,7 +15,7 @@ from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.sophie_inspect_source import read_source, search_source
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_SOPHIE_INSPECT
-from sophie_bot.utils.feature_flags import FeatureType, get_value, is_enabled
+from sophie_bot.utils.feature_flags import FeatureType, get_value
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -129,16 +129,8 @@ async def run_sophie_inspect(
 ) -> str:
     """Answer a question about Sophie's behaviour by inspecting its own source.
 
-    Experimental and off by default: it costs several model requests, so it is rate limited per
-    chat per day and charged against the chat's AI quota like any other feature.
+    It is rate limited per chat per day and charged against the chat's AI quota like any other feature.
     """
-    if not await is_enabled(
-        "ai_sophie_inspect",
-        chat_tid=chat_tid,
-        redis=services.redis,
-    ):
-        return _("Source inspection is not available.")
-
     if not await _consume_daily_quota(
         chat_iid,
         chat_tid,

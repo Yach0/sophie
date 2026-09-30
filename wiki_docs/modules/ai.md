@@ -39,6 +39,8 @@ icon: ✨
 | `/aimoderator` | - | Tune what the AI moderator detects in this chat |  |
 | `/aiautotranslate` `/autotranslate` | `<?New status>` `<?Language code>` | Controls AI Auto translator |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries |  |
+| `/ai_summaries_pin` | `<?New status>` | Controls automatic pinning of AI chat summaries |  |
+| `/ai_summaries_time` | `<UTC time (HH:MM)>` | Sets the daily AI chat summary generation time in UTC |  |
 | `/ai_note_titles` | `<?New status>` | Controls AI note title generation |  |
 | `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
 | `/aireset` | - | Reset the chat's AI context and AI memory |  |

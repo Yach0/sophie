@@ -52,20 +52,8 @@ def test_only_the_sophie_help_assistant_may_dig_into_sources() -> None:
     assert not any(get_capabilities(mode).sophie_inspect for mode in AIMode if mode is not AIMode.sophie_help)
 
 
-async def test_disabled_by_default(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
-    """It is experimental and costs several model requests, so the flag gates it."""
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=False))
-    started = AsyncMock()
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", started)
-
-    answer = await run_sophie_inspect("how do notes work", PydanticObjectId(), services=test_services)
-
-    assert "not available" in answer
-    started.assert_not_awaited()
-
 
 async def test_daily_limit_stops_further_runs(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=False)
     )
@@ -100,7 +88,6 @@ def _patch_model_resolution(monkeypatch: pytest.MonkeyPatch, *role_models: str) 
 
 
 async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=True))
     values = {
         "ai_sophie_inspect_model": "cheap/model",
@@ -141,8 +128,7 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch, tes
 
 
 async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
-    """The flag is only an override; without it the sophie_inspect role decides the model."""
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
+    """Without a model override the sophie_inspect role decides the model."""
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=True))
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.sophie_inspect.get_value",
@@ -169,7 +155,6 @@ async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch,
 async def test_running_out_of_budget_propagates_to_global_error_handler(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.is_enabled", AsyncMock(return_value=True))
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._consume_daily_quota", AsyncMock(return_value=True))
     monkeypatch.setattr(
         "sophie_bot.modules.ai.utils.sophie_inspect.get_value",

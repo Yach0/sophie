@@ -13,7 +13,6 @@ from sophie_bot.modules.error.utils.permission_errors import (
     handle_no_rights_error,
     is_no_rights_error,
 )
-from sophie_bot.services.logfire import capture_logfire_error
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.logger import log
 
@@ -38,8 +37,7 @@ class SophieErrorHandler(ErrorHandler):
         sys_exception = sys.exception()
 
         sentry_event_id = self.capture_sentry(exception)
-        logfire_trace_id = self.capture_logfire(exception)
-        self.log_to_console(etype, value, tb, sentry_event_id=sentry_event_id, logfire_trace_id=logfire_trace_id)
+        self.log_to_console(etype, value, tb, sentry_event_id=sentry_event_id)
 
         if not isinstance(sys_exception, Exception):
             log.warning("No sys exception", from_aiogram=exception, from_sys=sys_exception)
@@ -72,7 +70,7 @@ class SophieErrorHandler(ErrorHandler):
 
         await self.bot.send_message(
             chat.id,
-            **generic_error_message(sys_exception, sentry_event_id, logfire_trace_id=logfire_trace_id),
+            **generic_error_message(sys_exception, sentry_event_id),
         )
 
     @staticmethod
@@ -102,9 +100,3 @@ class SophieErrorHandler(ErrorHandler):
         if isinstance(exception, SophieException) and exception.sentry_event_id:
             return exception.sentry_event_id
         return capture_sentry(SophieErrorHandler._exception_to_report(exception))
-
-    @staticmethod
-    def capture_logfire(exception: Exception) -> str | None:
-        if isinstance(exception, AIRequestFailed) and exception.logfire_trace_id:
-            return exception.logfire_trace_id
-        return capture_logfire_error(SophieErrorHandler._exception_to_report(exception))

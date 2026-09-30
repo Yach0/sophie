@@ -174,7 +174,4 @@ def extract_command_name(event: TelegramObject) -> str | None:
     command_without_mention = first_token.split("@", maxsplit=1)[0]
     command_name = command_without_mention.removeprefix(command_prefix).strip().lower()
 
-    if not command_name:
-        return None
-
-    return command_name[:50]
+    return command_name[:50] or None

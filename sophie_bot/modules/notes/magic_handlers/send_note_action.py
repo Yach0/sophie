@@ -104,7 +104,6 @@ class SendNoteAction(ModernActionABC[SendNoteActionDataModel]):
                 owner_chat_tid=note.chat_tid,
                 collect_sent=sent_messages,
                 bot=data["services"].bot,
-                redis=data["services"].redis,
             )
         )
         return sent_messages

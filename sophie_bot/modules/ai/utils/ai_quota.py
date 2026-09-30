@@ -4,6 +4,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
+import sentry_sdk
 from beanie import PydanticObjectId
 from redis.asyncio import Redis
 
@@ -13,9 +14,8 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
-from sophie_bot.modules.ai.utils.ai_telemetry import ai_span
 from sophie_bot.utils.ai_features import AIFeature
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.logger import log
 
 
@@ -71,16 +71,12 @@ def get_period_end(period_start: date) -> date:
 async def _ensure_period(quota: AIQuotaModel) -> AIQuotaModel:
     current = current_period_start()
     if quota.period_start < current:
-        with ai_span("ai.quota.period_reset", previous_used_credits=quota.used_credits) as span:
-            if span is not None:
-                span.set_attribute("outcome", "failure")
-            quota.used_credits = 0
-            quota.period_start = current
-            quota.exhausted_notified_period_start = None
-            quota.exhausted_notified_at = None
-            await quota.save()
-            if span is not None:
-                span.set_attribute("outcome", "success")
+        quota.used_credits = 0
+        quota.period_start = current
+        quota.exhausted_notified_period_start = None
+        quota.exhausted_notified_at = None
+        await quota.save()
+
     return quota
 
 
@@ -100,11 +96,9 @@ async def get_or_create_quota_model(chat_iid: PydanticObjectId) -> AIQuotaModel 
 async def get_entertainment_boost_credits(chat_iid: PydanticObjectId, *, redis: Redis) -> int:
     """Extra monthly credits granted while a chat is in entertainment mode.
 
-    Derived on every read instead of persisted, so turning ``ai_entertainment_boost`` off or
-    lowering ``ai_entertainment_monthly_credits`` takes effect immediately for chats already in it.
+    Derived on every read instead of persisted, so lowering ``ai_entertainment_monthly_credits``
+    takes effect immediately for chats already in entertainment mode.
     """
-    if not await is_enabled("ai_entertainment_boost", redis=redis):
-        return 0
     if await get_chat_mode(chat_iid, AIMode.disabled) != AIMode.entertainment:
         return 0
     return max(
@@ -114,13 +108,10 @@ async def get_entertainment_boost_credits(chat_iid: PydanticObjectId, *, redis: 
 
 
 async def get_quota_state(chat_iid: PydanticObjectId, *, redis: Redis) -> AIQuotaState | None:
-    with ai_span("ai.quota.lookup") as span:
-        if span is not None:
-            span.set_attribute("outcome", "failure")
+    with sentry_sdk.start_span(op="ai.state", name="Read AI quota") as span:
         quota = await get_or_create_quota_model(chat_iid)
         if not quota:
-            if span is not None:
-                span.set_attribute("outcome", "missing")
+            span.set_data("ai.quota.exists", False)
             return None
 
         usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
@@ -130,13 +121,9 @@ async def get_quota_state(chat_iid: PydanticObjectId, *, redis: Redis) -> AIQuot
             month_key=quota.period_start.strftime("%Y-%m"),
             boost_credits=await get_entertainment_boost_credits(chat_iid, redis=redis),
         )
-        if span is not None:
-            span.set_attribute("outcome", "found")
-            span.set_attribute("usage_present", usage is not None)
-            span.set_attribute("total_credits", state.total_credits)
-            span.set_attribute("used_credits", state.used_credits)
-            span.set_attribute("remaining_credits", state.remaining_credits)
-            span.set_attribute("boost_credits", state.boost_credits)
+        span.set_data("ai.quota.exists", True)
+        span.set_data("ai.quota.remaining_credits", state.remaining_credits)
+        span.set_data("ai.quota.boost_credits", state.boost_credits)
         return state
 
 
@@ -155,24 +142,15 @@ async def get_quota_info(chat_iid: PydanticObjectId, *, redis: Redis) -> QuotaIn
 
 
 async def check_quota(chat_iid: PydanticObjectId, *, redis: Redis) -> QuotaCheckResult:
-    with ai_span("ai.quota.check") as span:
-        if span is not None:
-            span.set_attribute("outcome", "failure")
-        state = await get_quota_state(chat_iid, redis=redis)
-        if not state:
-            result = QuotaCheckResult(allowed=False, remaining=0, exhausted=False)
-        elif state.remaining_credits > 0:
-            result = QuotaCheckResult(allowed=True, remaining=state.remaining_credits, exhausted=False)
-        else:
-            result = QuotaCheckResult(allowed=False, remaining=0, exhausted=True)
-        if span is not None:
-            span.set_attribute("outcome", "checked")
-            span.set_attribute("allowed", result.allowed)
-            span.set_attribute("remaining_credits", result.remaining)
-            span.set_attribute("exhausted", result.exhausted)
-            if state is not None:
-                span.set_attribute("used_credits", state.used_credits)
-        return result
+    state = await get_quota_state(chat_iid, redis=redis)
+    if not state:
+        result = QuotaCheckResult(allowed=False, remaining=0, exhausted=False)
+    elif state.remaining_credits > 0:
+        result = QuotaCheckResult(allowed=True, remaining=state.remaining_credits, exhausted=False)
+    else:
+        result = QuotaCheckResult(allowed=False, remaining=0, exhausted=True)
+
+    return result
 
 
 async def consume_quota(
@@ -185,53 +163,38 @@ async def consume_quota(
     *,
     redis: Redis,
 ) -> None:
-    with ai_span("ai.quota.charge", feature=feature, priced_model=model_name is not None) as span:
-        if span is not None:
-            span.set_attribute("outcome", "failure")
-            span.set_attribute("tokens", tokens)
-        if tokens <= 0:
-            if span is not None:
-                span.set_attribute("outcome", "skipped_nonpositive_tokens")
-            return
+    if tokens <= 0:
+        return
 
-        quota = await get_or_create_quota_model(chat_iid)
-        if not quota:
-            if span is not None:
-                span.set_attribute("outcome", "skipped_no_quota")
-            return
+    quota = await get_or_create_quota_model(chat_iid)
+    if not quota:
+        return
 
-        credits_used = (
-            await estimate_model_credit_cost(
-                model_name,
-                tokens,
-                input_tokens,
-                output_tokens,
-                redis=redis,
-            )
-            if model_name
-            else tokens_to_credits(tokens)
+    credits_used = (
+        await estimate_model_credit_cost(
+            model_name,
+            tokens,
+            input_tokens,
+            output_tokens,
+            redis=redis,
         )
-        if span is not None:
-            span.set_attribute("credits_charged", credits_used)
-            span.set_attribute("used_credits_before", quota.used_credits)
-        quota.used_credits += credits_used
-        await quota.save()
-        if span is not None:
-            span.set_attribute("quota_saved", True)
-            span.set_attribute("used_credits_after", quota.used_credits)
+        if model_name
+        else tokens_to_credits(tokens)
+    )
 
-        await AIUsageModel.record_feature_consumption(chat_iid, feature, credits_used)
-        if span is not None:
-            span.set_attribute("outcome", "charged")
+    quota.used_credits += credits_used
+    await quota.save()
 
-        log.debug(
-            "AI quota consumed",
-            chat_iid=str(chat_iid),
-            feature=feature,
-            tokens=tokens,
-            credits=credits_used,
-            model_name=model_name,
-        )
+    await AIUsageModel.record_feature_consumption(chat_iid, feature, credits_used)
+
+    log.debug(
+        "AI quota consumed",
+        chat_iid=str(chat_iid),
+        feature=feature,
+        tokens=tokens,
+        credits=credits_used,
+        model_name=model_name,
+    )
 
 
 async def set_monthly_quota(chat: ChatModel, credit_amount: int) -> AIQuotaModel:

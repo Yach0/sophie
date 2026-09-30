@@ -41,17 +41,21 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 - `MONGO_HOST`: Connection string for MongoDB.
 - `REDIS_HOST`: Hostname for Redis.
 
-Optional Logfire telemetry is enabled by setting `LOGFIRE_TOKEN` in `data/config.env`.
-For Ansible deployment, set `LOGFIRE_TOKEN` privately in the operator environment; the
-beta, stable, scheduler and REST templates include it only when present. With no token,
-Logfire does not initialize or export data. With a token, every environment, including
-production, exports full AI conversations, cached chatbot context, model binary inputs,
-HTTP URLs/headers/bodies, application logs (including DEBUG records) and exception
-details without scrubbing. The existing console and file log thresholds do not change.
-Debug telemetry can be high-volume and can expose personal data and credentials to the
-configured Logfire project. Sentry remains independent: Logfire reports errors when
-Sentry is not enabled. Remove the token and restart every serving process to stop export.
-Rotate any write token exposed in chat or logs before use.
+### AI telemetry with Sentry
+
+Set `SENTRY_URL` to a Sentry DSN to enable error reporting and performance traces. With
+a DSN, Sophie traces every transaction by default (`SENTRY_TRACES_SAMPLE_RATE=1.0`);
+lower this rate to reduce volume, or set it to `0` to disable traces while keeping
+error reporting. Sampling is at the parent transaction level, so the same rate also
+applies to non-AI requests. The Pydantic AI integration records agent/model/tool spans,
+token usage, prompts, replies, and tool inputs/outputs in captured traces. These can
+contain personal data and produce high Sentry volume; set an appropriate retention policy.
+For Ansible deployments, set `SENTRY_TRACES_SAMPLE_RATE` in the operator environment to
+override the default in all bot, scheduler, and REST processes.
+
+Sophie also adds spans for its own AI caches and state transitions. AI request metrics
+still use the existing `METRICS_ENABLE` and `SENTRY_ENABLE_METRICS` settings.
+
 
 ### 2. Run the Playbook
 
@@ -127,9 +131,6 @@ A mode with no model for a purpose falls back to the `support` tier, so you only
 roles you want to differ. Changes take effect on every process within a few seconds without a
 restart.
 
-Logfire identifies PydanticAI runs by role in `gen_ai.agent.name`: chat agents use
-`<mode>:chat` (for example `entertainment:chat`); structured tasks have distinct names
-such as `summary:chat`, `filter:matching`, and `proactive:decision`.
 
 > **Warning:** AI requests require a configured catalog model and a key on its provider. Check
 > `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
@@ -145,29 +146,19 @@ Automatic translation stays silent until its result is ready. The chatbot and ma
 translation initially show a random working message after the animated AI emoji.
 When reasoning or an activity begins, that space stays empty until answer text streams
 in; progress appears below.
-By default, streamed reasoning renders Markdown in a block quote with a custom emoji
-before the italic text. The latest 400 reasoning characters remain visible (with an
-ellipsis when truncated), and pending reasoning is flushed before tool activity, even
-during edit backoff. An active tool shows one of its localized activity messages in
-italics, without an emoji, title, internal name, or arguments.
-
-`ai_chatbot_reasoning_as_tool` (off by default) instead shows a single italic
-“Reasoning...” activity below the header, without revealing reasoning text. Later
-reasoning passes, including those after tool calls, do not add another activity.
-`ai_chatbot_stack_progress_tools` (off by default) retains every tool invocation
-and retry in the bottom activity list, including repeated calls and tools hidden from
-the final header. When both flags are on, the one reasoning activity joins that list.
-New streamed answer text clears the activity list. Later tool calls appear below the
-answer text already shown; the next text update clears those entries in turn.
-Without stacking, the most recent tool or retry status replaces the prior status.
+Streamed reasoning appears once as an italic “Reasoning...” activity below the
+header, without revealing reasoning text. Later reasoning passes, including
+those after tool calls, do not add another activity. Every tool invocation and
+retry stays in the bottom activity list, including repeated calls and tools
+hidden from the final header. New streamed answer text clears the activity list.
+Later tool calls appear below the answer text already shown; the next text
+update clears those entries in turn.
 
 Manual `/tr` and `/translate` retain their current activity list until the final
 translation replaces the progress message. A replied voice starts with “Transcribing
 voice message...” before transcription, followed by “Translating...”. Replied images
 and videos show processing stages (including video audio transcription) before
-translation. Chatbot replies show the same media stages during context preparation;
-their entries stack when `ai_chatbot_stack_progress_tools` is on and otherwise show
-the current stage only.
+translation. Chatbot replies stack the same media stages during context preparation.
 
 Video transcription reads the first audio stream even when the container lists a
 video stream before it.
@@ -182,6 +173,8 @@ The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66�
 `ai_chatbot_show_model_name` adds the model beside the battery reading.
 Only the assistant's answer is stored in conversation history; the displayed header,
 tool titles, and battery footer are not.
+Recent tool calls and results are replayed for follow-up questions, with each
+stored result capped by `ai_chatbot_tool_history_max_chars`.
 
 ## AI moderation
 
@@ -248,11 +241,11 @@ level above.
 The "message deleted" notice removes itself after `ai_moderation_notice_delete_after_seconds`
 (30 by default); set it to `0` to keep the notices in the chat.
 
-### Experimental: source inspection
+### Source inspection
 
-`ai_sophie_inspect` lets the Sophie-help assistant start a sub-agent that reads Sophie's own source code
-when the documentation cannot answer a question. It is **off by default** because it costs several
-model requests per question.
+The Sophie-help assistant can start a sub-agent that reads Sophie's own source code
+when the documentation cannot answer a question. It costs several model requests
+per question, so usage is limited per chat.
 
 Groups do not get it from their AI mode. `ai_sophie_inspect_chats` is a space or comma separated list of
 group IDs allowed to use it anyway, for the chats where people ask how Sophie works.
@@ -327,7 +320,6 @@ When enabled, the bot can route requests between instances based on configuratio
 | `REDIS_DB_FSM` | Redis Database index for FSM |
 | `OWNER_ID` | Telegram User ID of the bot owner |
 | `ENVIRONMENT` | Name of the environment (e.g., `production-stable`) |
-| `LOGFIRE_TOKEN` | Optional Pydantic Logfire write token; enables telemetry on serving processes |
 | `MODE` | Set to `scheduler` for the scheduler service |
 
 ---

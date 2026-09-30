@@ -66,5 +66,4 @@ class LegacyStartNoteButton(SophieMessageHandler):
             connection=note_connection,
             owner_chat_tid=note.chat_tid,
             bot=self.services.bot,
-            redis=self.services.redis,
         )

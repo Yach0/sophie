@@ -3,7 +3,6 @@ from __future__ import annotations
 from aiogram import Bot
 from aiogram.enums import ContentType
 from aiogram.types import Message
-from redis.asyncio import Redis
 from stfu_tg import Section, Template
 
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
@@ -23,7 +22,6 @@ from sophie_bot.modules.notes.utils.rich import (
     validate_rich_message_structure,
 )
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -62,22 +60,12 @@ def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[li
     return tg_emoji_workaround(message.html_text), extract_file_info(message), buttons
 
 
-async def _rich_saveable(
+def _rich_saveable(
     source_message: Message,
     *,
-    owner_chat_tid: int | None,
     buttons: ButtonsList,
     bot: Bot,
-    redis: Redis,
 ) -> Saveable:
-    if not await is_enabled("saveable_rich_messages", chat_tid=owner_chat_tid, redis=redis):
-        raise SophieException(
-            Section(
-                _("This message type is not supported for notes yet."),
-                title=_("Reply message content is not parsable as the note."),
-            )
-        )
-
     rich_message = source_message.rich_message
     if rich_message is None:
         raise ValueError("Rich source disappeared while parsing")
@@ -108,9 +96,7 @@ async def parse_saveable(
     offset: int = 0,
     album: list[Message] | None = None,
     *,
-    owner_chat_tid: int | None = None,
     bot: Bot,
-    redis: Redis,
 ) -> Saveable:
     """Parse a Telegram message into the shared ordinary or Rich Saveable contract."""
     note_text = text
@@ -138,12 +124,10 @@ async def parse_saveable(
                 )
             )
         rich_buttons = buttons if buttons is not None else ButtonsList()
-        return await _rich_saveable(
+        return _rich_saveable(
             rich_source,
-            owner_chat_tid=owner_chat_tid or message.chat.id,
             buttons=rich_buttons,
             bot=bot,
-            redis=redis,
         )
 
     if allow_reply_message and message.reply_to_message and not message.reply_to_message.forum_topic_created:

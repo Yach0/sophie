@@ -29,14 +29,13 @@ from sophie_bot.modules.ai.utils.ai_run import (
     run_ai_stream,
     run_ai_text,
 )
-from sophie_bot.modules.ai.utils.ai_telemetry import ai_event
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_value
 
 CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
@@ -117,19 +116,8 @@ async def get_chatbot_tools(
     if search_tool := await _get_search_tool(context):
         tools.append(search_tool)
     tools.append(research_topic_tool)
-    if await is_enabled(
-        "ai_sophie_inspect",
-        chat_tid=context.chat_tid,
-        redis=context.services.redis,
-    ) and (capabilities.sophie_inspect or await is_sophie_inspect_chat(context.chat_tid, redis=context.services.redis)):
+    if capabilities.sophie_inspect or await is_sophie_inspect_chat(context.chat_tid, redis=context.services.redis):
         tools.append(sophie_inspect_tool)
-    ai_event(
-        "ai.tools_selected",
-        tools=",".join(tool.name for tool in tools),
-        memory_enabled=capabilities.memory,
-        notes_enabled=capabilities.notes_read,
-        search_enabled=search_tool is not None,
-    )
     return tools
 
 
@@ -154,12 +142,6 @@ async def build_chatbot_usage_limits(context: SophieAIToolContext) -> UsageLimit
     )
     output_tokens_limit = _coerce_usage_limit(
         await get_value("ai_chatbot_response_tokens_limit", chat_tid=context.chat_tid, redis=redis)
-    )
-    ai_event(
-        "ai.usage_limits",
-        request_limit=request_limit,
-        tool_calls_limit=tool_calls_limit,
-        output_tokens_limit=output_tokens_limit,
     )
     return UsageLimits(
         request_limit=request_limit,

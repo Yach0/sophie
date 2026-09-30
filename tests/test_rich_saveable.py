@@ -145,20 +145,18 @@ async def test_parse_rich_message_derives_fallback_and_version(
 ) -> None:
     rich_message = types.RichMessage(blocks=[types.RichBlockParagraph(text="Hello")])
     message = _message_with_rich(rich_message)
-    monkeypatch.setattr(parse_module, "is_enabled", AsyncMock(return_value=True))
 
     saveable = await parse_module.parse_saveable(
         message,
         None,
-        owner_chat_tid=-100,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert saveable.version == 3
     assert saveable.text == "Hello"
     assert saveable.file is None
     assert saveable.files == []
+    assert saveable.rich_message == rich_message
 
 
 def test_api_rejects_bot_bound_rich_buttons() -> None:
@@ -217,7 +215,6 @@ async def test_send_rich_message_uses_typed_method_and_raw_labels(
         return result()
 
     monkeypatch.setattr("aiogram.methods.base.TelegramMethod.emit", fake_emit)
-    monkeypatch.setattr(send_module, "is_enabled", AsyncMock(return_value=True))
     rich_message = types.RichMessage(
         blocks=[
             types.RichBlockParagraph(text="Content"),
@@ -232,7 +229,6 @@ async def test_send_rich_message_uses_typed_method_and_raw_labels(
         raw=True,
         owner_chat_tid=-100,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     assert isinstance(emitted[0], SendRichMessage)

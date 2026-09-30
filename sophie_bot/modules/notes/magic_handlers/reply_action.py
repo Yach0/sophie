@@ -10,7 +10,6 @@ from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSetting, ActionWizardSpec
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -22,9 +21,7 @@ async def set_reply_text(event: Message | CallbackQuery, data: dict[str, Any]) -
     return await parse_saveable(
         event,
         event.html_text,
-        owner_chat_tid=data["context"].connection.db_model.tid,
         bot=data["services"].bot,
-        redis=data["services"].redis,
     )
 
 
@@ -81,23 +78,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
 
     async def handle(self, message: Message, data: dict, filter_data: Saveable) -> ActionResult | None:
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
-        connection = data["context"].connection
-        rich_enabled = (
-            await is_enabled(
-                "saveable_rich_messages",
-                chat_tid=connection.db_model.tid,
-                redis=data["services"].redis,
-            )
-            if filter_data.rich_message is not None
-            else False
-        )
-
-        if (
-            filter_data.buttons
-            or filter_data.file
-            or filter_data.files
-            or (filter_data.rich_message is not None and rich_enabled)
-        ):
+        if filter_data.buttons or filter_data.file or filter_data.files or filter_data.rich_message is not None:
             sent_messages: list[Message] = []
             await common_try(
                 send_saveable(
@@ -106,10 +87,9 @@ class ReplyModernAction(ModernActionABC[Saveable]):
                     filter_data,
                     title=title,
                     reply_to=message.message_id,
-                    owner_chat_tid=connection.db_model.tid,
+                    owner_chat_tid=data["context"].connection.db_model.tid,
                     collect_sent=sent_messages,
                     bot=data["services"].bot,
-                    redis=data["services"].redis,
                 )
             )
             return sent_messages

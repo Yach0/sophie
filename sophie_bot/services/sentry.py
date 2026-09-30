@@ -92,7 +92,7 @@ def init_sentry() -> None:
         RedisIntegration(),
         AioHttpIntegration(),
         PyMongoIntegration(),
-        PydanticAIIntegration(handled_tool_call_exceptions=False),
+        PydanticAIIntegration(include_prompts=True, handled_tool_call_exceptions=False),
     ]
 
     if CONFIG.sentry_enable_logs:

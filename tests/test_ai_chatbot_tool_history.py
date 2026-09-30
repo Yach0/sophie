@@ -91,7 +91,6 @@ async def test_remember_propagates_redis_failures(
     monkeypatch.setattr(test_redis, "pipeline", _fail)
 
     with (
-        patch("sophie_bot.modules.ai.utils.chatbot_tool_history.is_enabled", AsyncMock(return_value=True)),
         patch("sophie_bot.modules.ai.utils.chatbot_tool_history.get_value", AsyncMock(return_value=100)),
         pytest.raises(RedisError, match="redis is down"),
     ):

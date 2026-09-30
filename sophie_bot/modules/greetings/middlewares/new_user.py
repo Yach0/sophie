@@ -154,7 +154,6 @@ class NewUserMiddleware(BaseMiddleware):
                 owner_chat_tid=chat_db.tid,
                 receiver_user_id=user.tid if user else None,
                 bot=services.bot,
-                redis=services.redis,
             )
 
         # One prompt per new member, visible only to them. Nothing is left in the chat, so
@@ -243,7 +242,6 @@ class NewUserMiddleware(BaseMiddleware):
                         owner_chat_tid=chat_db.tid,
                         receiver_user_id=member.id,
                         bot=data["services"].bot,
-                        redis=data["services"].redis,
                     )
 
                 if db_item.welcome_mute and db_item.welcome_mute.enabled and db_item.welcome_mute.time:

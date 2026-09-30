@@ -66,5 +66,4 @@ class WelcomeSettingsShowHandler(SophieMessageHandler):
             connection=connection,
             owner_chat_tid=connection.db_model.tid,
             bot=self.services.bot,
-            redis=self.services.redis,
         )

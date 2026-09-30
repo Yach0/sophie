@@ -21,7 +21,6 @@ from sophie_bot.modules.notes.utils.combine import combine_saveables
 from sophie_bot.modules.notes.utils.rich import rich_message_has_media
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.utils import flags
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -68,7 +67,6 @@ class GetNote(SophieMessageHandler):
             owner_chat_tid=chat.tid,
             collect_sent=sent_messages,
             bot=self.services.bot,
-            redis=self.services.redis,
         )
         track_note_retrieved(
             trigger="command",
@@ -131,17 +129,11 @@ class HashtagGetNote(SophieMessageHandler):
         )
         sent_messages: list[Message] = []
         message: Message | None = None
-        rich_enabled = await is_enabled(
-            "saveable_rich_messages",
-            chat_tid=chat.db_model.tid,
-            redis=self.services.redis,
-        )
+        has_rich_note = any(note.rich_message is not None for note in notes_to_stack)
         try:
             # Keep a single note's title separate so retrieval decoration can be omitted
             # at the Telegram text/caption limit, just as it is for /get.
-            if len(notes_to_stack) == 1 or (
-                rich_enabled and any(note.rich_message is not None for note in notes_to_stack)
-            ):
+            if len(notes_to_stack) == 1 or has_rich_note:
                 for note in notes_to_stack:
                     sent = await send_saveable(
                         self.event,
@@ -154,7 +146,6 @@ class HashtagGetNote(SophieMessageHandler):
                         owner_chat_tid=chat.db_model.tid,
                         collect_sent=sent_messages,
                         bot=self.services.bot,
-                        redis=self.services.redis,
                     )
                     message = message or sent
             else:
@@ -168,9 +159,7 @@ class HashtagGetNote(SophieMessageHandler):
                     connection=chat,
                     message_thread_id=self.event.message_thread_id,
                     collect_sent=sent_messages,
-                    split_long_text=not rich_enabled and any(note.rich_message is not None for note in notes_to_stack),
                     bot=self.services.bot,
-                    redis=self.services.redis,
                 )
         finally:
             await clean_notes(
