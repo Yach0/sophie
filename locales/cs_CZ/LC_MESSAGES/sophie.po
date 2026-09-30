@@ -910,7 +910,7 @@ msgstr ""
 #: sophie_bot/modules/op/handlers/set_mode.py:111
 #: sophie_bot/modules/op/handlers/set_mode.py:148
 #: sophie_bot/modules/promotes/handlers/demote.py:79
-#: sophie_bot/modules/promotes/handlers/promote.py:149
+#: sophie_bot/modules/promotes/handlers/promote.py:156
 #: sophie_bot/modules/restrictions/handlers/base.py:142
 #: sophie_bot/modules/restrictions/services/silent.py:45
 #: sophie_bot/modules/utils_/status_handler.py:45
@@ -919,7 +919,7 @@ msgstr ""
 msgid "Chat"
 msgstr "Chat"
 
-#: sophie_bot/modules/ai/handlers/translate.py:109
+#: sophie_bot/modules/ai/handlers/translate.py:108
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "Z {from_lang} do {to_lang}"
@@ -1061,8 +1061,8 @@ msgstr "Autor zprávy"
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:59
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
-#: sophie_bot/modules/federations/utils/ban_docs.py:43
-#: sophie_bot/modules/federations/utils/ban_docs.py:107
+#: sophie_bot/modules/federations/utils/ban_docs.py:44
+#: sophie_bot/modules/federations/utils/ban_docs.py:130
 #: sophie_bot/modules/reports/handlers/report.py:89
 #: sophie_bot/modules/restrictions/actions/base.py:74
 #: sophie_bot/modules/restrictions/actions/kick.py:56
@@ -1082,17 +1082,17 @@ msgstr[2] "Důvody"
 msgid "This message will be deleted shortly."
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:144
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:143
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr "{time} - {emoji} {title}, {users}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:167
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:166
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr "Historie chatu ze dne {today}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:233
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:232
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr "Shrňte diskuse skupiny Telegram do strukturovaných tematických řádků."
 
@@ -1120,7 +1120,7 @@ msgid "Thinking..."
 msgstr "Přemýšlím..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:152
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:117
 msgid "Working on it..."
 msgstr "Pracuji na tom..."
 
@@ -1488,11 +1488,11 @@ msgstr "Související poznámky chatu s obsahem."
 msgid "You have the following information in your memory"
 msgstr "Máš následující informace ve své paměti"
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:130
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:110
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:169
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:129
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
@@ -1875,9 +1875,9 @@ msgstr "Uživatel byl omezen pro záplavu."
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:134
 #: sophie_bot/modules/federations/handlers/promote.py:19
 #: sophie_bot/modules/federations/handlers/unban.py:47
-#: sophie_bot/modules/federations/utils/ban_docs.py:39
-#: sophie_bot/modules/federations/utils/ban_docs.py:88
-#: sophie_bot/modules/federations/utils/ban_docs.py:130
+#: sophie_bot/modules/federations/utils/ban_docs.py:40
+#: sophie_bot/modules/federations/utils/ban_docs.py:102
+#: sophie_bot/modules/federations/utils/ban_docs.py:153
 #: sophie_bot/modules/promotes/handlers/demote.py:42
 #: sophie_bot/modules/promotes/handlers/demote.py:80
 #: sophie_bot/modules/promotes/handlers/promote.py:74
@@ -2023,11 +2023,11 @@ msgstr "🌐 Uživatel zabanován v komunitě"
 #: sophie_bot/modules/federations/handlers/info.py:75
 #: sophie_bot/modules/federations/handlers/unban.py:178
 #: sophie_bot/modules/federations/schedules/process_bans.py:134
-#: sophie_bot/modules/federations/schedules/process_bans.py:209
-#: sophie_bot/modules/federations/utils/ban_docs.py:39
-#: sophie_bot/modules/federations/utils/ban_docs.py:91
-#: sophie_bot/modules/federations/utils/ban_docs.py:130
-#: sophie_bot/modules/federations/utils/ban_docs.py:169
+#: sophie_bot/modules/federations/schedules/process_bans.py:220
+#: sophie_bot/modules/federations/utils/ban_docs.py:40
+#: sophie_bot/modules/federations/utils/ban_docs.py:105
+#: sophie_bot/modules/federations/utils/ban_docs.py:153
+#: sophie_bot/modules/federations/utils/ban_docs.py:192
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/notes/handlers/list.py:83
 #: sophie_bot/modules/op/handlers/set_mode.py:106
@@ -2037,7 +2037,7 @@ msgid "Unknown"
 msgstr "Neznámý"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:35
-#: sophie_bot/modules/federations/utils/ban_docs.py:40
+#: sophie_bot/modules/federations/utils/ban_docs.py:41
 #: sophie_bot/modules/restrictions/handlers/ban.py:25
 #: sophie_bot/modules/restrictions/handlers/ban.py:48
 #: sophie_bot/modules/restrictions/handlers/silent.py:51
@@ -2055,13 +2055,13 @@ msgstr "⏳ Záznam banu uložen. Probíhá propagace napříč komunitou…"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:48
 #: sophie_bot/modules/communities/utils/ban_docs.py:87
-#: sophie_bot/modules/federations/utils/ban_docs.py:53
-#: sophie_bot/modules/federations/utils/ban_docs.py:142
+#: sophie_bot/modules/federations/utils/ban_docs.py:54
+#: sophie_bot/modules/federations/utils/ban_docs.py:165
 msgid "Result"
 msgstr "Výsledek"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:50
-#: sophie_bot/modules/federations/utils/ban_docs.py:55
+#: sophie_bot/modules/federations/utils/ban_docs.py:56
 #, python-brace-format
 msgid "Banned in {count} chat"
 msgid_plural "Banned in {count} chats"
@@ -2070,7 +2070,7 @@ msgstr[1] ""
 msgstr[2] ""
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:56
-#: sophie_bot/modules/federations/utils/ban_docs.py:69
+#: sophie_bot/modules/federations/utils/ban_docs.py:81
 msgid "🤫 The action is silent, all related messages would be deleted shortly"
 msgstr "🤫 Akce je tichá, všechny související zprávy budou brzy smazány"
 
@@ -2079,7 +2079,7 @@ msgid "🌐 User Unbanned from Community"
 msgstr "🌐 Uživatel odblokován v komunitě"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:76
-#: sophie_bot/modules/federations/utils/ban_docs.py:131
+#: sophie_bot/modules/federations/utils/ban_docs.py:154
 #: sophie_bot/modules/restrictions/handlers/unban.py:24
 msgid "Unbanned by"
 msgstr "Odblokoval"
@@ -2093,7 +2093,7 @@ msgid "⏳ Unban recorded. Propagating across the community…"
 msgstr "⏳ Záznam odblokování uložen. Probíhá propagace napříč komunitou…"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:89
-#: sophie_bot/modules/federations/utils/ban_docs.py:144
+#: sophie_bot/modules/federations/utils/ban_docs.py:167
 #, python-brace-format
 msgid "Unbanned in {count} chat"
 msgid_plural "Unbanned in {count} chats"
@@ -2121,12 +2121,12 @@ msgid "Please run the command again to retry."
 msgstr "Spusťte prosím příkaz znovu pro opětovný pokus."
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:116
-#: sophie_bot/modules/federations/utils/ban_docs.py:160
+#: sophie_bot/modules/federations/utils/ban_docs.py:183
 msgid "ℹ️ Ban Superseded"
 msgstr "ℹ️ Ban přepsán"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:117
-#: sophie_bot/modules/federations/utils/ban_docs.py:161
+#: sophie_bot/modules/federations/utils/ban_docs.py:184
 msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
 msgstr "Tento uživatel byl odblokován dříve, než se dokončila propagace banu, takže už nebylo co dělat."
 
@@ -2150,7 +2150,6 @@ msgstr "Umožňuje spravovat nastavení chatu a používat příkazy bez nutnost
 #: sophie_bot/modules/connections/handlers/connect_dm.py:38
 msgid "Connects to the chat."
 msgstr "Připojuje se k chatu."
-
 
 #: sophie_bot/modules/connections/handlers/connect_dm.py:57
 #: sophie_bot/modules/connections/handlers/connect_dm.py:137
@@ -2743,8 +2742,8 @@ msgstr "🏛 Administrátoři federace"
 #: sophie_bot/modules/federations/handlers/subscribe.py:142
 #: sophie_bot/modules/federations/schedules/process_exports.py:150
 #: sophie_bot/modules/federations/schedules/process_imports.py:71
-#: sophie_bot/modules/federations/utils/ban_docs.py:38
-#: sophie_bot/modules/federations/utils/ban_docs.py:129
+#: sophie_bot/modules/federations/utils/ban_docs.py:39
+#: sophie_bot/modules/federations/utils/ban_docs.py:152
 msgid "Federation"
 msgstr "Federace"
 
@@ -3589,27 +3588,28 @@ msgstr "Nemáte žádné federace"
 msgid "Could not determine federation"
 msgstr "Nedá se určit federace"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:35
+#: sophie_bot/modules/federations/utils/ban_docs.py:36
 msgid "Anonymous admin"
 msgstr "Anonymní správce"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:37
+#: sophie_bot/modules/federations/utils/ban_docs.py:38
 msgid "🏛 User Banned from Federation"
 msgstr "🏛 Uživatel zabanován z federace"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:47
+#: sophie_bot/modules/federations/utils/ban_docs.py:48
 msgid "✅ Banned in this chat. Propagating across the federation…"
 msgstr "✅ Zabanován v tomto chatu. Probíhá propagace napříč federací…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:49
+#: sophie_bot/modules/federations/utils/ban_docs.py:50
 msgid "⏳ Ban recorded. Propagating across the federation…"
 msgstr "⏳ Záznam banu uložen. Probíhá propagace napříč federací…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:61
+#: sophie_bot/modules/federations/utils/ban_docs.py:62
+#: sophie_bot/modules/federations/utils/ban_docs.py:69
 msgid "Also banned in"
 msgstr "Také zabanován v"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:63
+#: sophie_bot/modules/federations/utils/ban_docs.py:64
 #, python-brace-format
 msgid "{count} subscribed federation"
 msgid_plural "{count} subscribed federations"
@@ -3617,19 +3617,27 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:85
+#: sophie_bot/modules/federations/utils/ban_docs.py:72
+#, python-brace-format
+msgid "{count} chat in subscribed federations"
+msgid_plural "{count} chats in subscribed federations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:99
 msgid "Ban user in the fed #FedBan"
 msgstr "Zabanovat uživatele ve federaci #FedBan"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:86
+#: sophie_bot/modules/federations/utils/ban_docs.py:100
 msgid "Fed"
 msgstr "Federace"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:95
+#: sophie_bot/modules/federations/utils/ban_docs.py:109
 msgid "By"
 msgstr "Od"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:98
+#: sophie_bot/modules/federations/utils/ban_docs.py:112
 #, python-brace-format
 msgid "User banned in {banned_count} out of {total_chats} chat in the federation"
 msgid_plural "User banned in {banned_count} out of {total_chats} chats in the federation"
@@ -3637,23 +3645,31 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:111
+#: sophie_bot/modules/federations/utils/ban_docs.py:123
+#, python-brace-format
+msgid "User banned in {count} chat in subscribed federations"
+msgid_plural "User banned in {count} chats in subscribed federations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: sophie_bot/modules/federations/utils/ban_docs.py:134
 msgid "Original message"
 msgstr "Původní zpráva"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:128
+#: sophie_bot/modules/federations/utils/ban_docs.py:151
 msgid "🏛 User Unbanned from Federation"
 msgstr "🏛 Uživatel odblokován z federace"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:136
+#: sophie_bot/modules/federations/utils/ban_docs.py:159
 msgid "✅ Unbanned in this chat. Propagating across the federation…"
 msgstr "✅ Odblokován v tomto chatu. Probíhá propagace napříč federací…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:138
+#: sophie_bot/modules/federations/utils/ban_docs.py:161
 msgid "⏳ Unban recorded. Propagating across the federation…"
 msgstr "⏳ Záznam odblokování uložen. Probíhá propagace napříč federací…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:168
+#: sophie_bot/modules/federations/utils/ban_docs.py:191
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr "🏛 Uživatel {unbanned_user} byl odblokován z federace uživatelem {unbanner}."
@@ -5005,31 +5021,31 @@ msgstr "Zobrazí dostupné poznámky."
 msgid "This list has expired. Please run the command again."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/list.py:200
+#: sophie_bot/modules/notes/handlers/list.py:197
 #, python-brace-format
 msgid "No notes found by the provided search pattern {pattern} in {chat_name}."
 msgstr "Nebyly nalezeny žádné poznámky podle zadaného vzoru hledání {pattern} v {chat_name}."
 
-#: sophie_bot/modules/notes/handlers/list.py:205
+#: sophie_bot/modules/notes/handlers/list.py:202
 #, python-brace-format
 msgid "No notes found in {chat_name}."
 msgstr "Nebyly nalezeny žádné poznámky v {chat_name}."
 
-#: sophie_bot/modules/notes/handlers/list.py:212
+#: sophie_bot/modules/notes/handlers/list.py:209
 msgid "Search pattern"
 msgstr "Vzor hledání"
 
-#: sophie_bot/modules/notes/handlers/list.py:214
+#: sophie_bot/modules/notes/handlers/list.py:211
 #, python-brace-format
 msgid "Notes in {chat_name}"
 msgstr "Poznámky v {chat_name}"
 
-#: sophie_bot/modules/notes/handlers/list.py:218
+#: sophie_bot/modules/notes/handlers/list.py:215
 #, python-brace-format
 msgid "Use {cmd} to retrieve a note. Example: {cmd_example}"
 msgstr "Použijte {cmd} pro načtení poznámky. Příklad: {cmd_example}"
 
-#: sophie_bot/modules/notes/handlers/list.py:219
+#: sophie_bot/modules/notes/handlers/list.py:216
 msgid "#(Note name)"
 msgstr "#(Název poznámky)"
 
