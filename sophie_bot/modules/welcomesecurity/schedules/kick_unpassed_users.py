@@ -51,9 +51,7 @@ class KickUnpassedUsers:
             return
         async with AsyncExitStack() as stack:
             try:
-                await stack.enter_async_context(
-                    pending_user_lock(group.tid, user.tid, redis=self.services.redis)
-                )
+                await stack.enter_async_context(pending_user_lock(group.tid, user.tid, redis=self.services.redis))
             except TimeoutError as error:
                 log.warning(
                     "kick_unpassed_users: skipping contended pending user",

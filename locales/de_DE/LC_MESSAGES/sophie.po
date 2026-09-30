@@ -7674,7 +7674,7 @@ msgstr "Bitte lesen Sie die Chat-Regeln"
 msgid "I agree"
 msgstr "Ich stimme zu"
 
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:50
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:73
 msgid "You're all set, and can now participate in the conversation"
 msgstr "Sie sind bereit und können jetzt an der Unterhaltung teilnehmen"
 

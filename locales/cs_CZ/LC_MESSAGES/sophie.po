@@ -7686,7 +7686,7 @@ msgstr "Prosím, přečtěte si pravidla chatu"
 msgid "I agree"
 msgstr "Souhlasím"
 
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:50
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:73
 msgid "You're all set, and can now participate in the conversation"
 msgstr "Jste připraveni a nyní se můžete zúčastnit konverzace"
 

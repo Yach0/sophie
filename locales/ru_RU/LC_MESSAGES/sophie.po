@@ -7683,7 +7683,7 @@ msgstr "Пожалуйста, прочтите правила группы"
 msgid "I agree"
 msgstr "Принимаю"
 
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:50
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:73
 msgid "You're all set, and can now participate in the conversation"
 msgstr "Вы все настроены и теперь можете участвовать в разговоре"
 
