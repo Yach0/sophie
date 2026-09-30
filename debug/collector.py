@@ -38,6 +38,7 @@ from debug.protocol import (
     ReplyFrame,
     StoredEvent,
     strict_json_loads,
+    validate_reply_data_size,
 )
 
 MAX_EVENTS = 10_000
@@ -756,6 +757,30 @@ def _normalized(value: Any, state: CollectorState) -> JsonValue:
     return normalized
 
 
+def _normalized_inspector_result(value: dict[str, JsonValue], state: CollectorState) -> dict[str, JsonValue]:
+    # Collector-only secrets still need redaction, without consuming the row
+    # slots or continuation metadata already preserved by the worker.
+    row_fields = {
+        field_name: field_value
+        for field_name, field_value in value.items()
+        if field_name in {"collections", "items", "entries", "invalid_entries", "data"}
+        and isinstance(field_value, list)
+    }
+    metadata = {field_name: field_value for field_name, field_value in value.items() if field_name not in row_fields}
+    known_secrets = state.redaction_secrets
+    normalized, truncated, _redacted = normalize_payload(metadata, known_secrets)
+    for field_name, rows in row_fields.items():
+        normalized_rows: list[JsonValue] = []
+        for row in rows:
+            normalized_row, row_truncated, _row_redacted = normalize_payload(row, known_secrets)
+            normalized_rows.append(normalized_row)
+            truncated |= row_truncated
+        normalized[field_name] = normalized_rows
+    if truncated and "truncated" in value:
+        normalized["truncated"] = True
+    return normalized
+
+
 def _valid_expiry_argument(value: Any) -> bool:
     if isinstance(value, bool):
         return False
@@ -937,9 +962,15 @@ async def _dispatch_read(
         message = message_value if isinstance(message_value, str) else _("Inspector operation failed")
         error_status = 504 if code == "read_timeout" else 422
         raise _api_error(request, error_status, code, message)
-    result = _normalized(reply.result, state)
-    if not isinstance(result, dict):
+    if not isinstance(reply.result, dict):
         raise _api_error(request, 503, "invalid_worker_reply", "Worker returned an invalid inspector response")
+    result = _normalized_inspector_result(reply.result, state)
+    try:
+        validate_reply_data_size(result)
+    except FrameError as error:
+        raise _api_error(
+            request, 503, "invalid_worker_reply", "Worker returned an invalid inspector response"
+        ) from error
     return result, run_id
 
 

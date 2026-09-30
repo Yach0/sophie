@@ -151,23 +151,23 @@ msgstr ""
 msgid "The key is missing or expired."
 msgstr ""
 
-#: src/components/RedisPanel.tsx:113
+#: src/components/RedisPanel.tsx:129
 msgid "Allowed single-key command"
 msgstr ""
 
-#: src/components/RedisPanel.tsx:115
+#: src/components/RedisPanel.tsx:131
 msgid "Command"
 msgstr ""
 
-#: src/components/RedisPanel.tsx:116
+#: src/components/RedisPanel.tsx:132
 msgid "One key"
 msgstr ""
 
-#: src/components/RedisPanel.tsx:117
+#: src/components/RedisPanel.tsx:133
 msgid "Typed arguments after the key (JSON array)"
 msgstr ""
 
-#: src/components/RedisPanel.tsx:120
+#: src/components/RedisPanel.tsx:136
 msgid "Normalized request preview"
 msgstr ""
 
@@ -794,6 +794,7 @@ msgid "Malformed AI cache entries"
 msgstr ""
 
 #: src/components/AiCachePanel.tsx:74
+#: src/components/RedisPanel.tsx:122
 msgid "Load next bounded page"
 msgstr ""
 
@@ -857,4 +858,8 @@ msgstr ""
 
 #: src/components/MongoPanel.tsx:79
 msgid "Update"
+msgstr ""
+
+#: src/components/RedisPanel.tsx:112
+msgid "Next cursor"
 msgstr ""

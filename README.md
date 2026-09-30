@@ -173,6 +173,16 @@ git worktree remove ../sophie-feature
 git branch -D feature/my-feature
 ```
 
+### Runtime debugger
+
+Run `make dev` with a dedicated `data/debug.env`, or set `DEBUG_CONFIG` to another development configuration file. The collector and browser UI bind to loopback and keep captured data in memory. Use development credentials and databases, not production targets.
+
+Worker reload closes the previous process and its streams, including failed or cancelled startup. Each new run resumes live following; you can pause again after any reload.
+
+Redis scans display the returned continuation cursor. Use **Load next bounded page** to continue without changing the query. Redis `COUNT` is a hint, so a page can contain more rows than the requested limit. Complete cursor batches are retained; oversized replies fail explicitly instead of silently skipping rows.
+
+AI cache pagination counts both valid and malformed stored messages. Inspecting malformed rows does not change the cache.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)

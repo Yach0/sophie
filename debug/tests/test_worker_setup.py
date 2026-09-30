@@ -178,9 +178,7 @@ def test_failure_creating_control_socket_pair_closes_telemetry_pair(
     asyncio.run(scenario())
 
 
-def test_cancelled_startup_status_closes_both_socket_pairs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_cancelled_startup_status_closes_both_socket_pairs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     async def scenario() -> None:
         supervisor = make_supervisor(tmp_path, monkeypatch)
         real_socketpair = socket.socketpair
