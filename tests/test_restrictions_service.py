@@ -347,12 +347,14 @@ async def test_mute_snapshots_existing_restrictions_and_unmute_restores_them(
             **member_data,
         }
     )
-    muted_member = ChatMemberRestricted(
-        user=User(id=USER_TID, is_bot=False, first_name="Target"),
-        status="restricted",
-        is_member=True,
-        until_date=datetime.fromtimestamp(0, UTC),
-        **dict.fromkeys(ChatPermissions.model_fields, False),
+    muted_member = ChatMemberRestricted.model_validate(
+        {
+            "user": User(id=USER_TID, is_bot=False, first_name="Target"),
+            "status": "restricted",
+            "is_member": True,
+            "until_date": datetime.fromtimestamp(0, UTC),
+            **dict.fromkeys(ChatPermissions.model_fields, False),
+        }
     )
     mock_bot.get_chat_member = AsyncMock(side_effect=[original_member, muted_member])
 
