@@ -188,6 +188,85 @@ async def test_ban_task_restricts_present_users_in_subscribed_federation(
 
 
 @pytest.mark.asyncio
+async def test_ban_task_reports_successful_subscriber_chat_count_in_reply_and_log(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object
+) -> None:
+    task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services, banned_count=2)
+    origin_federation = await Federation.find_one(Federation.fed_id == task.fed_id)
+    assert origin_federation is not None
+    second_origin_chat = await _make_group(-100_900_005, "Second Origin Group")
+    origin_federation.chats.append(second_origin_chat)
+    await origin_federation.save()
+
+    first_subscriber_federation = Mock(fed_id="fed-subscriber-1", fed_name="SubscriberFed1")
+    first_subscriber_ban = Mock()
+    second_subscriber_federation = Mock(fed_id="fed-subscriber-2", fed_name="SubscriberFed2")
+    second_subscriber_ban = Mock()
+    ban_in_chats = AsyncMock(side_effect=[2, 2, 1])
+    lazy_ban = AsyncMock(
+        return_value=[
+            (first_subscriber_federation, first_subscriber_ban),
+            (second_subscriber_federation, second_subscriber_ban),
+        ]
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
+        ban_in_chats,
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
+        "lazy_ban_in_subscribing_federations",
+        lazy_ban,
+    )
+    post_log = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
+        post_log,
+    )
+
+    await ProcessFederationBans(test_services).handle()
+
+    reply_text = _edited_text(edit_message)
+    assert "Banned in <code>2</code> chats" in reply_text
+    assert "<code>3</code> chats in subscribed federations" in reply_text
+    assert "<code>2</code> subscribed federations" in reply_text
+    log_text = post_log.await_args.args[1]
+    assert "2 out of 2 chats in the federation" in log_text
+    assert "3 chats in subscribed federations" in log_text
+    reloaded = await FederationTask.get(task.id)
+    assert reloaded is not None
+    assert reloaded.banned_count == 2
+    assert reloaded.lazy_ban_count == 2
+
+
+@pytest.mark.asyncio
+async def test_ban_task_reports_zero_successful_subscriber_chats(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object
+) -> None:
+    _task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services, banned_count=2)
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService.ban_user_in_federation_chats",
+        AsyncMock(side_effect=[2, 0]),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationBanService."
+        "lazy_ban_in_subscribing_federations",
+        AsyncMock(return_value=[(Mock(), Mock())]),
+    )
+    post_log = AsyncMock()
+    monkeypatch.setattr(
+        "sophie_bot.modules.federations.schedules.process_bans.FederationManageService.post_federation_log",
+        post_log,
+    )
+
+    await ProcessFederationBans(test_services).handle()
+
+    reply_text = _edited_text(edit_message)
+    assert "<code>0</code> chats in subscribed federations" in reply_text
+    assert "0 chats in subscribed federations" in post_log.await_args.args[1]
+
+
+@pytest.mark.asyncio
 async def test_silent_ban_deletes_reply_only_after_final_edit(db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object) -> None:
     """The in-progress reply must survive until propagation edits it with the result."""
     task, edit_message = await _make_ban_task(monkeypatch, banned_count=0, test_services=test_services)
