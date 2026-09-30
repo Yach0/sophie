@@ -158,6 +158,14 @@ class ProcessFederationBans:
             task.original_message_text,
             redis=self.services.redis,
         )
+        subscribed_banned_count = 0
+        for subscribing_federation, subscribing_ban in lazy_bans:
+            subscribed_banned_count += await FederationBanService.ban_user_in_federation_chats(
+                subscribing_federation,
+                subscribing_ban,
+                task.target_user_id,
+                bot=self.services.bot,
+            )
         lazy_ban_count = len(lazy_bans)
 
         task.banned_count = banned_count
@@ -173,6 +181,7 @@ class ProcessFederationBans:
             task.silent,
             banned_count=banned_count,
             lazy_ban_count=lazy_ban_count,
+            subscribed_banned_count=subscribed_banned_count,
             banner_anonymous=task.banner_anonymous,
         )
         text = reply_doc.to_html()
@@ -187,6 +196,8 @@ class ProcessFederationBans:
             total_chats,
             task.reason,
             task.original_message_text,
+            subscribed_banned_count=subscribed_banned_count,
+            subscribed_federation_count=lazy_ban_count,
         )
         await FederationManageService.post_federation_log(federation, log_doc.to_html(), self.services.bot)
 
