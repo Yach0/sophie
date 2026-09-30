@@ -1,3 +1,4 @@
+from contextlib import AsyncExitStack
 from datetime import UTC, datetime
 
 from aiogram.exceptions import TelegramAPIError
@@ -48,7 +49,20 @@ class KickUnpassedUsers:
             )
             await ws_user.delete()
             return
-        async with pending_user_lock(group.tid, user.tid, redis=self.services.redis):
+        async with AsyncExitStack() as stack:
+            try:
+                await stack.enter_async_context(
+                    pending_user_lock(group.tid, user.tid, redis=self.services.redis)
+                )
+            except TimeoutError as error:
+                log.warning(
+                    "kick_unpassed_users: skipping contended pending user",
+                    ws_user_tid=str(ws_user.id),
+                    user=user.tid,
+                    group=group.tid,
+                    error=str(error),
+                )
+                return
             current_ws_user = await WSUserModel.is_user(ws_user.user.ref.id, ws_user.group.ref.id)
             if current_ws_user is None or current_ws_user.passed:
                 log.debug("kick_unpassed_users: skipping stale ws_user", ws_user_tid=str(ws_user.id))

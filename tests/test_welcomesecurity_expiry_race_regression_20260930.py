@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -17,6 +18,7 @@ from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import (
     _release_pending_user_lock,
     pending_user_lock,
 )
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 
 _MODULE = "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users"
@@ -187,3 +189,70 @@ async def test_pending_user_lock_renews_and_stale_owner_cannot_release_new_owner
         await test_services.redis.set(lock_key, "new-owner")
         await _release_pending_user_lock(lock_key, "old-owner", redis=test_services.redis)
         assert await test_services.redis.get(lock_key) == b"new-owner"
+
+
+@pytest.mark.asyncio
+async def test_contended_pending_user_does_not_starve_later_expired_users(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    contended_user = _make_ws_user(is_join_request=False)
+    expired_user = _make_ws_user(is_join_request=False)
+    group = SimpleNamespace(id=contended_user.group.ref.id, iid=contended_user.group.ref.id, tid=-100123)
+    users = [
+        SimpleNamespace(id=contended_user.user.ref.id, iid=contended_user.user.ref.id, tid=123),
+        SimpleNamespace(id=expired_user.user.ref.id, iid=expired_user.user.ref.id, tid=124),
+    ]
+    expired_user.group.ref.id = contended_user.group.ref.id
+    linked_chats = {
+        users[0].iid: users[0],
+        users[1].iid: users[1],
+        contended_user.group.ref.id: group,
+    }
+
+    async def pending_users() -> AsyncIterator[SimpleNamespace]:
+        yield contended_user
+        yield expired_user
+
+    _patch_expired_user(monkeypatch, current_record=expired_user)
+    monkeypatch.setattr(
+        f"{_MODULE}.ChatModel.get_by_iid",
+        AsyncMock(side_effect=lambda chat_iid: linked_chats[chat_iid]),
+    )
+    monkeypatch.setattr(f"{_MODULE}.WSUserModel.find", lambda *args: pending_users())
+    execute_restriction = AsyncMock(
+        return_value=RestrictionResult(action=RestrictionAction.KICK, applied=True),
+    )
+    monkeypatch.setattr(f"{_MODULE}.execute_restriction", execute_restriction)
+    await test_services.redis.set(_pending_user_lock_key(group.tid, users[0].tid), "captcha-owner")
+    clock = iter((0.0, 31.0, 31.0))
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.pending_user_lock.monotonic",
+        lambda: next(clock),
+    )
+
+    await KickUnpassedUsers(test_services).handle()
+
+    contended_user.delete.assert_not_awaited()
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot, RestrictionAction.KICK, group.tid, users[1].tid
+    )
+    expired_user.delete.assert_awaited_once()
+    assert await test_services.redis.get(_pending_user_lock_key(group.tid, users[0].tid)) == b"captcha-owner"
+    assert await test_services.redis.get(_pending_user_lock_key(group.tid, users[1].tid)) is None
+
+
+@pytest.mark.asyncio
+async def test_expiry_action_timeout_is_not_mistaken_for_lock_contention(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    ws_user = _make_ws_user(is_join_request=False)
+    _patch_expired_user(monkeypatch, current_record=ws_user)
+    monkeypatch.setattr(f"{_MODULE}.execute_restriction", AsyncMock(side_effect=TimeoutError("Telegram timeout")))
+
+    with pytest.raises(TimeoutError, match="Telegram timeout"):
+        await KickUnpassedUsers(test_services).process_user(ws_user)
+
+    ws_user.delete.assert_not_awaited()
+    assert await test_services.redis.get(_pending_user_lock_key(-100123, 123)) is None
