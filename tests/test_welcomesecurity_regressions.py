@@ -20,9 +20,7 @@ async def test_legacy_button_validates_membership_via_telegram(monkeypatch: pyte
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
     get_user_in_group = AsyncMock(return_value=None)
     ensure_user_in_group = AsyncMock()
-    get_chat_member = AsyncMock(
-        return_value=SimpleNamespace(status=ChatMemberStatus.MEMBER)
-    )
+    get_chat_member = AsyncMock(return_value=SimpleNamespace(status=ChatMemberStatus.MEMBER))
     bot = SimpleNamespace(get_chat_member=get_chat_member)
 
     monkeypatch.setattr(
@@ -78,7 +76,10 @@ async def test_captcha_rules_preserve_join_request_context(
 
 
 @pytest.mark.asyncio
-async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     """Captcha flow already shows rules in DM; no welcome/rules should be sent to the group on completion."""
     user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
@@ -88,7 +89,6 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
         message_id=42,
         from_user=SimpleNamespace(id=user.tid),
     )
-    redis = SimpleNamespace(get=AsyncMock(return_value=None), set=AsyncMock(), delete=AsyncMock())
     bot_mock = SimpleNamespace(
         edit_message_media=AsyncMock(),
         approve_chat_join_request=AsyncMock(),
@@ -106,7 +106,7 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
         greetings,
         captcha_message,
         bot=bot_mock,
-        redis=redis,
+        redis=test_redis,
     )
 
     # complete_captcha should only update the captcha image in DM and unmute the user;

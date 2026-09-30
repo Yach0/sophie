@@ -8,6 +8,7 @@ from sophie_bot.metrics.welcome import track_captcha_passed
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
+from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -38,6 +39,28 @@ async def complete_captcha(
         bot: Telegram bot used to update the captcha and membership.
         redis: Redis connection used by the welcome-security flow.
     """
+    async with pending_user_lock(group.tid, user.tid, redis=redis):
+        await _complete_captcha(
+            user,
+            group,
+            greetings,
+            captcha_message,
+            is_join_request,
+            bot=bot,
+            redis=redis,
+        )
+
+
+async def _complete_captcha(
+    user: ChatModel,
+    group: ChatModel,
+    greetings: GreetingsModel,
+    captcha_message: Message,
+    is_join_request: bool,
+    *,
+    bot: Bot,
+    redis: Redis,
+) -> None:
     # Mark captcha as correct
     track_captcha_passed()
     captcha = EmojiCaptcha()
@@ -65,6 +88,7 @@ async def complete_captcha(
         greetings.welcome_mute or WelcomeMute(),
         bot=bot,
         redis=redis,
+        lock_already_acquired=True,
     )
 
     # Clean up the security note message from the group
