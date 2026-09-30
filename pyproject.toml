@@ -35,7 +35,7 @@ dependencies = [
     # exceptions that the AI retry classifier has to recognise. See ai_errors.py.
     "httpx>=0.28.1,<0.29",
     "requests>=2.32,<3",
-    "uvicorn>=0.53,<0.54",
+    "uvicorn>=0.54,<0.55",
     "uvloop>=0.22.1,<0.23",
     "pyjwt>=2.14.0,<3",
     "init-data-py>=1,<1.1",
