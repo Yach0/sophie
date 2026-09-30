@@ -46,7 +46,7 @@ async def test_legacy_welcomesecurity_start_uses_live_membership_check(
     membership = await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid)
     assert membership is not None
     assert membership.id is not None
-    await UserInGroupModel.ensure_delete(user_db, group_db, membership.id)
+    await membership.delete()
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.is_user",
         AsyncMock(return_value=SimpleNamespace(is_join_request=False)),

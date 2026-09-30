@@ -1,6 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 from aiogram.types import Chat, Message, User
@@ -37,11 +37,23 @@ async def _create_user_and_group(user_tid: int, group_tid: int) -> tuple[ChatMod
     return user, group
 
 
-async def _leave_user(user: ChatModel, group: ChatModel) -> None:
+async def _join_user(user: ChatModel, group: ChatModel, *, message_id: int) -> None:
+    await SaveChatsMiddleware()._handle_new_chat_members(
+        Message(
+            message_id=message_id,
+            date=datetime(2026, 9, 30, tzinfo=UTC),
+            chat=Chat(id=group.tid, type="supergroup", title=group.first_name_or_title),
+            new_chat_members=[User(id=user.tid, first_name=user.first_name_or_title, is_bot=False)],
+        ),
+        group,
+    )
+
+
+async def _leave_user(user: ChatModel, group: ChatModel, *, message_id: int = 2) -> None:
     await SaveChatsMiddleware()._handle_left_chat_member(
         Message(
-            message_id=1,
-            date=datetime.now(UTC),
+            message_id=message_id,
+            date=datetime(2026, 9, 30, tzinfo=UTC),
             chat=Chat(id=group.tid, type="supergroup", title=group.first_name_or_title),
             left_chat_member=User(id=user.tid, first_name=user.first_name_or_title, is_bot=False),
         ),
@@ -52,7 +64,7 @@ async def _leave_user(user: ChatModel, group: ChatModel) -> None:
 @pytest.mark.asyncio
 async def test_leave_then_rejoin_gets_a_fresh_welcome_security_deadline(db_init: Any) -> None:
     user, group = await _create_user_and_group(991001, -991002)
-    await UserInGroupModel.ensure_user_in_group(user, group)
+    await _join_user(user, group, message_id=1)
 
     pending = await WSUserModel.ensure_user(user, group, is_join_request=False)
     pending.added_at = datetime.now(UTC) - timedelta(hours=100)
@@ -63,21 +75,22 @@ async def test_leave_then_rejoin_gets_a_fresh_welcome_security_deadline(db_init:
 
     assert await WSUserModel.find_all().count() == 0
 
-    await UserInGroupModel.ensure_user_in_group(user, group)
+    await _join_user(user, group, message_id=3)
     rejoined = await WSUserModel.ensure_user(user, group, is_join_request=False)
 
     assert rejoined.added_at.replace(tzinfo=UTC) > datetime.now(UTC) - timedelta(minutes=1)
-    await _leave_user(user, group)
+    await _leave_user(user, group, message_id=4)
     assert await WSUserModel.is_user(user.iid, group.iid) is None
 
 
 @pytest.mark.asyncio
 async def test_duplicate_join_delivery_does_not_extend_welcome_security_deadline(db_init: Any) -> None:
     user, group = await _create_user_and_group(991003, -991004)
-    await UserInGroupModel.ensure_user_in_group(user, group)
+    await _join_user(user, group, message_id=1)
     rejoined = await WSUserModel.ensure_user(user, group, is_join_request=False)
     added_at = rejoined.added_at
 
+    await _join_user(user, group, message_id=1)
     duplicate_delivery = await WSUserModel.ensure_user(user, group, is_join_request=False)
 
     assert abs(duplicate_delivery.added_at.replace(tzinfo=UTC) - added_at.replace(tzinfo=UTC)) < timedelta(
@@ -88,13 +101,13 @@ async def test_duplicate_join_delivery_does_not_extend_welcome_security_deadline
 @pytest.mark.asyncio
 async def test_passed_user_survives_leave_and_rejoin_without_rewriting_join_request_mode(db_init: Any) -> None:
     user, group = await _create_user_and_group(991005, -991006)
-    await UserInGroupModel.ensure_user_in_group(user, group)
+    await _join_user(user, group, message_id=1)
     passed_user = await WSUserModel.ensure_user(user, group, is_join_request=True)
     passed_user.passed = True
     await passed_user.save()
 
     await _leave_user(user, group)
-    await UserInGroupModel.ensure_user_in_group(user, group)
+    await _join_user(user, group, message_id=3)
     rejoined = await WSUserModel.ensure_user(user, group, is_join_request=False)
 
     stored_user = await WSUserModel.is_user(user.iid, group.iid)
@@ -124,38 +137,101 @@ async def test_legacy_membership_generation_is_bound_on_rejoin(db_init: Any) -> 
 
 
 @pytest.mark.asyncio
-async def test_old_leave_cannot_delete_session_created_after_membership_boundary(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("pause_at", ["membership_lookup", "membership_delete", "pending_lookup"])
+async def test_old_leave_cannot_delete_a_newer_same_second_rejoin(
+    db_init: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    pause_at: Literal["membership_lookup", "membership_delete", "pending_lookup"],
 ) -> None:
     user, group = await _create_user_and_group(991007, -991008)
-    old_membership = await UserInGroupModel.ensure_user_in_group(user, group)
+    await _join_user(user, group, message_id=1)
     pending = await WSUserModel.ensure_user(user, group, is_join_request=False)
     pending.added_at = datetime.now(UTC) - timedelta(hours=100)
     await pending.save()
 
-    membership_captured = asyncio.Event()
+    old_leave_paused = asyncio.Event()
     allow_old_leave_to_finish = asyncio.Event()
+    old_leave: asyncio.Task[None] | None = None
+    original_membership_lookup = UserInGroupModel.get_user_in_group
     original_ensure_delete = UserInGroupModel.ensure_delete
+    original_pending_lookup = WSUserModel.is_user
 
-    async def pause_old_leave(leave_user: ChatModel, leave_group: ChatModel, membership_id: PydanticObjectId) -> bool:
-        assert membership_id == old_membership.id
-        membership_captured.set()
+    async def pause_membership_lookup(
+        user_iid: PydanticObjectId, group_iid: PydanticObjectId
+    ) -> UserInGroupModel | None:
+        if asyncio.current_task() is old_leave:
+            old_leave_paused.set()
+            await allow_old_leave_to_finish.wait()
+        return await original_membership_lookup(user_iid, group_iid)
+
+    async def pause_membership_delete(
+        leave_user: ChatModel,
+        leave_group: ChatModel,
+        membership_id: PydanticObjectId,
+        *,
+        left_message_id: int,
+    ) -> bool:
+        old_leave_paused.set()
         await allow_old_leave_to_finish.wait()
-        return await original_ensure_delete(leave_user, leave_group, membership_id)
+        return await original_ensure_delete(
+            leave_user, leave_group, membership_id, left_message_id=left_message_id
+        )
 
-    monkeypatch.setattr(UserInGroupModel, "ensure_delete", pause_old_leave)
-    old_leave = asyncio.create_task(_leave_user(user, group))
-    await membership_captured.wait()
+    async def pause_pending_lookup(
+        user_iid: PydanticObjectId, group_iid: PydanticObjectId
+    ) -> WSUserModel | None:
+        if asyncio.current_task() is old_leave:
+            old_leave_paused.set()
+            await allow_old_leave_to_finish.wait()
+        return await original_pending_lookup(user_iid, group_iid)
 
-    await old_membership.delete()
-    await UserInGroupModel.ensure_user_in_group(user, group)
-    rejoined = await WSUserModel.ensure_user(user, group, is_join_request=False)
-    assert rejoined.added_at.replace(tzinfo=UTC) > datetime.now(UTC) - timedelta(minutes=1)
+    if pause_at == "membership_lookup":
+        monkeypatch.setattr(UserInGroupModel, "get_user_in_group", pause_membership_lookup)
+    elif pause_at == "membership_delete":
+        monkeypatch.setattr(UserInGroupModel, "ensure_delete", pause_membership_delete)
+    else:
+        monkeypatch.setattr(WSUserModel, "is_user", pause_pending_lookup)
+    old_leave = asyncio.create_task(_leave_user(user, group, message_id=2))
+    await old_leave_paused.wait()
 
-    allow_old_leave_to_finish.set()
-    await old_leave
+    try:
+        await _join_user(user, group, message_id=3)
+        rejoined = await WSUserModel.ensure_user(user, group, is_join_request=False)
+        assert rejoined.added_at.replace(tzinfo=UTC) > datetime.now(UTC) - timedelta(minutes=1)
+    finally:
+        allow_old_leave_to_finish.set()
+        await old_leave
 
     stored_user = await WSUserModel.is_user(user.iid, group.iid)
     assert stored_user is not None
     assert stored_user.id == rejoined.id
-    assert await UserInGroupModel.get_user_in_group(user.iid, group.iid) is not None
+    assert stored_user.membership_join_message_id == 3
+    assert stored_user.added_at == rejoined.added_at
+    membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+    assert membership is not None
+    assert membership.joined_message_id == 3
+
+
+@pytest.mark.asyncio
+async def test_newer_member_message_survives_older_edit_and_delayed_leave(db_init: Any) -> None:
+    user, group = await _create_user_and_group(991011, -991012)
+    await _join_user(user, group, message_id=1)
+    pending = await WSUserModel.ensure_user(user, group, is_join_request=False)
+    message = Message(
+        message_id=4,
+        date=datetime(2026, 9, 30, tzinfo=UTC),
+        chat=Chat(id=group.tid, type="supergroup", title=group.first_name_or_title),
+        from_user=User(id=user.tid, first_name=user.first_name_or_title, is_bot=False),
+        text="Still here",
+    )
+    await SaveChatsMiddleware.update_from_user(message, group)
+    await SaveChatsMiddleware.update_from_user(message.model_copy(update={"message_id": 1}), group)
+
+    await _leave_user(user, group, message_id=2)
+
+    membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+    assert membership is not None
+    assert membership.last_message_id == 4
+    stored_user = await WSUserModel.is_user(user.iid, group.iid)
+    assert stored_user is not None
+    assert stored_user.id == pending.id

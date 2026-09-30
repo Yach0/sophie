@@ -12,7 +12,7 @@ from beanie import (
     UpdateResponse,
 )
 from beanie.odm.operators.find.comparison import In
-from beanie.odm.operators.update.general import Set
+from beanie.odm.operators.update.general import Max, Set
 from pydantic import Field
 from pymongo import ASCENDING, IndexModel
 from redis.asyncio import Redis
@@ -218,6 +218,9 @@ class UserInGroupModel(Document):
     group: Link[ChatModel]
     first_saw: datetime = Field(default_factory=lambda: datetime.now(UTC))
     last_saw: datetime
+    # Chat-local Telegram message IDs fence leaves independently of processing order.
+    last_message_id: int | None = None
+    joined_message_id: int | None = None
     ai_filter_seen_messages: int = 0
 
     class Settings:
@@ -234,15 +237,33 @@ class UserInGroupModel(Document):
         ]
 
     @staticmethod
-    async def ensure_user_in_group(user: "ChatModel", group: "ChatModel"):
+    async def ensure_user_in_group(
+        user: "ChatModel",
+        group: "ChatModel",
+        *,
+        message_id: int | None = None,
+        is_join: bool = False,
+    ) -> "UserInGroupModel":
+        """Record membership evidence; a join also marks a distinct membership session."""
         current_timedate = datetime.now(UTC)
+        updates: list[Set | Max] = [Set({UserInGroupModel.last_saw: current_timedate})]
+        if message_id is not None:
+            message_boundaries = {UserInGroupModel.last_message_id: message_id}
+            if is_join:
+                message_boundaries[UserInGroupModel.joined_message_id] = message_id
+            updates.append(Max(message_boundaries))
 
-        return await UserInGroupModel.find_one({"user.$id": user.iid, "group.$id": group.iid}).upsert(
-            Set({UserInGroupModel.last_saw: current_timedate}),
+        return await UserInGroupModel.find_one(
+            UserInGroupModel.user.id == user.iid,
+            UserInGroupModel.group.id == group.iid,
+        ).upsert(
+            *updates,
             on_insert=UserInGroupModel(
                 user=user,
                 group=group,
                 last_saw=current_timedate,
+                last_message_id=message_id,
+                joined_message_id=message_id if is_join else None,
             ),
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
@@ -255,11 +276,25 @@ class UserInGroupModel(Document):
         return user_in_chat
 
     @staticmethod
-    async def ensure_delete(user: "ChatModel", group: "ChatModel", membership_id: PydanticObjectId) -> bool:
-        deleted_user_in_chat = await UserInGroupModel.get_pymongo_collection().find_one_and_delete(
-            {"_id": membership_id, "user.$id": user.iid, "group.$id": group.iid}
-        )
-        return deleted_user_in_chat is not None
+    async def ensure_delete(
+        user: "ChatModel",
+        group: "ChatModel",
+        membership_id: PydanticObjectId,
+        *,
+        left_message_id: int,
+    ) -> bool:
+        result = await UserInGroupModel.find_one(
+            UserInGroupModel.id == membership_id,
+            UserInGroupModel.user.id == user.iid,
+            UserInGroupModel.group.id == group.iid,
+            {
+                "$or": [
+                    {"last_message_id": {"$lte": left_message_id}},
+                    {"last_message_id": None},
+                ]
+            },
+        ).delete()
+        return result is not None and result.deleted_count > 0
 
     @staticmethod
     async def get_user_in_group(

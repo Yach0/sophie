@@ -24,7 +24,9 @@ logger = structlog.get_logger(__name__)
 
 class SaveChatsMiddleware(BaseMiddleware):
     @staticmethod
-    async def _delete_user_in_chat_by_user_id(user_id: int, group: ChatModel):
+    async def _delete_user_in_chat_by_user_id(
+        user_id: int, group: ChatModel, *, left_message_id: int
+    ) -> None:
         logger.debug("SaveChatsMiddleware: Deleting user from chat", user_id=user_id, group=group)
         if not (user := await ChatModel.get_by_tid(user_id)):
             # not found - already deleted or didn't exist in a first place
@@ -33,12 +35,14 @@ class SaveChatsMiddleware(BaseMiddleware):
         membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
         if membership is None or membership.id is None:
             return
-        if not await UserInGroupModel.ensure_delete(user, group, membership.id):
+        if not await UserInGroupModel.ensure_delete(
+            user, group, membership.id, left_message_id=left_message_id
+        ):
             return
 
         ws_user = await WSUserModel.is_user(user.iid, group.iid)
         if ws_user and ws_user.id is not None and not ws_user.passed:
-            await WSUserModel.remove_unpassed_user(ws_user.id, membership.id)
+            await WSUserModel.remove_unpassed_user(ws_user.id, membership.id, membership.joined_message_id)
 
     @staticmethod
     async def _chats_update(chats: Iterable[Chat | User]):
@@ -139,7 +143,9 @@ class SaveChatsMiddleware(BaseMiddleware):
             logger.debug("SaveChatsMiddleware: Updating from from_user", from_user=message.from_user.id)
             current_user = await ChatModel.upsert_user(message.from_user)
 
-        user_in_group = await UserInGroupModel.ensure_user_in_group(current_user, current_group)
+        user_in_group = await UserInGroupModel.ensure_user_in_group(
+            current_user, current_group, message_id=message.message_id
+        )
         return current_user, user_in_group
 
     async def handle_message(
@@ -263,12 +269,14 @@ class SaveChatsMiddleware(BaseMiddleware):
         for member in message.new_chat_members:
             logger.debug("SaveChatsMiddleware: Saving new chat member", user_id=member.id)
             new_user = await ChatModel.upsert_user(member)
-            await UserInGroupModel.ensure_user_in_group(new_user, group)
+            await UserInGroupModel.ensure_user_in_group(
+                new_user, group, message_id=message.message_id, is_join=True
+            )
             new_users.append(new_user)
 
         return new_users
 
-    async def _handle_left_chat_member(self, message: Message, group: ChatModel):
+    async def _handle_left_chat_member(self, message: Message, group: ChatModel) -> None:
         if not message.left_chat_member:
             return
 
@@ -277,7 +285,9 @@ class SaveChatsMiddleware(BaseMiddleware):
             logger.debug("SaveChatsMiddleware: Bot left the chat", chat_id=group.tid)
             await group.delete_chat()
         else:
-            await self._delete_user_in_chat_by_user_id(message.left_chat_member.id, group)
+            await self._delete_user_in_chat_by_user_id(
+                message.left_chat_member.id, group, left_message_id=message.message_id
+            )
 
     @staticmethod
     async def save_from_user(data: dict[str, Any], context: RequestContext) -> None:

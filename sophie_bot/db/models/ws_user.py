@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Optional
+from typing import Any, Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set
@@ -17,6 +17,7 @@ class WSUserModel(Document):
     is_join_request: bool = False
     added_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     membership_id: PydanticObjectId | None = None
+    membership_join_message_id: int | None = None
 
     class Settings:
         name = "ws_users"
@@ -25,6 +26,7 @@ class WSUserModel(Document):
     async def ensure_user(user: "ChatModel", group: "ChatModel", is_join_request: bool) -> "WSUserModel":
         membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
         membership_id = membership.id if membership is not None else None
+        joined_message_id = membership.joined_message_id if membership is not None else None
         user_filter = {
             "user.$id": user.iid,
             "group.$id": group.iid,
@@ -39,19 +41,36 @@ class WSUserModel(Document):
                 group=group,
                 is_join_request=is_join_request,
                 membership_id=membership_id,
+                membership_join_message_id=joined_message_id,
             ),
             response_type=UpdateResponse.NEW_DOCUMENT,
         )
 
         if membership_id is not None:
+            # Rejoins can reuse the membership row while an older leave is still delayed.
+            session_filter: dict[str, Any]
+            if joined_message_id is None:
+                session_filter = {"membership_id": {"$ne": membership_id}}
+            else:
+                session_filter = {
+                    "$or": [
+                        {"membership_join_message_id": {"$lt": joined_message_id}},
+                        {"membership_join_message_id": None},
+                        {
+                            "membership_join_message_id": joined_message_id,
+                            "membership_id": {"$ne": membership_id},
+                        },
+                    ]
+                }
             await WSUserModel.find_one(
                 user_filter,
                 {"passed": False},
-                {"membership_id": {"$ne": membership_id}},
+                session_filter,
             ).update(
                 Set(
                     {
                         WSUserModel.membership_id: membership_id,
+                        WSUserModel.membership_join_message_id: joined_message_id,
                         WSUserModel.added_at: datetime.now(UTC),
                         WSUserModel.is_join_request: is_join_request,
                     }
@@ -68,15 +87,25 @@ class WSUserModel(Document):
         return user_in_chat
 
     @staticmethod
-    async def remove_unpassed_user(ws_user_iid: PydanticObjectId, membership_id: PydanticObjectId | None) -> bool:
-        deleted_user = await WSUserModel.get_pymongo_collection().find_one_and_delete(
+    async def remove_unpassed_user(
+        ws_user_iid: PydanticObjectId,
+        membership_id: PydanticObjectId,
+        joined_message_id: int | None,
+    ) -> bool:
+        result = await WSUserModel.find_one(
+            WSUserModel.id == ws_user_iid,
+            {"passed": False},
             {
-                "_id": ws_user_iid,
-                "passed": False,
-                "$or": [{"membership_id": membership_id}, {"membership_id": None}],
-            }
-        )
-        return deleted_user is not None
+                "$or": [
+                    {
+                        "membership_id": membership_id,
+                        "membership_join_message_id": joined_message_id,
+                    },
+                    {"membership_id": None, "membership_join_message_id": None},
+                ]
+            },
+        ).delete()
+        return result is not None and result.deleted_count > 0
 
     @staticmethod
     async def is_user(user_iid: PydanticObjectId, group_iid: PydanticObjectId) -> Optional["WSUserModel"]:
