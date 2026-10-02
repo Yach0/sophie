@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock, call
 
 import pytest
-from aiogram.exceptions import TelegramNetworkError
+from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.methods import SetMessageReaction
 from aiogram.types import Chat, Message, User
 from redis.asyncio import Redis
@@ -203,3 +203,56 @@ async def test_failed_proactive_action_retries_on_the_next_message(
 
     assert reaction.await_count == 2
     assert reaction.await_args.kwargs["message_id"] == 3
+
+
+async def test_missing_reaction_target_does_not_abort_remaining_actions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chat_tid = -1001234567890
+    chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, iid="chat-iid"))
+    missing_target = TelegramBadRequest(
+        method=SetMessageReaction(chat_id=chat_tid, message_id=1),
+        message="Bad Request: message to react not found",
+    )
+    reaction = AsyncMock(side_effect=[missing_target, True])
+    services = cast(ApplicationServices, SimpleNamespace(bot=SimpleNamespace(set_message_reaction=reaction)))
+    messages = tuple(MessageType(user_id=42, message_id=message_id, text="hello") for message_id in (1, 2, 3))
+    decision = ProactiveDecision(
+        actions=[
+            ProactiveAction(action="react", message_id=1, emoji="👍"),
+            ProactiveAction(action="react", message_id=2, emoji="👍"),
+            ProactiveAction(action="answer", message_id=3),
+        ]
+    )
+    answer = AsyncMock()
+    metric = Mock()
+    monkeypatch.setattr(proactive_replies, "track_ai_proactive_event", metric)
+    monkeypatch.setattr(proactive_replies, "_answer_message", answer)
+
+    await proactive_replies._execute_actions(
+        chat_tid, chat, messages, decision, ProactiveReplySettings(max_reactions=2), services=services
+    )
+
+    assert reaction.await_count == 2
+    assert [call.kwargs["message_id"] for call in reaction.await_args_list] == [1, 2]
+    answer.assert_awaited_once_with(chat_tid, chat, messages[2], services=services)
+    metric.assert_any_call("reaction_skipped", {**proactive_replies._METRIC_ATTRIBUTES, "reason": "target_missing"})
+    assert metric.call_args_list.count(call("reaction_sent", proactive_replies._METRIC_ATTRIBUTES)) == 1
+
+
+@pytest.mark.parametrize("description", ["Bad Request: REACTION_INVALID", "Bad Request: not enough rights"])
+async def test_unexpected_reaction_bad_request_propagates(description: str) -> None:
+    chat_tid = -1001234567890
+    failure = TelegramBadRequest(
+        method=SetMessageReaction(chat_id=chat_tid, message_id=1),
+        message=description,
+    )
+    reaction = AsyncMock(side_effect=failure)
+    services = cast(ApplicationServices, SimpleNamespace(bot=SimpleNamespace(set_message_reaction=reaction)))
+
+    with pytest.raises(TelegramBadRequest) as raised:
+        await proactive_replies._react_to_message(
+            chat_tid, MessageType(user_id=42, message_id=1, text="hello"), "👍", services=services
+        )
+
+    assert raised.value is failure
