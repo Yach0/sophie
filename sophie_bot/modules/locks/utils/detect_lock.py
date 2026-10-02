@@ -5,7 +5,7 @@ import unicodedata
 from collections.abc import Callable
 
 from aiogram.enums import MessageEntityType
-from aiogram.types import Message, MessageEntity
+from aiogram.types import Message, MessageEntity, RichBlockListItem, RichBlockUnion
 
 from sophie_bot.modules.locks.utils.lock_types import (
     LockType,
@@ -15,6 +15,7 @@ from sophie_bot.modules.locks.utils.lock_types import (
     is_stickerpack_lock,
 )
 from sophie_bot.shared.lang_detect import is_text_language, lang_code_to_language
+from sophie_bot.shared.message_text import message_text
 from sophie_bot.utils.logger import log
 
 CJK_REGEX = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f]")
@@ -60,7 +61,7 @@ def _check_command(message: Message) -> bool:
 
 
 def _get_text_content(message: Message) -> str:
-    return message.text or message.caption or ""
+    return message_text(message, table_cell_separator="\n") or message.caption or ""
 
 
 def _check_regex(pattern: re.Pattern[str]) -> Callable[[Message], bool]:
@@ -127,7 +128,8 @@ def _check_webpreview(message: Message) -> bool:
 
 def _check_url_by_regex(message: Message, pattern: re.Pattern[str]) -> bool:
     """Check if any URL entity in the message matches the given regex pattern."""
-    text_content = _get_text_content(message)
+    # Telegram entity offsets refer to the original plain text/caption.
+    text_content = message.text or message.caption or ""
     for entity in _get_all_entities(message):
         if entity.type == MessageEntityType.URL:
             url = entity.url or text_content[entity.offset : entity.offset + entity.length]
@@ -171,6 +173,20 @@ def _check_language(message: Message, lang_code: str) -> bool:
 
 def _check_media(message: Message) -> bool:
     return any(getattr(message, attribute) for attribute in MEDIA_ATTRIBUTES)
+
+
+def _has_rich_media(block: RichBlockUnion | RichBlockListItem) -> bool:
+    if block.type in {"photo", "video", "audio", "document", "animation", "voice_note", "collage", "slideshow"}:
+        return True
+    children = getattr(block, "blocks", None) or getattr(block, "items", None) or []
+    return any(_has_rich_media(child) for child in children)
+
+
+def _check_text(message: Message) -> bool:
+    # A caption alone is not a text message; rich media blocks must remain exempt.
+    rich = message.rich_message
+    has_rich_media = bool(rich and any(_has_rich_media(block) for block in rich.blocks))
+    return bool(message_text(message)) and not _check_media(message) and not has_rich_media
 
 
 def _check_edited(message: Message) -> bool:
@@ -224,7 +240,7 @@ LOCK_TYPE_CHECKS: dict[str, Callable[[Message], bool]] = {
     LockType.STICKER: lambda m: bool(m.sticker),
     LockType.STICKER_ANIMATED: lambda m: bool(m.sticker and m.sticker.is_animated),
     LockType.STICKER_PREMIUM: lambda m: bool(m.sticker and m.sticker.premium_animation),
-    LockType.TEXT: lambda m: bool(m.text) and not _check_media(m),
+    LockType.TEXT: _check_text,
     LockType.URL: _check_url,
     LockType.VIDEO: lambda m: bool(m.video),
     LockType.VIDEO_NOTE: lambda m: bool(m.video_note),

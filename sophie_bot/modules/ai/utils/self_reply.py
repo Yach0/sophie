@@ -15,6 +15,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_PROGRESS_MARKER,
 )
 from sophie_bot.modules.ai.utils.ai_tool import AITool
+from sophie_bot.shared.message_text import message_text, rich_block_text, rich_text
 
 _LEGACY_AI_HEADER_LABEL = f"{AI_EMOJI} AI"
 _LEGACY_AI_HEADER_SEPARATOR = " | "
@@ -30,41 +31,6 @@ _KNOWN_BATTERY_EMOJI_IDS = AI_BATTERY_CUSTOM_EMOJI_IDS | {
     "5818860416045945285",
     "5816915599019741395",
 }
-
-
-def _rich_text(value: object) -> str:
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        return "".join(_rich_text(item) for item in value)
-
-    alternative_text = getattr(value, "alternative_text", None)
-    if isinstance(alternative_text, str):
-        return alternative_text
-
-    nested_text = getattr(value, "text", None)
-    return _rich_text(nested_text) if nested_text is not None else ""
-
-
-def _rich_block_text(block: object) -> str:
-    cells = getattr(block, "cells", None)
-    if isinstance(cells, list):
-        return "\n".join(
-            _LEGACY_AI_HEADER_SEPARATOR.join(_rich_text(cell) for cell in row) for row in cells if isinstance(row, list)
-        )
-
-    return _rich_text(getattr(block, "text", None))
-
-
-def message_text(message: Message | object) -> str:
-    rich = getattr(message, "rich_message", None)
-    if rich is not None:
-        rich_text = "\n".join(text for block in rich.blocks if (text := _rich_block_text(block)))
-        if rich_text:
-            return rich_text
-
-    text = getattr(message, "text", None)
-    return text if isinstance(text, str) else ""
 
 
 def _ai_marker(message: Message) -> RichTextCustomEmoji | None:
@@ -101,7 +67,7 @@ def _rich_battery_offset(value: object) -> tuple[int, int | None]:
     nested_text = getattr(value, "text", None)
     if nested_text is not None:
         return _rich_battery_offset(nested_text)
-    return len(_rich_text(value)), None
+    return len(rich_text(value)), None
 
 
 def _last_battery_offset(message: Message) -> int | None:
@@ -111,7 +77,7 @@ def _last_battery_offset(message: Message) -> int | None:
     offset = 0
     battery_offset = None
     for block in rich.blocks:
-        block_text = _rich_block_text(block)
+        block_text = rich_block_text(block)
         if not block_text:
             continue
         if offset:
