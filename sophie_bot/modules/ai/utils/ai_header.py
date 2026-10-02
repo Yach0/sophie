@@ -46,7 +46,10 @@ class _InlineElement(Element):
         return self.element.to_html()
 
     def to_rich(self) -> str:
-        return self.element.to_rich().replace("<p>", "").replace("</p>", "")
+        rendered = self.element.to_rich()
+        if rendered.startswith("<p>"):
+            return rendered[3:].replace("</p>", "", 1)
+        return rendered
 
     def to_md(self) -> str:
         return self.element.to_md()
@@ -101,9 +104,10 @@ def build_ai_message_doc(
     tool_labels: Sequence[AITool] = (),
     emoji_id: str = AI_CUSTOM_EMOJI_ID,
 ) -> Doc:
-    inline_body = tuple(_inline_body_item(item) for item in body)
     if header is None:
-        return Doc(*inline_body)
+        return Doc(*body)
+    body_items = tuple(item for item in body if item)
+    inline_body = (_inline_body_item(body_items[0]), *body_items[1:]) if body_items else ()
     tools = (
         HList("(", HList(*(tool.display_label() for tool in tool_labels), divider=", "), ")", divider="")
         if tool_labels

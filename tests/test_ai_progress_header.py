@@ -540,7 +540,7 @@ def test_simple_header_renders_first_markdown_paragraph_inline() -> None:
     text = build_ai_message_doc(header, ai_markdown_to_doc("Hello *world*.\n\nSecond paragraph.")).to_rich()
     assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello <i>world</i>.')
     assert "<p>" in text
-    assert "\nSecond paragraph.<br>" in text
+    assert "\n<p>Second paragraph.</p><br>" in text
 
 
 def test_used_tool_categories_render_before_reply_body() -> None:

@@ -362,6 +362,17 @@ except TelegramAPIError:
     await message.reply(doc.to_html(), reply_markup=kb)
 ```
 
+### AI reply paragraphs
+
+STFU's AI Markdown renderer emits real `<p>` tags for Rich HTML. When Sophie adds
+an AI marker, it unwraps only the leading paragraph of the first body item to keep
+that marker inline. Later paragraphs and paragraphs inside other blocks keep their
+wrappers. With the header disabled, the body keeps all paragraph wrappers.
+Streaming drafts use the same rule with their progress marker. Regular Telegram
+HTML (`to_html()`) keeps newline separators instead of adding unsupported `<p>` tags.
+Legacy AI paths using `ai_markdown_to_html()` still produce regular Telegram HTML;
+this wrapper rule does not convert their newline-only content into Rich paragraphs.
+
 ### AI-generated tables
 
 Sophie limits AI Markdown tables to 15 columns and 50 rows (including the header).
