@@ -17,9 +17,7 @@ class LocksModel(Document):
     @staticmethod
     async def get_by_chat_iid(chat_iid: PydanticObjectId) -> LocksModel:
         existing = await LocksModel.find_one(LocksModel.chat.id == chat_iid)
-        if existing:
-            return existing
-        return LocksModel(chat=chat_iid)
+        return existing or LocksModel(chat=chat_iid)
 
     async def lock(self, lock_type: str) -> bool:
         if lock_type in self.locked_types:
