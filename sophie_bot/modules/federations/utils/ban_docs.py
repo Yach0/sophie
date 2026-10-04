@@ -41,7 +41,7 @@ def build_ban_reply_doc(
         KeyValue(_("Banned by"), banned_by),
     )
     if reason:
-        doc += KeyValue(_("Reason"), reason)
+        doc += KeyValue(_("Reason"), Code(reason))
 
     if propagating:
         if immediate_chat_banned:
@@ -127,7 +127,7 @@ def build_ban_log_doc(
             count=subscribed_banned_count,
         )
     if reason:
-        log_doc += KeyValue(_("Reason"), reason)
+        log_doc += KeyValue(_("Reason"), Code(reason))
     if original_message_text:
         log_doc += Section(
             Spoiler(original_message_text),
