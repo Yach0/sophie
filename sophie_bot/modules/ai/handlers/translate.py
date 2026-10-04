@@ -116,7 +116,7 @@ def _build_translate_reply_doc(
         BlockQuote(PreformattedHTML(ai_markdown_to_html(translated.translated_text)), expandable=True),
         (
             Section(translated.translation_explanations, title=_("Translation Notes"))
-            if translated.translation_explanations
+            if translated.translation_explanations and translated.translation_explanations.strip()
             else None
         ),
     )
