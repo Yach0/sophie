@@ -426,7 +426,7 @@ async def test_note_write_uses_its_own_activity_without_a_title(test_redis: obje
 
 
 @pytest.mark.asyncio
-async def test_retrying_draft_uses_the_configured_simple_layout(test_redis: object) -> None:
+async def test_retrying_draft_uses_the_configured_simple_layout(test_redis: object, test_services: object) -> None:
     """A retry/failover edit must keep one simple prefix and omit the completed footer."""
     response_message = _response_message()
     streamer = ChatbotMessageStreamer(
