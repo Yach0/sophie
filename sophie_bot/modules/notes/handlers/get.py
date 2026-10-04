@@ -24,6 +24,7 @@ from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.telegram import is_bot_authored_message
 
 
 @flags.args(notename=WordArg(l_("Note name")), raw=OptionalArg(OneOf("noformat", "?raw")))
@@ -101,6 +102,9 @@ class HashtagGetNote(SophieMessageHandler):
         return Bold(HList(Title(f"📗 #{note_model.names[0]}", bold=False), note_model.description or ""))
 
     async def handle(self) -> Any:
+        if is_bot_authored_message(self.event):
+            return None
+
         raw_text = self.event.text or ""
 
         matches = self.hashtag_regex.findall(raw_text)
