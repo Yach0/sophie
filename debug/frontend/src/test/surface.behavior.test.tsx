@@ -63,3 +63,27 @@ describe('correlated event surface', () => {
     expect(await screen.findByText(/3 retained summaries/)).toBeInTheDocument()
   })
 })
+
+it('retains a bounded paused snapshot when the live buffer overflows', async () => {
+  const { user } = renderDebugger({ path: '/telegram', events: [eventSummary({ seq: 1, summary: 'Paused row' })] })
+  await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+  await user.click(screen.getByRole('button', { name: 'Pause following' }))
+  await act(async () => {
+    for (let seq = 2; seq <= 1002; seq += 1) MockEventSource.instances[0]?.emit('event', eventSummary({ seq, summary: `Live row ${seq}` }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+  expect(screen.getByText(/1 retained summaries/)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Resume to latest' }))
+  expect(await screen.findByText(/1000 retained summaries/)).toBeInTheDocument()
+})
+
+it.each([
+  ['/telegram?from=2026-09-13T12%3A00%3A00Z', '2026-09-13T12:00:00.000Z', 1],
+  ['/telegram?to=2026-09-13T12%3A00%3A00.100Z', '2026-09-13T12:00:00Z', 1],
+  ['/telegram?from=2026-09-13T14%3A00%3A00%2B02%3A00', '2026-09-13T11:59:59Z', 0],
+  ['/telegram?to=2026-09-13T10%3A00%3A00-02%3A00', '2026-09-13T12:00:01Z', 0],
+])('compares RFC3339 time filters as instants: %s', async (path, timestamp, count) => {
+  renderDebugger({ path, events: [eventSummary({ timestamp })] })
+  await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+  expect(await screen.findByText(new RegExp(`${count} retained summaries`))).toBeInTheDocument()
+})

@@ -18,6 +18,7 @@ function containsPlaceholder(value: string): boolean {
 }
 
 export function MongoPanel() {
+  const [submission, setSubmission] = useState(0)
   const [request, setRequest] = useState<Record<string, JsonValue> | null>(null)
   const [queryError, setQueryError] = useState<string | null>(null)
   const [actionKind, setActionKind] = useState<'mongo.insert_one' | 'mongo.update_one' | 'mongo.delete_one'>('mongo.insert_one')
@@ -32,7 +33,7 @@ export function MongoPanel() {
     retry: false,
   })
   const query = useQuery({
-    queryKey: ['inspector', 'mongo', request],
+    queryKey: ['inspector', 'mongo', request, submission],
     queryFn: ({ signal }) => api<MongoQueryResponse>('/mongo/query', { method: 'POST', body: request!, signal }),
     enabled: request !== null,
     gcTime: 0,
@@ -57,6 +58,7 @@ export function MongoPanel() {
           skip: value.skip,
           limit: value.limit,
         })
+        setSubmission((current) => current + 1)
       } catch (reason) {
         setQueryError(reason instanceof Error ? reason.message : t`Invalid query input`)
       }

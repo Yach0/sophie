@@ -22,6 +22,7 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 from debug.capture import REDACTED, TRUNCATED, TelemetrySink, known_secret_values, normalize_payload
 from debug.i18n import gettext_debug as _
 from debug.protocol import REPLY_DATA_LIMIT, SAFE_INTEGER_MAX, strict_json_loads
+from debug.validation import validate_exact_mongo_id
 from sophie_bot.modules.ai.utils.ai_model_pricing import clear_model_pricing_cache
 from sophie_bot.modules.ai.utils.cache_messages import (
     MESSAGE_CACHE_TTL,
@@ -321,7 +322,7 @@ class WorkerActions:
             "duration_ms": (time.monotonic() - started) * 1000,
             "truncated": has_more,
         }
-        return self._output(result)
+        return self._output(result, row_fields=("items",))
 
     async def _redis_query(self, payload: dict[str, JsonValue]) -> JsonValue:
         started = time.monotonic()
@@ -593,6 +594,10 @@ class WorkerActions:
             raise WorkerActionError("invalid_update", "The _id field cannot be edited")
         update = _decode_extended_json(raw_update)
         document_id = _decode_extended_json(raw_id)
+        try:
+            validate_exact_mongo_id(document_id)
+        except ValueError as error:
+            raise WorkerActionError("invalid_id", str(error)) from error
         result = await self.runtime.services.db.database[collection_name].update_one(
             {"_id": document_id}, update, upsert=False
         )
@@ -610,6 +615,10 @@ class WorkerActions:
         if raw_id is None or _contains_placeholder(raw_id):
             raise WorkerActionError("invalid_delete", "Delete requires an exact _id without placeholders")
         document_id = _decode_extended_json(raw_id)
+        try:
+            validate_exact_mongo_id(document_id)
+        except ValueError as error:
+            raise WorkerActionError("invalid_id", str(error)) from error
         result = await self.runtime.services.db.database[collection_name].delete_one({"_id": document_id})
         return self._output({"acknowledged": result.acknowledged, "deleted_count": result.deleted_count})
 

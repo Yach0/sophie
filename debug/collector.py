@@ -40,6 +40,7 @@ from debug.protocol import (
     strict_json_loads,
     validate_reply_data_size,
 )
+from debug.validation import validate_exact_mongo_id
 
 MAX_EVENTS = 10_000
 MAX_EVENT_BYTES = 64 * 1024 * 1024
@@ -710,10 +711,10 @@ def _reject_unsafe_integers(value: Any) -> None:
             _reject_unsafe_integers(item)
 
 
-def _validate_extended_json(value: Any) -> None:
+def _validate_extended_json(value: Any) -> object:
     try:
         encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
-        json_util.loads(encoded, json_options=json_util.CANONICAL_JSON_OPTIONS)
+        return json_util.loads(encoded, json_options=json_util.CANONICAL_JSON_OPTIONS)
     except (TypeError, ValueError, KeyError, OverflowError, InvalidOperation, binascii.Error) as error:
         raise ValueError("invalid canonical Extended JSON") from error
 
@@ -883,14 +884,14 @@ def _validate_action(action: ActionRequest) -> tuple[dict[str, JsonValue], str, 
         if any(field == "_id" or field.startswith("_id.") for fields in action.update.values() for field in fields):
             raise ValueError("_id cannot be edited")
         _reject_server_code(action.update)
-        _validate_extended_json(action.document_id)
+        validate_exact_mongo_id(_validate_extended_json(action.document_id))
         _validate_extended_json(action.update)
         return payload, _("Mongo document in {collection}").format(collection=action.collection), warnings
     if isinstance(action, MongoDeleteAction):
         _validate_collection(action.collection)
         if action.document_id is None:
             raise ValueError("delete requires exact _id")
-        _validate_extended_json(action.document_id)
+        validate_exact_mongo_id(_validate_extended_json(action.document_id))
         return payload, _("Mongo document in {collection}").format(collection=action.collection), warnings
     if isinstance(action, RedisCommandAction):
         _validate_redis_command(action)

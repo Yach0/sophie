@@ -7,13 +7,13 @@ import signal
 import socket
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from debug import supervisor as supervisor_module
 from debug.collector import CollectorState
-from debug.supervisor import DebugConfig, Supervisor
+from debug.supervisor import DebugConfig, Supervisor, WorkerRun
 
 
 def make_supervisor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Supervisor:
@@ -212,5 +212,50 @@ def test_cancelled_startup_status_closes_both_socket_pairs(tmp_path: Path, monke
                     await setup
             for created_socket in created_sockets:
                 created_socket.close()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("stage", ["stop", "start"])
+def test_shutdown_serializes_with_reload_and_blocks_future_restarts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stage: str
+) -> None:
+    async def scenario() -> None:
+        supervisor = make_supervisor(tmp_path, monkeypatch)
+        reached = asyncio.Event()
+        release = asyncio.Event()
+        calls: list[str] = []
+
+        async def stop_worker() -> None:
+            calls.append("stop")
+            if stage == "stop" and len(calls) == 1:
+                reached.set()
+                await release.wait()
+            supervisor.worker = None
+
+        async def start_worker() -> None:
+            calls.append("start")
+            if stage == "start":
+                reached.set()
+                await release.wait()
+            supervisor.worker = cast(WorkerRun, object())
+
+        monkeypatch.setattr(supervisor, "_stop_worker", stop_worker)
+        monkeypatch.setattr(supervisor, "_start_worker", start_worker)
+        reload_task = asyncio.create_task(supervisor.restart_worker())
+        await reached.wait()
+        shutdown_task = asyncio.create_task(supervisor.shutdown())
+        await asyncio.sleep(0)
+        assert calls.count("stop") == 1
+        release.set()
+        await asyncio.gather(reload_task, shutdown_task)
+        assert supervisor.worker is None
+        assert supervisor.state is not None
+        assert supervisor.state.state == "stopped"
+        before_restart = list(calls)
+        await supervisor.restart_worker()
+        assert calls == before_restart
+        if stage == "stop":
+            assert "start" not in calls
 
     asyncio.run(scenario())

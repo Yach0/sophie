@@ -187,6 +187,12 @@ Redis scans display the returned continuation cursor. Use **Load next bounded pa
 
 AI cache pagination counts both valid and malformed stored messages. Inspecting malformed rows does not change the cache.
 
+The event feed retains at most 1,000 summaries. Pausing keeps a bounded snapshot while live capture continues; resuming shows the latest buffer. Time filters accept RFC3339 timestamps with `Z` or numeric offsets and compare instants.
+
+Repeating a Mongo or Redis inspector submission reads current data again. Mongo update/delete actions require a literal `_id` (including canonical Extended JSON IDs); query predicates and array IDs are rejected. Large Mongo rows may have truncated contents while every page row and its continuation metadata are preserved.
+
+Known credentials are redacted before binary payloads are base64 encoded. Shutdown waits for any active worker reload and prevents further restarts.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)

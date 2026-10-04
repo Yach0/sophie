@@ -10,8 +10,8 @@ function cleanText(value: unknown, maxLength: number): string | undefined {
 }
 function utcTimestamp(value: unknown): string | undefined {
   const timestamp = cleanText(value, 64)
-  if (!timestamp || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u.test(timestamp)) return undefined
-  return Number.isNaN(Date.parse(timestamp)) ? undefined : timestamp
+  if (!timestamp || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(timestamp)) return undefined
+  return Number.isNaN(Date.parse(timestamp)) ? undefined : new Date(timestamp).toISOString()
 }
 
 

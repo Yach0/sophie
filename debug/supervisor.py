@@ -87,6 +87,7 @@ PARENT_DEBUG_PATHS = {
     Path("debug/protocol.py"),
     Path("debug/capture.py"),
     Path("debug/i18n.py"),
+    Path("debug/validation.py"),
 }
 
 
@@ -779,6 +780,8 @@ class Supervisor:
 
     async def restart_worker(self) -> None:
         async with self.reload_lock:
+            if self.stop_event.is_set():
+                return
             assert self.state is not None
             assert self.config is not None
             if self.state.restart_required:
@@ -794,7 +797,8 @@ class Supervisor:
             self.state.state = "reloading"
             await self.state.notify_status_change()
             await self._stop_worker()
-            await self._start_worker()
+            if not self.stop_event.is_set():
+                await self._start_worker()
 
     async def _stop_worker(self) -> None:
         worker = self.worker
@@ -938,10 +942,11 @@ class Supervisor:
             for signal_number in (signal.SIGINT, signal.SIGTERM):
                 loop.remove_signal_handler(signal_number)
             self.signal_handlers_installed = False
-        await self._stop_worker()
-        if self.state is not None:
-            self.state.state = "stopped"
-            await self.state.notify_status_change()
+        async with self.reload_lock:
+            await self._stop_worker()
+            if self.state is not None:
+                self.state.state = "stopped"
+                await self.state.notify_status_change()
         for task in (self.watcher_task, self.resource_task):
             if task is not None:
                 task.cancel()

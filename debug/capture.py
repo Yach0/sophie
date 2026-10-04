@@ -49,7 +49,7 @@ TRUNCATED = "[TRUNCATED]"
 CAMEL_CASE_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 SECRET_TERMS = {"token", "password", "authorization", "cookie", "secret"}
 TOKEN_COUNTER_TERMS = {"usage", "count", "prompt", "completion", "input", "output"}
-URI_USERINFO_PATTERN = re.compile(r"(?P<scheme>[a-z][a-z0-9+.-]*://)(?P<userinfo>[^/@\s]+@)", re.IGNORECASE)
+URI_USERINFO_PATTERN = re.compile(r"\b(?P<scheme>[a-z][a-z0-9+.-]*://)(?P<userinfo>[^/@\s]+@)", re.IGNORECASE)
 BOT_TOKEN_URL_PATTERN = re.compile(r"(?P<prefix>/bot)\d+:[A-Za-z0-9_-]+")
 
 
@@ -189,12 +189,20 @@ class PayloadNormalizer:
         if isinstance(value, Decimal):
             return {"$numberDecimal": str(value)}
         if isinstance(value, (bytes, bytearray, memoryview)):
-            binary = bytes(value[:MAX_BINARY_BYTES])
+            binary = bytes(value)
+            original_bytes = len(binary)
+            for secret in self._known_secrets:
+                encoded_secret = secret.encode("utf-8")
+                if encoded_secret in binary:
+                    binary = binary.replace(encoded_secret, REDACTED.encode("ascii"))
+                    self.redacted = True
+            exceeds_limit = len(binary) > MAX_BINARY_BYTES or original_bytes > MAX_BINARY_BYTES
+            binary = binary[:MAX_BINARY_BYTES]
             encoded_binary: dict[str, Any] = {"base64": base64.b64encode(binary).decode("ascii")}
-            if len(value) > MAX_BINARY_BYTES:
+            if exceeds_limit:
                 self.truncated = True
                 encoded_binary["truncated"] = True
-                encoded_binary["original_bytes"] = len(value)
+                encoded_binary["original_bytes"] = original_bytes
             return encoded_binary
         if isinstance(value, BaseModel):
             return self._visit(value.model_dump(mode="python"), depth=depth + 1, key=key)

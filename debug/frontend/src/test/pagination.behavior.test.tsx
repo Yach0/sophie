@@ -73,3 +73,30 @@ describe('live inspector pagination', () => {
     expect(screen.getByRole('region', { name: 'AI cache entries' })).toBeInTheDocument()
   })
 })
+
+it.each(['mongo', 'redis'] as const)('refetches identical %s form submissions', async (kind) => {
+  let calls = 0
+  const { user } = renderDebugger({
+    path: `/${kind}`,
+    handler: (path) => {
+      if (path !== `/api/v1/${kind}/query`) return undefined
+      calls += 1
+      return Response.json(kind === 'mongo'
+        ? { items: [], has_more: false, truncated: false, duration_ms: calls, run_id: 'run-1' }
+        : { type: 'scan', ttl: calls, data: [], next_cursor: 0, has_more: false, truncated: false, duration_ms: calls, run_id: 'run-1' })
+    },
+  })
+  if (kind === 'mongo') await user.type((await screen.findAllByLabelText('Collection'))[0]!, 'records')
+  const button = await screen.findByRole('button', { name: kind === 'mongo' ? 'Run bounded query' : 'Inspect key data' })
+  await user.click(button)
+  expect(await screen.findByText(kind === 'mongo' ? /1.0 ms/ : /TTL 1/)).toBeInTheDocument()
+  await user.click(button)
+  expect(await screen.findByText(kind === 'mongo' ? /2.0 ms/ : /TTL 2/)).toBeInTheDocument()
+  expect(calls).toBe(2)
+  const input = screen.getByLabelText(kind === 'mongo' ? 'Filter (Extended JSON)' : 'Pattern')
+  await user.clear(input)
+  await user.type(input, kind === 'mongo' ? 'invalid' : '{{}')
+  await user.click(button)
+  expect((await screen.findAllByRole('alert')).some((alert) => alert.textContent?.includes(kind === 'mongo' ? 'JSON' : 'Binary values'))).toBe(true)
+  expect(calls).toBe(2)
+})

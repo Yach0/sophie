@@ -58,7 +58,7 @@ function appendEvent(feed: FeedState | undefined, event: EventSummary): FeedStat
 
 export function DebugProvider({ initialSession, children }: { initialSession: Session; children: ReactNode }) {
   const queryClient = useQueryClient()
-  const [pauseAt, setPauseAt] = useState<number | null>(null)
+  const [pausedEvents, setPausedEvents] = useState<EventSummary[] | null>(null)
   const [gap, setGap] = useState(false)
   const [connection, setConnection] = useState<'connecting' | 'live' | 'reconnecting'>('connecting')
   const sourceRef = useRef<EventSource | null>(null)
@@ -143,28 +143,28 @@ export function DebugProvider({ initialSession, children }: { initialSession: Se
   useEffect(() => {
     if (session.run_id !== previousRunRef.current) {
       previousRunRef.current = session.run_id
-      setPauseAt(null)
+      setPausedEvents(null)
     }
   }, [session.run_id])
 
   const allEvents = feedQuery.data?.events ?? []
-  const events = pauseAt === null ? allEvents : allEvents.filter((event) => event.seq <= pauseAt)
+  const events = pausedEvents ?? allEvents
   const value = useMemo<DebugState>(
     () => ({
       session,
       events,
-      live: pauseAt === null,
+      live: pausedEvents === null,
       connection,
       gap,
       setGap,
-      pause: () => setPauseAt(feedQuery.data?.latestSeq ?? 0),
-      resume: () => setPauseAt(null),
+      pause: () => setPausedEvents([...allEvents]),
+      resume: () => setPausedEvents(null),
       restart: async () => {
         await api('/worker/restart', { method: 'POST' })
         await queryClient.invalidateQueries({ queryKey: ['session'] })
       },
     }),
-    [connection, events, feedQuery.data?.latestSeq, gap, pauseAt, queryClient, session],
+    [allEvents, connection, events, gap, pausedEvents, queryClient, session],
   )
 
   return <DebugContext.Provider value={value}>{children}</DebugContext.Provider>

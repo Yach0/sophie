@@ -24,6 +24,7 @@ function parseRedisBytes(value: string): JsonValue {
 }
 
 export function RedisPanel() {
+  const [submission, setSubmission] = useState(0)
   const [request, setRequest] = useState<Record<string, JsonValue> | null>(null)
   const [inputError, setInputError] = useState<string | null>(null)
   const [command, setCommand] = useState<(typeof redisCommands)[number]>('SET')
@@ -31,7 +32,7 @@ export function RedisPanel() {
   const [args, setArgs] = useState('["value","EX",60]')
 
   const query = useQuery({
-    queryKey: ['inspector', 'redis', request],
+    queryKey: ['inspector', 'redis', request, submission],
     queryFn: ({ signal }) => api<RedisQueryResponse>('/redis/query', { method: 'POST', body: request!, signal }),
     enabled: request !== null,
     gcTime: 0,
@@ -57,6 +58,7 @@ export function RedisPanel() {
             setRequest({ op: value.op, key: keyValue, offset: value.offset, limit: value.limit })
           }
         }
+        setSubmission((current) => current + 1)
       } catch (reason) {
         setInputError(reason instanceof Error ? reason.message : t`Invalid Redis query`)
       }

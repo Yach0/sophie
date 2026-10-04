@@ -61,8 +61,8 @@ export function EventWorkspace({ title, description, categories, defaultErrors =
       if ((search.errors || (defaultErrors && !search.level && !search.trace && !search.q)) && event.level !== 'error' && event.outcome !== 'error') return false
       if (query && !event.summary.toLocaleLowerCase().includes(query) && !event.name.toLocaleLowerCase().includes(query)) return false
       if (telegram && !search.polling && event.name.toLocaleLowerCase().includes('getupdates') && event.level !== 'error') return false
-      if (search.from && event.timestamp < search.from) return false
-      if (search.to && event.timestamp > search.to) return false
+      if (search.from && Date.parse(event.timestamp) < Date.parse(search.from)) return false
+      if (search.to && Date.parse(event.timestamp) > Date.parse(search.to)) return false
       return true
     })
   }, [categories, debug.events, defaultErrors, search, telegram])
