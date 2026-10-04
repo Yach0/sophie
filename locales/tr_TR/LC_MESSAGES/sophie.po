@@ -915,39 +915,39 @@ msgstr ""
 msgid "Chat"
 msgstr "Sohbet"
 
-#: sophie_bot/modules/ai/handlers/translate.py:114
+#: sophie_bot/modules/ai/handlers/translate.py:135
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "{from_lang} dilinden {to_lang} diline"
 
-#: sophie_bot/modules/ai/handlers/translate.py:124
+#: sophie_bot/modules/ai/handlers/translate.py:148
 msgid "Translation Notes"
 msgstr "Çeviri Notları"
 
-#: sophie_bot/modules/ai/handlers/translate.py:135
+#: sophie_bot/modules/ai/handlers/translate.py:159
 msgid "Text to translate"
 msgstr "Çevrilecek metin"
 
-#: sophie_bot/modules/ai/handlers/translate.py:142
+#: sophie_bot/modules/ai/handlers/translate.py:166
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Verilen (veya yanıtlanan) metni sohbetin seçilen diline çevirir. Ayrıca yanıtlanan sesli mesajı metne dönüştürür"
 
-#: sophie_bot/modules/ai/handlers/translate.py:167
+#: sophie_bot/modules/ai/handlers/translate.py:191
 #: sophie_bot/modules/ai/utils/message_history.py:192
 msgid "Transcribing voice message..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:190
-#: sophie_bot/modules/ai/handlers/translate.py:193
+#: sophie_bot/modules/ai/handlers/translate.py:214
+#: sophie_bot/modules/ai/handlers/translate.py:217
 msgid "Please provide text to translate."
 msgstr "Lütfen çevrilecek metni girin."
 
-#: sophie_bot/modules/ai/handlers/translate.py:210
+#: sophie_bot/modules/ai/handlers/translate.py:234
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Varsa, fotoğrafı {language_name}'a çevirin"
 
-#: sophie_bot/modules/ai/handlers/translate.py:231
+#: sophie_bot/modules/ai/handlers/translate.py:255
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -956,11 +956,11 @@ msgstr ""
 "Aşağıdaki metni {language_name} diline çevirin:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:256
+#: sophie_bot/modules/ai/handlers/translate.py:280
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:274
+#: sophie_bot/modules/ai/handlers/translate.py:298
 msgid "Error generating translation"
 msgstr "Çeviri oluşturulurken hata oluştu"
 
