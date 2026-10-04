@@ -1062,7 +1062,7 @@ msgstr "Автор повідомлення"
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:44
-#: sophie_bot/modules/federations/utils/ban_docs.py:130
+#: sophie_bot/modules/federations/utils/ban_docs.py:131
 #: sophie_bot/modules/reports/handlers/report.py:89
 #: sophie_bot/modules/restrictions/actions/base.py:74
 #: sophie_bot/modules/restrictions/actions/kick.py:56
@@ -1876,8 +1876,8 @@ msgstr "Користувача було обмежено за флуд."
 #: sophie_bot/modules/federations/handlers/promote.py:19
 #: sophie_bot/modules/federations/handlers/unban.py:47
 #: sophie_bot/modules/federations/utils/ban_docs.py:40
-#: sophie_bot/modules/federations/utils/ban_docs.py:102
-#: sophie_bot/modules/federations/utils/ban_docs.py:153
+#: sophie_bot/modules/federations/utils/ban_docs.py:103
+#: sophie_bot/modules/federations/utils/ban_docs.py:154
 #: sophie_bot/modules/promotes/handlers/demote.py:42
 #: sophie_bot/modules/promotes/handlers/demote.py:80
 #: sophie_bot/modules/promotes/handlers/promote.py:74
@@ -2022,12 +2022,12 @@ msgstr "🌐 Користувач заблокований у спільноті
 #: sophie_bot/modules/federations/handlers/info.py:59
 #: sophie_bot/modules/federations/handlers/info.py:75
 #: sophie_bot/modules/federations/handlers/unban.py:178
-#: sophie_bot/modules/federations/schedules/process_bans.py:134
-#: sophie_bot/modules/federations/schedules/process_bans.py:220
+#: sophie_bot/modules/federations/schedules/process_bans.py:118
+#: sophie_bot/modules/federations/schedules/process_bans.py:205
 #: sophie_bot/modules/federations/utils/ban_docs.py:40
-#: sophie_bot/modules/federations/utils/ban_docs.py:105
-#: sophie_bot/modules/federations/utils/ban_docs.py:153
-#: sophie_bot/modules/federations/utils/ban_docs.py:192
+#: sophie_bot/modules/federations/utils/ban_docs.py:106
+#: sophie_bot/modules/federations/utils/ban_docs.py:154
+#: sophie_bot/modules/federations/utils/ban_docs.py:193
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/notes/handlers/list.py:83
 #: sophie_bot/modules/op/handlers/set_mode.py:106
@@ -2056,7 +2056,7 @@ msgstr "⏳ Заборону зафіксовано. Поширюється по
 #: sophie_bot/modules/communities/utils/ban_docs.py:48
 #: sophie_bot/modules/communities/utils/ban_docs.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:54
-#: sophie_bot/modules/federations/utils/ban_docs.py:165
+#: sophie_bot/modules/federations/utils/ban_docs.py:166
 msgid "Result"
 msgstr "Результат"
 
@@ -2079,7 +2079,7 @@ msgid "🌐 User Unbanned from Community"
 msgstr "🌐 Користувача розблоковано у спільноті"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:76
-#: sophie_bot/modules/federations/utils/ban_docs.py:154
+#: sophie_bot/modules/federations/utils/ban_docs.py:155
 #: sophie_bot/modules/restrictions/handlers/unban.py:24
 msgid "Unbanned by"
 msgstr "Розблоковано"
@@ -2093,7 +2093,7 @@ msgid "⏳ Unban recorded. Propagating across the community…"
 msgstr "⏳ Розблокування зафіксовано. Поширюється по спільноті…"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:89
-#: sophie_bot/modules/federations/utils/ban_docs.py:167
+#: sophie_bot/modules/federations/utils/ban_docs.py:168
 #, python-brace-format
 msgid "Unbanned in {count} chat"
 msgid_plural "Unbanned in {count} chats"
@@ -2121,12 +2121,12 @@ msgid "Please run the command again to retry."
 msgstr "Будь ласка, виконайте команду ще раз, щоб повторити спробу."
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:116
-#: sophie_bot/modules/federations/utils/ban_docs.py:183
+#: sophie_bot/modules/federations/utils/ban_docs.py:184
 msgid "ℹ️ Ban Superseded"
 msgstr "ℹ️ Заборона скасована"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:117
-#: sophie_bot/modules/federations/utils/ban_docs.py:184
+#: sophie_bot/modules/federations/utils/ban_docs.py:185
 msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
 msgstr "Цього користувача розблокували до завершення поширення заборони, тож нічого не лишилось робити."
 
@@ -2743,7 +2743,7 @@ msgstr "🏛 Адміністратори федерації"
 #: sophie_bot/modules/federations/schedules/process_exports.py:150
 #: sophie_bot/modules/federations/schedules/process_imports.py:71
 #: sophie_bot/modules/federations/utils/ban_docs.py:39
-#: sophie_bot/modules/federations/utils/ban_docs.py:152
+#: sophie_bot/modules/federations/utils/ban_docs.py:153
 msgid "Federation"
 msgstr "Федерація"
 
@@ -3625,19 +3625,19 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:99
+#: sophie_bot/modules/federations/utils/ban_docs.py:100
 msgid "Ban user in the fed #FedBan"
 msgstr "Заблокувати користувача у федерації #FedBan"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:100
+#: sophie_bot/modules/federations/utils/ban_docs.py:101
 msgid "Fed"
 msgstr "Федерація"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:109
+#: sophie_bot/modules/federations/utils/ban_docs.py:110
 msgid "By"
 msgstr "Від"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:112
+#: sophie_bot/modules/federations/utils/ban_docs.py:113
 #, python-brace-format
 msgid "User banned in {banned_count} out of {total_chats} chat in the federation"
 msgid_plural "User banned in {banned_count} out of {total_chats} chats in the federation"
@@ -3645,7 +3645,7 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:123
+#: sophie_bot/modules/federations/utils/ban_docs.py:124
 #, python-brace-format
 msgid "User banned in {count} chat in subscribed federations"
 msgid_plural "User banned in {count} chats in subscribed federations"
@@ -3653,23 +3653,23 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:134
+#: sophie_bot/modules/federations/utils/ban_docs.py:135
 msgid "Original message"
 msgstr "Оригінальне повідомлення"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:151
+#: sophie_bot/modules/federations/utils/ban_docs.py:152
 msgid "🏛 User Unbanned from Federation"
 msgstr "🏛 Користувача розблоковано з федерації"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:159
+#: sophie_bot/modules/federations/utils/ban_docs.py:160
 msgid "✅ Unbanned in this chat. Propagating across the federation…"
 msgstr "✅ Розблоковано в цьому чаті. Поширюється по федерації…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:161
+#: sophie_bot/modules/federations/utils/ban_docs.py:162
 msgid "⏳ Unban recorded. Propagating across the federation…"
 msgstr "⏳ Розблокування зафіксовано. Поширюється по федерації…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:191
+#: sophie_bot/modules/federations/utils/ban_docs.py:192
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr "🏛 Користувача {unbanned_user} розблоковано з федерації користувачем {unbanner}."

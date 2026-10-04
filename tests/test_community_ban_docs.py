@@ -126,6 +126,7 @@ def test_federation_ban_log_pluralizes_total_chat_count() -> None:
         build_ban_log_doc(
             federation,
             _build_user(),
+            banner_tid=456,
             banner_name="Test moderator",
             banned_count=1,
             total_chats=1,
