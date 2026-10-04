@@ -90,8 +90,7 @@ async def gather_cmd_args(args: ARGS_DICT | ARGS_COROUTINE | None) -> ARGS_DICT 
     if isinstance(args, dict):
         return args
     if inspect.iscoroutinefunction(args):
-        result = await args(None, {})
-        return result
+        return await args(None, {})
     raise ValueError
 
 
