@@ -9,6 +9,7 @@ import pytest
 from bson import Int64, ObjectId
 
 from debug.capture import (
+    REDACTED,
     TRACE_CONTEXT,
     TelemetrySink,
     TextCapture,
@@ -135,11 +136,21 @@ def test_oversized_payload_keeps_identity_in_truncated_frame() -> None:
     sender, receiver = socket.socketpair()
     receiver.settimeout(2)
     sink = TelemetrySink(sender, "run-id", 42)
-    sink.start()
-    sink.emit(make_event(payload={"items": ["x" * 1_000] * 100}))
-    encoded = receiver.recv(TELEMETRY_FRAME_LIMIT)
-    sink.close()
-    receiver.close()
+    try:
+        sink.start()
+        sink.emit(make_event(payload={"items": ["x" * 1_000] * 100}))
+        encoded = b""
+        while not encoded.endswith(b"\n"):
+            chunk = receiver.recv(TELEMETRY_FRAME_LIMIT)
+            assert chunk, "telemetry sender closed before completing the frame"
+            encoded += chunk
+    finally:
+        sink.close()
+        receiver.close()
+    assert sink.recorder_errors == 0
+    assert sink._pending_bytes == 0
+    assert not sink._thread.is_alive()
+    assert sender.fileno() == -1
 
     decoded = EventFrame.model_validate(strict_json_loads(encoded))
     assert decoded.run_id == "run-id"
@@ -267,3 +278,156 @@ def test_browser_auth_sets_private_cookie_without_returning_token() -> None:
             assert rejected.status_code == 403
 
     asyncio.run(scenario())
+
+
+def test_telemetry_sender_handles_nonblocking_transport_backpressure() -> None:
+    sender, receiver = socket.socketpair()
+    sender.setblocking(False)
+    sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1_024)
+    receiver.settimeout(2)
+    sink = TelemetrySink(sender, "run-id", 42)
+    for index in range(4):
+        sink.emit(make_event(summary=f"event-{index}", payload="x" * 20_000))
+    try:
+        sink.start()
+        encoded = b""
+        while encoded.count(b"\n") < 4:
+            chunk = receiver.recv(TELEMETRY_FRAME_LIMIT)
+            assert chunk
+            encoded += chunk
+        frames = [EventFrame.model_validate(strict_json_loads(line)) for line in encoded.splitlines()]
+        assert [frame.event.summary for frame in frames] == [f"event-{index}" for index in range(4)]
+        assert all(frame.event.payload == "x" * 20_000 for frame in frames)
+    finally:
+        sink.close()
+        receiver.close()
+    assert sink.recorder_errors == 0
+    assert sink._pending_bytes == 0
+    assert not sink._thread.is_alive()
+
+
+def test_telemetry_send_failure_discards_pending_records_and_closes_socket() -> None:
+    sender, receiver = socket.socketpair()
+    sink = TelemetrySink(sender, "run-id", 42)
+    for index in range(3):
+        sink.emit(make_event(summary=f"event-{index}"))
+    receiver.close()
+    try:
+        sink.start()
+        sink._thread.join(timeout=2)
+        assert not sink._thread.is_alive()
+        assert sink.recorder_errors == 1
+        assert sink.dropped_total == 3
+        assert sink._pending_bytes == 0
+        assert sink._queue.empty()
+        assert sender.fileno() == -1
+        sink.emit(make_event())
+        assert sink.dropped_total == 4
+    finally:
+        sink.close()
+    sink.close()
+
+
+def test_telemetry_close_drains_full_queue() -> None:
+    sender, receiver = socket.socketpair()
+    receiver.settimeout(2)
+    sink = TelemetrySink(sender, "run-id", 42, max_records=2)
+    sink.emit(make_event(summary="first"))
+    sink.emit(make_event(summary="second"))
+    try:
+        sink.start()
+        sink.close()
+        encoded = b""
+        while chunk := receiver.recv(TELEMETRY_FRAME_LIMIT):
+            encoded += chunk
+        frames = [EventFrame.model_validate(strict_json_loads(line)) for line in encoded.splitlines()]
+        assert [frame.event.summary for frame in frames] == ["first", "second"]
+        assert sink.recorder_errors == 0
+        assert sink._pending_bytes == 0
+        assert not sink._thread.is_alive()
+        assert sender.fileno() == -1
+    finally:
+        sink.close()
+        receiver.close()
+
+
+def test_telemetry_close_interrupts_blocked_sender() -> None:
+    sender, receiver = socket.socketpair()
+    sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1_024)
+    sink = TelemetrySink(sender, "run-id", 42)
+    for _index in range(4):
+        sink.emit(make_event(payload="x" * 20_000))
+    try:
+        sink.start()
+        sink.close()
+        assert not sink._thread.is_alive()
+        assert sink._pending_bytes == 0
+        assert sink.recorder_errors == 0
+        assert sink.dropped_total > 0
+        assert sender.fileno() == -1
+    finally:
+        sink.close()
+        receiver.close()
+
+
+def test_telemetry_close_before_start_discards_pending_records() -> None:
+    sender, receiver = socket.socketpair()
+    sink = TelemetrySink(sender, "run-id", 42)
+    try:
+        sink.emit(make_event())
+        sink.close()
+        sink.close()
+        assert sink._pending_bytes == 0
+        assert sink.dropped_total == 1
+        assert sender.fileno() == -1
+    finally:
+        receiver.close()
+
+
+def test_mapping_keys_preserve_bytes_content_and_distinct_entries() -> None:
+    source = {b"first": b"one", b"second": b"two", "first": "string", 1: "integer", 2: "second integer"}
+    normalized, truncated, redacted = normalize_payload(source)
+    assert normalized == {
+        "<bytes:first>": {"base64": "b25l"},
+        "<bytes:second>": {"base64": "dHdv"},
+        "first": "string",
+        "<int:1>": "integer",
+        "<int:2>": "second integer",
+    }
+    assert normalize_payload(source)[0] == normalized
+    assert truncated is False
+    assert redacted is False
+
+
+@pytest.mark.parametrize("secret_key", [b"password", b"providerApiKey", memoryview(b"authorization")])
+def test_binary_mapping_keys_preserve_secret_redaction(secret_key: bytes | memoryview) -> None:
+    source = {secret_key: b"private-value", b"prompt_tokens": 12}
+    normalized, truncated, redacted = normalize_payload(source)
+    assert REDACTED in normalized.values()
+    assert normalized["<bytes:prompt_tokens>"] == 12
+    assert source[secret_key] == b"private-value"
+    assert truncated is False
+    assert redacted is True
+
+
+def test_mapping_key_collisions_after_encoding_and_redaction_keep_all_values() -> None:
+    first_object = object()
+    second_object = object()
+    source = {
+        b"first": 1,
+        "<bytes:first>": 2,
+        b"\xff": 3,
+        b"\\xff": 4,
+        first_object: 5,
+        second_object: 6,
+        "credential-one": 7,
+        "credential-two": 8,
+    }
+    normalized, truncated, redacted = normalize_payload(source, ("credential-one", "credential-two"))
+    assert len(normalized) == len(source)
+    assert list(normalized.values()) == list(source.values())
+    assert normalize_payload(source, ("credential-one", "credential-two"))[0] == normalized
+    assert "<bytes:first>#2" in normalized
+    assert "[REDACTED]#2" in normalized
+    assert truncated is False
+    assert redacted is True

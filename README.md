@@ -191,7 +191,7 @@ The event feed retains at most 1,000 summaries. Pausing keeps a bounded snapshot
 
 Repeating a Mongo or Redis inspector submission reads current data again. Mongo update/delete actions require a literal `_id` (including canonical Extended JSON IDs); query predicates and array IDs are rejected. Large Mongo rows may have truncated contents while every page row and its continuation metadata are preserved.
 
-Known credentials are redacted before binary payloads are base64 encoded. Shutdown waits for any active worker reload and prevents further restarts.
+Known credentials are redacted before binary payloads are base64 encoded. Mapping keys retain their content with type tags for non-string keys and numbered suffixes for collisions; secret-shaped bytes keys redact their values just like string keys. Telemetry shutdown drains accepted frames when possible and closes the sender socket and thread even after backpressure or a disconnect. Shutdown waits for any active worker reload and prevents further restarts.
 
 ## 📖 Documentation
 

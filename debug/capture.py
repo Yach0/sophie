@@ -6,6 +6,7 @@ import contextlib
 import contextvars
 import io
 import itertools
+import json
 import math
 import queue
 import re
@@ -213,8 +214,27 @@ class PayloadNormalizer:
                     self.truncated = True
                     normalized[TRUNCATED] = True
                     break
-                normalized_key = item_key if isinstance(item_key, str) else f"<{type(item_key).__name__}>"
-                normalized[normalized_key] = self._visit(item_value, depth=depth + 1, key=normalized_key)
+                semantic_key = (
+                    bytes(item_key).decode("utf-8", errors="backslashreplace")
+                    if isinstance(item_key, (bytes, memoryview))
+                    else item_key
+                    if isinstance(item_key, str)
+                    else None
+                )
+                if isinstance(item_key, str):
+                    normalized_key = self._normalize_text(item_key)
+                elif semantic_key is not None:
+                    normalized_key = f"<{type(item_key).__name__}:{self._normalize_text(semantic_key)}>"
+                else:
+                    key_value = self._visit(item_key, depth=depth + 1, key=None)
+                    encoded_key = json.dumps(key_value, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
+                    normalized_key = f"<{type(item_key).__name__}:{encoded_key}>"
+                unique_key = normalized_key
+                suffix = 2
+                while unique_key in normalized:
+                    unique_key = f"{normalized_key}#{suffix}"
+                    suffix += 1
+                normalized[unique_key] = self._visit(item_value, depth=depth + 1, key=semantic_key)
             return normalized
         if isinstance(value, (list, tuple, set, frozenset)):
             normalized_items: list[Any] = []
@@ -327,6 +347,9 @@ class TelemetrySink:
         max_records: int = MAX_TELEMETRY_RECORDS,
         max_bytes: int = MAX_TELEMETRY_BYTES,
     ) -> None:
+        # This socket belongs exclusively to the sender thread. sendall must
+        # wait for backpressure rather than abandon a partially written frame.
+        transport.setblocking(True)
         self._transport = transport
         self._run_id = run_id
         self._pid = pid
@@ -365,6 +388,9 @@ class TelemetrySink:
                 self.recorder_errors += 1
                 return
         with self._lock:
+            if self._closed.is_set():
+                self.dropped_total += 1
+                return
             if self._pending_bytes + len(encoded) > self._max_bytes:
                 self.dropped_total += 1
                 return
@@ -376,33 +402,64 @@ class TelemetrySink:
             self._pending_bytes += len(encoded)
 
     def close(self) -> None:
-        was_closed = self._closed.is_set()
-        self._closed.set()
-        if not was_closed:
+        with self._lock:
+            self._closed.set()
             try:
                 self._queue.put_nowait(None)
             except queue.Full:
                 pass
-        with contextlib.suppress(OSError):
-            self._transport.shutdown(socket.SHUT_WR)
+        if self._thread.ident is None:
+            self._discard_pending()
+            self._transport.close()
+            return
+        # Drain accepted records before interrupting a blocked send. SHUT_RDWR
+        # wakes sendall even when the receiver stops reading.
         self._thread.join(timeout=2)
+        if self._thread.is_alive():
+            with contextlib.suppress(OSError):
+                self._transport.shutdown(socket.SHUT_RDWR)
+            self._thread.join()
         with contextlib.suppress(OSError):
             self._transport.close()
 
-    def _send(self) -> None:
-        while True:
-            encoded = self._queue.get()
-            if encoded is None:
-                return
-            try:
-                self._transport.sendall(encoded)
-            except OSError:
-                self._closed.set()
-                self.recorder_errors += 1
-                return
-            finally:
-                with self._lock:
+    def _discard_pending(self) -> None:
+        with self._lock:
+            while True:
+                try:
+                    encoded = self._queue.get_nowait()
+                except queue.Empty:
+                    break
+                if encoded is not None:
                     self._pending_bytes -= len(encoded)
+                    self.dropped_total += 1
+
+    def _send(self) -> None:
+        try:
+            while True:
+                try:
+                    encoded = self._queue.get_nowait() if self._closed.is_set() else self._queue.get()
+                except queue.Empty:
+                    return
+                if encoded is None:
+                    return
+                try:
+                    self._transport.sendall(encoded)
+                except OSError:
+                    with self._lock:
+                        if not self._closed.is_set():
+                            self.recorder_errors += 1
+                        self._closed.set()
+                        self.dropped_total += 1
+                    return
+                finally:
+                    with self._lock:
+                        self._pending_bytes -= len(encoded)
+        finally:
+            with self._lock:
+                self._closed.set()
+            self._discard_pending()
+            with contextlib.suppress(OSError):
+                self._transport.close()
 
 
 class TextCapture(io.TextIOBase):
