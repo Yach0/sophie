@@ -464,6 +464,46 @@ async def _seed_chat(chat_tid: int) -> ChatModel:
 
 
 @pytest.mark.usefixtures("db_init")
+async def test_filters_chat_link_migration_round_trips() -> None:
+    migration = importlib.import_module("sophie_bot.db.migrations.20260125_210117_convert_filters_chat_id_to_link")
+    seeded_chat = await _seed_chat(-1100)
+    chat = await ChatModel.get_by_tid(seeded_chat.tid)
+    assert chat is not None
+    filters = FiltersModel.get_pymongo_collection()
+    await filters.delete_many({})
+    legacy = await filters.insert_one({"chat_id": chat.tid, "handler": "legacy", "action": None, "actions": {}})
+    current = await FiltersModel(chat=chat, handler="modern", action=None, actions={}).insert()
+    current_document = await filters.find_one({"_id": current.id})
+
+    await migration.Forward.migrate.run(None)
+
+    stored = await filters.find_one({"_id": legacy.inserted_id})
+    assert stored == {
+        "_id": legacy.inserted_id,
+        "chat": DBRef("chats", chat.iid),
+        "handler": "legacy",
+        "action": None,
+        "actions": {},
+    }
+    assert await filters.find_one({"_id": current.id}) == current_document
+    found = await FiltersModel.get_filters(chat.iid)
+    assert found is not None
+    assert {item.handler for item in found} == {"legacy", "modern"}
+    await migration.Forward.migrate.run(None)
+    assert await filters.find_one({"_id": legacy.inserted_id}) == stored
+
+    # Rollback handles both corrected DBRefs and the old migration's raw ObjectIds.
+    raw = await filters.insert_one({"chat": chat.iid, "handler": "raw", "action": None, "actions": {}})
+    await migration.Backward.rollback.run(None)
+
+    for filter_iid in (legacy.inserted_id, current.id, raw.inserted_id):
+        rolled_back = await filters.find_one({"_id": filter_iid})
+        assert rolled_back is not None
+        assert rolled_back["chat_id"] == chat.tid
+        assert "chat" not in rolled_back
+
+
+@pytest.mark.usefixtures("db_init")
 async def test_zai_provider_backward_leaves_pre_existing_auto_chats_alone(
     db_init: Any,
     test_redis: object,
