@@ -215,7 +215,7 @@ async def test_display_name_with_markup_characters_is_replaced_and_escaped(
 
 
 @pytest.mark.asyncio
-async def test_rendered_reply_removes_only_unsupported_html(test_redis: object) -> None:
+async def test_rendered_reply_removes_only_unsupported_html(test_redis: object, test_services: object) -> None:
     html = await _render("<section><div>Before</div></section><b>Bold</b>", test_redis)
 
     assert "<section>" not in html
@@ -225,7 +225,7 @@ async def test_rendered_reply_removes_only_unsupported_html(test_redis: object) 
 
 
 @pytest.mark.asyncio
-async def test_disabled_alien_html_filter_escapes_all_raw_tags(test_redis: object) -> None:
+async def test_disabled_alien_html_filter_escapes_all_raw_tags(test_redis: object, test_services: object) -> None:
     html = await _render("<div>Before</div><b>Bold</b>", test_redis, strip_alien_html_tags=False)
 
     assert "&lt;div&gt;Before&lt;/div&gt;" in html
