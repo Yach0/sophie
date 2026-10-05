@@ -29,7 +29,6 @@ from sophie_bot.modules.utils_.anonymous_admin import normalize_admin_title
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
-from sophie_bot.utils.command_names import normalize_command_name
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -143,7 +142,7 @@ class FederationBanHandler(FederationCommandHandler):
         # Detect silent mode from the parsed command name so it works with any command
         # prefix (e.g. /sfban, !sfban, .sfban) and an optional @mention.
         command_obj = self.data.get("command")
-        silent = bool(command_obj and normalize_command_name(command_obj.command) == "sfban")
+        silent = bool(command_obj and command_obj.command == "sfban")
         doc = build_ban_reply_doc(
             federation,
             user,

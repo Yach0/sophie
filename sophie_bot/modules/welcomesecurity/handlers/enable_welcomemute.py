@@ -27,7 +27,7 @@ type WelcomeMuteStatus = timedelta | Literal[False]
 )
 class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
     header_text = l_("Welcome Mute (Automatic new users media restricting)")
-    change_command = "welcomerestrict"
+    change_command = "welcome_restrict"
     change_args = "on / off / 12h / 2d / 1w"
 
     @classmethod

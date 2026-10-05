@@ -17,7 +17,7 @@ class EnableAntifloodHandler(StatusBoolHandlerABC):
     """Handler for toggling antiflood protection on/off."""
 
     header_text = l_("📈 Antiflood")
-    change_command = "enableantiflood"
+    change_command = "enable_antiflood"
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

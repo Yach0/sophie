@@ -11,7 +11,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.handler_help(description=l_("Sets whether normal users (non-admins) are allowed to connect."))
 class AllowUsersConnectCmd(StatusBoolHandlerABC, ABC):
     header_text = l_("Allow users connect")
-    change_command = "allowusersconnect"
+    change_command = "allow_users_connect"
 
     @staticmethod
     def filters():

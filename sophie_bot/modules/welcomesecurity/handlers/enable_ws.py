@@ -27,7 +27,7 @@ type WelcomeCaptchaStatus = timedelta | Literal[False]
 )
 class EnableWelcomeCaptchaHandlerABC(StatusHandlerABC[WelcomeCaptchaStatus]):
     header_text = l_("Welcome Captcha")
-    change_command = "welcomecaptcha"
+    change_command = "welcome_captcha"
     change_args = "on / off / 12h / 2d / 1w"
 
     @classmethod

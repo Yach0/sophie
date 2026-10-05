@@ -2,7 +2,7 @@ Use `/filters` to browse filters with Previous and Next buttons. Sophie keeps ea
 
 ## Filter handlers
 
-When you create a filter with `/addfilter`, the first argument is the **handler**.
+When you create a filter with `/add_filter`, the first argument is the **handler**.
 The handler tells Sophie what kind of message should trigger the filter.
 
 It helps to think of handlers in two families:
@@ -17,9 +17,9 @@ If you do not add a prefix, Sophie performs a loose text match against normalize
 Examples:
 
 ```
-/addfilter crypto
-/addfilter t.me
-/addfilter free nitro
+/add_filter crypto
+/add_filter t.me
+/add_filter free nitro
 ```
 
 Use plain text when you want a simple substring match and do not care about exact wording.
@@ -38,8 +38,8 @@ Use `word:` when you want to match a whole word, or an exact tokenized phrase, w
 Examples:
 
 ```
-/addfilter word:crypto
-/addfilter word:free money
+/add_filter word:crypto
+/add_filter word:free money
 ```
 
 This is useful when plain text would be too broad.
@@ -58,8 +58,8 @@ Use `exact:` when the entire message must match exactly.
 Examples:
 
 ```
-/addfilter exact:hello
-/addfilter exact:t.me/+
+/add_filter exact:hello
+/add_filter exact:t.me/+
 ```
 
 This is the strictest text matcher.
@@ -78,8 +78,8 @@ Use `re:` for regular expressions when simple text matching is not enough.
 Examples:
 
 ```
-/addfilter re:@\w+
-/addfilter re:crypto|btc|bitcoin
+/add_filter re:@\w+
+/add_filter re:crypto|btc|bitcoin
 ```
 
 Regex is powerful, but should be used carefully.
@@ -108,7 +108,7 @@ matching text patterns.
 Simply use the `ai:` prefix followed by your prompt when adding filters:
 
 ```
-/addfilter ai:Your prompt describing when to trigger
+/add_filter ai:Your prompt describing when to trigger
 ```
 
 ### When to use `ai:`
@@ -118,9 +118,9 @@ Use `ai:` only when literal text rules are too weak.
 Examples:
 
 ```
-/addfilter ai:Has anything regarding money or cryptocurrency
-/addfilter ai:Message contains scam or phishing attempt
-/addfilter ai:Promotion or advertisement content
+/add_filter ai:Has anything regarding money or cryptocurrency
+/add_filter ai:Message contains scam or phishing attempt
+/add_filter ai:Promotion or advertisement content
 ```
 
 Choose `ai:` when the intent matters more than the exact words.
@@ -131,11 +131,11 @@ Avoid `ai:` when a plain text, `word:`, `exact:`, `re:`, or lock-based handler w
 ### Examples
 
 ```
-/addfilter ai:Has anything regarding money or cryptocurrency
-/addfilter ai:Message contains scam or phishing attempt
-/addfilter ai:Promotion or advertisement content
-/addfilter ai:Spam or unsolicited messages
-/addfilter ai:Political content
+/add_filter ai:Has anything regarding money or cryptocurrency
+/add_filter ai:Message contains scam or phishing attempt
+/add_filter ai:Promotion or advertisement content
+/add_filter ai:Spam or unsolicited messages
+/add_filter ai:Political content
 ```
 
 ### Supported Content Types
@@ -161,10 +161,10 @@ This lets you attach normal filter actions to message-type detection that is sha
 Examples:
 
 ```
-/addfilter sticker
-/addfilter language:ru
-/addfilter url
-/addfilter stickerpack:FunnyCats
+/add_filter sticker
+/add_filter language:ru
+/add_filter url
+/add_filter stickerpack:FunnyCats
 ```
 
 The full list is obtainable by using `/lockable` command.
@@ -197,21 +197,21 @@ Use this rule of thumb:
 - use `ai:` when the meaning matters more than the exact wording
 - use a lock type when you are targeting message structure or Telegram content types rather than free-form text
 
-## Using `/aiaddfilter`
+## Using `/ai_add_filter`
 
 If you are not sure which handler to use, Sophie can suggest one for you.
 
 Use:
 
-`/aiaddfilter <describe what you want to catch>`
+`/ai_add_filter <describe what you want to catch>`
 
 Examples:
 
 ```
-/aiaddfilter weird unicode characters
-/aiaddfilter crypto spam
-/aiaddfilter health-related topics
-/aiaddfilter asking to PM
+/ai_add_filter weird unicode characters
+/ai_add_filter crypto spam
+/ai_add_filter health-related topics
+/ai_add_filter asking to PM
 ```
 
 Sophie will reply with 1 to 3 suggested handlers.
@@ -235,7 +235,7 @@ filters.
 
 ## Silent mode
 
-Filters can be switched to **silent mode** from the filter setup screen of `/addfilter` and `/editfilter`.
+Filters can be switched to **silent mode** from the filter setup screen of `/add_filter` and `/edit_filter`.
 The 🔊 / 🔇 button toggles it, and the setting is saved together with the rest of the filter.
 
 When a silent filter triggers, Sophie cleans up after itself 30 seconds later by deleting:

@@ -201,13 +201,13 @@ The list below is generated from the same source used by /lockable.
 ## Need help choosing?
 
 If you are not sure whether your case should use a lock type, a text matcher, regex, or an AI filter,
-use `/aiaddfilter` first.
+use `/ai_add_filter` first.
 
 Example:
 
 ```
-/aiaddfilter block crypto spam
+/ai_add_filter block crypto spam
 ```
 
 Sophie will suggest matching handlers for you.
-You can then pick the best one and create the real filter with `/addfilter <handler>`.
+You can then pick the best one and create the real filter with `/add_filter <handler>`.

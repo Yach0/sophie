@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
+from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock
 
@@ -14,6 +16,7 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules import discover_modules, get_module_manifest
 from sophie_bot.modules.help.utils.extract_info import gather_cmds_help
 from sophie_bot.modules.help.utils.format_help import format_handler, group_handlers
+from sophie_bot.modules.utils_.status_handler import StatusHandlerABC
 from sophie_bot.utils.command_names import normalize_command_name
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS
 from tools.wiki_gen.generate_pages import ModuleWikiPage
@@ -242,7 +245,7 @@ def test_registered_multiword_commands_are_canonical() -> None:
     }
     assert not names.intersection(CANONICAL_NAMES), "Legacy names must route through normalization, not appear in help"
     assert names == UNCHANGED_NAMES | set(CANONICAL_NAMES.values())
-    assert len({normalize_command_name(name) for name in names}) == len(names)
+    assert len({normalize_command_name(name, ignore_case=True) for name in names}) == len(names)
     for _module_name, _router, _handler, command_filter in _registered_handlers():
         assert len(command_filter.cmd) == len(set(command_filter.cmd))
 
@@ -251,7 +254,7 @@ def test_registered_multiword_commands_are_canonical() -> None:
     ("legacy", "canonical"),
     [*CANONICAL_NAMES.items(), *((name, name) for name in sorted(UNCHANGED_NAMES))],
 )
-async def test_registered_commands_route_all_separator_spellings_and_keep_raw(
+async def test_registered_commands_route_all_separator_spellings_to_registered_identity(
     legacy: str,
     canonical: str,
 ) -> None:
@@ -268,7 +271,7 @@ async def test_registered_commands_route_all_separator_spellings_and_keep_raw(
         for spelling in (canonical, legacy, canonical.replace("_", ""), canonical.replace("_", "-"), canonical.upper()):
             command = await command_filter.parse_command(f"/{spelling}@SophieBot unchanged_arg-with-dash", bot)
             assert command == CommandObject(
-                prefix="/", command=spelling, mention="SophieBot", args="unchanged_arg-with-dash"
+                prefix="/", command=canonical, mention="SophieBot", args="unchanged_arg-with-dash"
             )
 
 
@@ -328,3 +331,24 @@ async def test_ai_help_preserves_operator_visibility() -> None:
     }
     assert not operator_commands.intersection(public_commands)
     assert {"ai", "ai_mode", "ai_translate", "ai_usage"} <= public_commands
+
+
+@pytest.mark.parametrize(
+    ("module_name", "handler", "command_filter"),
+    [
+        (module_name, handler.callback, command_filter)
+        for module_name, _router, handler, command_filter in _registered_handlers()
+        if isinstance(handler.callback, type) and issubclass(handler.callback, StatusHandlerABC)
+    ],
+)
+def test_status_change_command_is_a_registered_literal(
+    module_name: str, handler: type[StatusHandlerABC], command_filter: CMDFilter
+) -> None:
+    if handler.change_command is not None:
+        assert handler.change_command in command_filter.cmd, f"{module_name}: {handler.__name__}"
+
+
+@pytest.mark.parametrize("appendix", sorted(Path("docs/modules").glob("*.md")), ids=lambda path: path.stem)
+def test_docs_appendices_use_canonical_command_examples(appendix: Path) -> None:
+    commands = set(re.findall(r"/([a-zA-Z][a-zA-Z0-9_-]*)", appendix.read_text()))
+    assert not commands.intersection(CANONICAL_NAMES), f"{appendix}: {commands.intersection(CANONICAL_NAMES)}"

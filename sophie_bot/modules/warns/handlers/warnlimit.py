@@ -17,7 +17,7 @@ class WarnLimitHandler(StatusIntHandlerABC):
     """Handler for viewing and changing the warn limit."""
 
     header_text = l_("Warn Limit")
-    change_command = "warnlimit"
+    change_command = "warn_limit"
     change_args = l_("<number> (2-20)")
     min_value = 2
     max_value = 20

@@ -95,8 +95,11 @@ async def test_canonical_command_still_requires_admin(test_client: TestClient, s
     assert any("administrator" in (request.text or "").lower() for request in requests)
 
 
-@pytest.mark.parametrize(("spelling", "silent"), [("sfban", True), ("s_fban", True), ("S-FBAN", True), ("fban", False)])
-async def test_federation_ban_raw_spelling_preserves_silent_behavior(
+@pytest.mark.parametrize(
+    ("spelling", "silent"),
+    [("sfban", True), ("s_fban", True), ("S-FBAN", True), ("fban", False), ("F-BAN", False), ("F_BAN", False)],
+)
+async def test_federation_ban_registered_identity_preserves_silent_behavior(
     test_client: TestClient,
     spelling: str,
     silent: bool,
@@ -119,8 +122,11 @@ async def test_federation_ban_raw_spelling_preserves_silent_behavior(
     assert test_client.capture.get_by_type(RequestType.BAN_CHAT_MEMBER)
 
 
-@pytest.mark.parametrize(("spelling", "silent"), [("scban", True), ("s_cban", True), ("S-CBAN", True), ("cban", False)])
-async def test_community_ban_raw_spelling_preserves_silent_behavior(
+@pytest.mark.parametrize(
+    ("spelling", "silent"),
+    [("scban", True), ("s_cban", True), ("S-CBAN", True), ("cban", False), ("C-BAN", False), ("C_BAN", False)],
+)
+async def test_community_ban_registered_identity_preserves_silent_behavior(
     test_client: TestClient,
     spelling: str,
     silent: bool,
@@ -164,3 +170,20 @@ async def test_op_set_beta_spelling_preserves_operator_permissions(
         assert any("37%" in (request.text or "") for request in requests)
     else:
         assert setting is None
+
+
+@pytest.mark.parametrize("spelling", ["adminlist", "admin_list", "ADMIN-LIST"])
+async def test_enable_resolves_legacy_db_key_after_command_rename(test_client: TestClient, spelling: str) -> None:
+    admin, group, _admin_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await DisablingModel(chat=chat.iid, cmds=["adminlist"]).insert()
+
+    requests = await test_client.send_command(command="disabled", from_user=admin, chat=group)
+    assert any("/admin_list" in (request.text or "") for request in requests)
+    assert await DisablingModel.get_disabled(chat.iid) == ["adminlist"]
+
+    requests = await test_client.send_command(command="enable", args=spelling, from_user=admin, chat=group)
+    assert any("Command enabled" in (request.text or "") for request in requests)
+    assert await DisablingModel.get_disabled(chat.iid) == []

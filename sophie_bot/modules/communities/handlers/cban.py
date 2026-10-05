@@ -25,7 +25,6 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils import flags
-from sophie_bot.utils.command_names import normalize_command_name
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -118,7 +117,7 @@ class CommunityBanHandler(SophieMessageHandler):
 
         # Detect silent mode from the parsed command so it works with any prefix (/scban, !scban…).
         command_obj = self.data.get("command")
-        silent = bool(command_obj and normalize_command_name(command_obj.command) == "scban")
+        silent = bool(command_obj and command_obj.command == "scban")
 
         doc = build_ban_reply_doc(
             community,

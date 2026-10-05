@@ -11,7 +11,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.handler_help(description=l_("Shows / changes the state of automatic service messages cleanup."))
 class CleanServiceHandlerABC(StatusBoolHandlerABC):
     header_text = l_("Automatic service messages cleanup")
-    change_command = "cleanservice"
+    change_command = "clean_service"
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

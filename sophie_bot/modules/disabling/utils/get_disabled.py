@@ -25,12 +25,12 @@ def resolve_disableable_cmd(
     Any of the handler's commands resolve to the same canonical name, so aliases cannot produce
     a second, unenforceable key.
     """
-    normalized_name = normalize_command_name(name)
+    normalized_name = normalize_command_name(name, ignore_case=True)
     return next(
         (
             (key, handler)
             for key, handler in disableable_commands.items()
-            if any(normalized_name == normalize_command_name(alias) for alias in (key, *handler.cmds))
+            if any(normalized_name == normalize_command_name(alias, ignore_case=True) for alias in (key, *handler.cmds))
         ),
         None,
     )
