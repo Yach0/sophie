@@ -15,6 +15,14 @@ with the regex match object.
 Literal comparison uses `sophie_bot.utils.command_names.normalize_command_name`.
 Do not normalize command names again in handlers.
 
+Use `sophie_bot.middlewares.args.ArgsMiddleware` for Sophie routers. It rebases text
+or caption entities to the unchanged argument suffix using Telegram's UTF-16 offsets,
+including the raw command spelling and any `@mention`. Both dictionary schemas and
+argument fabrics receive argument-relative entities and the canonical command;
+dynamic schema callbacks also see the canonical command. The original message and
+its entities remain unchanged. Do not wrap schemas in ASS's `CutCommandEntitiesArg`,
+which derives offsets from the canonical command name and omits mentions.
+
 ASS arguments inherit from `ArgFabric` and parse user input into structured data. The framework handles:
 
 - Validation of input format

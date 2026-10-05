@@ -110,7 +110,8 @@ class CMDFilter(BaseFilter):
         if self.ignore_forwarded and message.forward_from:
             return False
 
-        if message.entities and self.ignore_code and self.check_mono(message.entities):
+        entities = message.entities if message.text else message.caption_entities
+        if entities and self.ignore_code and self.check_mono(entities):
             return False
 
         try:
