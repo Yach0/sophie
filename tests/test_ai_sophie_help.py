@@ -132,6 +132,17 @@ async def test_empty_catalog_keeps_existing_response() -> None:
     assert await sophie_help(_context(LoadedModuleRegistry())) == "No modules found."
 
 
+@pytest.mark.parametrize("user_tid", [1001, 1002], ids=["operator", "regular-user"])
+async def test_only_nonpublic_modules_returns_no_modules(monkeypatch: pytest.MonkeyPatch, user_tid: int) -> None:
+    monkeypatch.setattr(CONFIG, "operators", [1001])
+    hidden_router = Router(name="Operator tools")
+    hidden_router.message.register(_callback, CMDFilter("internal_preview"))
+    registry = LoadedModuleRegistry()
+    registry.help_modules["op"] = await _module(hidden_router, exclude_public=True)
+
+    assert await sophie_help(_context(registry, user_tid)) == "No modules found."
+
+
 async def test_wiki_page_reading_is_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "sophie_bot.modules.ai.agent_tools.sophie_help.read_wiki_page",

@@ -47,7 +47,11 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
     if page:
         return _read_page(page)
 
-    help_modules = ctx.deps.services.modules.help_modules
+    help_modules = {
+        module_name: module_help
+        for module_name, module_help in ctx.deps.services.modules.help_modules.items()
+        if not module_help.exclude_public
+    }
     async with track_ai_tool("sophie_help"):
         if not help_modules:
             return _("No modules found.")
@@ -79,8 +83,6 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
 
         modules_sections: list[Element] = []
         for module_name, module_help in help_modules.items():
-            if module_help.exclude_public:
-                continue
             module_info_parts = [
                 KeyValue(_("Name"), str(module_help.name)),
                 KeyValue(_("Icon"), module_help.icon),
