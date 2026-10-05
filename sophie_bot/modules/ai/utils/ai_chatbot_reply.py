@@ -37,7 +37,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
-from sophie_bot.modules.ai.utils.chatbot_tool_history import remember_chatbot_tool_history
+from sophie_bot.modules.ai.utils.chatbot_tool_history import collect_tool_call_ids, remember_chatbot_tool_history
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
     build_help_mode_tip,
@@ -307,10 +307,11 @@ async def ai_chatbot_reply(
             model_display_name(model) if show_model_name else None,
             services=services,
         )
-        # Replayed tools remain useful context, but only this run can produce attachments.
-        new_messages = result.message_history[len(previous_history) :]
+        # The agent normalizes history, so message offsets cannot identify new research.
         research_response = (
-            retrieve_latest_research_response(new_messages)
+            retrieve_latest_research_response(
+                result.message_history, skip_tool_call_ids=collect_tool_call_ids(previous_history)
+            )
             if await is_enabled(
                 "ai_chatbot_research_quote",
                 chat_tid=message.chat.id,
@@ -318,7 +319,7 @@ async def ai_chatbot_reply(
             )
             else None
         )
-        tool_labels = used_tool_labels(new_messages)
+        tool_labels = used_tool_labels(result.message_history[len(previous_history) :])
         output_text = truncate_output(header, str(result.output))
         doc = await _build_fitting_reply_doc(
             header,

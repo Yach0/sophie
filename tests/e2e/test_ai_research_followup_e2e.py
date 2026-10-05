@@ -135,6 +135,7 @@ async def test_research_followups_only_attach_new_reports(test_client: TestClien
             from_user=user,
             chat=group,
             message_id=next_message_id(),
+            date=datetime.now(UTC),
             reply_to_message=reply_to,
         ).model_copy(update={"message_thread_id": 42})
         edit_count = len(test_client.capture.get_by_type(RequestType.EDIT_MESSAGE_TEXT))
