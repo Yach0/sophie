@@ -40,7 +40,7 @@ class LockStickerHandler(SophieMessageHandler):
         if not sticker:
             doc = Doc(
                 Template(
-                    _("Reply to a message with a sticker to use {cmd} to lock a sticker pack."), cmd="/locksticker"
+                    _("Reply to a message with a sticker to use {cmd} to lock a sticker pack."), cmd="/lock_sticker"
                 ),
             )
             await message.reply(doc.to_html())

@@ -86,7 +86,7 @@ class LocksListHandler(SophieMessageHandler):
         doc += Template(
             _("Use {lock_cmd} to add a lock or {filter_cmd} to add a filter lock."),
             lock_cmd=Code("/lock <type>"),
-            filter_cmd=Code("/addfilter <type>"),
+            filter_cmd=Code("/add_filter <type>"),
         )
         doc += Template(_("Use {cmd} to remove a lock."), cmd=Code("/unlock <type>"))
         await message.reply(doc.to_html())

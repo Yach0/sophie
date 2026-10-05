@@ -9,7 +9,7 @@ icon: ✨
 >   \
 > By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used. \
 > Please note that each chat has a limited monthly AI quota. \
-> Use /aiusage to check your remaining quota.
+> Use /ai_usage to check your remaining quota.
 
 ## Available commands
 

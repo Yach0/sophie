@@ -189,8 +189,8 @@ msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Зверніть увагу, що кожен чат має обмежену місячну квоту ШІ."
 
 #: sophie_bot/modules/ai/__init__.py:139
-msgid "Use /aiusage to check your remaining quota."
-msgstr "Використовуйте /aiusage, щоб перевірити свою квоту, що залишилася."
+msgid "Use /ai_usage to check your remaining quota."
+msgstr "Використовуйте /ai_usage, щоб перевірити свою квоту, що залишилася."
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:17
 msgid "Can be empty"
@@ -392,8 +392,8 @@ msgid "AI Filter Suggestions"
 msgstr "Пропозиції фільтрів ШІ"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:243
-msgid "Use /addfilter <handler> to create the filter."
-msgstr "Використовуйте /addfilter <handler>, щоб створити фільтр."
+msgid "Use /add_filter <handler> to create the filter."
+msgstr "Використовуйте /add_filter <handler>, щоб створити фільтр."
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 #, python-brace-format
@@ -3251,8 +3251,8 @@ msgid "Only the federation owner can set the log channel."
 msgstr "Тільки власник федерації може встановити канал журналів."
 
 #: sophie_bot/modules/federations/handlers/logs.py:58
-msgid "This federation already has a log channel set. Use /funsetlog to remove it first."
-msgstr "Ця федерація вже має встановлений канал журналів. Спочатку видаліть його за допомогою /funsetlog."
+msgid "This federation already has a log channel set. Use /f_unset_log to remove it first."
+msgstr "Ця федерація вже має встановлений канал журналів. Спочатку видаліть його за допомогою /f_unset_log."
 
 #: sophie_bot/modules/federations/handlers/logs.py:67
 msgid "Unable to verify permissions in this channel."
@@ -3851,7 +3851,7 @@ msgstr "Скасувати"
 #: sophie_bot/modules/filters/handlers/filters_list.py:226
 msgid ""
 "There are no filters in this chat!\n"
-"Use /addfilter <handler> to create one."
+"Use /add_filter <handler> to create one."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:237
@@ -7667,7 +7667,7 @@ msgid "Welcome Security message"
 msgstr "Повідомлення про привітальну безпеку"
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:140
-msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgid "These settings are no longer active. Open /welcome_security again for the intended chat."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:147

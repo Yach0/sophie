@@ -38,7 +38,7 @@ class PMNotesStatus(SophieMessageHandler):
                 KeyValue(_("Current state"), _("Enabled") if state else _("Disabled")),
                 title=_("Private Notes"),
             ),
-            Template(_("Use '{cmd}' to change it."), cmd=Italic("/pmnotes (on / off)")),
+            Template(_("Use '{cmd}' to change it."), cmd=Italic("/pm_notes (on / off)")),
         )
 
         await self.event.reply(str(doc), disable_web_page_preview=True)

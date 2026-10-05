@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory
@@ -7,8 +9,10 @@ from aiogram_test_framework.types import RequestType
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, DisablingModel, FiltersModel, GlobalSettings, RulesModel
+from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.communities import CommunityBanModel, CommunityModel, CommunityTask
 from sophie_bot.db.models.federations import FederationBan, FederationTask
+from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_cached_messages, get_message_cache_key
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
 from tests.e2e.federations.conftest import create_federation_via_command
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
@@ -187,3 +191,43 @@ async def test_enable_resolves_legacy_db_key_after_command_rename(test_client: T
     requests = await test_client.send_command(command="enable", args=spelling, from_user=admin, chat=group)
     assert any("Command enabled" in (request.text or "") for request in requests)
     assert await DisablingModel.get_disabled(chat.iid) == []
+
+
+@pytest.mark.parametrize("spelling", ["ai_reset", "aireset", "ai-reset", "AI_RESET", "Ai-ReSeT", "a_i-r_e_s_e_t"])
+@pytest.mark.parametrize("with_mention", [False, True])
+async def test_ai_reset_leaves_history_empty(test_client: TestClient, spelling: str, with_mention: bool) -> None:
+    admin, group, _admin_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await AIModeModel.set_mode(chat, AIMode.support)
+    services = test_client.dispatcher.workflow_data["services"]
+    await cache_message(
+        "Remember this conversation", group.id, admin.id, 1, datetime.now(UTC), admin.full_name, redis=services.redis
+    )
+    assert await get_cached_messages(group.id, redis=services.redis)
+    bot_user = await services.bot.me()
+    command = f"{spelling}@{bot_user.username}" if with_mention else spelling
+
+    requests = await test_client.send_command(command=command, from_user=admin, chat=group)
+
+    assert any("successfully reset" in (request.text or "") for request in requests)
+    assert await get_cached_messages(group.id, redis=services.redis) == ()
+    assert await services.redis.zcard(get_message_cache_key(group.id)) == 0
+
+
+@pytest.mark.parametrize(
+    "text", ["Discuss /aireset here", "Discuss /ai_reset here", "/aireset@AnotherBot", "/ai_reset@AnotherBot"]
+)
+async def test_reset_text_without_matched_command_is_cached(test_client: TestClient, text: str) -> None:
+    admin, group, _admin_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await AIModeModel.set_mode(chat, AIMode.support)
+    services = test_client.dispatcher.workflow_data["services"]
+
+    requests = await test_client.send_message(text=text, from_user=admin, chat=group)
+
+    assert not any("successfully reset" in (request.text or "") for request in requests)
+    assert await services.redis.zcard(get_message_cache_key(group.id)) == 1

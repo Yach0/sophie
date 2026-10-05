@@ -115,7 +115,7 @@ class SetModeHandler(SophieMessageHandler):
                 )
                 + Template(
                     _("Use '{cmd}' to change it."),
-                    cmd=Italic("/op_setmode [^chat=<chat_id>] (auto / latest / old)"),
+                    cmd=Italic("/op_set_mode [^chat=<chat_id>] (auto / latest / old)"),
                 ),
             )
         )

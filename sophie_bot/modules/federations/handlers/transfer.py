@@ -107,7 +107,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
             ),
             Template(
                 _("They have 5 minutes to accept with {cmd}"),
-                cmd=Code(f"/accepttransfer {federation.fed_id}"),
+                cmd=Code(f"/accept_transfer {federation.fed_id}"),
             ),
         )
 

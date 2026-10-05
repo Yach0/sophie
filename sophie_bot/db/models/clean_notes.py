@@ -13,7 +13,7 @@ from ._link_type import Link
 
 
 class CleanNotesModel(Document):
-    """Per-chat state of the automatic notes cleanup (/cleannotes)."""
+    """Per-chat state of the automatic notes cleanup (/clean_notes)."""
 
     chat: Link[ChatModel]
 

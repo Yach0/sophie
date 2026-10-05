@@ -104,21 +104,21 @@ adding a model or rotating a key never needs a redeploy.
 The `seed_ai_catalog` migration creates catalog models and the `openrouter` provider; the
 `seed_vendor_sdk_provider_keys` migration creates `mistral` and `openai` providers for
 moderation and transcription. All three start without keys. Configure credentials in the
-database before enabling AI, using `/op_aiprovider <name> ^key=<your-key>` in a private chat
+database before enabling AI, using `/op_ai_provider <name> ^key=<your-key>` in a private chat
 with the bot or updating the provider through the operator API.
 
 The initial catalog also includes a `qwencloud` model. To use it, create an OpenAI-compatible
-provider named `qwencloud` with its endpoint and key via `/op_aiprovider` or the operator API.
+provider named `qwencloud` with its endpoint and key via `/op_ai_provider` or the operator API.
 No AI provider credentials are read from environment variables.
 
 ### Managing the catalog
 
 | Command | Purpose |
 | --- | --- |
-| `/op_aiproviders` | List providers. API keys are always masked. |
-| `/op_aiprovider <name> ^kind= ^base_url= ^key= ^enabled=` | Create or update a provider. Private chat only; the command message is deleted immediately. |
-| `/op_aimodels` | List models and what each one is used for. |
-| `/op_aimodel <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^enabled=` | Create or update a model. |
+| `/op_ai_providers` | List providers. API keys are always masked. |
+| `/op_ai_provider <name> ^kind= ^base_url= ^key= ^enabled=` | Create or update a provider. Private chat only; the command message is deleted immediately. |
+| `/op_ai_models` | List models and what each one is used for. |
+| `/op_ai_model <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^enabled=` | Create or update a model. |
 
 `kind` is `openrouter`, `openai_compatible`, or `moderation` (a key for a vendor SDK rather than a
 chat-completions endpoint — do not point models at one). A role is `<mode>:<purpose>` — for example
@@ -133,7 +133,7 @@ restart.
 
 
 > **Warning:** AI requests require a configured catalog model and a key on its provider. Check
-> `/op_aiproviders` and `/op_aimodels` after deploying; environment keys do not configure OpenRouter.
+> `/op_ai_providers` and `/op_ai_models` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
 ### AI progress
@@ -191,13 +191,13 @@ Switching backend is two steps: put the key in the catalog, then flip the flag. 
 restart — the client is rebuilt as soon as the catalog version changes.
 
 ```
-/op_aiprovider openai ^key=sk-...
+/op_ai_provider openai ^key=sk-...
 /op_ff ai_moderation_provider openai
 ```
 
 > **Warning:** the `openrouter` provider's key cannot serve the OpenAI backend. OpenRouter proxies
 > chat completions, not `/moderations`, so selecting `openai` without a real OpenAI key makes every
-> moderation request fail — which silently leaves messages unmoderated. Check `/op_aiproviders`
+> moderation request fail — which silently leaves messages unmoderated. Check `/op_ai_providers`
 > shows a key against `openai`.
 > {.is-warning}
 
@@ -206,7 +206,7 @@ The two providers report different categories, and Sophie normalises them onto i
 
 ### Per-chat detection levels
 
-Chat admins run `/aimoderator` to get a table of the nine categories and a button for each one.
+Chat admins run `/ai_moderator` to get a table of the nine categories and a button for each one.
 Pressing a button walks that category through Off → Low → Medium → High.
 
 The level multiplies the classifier's score before it is compared to the threshold, so a chat can be
@@ -256,7 +256,7 @@ one chat may start per day, and the tokens are charged to that chat's AI quota l
 feature.
 
 The model it uses is the catalog model holding the `sophie_inspect` role, so it is swapped like
-any other: `/op_aimodel <name> ^role=sophie_inspect`. Prefer a cheap one — the daily cap is what bounds the
+any other: `/op_ai_model <name> ^role=sophie_inspect`. Prefer a cheap one — the daily cap is what bounds the
 damage, not the price per run.
 
 The sub-agent can only read `.py` files inside the `sophie_bot` package, and only through search and

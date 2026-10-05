@@ -189,8 +189,8 @@ msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Her sohbetin sınırlı bir aylık yapay zeka kotası olduğunu lütfen unutmayın."
 
 #: sophie_bot/modules/ai/__init__.py:139
-msgid "Use /aiusage to check your remaining quota."
-msgstr "Kalan kotanızı kontrol etmek için /aiusage kullanın."
+msgid "Use /ai_usage to check your remaining quota."
+msgstr "Kalan kotanızı kontrol etmek için /ai_usage kullanın."
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:17
 msgid "Can be empty"
@@ -392,8 +392,8 @@ msgid "AI Filter Suggestions"
 msgstr "Yapay Zeka Filtre Önerileri"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:243
-msgid "Use /addfilter <handler> to create the filter."
-msgstr "Filtreyi oluşturmak için /addfilter <handler> kullanın."
+msgid "Use /add_filter <handler> to create the filter."
+msgstr "Filtreyi oluşturmak için /add_filter <handler> kullanın."
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 #, python-brace-format
@@ -3237,8 +3237,8 @@ msgid "Only the federation owner can set the log channel."
 msgstr "Sadece örgüt sahibi günlük kanalını ayarlayabilir."
 
 #: sophie_bot/modules/federations/handlers/logs.py:58
-msgid "This federation already has a log channel set. Use /funsetlog to remove it first."
-msgstr "Bu örgütün zaten bir günlük kanalı ayarlanmış. Önce /funsetlog ile kaldırın."
+msgid "This federation already has a log channel set. Use /f_unset_log to remove it first."
+msgstr "Bu örgütün zaten bir günlük kanalı ayarlanmış. Önce /f_unset_log ile kaldırın."
 
 #: sophie_bot/modules/federations/handlers/logs.py:67
 msgid "Unable to verify permissions in this channel."
@@ -3829,7 +3829,7 @@ msgstr "İptal"
 #: sophie_bot/modules/filters/handlers/filters_list.py:226
 msgid ""
 "There are no filters in this chat!\n"
-"Use /addfilter <handler> to create one."
+"Use /add_filter <handler> to create one."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:237
@@ -7644,7 +7644,7 @@ msgid "Welcome Security message"
 msgstr "Karşılama Güvenliği mesajı"
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:140
-msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgid "These settings are no longer active. Open /welcome_security again for the intended chat."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:147

@@ -70,8 +70,8 @@ def _format_role(role: AIModelRole) -> str:
 def _provider_usage() -> Section:
     return Section(
         VList(
-            Code("/op_aiprovider <name> ^kind=<kind> ^base_url=<url> ^key=<api key> ^enabled=<yes/no>"),
-            Code("/op_aiprovider <name> ^delete=yes"),
+            Code("/op_ai_provider <name> ^kind=<kind> ^base_url=<url> ^key=<api key> ^enabled=<yes/no>"),
+            Code("/op_ai_provider <name> ^delete=yes"),
             Template(_("Kinds: {kinds}"), kinds=Code(", ".join(kind.value for kind in AIProviderKind))),
             _("Only the given options change; the rest keep their current values."),
             _("A key can only be set in a private chat, and that message is deleted right away."),
@@ -83,10 +83,10 @@ def _provider_usage() -> Section:
 def _model_usage() -> Section:
     return Section(
         VList(
-            Code("/op_aimodel <name> ^provider=<name> ^api_name=<upstream name> ^role=<role> ^enabled=<yes/no>"),
-            Code("/op_aimodel <name> ^unrole=<role> ^reasoning=<yes/no> ^images=<yes/no>"),
-            Code("/op_aimodel <name> ^role=<role> ^priority=<number>"),
-            Code("/op_aimodel <name> ^delete=yes"),
+            Code("/op_ai_model <name> ^provider=<name> ^api_name=<upstream name> ^role=<role> ^enabled=<yes/no>"),
+            Code("/op_ai_model <name> ^unrole=<role> ^reasoning=<yes/no> ^images=<yes/no>"),
+            Code("/op_ai_model <name> ^role=<role> ^priority=<number>"),
+            Code("/op_ai_model <name> ^delete=yes"),
             Template(
                 _("Roles: {modes} paired with {purposes}, e.g. {example}"),
                 modes=Code(", ".join(mode.value for mode in AIMode if mode is not AIMode.disabled)),

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class AIFilterSuggestion(BaseModel):
-    handler: str = Field(description="Filter handler ready to pass to /addfilter")
+    handler: str = Field(description="Filter handler ready to pass to /add_filter")
     description: str = Field(description="Short plain-language description of what the handler does")
     note: str = Field(description="One-line practical caveat or endorsement without emoji")
     recommended: bool = Field(description="Whether this is the best overall suggestion")

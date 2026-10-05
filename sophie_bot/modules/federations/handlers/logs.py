@@ -55,7 +55,7 @@ class SetFederationLogHandler(SophieMessageHandler):
 
         if federation.log_chat:
             await self.event.reply(
-                _("This federation already has a log channel set. Use /funsetlog to remove it first.")
+                _("This federation already has a log channel set. Use /f_unset_log to remove it first.")
             )
             return
 
