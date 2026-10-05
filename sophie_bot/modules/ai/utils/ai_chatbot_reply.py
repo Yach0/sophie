@@ -307,8 +307,10 @@ async def ai_chatbot_reply(
             model_display_name(model) if show_model_name else None,
             services=services,
         )
+        # Replayed tools remain useful context, but only this run can produce attachments.
+        new_messages = result.message_history[len(previous_history) :]
         research_response = (
-            retrieve_latest_research_response(result.message_history)
+            retrieve_latest_research_response(new_messages)
             if await is_enabled(
                 "ai_chatbot_research_quote",
                 chat_tid=message.chat.id,
@@ -316,7 +318,7 @@ async def ai_chatbot_reply(
             )
             else None
         )
-        tool_labels = used_tool_labels(result.message_history[len(previous_history) :])
+        tool_labels = used_tool_labels(new_messages)
         output_text = truncate_output(header, str(result.output))
         doc = await _build_fitting_reply_doc(
             header,
