@@ -74,8 +74,15 @@ class CMDFilter(BaseFilter):
             if isinstance(allowed_command, Pattern):  # Regexp
                 if result := allowed_command.match(command.command):
                     return replace(command, regexp_match=result)
-            elif command.command == allowed_command:  # String
-                return command
+            else:
+                # Normalize only literal matching, preserving the parsed command.
+                command_name = command.command.replace("_", "").replace("-", "")
+                allowed_name = allowed_command.replace("_", "").replace("-", "")
+                if self.ignore_case:
+                    command_name = command_name.casefold()
+                    allowed_name = allowed_name.casefold()
+                if command_name == allowed_name:
+                    return command
         raise CommandException("Command did not match pattern")
 
     def do_magic(self, command: CommandObject) -> None:
