@@ -4,7 +4,7 @@ from aiogram import Router
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from sophie_bot.modules import ModuleManifest, track_scheduler_callback
-from sophie_bot.modules.communities.handlers.cban import CommunityBanHandler
+from sophie_bot.modules.communities.handlers.cban import CommunityBanHandler, SilentCommunityBanHandler
 from sophie_bot.modules.communities.handlers.uncban import CommunityUnbanHandler
 from sophie_bot.modules.communities.middlewares.check_cban import CommunityBanMiddleware
 from sophie_bot.modules.communities.schedules.process_bans import ProcessCommunityBans
@@ -32,6 +32,7 @@ module_manifest = ModuleManifest(
     bot_router_factory=lambda: Router(name=router.name),
     handlers=(
         CommunityBanHandler,
+        SilentCommunityBanHandler,
         CommunityUnbanHandler,
     ),
     setup_bot=setup_bot,
