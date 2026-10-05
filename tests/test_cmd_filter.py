@@ -8,11 +8,11 @@ import pytest
 from aiogram import Bot, F, Router
 from aiogram.filters import MagicData
 from aiogram.filters.command import CommandException, CommandObject
-from aiogram.types import Chat, Message, User
-from ass_tg.middleware import ArgsMiddleware
-from ass_tg.types import TextArg
+from aiogram.types import Chat, Message, MessageEntity, User
+from ass_tg.types import AndArg, TextArg
 
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.middlewares.args import ArgsMiddleware
 from sophie_bot.utils.i18n import I18nNew
 
 
@@ -235,3 +235,110 @@ async def test_router_passes_canonical_command_through_args_middleware(bot: Asyn
     assert result == (expected, expected.args)
     assert seen_by_args == [expected]
     assert result[0] is seen_by_args[0]
+
+
+@pytest.mark.parametrize(
+    ("registered_name", "spelling", "is_regex"),
+    [
+        ("setrules", "set_rules", False),
+        ("setrules", "set--rules", False),
+        ("set_rules", "setrules", False),
+        ("set--rules", "set_rules", False),
+        ("setrules", "setrules", False),
+        ("setrules", "SET_RULES", False),
+        ("strasse", "stra_ße", False),
+        ("set😀rules", "set_😀rules", False),
+        ("setrules", "set-rules", True),
+    ],
+)
+@pytest.mark.parametrize("mention", ["", "@sOpHiEbOt"])
+@pytest.mark.parametrize("caption", [False, True])
+@pytest.mark.parametrize("schema_kind", ["dynamic", "dict", "fabric"])
+async def test_router_preserves_argument_entities_and_canonical_command(
+    registered_name: str,
+    spelling: str,
+    is_regex: bool,
+    mention: str,
+    caption: bool,
+    schema_kind: str,
+    bot: AsyncMock,
+    i18n_context: I18nNew,
+) -> None:
+    parent_router = Router()
+    child_router = Router()
+    parent_router.include_router(child_router)
+    parent_router.message.middleware(ArgsMiddleware(i18n=i18n_context))
+    seen_by_schema: list[CommandObject] = []
+    expected_name = spelling if is_regex else registered_name
+
+    async def argument_schema(message: Message, data: dict[str, object]) -> dict[str, TextArg]:
+        command = data["command"]
+        assert isinstance(command, CommandObject)
+        assert command.command == expected_name
+        seen_by_schema.append(command)
+        return {"reason": TextArg("Reason", parse_entities=True)}
+
+    async def handler(message: Message, command: CommandObject, reason: str) -> tuple[CommandObject, str]:
+        return command, reason
+
+    schema = {"reason": TextArg("Reason", parse_entities=True)}
+    args_flag = argument_schema if schema_kind == "dynamic" else AndArg(**schema) if schema_kind == "fabric" else schema
+    pattern = re.compile(r"set(?P<separator>-)rules$")
+    child_router.message.register(
+        handler,
+        CMDFilter(("other_command", pattern) if is_regex else registered_name, prefix="/", allow_caption=caption),
+        MagicData(F.command.command == expected_name),
+        flags={"args": args_flag},
+    )
+    token = f"/{spelling}{mention}"
+    text = f"{token} hello 😀 world"
+    argument_offset = len(token.encode("utf-16-le")) // 2 + 1
+    entities = [
+        MessageEntity(type="bot_command", offset=0, length=argument_offset - 1),
+        MessageEntity(type="bold", offset=argument_offset, length=5),
+        MessageEntity(type="italic", offset=argument_offset + 9, length=5),
+    ]
+    message = Message(
+        message_id=1,
+        date=datetime.now(UTC),
+        chat=Chat(id=-100123, type="supergroup"),
+        **({"caption": text, "caption_entities": entities} if caption else {"text": text, "entities": entities}),
+    )
+    original_message = message.model_dump()
+
+    command, reason = await parent_router.propagate_event(
+        update_type="message", event=message, bot=bot, event_chat=message.chat
+    )
+
+    assert reason == "<b>hello</b> 😀 <i>world</i>"
+    assert command.command == expected_name
+    assert type(command.command) is str
+    assert command.mention == mention.removeprefix("@")
+    assert command.args == "hello 😀 world"
+    if schema_kind == "dynamic":
+        assert seen_by_schema == [command]
+        assert seen_by_schema[0] is command
+    if is_regex:
+        assert command.regexp_match is not None
+        assert command.regexp_match.string == spelling
+        assert command.regexp_match.groupdict() == {"separator": "-"}
+    else:
+        assert command.regexp_match is None
+    assert message.model_dump() == original_message
+
+
+@pytest.mark.parametrize("entity_type", ["code", "pre"])
+async def test_caption_command_respects_ignore_code(entity_type: str, bot: AsyncMock) -> None:
+    message = Message(
+        message_id=1,
+        date=datetime.now(UTC),
+        chat=Chat(id=-100123, type="supergroup"),
+        caption="/set_rules hello",
+        caption_entities=[MessageEntity(type=entity_type, offset=0, length=10)],
+    )
+
+    assert (
+        await CMDFilter("setrules", prefix="/", allow_caption=True, ignore_code=True)(message, bot, message.chat)
+        is False
+    )
+    assert await CMDFilter("setrules", prefix="/", allow_caption=True, ignore_code=False)(message, bot, message.chat)
