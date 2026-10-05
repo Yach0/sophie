@@ -120,7 +120,7 @@ class OpAIProviders(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_aiproviders"), IsOP(True)
+        return CMDFilter("op_ai_providers"), IsOP(True)
 
     async def handle(self) -> Any:
         lines = [
@@ -147,7 +147,7 @@ class OpAIProvider(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         # API keys are passed in the command text, so this is refused outside a private chat.
-        return CMDFilter("op_aiprovider"), IsOP(True), ChatTypeFilter("private")
+        return CMDFilter("op_ai_provider"), IsOP(True), ChatTypeFilter("private")
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -212,7 +212,7 @@ class OpAIModels(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_aimodels"), IsOP(True)
+        return CMDFilter("op_ai_models"), IsOP(True)
 
     async def handle(self) -> Any:
         lines = [
@@ -251,7 +251,7 @@ class OpAIModels(SophieMessageHandler):
 class OpAIModel(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_aimodel"), IsOP(True)
+        return CMDFilter("op_ai_model"), IsOP(True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

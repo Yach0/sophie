@@ -24,7 +24,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class SetQuota(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_aisetquota"), IsOP(True)
+        return CMDFilter("op_ai_set_quota"), IsOP(True)
 
     async def handle(self) -> Any:
         credit_amount: int = self.data["credits"]
@@ -60,7 +60,7 @@ class SetQuota(SophieMessageHandler):
 class ResetQuota(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_airesetquota"), IsOP(True)
+        return CMDFilter("op_ai_reset_quota"), IsOP(True)
 
     async def handle(self) -> Any:
         connection = self.connection

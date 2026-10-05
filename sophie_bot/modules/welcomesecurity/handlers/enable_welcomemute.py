@@ -36,7 +36,7 @@ class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("welcomerestrict"), UserRestricting(admin=True)
+        return CMDFilter("welcome_restrict"), UserRestricting(admin=True)
 
     def status_text(self, status_data: WelcomeMuteStatus) -> Element | str:
         if status_data is False:

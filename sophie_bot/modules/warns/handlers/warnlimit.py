@@ -25,7 +25,7 @@ class WarnLimitHandler(StatusIntHandlerABC):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("warnlimit"), UserRestricting(admin=True)
+        return CMDFilter("warn_limit"), UserRestricting(admin=True)
 
     async def get_status(self) -> int:
         chat_iid = self.connection.db_model.iid

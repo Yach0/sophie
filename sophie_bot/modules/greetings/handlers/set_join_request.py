@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class SetJoinRequestMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("setjoinrequest"), UserRestricting(admin=True)
+        return CMDFilter("set_join_request"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection
@@ -56,7 +56,7 @@ class SetJoinRequestMessageHandler(SophieMessageHandler):
 class DelJoinRequestMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("deljoinrequest"), UserRestricting(admin=True)
+        return CMDFilter("del_join_request"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection

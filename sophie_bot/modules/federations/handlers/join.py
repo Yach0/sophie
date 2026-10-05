@@ -25,7 +25,7 @@ class JoinFederationHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("joinfed", "fjoin")),
+            CMDFilter(("join_fed", "fjoin")),
             UserRestricting(user_owner=True),
         )
 

@@ -19,16 +19,16 @@ icon: 🪄
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/addfilter` `/newfilter` | `<Text to match>` | Adds a new filter |  |
-| `/editfilter` | `<Filter's keyword>` | Edits filter settings |  |
-| `/delfilter` | `<Text to match>` | Deletes a filter |  |
+| `/add_filter` `/new_filter` | `<Text to match>` | Adds a new filter |  |
+| `/edit_filter` | `<Filter's keyword>` | Edits filter settings |  |
+| `/del_filter` | `<Text to match>` | Deletes a filter |  |
 {.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/aiaddfilter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
+| `/ai_add_filter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
 ---
 Use `/filters` to browse filters with Previous and Next buttons. Sophie keeps each page within Telegram's message limit; very long handlers are shortened in the list, but the saved filter and its edit/delete controls are unchanged.
 

@@ -23,7 +23,7 @@ class FilterEditHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter("editfilter"),
+            CMDFilter("edit_filter"),
             FeatureFlagFilter("action_config_wizard"),
             FeatureFlagFilter("filters"),
             UserRestricting(admin=True),

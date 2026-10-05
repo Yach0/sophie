@@ -29,5 +29,5 @@ icon: 🔗
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/allowusersconnect` | `<?New status>` | Sets whether normal users (non-admins) are allowed to connect. |  |
+| `/allow_users_connect` | `<?New status>` | Sets whether normal users (non-admins) are allowed to connect. |  |
 {.card-view-on-mobile}

@@ -27,7 +27,7 @@ class CreateFederationHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("newfed", "fnew")),)
+        return (CMDFilter(("new_fed", "fnew")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

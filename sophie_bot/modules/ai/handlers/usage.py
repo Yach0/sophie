@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class AiUsage(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("aiusage"), AICapabilityFilter()
+        return CMDFilter("ai_usage"), AICapabilityFilter()
 
     async def handle(self) -> Any:
         chat_db = self.connection.db_model

@@ -13,11 +13,11 @@ icon: 🛡️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/welcomecaptcha` `/enablewelcomecaptcha` | `<?New status or expiry time>` | Shows / changes Welcome Captcha and its expiry time. |  |
-| `/welcomerestrict` | `<?New status or restrict time>` | Shows / changes the state of Welcome Restrict (Media restricting). |  |
-| `/setwelcomesecurity` | `<Content>` | Sets welcome security message. |  |
-| `/delwelcomesecurity` | - | Deletes the welcome security message |  |
-| `/welcomesecurity` | - | Shows Welcome Security settings | *Disable-able* |
+| `/welcome_captcha` `/enable_welcome_captcha` | `<?New status or expiry time>` | Shows / changes Welcome Captcha and its expiry time. |  |
+| `/welcome_restrict` | `<?New status or restrict time>` | Shows / changes the state of Welcome Restrict (Media restricting). |  |
+| `/set_welcome_security` | `<Content>` | Sets welcome security message. |  |
+| `/del_welcome_security` | - | Deletes the welcome security message |  |
+| `/welcome_security` | - | Shows Welcome Security settings | *Disable-able* |
 {.card-view-on-mobile}
 ---
 # Welcome Security expiry settings

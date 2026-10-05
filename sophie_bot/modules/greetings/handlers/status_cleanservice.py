@@ -15,7 +15,7 @@ class CleanServiceHandlerABC(StatusBoolHandlerABC):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("cleanservice"), UserRestricting(admin=True)
+        return CMDFilter("clean_service"), UserRestricting(admin=True)
 
     async def get_status(self) -> bool:
         chat_iid = self.connection.db_model.iid

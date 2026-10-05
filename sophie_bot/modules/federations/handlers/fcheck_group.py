@@ -27,7 +27,7 @@ class FederationCheckGroupHandler(FederationCommandHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("fcheck", "fbanstat")),
+            CMDFilter(("fcheck", "fban_stat")),
             GroupOrConnectedFilter(allow_abort=False),
         )
 

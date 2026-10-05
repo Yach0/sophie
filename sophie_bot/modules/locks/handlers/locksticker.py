@@ -23,7 +23,7 @@ class LockStickerHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter("locksticker"),
+            CMDFilter("lock_sticker"),
             UserRestricting(admin=True),
             FeatureFlagFilter("locks"),
         )

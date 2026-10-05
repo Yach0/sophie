@@ -16,7 +16,7 @@ class CleanNotesHandlerABC(StatusBoolHandlerABC):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("cleannotes"), FeatureFlagFilter("cleannotes"), UserRestricting(admin=True)
+        return CMDFilter("clean_notes"), FeatureFlagFilter("cleannotes"), UserRestricting(admin=True)
 
     async def get_status(self) -> bool:
         chat_iid = self.connection.db_model.iid

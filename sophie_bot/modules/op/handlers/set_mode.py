@@ -65,7 +65,7 @@ def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int:
 class SetModeHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_setmode"), IsOP(True)
+        return CMDFilter("op_set_mode"), IsOP(True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

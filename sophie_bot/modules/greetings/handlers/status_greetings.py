@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class SetWelcomeMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("setwelcome"), UserRestricting(admin=True)
+        return CMDFilter("set_welcome"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection

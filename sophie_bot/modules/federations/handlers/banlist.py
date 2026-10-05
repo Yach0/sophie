@@ -26,7 +26,7 @@ class FederationBanListHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fbanlist", "exportfbans", "fexport")),)
+        return (CMDFilter(("fban_list", "export_fbans", "fexport")),)
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         """Create export task for federation ban list."""

@@ -21,7 +21,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class AIContextReset(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("aireset"), UserRestricting(admin=True), AICapabilityFilter()
+        return CMDFilter("ai_reset"), UserRestricting(admin=True), AICapabilityFilter()
 
     @staticmethod
     def filters_alt() -> tuple[CallbackType, ...]:

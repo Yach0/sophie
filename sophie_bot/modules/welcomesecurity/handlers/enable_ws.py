@@ -43,7 +43,7 @@ class EnableWelcomeCaptchaHandlerABC(StatusHandlerABC[WelcomeCaptchaStatus]):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("welcomecaptcha", "enablewelcomecaptcha")), UserRestricting(admin=True)
+        return CMDFilter(("welcome_captcha", "enable_welcome_captcha")), UserRestricting(admin=True)
 
     def status_text(self, status_data: WelcomeCaptchaStatus) -> Element | str:
         if status_data is False:

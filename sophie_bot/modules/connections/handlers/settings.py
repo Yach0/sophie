@@ -20,7 +20,7 @@ class AllowUsersConnectCmd(StatusBoolHandlerABC, ABC):
         from sophie_bot.filters.cmd import CMDFilter
 
         return (
-            CMDFilter("allowusersconnect"),
+            CMDFilter("allow_users_connect"),
             ChatTypeFilter("group", "supergroup"),
             UserRestricting(admin=True),
         )

@@ -13,23 +13,23 @@ icon: 🏛
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/newfed` `/fnew` | `<Federation name>` | Create a new federation |  |
-| `/fedinfo` `/finfo` | `<?Federation ID>` | Get information about a federation | *Disable-able* |
+| `/new_fed` `/fnew` | `<Federation name>` | Create a new federation |  |
+| `/fed_info` `/finfo` | `<?Federation ID>` | Get information about a federation | *Disable-able* |
 | `/fban` `/sfban` | `<?Federation ID>` `<User>` `<?Reason>` | Ban a user from the federation |  |
 | `/unfban` `/funban` | `<?Federation ID>` `<User>` | Unban a user from the federation |  |
-| `/fbanlist` `/exportfbans` `/fexport` | `<?Federation ID>` | Show list of banned users in federation |  |
-| `/fcheck` `/fbanstat` | `<?Federation ID>` `<User to check>` | Check federation bans for a user | *Disable-able* |
-| `/transferfed` `/ftransfer` | `<?Federation ID>` `<New owner>` | Transfer federation ownership |  |
-| `/accepttransfer` | `<Federation ID to accept transfer for>` | Accept federation ownership transfer |  |
-| `/fsetlog` `/setfedlog` | - | Sets the Federation logs channel |  |
-| `/funsetlog` `/unsetfedlog` | - | Removes the Federation logs channel |  |
+| `/fban_list` `/export_fbans` `/fexport` | `<?Federation ID>` | Show list of banned users in federation |  |
+| `/fcheck` `/fban_stat` | `<?Federation ID>` `<User to check>` | Check federation bans for a user | *Disable-able* |
+| `/transfer_fed` `/ftransfer` | `<?Federation ID>` `<New owner>` | Transfer federation ownership |  |
+| `/accept_transfer` | `<Federation ID to accept transfer for>` | Accept federation ownership transfer |  |
+| `/f_set_log` `/set_fed_log` | - | Sets the Federation logs channel |  |
+| `/f_unset_log` `/unset_fed_log` | - | Removes the Federation logs channel |  |
 | `/fsub` | `<Federation ID to subscribe to>` | Subscribe federation to another federation |  |
 | `/funsub` | `<Federation ID to unsubscribe from>` | Unsubscribe federation from another federation |  |
-| `/importfbans` `/fimport` | `<?Federation ID>` | Import federation ban list from CSV file |  |
+| `/import_fbans` `/fimport` | `<?Federation ID>` | Import federation ban list from CSV file |  |
 | `/frename` | `<?Federation ID>` `<New federation name>` | Rename a federation (owner only) |  |
 | `/fdelete` | `<?Federation ID>` | Delete a federation (owner only) |  |
 | `/fchats` | `<Federation ID to list chats for (optional)>` | List all chats in a federation |  |
-| `/fadmins` `/fedadmins` | `<?Federation ID>` | List all admins of a federation | *Disable-able* |
+| `/fadmins` `/fed_admins` | `<?Federation ID>` | List all admins of a federation | *Disable-able* |
 | `/fpromote` | `<?Federation ID>` `<User>` | Promote a user to federation admin |  |
 | `/fdemote` | `<?Federation ID>` `<User>` | Demote a user from federation admin |  |
 {.card-view-on-mobile}
@@ -38,13 +38,13 @@ icon: 🏛
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/fcheck` `/fbanstat` | `<User to check>` `<'full' to show all bans>` | Check federation bans |  |
+| `/fcheck` `/fban_stat` | `<User to check>` `<'full' to show all bans>` | Check federation bans |  |
 {.card-view-on-mobile}
 
 ### Only admins
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/joinfed` `/fjoin` | `<Federation ID to join>` | Join a chat to a federation |  |
-| `/leavefed` `/fleave` | - | Leave a federation |  |
+| `/join_fed` `/fjoin` | `<Federation ID to join>` | Join a chat to a federation |  |
+| `/leave_fed` `/fleave` | - | Leave a federation |  |
 {.card-view-on-mobile}

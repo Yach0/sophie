@@ -53,7 +53,7 @@ async def op_ai_prices_handler(message: Message, *, services: ApplicationService
 class OpAIPricesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_aiprices"), IsOP(True)
+        return CMDFilter("op_ai_prices"), IsOP(True)
 
     @classmethod
     def register(cls, router: Router) -> None:

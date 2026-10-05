@@ -38,7 +38,7 @@ class AIAutotrans(StatusBoolHandlerABC):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("aiautotranslate", "autotranslate")), UserRestricting(admin=True)
+        return CMDFilter(("ai_auto_translate", "auto_translate")), UserRestricting(admin=True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

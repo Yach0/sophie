@@ -19,7 +19,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class ListLockLanguagesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("locklanguages", "locklangs")),)
+        return (CMDFilter(("lock_languages", "lock_langs")),)
 
     async def handle(self) -> Any:
         message: Message = self.event

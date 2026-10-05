@@ -95,7 +95,7 @@ def _expiry_keyboard(db_item: GreetingsModel, locale: str, chat_iid: PydanticObj
 class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("welcomesecurity"), UserRestricting(admin=True)
+        return CMDFilter("welcome_security"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection

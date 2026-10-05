@@ -82,7 +82,7 @@ async def op_ai_stats_handler(message: Message) -> None:
 class OpAIStatsHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_aistats"), IsOP(True)
+        return CMDFilter("op_ai_stats"), IsOP(True)
 
     @classmethod
     def register(cls, router: Router) -> None:

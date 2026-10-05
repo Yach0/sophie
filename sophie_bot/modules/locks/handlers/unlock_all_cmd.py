@@ -20,7 +20,7 @@ class UnlockAllCmdHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter("unlockall"),
+            CMDFilter("unlock_all"),
             UserRestricting(admin=True),
             FeatureFlagFilter("locks"),
         )

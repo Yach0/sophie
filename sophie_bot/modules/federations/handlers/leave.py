@@ -21,7 +21,7 @@ class LeaveFederationHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("leavefed", "fleave")),
+            CMDFilter(("leave_fed", "fleave")),
             UserRestricting(user_owner=True),
         )
 

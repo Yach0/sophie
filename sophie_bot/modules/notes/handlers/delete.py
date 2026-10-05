@@ -23,7 +23,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class DelNote(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("delnote", "clear")), UserRestricting(admin=True)
+        return CMDFilter(("del_note", "clear")), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         if not self.event.from_user:

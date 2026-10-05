@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class PMNotesStatus(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("pmnotes", "privatenotes")), ~ChatTypeFilter("private")
+        return CMDFilter(("pm_notes", "private_notes")), ~ChatTypeFilter("private")
 
     async def handle(self) -> Any:
         connection: ChatConnection = self.connection
@@ -50,7 +50,7 @@ class PMNotesControl(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("pmnotes", "privatenotes")),
+            CMDFilter(("pm_notes", "private_notes")),
             ~ChatTypeFilter("private"),
             HasArgs(True),
             UserRestricting(admin=True),

@@ -16,7 +16,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class ResetRulesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("resetrules"), ~ChatTypeFilter("private"), UserRestricting(admin=True)
+        return CMDFilter("reset_rules"), ~ChatTypeFilter("private"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection

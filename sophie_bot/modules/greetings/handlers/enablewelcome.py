@@ -15,7 +15,7 @@ class EnableWelcomeHandlerABC(StatusBoolHandlerABC):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("enablewelcome"), UserRestricting(admin=True)
+        return CMDFilter("enable_welcome"), UserRestricting(admin=True)
 
     async def get_status(self) -> bool:
         chat_iid = self.connection.db_model.iid
