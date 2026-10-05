@@ -79,6 +79,8 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
 
         modules_sections: list[Element] = []
         for module_name, module_help in help_modules.items():
+            if module_help.exclude_public:
+                continue
             module_info_parts = [
                 KeyValue(_("Name"), str(module_help.name)),
                 KeyValue(_("Icon"), module_help.icon),
@@ -92,6 +94,8 @@ async def sophie_help(ctx: RunContext[SophieAIToolContext], page: str | None = N
             commands_elements: list[Element] = []
             if module_help.handlers:
                 for handler in module_help.handlers:
+                    if handler.only_op:
+                        continue
                     commands_elements.append(
                         Section(
                             KeyValue(_("Description"), handler.description) if handler.description else None,
