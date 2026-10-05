@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import suppress
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
@@ -151,10 +152,8 @@ class FederationManageService:
             log_chat = await ChatModel.get_by_iid(federation.log_chat.ref.id)
             if not log_chat:
                 return
-        try:
+        with suppress(TelegramBadRequest, TelegramForbiddenError):
             await bot.send_message(log_chat.tid, text, disable_web_page_preview=True)
-        except (TelegramBadRequest, TelegramForbiddenError):
-            pass
 
     @staticmethod
     async def subscribe_to_federation(federation: Federation, target_fed_id: str) -> bool:
