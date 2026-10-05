@@ -14,6 +14,7 @@ from sophie_bot.db.models import ChatModel, GlobalSettings
 from sophie_bot.db.models.beta import BetaModeModel, PreferredMode
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -62,6 +63,7 @@ def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int:
     return cast(int, parsed_value)
 
 
+@flags.handler_help(description=l_("Shows / changes the preferred beta or stable mode for a chat."))
 class SetModeHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

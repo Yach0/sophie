@@ -18,6 +18,7 @@ from sophie_bot.modules.utils_.action_config_wizard import (
 )
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardFSM, WizardScopeFilter
 from sophie_bot.shared.actions import ActionDefinition
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -85,6 +86,7 @@ WARN_MAX_ACTION_WIZARD = model_action_wizard(
 )
 
 
+@flags.handler_help(description=l_("Configures actions triggered on each warning."))
 class WarnEachActionWizard(ActionWizardStartHandler):
     wizard = WARN_EACH_ACTION_WIZARD
 
@@ -120,6 +122,7 @@ class WarnEachActionInputCleanup(ActionWizardInputCleanupHandler):
         )
 
 
+@flags.handler_help(description=l_("Configures actions triggered when the warn limit is reached."))
 class WarnMaxActionWizard(ActionWizardStartHandler):
     wizard = WARN_MAX_ACTION_WIZARD
 

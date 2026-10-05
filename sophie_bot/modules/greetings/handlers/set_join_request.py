@@ -52,7 +52,7 @@ class SetJoinRequestMessageHandler(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.handler_help(description=l_("Deletes the join request message"))
+@flags.handler_help(description=l_("Deletes the join request message."))
 class DelJoinRequestMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
