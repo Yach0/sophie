@@ -33,13 +33,13 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
-@flags.handler_help(description=l_("Ban a user from the federation"))
+@flags.handler_help(description=l_("Ban a user from the federation."))
 class FederationBanHandler(FederationCommandHandler):
     """Handler for banning users from federations."""
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fban", "sfban")),)
+        return (CMDFilter("fban"),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
@@ -234,3 +234,10 @@ class FederationBanHandler(FederationCommandHandler):
             await self.event.reply(_("Could not resolve the command user. Please try again."))
             return None
         return banner, True
+
+
+@flags.handler_help(description=l_("Ban a user from the federation. Deletes related messages after 10 seconds."))
+class SilentFederationBanHandler(FederationBanHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (CMDFilter("sfban"),)

@@ -13,6 +13,7 @@ icon: 🌐
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/cban` `/scban` | `<User>` `<?Reason>` | Ban a user from the whole community. |  |
+| `/cban` | `<User>` `<?Reason>` | Ban a user from the whole community. |  |
+| `/scban` | `<User>` `<?Reason>` | Silently ban a user from the whole community. Deletes related messages after 10 seconds. |  |
 | `/uncban` `/cunban` | `<User>` | Unban a user from the whole community. |  |
 {.card-view-on-mobile}
