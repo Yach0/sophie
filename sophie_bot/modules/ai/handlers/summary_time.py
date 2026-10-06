@@ -24,7 +24,7 @@ def _normalize_utc_time(raw_time: str) -> str | None:
         return None
 
 
-@flags.handler_help(description=l_("Sets the daily AI chat summary generation time in UTC"))
+@flags.handler_help(description=l_("Sets the daily AI chat summary generation time in UTC."))
 class AIChatSummariesTimeSetting(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
