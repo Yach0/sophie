@@ -15,7 +15,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram import Bot
-from aiogram.types import PhotoSize, Video, Voice
+from aiogram.types import (
+    PhotoSize,
+    Video,
+    Voice,
+)
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
