@@ -73,6 +73,12 @@
 - New handlers should have E2E coverage; use the `e2e-testing` skill.
 - New medium/high-risk features, integrations, and large refactors must ship behind a feature flag; use the `feature-flags` skill.
 
+### Behavioral tests
+
+- Assert observable bot behavior, captured Telegram calls, persisted state, and command routing rather than exact reply wording or source-code structure.
+- Do not scan source, documentation, or translation catalogs in tests to enforce command spelling; exercise command handling and generated help instead.
+- Tests that construct Beanie documents or query database-backed feature flags must request `db_init`, directly or with `pytest.mark.usefixtures("db_init")`. Do not rely on another test having initialized the models first.
+
 ### Research tools
 
 - Use Context7 for authoritative library documentation and API reference lookups.

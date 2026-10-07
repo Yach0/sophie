@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import ast
-import re
 from collections.abc import Iterator
-from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock
 
@@ -12,14 +9,11 @@ from aiogram import Bot, Router
 from aiogram.dispatcher.event.handler import HandlerObject
 from aiogram.filters.command import CommandObject
 from aiogram.types import User
-from babel.messages.pofile import read_po
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules import discover_modules, get_module_manifest
 from sophie_bot.modules.help.utils.extract_info import gather_cmds_help
 from sophie_bot.modules.help.utils.format_help import format_handler, group_handlers
-from sophie_bot.modules.utils_.status_handler import StatusHandlerABC
-from sophie_bot.utils.command_names import normalize_command_name
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS
 from tools.wiki_gen.generate_pages import ModuleWikiPage
 
@@ -238,20 +232,6 @@ def _registered_handlers() -> Iterator[tuple[str, Router, HandlerObject, CMDFilt
                         yield module_name, router, handler, event_filter.callback
 
 
-def test_registered_multiword_commands_are_canonical() -> None:
-    names = {
-        name
-        for _module_name, _router, _handler, command_filter in _registered_handlers()
-        for name in command_filter.cmd
-        if isinstance(name, str)
-    }
-    assert not names.intersection(CANONICAL_NAMES), "Legacy names must route through normalization, not appear in help"
-    assert names == UNCHANGED_NAMES | set(CANONICAL_NAMES.values())
-    assert len({normalize_command_name(name, ignore_case=True) for name in names}) == len(names)
-    for _module_name, _router, _handler, command_filter in _registered_handlers():
-        assert len(command_filter.cmd) == len(set(command_filter.cmd))
-
-
 @pytest.mark.parametrize(
     ("legacy", "canonical"),
     [*CANONICAL_NAMES.items(), *((name, name) for name in sorted(UNCHANGED_NAMES))],
@@ -333,74 +313,3 @@ async def test_ai_help_preserves_operator_visibility() -> None:
     }
     assert not operator_commands.intersection(public_commands)
     assert {"ai", "ai_mode", "ai_translate", "ai_usage"} <= public_commands
-
-
-@pytest.mark.parametrize(
-    ("module_name", "handler", "command_filter"),
-    [
-        (module_name, handler.callback, command_filter)
-        for module_name, _router, handler, command_filter in _registered_handlers()
-        if isinstance(handler.callback, type) and issubclass(handler.callback, StatusHandlerABC)
-    ],
-)
-def test_status_change_command_is_a_registered_literal(
-    module_name: str, handler: type[StatusHandlerABC], command_filter: CMDFilter
-) -> None:
-    if handler.change_command is not None:
-        assert handler.change_command in command_filter.cmd, f"{module_name}: {handler.__name__}"
-
-
-@pytest.mark.parametrize("appendix", sorted(Path("docs/modules").glob("*.md")), ids=lambda path: path.stem)
-def test_docs_appendices_use_canonical_command_examples(appendix: Path) -> None:
-    commands = set(re.findall(r"/([a-zA-Z][a-zA-Z0-9_-]*)", appendix.read_text()))
-    assert not commands.intersection(CANONICAL_NAMES), f"{appendix}: {commands.intersection(CANONICAL_NAMES)}"
-
-
-def _legacy_command_examples(text: str) -> set[str]:
-    return set(re.findall(r"(?<![\w/])/([a-zA-Z][a-zA-Z0-9_-]*)", text)).intersection(CANONICAL_NAMES)
-
-
-@pytest.mark.parametrize("source", sorted(Path("sophie_bot").rglob("*.py")), ids=str)
-def test_runtime_command_guidance_uses_canonical_names(source: Path) -> None:
-    tree = ast.parse(source.read_text())
-    excluded_nodes: set[int] = set()
-    # HTTP route prefixes are API contracts, not Telegram command guidance.
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "APIRouter":
-            excluded_nodes.update(id(keyword.value) for keyword in node.keywords if keyword.arg == "prefix")
-    # This migration documents the deliberately old disabled keys that it repairs.
-    if source.name == "20260715_225616_rename_legacy_disabled_cmd_keys.py":
-        excluded_nodes.add(id(tree.body[0].value))
-    violations = []
-    for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.Constant)
-            and isinstance(node.value, str)
-            and id(node) not in excluded_nodes
-            and (legacy := _legacy_command_examples(node.value))
-        ):
-            violations.append((node.lineno, sorted(legacy)))
-    assert not violations, f"{source}: {violations}"
-
-
-@pytest.mark.parametrize(
-    "document",
-    sorted([*Path("docs").rglob("*.md"), *Path("wiki_docs").rglob("*.md"), *Path(".").glob("*.md")]),
-    ids=str,
-)
-def test_all_documentation_command_guidance_uses_canonical_names(document: Path) -> None:
-    assert not (legacy := _legacy_command_examples(document.read_text())), f"{document}: {sorted(legacy)}"
-
-
-@pytest.mark.parametrize("catalog_path", sorted(Path("locales").glob("*/LC_MESSAGES/sophie.po")), ids=str)
-def test_translated_command_guidance_uses_canonical_names(catalog_path: Path) -> None:
-    with catalog_path.open("rb") as catalog_file:
-        catalog = read_po(catalog_file, locale=catalog_path.parts[-3])
-    violations = []
-    for message in catalog:
-        sources = message.id if isinstance(message.id, tuple) else (message.id,)
-        translations = message.string if isinstance(message.string, tuple) else (message.string,)
-        for text in (*sources, *translations):
-            if text and (legacy := _legacy_command_examples(text)):
-                violations.append((message.id, sorted(legacy)))
-    assert not violations, f"{catalog_path}: {violations}"
