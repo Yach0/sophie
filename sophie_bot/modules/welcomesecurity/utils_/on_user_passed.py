@@ -31,7 +31,15 @@ async def ws_on_user_passed(
 
     # Check for admin permissions
     if await is_user_admin(chat=group.tid, user=user.tid):
-        return False
+        result = await execute_restriction(
+            bot,
+            RestrictionAction.UNMUTE,
+            group.tid,
+            user.tid,
+        )
+        if result.applied:
+            await WSUserModel.remove_user(user.iid, group.iid)
+        return result.applied
 
     # Unmute / restrict user
     if await is_user_group_whitelisted(group.tid, user.tid, redis=redis):
@@ -65,4 +73,4 @@ async def ws_on_user_passed(
     if restriction_succeeded:
         await WSUserModel.remove_user(user.iid, group.iid)
 
-    return True
+    return restriction_succeeded

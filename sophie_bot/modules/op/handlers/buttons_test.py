@@ -10,10 +10,13 @@ from stfu_tg import Template
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.parse_arg import ButtonsArgList
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
+@flags.handler_help(description=l_("Parses button definitions and shows the parsed result."))
 class ButtonsTestHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

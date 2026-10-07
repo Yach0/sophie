@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.args(
     credits=IntArg(l_("Monthly credit amount")),
 )
-@flags.handler_help(description=l_("Set monthly AI quota for a chat"))
+@flags.handler_help(description=l_("Set monthly AI quota for a chat."))
 class SetQuota(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -56,7 +56,7 @@ class SetQuota(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.handler_help(description=l_("Reset AI quota usage for a chat"))
+@flags.handler_help(description=l_("Reset AI quota usage for a chat."))
 class ResetQuota(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

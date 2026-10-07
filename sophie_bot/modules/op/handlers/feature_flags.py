@@ -11,6 +11,7 @@ from stfu_tg import BlockQuote, Code, Doc, Template
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import (
     FEATURE_FLAGS,
     ChatFeatureOverride,
@@ -40,6 +41,7 @@ from sophie_bot.utils.feature_flags import (
 )
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 _CURRENT_CHAT_SENTINEL = object()
 _ROLLOUT_LIST_SENTINEL = object()
@@ -279,6 +281,7 @@ def _render_chat_override_list(overrides: list[ChatFeatureOverride]) -> list[Doc
     return docs
 
 
+@flags.handler_help(description=l_("Shows / changes feature flags, chat overrides, and rollouts."))
 class FeatureFlagsHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

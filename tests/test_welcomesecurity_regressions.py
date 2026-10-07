@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.enums import ChatMemberStatus
+from aiogram.exceptions import TelegramBadRequest
 from beanie import PydanticObjectId
 
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityRulesAgreeCB
@@ -20,9 +21,7 @@ async def test_legacy_button_validates_membership_via_telegram(monkeypatch: pyte
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
     get_user_in_group = AsyncMock(return_value=None)
     ensure_user_in_group = AsyncMock()
-    get_chat_member = AsyncMock(
-        return_value=SimpleNamespace(status=ChatMemberStatus.MEMBER)
-    )
+    get_chat_member = AsyncMock(return_value=SimpleNamespace(status=ChatMemberStatus.MEMBER))
     bot = SimpleNamespace(get_chat_member=get_chat_member)
 
     monkeypatch.setattr(
@@ -116,3 +115,119 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
     for call in bot_mock.delete_message.await_args_list:
         # delete_message calls are cleanup, not sending new messages — that's fine
         pass
+
+
+@pytest.mark.asyncio
+async def test_complete_captcha_continues_when_join_request_was_already_approved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
+    group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
+    greetings = SimpleNamespace(welcome_mute=None)
+    captcha_message = SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42)
+    redis = SimpleNamespace(
+        get=AsyncMock(side_effect=[None, None]),
+        set=AsyncMock(),
+        delete=AsyncMock(),
+    )
+    approval = AsyncMock(
+        side_effect=TelegramBadRequest(
+            method=SimpleNamespace(),
+            message="Bad Request: USER_ALREADY_PARTICIPANT",
+        )
+    )
+    post_approval = AsyncMock(return_value=True)
+    bot_mock = SimpleNamespace(edit_message_media=AsyncMock(), approve_chat_join_request=approval)
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
+        post_approval,
+    )
+
+    await complete_captcha(
+        user,
+        group,
+        greetings,
+        captcha_message,
+        is_join_request=True,
+        bot=bot_mock,
+        redis=redis,
+    )
+
+    approval.assert_awaited_once_with(chat_id=group.tid, user_id=user.tid)
+    post_approval.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_complete_captcha_propagates_unexpected_join_approval_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
+    group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
+    greetings = SimpleNamespace(welcome_mute=None)
+    captcha_message = SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42)
+    redis = SimpleNamespace(get=AsyncMock(return_value=None), set=AsyncMock(), delete=AsyncMock())
+    approval_error = TelegramBadRequest(method=SimpleNamespace(), message="Bad Request: CHAT_ADMIN_REQUIRED")
+    post_approval = AsyncMock()
+    bot_mock = SimpleNamespace(
+        edit_message_media=AsyncMock(),
+        approve_chat_join_request=AsyncMock(side_effect=approval_error),
+    )
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
+        post_approval,
+    )
+
+    with pytest.raises(TelegramBadRequest) as raised:
+        await complete_captcha(
+            user,
+            group,
+            greetings,
+            captcha_message,
+            is_join_request=True,
+            bot=bot_mock,
+            redis=redis,
+        )
+
+    assert raised.value is approval_error
+    post_approval.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_complete_captcha_keeps_recovery_messages_when_post_approval_transition_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
+    group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
+    greetings = SimpleNamespace(welcome_mute=None)
+    captcha_message = SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42)
+    redis = SimpleNamespace(
+        get=AsyncMock(side_effect=[b"security-note", b"join-request-note"]),
+        set=AsyncMock(),
+        delete=AsyncMock(),
+    )
+    post_approval = AsyncMock(return_value=False)
+    bot_mock = SimpleNamespace(
+        edit_message_media=AsyncMock(),
+        approve_chat_join_request=AsyncMock(),
+        delete_message=AsyncMock(),
+    )
+
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
+        post_approval,
+    )
+
+    await complete_captcha(
+        user,
+        group,
+        greetings,
+        captcha_message,
+        is_join_request=True,
+        bot=bot_mock,
+        redis=redis,
+    )
+
+    bot_mock.delete_message.assert_not_awaited()
+    redis.delete.assert_not_awaited()

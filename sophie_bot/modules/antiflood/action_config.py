@@ -17,6 +17,7 @@ from sophie_bot.modules.utils_.action_config_wizard import (
 )
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardFSM, WizardScopeFilter
 from sophie_bot.shared.actions import ActionDefinition
+from sophie_bot.utils import flags
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
@@ -35,6 +36,7 @@ ANTIFLOOD_ACTION_WIZARD = model_action_wizard(
 )
 
 
+@flags.handler_help(description=l_("Configures actions triggered by antiflood protection."))
 class AntifloodActionWizard(ActionWizardStartHandler):
     wizard = ANTIFLOOD_ACTION_WIZARD
 

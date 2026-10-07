@@ -77,7 +77,7 @@ async def _send_picker(message: Message, selected: AIMode) -> None:
     )
 
 
-@flags.handler_help(description=l_("Select what the AI does in this chat"))
+@flags.handler_help(description=l_("Select what the AI does in this chat."))
 class AIModeSetting(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

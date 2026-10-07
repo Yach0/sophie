@@ -1,4 +1,5 @@
 from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 from redis.asyncio import Redis
 
@@ -6,6 +7,7 @@ from sophie_bot.db.models import ChatModel, GreetingsModel
 from sophie_bot.db.models.greetings import WelcomeMute
 from sophie_bot.metrics.welcome import track_captcha_passed
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.telegram_exceptions import USER_ALREADY_PARTICIPANT
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
 from sophie_bot.utils.i18n import gettext as _
@@ -56,16 +58,23 @@ async def complete_captcha(
     # Approve join request if applicable
     if is_join_request:
         await redis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
-        await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
+        try:
+            await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
+        except TelegramBadRequest as error:
+            if USER_ALREADY_PARTICIPANT not in error.message:
+                raise
 
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
-    await ws_on_user_passed(
+    restriction_succeeded = await ws_on_user_passed(
         user,
         group,
         greetings.welcome_mute or WelcomeMute(),
         bot=bot,
         redis=redis,
     )
+
+    if not restriction_succeeded:
+        return
 
     # Clean up the security note message from the group
     if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
