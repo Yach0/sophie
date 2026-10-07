@@ -25,6 +25,8 @@ from sophie_bot.modules.ai.utils.mention_usernames import (
     resolve_mentions,
 )
 
+pytestmark = pytest.mark.usefixtures("db_init")
+
 CHAT_TID = -100123
 HEADER = cast(Element, "H")
 

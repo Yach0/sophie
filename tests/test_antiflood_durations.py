@@ -37,6 +37,8 @@ from sophie_bot.shared.actions import (
     StoredAction,
 )
 
+pytestmark = pytest.mark.usefixtures("db_init")
+
 CHAT_TID = -1001483164428
 USER_TID = 7860164386
 
