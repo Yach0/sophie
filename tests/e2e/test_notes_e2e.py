@@ -63,6 +63,30 @@ async def _save_note_directly(chat_model: ChatModel, names: tuple[str, ...], tex
 
 
 @pytest.mark.asyncio
+async def test_hashtag_note_ignores_bot_authors_but_answers_humans(test_client: TestClient) -> None:
+    human, group, chat_model = await _setup_group_and_user(
+        test_client,
+        chat_id=-1002800000099,
+        user_id=928000099,
+        group_title="Bot Hashtag Notes Group",
+        first_name="Human",
+        username="human_notes",
+    )
+    await _save_note_directly(chat_model, ("status",), "Human-triggered note")
+    bot_user = UserFactory.create(user_id=928000100, first_name="Relay Bot", is_bot=True)
+
+    before = len(test_client.capture.get_by_type(RequestType.SEND_MESSAGE))
+    await test_client.send_message(text="#status", from_user=bot_user, chat=group)
+    after_bot = len(test_client.capture.get_by_type(RequestType.SEND_MESSAGE))
+    await test_client.send_message(text="#status", from_user=human.user, chat=group)
+    after_human = test_client.capture.get_by_type(RequestType.SEND_MESSAGE)
+
+    assert after_bot == before
+    assert len(after_human) == before + 1
+    assert "Human-triggered note" in (after_human[-1].text or "")
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("trigger", ["/get boundary", "#boundary"])
 async def test_save_and_retrieve_note_at_text_limit(test_client: TestClient, trigger: str) -> None:
     user, group, _user_model = await create_test_user_and_group(test_client)

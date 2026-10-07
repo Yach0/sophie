@@ -111,7 +111,11 @@ def test_old_rich_battery_footer_is_not_reused_as_reply_context() -> None:
                     {
                         "type": "paragraph",
                         "text": [
-                            {"type": "custom_emoji", "custom_emoji_id": "5816915599019741395", "alternative_text": "🔋"},
+                            {
+                                "type": "custom_emoji",
+                                "custom_emoji_id": "5816915599019741395",
+                                "alternative_text": "🔋",
+                            },
                             " 95%",
                         ],
                     },
@@ -311,17 +315,28 @@ def test_is_ai_message_rejects_other_ai_titled_replies() -> None:
 
 def test_message_text_reads_the_header_out_of_a_rich_table() -> None:
     """A rich message carries no text, and the header now lives in table cells."""
-    table = SimpleNamespace(
-        cells=[
-            [
-                SimpleNamespace(text="✨ AI"),
-                SimpleNamespace(text="Help 📖"),
-                SimpleNamespace(text="🔋 80%"),
-            ]
-        ]
+    message = Message.model_validate(
+        {
+            "message_id": 1,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "rich_message": {
+                "blocks": [
+                    {
+                        "type": "table",
+                        "cells": [
+                            [
+                                {"text": "✨ AI", "align": "left", "valign": "top"},
+                                {"text": "Help 📖", "align": "left", "valign": "top"},
+                                {"text": "🔋 80%", "align": "left", "valign": "top"},
+                            ]
+                        ],
+                    },
+                    {"type": "paragraph", "text": "Notes are saved with /save."},
+                ]
+            },
+        }
     )
-    body = SimpleNamespace(text="Notes are saved with /save.")
-    message = SimpleNamespace(text=None, rich_message=SimpleNamespace(blocks=[table, body]))
 
     text = message_text(message)
 

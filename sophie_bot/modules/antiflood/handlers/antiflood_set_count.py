@@ -15,7 +15,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.i18n import ngettext as pl_
 
 
-@flags.handler_help(description=l_("Set the message count threshold for antiflood protection"))
+@flags.handler_help(description=l_("Set the message count threshold for antiflood protection."))
 class AntifloodSetCountHandler(SophieMessageHandler):
     """Handler for setting antiflood message count threshold."""
 

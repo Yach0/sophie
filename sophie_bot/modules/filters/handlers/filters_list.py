@@ -52,7 +52,7 @@ def _fits_telegram_message(document: Doc) -> bool:
 
 
 @flags.disableable(name="filters")
-@flags.handler_help(description=l_("Lists all filters in the chat"))
+@flags.handler_help(description=l_("Lists all filters in the chat."))
 class FiltersListHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

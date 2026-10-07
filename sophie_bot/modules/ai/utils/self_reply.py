@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from typing import cast
 
-from aiogram.types import Message, RichBlockParagraph, RichTextCustomEmoji
+from aiogram.types import Message, RichBlock, RichBlockParagraph, RichBlockUnion, RichMessage, RichTextCustomEmoji
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.fsm.pm import AI_GENERATED_TEXT
@@ -15,6 +16,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_PROGRESS_MARKER,
 )
 from sophie_bot.modules.ai.utils.ai_tool import AITool
+from sophie_bot.utils.rich_message import rich_message_to_plain_text
 
 _LEGACY_AI_HEADER_LABEL = f"{AI_EMOJI} AI"
 _LEGACY_AI_HEADER_SEPARATOR = " | "
@@ -47,11 +49,8 @@ def _rich_text(value: object) -> str:
 
 
 def _rich_block_text(block: object) -> str:
-    cells = getattr(block, "cells", None)
-    if isinstance(cells, list):
-        return "\n".join(
-            _LEGACY_AI_HEADER_SEPARATOR.join(_rich_text(cell) for cell in row) for row in cells if isinstance(row, list)
-        )
+    if isinstance(block, RichBlock):
+        return rich_message_to_plain_text(RichMessage(blocks=[cast("RichBlockUnion", block)]))
 
     return _rich_text(getattr(block, "text", None))
 

@@ -12,8 +12,10 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_credit_text import format_credit_amount
 from sophie_bot.modules.ai.utils.ai_usage_service import OperatorAIStats, get_operator_ai_stats
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 def _display_name(chat: ChatModel) -> str | Element:
@@ -79,6 +81,7 @@ async def op_ai_stats_handler(message: Message) -> None:
     await message.reply(str(_build_doc(await get_operator_ai_stats())))
 
 
+@flags.handler_help(description=l_("Shows overall AI usage and top chats, users, and features."))
 class OpAIStatsHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

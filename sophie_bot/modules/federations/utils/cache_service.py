@@ -54,7 +54,6 @@ class FederationCacheService:
             ex=FederationCacheService.CACHE_TTL,
         )
 
-    # NEW: Stats Caching
     @staticmethod
     async def get_ban_count(fed_id: str, *, redis: Redis) -> int | None:
         cache_key = f"{FederationCacheService.CACHE_PREFIX}ban_count:{fed_id}"
