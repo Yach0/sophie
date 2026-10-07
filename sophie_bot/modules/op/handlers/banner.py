@@ -9,10 +9,13 @@ from ass_tg.types.base_abc import ArgFabric
 
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
+from sophie_bot.utils import flags
 from sophie_bot.utils.emoji_banner import EmojiBanner
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
+@flags.handler_help(description=l_("Generates an emoji banner image with the given text."))
 class OpBannerHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

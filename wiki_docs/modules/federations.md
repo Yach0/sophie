@@ -15,7 +15,8 @@ icon: 🏛
 | --- | --- | --- | --- |
 | `/newfed` `/fnew` | `<Federation name>` | Create a new federation |  |
 | `/fedinfo` `/finfo` | `<?Federation ID>` | Get information about a federation | *Disable-able* |
-| `/fban` `/sfban` | `<?Federation ID>` `<User>` `<?Reason>` | Ban a user from the federation |  |
+| `/fban` | `<?Federation ID>` `<User>` `<?Reason>` | Ban a user from the federation. |  |
+| `/sfban` | `<?Federation ID>` `<User>` `<?Reason>` | Ban a user from the federation. Deletes related messages after 10 seconds. |  |
 | `/unfban` `/funban` | `<?Federation ID>` `<User>` | Unban a user from the federation |  |
 | `/fbanlist` `/exportfbans` `/fexport` | `<?Federation ID>` | Show list of banned users in federation |  |
 | `/fcheck` `/fbanstat` | `<?Federation ID>` `<User to check>` | Check federation bans for a user | *Disable-able* |

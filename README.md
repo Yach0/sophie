@@ -193,6 +193,10 @@ Repeating a Mongo or Redis inspector submission reads current data again. Mongo 
 
 Known credentials are redacted before binary payloads are base64 encoded. Mapping keys retain their content with type tags for non-string keys and numbered suffixes for collisions; secret-shaped bytes keys redact their values just like string keys. Telemetry shutdown drains accepted frames when possible and closes the sender socket and thread even after backpressure or a disconnect. Shutdown waits for any active worker reload and prevents further restarts.
 
+## Translation of rich replies
+
+Reply translation preserves rich-message list boundaries, details summaries, table captions, and nested visible content. AI headers and quota footers are stripped only from replies authored by Sophie; matching custom emoji in user messages remain part of the translation input.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)

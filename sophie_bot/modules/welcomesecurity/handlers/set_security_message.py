@@ -52,7 +52,7 @@ class SetSecurityMessageHandler(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.handler_help(description=l_("Deletes the welcome security message"))
+@flags.handler_help(description=l_("Deletes the welcome security message."))
 class DelSecurityMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

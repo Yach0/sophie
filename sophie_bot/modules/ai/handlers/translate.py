@@ -15,6 +15,7 @@ from stfu_tg import (
 )
 from stfu_tg.doc import Element
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
@@ -39,6 +40,7 @@ from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structure
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, message_text
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
@@ -68,8 +70,12 @@ async def _resolve_translation_input(
         )
         is_voice = True
     elif event.reply_to_message and not is_autotranslate:
-        sticker_emoji = event.reply_to_message.sticker.emoji if event.reply_to_message.sticker else ""
-        to_translate = event.reply_to_message.text or event.reply_to_message.caption or sticker_emoji or ""
+        reply = event.reply_to_message
+        sticker_emoji = reply.sticker.emoji if reply.sticker else ""
+        reply_text = (
+            cut_titlebar(reply) if reply.from_user and reply.from_user.id == CONFIG.bot_id else message_text(reply)
+        )
+        to_translate = reply_text or reply.caption or sticker_emoji or ""
     elif data.get("voice"):
         to_translate = ""
         is_voice = True
@@ -134,7 +140,7 @@ async def text_or_reply(message: Message | None, _data: dict):
     alias_to_modules=["language"],
     description=l_(
         "Translates the given (or replied) text to the chat's selected language. Also transcribes the "
-        "replied voice message to text"
+        "replied voice message to text."
     ),
 )
 @flags.status(value="typing")

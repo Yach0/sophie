@@ -11,8 +11,10 @@ from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
 from sophie_bot.modules.ai.utils.ai_model_pricing import get_model_pricing
 from sophie_bot.services.application import ApplicationServices
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 def _format_price(price: float | None) -> str:
@@ -50,6 +52,7 @@ async def op_ai_prices_handler(message: Message, *, services: ApplicationService
     await message.reply(str(doc))
 
 
+@flags.handler_help(description=l_("Lists AI catalog models with approximate input and output token prices."))
 class OpAIPricesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
