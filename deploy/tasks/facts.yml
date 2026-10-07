@@ -1,3 +1,7 @@
+- name: Set shared operator IDs
+  set_fact:
+    operators: [834047763]
+
 - name: Set vars for Staging
   set_fact:
     token: "{{ lookup('env', 'BETA_TOKEN') }}"
