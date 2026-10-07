@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework import TestClient
-from aiogram_test_framework.factories import ChatFactory
+from aiogram_test_framework.factories import ChatFactory, UserFactory
 from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel
@@ -48,6 +48,30 @@ async def test_filter_warn_and_delete_message_warns_user(test_client: TestClient
 
     warns_count = await WarnModel.find_all().count()
     assert warns_count == 1
+
+
+@pytest.mark.asyncio
+async def test_filter_actions_ignore_bot_authored_messages(test_client: TestClient) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002600000011, title="Bot Filters Group")
+    human = test_client.create_user(user_id=926000011, first_name="Human", username="human_target")
+    await test_client.send_message(text="init", from_user=human.user, chat=group_chat)
+
+    chat = await ChatModel.get_by_tid(group_chat.id)
+    assert chat is not None
+    filter_item = FiltersModel(
+        chat=chat.iid,
+        handler="spam",
+        action=None,
+        actions={"warn_user": {"reason": "No spam"}, "delmsg": None},
+    )
+    await filter_item.insert()
+    bot_user = UserFactory.create(user_id=926000012, first_name="Relay Bot", is_bot=True)
+
+    with patch.object(FiltersModel, "get_filters", AsyncMock(return_value=[filter_item])):
+        requests = await test_client.send_message(text="spam", from_user=bot_user, chat=group_chat)
+
+    assert await WarnModel.find_all().count() == 0
+    assert not [request for request in requests if request.request_type == RequestType.DELETE_MESSAGE]
 
 
 @pytest.mark.asyncio

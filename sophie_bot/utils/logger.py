@@ -1,5 +1,6 @@
 import logging.config
 import os
+from contextlib import suppress
 
 import structlog
 from aiogram.loggers import event
@@ -78,12 +79,8 @@ def _ensure_log_directory():
         directory = os.path.dirname(log_file)
         if not directory:
             continue
-        try:
+        with suppress(OSError):
             os.makedirs(directory, exist_ok=True)
-        except OSError:
-            # FileExistsError: path exists but is a file, not a directory
-            # OSError: permission issues or other filesystem errors
-            pass
 
 
 # Defer directory creation until actually needed

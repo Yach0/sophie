@@ -37,7 +37,7 @@ class CommunityBanHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("cban", "scban")),
+            CMDFilter("cban"),
             UserRestricting(can_restrict_members=True),
             BotHasPermissions(can_restrict_members=True),
         )
@@ -156,3 +156,16 @@ class CommunityBanHandler(SophieMessageHandler):
             ban_id=ban.id,
             created_at=datetime.now(UTC),
         ).insert()
+
+
+@flags.handler_help(
+    description=l_("Silently ban a user from the whole community. Deletes related messages after 10 seconds.")
+)
+class SilentCommunityBanHandler(CommunityBanHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            CMDFilter("scban"),
+            UserRestricting(can_restrict_members=True),
+            BotHasPermissions(can_restrict_members=True),
+        )

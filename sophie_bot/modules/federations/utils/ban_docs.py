@@ -41,7 +41,7 @@ def build_ban_reply_doc(
         KeyValue(_("Banned by"), banned_by),
     )
     if reason:
-        doc += KeyValue(_("Reason"), reason)
+        doc += KeyValue(_("Reason"), Code(reason))
 
     if propagating:
         if immediate_chat_banned:
@@ -86,6 +86,7 @@ def build_ban_reply_doc(
 def build_ban_log_doc(
     federation: Federation,
     user: ChatModel,
+    banner_tid: int,
     banner_name: str,
     banned_count: int,
     total_chats: int,
@@ -102,11 +103,11 @@ def build_ban_log_doc(
             _("User"),
             Template(
                 "{user_name} ({user_id})",
-                user_name=user.first_name_or_title or _("Unknown"),
+                user_name=UserLink(user.tid, user.first_name_or_title or _("Unknown")),
                 user_id=Code(user.tid),
             ),
         ),
-        KeyValue(_("By"), banner_name),
+        KeyValue(_("By"), UserLink(banner_tid, banner_name)),
         Template(
             pl_(
                 "User banned in {banned_count} out of {total_chats} chat in the federation",
@@ -127,7 +128,7 @@ def build_ban_log_doc(
             count=subscribed_banned_count,
         )
     if reason:
-        log_doc += KeyValue(_("Reason"), reason)
+        log_doc += KeyValue(_("Reason"), Code(reason))
     if original_message_text:
         log_doc += Section(
             Spoiler(original_message_text),

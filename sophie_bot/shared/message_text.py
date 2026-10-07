@@ -6,7 +6,11 @@ caller concern, and entity offsets must be applied to their original source.
 
 from __future__ import annotations
 
-from aiogram.types import Message
+from typing import cast
+
+from aiogram.types import Message, RichBlock, RichBlockUnion, RichMessage
+
+from sophie_bot.utils.rich_message import rich_message_to_plain_text
 
 
 def rich_text(value: object) -> str:
@@ -24,6 +28,11 @@ def rich_text(value: object) -> str:
 
 
 def rich_block_text(block: object, *, table_cell_separator: str = " | ") -> str:
+    # AI context keeps the full visible projection, including nested blocks,
+    # captions, and labels. Locks request cell boundaries without display markup.
+    if table_cell_separator == " | " and isinstance(block, RichBlock):
+        return rich_message_to_plain_text(RichMessage(blocks=[cast("RichBlockUnion", block)]))
+
     cells = getattr(block, "cells", None)
     if isinstance(cells, list):
         return "\n".join(

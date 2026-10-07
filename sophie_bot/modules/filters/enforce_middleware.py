@@ -31,6 +31,7 @@ from sophie_bot.shared.actions import ActionResult
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
+from sophie_bot.utils.telegram import is_bot_authored_message
 
 
 class EnforceFiltersMiddleware(BaseMiddleware):
@@ -48,6 +49,10 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         services: ApplicationServices,
     ) -> bool:
         sender: User | Chat | None = message.sender_chat or message.from_user
+
+        if is_bot_authored_message(message):
+            log.debug("EnforceFiltersMiddleware: bot-authored message, dropping...")
+            return True
 
         if not sender:
             log.debug("EnforceFiltersMiddleware: no sender, dropping...")

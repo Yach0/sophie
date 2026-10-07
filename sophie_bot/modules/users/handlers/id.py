@@ -10,6 +10,7 @@ from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -22,6 +23,7 @@ async def optional_user(message: Message | None, _data: dict):
     return {"user": OptionalArg(SophieUserArg(l_("User")))}
 
 
+@flags.handler_help(description=l_("Shows your Telegram ID, chat IDs, and the replied or specified user's ID."))
 class ShowIDHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

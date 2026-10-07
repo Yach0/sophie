@@ -218,4 +218,4 @@ Language and text-pattern locks read formatted rich text, including nested inlin
 
 The `text` lock also recognizes rich text-only messages. Captions alone, media messages, and rich messages containing media blocks are exempt from this lock. Entity-based locks continue to use Telegram's message/caption entities and their original text offsets.
 
-The shared extractor currently reads a block's text or table cells. Text inside container blocks (such as lists, details, and block quotations) and rich media captions is not yet extracted. Rich formatting and media blocks are not converted into legacy Telegram entities or media fields by this fix.
+For locks, the shared extractor reads a block's text or table cells. Text inside container blocks (such as lists, details, and block quotations) and rich media captions is not yet extracted by locks; AI reply context retains its full visible-text projection. Rich formatting and media blocks are not converted into legacy Telegram entities or media fields by this fix.

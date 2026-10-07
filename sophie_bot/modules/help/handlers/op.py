@@ -6,7 +6,9 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp
 from sophie_bot.modules.help.utils.format_help import format_handlers
+from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 OP_COMMANDS_MESSAGE_LENGTH_LIMIT = TELEGRAM_MESSAGE_LENGTH_LIMIT - 100
 
@@ -48,6 +50,7 @@ def format_op_commands_messages(modules: list[ModuleHelp]) -> list[str]:
     return messages
 
 
+@flags.handler_help(description=l_("Lists all module commands, including operator-only commands."))
 class OpCMDSList(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

@@ -919,39 +919,39 @@ msgstr ""
 msgid "Chat"
 msgstr "Chat"
 
-#: sophie_bot/modules/ai/handlers/translate.py:108
+#: sophie_bot/modules/ai/handlers/translate.py:114
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "Z {from_lang} do {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:118
+#: sophie_bot/modules/ai/handlers/translate.py:124
 msgid "Translation Notes"
 msgstr "Poznámky k překladu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:129
+#: sophie_bot/modules/ai/handlers/translate.py:135
 msgid "Text to translate"
 msgstr "Text k překladu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:136
+#: sophie_bot/modules/ai/handlers/translate.py:142
 msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
 msgstr "Překládá daný (nebo odpovězený) text do zvoleného jazyka chatu. Také přepisuje odpovězenou hlasovou zprávu do textu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:161
+#: sophie_bot/modules/ai/handlers/translate.py:167
 #: sophie_bot/modules/ai/utils/message_history.py:192
 msgid "Transcribing voice message..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:184
-#: sophie_bot/modules/ai/handlers/translate.py:187
+#: sophie_bot/modules/ai/handlers/translate.py:190
+#: sophie_bot/modules/ai/handlers/translate.py:193
 msgid "Please provide text to translate."
 msgstr "Zadejte prosím text k překladu."
 
-#: sophie_bot/modules/ai/handlers/translate.py:204
+#: sophie_bot/modules/ai/handlers/translate.py:210
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Pokud je to relevantní, přeložte fotografii do {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:225
+#: sophie_bot/modules/ai/handlers/translate.py:231
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -960,11 +960,11 @@ msgstr ""
 "Přeložte následující text do {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:250
+#: sophie_bot/modules/ai/handlers/translate.py:256
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:268
+#: sophie_bot/modules/ai/handlers/translate.py:274
 msgid "Error generating translation"
 msgstr "Chyba při generování překladu"
 
@@ -1062,7 +1062,7 @@ msgstr "Autor zprávy"
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:44
-#: sophie_bot/modules/federations/utils/ban_docs.py:130
+#: sophie_bot/modules/federations/utils/ban_docs.py:131
 #: sophie_bot/modules/reports/handlers/report.py:89
 #: sophie_bot/modules/restrictions/actions/base.py:74
 #: sophie_bot/modules/restrictions/actions/kick.py:56
@@ -1876,8 +1876,8 @@ msgstr "Uživatel byl omezen pro záplavu."
 #: sophie_bot/modules/federations/handlers/promote.py:19
 #: sophie_bot/modules/federations/handlers/unban.py:47
 #: sophie_bot/modules/federations/utils/ban_docs.py:40
-#: sophie_bot/modules/federations/utils/ban_docs.py:102
-#: sophie_bot/modules/federations/utils/ban_docs.py:153
+#: sophie_bot/modules/federations/utils/ban_docs.py:103
+#: sophie_bot/modules/federations/utils/ban_docs.py:154
 #: sophie_bot/modules/promotes/handlers/demote.py:42
 #: sophie_bot/modules/promotes/handlers/demote.py:80
 #: sophie_bot/modules/promotes/handlers/promote.py:74
@@ -2022,12 +2022,12 @@ msgstr "🌐 Uživatel zabanován v komunitě"
 #: sophie_bot/modules/federations/handlers/info.py:59
 #: sophie_bot/modules/federations/handlers/info.py:75
 #: sophie_bot/modules/federations/handlers/unban.py:178
-#: sophie_bot/modules/federations/schedules/process_bans.py:134
-#: sophie_bot/modules/federations/schedules/process_bans.py:220
+#: sophie_bot/modules/federations/schedules/process_bans.py:118
+#: sophie_bot/modules/federations/schedules/process_bans.py:205
 #: sophie_bot/modules/federations/utils/ban_docs.py:40
-#: sophie_bot/modules/federations/utils/ban_docs.py:105
-#: sophie_bot/modules/federations/utils/ban_docs.py:153
-#: sophie_bot/modules/federations/utils/ban_docs.py:192
+#: sophie_bot/modules/federations/utils/ban_docs.py:106
+#: sophie_bot/modules/federations/utils/ban_docs.py:154
+#: sophie_bot/modules/federations/utils/ban_docs.py:193
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/notes/handlers/list.py:83
 #: sophie_bot/modules/op/handlers/set_mode.py:106
@@ -2056,7 +2056,7 @@ msgstr "⏳ Záznam banu uložen. Probíhá propagace napříč komunitou…"
 #: sophie_bot/modules/communities/utils/ban_docs.py:48
 #: sophie_bot/modules/communities/utils/ban_docs.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:54
-#: sophie_bot/modules/federations/utils/ban_docs.py:165
+#: sophie_bot/modules/federations/utils/ban_docs.py:166
 msgid "Result"
 msgstr "Výsledek"
 
@@ -2079,7 +2079,7 @@ msgid "🌐 User Unbanned from Community"
 msgstr "🌐 Uživatel odblokován v komunitě"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:76
-#: sophie_bot/modules/federations/utils/ban_docs.py:154
+#: sophie_bot/modules/federations/utils/ban_docs.py:155
 #: sophie_bot/modules/restrictions/handlers/unban.py:24
 msgid "Unbanned by"
 msgstr "Odblokoval"
@@ -2093,7 +2093,7 @@ msgid "⏳ Unban recorded. Propagating across the community…"
 msgstr "⏳ Záznam odblokování uložen. Probíhá propagace napříč komunitou…"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:89
-#: sophie_bot/modules/federations/utils/ban_docs.py:167
+#: sophie_bot/modules/federations/utils/ban_docs.py:168
 #, python-brace-format
 msgid "Unbanned in {count} chat"
 msgid_plural "Unbanned in {count} chats"
@@ -2121,12 +2121,12 @@ msgid "Please run the command again to retry."
 msgstr "Spusťte prosím příkaz znovu pro opětovný pokus."
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:116
-#: sophie_bot/modules/federations/utils/ban_docs.py:183
+#: sophie_bot/modules/federations/utils/ban_docs.py:184
 msgid "ℹ️ Ban Superseded"
 msgstr "ℹ️ Ban přepsán"
 
 #: sophie_bot/modules/communities/utils/ban_docs.py:117
-#: sophie_bot/modules/federations/utils/ban_docs.py:184
+#: sophie_bot/modules/federations/utils/ban_docs.py:185
 msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
 msgstr "Tento uživatel byl odblokován dříve, než se dokončila propagace banu, takže už nebylo co dělat."
 
@@ -2743,7 +2743,7 @@ msgstr "🏛 Administrátoři federace"
 #: sophie_bot/modules/federations/schedules/process_exports.py:150
 #: sophie_bot/modules/federations/schedules/process_imports.py:71
 #: sophie_bot/modules/federations/utils/ban_docs.py:39
-#: sophie_bot/modules/federations/utils/ban_docs.py:152
+#: sophie_bot/modules/federations/utils/ban_docs.py:153
 msgid "Federation"
 msgstr "Federace"
 
@@ -3625,19 +3625,19 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:99
+#: sophie_bot/modules/federations/utils/ban_docs.py:100
 msgid "Ban user in the fed #FedBan"
 msgstr "Zabanovat uživatele ve federaci #FedBan"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:100
+#: sophie_bot/modules/federations/utils/ban_docs.py:101
 msgid "Fed"
 msgstr "Federace"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:109
+#: sophie_bot/modules/federations/utils/ban_docs.py:110
 msgid "By"
 msgstr "Od"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:112
+#: sophie_bot/modules/federations/utils/ban_docs.py:113
 #, python-brace-format
 msgid "User banned in {banned_count} out of {total_chats} chat in the federation"
 msgid_plural "User banned in {banned_count} out of {total_chats} chats in the federation"
@@ -3645,7 +3645,7 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:123
+#: sophie_bot/modules/federations/utils/ban_docs.py:124
 #, python-brace-format
 msgid "User banned in {count} chat in subscribed federations"
 msgid_plural "User banned in {count} chats in subscribed federations"
@@ -3653,23 +3653,23 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:134
+#: sophie_bot/modules/federations/utils/ban_docs.py:135
 msgid "Original message"
 msgstr "Původní zpráva"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:151
+#: sophie_bot/modules/federations/utils/ban_docs.py:152
 msgid "🏛 User Unbanned from Federation"
 msgstr "🏛 Uživatel odblokován z federace"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:159
+#: sophie_bot/modules/federations/utils/ban_docs.py:160
 msgid "✅ Unbanned in this chat. Propagating across the federation…"
 msgstr "✅ Odblokován v tomto chatu. Probíhá propagace napříč federací…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:161
+#: sophie_bot/modules/federations/utils/ban_docs.py:162
 msgid "⏳ Unban recorded. Propagating across the federation…"
 msgstr "⏳ Záznam odblokování uložen. Probíhá propagace napříč federací…"
 
-#: sophie_bot/modules/federations/utils/ban_docs.py:191
+#: sophie_bot/modules/federations/utils/ban_docs.py:192
 #, python-brace-format
 msgid "🏛 User {unbanned_user} has been unbanned from federation by {unbanner}."
 msgstr "🏛 Uživatel {unbanned_user} byl odblokován z federace uživatelem {unbanner}."
@@ -5365,35 +5365,35 @@ msgstr "Snažte se prosím zkrátit délku poznámky."
 msgid "Note is too long."
 msgstr "Poznámka je příliš dlouhá."
 
-#: sophie_bot/modules/notes/utils/rich.py:141
+#: sophie_bot/modules/notes/utils/rich.py:143
 msgid "Thinking Rich blocks cannot be sent as final messages"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:412
+#: sophie_bot/modules/notes/utils/rich.py:349
 msgid "Rich button labels may contain only plain text, custom emoji, or date-time text"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:422
+#: sophie_bot/modules/notes/utils/rich.py:359
 msgid "Thinking Rich blocks cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:426
+#: sophie_bot/modules/notes/utils/rich.py:363
 msgid "Rich button rows must contain between 1 and 8 buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:436
+#: sophie_bot/modules/notes/utils/rich.py:373
 msgid "Rich buttons must contain exactly one action"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:439
+#: sophie_bot/modules/notes/utils/rich.py:376
 msgid "Rich callback data is too long"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:459
+#: sophie_bot/modules/notes/utils/rich.py:396
 msgid "Rich buttons from an untrusted source cannot be saved"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/rich.py:465
+#: sophie_bot/modules/notes/utils/rich.py:402
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 

@@ -9,11 +9,13 @@ from sophie_bot.filters.user_status import IsOP
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.args(
     percentage=IntArg(),
 )
+@flags.handler_help(description=l_("Sets the beta rollout percentage for new chats."))
 class SetBetaPercentage(SophieMessageHandler):
     @staticmethod
     def filters():
@@ -34,6 +36,7 @@ class SetBetaPercentage(SophieMessageHandler):
         )
 
 
+@flags.handler_help(description=l_("Resets the current beta or stable mode for all chats."))
 class ResetBetaChats(SophieMessageHandler):
     @staticmethod
     def filters():

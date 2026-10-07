@@ -115,6 +115,7 @@ def _model_usage() -> Section:
     )
 
 
+@flags.handler_help(description=l_("Lists AI providers with masked API keys."))
 class OpAIProviders(SophieMessageHandler):
     """List the AI providers in the catalog, with masked keys."""
 
@@ -142,7 +143,7 @@ class OpAIProviders(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.handler_help(description=l_("Create or update an AI provider (private chat only)"))
+@flags.handler_help(description=l_("Create or update an AI provider (private chat only)."))
 class OpAIProvider(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -207,6 +208,7 @@ class OpAIProvider(SophieMessageHandler):
         return await self.event.answer(str(doc))
 
 
+@flags.handler_help(description=l_("Lists AI models and their assigned roles."))
 class OpAIModels(SophieMessageHandler):
     """List the AI models in the catalog and what each one is used for."""
 
@@ -247,7 +249,7 @@ class OpAIModels(SophieMessageHandler):
         await self.event.reply(str(doc))
 
 
-@flags.handler_help(description=l_("Create or update an AI model"))
+@flags.handler_help(description=l_("Create or update an AI model."))
 class OpAIModel(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
