@@ -46,6 +46,7 @@ async def ws_on_user_passed(
             RestrictionAction.UNMUTE,
             group.tid,
             user.tid,
+            is_current=pending.transition_is_current,
         )
         if result.applied:
             await pending.finish_transition()
@@ -59,12 +60,14 @@ async def ws_on_user_passed(
             RestrictionAction.UNMUTE,
             group.tid,
             user.tid,
+            is_current=pending.transition_is_current,
         )
         restriction_succeeded = result.applied
     elif welcomemute.enabled and welcomemute.time:
         restriction_succeeded = await on_welcomemute(
             group.tid,
             user.tid,
+            is_current=pending.transition_is_current,
             on_time=convert_timedelta_or_str(welcomemute.time),
             bot=bot,
             redis=redis,
@@ -75,6 +78,7 @@ async def ws_on_user_passed(
             RestrictionAction.UNMUTE,
             group.tid,
             user.tid,
+            is_current=pending.transition_is_current,
         )
         restriction_succeeded = result.applied
 

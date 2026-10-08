@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
-from typing import Any, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
 from beanie.odm.operators.update.general import Set
 from pydantic import Field
+from pymongo import ASCENDING, IndexModel
+from pymongo.errors import DuplicateKeyError
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models._link_type import Link
@@ -22,6 +24,9 @@ class WSUserModel(Document):
 
     class Settings:
         name = "ws_users"
+        indexes: ClassVar[list[IndexModel]] = [
+            IndexModel([("user", ASCENDING), ("group", ASCENDING)], unique=True, name="ws_user_group_unique"),
+        ]
 
     @staticmethod
     async def ensure_user(user: "ChatModel", group: "ChatModel", is_join_request: bool) -> "WSUserModel":
@@ -32,20 +37,25 @@ class WSUserModel(Document):
             "user.$id": user.iid,
             "group.$id": group.iid,
         }
-        await WSUserModel.find_one(
-            WSUserModel.user.id == user.iid,
-            WSUserModel.group.id == group.iid,
-        ).upsert(
-            Set({}),
-            on_insert=WSUserModel(
-                user=user,
-                group=group,
-                is_join_request=is_join_request,
-                membership_id=membership_id,
-                membership_join_message_id=joined_message_id,
-            ),
-            response_type=UpdateResponse.NEW_DOCUMENT,
-        )
+        try:
+            await WSUserModel.find_one(
+                WSUserModel.user.id == user.iid,
+                WSUserModel.group.id == group.iid,
+            ).upsert(
+                Set({}),
+                on_insert=WSUserModel(
+                    user=user,
+                    group=group,
+                    is_join_request=is_join_request,
+                    membership_id=membership_id,
+                    membership_join_message_id=joined_message_id,
+                ),
+                response_type=UpdateResponse.NEW_DOCUMENT,
+            )
+        except DuplicateKeyError:
+            # Beanie upsert inserts after its update misses; another worker may win.
+            if await WSUserModel.find_one(user_filter) is None:
+                raise
 
         if membership_id is not None:
             # Rejoins can reuse the membership row while an older leave is still delayed.
@@ -131,6 +141,16 @@ class WSUserModel(Document):
         )
 
     async def transition_is_current(self) -> bool:
+        membership = await UserInGroupModel.get_user_in_group(self.user.ref.id, self.group.ref.id)
+        if self.membership_id is None and self.membership_join_message_id is None:
+            if membership is not None and membership.joined_message_id is not None:
+                return False
+        elif (
+            membership is None
+            or membership.id != self.membership_id
+            or membership.joined_message_id != self.membership_join_message_id
+        ):
+            return False
         return await WSUserModel.find_one(self.session_filter(), {"transition": self.transition}) is not None
 
     async def finish_transition(self) -> bool:

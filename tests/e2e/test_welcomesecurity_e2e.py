@@ -20,6 +20,7 @@ from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import (
     initiate_captcha,
 )
 from sophie_bot.services.application import ApplicationServices
+from tests.e2e.helpers import create_test_user_and_group, send_join_request
 
 
 @pytest.mark.asyncio
@@ -149,3 +150,20 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     assert not any("Welcome to the group" in (request.text or "") for request in group_messages)
 
     await test_services.redis.delete(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transition", ["completing", "expiring", "exempting"])
+async def test_duplicate_join_request_does_not_approve_durable_transition(
+    test_client: TestClient, transition: str
+) -> None:
+    user, group, user_db = await create_test_user_and_group(test_client)
+    group_db = await ChatModel.get_by_tid(group.id)
+    assert group_db is not None
+    await GreetingsModel(chat=group_db.iid, welcome_security=WelcomeSecurity(enabled=True)).save()
+    pending = await WSUserModel.ensure_user(user_db, group_db, True)
+    assert await pending.claim_transition(transition) is not None
+    requests = await send_join_request(test_client, group, user)
+    assert not any(request.request_type.value in ("approveChatJoinRequest", "sendPhoto") for request in requests)
+    stored = await WSUserModel.get(pending.id)
+    assert stored is not None and stored.transition == transition

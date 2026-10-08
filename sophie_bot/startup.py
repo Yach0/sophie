@@ -14,7 +14,7 @@ from sophie_bot.modules import (
     register_module_jobs,
 )
 from sophie_bot.runtime import BotModeRuntime, RestModeRuntime, SchedulerModeRuntime
-from sophie_bot.services.db import DatabaseResources, init_db
+from sophie_bot.services.db import DatabaseResources, ensure_ws_user_uniqueness, init_db
 from sophie_bot.services.migrations import MigrationResources, run_migrations
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
@@ -30,6 +30,7 @@ async def init_database(database: DatabaseResources, redis: Redis, *, config: Co
             await run_migrations(MigrationResources(database=database, redis=redis))
         else:
             log.info("Migrations disabled by configuration")
+        await ensure_ws_user_uniqueness(database.database)
         await init_db(database.database, config=config)
         database.initialized = True
 

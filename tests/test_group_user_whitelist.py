@@ -331,6 +331,7 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
         on_time=welcome_mute_time,
         bot=test_services.bot,
         redis=test_services.redis,
+        is_current=pending.transition_is_current,
     )
     if welcome_mute_succeeded:
         remove_user.assert_awaited_once_with()
@@ -378,6 +379,7 @@ async def test_admin_captcha_pass_unmutes_and_removes_pending_only_after_success
         RestrictionAction.UNMUTE,
         group.tid,
         user.tid,
+        is_current=pending.transition_is_current,
     )
     if unmute_succeeded:
         remove_user.assert_awaited_once_with()

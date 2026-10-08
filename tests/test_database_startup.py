@@ -188,3 +188,42 @@ async def test_architecture_rollout_gate_rejects_disabled_build(
 
     with pytest.raises(RuntimeError, match="refusing to start"):
         await startup.ensure_architecture_enabled(object())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("skip_indexes", [False, True])
+async def test_ws_unique_index_is_required_after_migrations(
+    database: DatabaseResources, skip_indexes: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def check_bootstrap_index(resources: MigrationResources) -> None:
+        indexes = await resources.database.database["ws_users"].index_information()
+        assert "ws_user_group_unique" not in indexes
+
+    migrations = AsyncMock(side_effect=check_bootstrap_index)
+    monkeypatch.setattr(startup, "run_migrations", migrations)
+    config = Config(_env_file=None, run_migrations_on_startup=True, mongo_skip_indexes=skip_indexes)
+    async with FakeAsyncRedis() as redis:
+        await startup.init_database(database, redis, config=config)
+    migrations.assert_awaited_once()
+    collection = database.database["ws_users"]
+    row = {"user": DBRef("chats", ObjectId()), "group": DBRef("chats", ObjectId())}
+    await collection.insert_one(dict(row))
+    with pytest.raises(DuplicateKeyError):
+        await collection.insert_one(dict(row))
+
+
+@pytest.mark.asyncio
+@pytest.mark.filterwarnings(r"ignore:the \(type, exc, tb\) signature of throw:DeprecationWarning")
+async def test_ws_duplicate_production_rows_fail_closed_without_data_loss(database: DatabaseResources) -> None:
+    collection = database.database["ws_users"]
+    pair = {"user": DBRef("chats", ObjectId()), "group": DBRef("chats", ObjectId())}
+    rows = [{**pair, "transition": "completing"}, {**pair, "transition": "expiring"}]
+    await collection.insert_many(rows)
+    config = Config(_env_file=None, run_migrations_on_startup=False, mongo_skip_indexes=True)
+    async with FakeAsyncRedis() as redis:
+        with pytest.raises(RuntimeError, match="No rows were removed"):
+            await startup.init_database(database, redis, config=config)
+    assert not database.initialized
+    assert await collection.count_documents({}) == 2
+    for row in rows:
+        assert await collection.find_one({"_id": row["_id"]}) == row

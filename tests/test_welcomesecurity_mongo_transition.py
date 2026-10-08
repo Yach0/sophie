@@ -10,12 +10,16 @@ import pytest
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from beanie import PydanticObjectId
 
+from sophie_bot.db.models.greetings import WelcomeMute
 from sophie_bot.db.models.ws_user import WSUserModel
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
 from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
-from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user_mute
+from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user, ws_on_new_user_mute
+from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
+from tests.test_restrictions_service import make_member
 from tests.test_welcomesecurity_rejoin import _create_user_and_group, _join_user
 from tests.utils.db_fixture import cleanup_beanie
 
@@ -294,3 +298,124 @@ async def test_completion_retries_after_captcha_image_was_already_updated(
     assert unmute.await_count == 2
     assert approval.await_count == 2
     assert await WSUserModel.get(pending.id) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transition", ["completing", "expiring", "exempting"])
+async def test_join_transition_is_not_an_exemption(
+    monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices, transition: str
+) -> None:
+    user, group = await _create_user_and_group(882001, -882002)
+    pending = await WSUserModel.ensure_user(user, group, True)
+    await pending.claim_transition(transition)
+    module = "sophie_bot.modules.welcomesecurity.utils_.on_new_user"
+    monkeypatch.setattr(f"{module}.is_user_admin", AsyncMock(return_value=False))
+    monkeypatch.setattr(f"{module}.is_user_group_whitelisted", AsyncMock(return_value=False))
+    assert await ws_on_new_user(user, group, True, redis=test_services.redis) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("action", [RestrictionAction.MUTE, RestrictionAction.UNMUTE])
+async def test_session_fence_runs_after_telegram_lookups(
+    action: RestrictionAction, test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    user, group = await _create_user_and_group(882003, -882004)
+    await _join_user(user, group, message_id=1)
+    pending = await WSUserModel.ensure_user(user, group, False)
+    bot = AsyncMock()
+    bot.get_chat_member.return_value = make_member(True)
+    bot.restrict_chat_member.return_value = True
+    await execute_restriction(bot, RestrictionAction.MUTE, group.tid, user.tid)
+    if action == RestrictionAction.UNMUTE:
+        pending = await pending.claim_transition("completing")
+        assert pending is not None
+        bot.get_chat_member.return_value = make_member(False)
+
+    async def invalidate(*args: object, **kwargs: object) -> object:
+        await _join_user(user, group, message_id=3)
+        await WSUserModel.ensure_user(user, group, False)
+        return bot.get_chat_member.return_value
+
+    bot.get_chat_member.side_effect = invalidate
+    bot.restrict_chat_member.reset_mock()
+    result = await execute_restriction(bot, action, group.tid, user.tid, is_current=pending.transition_is_current)
+    assert not result.applied
+    bot.restrict_chat_member.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_pending_insert_recovers_duplicate_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    user, group = await _create_user_and_group(882005, -882006)
+    collection = WSUserModel.get_pymongo_collection()
+    await collection.create_index([("user", 1), ("group", 1)], unique=True, name="ws_user_group_unique")
+    original_insert = WSUserModel.insert
+    both_inserting = asyncio.Event()
+    attempts = 0
+
+    async def concurrent_insert(document: WSUserModel, **kwargs: object) -> WSUserModel:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 2:
+            both_inserting.set()
+        await asyncio.wait_for(both_inserting.wait(), timeout=2)
+        return await original_insert(document, **kwargs)
+
+    monkeypatch.setattr(WSUserModel, "insert", concurrent_insert)
+    first, second = await asyncio.gather(
+        WSUserModel.ensure_user(user, group, False), WSUserModel.ensure_user(user, group, False)
+    )
+    assert first.id == second.id
+    assert await WSUserModel.count() == 1
+
+
+@pytest.mark.asyncio
+async def test_delayed_initial_mute_after_completion_is_fenced(
+    monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices
+) -> None:
+    user, group = await _create_user_and_group(882007, -882008)
+    module = "sophie_bot.modules.welcomesecurity.utils_.on_new_user"
+    monkeypatch.setattr(f"{module}.is_user_admin", AsyncMock(return_value=False))
+    monkeypatch.setattr(f"{module}.is_user_group_whitelisted", AsyncMock(return_value=False))
+
+    async def delayed_mute(*args: object, **kwargs: object) -> RestrictionResult:
+        pending = await WSUserModel.is_user(user.iid, group.iid)
+        assert pending is not None
+        completing = await pending.claim_transition("completing")
+        assert completing is not None
+        await completing.finish_transition()
+        fence = kwargs.get("is_current")
+        assert fence is not None
+        assert not await fence()
+        return RestrictionResult(action=RestrictionAction.MUTE, applied=False)
+
+    monkeypatch.setattr(f"{module}.execute_restriction", delayed_mute)
+    assert not await ws_on_new_user_mute(user, group, bot=test_services.bot, redis=test_services.redis)
+
+
+@pytest.mark.asyncio
+async def test_completion_passes_session_fence_after_rejoin(
+    monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices
+) -> None:
+    user, group = await _create_user_and_group(882009, -882010)
+    await _join_user(user, group, message_id=1)
+    pending = await WSUserModel.ensure_user(user, group, False)
+    claimed = await pending.claim_transition("completing")
+    module = "sophie_bot.modules.welcomesecurity.utils_.on_user_passed"
+
+    async def rejoin_during_admin_lookup(**kwargs: object) -> bool:
+        await _join_user(user, group, message_id=3)
+        return False
+
+    monkeypatch.setattr(f"{module}.is_user_admin", rejoin_during_admin_lookup)
+    monkeypatch.setattr(f"{module}.is_user_group_whitelisted", AsyncMock(return_value=False))
+
+    async def fenced_unmute(*args: object, **kwargs: object) -> RestrictionResult:
+        fence = kwargs.get("is_current")
+        assert fence is not None
+        assert not await fence()
+        return RestrictionResult(action=RestrictionAction.UNMUTE, applied=False)
+
+    monkeypatch.setattr(f"{module}.execute_restriction", fenced_unmute)
+    assert not await ws_on_user_passed(
+        user, group, WelcomeMute(), pending=claimed, bot=test_services.bot, redis=test_services.redis
+    )

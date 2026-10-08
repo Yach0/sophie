@@ -20,26 +20,26 @@ async def _initialize_pending_user(
     is_join_request: bool = False,
     *,
     redis: Redis,
-) -> bool:
+) -> WSUserModel | None:
     """
     Function initializes welcomesecurity process internally.
-    Returns whenever the user was muted.
+    Returns pending state; None means exempt or already passed.
     """
 
     if new_user.is_bot:
-        return False
+        return None
 
     if await is_user_group_whitelisted(chat.tid, new_user.tid, redis=redis):
         await log_group_whitelist_exemption(chat.tid, new_user.tid, "welcome_security_captcha")
-        return False
+        return None
 
     if await is_user_admin(chat=chat.tid, user=new_user.tid):
-        return False
+        return None
 
     # Add user to the welcomesecurity database
     ws_user_db = await WSUserModel.ensure_user(new_user, chat, is_join_request)
     # False when the user already passed verification in this chat
-    return not ws_user_db.passed and ws_user_db.transition is None
+    return None if ws_user_db.passed else ws_user_db
 
 
 async def ws_on_new_user(
@@ -48,12 +48,17 @@ async def ws_on_new_user(
     is_join_request: bool = False,
     *,
     redis: Redis,
-) -> bool:
-    return await _initialize_pending_user(new_user, chat, is_join_request, redis=redis)
+) -> bool | None:
+    """False is exempt, True needs CAPTCHA, None retains a durable decision."""
+    pending = await _initialize_pending_user(new_user, chat, is_join_request, redis=redis)
+    if pending is None:
+        return False
+    return True if pending.transition is None else None
 
 
 async def ws_on_new_user_mute(new_user: ChatModel, chat: ChatModel, *, bot: Bot, redis: Redis) -> bool:
-    if not await _initialize_pending_user(new_user, chat, redis=redis):
+    pending = await _initialize_pending_user(new_user, chat, redis=redis)
+    if pending is None or pending.transition is not None:
         return False
     return (
         await execute_restriction(
@@ -61,6 +66,7 @@ async def ws_on_new_user_mute(new_user: ChatModel, chat: ChatModel, *, bot: Bot,
             RestrictionAction.MUTE,
             chat.tid,
             new_user.tid,
+            is_current=pending.transition_is_current,
         )
     ).applied
 
