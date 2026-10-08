@@ -1,0 +1,17 @@
+# Restriction permission snapshots
+
+Sophie captures a member's permissions before applying a mute or welcome media restriction. The `mute_permissions` collection has one snapshot per Telegram chat/user pair (`chat_tid`, `user_tid`). Repeated mutes and CAPTCHA-to-welcome restrictions reuse the original snapshot while Telegram's current permissions and deadline still match Sophie's applied state.
+
+A regular member is recorded as `restore_group_defaults=True`, rather than an all-true permission snapshot. Restoring this state sends all-true permissions to lift the individual restriction. An already restricted member retains their permission fields and original deadline. Restoration uses independent permission fields and intersects the saved rights with current group defaults. If the original restriction has expired, Sophie lifts the individual restriction instead.
+
+Timed mutes and welcome restrictions use persisted `expires_at` deadlines. Telegram receives a permanent restriction because its native expiry would lift the restriction without restoring the previous state. The restrictions scheduler checks due snapshots every 10 seconds, rechecks each deadline under the same lease as bot operations, and retries failed restoration on later sweeps. Restarting the scheduler does not lose deadlines. Scheduler downtime or lost Telegram administrator rights delays release; keep the restrictions module loaded in the scheduler.
+
+Telegram treats deadlines less than 30 seconds away as permanent. For an original restriction within 60 seconds of expiry (including a request-latency margin), Sophie restores the saved permissions without a Telegram deadline and records a pending release before calling Telegram. The scheduler then lifts that restriction at the original deadline. A network timeout retains this recovery record. During an ambiguous replacement, `pending_permissions` retains the prior Sophie state as well as the intended new state, so recovery accepts either possible Telegram outcome. A repeated mute resolves this uncertainty against the current member state.
+
+The `mute_permission_locks` collection provides per-chat/user MongoDB leases shared by bot and scheduler processes. Its `_id` uniqueness serializes writes independently of snapshot deletion. Acquisition waits at most 10 seconds; operations have a 45-second timeout within a 60-second lease. The TTL index clears abandoned leases, and expired leases can also be acquired before TTL cleanup.
+
+All new snapshot fields have defaults, so older documents load without a data migration. Legacy snapshots cannot prove which restriction Sophie applied: restoration discards them without overwriting current Telegram permissions. Superseded snapshots are likewise discarded. Telegram provides no conditional write or revision token; an external moderator applying exactly the same permissions and deadline is indistinguishable, and external changes between the state check and API write cannot be made atomic.
+
+Beanie creates the unique snapshot index, the non-TTL `expires_at` index, and the lock TTL index when `MONGO_SKIP_INDEXES=False` (the beta deployment default). Stable and scheduler deployments skip index creation. Ensure an index-creating startup has run before enabling this code in those processes. Do not add a TTL index to snapshots: deleting a due snapshot would lose the permissions required for restoration.
+
+API reference: [Telegram restrictChatMember](https://core.telegram.org/bots/api#restrictchatmember).

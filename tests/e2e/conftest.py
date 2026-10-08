@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 
+import pytest
 import pytest_asyncio
-from aiogram import Dispatcher, Router
+from aiogram import Bot, Dispatcher, Router
 from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.memory import SimpleEventIsolation
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import ChatMemberMember, ChatMemberRestricted, ChatPermissions, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.mock_bot import MockBot
 from aiogram_test_framework.request_capture import RequestCapture
@@ -84,10 +87,41 @@ async def test_dispatcher(
 async def test_client(
     test_dispatcher: Dispatcher,
     test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> AsyncGenerator[TestClient]:
     """Exercise handlers through the explicit MockBot owned by test services."""
     bot = test_services.bot
     capture = bot.capture
+    # The upstream mock captures writes but does not retain Telegram member state.
+    # Keep the external API state independent of Sophie's snapshot collection.
+    members: dict[tuple[int, int], ChatMemberMember | ChatMemberRestricted] = {}
+    original_response = bot.session._generate_response
+
+    def telegram_response(bot: Bot, method_name: str, params: dict[str, Any]) -> Any:
+        member_key = (params.get("chat_id", 0), params.get("user_id", 0))
+        if method_name == "restrictChatMember":
+            permissions = ChatPermissions(**params["permissions"])
+            user = User(id=member_key[1], is_bot=False, first_name="TestUser")
+            if all(permissions.model_dump().values()):
+                members[member_key] = ChatMemberMember(user=user)
+            else:
+                members[member_key] = ChatMemberRestricted(
+                    user=user,
+                    is_member=True,
+                    until_date=params.get("until_date", datetime.fromtimestamp(0, UTC)),
+                    **permissions.model_dump(),
+                )
+            return True
+        if method_name == "getChatMember" and member_key in members:
+            return members[member_key]
+        response = original_response(bot=bot, method_name=method_name, params=params)
+        if method_name == "getChat":
+            return response.model_copy(
+                update={"permissions": ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))}
+            )
+        return response
+
+    monkeypatch.setattr(bot.session, "_generate_response", telegram_response)
     client = TestClient(dispatcher=test_dispatcher, bot=bot, capture=capture)
     try:
         yield client

@@ -23,6 +23,7 @@ from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserMo
 from sophie_bot.db.models.greetings import WelcomeMute, WelcomeSecurity
 from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityExpireCB,
@@ -30,6 +31,7 @@ from sophie_bot.modules.welcomesecurity.callbacks import (
 )
 from sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users import KickUnpassedUsers
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import initiate_captcha
+from sophie_bot.shared.actions import RestrictionAction
 from tests.e2e.helpers import (
     create_test_user_and_group,
     grant_admin,
@@ -106,6 +108,7 @@ async def _register_pending_user(test_client: TestClient, group_tid: int) -> tup
     user = await ChatModel.get_by_tid(newbie.id)
     assert user is not None
     await WSUserModel.ensure_user(user, chat, is_join_request=False)
+    assert (await execute_restriction(test_client.bot, RestrictionAction.MUTE, chat.tid, user.tid)).applied
     captcha_message = await initiate_captcha(
         user,
         chat,

@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from aiogram import Router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stfu_tg import Doc
 
-from sophie_bot.modules import ModuleManifest
+from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.restrictions.actions.ban import (
     BanModernAction,
 )
@@ -29,6 +32,8 @@ from sophie_bot.modules.restrictions.handlers import (
     UnbanUserHandler,
     UnmuteUserHandler,
 )
+from sophie_bot.modules.restrictions.schedules.restore_permissions import RestorePermissions
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -40,6 +45,15 @@ def build_action_wizards() -> dict:
         **build_ban_action_wizard_specs(),
         **build_mute_action_wizard_specs(),
     }
+
+
+def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
+    scheduler.add_job(
+        track_scheduler_callback(RestorePermissions(services).handle, services),
+        "interval",
+        seconds=10,
+        jobstore="ram",
+    )
 
 
 module_manifest = ModuleManifest(
@@ -70,4 +84,5 @@ module_manifest = ModuleManifest(
     ),
     modern_actions=(KickModernAction, BanModernAction, MuteModernAction),
     build_action_wizards=build_action_wizards,
+    setup_scheduler=setup_scheduler,
 )
