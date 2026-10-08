@@ -21,7 +21,7 @@ class FederationAdminsHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fadmins", "fedadmins")),)
+        return (CMDFilter(("fadmins", "fed_admins")),)
 
     async def handle_federation_command(self, federation: Federation) -> Any:
         if not self.event.from_user:

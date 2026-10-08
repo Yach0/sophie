@@ -2,7 +2,7 @@
 
 Description:
     Adds the model the experimental sophie_inspect sub-agent uses to the AI catalog, so it can be
-    swapped with /op_aimodel like every other model instead of living in a feature flag default.
+    swapped with /op_ai_model like every other model instead of living in a feature flag default.
 
 Affected Collections:
     - ai_catalog_model

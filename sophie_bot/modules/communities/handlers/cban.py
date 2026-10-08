@@ -117,7 +117,7 @@ class CommunityBanHandler(SophieMessageHandler):
 
         # Detect silent mode from the parsed command so it works with any prefix (/scban, !scban…).
         command_obj = self.data.get("command")
-        silent = bool(command_obj and command_obj.command.lower() == "scban")
+        silent = bool(command_obj and command_obj.command == "scban")
 
         doc = build_ban_reply_doc(
             community,

@@ -183,7 +183,7 @@ class AIFilterAddHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("aiaddfilter",)),
+            CMDFilter(("ai_add_filter",)),
             FeatureFlagFilter("ai_filters"),
             ChatTypeFilter("group", "supergroup"),
             UserRestricting(admin=True),
@@ -240,8 +240,8 @@ class AIFilterAddHandler(SophieMessageHandler):
         doc_parts.extend(
             (
                 " ",
-                _("Use /addfilter <handler> to create the filter."),
-                Template(_("For example, {cmd}"), cmd=Code(f"/addfilter {first_handler}")),
+                _("Use /add_filter <handler> to create the filter."),
+                Template(_("For example, {cmd}"), cmd=Code(f"/add_filter {first_handler}")),
             )
         )
 

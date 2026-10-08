@@ -142,7 +142,7 @@ class FederationBanHandler(FederationCommandHandler):
         # Detect silent mode from the parsed command name so it works with any command
         # prefix (e.g. /sfban, !sfban, .sfban) and an optional @mention.
         command_obj = self.data.get("command")
-        silent = bool(command_obj and command_obj.command.lower() == "sfban")
+        silent = bool(command_obj and command_obj.command == "sfban")
         doc = build_ban_reply_doc(
             federation,
             user,

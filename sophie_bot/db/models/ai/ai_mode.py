@@ -12,7 +12,7 @@ class AIMode(str, Enum):
     """What Sophie's AI is for in a chat. Every AI behaviour is derived from this one choice.
 
     The last two are private-chat only and never stored: they are resolved per message, so they
-    cannot be picked with /aimode and never appear in its keyboard.
+    cannot be picked with /ai_mode and never appear in its keyboard.
     """
 
     disabled = "disabled"

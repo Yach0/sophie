@@ -26,10 +26,10 @@ icon: ⚠️
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/warn` | `<User to warn>` `<Reason>` | Warns a user. | *Disable-able* |
-| `/resetwarns` `/delwarns` | `<User>` | Resets all warnings of a user in the current chat. | *Only in groups* |
-| `/resetallwarns` `/delallwarns` | - | Resets all warnings of all users in the current chat. | *Only in groups* |
-| `/warnlimit` | `<?New value>` | Shows / changes the warn limit for this chat. |  |
-| `/warnaction` `/warn_action` | - | Configures warn actions. |  |
-| `/warnaction_each` `/warn_action_each` | - | - |  |
-| `/warnaction_max` `/warn_action_max` | - | - |  |
+| `/reset_warns` `/del_warns` | `<User>` | Resets all warnings of a user in the current chat. | *Only in groups* |
+| `/reset_all_warns` `/del_all_warns` | - | Resets all warnings of all users in the current chat. | *Only in groups* |
+| `/warn_limit` | `<?New value>` | Shows / changes the warn limit for this chat. |  |
+| `/warn_action` | - | Configures warn actions. |  |
+| `/warn_action_each` | - | - |  |
+| `/warn_action_max` | - | - |  |
 {.card-view-on-mobile}

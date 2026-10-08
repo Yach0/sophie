@@ -1,7 +1,9 @@
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any
 
 from aiogram import BaseMiddleware
+from aiogram.filters.command import CommandObject
 from aiogram.types import Message, TelegramObject
 
 from sophie_bot.config import CONFIG
@@ -14,7 +16,24 @@ from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.utils.logger import log
 
 
+@dataclass(slots=True)
+class MessageCacheState:
+    command: CommandObject | None = None
+
+
 class CacheUserMessagesMiddleware(BaseMiddleware):
+    @staticmethod
+    async def capture_command(
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ) -> Any:
+        # Inner middleware runs after filters. Share the identity with the outer middleware,
+        # since aiogram copies the data dictionary while routing to a matched handler.
+        cache_state: MessageCacheState = data["ai_message_cache_state"]
+        cache_state.command = data.get("command")
+        return await handler(event, data)
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
@@ -28,6 +47,8 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         data["ai_mode"] = mode
         data["ai_capabilities"] = capabilities
 
+        cache_state = MessageCacheState()
+        data["ai_message_cache_state"] = cache_state
         result = await handler(event, data)
 
         if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
@@ -35,9 +56,8 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             if not text:
                 return result
 
-            # TODO: extract command from handlers? or a flag?
-            if "/aireset" in text:
-                log.debug("CacheUserMessagesMiddleware, skpping due to reset command")
+            if cache_state.command and cache_state.command.command == "ai_reset":
+                log.debug("CacheUserMessagesMiddleware: skipping reset command")
                 return result
 
             user_id = event.from_user.id

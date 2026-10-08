@@ -34,11 +34,11 @@ def _language_keyboard(excluded: set[str], recent: set[str], code: str | None = 
 @flags.handler_help(alias_to_modules=["language"], description=l_("Controls AI Auto translator."))
 class AIAutotrans(StatusBoolHandlerABC):
     header_text = l_(lambda: Template(_("{ai_emoji} AI Auto translate"), ai_emoji=AI_EMOJI).to_html())
-    change_command = "aiautotranslate"
+    change_command = "ai_auto_translate"
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("aiautotranslate", "autotranslate")), UserRestricting(admin=True)
+        return CMDFilter(("ai_auto_translate", "auto_translate")), UserRestricting(admin=True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

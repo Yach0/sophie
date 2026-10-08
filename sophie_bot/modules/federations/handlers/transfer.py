@@ -29,7 +29,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("transferfed", "ftransfer")),)
+        return (CMDFilter(("transfer_fed", "ftransfer")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -107,7 +107,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
             ),
             Template(
                 _("They have 5 minutes to accept with {cmd}"),
-                cmd=Code(f"/accepttransfer {federation.fed_id}"),
+                cmd=Code(f"/accept_transfer {federation.fed_id}"),
             ),
         )
 

@@ -67,7 +67,7 @@ def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int:
 class SetModeHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("op_setmode"), IsOP(True)
+        return CMDFilter("op_set_mode"), IsOP(True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -117,7 +117,7 @@ class SetModeHandler(SophieMessageHandler):
                 )
                 + Template(
                     _("Use '{cmd}' to change it."),
-                    cmd=Italic("/op_setmode [^chat=<chat_id>] (auto / latest / old)"),
+                    cmd=Italic("/op_set_mode [^chat=<chat_id>] (auto / latest / old)"),
                 ),
             )
         )

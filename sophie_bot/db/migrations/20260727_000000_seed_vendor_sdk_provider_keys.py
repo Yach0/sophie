@@ -2,7 +2,7 @@
 
 Description:
     Creates the `mistral` and `openai` catalog providers for vendor SDK calls.
-    The operator configures their API keys in the catalog with /op_aiprovider.
+    The operator configures their API keys in the catalog with /op_ai_provider.
 
 Affected Collections:
     - ai_catalog_provider (two rows added)

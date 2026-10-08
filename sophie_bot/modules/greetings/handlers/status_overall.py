@@ -41,9 +41,9 @@ class WelcomeSettingsShowHandler(SophieMessageHandler):
                 ),
                 title=_("Welcome Settings"),
             ),
-            Template(_("Use {cmd} to Disable / Enable new users greetings"), cmd=Italic("/enablewelcome")),
-            Template(_("Use {cmd} to set custom welcome message"), cmd=Italic("/setwelcome")),
-            Template(_("Use {cmd} to retrieve Welcome Security settings"), cmd=Italic("/welcomesecurity")),
+            Template(_("Use {cmd} to Disable / Enable new users greetings"), cmd=Italic("/enable_welcome")),
+            Template(_("Use {cmd} to set custom welcome message"), cmd=Italic("/set_welcome")),
+            Template(_("Use {cmd} to retrieve Welcome Security settings"), cmd=Italic("/welcome_security")),
             Template(_("Check out {cmd} to learn more about Welcome settings."), cmd=Italic("/help")),
         )
         await self.event.reply(str(doc))

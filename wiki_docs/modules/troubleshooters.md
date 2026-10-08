@@ -19,6 +19,6 @@ icon: 🧰
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/admincache` | - | Reset admin rights cache, use if Sophie didn't get the recently added admin |  |
+| `/admin_cache` | - | Reset admin rights cache, use if Sophie didn't get the recently added admin |  |
 | `/instance` | - | Show the instance and instance preference for this chat |  |
 {.card-view-on-mobile}

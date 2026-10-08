@@ -65,9 +65,9 @@ def _settings_text(db_item: GreetingsModel, locale: str) -> Doc:
                 else _("Disabled")
             ),
         ),
-        Template(_("Use {cmd} to control Welcome Captcha"), cmd=Italic("/welcomecaptcha")),
-        Template(_("Use {cmd} to control Media restriction"), cmd=Italic("/welcomerestrict")),
-        Template(_("Use {cmd} to set a custom Welcome Security message"), cmd=Italic("/setwelcomesecurity")),
+        Template(_("Use {cmd} to control Welcome Captcha"), cmd=Italic("/welcome_captcha")),
+        Template(_("Use {cmd} to control Media restriction"), cmd=Italic("/welcome_restrict")),
+        Template(_("Use {cmd} to set a custom Welcome Security message"), cmd=Italic("/set_welcome_security")),
         Template(_("Check out {cmd} to learn more about Welcome settings."), cmd=Italic("/help")),
     )
 
@@ -95,7 +95,7 @@ def _expiry_keyboard(db_item: GreetingsModel, locale: str, chat_iid: PydanticObj
 class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("welcomesecurity"), UserRestricting(admin=True)
+        return CMDFilter("welcome_security"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection
@@ -137,7 +137,7 @@ class WelcomeSecurityExpireHandler(SophieCallbackQueryHandler):
         connection = self.connection
         if connection.type == "private" or self.callback_data.chat_iid != str(connection.db_model.iid):
             return await self.event.answer(
-                _("These settings are no longer active. Open /welcomesecurity again for the intended chat."),
+                _("These settings are no longer active. Open /welcome_security again for the intended chat."),
                 show_alert=True,
             )
 
