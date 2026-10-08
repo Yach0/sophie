@@ -517,10 +517,18 @@ def _research_response_from_tool_content(content: object) -> ResearchFinalRespon
 
 def retrieve_latest_research_response(
     message_history: list[ModelRequest | ModelResponse],
+    *,
+    skip_tool_call_ids: Iterable[str] = (),
 ) -> ResearchFinalResponse | None:
+    """Find the latest report, excluding replayed calls regardless of history normalization."""
+    skipped = set(skip_tool_call_ids)
     for message in reversed(message_history):
         for part in reversed(message.parts):
-            if not isinstance(part, ToolReturnPart) or part.tool_name != "research_topic":
+            if (
+                not isinstance(part, ToolReturnPart)
+                or part.tool_name != "research_topic"
+                or part.tool_call_id in skipped
+            ):
                 continue
             return _research_response_from_tool_content(part.content)
     return None
