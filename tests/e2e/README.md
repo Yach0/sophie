@@ -13,6 +13,15 @@ world outside the bot is mocked:
 
 The bot's own logic — permission checks, persistence, i18n, argument parsing — runs unmocked.
 
+## Research follow-up coverage
+
+`test_ai_research_followup_e2e.py` runs the chatbot research tool and workflow, saves the
+answer and tool exchanges, then replies to that answer in a Telegram thread. LLM responses,
+web search, pricing HTTP requests, and Telegram transport are mocked; the bot path runs for
+real. A new research result sends one Markdown report. Ordinary follow-ups reuse the saved
+research context without sending the report again; an explicit new research request sends a
+new report.
+
 ## Running Tests
 
 ```bash
