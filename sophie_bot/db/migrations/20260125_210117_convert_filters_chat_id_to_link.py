@@ -12,6 +12,8 @@ Impact:
 """
 
 from beanie import free_fall_migration
+from bson import DBRef
+from pymongo.asynchronous.client_session import AsyncClientSession
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
@@ -22,7 +24,7 @@ class Forward:
     """Convert chat_id to chat Link."""
 
     @free_fall_migration(document_models=[FiltersModel])
-    async def migrate(self, session):
+    async def migrate(self, session: AsyncClientSession | None) -> None:
         collection = FiltersModel.get_pymongo_collection()
         async for doc in collection.find():
             if "chat_id" in doc:
@@ -31,7 +33,7 @@ class Forward:
                 if chat:
                     await collection.update_one(
                         {"_id": doc["_id"]},
-                        {"$set": {"chat": chat.id}, "$unset": {"chat_id": ""}},
+                        {"$set": {"chat": DBRef("chats", chat.iid)}, "$unset": {"chat_id": ""}},
                         session=session,
                     )
                 else:
@@ -47,11 +49,12 @@ class Backward:
     """Convert chat Link back to chat_id."""
 
     @free_fall_migration(document_models=[FiltersModel])
-    async def rollback(self, session):
+    async def rollback(self, session: AsyncClientSession | None) -> None:
         collection = FiltersModel.get_pymongo_collection()
         async for doc in collection.find():
             if "chat" in doc:
-                chat_iid = doc["chat"]
+                chat_reference = doc["chat"]
+                chat_iid = chat_reference.id if isinstance(chat_reference, DBRef) else chat_reference
                 chat = await ChatModel.find_one(ChatModel.iid == chat_iid)
                 if chat:
                     await collection.update_one(

@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import Document
+from bson import DBRef, ObjectId
 from fakeredis import FakeAsyncRedis
 from fastapi import FastAPI
 from pymongo import IndexModel
@@ -38,6 +39,53 @@ async def database(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[DatabaseRes
         yield DatabaseResources(mongo=cast(Any, mongo), database=cast(Any, mongo["startup_policy"]))
     finally:
         await mongo.aclose()
+
+
+@pytest.mark.asyncio
+async def test_filters_chat_repair_only_wraps_raw_object_ids(database: DatabaseResources) -> None:
+    filters = database.database["filters"]
+    chat_iid = ObjectId()
+    documents = [
+        {"_id": ObjectId(), "chat": chat_iid, "handler": "legacy", "actions": {"kick_user": None}},
+        {"_id": ObjectId(), "chat": DBRef("chats", chat_iid), "handler": "modern"},
+        {"_id": ObjectId(), "chat": DBRef("chats", ObjectId(), "other_database"), "handler": "external"},
+        {"_id": ObjectId(), "chat": None, "handler": "null"},
+        {"_id": ObjectId(), "handler": "missing"},
+        {"_id": ObjectId(), "chat": -100123, "handler": "integer"},
+    ]
+    await filters.insert_many(documents)
+
+    assert await database_service.repair_filters_chat_links(filters) == 1
+    assert await filters.find_one({"_id": documents[0]["_id"]}) == {
+        **documents[0],
+        "chat": DBRef("chats", chat_iid),
+    }
+    for document in documents[1:]:
+        assert await filters.find_one({"_id": document["_id"]}) == document
+    assert await database_service.repair_filters_chat_links(filters) == 0
+    assert await filters.count_documents({}) == len(documents)
+
+
+@pytest.mark.asyncio
+async def test_startup_repairs_filters_with_migrations_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+    database: DatabaseResources,
+) -> None:
+    filters = database.database["filters"]
+    chat_iid = ObjectId()
+    inserted = await filters.insert_one({"chat": chat_iid, "handler": "legacy"})
+    migrations = AsyncMock()
+    monkeypatch.setattr(startup, "run_migrations", migrations)
+    config = Config(_env_file=None, run_migrations_on_startup=False, mongo_skip_indexes=True)
+
+    async with FakeAsyncRedis() as redis:
+        await startup.init_database(database, redis, config=config)
+
+    stored = await filters.find_one({"_id": inserted.inserted_id})
+    assert stored is not None
+    assert stored["chat"] == DBRef("chats", chat_iid)
+    migrations.assert_not_awaited()
+    assert database.initialized
 
 
 @pytest.mark.asyncio
