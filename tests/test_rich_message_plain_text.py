@@ -15,7 +15,8 @@ from aiogram.types import (
     RichTextCustomEmoji,
 )
 
-from sophie_bot.modules.ai.utils.self_reply import message_text
+from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, message_text
 from sophie_bot.utils.rich_message import rich_message_to_plain_text
 
 
@@ -104,3 +105,42 @@ def test_table_keeps_row_cell_boundaries_and_caption() -> None:
         }
     )
     assert message_text(message) == "Name | Value\nAlice Smith | ✨\nTable caption\nAfter table"
+
+
+def test_self_reply_keeps_nested_content_before_battery_footer() -> None:
+    rich = RichMessage(
+        blocks=[
+            RichBlockParagraph(
+                text=[RichTextCustomEmoji(custom_emoji_id=AI_CUSTOM_EMOJI_ID, alternative_text="✨"), " Answer"]
+            ),
+            RichBlockDetails(
+                summary="Details",
+                blocks=[
+                    RichBlockList(
+                        items=[RichBlockListItem(label="1.", blocks=[RichBlockParagraph(text="Nested answer")])]
+                    ),
+                    RichBlockMathematicalExpression(expression="x + y"),
+                ],
+            ),
+            RichBlockParagraph(
+                text=[
+                    RichTextCustomEmoji(
+                        custom_emoji_id=next(iter(AI_BATTERY_CUSTOM_EMOJI_IDS)), alternative_text="🔋"
+                    ),
+                    " 95%",
+                ]
+            ),
+        ]
+    )
+    message = Message.model_validate(
+        {
+            "message_id": 1,
+            "date": 1790115467,
+            "chat": {"id": 483808054, "type": "private"},
+            "text": "Plain fallback",
+            "rich_message": rich,
+        }
+    )
+
+    assert message_text(message) == "✨ Answer\nDetails\n1. Nested answer\nx + y\n🔋 95%"
+    assert cut_titlebar(message) == "Answer\nDetails\n1. Nested answer\nx + y"
