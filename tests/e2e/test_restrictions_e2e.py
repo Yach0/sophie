@@ -7,15 +7,18 @@ mocked away.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import ChatPermissions
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
-from sophie_bot.db.models import ChatModel, WSUserModel
+from sophie_bot.db.models import ChatModel, MutePermissionsModel, WSUserModel
 from sophie_bot.db.models.federations import Federation, FederationBan
+from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction, restore_expired_permissions
+from sophie_bot.shared.actions import RestrictionAction
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
 
 # What each command must end up asking Telegram to do.
@@ -101,6 +104,8 @@ async def test_restriction_calls_telegram_and_confirms(
     keyword: str,
 ) -> None:
     admin_user, group, target_id = await _setup_moderated_group(test_client)
+    if command == "unmute":
+        await execute_restriction(test_client.bot, RestrictionAction.MUTE, group.id, target_id)
     args = f"{target_id} {duration}" if duration else str(target_id)
 
     requests = await test_client.send_command(command=command, from_user=admin_user, args=args, chat=group)
@@ -109,7 +114,10 @@ async def test_restriction_calls_telegram_and_confirms(
     assert performed, f"/{command} should call {expected_call.value}, got {[r.request_type for r in requests]}"
     assert performed[0].params["chat_id"] == group.id
     assert performed[0].params["user_id"] == target_id
-    assert bool(performed[0].params.get("until_date")) is bool(duration)
+    assert bool(performed[0].params.get("until_date")) is (command == "tban")
+    if command == "tmute":
+        snapshot = await MutePermissionsModel.find_one({"chat_tid": group.id, "user_tid": target_id})
+        assert snapshot is not None and snapshot.expires_at is not None
     assert any(keyword in (request.text or "").lower() for request in requests)
 
 
@@ -162,6 +170,7 @@ async def test_unmute_clears_pending_welcome_security_user_after_success(test_cl
     group_model = await ChatModel.get_by_tid(group.id)
     assert target_model is not None and group_model is not None
     await WSUserModel.ensure_user(target_model, group_model, is_join_request=False)
+    assert (await execute_restriction(test_client.bot, RestrictionAction.MUTE, group.id, target_id)).applied
 
     requests = await test_client.send_command(command="unmute", from_user=admin_user, args=str(target_id), chat=group)
 
@@ -177,6 +186,7 @@ async def test_unmute_preserves_pending_welcome_security_user_when_telegram_fail
     group_model = await ChatModel.get_by_tid(group.id)
     assert target_model is not None and group_model is not None
     await WSUserModel.ensure_user(target_model, group_model, is_join_request=False)
+    assert (await execute_restriction(test_client.bot, RestrictionAction.MUTE, group.id, target_id)).applied
 
     async def _reject(*args: object, **kwargs: object) -> bool:
         raise TelegramBadRequest(method=None, message="not enough rights")  # type: ignore[arg-type]
@@ -186,3 +196,30 @@ async def test_unmute_preserves_pending_welcome_security_user_when_telegram_fail
 
     assert any("failed to unmute" in (request.text or "").lower() for request in requests)
     assert await WSUserModel.is_user(target_model.iid, group_model.iid) is not None
+
+
+async def test_tmute_expiry_restores_previous_permissions(test_client: TestClient) -> None:
+    admin_user, group, target_id = await _setup_moderated_group(test_client)
+    permissions = ChatPermissions(**dict.fromkeys(ChatPermissions.model_fields, True))
+    permissions.can_invite_users = False
+    original_deadline = datetime.now(UTC).replace(microsecond=0) + timedelta(hours=3)
+    await test_client.bot.restrict_chat_member(
+        group.id,
+        target_id,
+        permissions=permissions,
+        until_date=original_deadline,
+        use_independent_chat_permissions=True,
+    )
+    await test_client.send_command(command="tmute", from_user=admin_user, args=f"{target_id} 1h", chat=group)
+    snapshot = await MutePermissionsModel.find_one({"chat_tid": group.id, "user_tid": target_id})
+    assert snapshot is not None and snapshot.permissions == permissions
+    snapshot.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    await snapshot.save()
+    test_client.capture.clear()
+    await restore_expired_permissions(test_client.bot)
+    requests = test_client.capture.get_by_type(_RESTRICT)
+    assert len(requests) == 1
+    assert requests[0].params["permissions"]["can_invite_users"] is False
+    assert requests[0].params["until_date"] == original_deadline
+    assert requests[0].params["use_independent_chat_permissions"] is True
+    assert await MutePermissionsModel.find_one({"chat_tid": group.id, "user_tid": target_id}) is None
