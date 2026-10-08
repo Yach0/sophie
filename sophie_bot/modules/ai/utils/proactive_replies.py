@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Literal, cast
 
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, ReactionTypeEmoji
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import UserContent
@@ -286,11 +287,23 @@ async def _react_to_message(
         message_id=target_message.message_id,
         emoji=reaction_emoji,
     )
-    await services.bot.set_message_reaction(
-        chat_id=chat_tid,
-        message_id=target_message.message_id,
-        reaction=[ReactionTypeEmoji(emoji=reaction_emoji)],
-    )
+    try:
+        await services.bot.set_message_reaction(
+            chat_id=chat_tid,
+            message_id=target_message.message_id,
+            reaction=[ReactionTypeEmoji(emoji=reaction_emoji)],
+        )
+    except TelegramBadRequest as error:
+        if error.message != "Bad Request: message to react not found":
+            raise
+        # Cached targets can disappear while the AI generates its decision.
+        track_ai_proactive_event("reaction_skipped", {**_METRIC_ATTRIBUTES, "reason": "target_missing"})
+        _log_proactive_info(
+            "Proactive AI reaction skipped because target message is unavailable",
+            chat_id=chat_tid,
+            message_id=target_message.message_id,
+        )
+        return
 
     track_ai_proactive_event("reaction_sent", _METRIC_ATTRIBUTES)
     _log_proactive_info(
