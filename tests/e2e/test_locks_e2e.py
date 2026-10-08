@@ -8,7 +8,7 @@ unlocked types pass through.
 from __future__ import annotations
 
 import pytest
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, Message, RichMessage, Update
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
 from aiogram_test_framework.types import RequestType
@@ -164,3 +164,207 @@ async def test_unlockall_clears_every_lock_after_confirm(test_client: TestClient
     await test_client.send_callback(confirm_data, from_user=admin, message=prompt)
 
     assert not await _locked_types(group.id), "Confirming unlockall should remove every lock"
+
+
+RUSSIAN_TEXT = "Это сообщение написано на русском языке, и его необходимо удалить из группы."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("lock_type", ["cyrillic", "language:ru", "text"])
+@pytest.mark.parametrize("block_type", ["paragraph", "table"])
+@pytest.mark.parametrize("edited", [False, True])
+async def test_locked_nested_rich_message_is_deleted(
+    test_client: TestClient, lock_type: str, block_type: str, edited: bool
+) -> None:
+    admin, group, member = await _group_with_member(test_client)
+    await test_client.send_command(command="lock", from_user=admin, args=lock_type, chat=group)
+    assert lock_type in await _locked_types(group.id)
+    nested_text = [{"type": "bold", "text": [{"type": "italic", "text": RUSSIAN_TEXT}]}]
+    block = {"type": "paragraph", "text": nested_text}
+    if block_type == "table":
+        block = {
+            "type": "table",
+            "cells": [
+                [
+                    {"text": "Heading", "align": "left", "valign": "top"},
+                    {"text": nested_text, "align": "left", "valign": "top"},
+                ]
+            ],
+        }
+    message = MessageFactory.create(text=None, from_user=member, chat=group).model_copy(
+        update={"rich_message": RichMessage.model_validate({"blocks": [block]})}
+    )
+    assert message.text is None
+    test_client.capture.clear()
+
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot,
+        update=Update(
+            update_id=message.message_id,
+            message=message if not edited else None,
+            edited_message=message if edited else None,
+        ),
+    )
+
+    deleted = test_client.capture.get_by_type(RequestType.DELETE_MESSAGE)
+    assert len(deleted) == 1
+    assert deleted[0].params["chat_id"] == group.id
+    assert deleted[0].params["message_id"] == message.message_id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source", ["text", "caption", "rich", "table"])
+@pytest.mark.parametrize(
+    ("lock_type", "content"),
+    [
+        ("cyrillic", RUSSIAN_TEXT),
+        ("language:ru", RUSSIAN_TEXT),
+        ("cjk", "中文文本"),
+        ("arabic", "مرحبا بالعالم"),
+        ("rtl", "שלום עולם"),
+        ("emoji", "hello 🙂"),
+        ("emojionly", "🙂 🙂"),
+        ("zalgo", "a" + "\u0301" * 8),
+    ],
+)
+async def test_text_pattern_locks_preserve_plain_and_caption_enforcement(
+    test_client: TestClient, source: str, lock_type: str, content: str
+) -> None:
+    admin, group, member = await _group_with_member(test_client)
+    await test_client.send_command(command="lock", from_user=admin, args=lock_type, chat=group)
+    message = MessageFactory.create(text=content if source == "text" else None, from_user=member, chat=group)
+    if source == "caption":
+        message = Message.model_validate(
+            message.model_dump()
+            | {
+                "caption": content,
+                "photo": [{"file_id": "photo", "file_unique_id": "photo", "width": 1, "height": 1}],
+            }
+        )
+    elif source == "rich":
+        message = message.model_copy(
+            update={
+                "rich_message": RichMessage.model_validate(
+                    {"blocks": [{"type": "paragraph", "text": [{"type": "bold", "text": content}]}]}
+                )
+            }
+        )
+    elif source == "table":
+        message = message.model_copy(
+            update={
+                "rich_message": RichMessage.model_validate(
+                    {
+                        "blocks": [
+                            {
+                                "type": "table",
+                                "cells": [
+                                    [
+                                        {"text": content, "align": "left", "valign": "top"},
+                                        {"text": content, "align": "left", "valign": "top"},
+                                    ]
+                                ],
+                            }
+                        ]
+                    }
+                )
+            }
+        )
+    test_client.capture.clear()
+
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot, update=Update(update_id=message.message_id, message=message)
+    )
+
+    deleted = test_client.capture.get_by_type(RequestType.DELETE_MESSAGE)
+    assert len(deleted) == 1
+    assert deleted[0].params["message_id"] == message.message_id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("lock_type", "payload", "should_delete"),
+    [
+        ("cyrillic", {"rich_message": {"blocks": [{"type": "paragraph", "text": "Hello"}]}}, False),
+        ("language:ru", {"rich_message": {"blocks": [{"type": "paragraph", "text": "Привет"}]}}, False),
+        ("text", {"caption": RUSSIAN_TEXT}, False),
+        (
+            "text",
+            {"text": "Hello", "photo": [{"file_id": "photo", "file_unique_id": "photo", "width": 1, "height": 1}]},
+            False,
+        ),
+        ("text", {"rich_message": {"blocks": [{"type": "divider"}]}}, False),
+        (
+            "text",
+            {
+                "rich_message": {
+                    "blocks": [
+                        {"type": "paragraph", "text": "Photo follows"},
+                        {
+                            "type": "photo",
+                            "photo": [{"file_id": "photo", "file_unique_id": "photo", "width": 1, "height": 1}],
+                        },
+                    ]
+                }
+            },
+            False,
+        ),
+        (
+            "text",
+            {
+                "rich_message": {
+                    "blocks": [
+                        {"type": "paragraph", "text": "Photo follows"},
+                        {
+                            "type": "details",
+                            "summary": "Media",
+                            "blocks": [
+                                {
+                                    "type": "photo",
+                                    "photo": [{"file_id": "photo", "file_unique_id": "photo", "width": 1, "height": 1}],
+                                },
+                            ],
+                        },
+                    ]
+                }
+            },
+            False,
+        ),
+        ("text", {"text": "Hello"}, True),
+        (
+            "invitelink",
+            {
+                "text": "t.me/+invite",
+                "entities": [{"type": "url", "offset": 0, "length": 12}],
+                "rich_message": {"blocks": [{"type": "paragraph", "text": "Different fallback"}]},
+            },
+            True,
+        ),
+        (
+            "botlink",
+            {"caption": "t.me/examplebot", "caption_entities": [{"type": "url", "offset": 0, "length": 15}]},
+            True,
+        ),
+        ("url", {"text": "https://example.test"}, False),
+        ("url", {"text": "https://example.test", "entities": [{"type": "url", "offset": 0, "length": 20}]}, True),
+        ("spoiler", {"caption": "secret", "caption_entities": [{"type": "spoiler", "offset": 0, "length": 6}]}, True),
+        ("photo", {"photo": [{"file_id": "photo", "file_unique_id": "photo", "width": 1, "height": 1}]}, True),
+    ],
+)
+async def test_locks_preserve_text_entity_and_media_semantics(
+    test_client: TestClient, lock_type: str, payload: dict[str, object], should_delete: bool
+) -> None:
+    admin, group, member = await _group_with_member(test_client)
+    await test_client.send_command(command="lock", from_user=admin, args=lock_type, chat=group)
+    base = MessageFactory.create(text=None, from_user=member, chat=group)
+    message = Message.model_validate(base.model_dump() | payload)
+    test_client.capture.clear()
+
+    await test_client.dispatcher.feed_update(
+        bot=test_client.bot, update=Update(update_id=message.message_id, message=message)
+    )
+
+    deleted = test_client.capture.get_by_type(RequestType.DELETE_MESSAGE)
+    assert bool(deleted) is should_delete
+    if should_delete:
+        assert len(deleted) == 1
+        assert deleted[0].params["message_id"] == message.message_id
