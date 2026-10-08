@@ -18,6 +18,12 @@ Migrations are versioned, reversible Python scripts that transform data between 
 4. Applied migrations are tracked in the `migration_states` collection
 5. Migrations run automatically on startup for beta instance
 
+Database initialization also repairs raw ObjectId `filters.chat` values left by the
+already-applied `20260125_210117_convert_filters_chat_id_to_link` migration. The repair
+runs even when migrations are disabled, preserves each referenced ID, and leaves existing
+DBRefs unchanged. Repeated or concurrent startup runs are safe. Fresh migrations write
+DBRefs directly.
+
 ## Creating a Migration
 
 ### Quick Start
