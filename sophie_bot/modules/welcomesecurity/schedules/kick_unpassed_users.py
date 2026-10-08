@@ -90,6 +90,7 @@ class KickUnpassedUsers:
                 RestrictionAction.UNMUTE,
                 group.tid,
                 user.tid,
+                is_current=ws_user.transition_is_current,
             )
             if result.applied:
                 log.debug("kick_unpassed_users: removing exempt user from pending captcha", user=user.tid)
@@ -145,7 +146,13 @@ class KickUnpassedUsers:
                     error=str(error),
                 )
         else:
-            result = await execute_restriction(self.services.bot, RestrictionAction.KICK, group.tid, user.tid)
+            result = await execute_restriction(
+                self.services.bot,
+                RestrictionAction.KICK,
+                group.tid,
+                user.tid,
+                is_current=ws_user.transition_is_current,
+            )
             action_succeeded = result.applied
             if action_succeeded:
                 log.info("kick_unpassed_users: kicked user", user=user.tid, group=group.tid)

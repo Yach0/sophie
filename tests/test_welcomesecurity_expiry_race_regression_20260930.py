@@ -90,7 +90,9 @@ async def test_expiry_scheduler_keeps_record_when_kick_was_not_applied(
 
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
-    execute_restriction.assert_awaited_once_with(test_services.bot, RestrictionAction.KICK, -100123, 123)
+    execute_restriction.assert_awaited_once_with(
+        test_services.bot, RestrictionAction.KICK, -100123, 123, is_current=ws_user.transition_is_current
+    )
     ws_user.delete.assert_not_awaited()
 
 

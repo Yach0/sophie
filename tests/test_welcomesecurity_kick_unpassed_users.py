@@ -85,6 +85,7 @@ async def test_process_user_kicks_timed_out_non_join_request_user(
         RestrictionAction.KICK,
         -100123,
         123,
+        is_current=ws_user.transition_is_current,
     )
     test_services.bot.decline_chat_join_request.assert_not_awaited()
     ws_user.finish_transition.assert_awaited_once()
@@ -154,6 +155,7 @@ async def test_process_user_uses_group_specific_expiry(
         RestrictionAction.KICK,
         -100123,
         123,
+        is_current=ws_user.transition_is_current,
     )
     ws_user.finish_transition.assert_awaited_once()
 
@@ -204,6 +206,7 @@ async def test_process_whitelisted_user_keeps_pending_record_until_unmute_succee
         RestrictionAction.UNMUTE,
         -100123,
         123,
+        is_current=ws_user.transition_is_current,
     )
     if unmute_succeeded:
         ws_user.finish_transition.assert_awaited_once()

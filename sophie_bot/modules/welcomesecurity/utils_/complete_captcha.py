@@ -70,7 +70,11 @@ async def complete_captcha(
 
     # Approve join request if applicable
     if is_join_request:
+        if not await pending.transition_is_current():
+            return
         await redis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
+        if not await pending.transition_is_current():
+            return
         try:
             await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
         except TelegramBadRequest as error:

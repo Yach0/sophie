@@ -21,6 +21,7 @@ class WSUserModel(Document):
     added_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     membership_id: PydanticObjectId | None = None
     membership_join_message_id: int | None = None
+    admission_request_generation: str | None = None
 
     class Settings:
         name = "ws_users"
@@ -84,6 +85,7 @@ class WSUserModel(Document):
                         WSUserModel.membership_join_message_id: joined_message_id,
                         WSUserModel.added_at: datetime.now(UTC),
                         WSUserModel.transition: None,
+                        WSUserModel.admission_request_generation: None,
                         WSUserModel.is_join_request: is_join_request,
                     }
                 )
@@ -140,7 +142,37 @@ class WSUserModel(Document):
             Set({WSUserModel.transition: transition}), response_type=UpdateResponse.NEW_DOCUMENT
         )
 
+    async def bind_join_request_admission(self, membership: UserInGroupModel, joined_message_id: int) -> None:
+        """Bind the first admission without resetting the durable completion decision."""
+        await WSUserModel.find_one(self.session_filter(), {"transition": "completing", "is_join_request": True}).update(
+            Set(
+                {
+                    WSUserModel.membership_id: membership.id,
+                    WSUserModel.membership_join_message_id: joined_message_id,
+                    WSUserModel.is_join_request: False,
+                    WSUserModel.admission_request_generation: f"{self.membership_id}:{self.membership_join_message_id}",
+                }
+            )
+        )
+
     async def transition_is_current(self) -> bool:
+        if self.transition == "completing" and self.is_join_request:
+            # Admission changes membership, but keeps the captured completion's
+            # identity and deadline. Only this one-way handoff may refresh a fence.
+            admitted = await WSUserModel.find_one(
+                {
+                    "_id": self.id,
+                    "added_at": self.added_at,
+                    "passed": False,
+                    "transition": "completing",
+                    "is_join_request": False,
+                    "admission_request_generation": f"{self.membership_id}:{self.membership_join_message_id}",
+                }
+            )
+            if admitted is not None:
+                self.membership_id = admitted.membership_id
+                self.membership_join_message_id = admitted.membership_join_message_id
+                self.is_join_request = False
         membership = await UserInGroupModel.get_user_in_group(self.user.ref.id, self.group.ref.id)
         if self.membership_id is None and self.membership_join_message_id is None:
             if membership is not None and membership.joined_message_id is not None:
