@@ -34,6 +34,8 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 
+pytestmark = pytest.mark.usefixtures("db_init")
+
 BATTERY_EMOJI = "🔋"
 ANIMATED_LINE_IDS = AI_PROGRESS_LINE_EMOJI_IDS
 
@@ -426,7 +428,7 @@ async def test_note_write_uses_its_own_activity_without_a_title(test_redis: obje
 
 
 @pytest.mark.asyncio
-async def test_retrying_draft_uses_the_configured_simple_layout(test_redis: object) -> None:
+async def test_retrying_draft_uses_the_configured_simple_layout(test_redis: object, test_services: object) -> None:
     """A retry/failover edit must keep one simple prefix and omit the completed footer."""
     response_message = _response_message()
     streamer = ChatbotMessageStreamer(

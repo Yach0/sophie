@@ -1,8 +1,10 @@
-from typing import Any
+from math import ceil
+from typing import Any, Final
 
 from aiogram import Router
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
+from aiogram.utils.text_decorations import HtmlDecoration
 from ass_tg.types import TextArg
 from redis.asyncio import Redis
 from stfu_tg import (
@@ -38,10 +40,10 @@ from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, message_text
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
+from sophie_bot.modules.notes.utils.extract_markdown_entities import extract_markdown_entities
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
@@ -50,6 +52,24 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
+
+# Telegram's expandable blockquote is useful when a translation is likely to
+# exceed three visible lines. Actual wrapping varies by client, font, and
+# device, so this is deliberately a conservative character-based estimate.
+_TRANSLATION_MAX_VISIBLE_LINES: Final[int] = 3
+_TRANSLATION_ESTIMATED_CHARS_PER_VISIBLE_LINE: Final[int] = 40
+
+
+def _translation_likely_exceeds_visible_lines(text: str) -> bool:
+    """Estimate whether translation text will exceed Telegram's visible-line limit."""
+    if not text:
+        return False
+
+    estimated_visible_lines = sum(
+        max(1, ceil(len(line.rstrip("\r")) / _TRANSLATION_ESTIMATED_CHARS_PER_VISIBLE_LINE))
+        for line in text.split("\n")
+    )
+    return estimated_visible_lines > _TRANSLATION_MAX_VISIBLE_LINES
 
 
 async def _resolve_translation_input(
@@ -106,6 +126,7 @@ def _build_translate_reply_doc(
 ) -> Doc:
     """Format the translation response document."""
     header = build_ai_header(header_style, quota_header or "")
+    visible_text, entities = extract_markdown_entities(translated.translated_text)
     return build_ai_message_doc(
         header,
         (
@@ -119,7 +140,10 @@ def _build_translate_reply_doc(
             if not is_voice
             else None
         ),
-        BlockQuote(PreformattedHTML(ai_markdown_to_html(translated.translated_text)), expandable=True),
+        BlockQuote(
+            PreformattedHTML(HtmlDecoration().unparse(visible_text, entities)),
+            expandable=_translation_likely_exceeds_visible_lines(visible_text),
+        ),
         (
             Section(translated.translation_explanations, title=_("Translation Notes"))
             if translated.translation_explanations and translated.translation_explanations.strip()
