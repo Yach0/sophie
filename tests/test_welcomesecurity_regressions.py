@@ -12,7 +12,10 @@ from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityRulesAgr
 from sophie_bot.modules.welcomesecurity.handlers.legacy_button import LegacyWSButtonHandler
 from sophie_bot.modules.welcomesecurity.utils_.captcha_rules import captcha_send_rules
 from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
+from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
+from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import _pending_user_lock_key
 from sophie_bot.services.application import ApplicationServices
+from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 
 
 @pytest.mark.asyncio
@@ -77,7 +80,10 @@ async def test_captcha_rules_preserve_join_request_context(
 
 
 @pytest.mark.asyncio
-async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+) -> None:
     """Captcha flow already shows rules in DM; no welcome/rules should be sent to the group on completion."""
     user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
@@ -87,7 +93,6 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
         message_id=42,
         from_user=SimpleNamespace(id=user.tid),
     )
-    redis = SimpleNamespace(get=AsyncMock(return_value=None), set=AsyncMock(), delete=AsyncMock())
     bot_mock = SimpleNamespace(
         edit_message_media=AsyncMock(),
         approve_chat_join_request=AsyncMock(),
@@ -105,7 +110,7 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
         greetings,
         captcha_message,
         bot=bot_mock,
-        redis=redis,
+        redis=test_redis,
     )
 
     # complete_captcha should only update the captcha image in DM and unmute the user;
@@ -120,16 +125,12 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(monkeypa
 @pytest.mark.asyncio
 async def test_complete_captcha_continues_when_join_request_was_already_approved(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
 ) -> None:
     user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
     greetings = SimpleNamespace(welcome_mute=None)
     captcha_message = SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42)
-    redis = SimpleNamespace(
-        get=AsyncMock(side_effect=[None, None]),
-        set=AsyncMock(),
-        delete=AsyncMock(),
-    )
     approval = AsyncMock(
         side_effect=TelegramBadRequest(
             method=SimpleNamespace(),
@@ -151,7 +152,7 @@ async def test_complete_captcha_continues_when_join_request_was_already_approved
         captcha_message,
         is_join_request=True,
         bot=bot_mock,
-        redis=redis,
+        redis=test_services.redis,
     )
 
     approval.assert_awaited_once_with(chat_id=group.tid, user_id=user.tid)
@@ -161,12 +162,12 @@ async def test_complete_captcha_continues_when_join_request_was_already_approved
 @pytest.mark.asyncio
 async def test_complete_captcha_propagates_unexpected_join_approval_failure(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
 ) -> None:
     user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
     greetings = SimpleNamespace(welcome_mute=None)
     captcha_message = SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42)
-    redis = SimpleNamespace(get=AsyncMock(return_value=None), set=AsyncMock(), delete=AsyncMock())
     approval_error = TelegramBadRequest(method=SimpleNamespace(), message="Bad Request: CHAT_ADMIN_REQUIRED")
     post_approval = AsyncMock()
     bot_mock = SimpleNamespace(
@@ -187,7 +188,7 @@ async def test_complete_captcha_propagates_unexpected_join_approval_failure(
             captcha_message,
             is_join_request=True,
             bot=bot_mock,
-            redis=redis,
+            redis=test_services.redis,
         )
 
     assert raised.value is approval_error
@@ -197,16 +198,17 @@ async def test_complete_captcha_propagates_unexpected_join_approval_failure(
 @pytest.mark.asyncio
 async def test_complete_captcha_keeps_recovery_messages_when_post_approval_transition_fails(
     monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
 ) -> None:
     user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
     greetings = SimpleNamespace(welcome_mute=None)
     captcha_message = SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42)
-    redis = SimpleNamespace(
-        get=AsyncMock(side_effect=[b"security-note", b"join-request-note"]),
-        set=AsyncMock(),
-        delete=AsyncMock(),
-    )
+    redis = test_services.redis
+    security_note_key = f"chat_ws_message:{group.iid}:{user.iid}"
+    join_request_note_key = f"join_request_message:{group.iid}:{user.iid}"
+    await redis.set(security_note_key, 43)
+    await redis.set(join_request_note_key, 44)
     post_approval = AsyncMock(return_value=False)
     bot_mock = SimpleNamespace(
         edit_message_media=AsyncMock(),
@@ -230,4 +232,63 @@ async def test_complete_captcha_keeps_recovery_messages_when_post_approval_trans
     )
 
     bot_mock.delete_message.assert_not_awaited()
-    redis.delete.assert_not_awaited()
+    assert await redis.get(security_note_key) == b"43"
+    assert await redis.get(join_request_note_key) == b"44"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("restriction_succeeded", [False, True])
+async def test_complete_captcha_preserves_locked_transition_result_and_recovery_state(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    restriction_succeeded: bool,
+) -> None:
+    user = SimpleNamespace(iid=PydanticObjectId(), tid=123)
+    group = SimpleNamespace(iid=PydanticObjectId(), tid=-100123)
+    redis = test_services.redis
+    security_note_key = f"chat_ws_message:{group.iid}:{user.iid}"
+    join_request_note_key = f"join_request_message:{group.iid}:{user.iid}"
+    await redis.set(security_note_key, 43)
+    await redis.set(join_request_note_key, 44)
+    remove_pending = AsyncMock()
+    bot = SimpleNamespace(
+        edit_message_media=AsyncMock(),
+        approve_chat_join_request=AsyncMock(),
+        delete_message=AsyncMock(),
+    )
+
+    async def unmute(*args: object, **kwargs: object) -> RestrictionResult:
+        assert await redis.get(_pending_user_lock_key(group.tid, user.tid)) is not None
+        return RestrictionResult(action=RestrictionAction.UNMUTE, applied=restriction_succeeded)
+
+    passed_module = "sophie_bot.modules.welcomesecurity.utils_.on_user_passed"
+    monkeypatch.setattr(f"{passed_module}.is_user_admin", AsyncMock(return_value=False))
+    monkeypatch.setattr(f"{passed_module}.is_user_group_whitelisted", AsyncMock(return_value=False))
+    monkeypatch.setattr(f"{passed_module}.execute_restriction", unmute)
+    monkeypatch.setattr(f"{passed_module}.WSUserModel.remove_user", remove_pending)
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
+        ws_on_user_passed,
+    )
+
+    await complete_captcha(
+        user,
+        group,
+        SimpleNamespace(welcome_mute=None),
+        SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42),
+        is_join_request=True,
+        bot=bot,
+        redis=redis,
+    )
+
+    bot.approve_chat_join_request.assert_awaited_once_with(chat_id=group.tid, user_id=user.tid)
+    if restriction_succeeded:
+        remove_pending.assert_awaited_once_with(user.iid, group.iid)
+        assert bot.delete_message.await_count == 2
+        assert await redis.get(security_note_key) is None
+    else:
+        remove_pending.assert_not_awaited()
+        bot.delete_message.assert_not_awaited()
+        assert await redis.get(security_note_key) == b"43"
+    assert await redis.get(join_request_note_key) == b"44"
+    assert await redis.get(_pending_user_lock_key(group.tid, user.tid)) is None
