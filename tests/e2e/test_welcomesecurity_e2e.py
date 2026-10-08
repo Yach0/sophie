@@ -11,6 +11,7 @@ from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.greetings import GreetingsModel, WelcomeSecurity
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.db.models.rules import RulesModel
+from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityRulesAgreeCB,
@@ -109,6 +110,8 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
         "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
         AsyncMock(return_value=True),
     )
+
+    await WSUserModel.ensure_user(user_db, group_db, is_join_request=True)
 
     captcha_message = await initiate_captcha(
         user_db,

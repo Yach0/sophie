@@ -267,7 +267,12 @@ async def test_whitelisted_captcha_pass_removes_pending_only_after_successful_un
     log_exemption = AsyncMock()
     monkeypatch.setattr(on_user_passed, "log_group_whitelist_exemption", log_exemption)
     monkeypatch.setattr(on_user_passed, "execute_restriction", record_unmute)
-    monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", record_removal)
+    pending = SimpleNamespace(
+        transition="completing",
+        transition_is_current=AsyncMock(return_value=True),
+        finish_transition=record_removal,
+    )
+    monkeypatch.setattr(on_user_passed.WSUserModel, "is_user", AsyncMock(return_value=pending))
     user = SimpleNamespace(tid=700_000_008, iid="user-iid")
     group = SimpleNamespace(tid=-1_007_000_000_008, iid="group-iid")
     welcome_mute = SimpleNamespace(enabled=True, time=None)
@@ -303,7 +308,12 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
     monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=False))
     monkeypatch.setattr(on_user_passed, "is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(on_user_passed, "on_welcomemute", on_welcome_mute)
-    monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", remove_user)
+    pending = SimpleNamespace(
+        transition="completing",
+        transition_is_current=AsyncMock(return_value=True),
+        finish_transition=remove_user,
+    )
+    monkeypatch.setattr(on_user_passed.WSUserModel, "is_user", AsyncMock(return_value=pending))
 
     assert (
         await on_user_passed.ws_on_user_passed(
@@ -323,7 +333,7 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
         redis=test_services.redis,
     )
     if welcome_mute_succeeded:
-        remove_user.assert_awaited_once_with(user.iid, group.iid)
+        remove_user.assert_awaited_once_with()
     else:
         remove_user.assert_not_awaited()
 
@@ -346,7 +356,12 @@ async def test_admin_captcha_pass_unmutes_and_removes_pending_only_after_success
 
     monkeypatch.setattr(on_user_passed, "is_user_admin", AsyncMock(return_value=True))
     monkeypatch.setattr(on_user_passed, "execute_restriction", execute_restriction)
-    monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", remove_user)
+    pending = SimpleNamespace(
+        transition="completing",
+        transition_is_current=AsyncMock(return_value=True),
+        finish_transition=remove_user,
+    )
+    monkeypatch.setattr(on_user_passed.WSUserModel, "is_user", AsyncMock(return_value=pending))
 
     assert (
         await on_user_passed.ws_on_user_passed(
@@ -365,7 +380,7 @@ async def test_admin_captcha_pass_unmutes_and_removes_pending_only_after_success
         user.tid,
     )
     if unmute_succeeded:
-        remove_user.assert_awaited_once_with(user.iid, group.iid)
+        remove_user.assert_awaited_once_with()
     else:
         remove_user.assert_not_awaited()
 

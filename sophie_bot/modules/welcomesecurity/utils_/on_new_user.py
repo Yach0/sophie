@@ -9,7 +9,6 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
     execute_restriction,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
@@ -40,7 +39,7 @@ async def _initialize_pending_user(
     # Add user to the welcomesecurity database
     ws_user_db = await WSUserModel.ensure_user(new_user, chat, is_join_request)
     # False when the user already passed verification in this chat
-    return not ws_user_db.passed
+    return not ws_user_db.passed and ws_user_db.transition is None
 
 
 async def ws_on_new_user(
@@ -50,22 +49,20 @@ async def ws_on_new_user(
     *,
     redis: Redis,
 ) -> bool:
-    async with pending_user_lock(chat.tid, new_user.tid, redis=redis):
-        return await _initialize_pending_user(new_user, chat, is_join_request, redis=redis)
+    return await _initialize_pending_user(new_user, chat, is_join_request, redis=redis)
 
 
 async def ws_on_new_user_mute(new_user: ChatModel, chat: ChatModel, *, bot: Bot, redis: Redis) -> bool:
-    async with pending_user_lock(chat.tid, new_user.tid, redis=redis):
-        if not await _initialize_pending_user(new_user, chat, redis=redis):
-            return False
-        return (
-            await execute_restriction(
-                bot,
-                RestrictionAction.MUTE,
-                chat.tid,
-                new_user.tid,
-            )
-        ).applied
+    if not await _initialize_pending_user(new_user, chat, redis=redis):
+        return False
+    return (
+        await execute_restriction(
+            bot,
+            RestrictionAction.MUTE,
+            chat.tid,
+            new_user.tid,
+        )
+    ).applied
 
 
 async def ws_on_new_users_mute(

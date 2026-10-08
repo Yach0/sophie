@@ -23,6 +23,9 @@ def _make_ws_user(*, is_join_request: bool, age_hours: float) -> SimpleNamespace
     return SimpleNamespace(
         id=PydanticObjectId(),
         passed=False,
+        transition="expiring",
+        transition_is_current=AsyncMock(return_value=True),
+        finish_transition=AsyncMock(),
         is_join_request=is_join_request,
         membership_id=None,
         membership_join_message_id=None,
@@ -84,7 +87,7 @@ async def test_process_user_kicks_timed_out_non_join_request_user(
         123,
     )
     test_services.bot.decline_chat_join_request.assert_not_awaited()
-    ws_user.delete.assert_awaited_once()
+    ws_user.finish_transition.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -112,7 +115,7 @@ async def test_process_user_declines_timed_out_join_request(
         user_id=123,
     )
     execute_restriction.assert_not_awaited()
-    ws_user.delete.assert_awaited_once()
+    ws_user.finish_transition.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -127,7 +130,7 @@ async def test_process_user_leaves_user_inside_timeout_window(
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
     execute_restriction.assert_not_awaited()
-    ws_user.delete.assert_not_awaited()
+    ws_user.finish_transition.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -152,7 +155,7 @@ async def test_process_user_uses_group_specific_expiry(
         -100123,
         123,
     )
-    ws_user.delete.assert_awaited_once()
+    ws_user.finish_transition.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -167,7 +170,7 @@ async def test_process_user_defaults_missing_expiry_to_48_hours(
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
     execute_restriction.assert_not_awaited()
-    ws_user.delete.assert_not_awaited()
+    ws_user.finish_transition.assert_not_awaited()
 
 
 @pytest.mark.parametrize("unmute_succeeded", [False, True])
@@ -183,6 +186,13 @@ async def test_process_whitelisted_user_keeps_pending_record_until_unmute_succee
             applied=unmute_succeeded,
         )
     )
+    ws_user.transition = None
+
+    async def claim_exemption(transition: str) -> SimpleNamespace:
+        ws_user.transition = transition
+        return ws_user
+
+    ws_user.claim_transition = AsyncMock(side_effect=claim_exemption)
     _patch_module(monkeypatch, execute_restriction, current_record=ws_user)
     monkeypatch.setattr(f"{_MODULE}.is_user_group_whitelisted", AsyncMock(return_value=True))
     monkeypatch.setattr(f"{_MODULE}.log_group_whitelist_exemption", AsyncMock())
@@ -196,6 +206,6 @@ async def test_process_whitelisted_user_keeps_pending_record_until_unmute_succee
         123,
     )
     if unmute_succeeded:
-        ws_user.delete.assert_awaited_once()
+        ws_user.finish_transition.assert_awaited_once()
     else:
-        ws_user.delete.assert_not_awaited()
+        ws_user.finish_transition.assert_not_awaited()

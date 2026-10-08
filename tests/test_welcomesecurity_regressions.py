@@ -8,12 +8,12 @@ from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramBadRequest
 from beanie import PydanticObjectId
 
+from sophie_bot.db.models import WSUserModel
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityRulesAgreeCB
 from sophie_bot.modules.welcomesecurity.handlers.legacy_button import LegacyWSButtonHandler
 from sophie_bot.modules.welcomesecurity.utils_.captcha_rules import captcha_send_rules
 from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
-from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import _pending_user_lock_key
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 
@@ -81,6 +81,7 @@ async def test_captcha_rules_preserve_join_request_context(
 
 @pytest.mark.asyncio
 async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(
+    pending_completion: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
 ) -> None:
@@ -124,6 +125,7 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(
 
 @pytest.mark.asyncio
 async def test_complete_captcha_continues_when_join_request_was_already_approved(
+    pending_completion: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
 ) -> None:
@@ -161,6 +163,7 @@ async def test_complete_captcha_continues_when_join_request_was_already_approved
 
 @pytest.mark.asyncio
 async def test_complete_captcha_propagates_unexpected_join_approval_failure(
+    pending_completion: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
 ) -> None:
@@ -197,6 +200,7 @@ async def test_complete_captcha_propagates_unexpected_join_approval_failure(
 
 @pytest.mark.asyncio
 async def test_complete_captcha_keeps_recovery_messages_when_post_approval_transition_fails(
+    pending_completion: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
 ) -> None:
@@ -238,7 +242,8 @@ async def test_complete_captcha_keeps_recovery_messages_when_post_approval_trans
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("restriction_succeeded", [False, True])
-async def test_complete_captcha_preserves_locked_transition_result_and_recovery_state(
+async def test_complete_captcha_preserves_transition_result_and_recovery_state(
+    pending_completion: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
     restriction_succeeded: bool,
@@ -258,14 +263,13 @@ async def test_complete_captcha_preserves_locked_transition_result_and_recovery_
     )
 
     async def unmute(*args: object, **kwargs: object) -> RestrictionResult:
-        assert await redis.get(_pending_user_lock_key(group.tid, user.tid)) is not None
         return RestrictionResult(action=RestrictionAction.UNMUTE, applied=restriction_succeeded)
 
     passed_module = "sophie_bot.modules.welcomesecurity.utils_.on_user_passed"
     monkeypatch.setattr(f"{passed_module}.is_user_admin", AsyncMock(return_value=False))
     monkeypatch.setattr(f"{passed_module}.is_user_group_whitelisted", AsyncMock(return_value=False))
     monkeypatch.setattr(f"{passed_module}.execute_restriction", unmute)
-    monkeypatch.setattr(f"{passed_module}.WSUserModel.remove_user", remove_pending)
+    pending_completion.finish_transition = remove_pending
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.utils_.complete_captcha.ws_on_user_passed",
         ws_on_user_passed,
@@ -283,7 +287,7 @@ async def test_complete_captcha_preserves_locked_transition_result_and_recovery_
 
     bot.approve_chat_join_request.assert_awaited_once_with(chat_id=group.tid, user_id=user.tid)
     if restriction_succeeded:
-        remove_pending.assert_awaited_once_with(user.iid, group.iid)
+        remove_pending.assert_awaited_once_with()
         assert bot.delete_message.await_count == 2
         assert await redis.get(security_note_key) is None
     else:
@@ -291,4 +295,16 @@ async def test_complete_captcha_preserves_locked_transition_result_and_recovery_
         bot.delete_message.assert_not_awaited()
         assert await redis.get(security_note_key) == b"43"
     assert await redis.get(join_request_note_key) == b"44"
-    assert await redis.get(_pending_user_lock_key(group.tid, user.tid)) is None
+
+
+@pytest.fixture
+def pending_completion(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    pending = SimpleNamespace(
+        passed=False,
+        transition="completing",
+        is_join_request=True,
+        transition_is_current=AsyncMock(return_value=True),
+        finish_transition=AsyncMock(),
+    )
+    monkeypatch.setattr(WSUserModel, "is_user", AsyncMock(return_value=pending))
+    return pending

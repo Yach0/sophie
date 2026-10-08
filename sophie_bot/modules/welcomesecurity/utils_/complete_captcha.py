@@ -3,14 +3,13 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 from redis.asyncio import Redis
 
-from sophie_bot.db.models import ChatModel, GreetingsModel
+from sophie_bot.db.models import ChatModel, GreetingsModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeMute
 from sophie_bot.metrics.welcome import track_captcha_passed
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.telegram_exceptions import USER_ALREADY_PARTICIPANT
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_NOT_MODIFIED, USER_ALREADY_PARTICIPANT
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.modules.welcomesecurity.utils_.on_user_passed import ws_on_user_passed
-from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -41,42 +40,33 @@ async def complete_captcha(
         bot: Telegram bot used to update the captcha and membership.
         redis: Redis connection used by the welcome-security flow.
     """
-    async with pending_user_lock(group.tid, user.tid, redis=redis):
-        await _complete_captcha(
-            user,
-            group,
-            greetings,
-            captcha_message,
-            is_join_request,
-            bot=bot,
-            redis=redis,
-        )
+    pending = await WSUserModel.is_user(user.iid, group.iid)
+    if pending is None or pending.passed:
+        return
+    if pending.transition is None:
+        pending = await pending.claim_transition("completing")
+    if pending is None or pending.transition != "completing" or not await pending.transition_is_current():
+        return
+    is_join_request = pending.is_join_request
 
-
-async def _complete_captcha(
-    user: ChatModel,
-    group: ChatModel,
-    greetings: GreetingsModel,
-    captcha_message: Message,
-    is_join_request: bool,
-    *,
-    bot: Bot,
-    redis: Redis,
-) -> None:
     # Mark captcha as correct
     track_captcha_passed()
     captcha = EmojiCaptcha()
     captcha.show_emoji("✅")
 
     # Update the captcha message
-    await bot.edit_message_media(
-        media=InputMediaPhoto(
-            media=BufferedInputFile(captcha.image, "captcha.jpeg"),
-            caption=_("You're all set, and can now participate in the conversation"),
-        ),
-        chat_id=captcha_message.chat.id,
-        message_id=captcha_message.message_id,
-    )
+    try:
+        await bot.edit_message_media(
+            media=InputMediaPhoto(
+                media=BufferedInputFile(captcha.image, "captcha.jpeg"),
+                caption=_("You're all set, and can now participate in the conversation"),
+            ),
+            chat_id=captcha_message.chat.id,
+            message_id=captcha_message.message_id,
+        )
+    except TelegramBadRequest as error:
+        if MSG_NOT_MODIFIED not in error.message:
+            raise
 
     # Approve join request if applicable
     if is_join_request:
@@ -94,7 +84,7 @@ async def _complete_captcha(
         greetings.welcome_mute or WelcomeMute(),
         bot=bot,
         redis=redis,
-        lock_already_acquired=True,
+        pending=pending,
     )
 
     if not restriction_succeeded:

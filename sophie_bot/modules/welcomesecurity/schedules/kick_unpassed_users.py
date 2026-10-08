@@ -1,4 +1,3 @@
-from contextlib import AsyncExitStack
 from datetime import UTC, datetime
 
 from aiogram.exceptions import TelegramAPIError
@@ -11,7 +10,6 @@ from sophie_bot.db.models.greetings import (
 from sophie_bot.db.models.ws_user import WSUserModel
 from sophie_bot.metrics.welcome import track_captcha_failed
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
-from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.feature_flags import is_enabled
@@ -60,23 +58,10 @@ class KickUnpassedUsers:
             )
             await ws_user.delete()
             return
-        async with AsyncExitStack() as stack:
-            try:
-                await stack.enter_async_context(pending_user_lock(group.tid, user.tid, redis=self.services.redis))
-            except TimeoutError as error:
-                log.warning(
-                    "kick_unpassed_users: skipping contended pending user",
-                    ws_user_tid=str(ws_user.id),
-                    user=user.tid,
-                    group=group.tid,
-                    error=str(error),
-                )
-                return
-            current_ws_user = await WSUserModel.is_user(ws_user.user.ref.id, ws_user.group.ref.id)
-            if current_ws_user is None or current_ws_user.passed:
-                log.debug("kick_unpassed_users: skipping stale ws_user", ws_user_tid=str(ws_user.id))
-                return
-            await self._process_current_user(current_ws_user, user, group)
+        current_ws_user = await WSUserModel.is_user(ws_user.user.ref.id, ws_user.group.ref.id)
+        if current_ws_user is None or current_ws_user.passed or current_ws_user.transition == "completing":
+            return
+        await self._process_current_user(current_ws_user, user, group)
 
     async def _process_current_user(self, ws_user: WSUserModel, user: ChatModel, group: ChatModel) -> None:
         if not ws_user.id:
@@ -84,9 +69,21 @@ class KickUnpassedUsers:
             return
         if not await _is_current_session(ws_user):
             return
-        if await is_user_group_whitelisted(group.tid, user.tid, redis=self.services.redis):
+        if ws_user.transition == "exempting" or (
+            ws_user.transition is None
+            and await is_user_group_whitelisted(group.tid, user.tid, redis=self.services.redis)
+        ):
             await log_group_whitelist_exemption(group.tid, user.tid, "welcome_security_captcha_autokick")
-            if not await _is_current_session(ws_user):
+            if ws_user.transition is None:
+                claimed = await ws_user.claim_transition("exempting")
+                if claimed is None:
+                    return
+                ws_user = claimed
+            if (
+                ws_user.transition != "exempting"
+                or not await ws_user.transition_is_current()
+                or not await _is_current_session(ws_user)
+            ):
                 return
             result = await execute_restriction(
                 self.services.bot,
@@ -96,7 +93,7 @@ class KickUnpassedUsers:
             )
             if result.applied:
                 log.debug("kick_unpassed_users: removing exempt user from pending captcha", user=user.tid)
-                await ws_user.delete()
+                await ws_user.finish_transition()
             return
         if not await is_enabled("welcomecaptcha_autokick", chat_tid=group.tid, redis=self.services.redis):
             log.debug("kick_unpassed_users: skipped because auto-kick feature flag is disabled", group=group.tid)
@@ -123,6 +120,16 @@ class KickUnpassedUsers:
         if not await _is_current_session(ws_user):
             return
 
+        if ws_user.transition is None:
+            claimed = await ws_user.claim_transition("expiring")
+            if claimed is None:
+                return
+            ws_user = claimed
+        if ws_user.transition != "expiring":
+            return
+        if not await ws_user.transition_is_current() or not await _is_current_session(ws_user):
+            return
+
         track_captcha_failed("timeout")
         action_succeeded = False
         if ws_user.is_join_request:
@@ -144,7 +151,7 @@ class KickUnpassedUsers:
                 log.info("kick_unpassed_users: kicked user", user=user.tid, group=group.tid)
 
         if action_succeeded:
-            await ws_user.delete()
+            await ws_user.finish_transition()
 
     async def handle(self) -> None:
         log.debug("kick_unpassed_users: starting")
