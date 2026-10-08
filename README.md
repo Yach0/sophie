@@ -181,6 +181,10 @@ A failed final progress-message edit does not undo applied federation bans or pr
 
 Reply translation preserves rich-message list boundaries, details summaries, table captions, and nested visible content. AI headers and quota footers are stripped only from replies authored by Sophie; matching custom emoji in user messages remain part of the translation input.
 
+## Translation display
+
+Translation quotations become expandable only when the rendered text is estimated to exceed three visible lines. Markdown delimiters and link URLs do not count toward visible length. Client wrapping can differ because fonts and screen widths vary.
+
 ## 📖 Documentation
 
 - **Wiki:** [https://sophie-wiki.orangefox.tech/](https://sophie-wiki.orangefox.tech/)
