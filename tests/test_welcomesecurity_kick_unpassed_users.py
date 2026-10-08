@@ -14,11 +14,18 @@ from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 _MODULE = "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users"
 
 
+@pytest.fixture(autouse=True)
+def _untracked_membership(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(f"{_MODULE}.UserInGroupModel.get_user_in_group", AsyncMock(return_value=None))
+
+
 def _make_ws_user(*, is_join_request: bool, age_hours: float) -> SimpleNamespace:
     return SimpleNamespace(
         id=PydanticObjectId(),
         passed=False,
         is_join_request=is_join_request,
+        membership_id=None,
+        membership_join_message_id=None,
         added_at=datetime.now(UTC) - timedelta(hours=age_hours),
         user=SimpleNamespace(ref=SimpleNamespace(id=PydanticObjectId())),
         group=SimpleNamespace(ref=SimpleNamespace(id=PydanticObjectId())),
@@ -30,6 +37,7 @@ def _patch_module(
     monkeypatch: pytest.MonkeyPatch,
     execute_restriction: AsyncMock,
     *,
+    current_record: object | None = None,
     expiry: timedelta | None = WELCOMESECURITY_EXPIRE_DEFAULT_TIME,
 ) -> None:
     monkeypatch.setattr(
@@ -42,6 +50,7 @@ def _patch_module(
         ),
     )
     monkeypatch.setattr(f"{_MODULE}.is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(f"{_MODULE}.WSUserModel.is_user", AsyncMock(return_value=current_record))
     monkeypatch.setattr(
         f"{_MODULE}.GreetingsModel.get_by_chat_iid",
         AsyncMock(return_value=SimpleNamespace(welcome_security=SimpleNamespace(expire=expiry))),
@@ -64,7 +73,7 @@ async def test_process_user_kicks_timed_out_non_join_request_user(
             applied=True,
         )
     )
-    _patch_module(monkeypatch, execute_restriction)
+    _patch_module(monkeypatch, execute_restriction, current_record=ws_user)
 
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
@@ -94,7 +103,7 @@ async def test_process_user_declines_timed_out_join_request(
         "decline_chat_join_request",
         decline_join_request,
     )
-    _patch_module(monkeypatch, execute_restriction)
+    _patch_module(monkeypatch, execute_restriction, current_record=ws_user)
 
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
@@ -113,7 +122,7 @@ async def test_process_user_leaves_user_inside_timeout_window(
 ) -> None:
     ws_user = _make_ws_user(is_join_request=False, age_hours=1)
     execute_restriction = AsyncMock()
-    _patch_module(monkeypatch, execute_restriction)
+    _patch_module(monkeypatch, execute_restriction, current_record=ws_user)
 
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
@@ -133,7 +142,7 @@ async def test_process_user_uses_group_specific_expiry(
             applied=True,
         )
     )
-    _patch_module(monkeypatch, execute_restriction, expiry=timedelta(hours=2))
+    _patch_module(monkeypatch, execute_restriction, current_record=ws_user, expiry=timedelta(hours=2))
 
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
@@ -153,7 +162,7 @@ async def test_process_user_defaults_missing_expiry_to_48_hours(
 ) -> None:
     ws_user = _make_ws_user(is_join_request=False, age_hours=3)
     execute_restriction = AsyncMock()
-    _patch_module(monkeypatch, execute_restriction, expiry=None)
+    _patch_module(monkeypatch, execute_restriction, current_record=ws_user, expiry=None)
 
     await KickUnpassedUsers(test_services).process_user(ws_user)
 
@@ -174,7 +183,7 @@ async def test_process_whitelisted_user_keeps_pending_record_until_unmute_succee
             applied=unmute_succeeded,
         )
     )
-    _patch_module(monkeypatch, execute_restriction)
+    _patch_module(monkeypatch, execute_restriction, current_record=ws_user)
     monkeypatch.setattr(f"{_MODULE}.is_user_group_whitelisted", AsyncMock(return_value=True))
     monkeypatch.setattr(f"{_MODULE}.log_group_whitelist_exemption", AsyncMock())
 

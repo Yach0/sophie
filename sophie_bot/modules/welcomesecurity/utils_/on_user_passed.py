@@ -10,13 +10,14 @@ from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
     convert_timedelta_or_str,
 )
+from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 
 
-async def ws_on_user_passed(
+async def _ws_on_user_passed(
     user: ChatModel,
     group: ChatModel,
     welcomemute: WelcomeMute,
@@ -74,3 +75,18 @@ async def ws_on_user_passed(
         await WSUserModel.remove_user(user.iid, group.iid)
 
     return restriction_succeeded
+
+
+async def ws_on_user_passed(
+    user: ChatModel,
+    group: ChatModel,
+    welcomemute: WelcomeMute,
+    *,
+    bot: Bot,
+    redis: Redis,
+    lock_already_acquired: bool = False,
+) -> bool:
+    if lock_already_acquired:
+        return await _ws_on_user_passed(user, group, welcomemute, bot=bot, redis=redis)
+    async with pending_user_lock(group.tid, user.tid, redis=redis):
+        return await _ws_on_user_passed(user, group, welcomemute, bot=bot, redis=redis)

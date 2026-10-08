@@ -43,7 +43,10 @@ async def test_legacy_welcomesecurity_start_uses_live_membership_check(
     assert group_db is not None
 
     await GreetingsModel(chat=group_db.iid, welcome_security=WelcomeSecurity(enabled=True)).save()
-    await UserInGroupModel.ensure_delete(user_db, group_db)
+    membership = await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid)
+    assert membership is not None
+    assert membership.id is not None
+    await membership.delete()
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.legacy_button.WSUserModel.is_user",
         AsyncMock(return_value=SimpleNamespace(is_join_request=False)),
@@ -107,7 +110,6 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
         AsyncMock(return_value=True),
     )
 
-
     captcha_message = await initiate_captcha(
         user_db,
         group_db,
@@ -143,6 +145,4 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     assert not any("Be nice to each other." in (request.text or "") for request in group_messages)
     assert not any("Welcome to the group" in (request.text or "") for request in group_messages)
 
-    await test_services.redis.delete(
-        f"chat_ws_join_request:{group_db.iid}:{user_db.iid}"
-    )
+    await test_services.redis.delete(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}")

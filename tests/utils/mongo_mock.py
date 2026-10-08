@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import asyncio
 from functools import partial, wraps
+from operator import gt
 from typing import TYPE_CHECKING, Any
 
+import mongomock.collection
 import mongomock.filtering
 from bson import DBRef
 from mongomock import MongoClient as SyncMongoClient
@@ -40,7 +42,19 @@ def _patch_dbref_traversal() -> None:
     mongomock.filtering.iter_key_candidates = iter_key_candidates
 
 
+def _patch_max_bson_comparison() -> None:
+    """Make mongomock's $max use MongoDB's cross-type BSON ordering."""
+    def max_updater(doc: Any, field_name: str, value: Any) -> None:
+        if isinstance(doc, dict) and (
+            field_name not in doc or mongomock.filtering.bson_compare(gt, value, doc[field_name])
+        ):
+            doc[field_name] = value
+
+    mongomock.collection._updaters["$max"] = max_updater
+
+
 _patch_dbref_traversal()
+_patch_max_bson_comparison()
 
 
 class AsyncMongoMockClient:
