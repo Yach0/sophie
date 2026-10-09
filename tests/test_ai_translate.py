@@ -66,6 +66,33 @@ def test_translation_notes_are_preserved_for_short_translation() -> None:
     assert "A brief clarification." in rich_html
 
 
+def test_translation_line_breaks_preserve_multiline_code_entities() -> None:
+    doc = _build_translate_reply_doc(
+        _translation_response("Items:\n```Milk\nBread```\nEggs"),
+        "German",
+        False,
+        False,
+        None,
+        "disable",
+    )
+
+    assert "<blockquote expandable>Items:<br><pre>Milk\nBread</pre><br>Eggs</blockquote>" in doc.to_rich()
+
+
+@pytest.mark.parametrize("target", ["https://example.com/a\rb", "https://example.com/a>\rb"])
+def test_translation_line_breaks_preserve_link_attributes(target: str) -> None:
+    doc = _build_translate_reply_doc(
+        _translation_response(f"Start\r\n[Link]({target})\rEnd\nDone"),
+        "German",
+        False,
+        False,
+        None,
+        "disable",
+    )
+
+    assert f'<blockquote>Start<br><a href="{target}">Link</a><br>End<br>Done</blockquote>' in doc.to_rich()
+
+
 def test_voice_translation_without_header_keeps_short_translation_non_expandable() -> None:
     doc = _build_translate_reply_doc(
         _translation_response("Hi"),

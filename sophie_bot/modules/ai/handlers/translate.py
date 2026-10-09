@@ -1,3 +1,4 @@
+import re
 from math import ceil
 from typing import Any, Final
 
@@ -127,6 +128,13 @@ def _build_translate_reply_doc(
     """Format the translation response document."""
     header = build_ai_header(header_style, quota_header or "")
     visible_text, entities = extract_markdown_entities(translated.translated_text)
+    # Rich HTML collapses literal newlines outside preformatted blocks.
+    # Preserve rendered tags (including quoted attributes) and preformatted content.
+    translation_html = re.sub(
+        r"""<pre>[\s\S]*?</pre>|<(?:[^>"']|"[^"]*"|'[^']*')*>|\r\n|\r|\n""",
+        lambda match: match[0] if match[0].startswith("<") else "<br>",
+        HtmlDecoration().unparse(visible_text, entities),
+    )
     return build_ai_message_doc(
         header,
         (
@@ -141,7 +149,7 @@ def _build_translate_reply_doc(
             else None
         ),
         BlockQuote(
-            PreformattedHTML(HtmlDecoration().unparse(visible_text, entities)),
+            PreformattedHTML(translation_html),
             expandable=_translation_likely_exceeds_visible_lines(visible_text),
         ),
         (

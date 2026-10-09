@@ -383,6 +383,13 @@ HTML (`to_html()`) keeps newline separators instead of adding unsupported `<p>` 
 Legacy AI paths using `ai_markdown_to_html()` still produce regular Telegram HTML;
 this wrapper rule does not convert their newline-only content into Rich paragraphs.
 
+The `/tr` translation body uses Markdown entity extraction rather than the AI
+Markdown renderer. After escaping and rendering entities, it converts source line
+breaks to `<br>` for Rich HTML so paragraphs and numbered lists retain their layout
+for both text and image translations. Generated tags and attributes remain
+unchanged, and newlines inside `<pre>` blocks remain literal to preserve code
+formatting.
+
 ### AI-generated tables
 
 Sophie limits AI Markdown tables to 15 columns and 50 rows (including the header).

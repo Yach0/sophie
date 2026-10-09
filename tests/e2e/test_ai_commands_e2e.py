@@ -27,6 +27,7 @@ from pydantic_ai.messages import BinaryContent
 
 from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_header import (
     AI_GENERATING_EMOJI_ID,
@@ -39,7 +40,7 @@ from sophie_bot.modules.ai.utils.ai_usage_service import (
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import is_enabled
-from tests.e2e.helpers import grant_admin, send_reply_command, set_feature
+from tests.e2e.helpers import grant_admin, next_group_id, next_user_id, send_reply_command, set_feature
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -316,6 +317,101 @@ async def test_aimode_shows_mode_picker(test_client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 # /aitranslate tests
 # ---------------------------------------------------------------------------
+
+
+async def test_tr_plain_text_preserves_paragraph_and_numbered_list_lines(test_client: TestClient) -> None:
+    """Structured translation output keeps the reported paragraph/list layout in the Telegram edit."""
+    source = "Dies ist ein deutscher Text.\n\nHier sind neue Zeilen:\n1. Aachen\n2. Nürnberg\n3. Franken"
+    group_chat = ChatFactory.create_group(chat_id=next_group_id(), title="Plain text translation")
+    user = test_client.create_user(user_id=next_user_id(), first_name="TextUser")
+    await test_client.send_message(text="init", from_user=user.user, chat=group_chat)
+    translated = AITranslateResponseSchema.model_validate_json(
+        r"""{
+            "needs_translation": true,
+            "origin_language_name": "German",
+            "origin_language_emoji": "🇩🇪",
+            "translated_text": "This is a German text.\n\nHere are new lines:\n1. Aachen\n2. Nuremberg\n3. Franconia",
+            "translation_explanations": null
+        }"""
+    )
+    run_task = AsyncMock(return_value=SimpleNamespace(output=translated))
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
+        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.run_structured_task", run_task))
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
+                AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            )
+        )
+        requests = await test_client.send_command(command="tr", from_user=user.user, chat=group_chat, args=source)
+
+    task, _, history = run_task.await_args.args
+    assert task.output_type is AITranslateResponseSchema
+    assert history.prompt == [source]
+    progress = [request for request in requests if request.request_type == RequestType.OTHER]
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert edits[-1].params["message_id"] == progress[0].response.message_id
+    assert (
+        "<blockquote expandable>This is a German text.<br><br>Here are new lines:<br>"
+        "1. Aachen<br>2. Nuremberg<br>3. Franconia</blockquote>" in edits[-1].params["rich_message"]["html"]
+    )
+
+
+async def test_tr_replied_image_preserves_paragraph_list_and_markdown_entities(test_client: TestClient) -> None:
+    """Image input and same-language OCR output use the shared translation renderer."""
+    group_chat = ChatFactory.create_group(chat_id=next_group_id(), title="English OCR list")
+    user = test_client.create_user(user_id=next_user_id(), first_name="ImageUser")
+    await test_client.send_message(text="init", from_user=user.user, chat=group_chat)
+    await set_feature(test_client, "ai_translations_header_style", "disable", chat_tid=group_chat.id)
+    photo = MessageFactory.create(text="placeholder", from_user=user.user, chat=group_chat).model_copy(
+        update={
+            "text": None,
+            "photo": [PhotoSize(file_id="ocr-list", file_unique_id="ocr-list", width=100, height=100)],
+        }
+    )
+    # Only the model boundary is controlled; Markdown entities and STFU rendering are real.
+    translated = AITranslateResponseSchema.model_validate_json(
+        r"""{
+            "needs_translation": false,
+            "origin_language_name": "English",
+            "origin_language_emoji": "🇬🇧",
+            "translated_text": "Shopping & food\r\n\r\n1. **Bread**\r\n2. [Eggs](https://example.com)\r\n3. <Fresh fruit>",
+            "translation_explanations": "OCR means optical character recognition."
+        }"""
+    )
+    run_task = AsyncMock(return_value=SimpleNamespace(output=translated))
+    services = test_client.dispatcher.workflow_data["services"]
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
+        stack.enter_context(patch("sophie_bot.modules.ai.handlers.translate.run_structured_task", run_task))
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.handlers.translate.get_chat_translations_model_plan",
+                AsyncMock(return_value=SimpleNamespace(model_name="test-model")),
+            )
+        )
+        stack.enter_context(patch.object(services.bot, "download", AsyncMock(return_value=BytesIO(b"ocr-image"))))
+        requests = await send_reply_command(
+            test_client, command="tr", from_user=user.user, group=group_chat, replied=photo
+        )
+
+    task, _, history = run_task.await_args.args
+    assert task.output_type is AITranslateResponseSchema
+    assert any(isinstance(content, BinaryContent) and content.data == b"ocr-image" for content in history.prompt)
+    edits = [request for request in requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT]
+    assert edits[-1].params["message_id"] == edits[0].params["message_id"]
+    rich_html = edits[-1].params["rich_message"]["html"]
+    # Literal newlines are HTML whitespace, not visible Rich HTML line breaks.
+    expected_quote = (
+        "<blockquote expandable>Shopping &amp; food<br><br>1. <b>Bread</b><br>"
+        '2. <a href="https://example.com">Eggs</a><br>3. &lt;Fresh fruit&gt;</blockquote>'
+    )
+    assert expected_quote in rich_html
+    assert rich_html.index("</blockquote>") < rich_html.index("Translation Notes")
+    assert "OCR means optical character recognition." in rich_html
 
 
 def _simulate_rich_send_response(test_client: TestClient, stack: ExitStack) -> None:
