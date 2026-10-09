@@ -95,7 +95,7 @@ async def test_cached_history_keeps_reply_title(
         reply_to_username="Bob",
     )
     monkeypatch.setattr(
-        message_history.ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice"))
+        ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice"))
     )
     monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
 
@@ -113,7 +113,7 @@ async def test_cached_ai_history_uses_shared_message_text_representation(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
     cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     monkeypatch.setattr(
         message_history,
         "message_text",
@@ -130,7 +130,7 @@ async def test_cached_ai_history_uses_shared_message_text_representation(
 async def test_cached_foreign_bot_message_is_reference_only_context(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
         "Dergbot chatter",
         10,
@@ -153,7 +153,7 @@ async def test_cached_foreign_bot_message_is_reference_only_context(
 async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
         "Dergbot answer",
         10,
@@ -181,7 +181,7 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
     test_redis: object,
     test_services: object,
 ) -> None:
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     answer_time = datetime.now(UTC)
     await cache_message(
         "prior answer",
@@ -221,7 +221,7 @@ async def test_cached_reply_target_is_not_added_to_prompt_twice(
         is_bot=True,
         redis=test_redis,
     )
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
     chat = Chat(id=10, type="group", title="Test chat")
     sophie = User(id=message_history.CONFIG.bot_id, is_bot=True, first_name="Sophie")

@@ -6,7 +6,7 @@ import inspect
 import math
 import random
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Hashable
 from contextlib import asynccontextmanager
 from typing import Any, ParamSpec, TypeVar, cast
 
@@ -47,6 +47,21 @@ class _LockRegistry:
         entry.waiters -= 1
         if entry.waiters <= 0 and not entry.lock.locked():
             self._locks.pop(key, None)
+
+
+class AsyncLookupCache[KeyT: Hashable, ValueT]:
+    """Share pending lookups and results within an explicitly owned, in-memory scope."""
+
+    def __init__(self, lookup: Callable[[KeyT], Awaitable[ValueT]]) -> None:
+        self._lookup = lookup
+        self._results: dict[KeyT, asyncio.Future[ValueT]] = {}
+
+    async def get(self, key: KeyT) -> ValueT:
+        result = self._results.get(key)
+        if result is None:
+            result = asyncio.ensure_future(self._lookup(key))
+            self._results[key] = result
+        return await result
 
 
 class RedisCache:

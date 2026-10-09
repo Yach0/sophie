@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather
+from asyncio import gather
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import BinaryIO
@@ -30,9 +30,7 @@ from stfu_tg import Doc, HList, KeyValue, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
-from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -41,7 +39,7 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
-from sophie_bot.modules.utils_.admin import get_admin_record
+from sophie_bot.modules.utils_.lookups import ChatLookupCache
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -81,42 +79,22 @@ class AIUserMessageFormatter:
         return f"{name}: {text}"
 
 
-async def _get_chat_model(
-    chat_tid: int,
-    chat_models: dict[int, Task[ChatModel | None]],
-) -> ChatModel | None:
-    lookup = chat_models.get(chat_tid)
-    if lookup is None:
-        lookup = create_task(ChatModel.get_by_tid(chat_tid))
-        chat_models[chat_tid] = lookup
-    return await lookup
-
-
 async def _admin_context_name(
     chat_tid: int,
     user_tid: int,
     name: str,
     is_group: bool,
     *,
-    chat_models: dict[int, Task[ChatModel | None]],
-    admin_records: dict[tuple[int, int], Task[ChatAdminModel | None]],
+    lookups: ChatLookupCache,
 ) -> str:
     if not is_group:
         return name
 
-    chat_model = await _get_chat_model(chat_tid, chat_models)
-    user_model = await _get_chat_model(user_tid, chat_models)
-    if not chat_model or not user_model:
-        return name
-    if chat_model.type not in {ChatType.group, ChatType.supergroup}:
+    chat_model = await lookups.get_chat_by_tid(chat_tid)
+    if not chat_model or chat_model.type not in {ChatType.group, ChatType.supergroup}:
         return name
 
-    admin_key = (chat_tid, user_tid)
-    admin_lookup = admin_records.get(admin_key)
-    if admin_lookup is None:
-        admin_lookup = create_task(get_admin_record(chat_model, user_model))
-        admin_records[admin_key] = admin_lookup
-    admin = await admin_lookup
+    admin = await lookups.get_admin_record(chat_tid, user_tid)
     if not admin:
         return name
 
@@ -267,9 +245,7 @@ class AIMessageHistory:
         self.prompt = []
         self.context_lines = []
         self._cached_message_ids: set[tuple[int, int]] = set()
-        # Share in-flight lookups as well as results across this build's concurrent transforms.
-        self._chat_models: dict[int, Task[ChatModel | None]] = {}
-        self._admin_records: dict[tuple[int, int], Task[ChatAdminModel | None]] = {}
+        self._lookups = ChatLookupCache()
 
     @staticmethod
     def _is_ai_dialogue(msg: MessageType) -> bool:
@@ -288,15 +264,14 @@ class AIMessageHistory:
         )
 
     async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
-        user = await _get_chat_model(msg.user_id, self._chat_models)
+        user = await self._lookups.get_chat_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
         from_user_name = await _admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
             is_group=True,
-            chat_models=self._chat_models,
-            admin_records=self._admin_records,
+            lookups=self._lookups,
         )
         return AIUserMessageFormatter.user_message(
             msg.text,
@@ -335,7 +310,7 @@ class AIMessageHistory:
 
     async def _cache_transform_msg(self, chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
         """Transforms a message from the cache to a message that can be sent to the AI."""
-        user = await _get_chat_model(msg.user_id, self._chat_models)
+        user = await self._lookups.get_chat_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.is_bot or msg.user_id == CONFIG.bot_id:
@@ -348,8 +323,7 @@ class AIMessageHistory:
             msg.user_id,
             first_name,
             is_group=True,
-            chat_models=self._chat_models,
-            admin_records=self._admin_records,
+            lookups=self._lookups,
         )
         return ModelRequest(
             parts=[
@@ -444,8 +418,7 @@ class AIMessageHistory:
             message.from_user.id,
             message.from_user.full_name,
             message.chat.type != "private",
-            chat_models=self._chat_models,
-            admin_records=self._admin_records,
+            lookups=self._lookups,
         )
         prompt.extend(
             await _build_message_parts(
