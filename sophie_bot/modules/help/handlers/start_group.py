@@ -11,6 +11,7 @@ from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.message_status import NoArgs
 from sophie_bot.modules.help.callbacks import PMHelpStartUrlCallback
+from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -42,6 +43,9 @@ class StartGroupHandler(SophieMessageHandler):
             ),
         )
 
-        await self.event.reply(
-            str(text), reply_markup=buttons.as_markup(), link_preview_options=LinkPreviewOptions(is_disabled=True)
+        await reply_or_answer(
+            self.event,
+            text.to_html(),
+            reply_markup=buttons.as_markup(),
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
