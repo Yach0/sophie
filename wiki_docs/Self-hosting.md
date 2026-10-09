@@ -136,6 +136,24 @@ restart.
 > `/op_ai_providers` and `/op_ai_models` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
+### AI moderation availability
+
+The existing `ai_moderation` flag and chat mode control moderation. Mistral and OpenAI
+classifier requests retain their normal retry budget. If a supported transient provider
+failure (including overload/rate limits, service outages or transport timeouts) exhausts
+that budget, Sophie sends a translated **AI Moderator unavailable** notice and stops
+processing the current message across bot handlers. An unclassified message is not a
+clean moderation result: it stays in the chat, and its author is not banned or restricted
+because of the failed check. The message is not added to AI history. There is no deferred
+classification or extra retry.
+
+Failures are logged with operation, model and error type. When Sentry is configured,
+the notice includes a support reference to a structured provider-failure event. Moderation
+retry breadcrumbs and terminal events omit provider response text and SDK tracebacks,
+which can contain the private classifier input. Persistent authentication/configuration
+errors and unexpected programming errors still follow the normal error-reporting path;
+they are not presented as temporary classifier unavailability.
+
 ### AI progress
 
 Chatbot replies show an in-progress message while they stream. Manual translation

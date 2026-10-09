@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import httpx2
 import pytest
 from aiogram.types import Message
 from mistralai.client.errors import SDKError
@@ -14,12 +16,14 @@ from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
 from sophie_bot.modules.ai.handlers.aimoderator import _build_doc, _build_keyboard
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.utils import ai_errors
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext
 from sophie_bot.modules.ai.utils.moderation import (
     MODERATION_CATEGORIES_TRANSLATES,
     ModerationCategory,
     check_moderator,
     get_moderation_provider,
 )
+from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnavailable, run_moderation_request
 from sophie_bot.modules.ai.utils.moderation.providers.mistral import MistralModerationProvider
 from sophie_bot.modules.ai.utils.moderation.settings import LEVEL_CYCLE, next_level
 from sophie_bot.modules.ai.utils.moderation.thresholds import resolve_level_multipliers, resolve_thresholds
@@ -129,7 +133,9 @@ async def test_moderation_no_scores_not_flagged(test_redis: object, test_service
     assert result.scores == {}
 
 
-async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_mistral_moderation_retries_transient_503(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     response = _make_moderation_response(dict.fromkeys(_MISTRAL_DEFAULTS, 0.0))
     raw_response = httpx.Response(
         503,
@@ -150,6 +156,63 @@ async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.Monk
     assert moderate.await_count == 2
 
 
+@pytest.mark.parametrize(
+    "failure",
+    [
+        SDKError(
+            "backend_out_of_capacity",
+            httpx.Response(429, request=httpx.Request("POST", "https://api.mistral.ai/v1/chat/moderations")),
+        ),
+        SDKError(
+            "Service unavailable",
+            httpx.Response(503, request=httpx.Request("POST", "https://api.mistral.ai/v1/chat/moderations")),
+        ),
+        httpx.ReadTimeout("Timed out"),
+        httpx2.ReadTimeout("Timed out"),
+        TimeoutError("Timed out"),
+    ],
+    ids=["mistral-429", "mistral-503", "httpx-timeout", "httpx2-timeout", "timeout"],
+)
+async def test_moderation_exhausted_transient_failure_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+) -> None:
+    monkeypatch.setattr(ai_errors, "AI_REQUEST_RETRY_WAIT", wait_none())
+    classify = AsyncMock(side_effect=failure)
+
+    with pytest.raises(ModerationUnavailable) as raised:
+        await run_moderation_request(classify, AIErrorContext(operation="moderation", model_name="test-classifier"))
+
+    assert classify.await_count == ai_errors.AI_REQUEST_RETRY_ATTEMPTS
+    assert raised.value.__cause__ is None
+    assert raised.value.__suppress_context__
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        SDKError(
+            "Invalid key",
+            httpx.Response(401, request=httpx.Request("POST", "https://api.mistral.ai/v1/chat/moderations")),
+        ),
+        ValueError("Malformed classifier response"),
+        RuntimeError("Unexpected classifier bug"),
+        asyncio.CancelledError(),
+    ],
+    ids=["configuration", "invalid-response", "programming-error", "cancellation"],
+)
+async def test_moderation_does_not_disguise_non_transient_failures(
+    failure: BaseException,
+) -> None:
+    classify = AsyncMock(side_effect=failure)
+
+    with pytest.raises(type(failure)) as raised:
+        await run_moderation_request(classify, AIErrorContext(operation="moderation", model_name="test-classifier"))
+
+    assert raised.value is failure
+    assert classify.await_count == 1
+
+
 # --- DetectionLevel ---
 
 
@@ -158,7 +221,9 @@ async def test_moderation_off_disables_category(test_redis: object, test_service
     scores["sexual"] = 1.0
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.OFF), services=test_services)
+        result = await check_moderator(
+            _make_message(), settings=_make_settings(sexual=DetectionLevel.OFF), services=test_services
+        )
 
     assert result.flagged is False
 
@@ -169,7 +234,9 @@ async def test_moderation_high_lowers_threshold(test_redis: object, test_service
     scores["sexual"] = normal - 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH), services=test_services)
+        result = await check_moderator(
+            _make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH), services=test_services
+        )
 
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
 
@@ -180,7 +247,9 @@ async def test_moderation_low_raises_threshold(test_redis: object, test_services
     scores["sexual"] = normal + 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.LOW), services=test_services)
+        result = await check_moderator(
+            _make_message(), settings=_make_settings(sexual=DetectionLevel.LOW), services=test_services
+        )
 
     assert result.flagged is False
 

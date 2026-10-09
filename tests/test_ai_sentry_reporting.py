@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Iterator
 from types import SimpleNamespace
 from typing import Any
 
+import httpx
 import pytest
 import sentry_sdk
+from mistralai.client.errors import SDKError
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models.test import TestModel
 from sentry_sdk.envelope import Envelope
 from sentry_sdk.transport import Transport
+from structlog.testing import capture_logs
 from tenacity import wait_none
 
 from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
@@ -26,6 +30,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     run_ai_request_with_retries,
 )
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
+from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnavailable, run_moderation_request
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from sophie_bot.services import sentry
 from sophie_bot.utils.exception import SophieException
@@ -58,6 +63,7 @@ class _TraceCaptureTransport(_CapturingTransport):
             if item.payload.json is not None:
                 self.payloads.append((item.headers.get("type"), item.payload.json))
 
+
 @pytest.fixture
 def instant_retries(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Drop the exponential backoff so retry-exhausting tests do not sleep through it."""
@@ -74,7 +80,9 @@ def sentry_events() -> Iterator[list[dict[str, Any]]]:
         default_integrations=False,
         environment="test",
     )
-    yield events
+    with sentry_sdk.isolation_scope() as scope:
+        scope.clear_breadcrumbs()
+        yield events
     sentry_sdk.get_global_scope().set_client(None)
 
 
@@ -166,6 +174,52 @@ async def test_retries_are_recorded_as_breadcrumbs_on_the_final_event(
     assert len(retry_crumbs) == ai_errors.AI_REQUEST_RETRY_ATTEMPTS - 1
     assert retry_crumbs[0]["data"]["status_code"] == 503
     assert f"1/{ai_errors.AI_REQUEST_RETRY_ATTEMPTS}" in retry_crumbs[0]["message"]
+
+
+async def test_moderation_failure_reports_safe_provider_metadata_and_user_reference(
+    sentry_events: list[dict[str, Any]],
+    instant_retries: None,
+) -> None:
+    private_input = "private classifier content never belongs in reporting"
+    response = httpx.Response(
+        429,
+        request=httpx.Request(
+            "POST",
+            "https://api.mistral.ai/v1/chat/moderations",
+            content=private_input,
+        ),
+        text=f'{{"error":{{"message":"backend_out_of_capacity: {private_input}"}}}}',
+    )
+    context = AIErrorContext(operation="moderation", model_name="mistral-moderation-latest")
+
+    async def exhausted_classifier() -> None:
+        raise SDKError(f"Backend overloaded: {private_input}", response)
+
+    with capture_logs() as logs, pytest.raises(ModerationUnavailable) as raised:
+        await run_moderation_request(exhausted_classifier, context)
+
+    message = ai_request_failed_message(sentry_event_id=raised.value.sentry_event_id, docs=raised.value.docs)
+    (event,) = sentry_events
+    assert raised.value.sentry_event_id == event["event_id"]
+    assert event["event_id"] in message["text"]
+    assert event["tags"]["ai.operation"] == "moderation"
+    assert event["tags"]["ai.model"] == "mistral-moderation-latest"
+    assert event["tags"]["ai.error_type"] == "SDKError"
+    assert event["tags"]["ai.status_code"] == "429"
+    assert event["fingerprint"] == ["ai-provider-error", "moderation", "mistral-moderation-latest", "SDKError", "429"]
+    assert "provider_message" not in event["contexts"]["ai_request"]
+    assert "exception" not in event
+    assert private_input not in json.dumps(event)
+    assert private_input not in message["text"]
+    retry_crumbs = [crumb for crumb in event["breadcrumbs"]["values"] if crumb["category"] == "ai.retry"]
+    assert len(retry_crumbs) == ai_errors.AI_REQUEST_RETRY_ATTEMPTS - 1
+    assert all("provider_message" not in crumb["data"] for crumb in retry_crumbs)
+    assert logs[0]["operation"] == "moderation"
+    assert logs[0]["model"] == "mistral-moderation-latest"
+    assert logs[0]["error_type"] == "SDKError"
+    assert logs[0]["sentry_event_id"] == event["event_id"]
+    assert "exc_info" not in logs[0]
+    assert private_input not in json.dumps(logs)
 
 
 async def test_a_rescued_candidate_failure_is_reported_as_a_warning(
@@ -290,6 +344,7 @@ def test_ai_provider_exceptions_include_tool_failed_error() -> None:
     assert AgentRunError not in AI_PROVIDER_EXCEPTIONS
     assert ToolRetryError not in AI_PROVIDER_EXCEPTIONS
     assert UserError not in AI_PROVIDER_EXCEPTIONS
+
 
 @pytest.mark.asyncio
 async def test_sentry_agent_trace_includes_model_and_prompt(monkeypatch: pytest.MonkeyPatch) -> None:

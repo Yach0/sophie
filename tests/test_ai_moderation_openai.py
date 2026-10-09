@@ -6,13 +6,14 @@ from unittest.mock import AsyncMock, patch
 import httpx2
 import pytest
 from aiogram.types import Message
-from openai import InternalServerError
+from openai import AsyncOpenAI, InternalServerError
 from openai.types.moderation import Moderation
 from tenacity import wait_none
 
 from sophie_bot.modules.ai.utils import ai_errors
 from sophie_bot.modules.ai.utils.message_history import convert_to_openai_moderation_format
 from sophie_bot.modules.ai.utils.moderation import ModerationCategory, check_moderator
+from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnavailable
 from sophie_bot.modules.ai.utils.moderation.providers.openai import OpenAIModerationProvider
 from sophie_bot.utils.feature_flags import set_value
 
@@ -193,6 +194,38 @@ async def test_openai_moderation_retries_transient_503(
 
     assert result.flagged is False
     assert create.await_count == 2
+
+
+@pytest.mark.parametrize("transport_error", [httpx2.ConnectError, httpx2.ReadTimeout], ids=["connection", "timeout"])
+async def test_openai_transport_outage_is_unavailable_after_sdk_retries(
+    transport_error: type[httpx2.RequestError],
+    mock_history: AsyncMock,
+    test_redis: object,
+) -> None:
+    private_input = "private classifier input"
+    mock_history.to_moderation = [{"role": "user", "content": private_input}]
+    requests: list[httpx2.Request] = []
+
+    def fail_request(request: httpx2.Request) -> httpx2.Response:
+        requests.append(request)
+        raise transport_error("Provider unavailable", request=request)
+
+    async with AsyncOpenAI(
+        api_key="test-key",
+        max_retries=1,
+        http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(fail_request)),
+    ) as client:
+        with patch(
+            "sophie_bot.modules.ai.utils.moderation.providers.openai.get_openai_client",
+            new=AsyncMock(return_value=client),
+        ), pytest.raises(ModerationUnavailable) as raised:
+            await check_moderator(_make_message(private_input), services=SimpleNamespace(redis=test_redis))
+
+    assert len(requests) == client.max_retries + 1
+    assert all(private_input in request.content.decode() for request in requests)
+    assert raised.value.__cause__ is None
+    assert raised.value.__suppress_context__
+    assert all(private_input not in str(doc) for doc in raised.value.docs)
 
 
 async def test_threshold_flag_overrides_openai_default(
