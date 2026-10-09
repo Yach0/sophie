@@ -9,7 +9,6 @@ from stfu_tg import Doc, Italic, KeyValue, Section, Title, UserLink, VList
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIModeratorModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
-from sophie_bot.modules.ai.utils.ai_errors import ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities
 from sophie_bot.modules.ai.utils.moderation import (
     MODERATION_CATEGORIES_TRANSLATES,
@@ -119,18 +118,8 @@ class AiModeratorMiddleware(BaseMiddleware):
                     chat_tid=chat_db.tid,
                     services=services,
                 )
-            except ModerationUnavailable as error:
+            except ModerationUnavailable:
                 data["ai_moderation_blocked"] = True
-                await services.bot.send_message(
-                    event.chat.id,
-                    # Reuse the safe provider event, never recapture the classifier's traceback.
-                    **ai_request_failed_message(
-                        sentry_event_id=error.sentry_event_id,
-                        docs=error.docs,
-                        title=_("✋ AI Moderator unavailable"),
-                    ),
-                    message_thread_id=event.message_thread_id,
-                )
                 # None marks this event handled; UNHANDLED/SkipHandler could reach later routers.
                 return None
             if result.flagged:

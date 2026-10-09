@@ -1038,19 +1038,19 @@ msgstr ""
 msgid "{ai_emoji} AI Response"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
 msgid "✋ AI Moderator"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:54
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:55
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:54
 msgid "Message author"
 msgstr ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:61
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:60
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:44
@@ -1069,12 +1069,8 @@ msgid_plural "Reasons"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:65
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:64
 msgid "This message will be deleted shortly."
-msgstr ""
-
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:130
-msgid "✋ AI Moderator unavailable"
 msgstr ""
 
 #: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:143
@@ -1605,10 +1601,6 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/moderation/categories.py:58
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/moderation/providers/base.py:24
-msgid "The AI moderator is temporarily unavailable. This message could not be checked, so Sophie stopped processing it. The message has not been deleted and its author has not been restricted."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/proactive_replies.py:326
@@ -9577,5 +9569,11 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "Shows Welcome Security settings"
+#~ msgstr ""
+
+#~ msgid "✋ AI Moderator unavailable"
+#~ msgstr ""
+
+#~ msgid "The AI moderator is temporarily unavailable. This message could not be checked, so Sophie stopped processing it. The message has not been deleted and its author has not been restricted."
 #~ msgstr ""
 

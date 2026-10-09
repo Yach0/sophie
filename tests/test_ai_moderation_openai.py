@@ -225,7 +225,6 @@ async def test_openai_transport_outage_is_unavailable_after_sdk_retries(
     assert all(private_input in request.content.decode() for request in requests)
     assert raised.value.__cause__ is None
     assert raised.value.__suppress_context__
-    assert all(private_input not in str(doc) for doc in raised.value.docs)
 
 
 async def test_threshold_flag_overrides_openai_default(

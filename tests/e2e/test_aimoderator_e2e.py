@@ -174,7 +174,7 @@ def _patch_classifier_client(
 @pytest.mark.parametrize("mode", [AIMode.moderation, AIMode.support])
 @pytest.mark.parametrize("provider", ["mistral", "openai"])
 @pytest.mark.parametrize("status_code", [429, 503])
-async def test_moderation_exhausted_provider_failure_stops_all_handlers_without_punishment(
+async def test_moderation_exhausted_provider_failure_is_silent_and_stops_all_handlers(
     test_client: TestClient,
     test_services: ApplicationServices,
     extra_router: Callable[[Router], Router],
@@ -197,12 +197,8 @@ async def test_moderation_exhausted_provider_failure_stops_all_handlers_without_
 
     requests = await test_client.send_message(text=_CLASSIFIER_INPUT, from_user=member, chat=group)
 
-    notices = [request for request in requests if request.request_type == RequestType.SEND_MESSAGE]
-    assert len(notices) == 1
-    assert notices[0].params["chat_id"] == group.id
+    assert not any(request.request_type == RequestType.SEND_MESSAGE for request in requests)
     assert not framework_errors
-    assert _CLASSIFIER_INPUT not in notices[0].params["text"]
-    assert _LATER_HANDLER_REPLY not in notices[0].params["text"]
     assert classify.await_count == ai_errors.AI_REQUEST_RETRY_ATTEMPTS
     assert not any(
         request.request_type
@@ -234,7 +230,7 @@ async def test_moderation_unknown_failures_remain_framework_errors(
 
     texts = [request.params["text"] for request in requests if request.request_type == RequestType.SEND_MESSAGE]
     assert texts
-    assert not any("AI Moderator unavailable" in text or _LATER_HANDLER_REPLY in text for text in texts)
+    assert not any(_LATER_HANDLER_REPLY in text for text in texts)
     assert classify.await_count == 1
     assert not any(
         request.request_type

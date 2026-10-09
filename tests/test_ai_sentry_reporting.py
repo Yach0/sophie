@@ -176,7 +176,7 @@ async def test_retries_are_recorded_as_breadcrumbs_on_the_final_event(
     assert f"1/{ai_errors.AI_REQUEST_RETRY_ATTEMPTS}" in retry_crumbs[0]["message"]
 
 
-async def test_moderation_failure_reports_safe_provider_metadata_and_user_reference(
+async def test_moderation_failure_logs_safe_provider_metadata_and_sentry_reference(
     sentry_events: list[dict[str, Any]],
     instant_retries: None,
 ) -> None:
@@ -195,13 +195,10 @@ async def test_moderation_failure_reports_safe_provider_metadata_and_user_refere
     async def exhausted_classifier() -> None:
         raise SDKError(f"Backend overloaded: {private_input}", response)
 
-    with capture_logs() as logs, pytest.raises(ModerationUnavailable) as raised:
+    with capture_logs() as logs, pytest.raises(ModerationUnavailable):
         await run_moderation_request(exhausted_classifier, context)
 
-    message = ai_request_failed_message(sentry_event_id=raised.value.sentry_event_id, docs=raised.value.docs)
     (event,) = sentry_events
-    assert raised.value.sentry_event_id == event["event_id"]
-    assert event["event_id"] in message["text"]
     assert event["tags"]["ai.operation"] == "moderation"
     assert event["tags"]["ai.model"] == "mistral-moderation-latest"
     assert event["tags"]["ai.error_type"] == "SDKError"
@@ -210,7 +207,6 @@ async def test_moderation_failure_reports_safe_provider_metadata_and_user_refere
     assert "provider_message" not in event["contexts"]["ai_request"]
     assert "exception" not in event
     assert private_input not in json.dumps(event)
-    assert private_input not in message["text"]
     retry_crumbs = [crumb for crumb in event["breadcrumbs"]["values"] if crumb["category"] == "ai.retry"]
     assert len(retry_crumbs) == ai_errors.AI_REQUEST_RETRY_ATTEMPTS - 1
     assert all("provider_message" not in crumb["data"] for crumb in retry_crumbs)
