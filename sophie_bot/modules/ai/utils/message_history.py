@@ -32,6 +32,7 @@ from stfu_tg.doc import Element
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -98,6 +99,7 @@ async def _admin_context_name(
     is_group: bool,
     *,
     chat_models: dict[int, Task[ChatModel | None]],
+    admin_records: dict[tuple[int, int], Task[ChatAdminModel | None]],
 ) -> str:
     if not is_group:
         return name
@@ -109,7 +111,12 @@ async def _admin_context_name(
     if chat_model.type not in {ChatType.group, ChatType.supergroup}:
         return name
 
-    admin = await get_admin_record(chat_model, user_model)
+    admin_key = (chat_tid, user_tid)
+    admin_lookup = admin_records.get(admin_key)
+    if admin_lookup is None:
+        admin_lookup = create_task(get_admin_record(chat_model, user_model))
+        admin_records[admin_key] = admin_lookup
+    admin = await admin_lookup
     if not admin:
         return name
 
@@ -262,6 +269,7 @@ class AIMessageHistory:
         self._cached_message_ids: set[tuple[int, int]] = set()
         # Share in-flight lookups as well as results across this build's concurrent transforms.
         self._chat_models: dict[int, Task[ChatModel | None]] = {}
+        self._admin_records: dict[tuple[int, int], Task[ChatAdminModel | None]] = {}
 
     @staticmethod
     def _is_ai_dialogue(msg: MessageType) -> bool:
@@ -288,6 +296,7 @@ class AIMessageHistory:
             first_name,
             is_group=True,
             chat_models=self._chat_models,
+            admin_records=self._admin_records,
         )
         return AIUserMessageFormatter.user_message(
             msg.text,
@@ -340,6 +349,7 @@ class AIMessageHistory:
             first_name,
             is_group=True,
             chat_models=self._chat_models,
+            admin_records=self._admin_records,
         )
         return ModelRequest(
             parts=[
@@ -435,6 +445,7 @@ class AIMessageHistory:
             message.from_user.full_name,
             message.chat.type != "private",
             chat_models=self._chat_models,
+            admin_records=self._admin_records,
         )
         prompt.extend(
             await _build_message_parts(

@@ -73,6 +73,11 @@ queries and results, including missing records, across cached dialogue, backgrou
 messages and replies. Keep that state on the builder, not on a shared service or module: a new render
 must read current names and records. Media processing and tool replay use the same builder.
 
+Administrator records are likewise deduplicated by chat and user within that history build, including
+absent records. Cache the records, never formatted sender names: live Telegram names and cached names
+remain distinct. This snapshot is only for AI context labels, not authorization checks; a fresh
+builder must observe title changes, promotions and revocations.
+
 ---
 
 ## Translation System
