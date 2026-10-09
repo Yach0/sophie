@@ -68,6 +68,11 @@ Key points:
 - **Runtime Configuration**: Use the mode runtime's `config` when initializing its resources. Pass it to database initialization so a custom runtime does not inherit process-global index settings.
 - **Explicit Naming**: Use `chat_tid` for Telegram Chat IDs (int) and `chat_iid` for database IDs (ObjectId). **NEVER** confuse them.
 
+Each AI context render must create its own `AIMessageHistory`. Its chat-model lookups share in-flight
+queries and results, including missing records, across cached dialogue, background context, current
+messages and replies. Keep that state on the builder, not on a shared service or module: a new render
+must read current names and records. Media processing and tool replay use the same builder.
+
 ---
 
 ## Translation System
