@@ -1,6 +1,6 @@
 - name: Set shared operator IDs
   set_fact:
-    operators: [834047763]
+    operators: [834047763, 483808054]
 
 - name: Set vars for Staging
   set_fact:
