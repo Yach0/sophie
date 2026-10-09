@@ -40,7 +40,7 @@ dependencies = [
     "pyjwt>=2.14.0,<3",
     "init-data-py>=1,<1.1",
     "normality>=3.1.0",
-    "av>=18.1,<19",
+    "av>=19,<20",
     "openapi-client",
     "psutil>=7.2.2,<8",
     "ussr @ git+https://gitlab.com/SophieBot/ussr.git",
