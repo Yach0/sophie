@@ -5,10 +5,10 @@ from typing import Any
 from aiogram import Dispatcher
 from aiogram.fsm.middleware import FSMContextMiddleware
 from aiogram.utils.i18n import ConstI18nMiddleware
-from ass_tg.middleware import ArgsMiddleware
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.admincache import AdmincacheMiddleware
+from sophie_bot.middlewares.args import ArgsMiddleware
 from sophie_bot.middlewares.beta import BetaMiddleware
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.middlewares.disabling import DisablingMiddleware

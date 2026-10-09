@@ -10,6 +10,7 @@ from aiogram.types import Chat, Message, MessageEntity
 from magic_filter import MagicFilter
 
 from sophie_bot.config import CONFIG
+from sophie_bot.utils.command_names import normalize_command_name
 
 CMD_TYPE: TypeAlias = str | Pattern  # noqa: UP040
 
@@ -74,8 +75,12 @@ class CMDFilter(BaseFilter):
             if isinstance(allowed_command, Pattern):  # Regexp
                 if result := allowed_command.match(command.command):
                     return replace(command, regexp_match=result)
-            elif command.command == allowed_command:  # String
-                return command
+            else:
+                # Normalize only literal matching; expose the matched registered spelling.
+                command_name = normalize_command_name(command.command, ignore_case=self.ignore_case)
+                allowed_name = normalize_command_name(allowed_command, ignore_case=self.ignore_case)
+                if command_name == allowed_name:
+                    return replace(command, command=allowed_command)
         raise CommandException("Command did not match pattern")
 
     def do_magic(self, command: CommandObject) -> None:
@@ -105,7 +110,8 @@ class CMDFilter(BaseFilter):
         if self.ignore_forwarded and message.forward_from:
             return False
 
-        if message.entities and self.ignore_code and self.check_mono(message.entities):
+        entities = message.entities if message.text else message.caption_entities
+        if entities and self.ignore_code and self.check_mono(entities):
             return False
 
         try:

@@ -14,8 +14,8 @@ icon: 🔓
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/lockable` `/locktypes` | - | Shows all lockable message types | *Disable-able* |
-| `/locklanguages` `/locklangs` | - | Shows all supported languages for locking | *Disable-able* |
+| `/lockable` `/lock_types` | - | Shows all lockable message types | *Disable-able* |
+| `/lock_languages` `/lock_langs` | - | Shows all supported languages for locking | *Disable-able* |
 {.card-view-on-mobile}
 
 ### Only admins
@@ -24,9 +24,9 @@ icon: 🔓
 | --- | --- | --- | --- |
 | `/lock` | `<Lock type>` | Lock a message type in the chat | *Disable-able* |
 | `/unlock` | `<Lock type>` | Unlock a message type in the chat | *Disable-able* |
-| `/locksticker` | - | Lock a sticker pack in the chat | *Disable-able* |
+| `/lock_sticker` | - | Lock a sticker pack in the chat | *Disable-able* |
 | `/locks` `/locked` | - | Show currently locked message types in the chat | *Disable-able* |
-| `/unlockall` | - | - |  |
+| `/unlock_all` | - | - |  |
 {.card-view-on-mobile}
 ---
 
@@ -201,16 +201,16 @@ The list below is generated from the same source used by /lockable.
 ## Need help choosing?
 
 If you are not sure whether your case should use a lock type, a text matcher, regex, or an AI filter,
-use `/aiaddfilter` first.
+use `/ai_add_filter` first.
 
 Example:
 
 ```
-/aiaddfilter block crypto spam
+/ai_add_filter block crypto spam
 ```
 
 Sophie will suggest matching handlers for you.
-You can then pick the best one and create the real filter with `/addfilter <handler>`.
+You can then pick the best one and create the real filter with `/add_filter <handler>`.
 
 ## Rich message text
 

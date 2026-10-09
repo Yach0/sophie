@@ -3,6 +3,7 @@ from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import SkipHandler
+from aiogram.filters.command import CommandException
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Chat, Message, TelegramObject, User
 from stfu_tg import Doc
@@ -10,6 +11,7 @@ from stfu_tg import Doc
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_header import (
     AIHeaderStyle,
     build_ai_header,
@@ -66,17 +68,17 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: wizard input state, dropping...")
             return True
 
-        # Check for the commands
-        # This code is a little bit shit but honestly I don't see any other way to do it
-        # Outer middlewares runs BEFORE filters, so we cannot access the CMDFilter,
-        # therefore, we can't get the command object reliably
-        # parsing it here is the only way
+        # Outer middlewares run before filters, so parse and validate the command here.
         text = message.text
         chat_id = message.chat.id
         if text and len(text) > 3 and any(text.startswith(prefix) for prefix in CONFIG.commands_prefix):
-            cmd_text = text[1:].lower().split(" ", 1)[0]
+            command_filter = CMDFilter(self._get_all_cmds(services), ignore_mention=False)
+            try:
+                await command_filter.parse_command(text, services.bot)
+            except CommandException:
+                return False
 
-            if cmd_text in self._get_all_cmds(services) and await is_user_admin(chat_id, sender.id):
+            if await is_user_admin(chat_id, sender.id):
                 log.debug("EnforceFiltersMiddleware: admin and command, dropping...")
                 return True
 

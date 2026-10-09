@@ -173,7 +173,7 @@ async def text_or_reply(message: Message | None, _data: dict):
 class AiTranslate(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("aitranslate", "translate", "tr")), AICapabilityFilter(), AIQuotaFilter(AI_FEATURE_TRANSLATE)
+        return CMDFilter(("ai_translate", "translate", "tr")), AICapabilityFilter(), AIQuotaFilter(AI_FEATURE_TRANSLATE)
 
     @classmethod
     def register(cls, router: Router) -> None:

@@ -32,7 +32,7 @@ class FederationCheckPMHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("fcheck", "fbanstat")),
+            CMDFilter(("fcheck", "fban_stat")),
             ChatTypeFilter("private"),
             ~IsConnectedFilter(),
         )

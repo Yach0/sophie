@@ -47,7 +47,7 @@ async def validate_filter_handler(chat_iid: ObjectId, keyword: str, editing_id: 
                 Template(
                     _("The lock-filter {name} already exists! Please use {cmd} to edit the filter."),
                     name=Code(keyword),
-                    cmd=Code(f"/editfilter {keyword}"),
+                    cmd=Code(f"/edit_filter {keyword}"),
                 ),
             )
 
@@ -57,7 +57,7 @@ async def validate_filter_handler(chat_iid: ObjectId, keyword: str, editing_id: 
             _("A filter with this handler already exists."),
             Doc(
                 Template(_("Filter with the handler {handler} already exists!"), handler=Code(keyword)),
-                Template(_("You can edit the filter's actions with {cmd}."), cmd=Code(f"/editfilter {keyword}")),
+                Template(_("You can edit the filter's actions with {cmd}."), cmd=Code(f"/edit_filter {keyword}")),
             ),
         )
 

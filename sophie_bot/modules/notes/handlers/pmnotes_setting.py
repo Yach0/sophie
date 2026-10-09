@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class PMNotesStatus(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("pmnotes", "privatenotes")), ~ChatTypeFilter("private")
+        return CMDFilter(("pm_notes", "private_notes")), ~ChatTypeFilter("private")
 
     async def handle(self) -> Any:
         connection: ChatConnection = self.connection
@@ -38,7 +38,7 @@ class PMNotesStatus(SophieMessageHandler):
                 KeyValue(_("Current state"), _("Enabled") if state else _("Disabled")),
                 title=_("Private Notes"),
             ),
-            Template(_("Use '{cmd}' to change it."), cmd=Italic("/pmnotes (on / off)")),
+            Template(_("Use '{cmd}' to change it."), cmd=Italic("/pm_notes (on / off)")),
         )
 
         await self.event.reply(str(doc), disable_web_page_preview=True)
@@ -50,7 +50,7 @@ class PMNotesControl(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("pmnotes", "privatenotes")),
+            CMDFilter(("pm_notes", "private_notes")),
             ~ChatTypeFilter("private"),
             HasArgs(True),
             UserRestricting(admin=True),

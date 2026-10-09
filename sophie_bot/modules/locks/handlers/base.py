@@ -42,7 +42,7 @@ class BaseLockToggleHandler(SophieMessageHandler):
             await message.reply(
                 Doc(
                     Template(str(self.filters_module_text), type=lock_type),
-                    Template(str(self.filters_module_delete_hint), cmd=f"/delfilter {lock_type}"),
+                    Template(str(self.filters_module_delete_hint), cmd=f"/del_filter {lock_type}"),
                 ).to_html()
             )
             return

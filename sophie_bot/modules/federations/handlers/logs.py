@@ -21,7 +21,7 @@ class SetFederationLogHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fsetlog", "setfedlog")),)
+        return (CMDFilter(("f_set_log", "set_fed_log")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:
@@ -55,7 +55,7 @@ class SetFederationLogHandler(SophieMessageHandler):
 
         if federation.log_chat:
             await self.event.reply(
-                _("This federation already has a log channel set. Use /funsetlog to remove it first.")
+                _("This federation already has a log channel set. Use /f_unset_log to remove it first.")
             )
             return
 
@@ -97,7 +97,7 @@ class UnsetFederationLogHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("funsetlog", "unsetfedlog")),)
+        return (CMDFilter(("f_unset_log", "unset_fed_log")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

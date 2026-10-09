@@ -47,7 +47,7 @@ class AntifloodInfoHandler(SophieMessageHandler):
                     title=_("📈 Antiflood Settings"),
                 ),
                 Spacer(),
-                Template(_("Use {cmd} to enable antiflood protection"), cmd=Italic("/enableantiflood <on/off>")),
+                Template(_("Use {cmd} to enable antiflood protection"), cmd=Italic("/enable_antiflood <on/off>")),
                 Template(_("Use {cmd} to set message count threshold"), cmd=Italic("/antiflood_count <count>")),
                 Template(_("Use {cmd} to configure actions"), cmd=Italic("/antiflood_action")),
             )
@@ -81,7 +81,7 @@ class AntifloodInfoHandler(SophieMessageHandler):
                 title=_("📈 Antiflood Settings"),
             ),
             Spacer(),
-            Template(_("Use {cmd} to enable antiflood protection"), cmd=Italic("/enableantiflood <on/off>")),
+            Template(_("Use {cmd} to enable antiflood protection"), cmd=Italic("/enable_antiflood <on/off>")),
             Template(_("Use {cmd} to set message count threshold"), cmd=Italic("/antiflood_count <count>")),
             Template(_("Use {cmd} to configure actions"), cmd=Italic("/antiflood_action")),
         )

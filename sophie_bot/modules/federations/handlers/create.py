@@ -27,7 +27,7 @@ class CreateFederationHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("newfed", "fnew")),)
+        return (CMDFilter(("new_fed", "fnew")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
@@ -63,7 +63,7 @@ class CreateFederationHandler(SophieMessageHandler):
             Title(_("🏛 Federation Created")),
             Template(_("Federation '{name}' has been created successfully!"), name=federation.fed_name),
             Template(_("Federation ID: {fed_id}"), fed_id=Code(federation.fed_id)),
-            Template(_("Use {cmd} to join this federation."), cmd=f"/joinfed {federation.fed_id}"),
+            Template(_("Use {cmd} to join this federation."), cmd=f"/join_fed {federation.fed_id}"),
             _("You are the owner of this federation."),
         )
 

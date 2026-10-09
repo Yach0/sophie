@@ -62,7 +62,7 @@ class AICapabilityFilter(Filter):
                 str(
                     Doc(
                         _("The AI features are currently disabled for this chat."),
-                        Template(_('Please use "{cmd}" to pick an AI mode.'), cmd=Italic("/aimode")),
+                        Template(_('Please use "{cmd}" to pick an AI mode.'), cmd=Italic("/ai_mode")),
                     )
                 )
             )

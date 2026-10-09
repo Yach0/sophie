@@ -189,8 +189,8 @@ msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Pamiętaj, że każdy czat ma ograniczony miesięczny limit AI."
 
 #: sophie_bot/modules/ai/__init__.py:139
-msgid "Use /aiusage to check your remaining quota."
-msgstr "Użyj /aiusage, aby sprawdzić pozostały limit."
+msgid "Use /ai_usage to check your remaining quota."
+msgstr "Użyj /ai_usage, aby sprawdzić pozostały limit."
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:17
 msgid "Can be empty"
@@ -392,8 +392,8 @@ msgid "AI Filter Suggestions"
 msgstr "Sugestie filtrów AI"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:243
-msgid "Use /addfilter <handler> to create the filter."
-msgstr "Użyj /addfilter <handler>, aby utworzyć filtr."
+msgid "Use /add_filter <handler> to create the filter."
+msgstr "Użyj /add_filter <handler>, aby utworzyć filtr."
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 #, python-brace-format
@@ -3251,8 +3251,8 @@ msgid "Only the federation owner can set the log channel."
 msgstr "Tylko właściciel federacji może ustawić kanał dzienników."
 
 #: sophie_bot/modules/federations/handlers/logs.py:58
-msgid "This federation already has a log channel set. Use /funsetlog to remove it first."
-msgstr "Ta federacja ma już ustawiony kanał dzienników. Użyj /funsetlog, aby go najpierw usunąć."
+msgid "This federation already has a log channel set. Use /f_unset_log to remove it first."
+msgstr "Ta federacja ma już ustawiony kanał dzienników. Użyj /f_unset_log, aby go najpierw usunąć."
 
 #: sophie_bot/modules/federations/handlers/logs.py:67
 msgid "Unable to verify permissions in this channel."
@@ -3851,7 +3851,7 @@ msgstr "Anuluj"
 #: sophie_bot/modules/filters/handlers/filters_list.py:226
 msgid ""
 "There are no filters in this chat!\n"
-"Use /addfilter <handler> to create one."
+"Use /add_filter <handler> to create one."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:237
@@ -7667,7 +7667,7 @@ msgid "Welcome Security message"
 msgstr "Wiadomość Bezpieczeństwa Powitania"
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:140
-msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgid "These settings are no longer active. Open /welcome_security again for the intended chat."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:147

@@ -93,7 +93,7 @@ async def _send_picker(message: Message, settings: AIModeratorModel | None) -> N
 class AIModeratorSetting(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("aimoderator"), UserRestricting(admin=True)
+        return CMDFilter("ai_moderator"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         await _send_picker(self.event, await get_moderator_settings(self.connection.db_model.iid))

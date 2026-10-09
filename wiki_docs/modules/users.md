@@ -15,6 +15,6 @@ icon: 🫂
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/id` | `<User>` | - |  |
-| `/adminlist` `/admins` | - | Lists all the chats admins. | *Disable-able* |
+| `/admin_list` `/admins` | - | Lists all the chats admins. | *Disable-able* |
 | `/info` | `<User>` | Shows the additional information about the user. | *Disable-able* |
 {.card-view-on-mobile}

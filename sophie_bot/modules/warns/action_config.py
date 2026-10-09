@@ -92,7 +92,7 @@ class WarnEachActionWizard(ActionWizardStartHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return _command_filters("warnaction_each", "warn_action_each")
+        return _command_filters("warn_action_each")
 
 
 class WarnEachActionCallback(ActionWizardCallbackHandler):
@@ -128,7 +128,7 @@ class WarnMaxActionWizard(ActionWizardStartHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return _command_filters("warnaction_max", "warn_action_max")
+        return _command_filters("warn_action_max")
 
 
 class WarnMaxActionCallback(ActionWizardCallbackHandler):

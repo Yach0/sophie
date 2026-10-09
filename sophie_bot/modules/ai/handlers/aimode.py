@@ -81,7 +81,7 @@ async def _send_picker(message: Message, selected: AIMode) -> None:
 class AIModeSetting(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("aimode"), UserRestricting(admin=True)
+        return CMDFilter("ai_mode"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         await _send_picker(self.event, await get_chat_mode(self.connection.db_model.iid, AIMode.disabled))

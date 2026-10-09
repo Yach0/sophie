@@ -4,6 +4,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models import DisablingModel
 from sophie_bot.modules.help.utils.extract_info import HandlerHelp
+from sophie_bot.utils.command_names import normalize_command_name
 
 
 async def get_disabled_handlers(
@@ -24,7 +25,12 @@ def resolve_disableable_cmd(
     Any of the handler's commands resolve to the same canonical name, so aliases cannot produce
     a second, unenforceable key.
     """
+    normalized_name = normalize_command_name(name, ignore_case=True)
     return next(
-        ((key, handler) for key, handler in disableable_commands.items() if name == key or name in handler.cmds),
+        (
+            (key, handler)
+            for key, handler in disableable_commands.items()
+            if any(normalized_name == normalize_command_name(alias, ignore_case=True) for alias in (key, *handler.cmds))
+        ),
         None,
     )
