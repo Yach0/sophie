@@ -7,9 +7,7 @@ from pydantic import Field
 
 from sophie_bot.db.models._link_type import Link
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.utils.ai_features import (
-    AIFeature,
-)
+from sophie_bot.utils.ai_features import AIFeature
 
 
 class AIUsageModel(Document):
