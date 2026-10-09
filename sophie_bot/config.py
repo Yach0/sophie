@@ -98,7 +98,7 @@ class Config(BaseSettings):
     news_channel: str = "https://t.me/SophieNEWS"
     wiki_link: str = "https://sophie-wiki.orangefox.tech/"
     wiki_modules_link: str = "https://sophie-wiki.orangefox.tech/modules/"
-    privacy_link: str = "https://sophie-wiki.orangefox.tech/docs/Privacy%20policy"
+    privacy_link: str = "https://sophie-wiki.orangefox.tech/Privacy%20policy"
 
     help_featured_module: str = "ai"
 
