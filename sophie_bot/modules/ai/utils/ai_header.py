@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Any, Final, Literal
 
 from redis.asyncio import Redis
-from stfu_tg import BlockQuote, CustomEmoji, Doc, HList, Italic, Paragraph
+from stfu_tg import BlockQuote, CustomEmoji, Doc, HList, Italic
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI
@@ -53,6 +53,22 @@ class _InlineElement(Element):
 
     def to_md(self) -> str:
         return self.element.to_md()
+
+
+class _ReplyBody(Element):
+    """Trim only boundary newlines before Doc adds the footer separator."""
+
+    def __init__(self, element: Element) -> None:
+        self.element = element
+
+    def to_html(self, *_args: Any) -> str:
+        return self.element.to_html().rstrip("\n")
+
+    def to_rich(self) -> str:
+        return self.element.to_rich().rstrip("\n")
+
+    def to_md(self) -> str:
+        return self.element.to_md().rstrip("\n")
 
 
 def _inline_body_item(item: Element | str | None) -> Element | str | None:
@@ -114,17 +130,15 @@ def build_ai_message_doc(
         else None
     )
     return Doc(
-        HList(
+        _ReplyBody(
             HList(
                 CustomEmoji(emoji_id, AI_EMOJI),
                 tools,
                 *inline_body,
                 divider=" ",
-            ),
-            _LineBreak(),
-            Paragraph(header),
-            divider="",
-        )
+            )
+        ),
+        header,
     )
 
 

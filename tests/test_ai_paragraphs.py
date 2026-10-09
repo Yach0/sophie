@@ -43,7 +43,7 @@ def test_only_leading_paragraph_is_inline_when_header_present(with_header: bool,
     rich = build_ai_message_doc(header, rendered_body).to_rich()
     if with_header:
         assert rich.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {FIRST}\n{SECOND}')
-        assert rich.endswith(" 50%</p>")
+        assert rich.endswith(" 50%")
     else:
         assert rich == body.to_rich()
 
@@ -68,7 +68,7 @@ def test_only_first_body_item_is_unwrapped() -> None:
 def test_leading_blocks_and_their_later_paragraphs_are_preserved(markdown: str) -> None:
     body = ai_markdown_to_doc(markdown)
     rich = build_ai_message_doc("battery", body).to_rich()
-    assert rich == f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {body.to_rich()}<br><p>battery</p>'
+    assert rich == f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {body.to_rich()}\nbattery'
 
 
 def test_nested_paragraph_in_quote_is_preserved() -> None:
@@ -79,7 +79,7 @@ def test_nested_paragraph_in_quote_is_preserved() -> None:
 
 def test_plain_html_fallback_keeps_newlines_and_inline_formatting() -> None:
     doc = build_ai_message_doc("battery", ai_markdown_to_doc(MARKDOWN))
-    assert doc.to_html() == f"✨ {FIRST}\n{SECOND[3:-4]}<br>battery"
+    assert doc.to_html() == f"✨ {FIRST}\n{SECOND[3:-4]}\nbattery"
     assert doc.to_md() == f"✨ {ai_markdown_to_doc(MARKDOWN).to_md()}\nbattery"
 
 
@@ -97,7 +97,7 @@ async def test_reply_pipeline_preserves_second_paragraph(test_redis: Redis, stri
         strip_alien_html_tags=strip_alien_html_tags,
     )
     assert "Hello <b>bold</b>.\n<p>Second " in doc.to_rich()
-    assert "</p><br><p>battery</p>" in doc.to_rich()
+    assert "</p>\nbattery" in doc.to_rich()
     if strip_alien_html_tags:
         assert "<p>Second <i>italic</i>.</p>" in doc.to_rich()
 

@@ -67,7 +67,7 @@ def test_rendered_simple_header_is_removed_from_cached_multiline_body() -> None:
 
     assert doc.to_rich() == (
         f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {body}'
-        '<br><p><tg-emoji emoji-id="5841233274352963797">🔋</tg-emoji> 95%</p>'
+        '\n<tg-emoji emoji-id="5841233274352963797">🔋</tg-emoji> 95%'
     )
     assert cut_titlebar(doc.to_md()) == body
 

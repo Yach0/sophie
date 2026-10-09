@@ -220,5 +220,5 @@ async def test_final_tool_titles_survive_a_pending_draft_edit(monkeypatch: pytes
     await asyncio.gather(pending_update, return_exceptions=True)
 
     assert _edited_text(response_message) == final_doc.to_rich()
-    assert "(Search) Answer<br><p>" in _edited_text(response_message)
+    assert "(Search) Answer\n<tg-emoji" in _edited_text(response_message)
     assert 'emoji-id="5535248817659576336"' not in _edited_text(response_message)
