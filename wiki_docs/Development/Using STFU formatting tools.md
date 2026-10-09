@@ -32,6 +32,16 @@ await message.reply(str(doc))
 await message.reply(doc.to_html())
 ```
 
+Use `reply_or_answer` for a command response that must still arrive after its command
+message has been deleted. Group `/start` uses this helper to retry without a reply,
+while keeping its Help button and link-preview settings.
+
+```python
+from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
+
+await reply_or_answer(message, doc.to_html())
+```
+
 ## Doc - Container for Elements
 
 The main container that holds multiple elements.

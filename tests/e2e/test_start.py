@@ -10,9 +10,15 @@ Group chat testing would require manual message construction.
 from __future__ import annotations
 
 import pytest
+from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import SendMessage, TelegramMethod
+from aiogram.methods.base import TelegramType
 from aiogram_test_framework import TestClient
 
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.modules.error.handlers.error import SophieErrorHandler
+from tests.e2e.helpers import create_test_user_and_group
 
 
 @pytest.mark.asyncio
@@ -89,3 +95,38 @@ async def test_id_command(test_client: TestClient) -> None:
     # Verify the response contains the user ID
     response_text = last_message.text or ""
     assert str(user_id) in response_text, f"Response should contain user ID {user_id}, got: {response_text}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error_message", ["message to be replied not found", "REPLY_MESSAGE_ID_INVALID"])
+async def test_group_start_delivers_help_when_command_was_deleted(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    error_message: str,
+) -> None:
+    user, group, _model = await create_test_user_and_group(test_client)
+    original_make_request = test_client.bot.session.make_request
+    rejected: list[SendMessage] = []
+    reported: list[Exception] = []
+
+    def capture_error(error: Exception) -> None:
+        reported.append(error)
+
+    monkeypatch.setattr(SophieErrorHandler, "capture_sentry", staticmethod(capture_error))
+
+    async def make_request(bot: Bot, method: TelegramMethod[TelegramType], timeout: int | None = None) -> TelegramType:
+        if isinstance(method, SendMessage) and method.chat_id == group.id and method.reply_parameters:
+            rejected.append(method)
+            raise TelegramBadRequest(method=method, message=error_message)
+        return await original_make_request(bot, method, timeout=timeout)
+
+    monkeypatch.setattr(test_client.bot.session, "make_request", make_request)
+    requests = await test_client.send_command(command="start", from_user=user, chat=group)
+
+    assert not reported
+    delivered = [request for request in requests if request.params.get("reply_markup")]
+    assert len(rejected) == 1
+    assert len(delivered) == 1
+    response = delivered[0]
+    assert response.chat_id == group.id
+    assert not response.params.get("reply_parameters")
