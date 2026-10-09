@@ -8,9 +8,13 @@ GreetingsModel state — the product behaviour the command-level greetings tests
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
-from aiogram.types import User
+from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import SendMessage, SendRichMessage, TelegramMethod
+from aiogram.types import RichBlockParagraph, RichMessage, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
@@ -20,6 +24,8 @@ from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.db.models.notes import Saveable
+from sophie_bot.modules.error.handlers.error import SophieErrorHandler
+from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import (
     create_test_user_and_group,
@@ -188,6 +194,80 @@ async def test_ephemeral_greeting_is_per_member_and_untracked(test_client: TestC
     assert len(_sends(requests)) == 2, "Each joining member gets their own ephemeral greeting"
     stored = await _greetings(group.id)
     # Ephemeral greetings live only for their recipient, so none is handed to clean-welcome.
+    assert stored.clean_welcome is not None
+    assert stored.clean_welcome.last_msg is None
+
+
+def _welcome_receiver(method: SendMessage | SendRichMessage) -> int | None:
+    if isinstance(method, SendRichMessage):
+        parameters = method.ephemeral_message_parameters
+        return parameters.receiver_user_id if parameters else None
+    receiver_user_id = method.model_dump().get("receiver_user_id")
+    return int(receiver_user_id) if receiver_user_id is not None else None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing_reply", [False, True], ids=["initial-send", "missing-reply-retry"])
+@pytest.mark.parametrize("rich_welcome", [False, True], ids=["traditional-welcome", "rich-welcome"])
+async def test_departed_welcome_recipient_is_skipped_without_public_resend(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    missing_reply: bool,
+    rich_welcome: bool,
+) -> None:
+    _adder, group, _user_model = await create_test_user_and_group(test_client)
+    chat_model = await ChatModel.get_by_tid(group.id)
+    assert chat_model is not None
+    await grant_bot_admin(group.id)
+    greetings = await _greetings(group.id)
+    await greetings.set_clean_welcome_status(True)
+    rich_message = RichMessage(blocks=[RichBlockParagraph(text="Private greeting")]) if rich_welcome else None
+    await GreetingsModel.change_welcome_message(
+        chat_model.iid,
+        Saveable(text="Private greeting", rich_message=rich_message, version=3 if rich_welcome else 2),
+    )
+    departed = User(id=next_user_id(), is_bot=False, first_name="Departed")
+    remaining = User(id=next_user_id(), is_bot=False, first_name="Remaining")
+    attempts: list[SendMessage | SendRichMessage] = []
+    departed_attempts: list[SendMessage | SendRichMessage] = []
+    reported: list[Exception] = []
+    original_make_request = test_client.bot.session.make_request
+
+    async def make_request(bot: Bot, method: TelegramMethod, timeout: int | None = None) -> Any:
+        if isinstance(method, (SendMessage, SendRichMessage)) and method.chat_id == group.id:
+            attempts.append(method)
+            if _welcome_receiver(method) == departed.id:
+                departed_attempts.append(method)
+                if missing_reply and len(departed_attempts) == 1:
+                    raise TelegramBadRequest(method=method, message=REPLIED_NOT_FOUND)
+                raise TelegramBadRequest(method=method, message="USER_NOT_PARTICIPANT")
+        return await original_make_request(bot, method, timeout=timeout)
+
+    def record_error(error: Exception) -> None:
+        reported.append(error)
+
+    monkeypatch.setattr(test_client.bot.session, "make_request", make_request)
+    monkeypatch.setattr(SophieErrorHandler, "capture_sentry", staticmethod(record_error))
+
+    requests = await join_group(test_client, group, departed, remaining)
+
+    assert reported == []
+    expected_departed_attempts = 2 if missing_reply else 1
+    assert len(departed_attempts) == expected_departed_attempts
+    assert [_welcome_receiver(method) for method in attempts] == [
+        *([departed.id] * expected_departed_attempts),
+        remaining.id,
+    ]
+    assert departed_attempts[0].reply_parameters is not None
+    if missing_reply:
+        assert departed_attempts[1].reply_parameters is None
+    successful_sends = [
+        request
+        for request in requests
+        if request.params.get("text") == "Private greeting" or request.params.get("rich_message")
+    ]
+    assert len(successful_sends) == 1
+    stored = await _greetings(group.id)
     assert stored.clean_welcome is not None
     assert stored.clean_welcome.last_msg is None
 

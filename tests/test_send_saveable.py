@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
+from aiogram import Bot
 from aiogram.enums import ContentType
-from aiogram.methods import SendVideo, SendVideoNote, SendVoice
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import SendMediaGroup, SendRichMessage, SendVideo, SendVideoNote, SendVoice, TelegramMethod
+from aiogram.types import Chat, Message, RichBlockParagraph, RichMessage
 from stfu_tg import Bold
 
+from sophie_bot.config import CONFIG
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.modules.notes.utils import send as send_module
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT
+from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 
@@ -369,3 +375,199 @@ async def test_title_randomness_is_processed_independently_before_assembly(
     )
     choice.assert_called_once_with(["T", "Long title"])
     assert "".join(method.text for method in emitted) == "<b>T</b>\n" + text
+
+
+@pytest.fixture
+async def recipient_send_services(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> AsyncGenerator[ApplicationServices]:
+    bot = Bot(token=CONFIG.token)
+    monkeypatch.setattr(test_services, "bot", bot)
+    yield test_services
+    await bot.session.close()
+
+
+@pytest.fixture(params=["text", "rich", "photo"], ids=str)
+def recipient_saveable(request: pytest.FixtureRequest) -> Saveable:
+    if request.param == "rich":
+        return Saveable(
+            text="Private welcome",
+            rich_message=RichMessage(blocks=[RichBlockParagraph(text="Private welcome")]),
+            version=3,
+        )
+    if request.param == "text":
+        return Saveable(text="Private welcome", version=2)
+    return Saveable(
+        text="Private welcome",
+        file=NoteFile(id="welcome-file", type=ContentType(request.param)),
+        version=2,
+    )
+
+
+def _capture_send_outcomes(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    failure_messages: list[str],
+) -> tuple[list[TelegramMethod[Any]], list[TelegramBadRequest]]:
+    emitted: list[TelegramMethod[Any]] = []
+    errors: list[TelegramBadRequest] = []
+
+    async def make_request(bot: Bot, method: TelegramMethod[Any], timeout: int | None = None) -> Message:
+        emitted.append(method)
+        if len(emitted) <= len(failure_messages):
+            error = TelegramBadRequest(method=method, message=failure_messages[len(emitted) - 1])
+            errors.append(error)
+            raise error
+        return Message(message_id=42, date=0, chat=Chat(id=-100123, type="supergroup"))
+
+    monkeypatch.setattr(test_services.bot.session, "make_request", make_request)
+    return emitted, errors
+
+
+def _assert_ephemeral_recipient(methods: list[TelegramMethod[Any]], receiver_user_id: int) -> None:
+    for method in methods:
+        payload = method.model_dump(exclude_none=True)
+        if isinstance(method, SendRichMessage):
+            assert payload["ephemeral_message_parameters"]["receiver_user_id"] == receiver_user_id
+        else:
+            assert payload["receiver_user_id"] == receiver_user_id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing_reply", [False, True], ids=["initial-send", "missing-reply-retry"])
+@pytest.mark.parametrize("error_message", ["USER_NOT_PARTICIPANT", "Bad Request: USER_NOT_PARTICIPANT"])
+async def test_send_saveable_skips_unavailable_ephemeral_recipient(
+    monkeypatch: pytest.MonkeyPatch,
+    recipient_send_services: ApplicationServices,
+    recipient_saveable: Saveable,
+    missing_reply: bool,
+    error_message: str,
+) -> None:
+    failure_messages = [REPLIED_NOT_FOUND, error_message] if missing_reply else [error_message]
+    emitted, errors = _capture_send_outcomes(monkeypatch, recipient_send_services, failure_messages)
+    skipped_log = Mock()
+    monkeypatch.setattr(send_module.log, "info", skipped_log)
+    collected: list[Message] = []
+
+    result = await send_module.send_saveable(
+        message=None,
+        send_to=-100123,
+        saveable=recipient_saveable,
+        reply_to=17,
+        message_thread_id=99,
+        receiver_user_id=42,
+        collect_sent=collected,
+        bot=recipient_send_services.bot,
+    )
+
+    assert result is None
+    assert collected == []
+    assert len(emitted) == len(failure_messages)
+    assert len(errors) == len(failure_messages)
+    _assert_ephemeral_recipient(emitted, 42)
+    assert emitted[0].model_dump()["reply_parameters"]["message_id"] == 17
+    if missing_reply:
+        assert emitted[-1].model_dump().get("reply_parameters") is None
+    assert all(method.model_dump()["message_thread_id"] == 99 for method in emitted)
+    assert any(
+        call.kwargs.get("outcome") == "skipped" and call.kwargs.get("reason") == "recipient_unavailable"
+        for call in skipped_log.call_args_list
+    )
+
+
+@pytest.mark.asyncio
+async def test_send_saveable_missing_reply_retry_keeps_ephemeral_recipient(
+    monkeypatch: pytest.MonkeyPatch,
+    recipient_send_services: ApplicationServices,
+    recipient_saveable: Saveable,
+) -> None:
+    emitted, _errors = _capture_send_outcomes(monkeypatch, recipient_send_services, [REPLIED_NOT_FOUND])
+    collected: list[Message] = []
+
+    result = await send_module.send_saveable(
+        message=None,
+        send_to=-100123,
+        saveable=recipient_saveable,
+        reply_to=17,
+        receiver_user_id=42,
+        collect_sent=collected,
+        bot=recipient_send_services.bot,
+    )
+
+    assert isinstance(result, Message)
+    assert collected == [result]
+    assert len(emitted) == 2
+    _assert_ephemeral_recipient(emitted, 42)
+    assert emitted[0].model_dump()["reply_parameters"]["message_id"] == 17
+    assert emitted[1].model_dump().get("reply_parameters") is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing_reply", [False, True], ids=["initial-send", "missing-reply-retry"])
+@pytest.mark.parametrize(
+    ("receiver_user_id", "error_message"),
+    [
+        (None, "USER_NOT_PARTICIPANT"),
+        (42, "UNEXPECTED_SEND_ERROR"),
+        (42, "USER_NOT_PARTICIPANT_OTHER"),
+    ],
+    ids=["public-recipient-error", "unrelated-ephemeral-error", "different-recipient-error"],
+)
+async def test_send_saveable_surfaces_non_recipient_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    recipient_send_services: ApplicationServices,
+    recipient_saveable: Saveable,
+    receiver_user_id: int | None,
+    error_message: str,
+    missing_reply: bool,
+) -> None:
+    failure_messages = [REPLIED_NOT_FOUND, error_message] if missing_reply else [error_message]
+    emitted, errors = _capture_send_outcomes(monkeypatch, recipient_send_services, failure_messages)
+    collected: list[Message] = []
+
+    with pytest.raises(TelegramBadRequest) as raised:
+        await send_module.send_saveable(
+            message=None,
+            send_to=-100123,
+            saveable=recipient_saveable,
+            reply_to=17,
+            receiver_user_id=receiver_user_id,
+            collect_sent=collected,
+            bot=recipient_send_services.bot,
+        )
+
+    assert raised.value is errors[-1]
+    assert len(emitted) == len(failure_messages)
+    assert collected == []
+    if receiver_user_id is not None:
+        _assert_ephemeral_recipient(emitted, receiver_user_id)
+    else:
+        assert all(method.model_dump().get("receiver_user_id") is None for method in emitted)
+        assert all(method.model_dump().get("ephemeral_message_parameters") is None for method in emitted)
+
+
+@pytest.mark.asyncio
+async def test_send_saveable_album_recipient_error_is_not_ephemeral(
+    monkeypatch: pytest.MonkeyPatch,
+    recipient_send_services: ApplicationServices,
+) -> None:
+    emitted, errors = _capture_send_outcomes(monkeypatch, recipient_send_services, ["USER_NOT_PARTICIPANT"])
+
+    with pytest.raises(TelegramBadRequest) as raised:
+        await send_module.send_saveable(
+            message=None,
+            send_to=-100123,
+            saveable=Saveable(
+                text="Public album",
+                files=[NoteFile(id="first", type=ContentType.PHOTO), NoteFile(id="second", type=ContentType.PHOTO)],
+                version=2,
+            ),
+            receiver_user_id=42,
+            bot=recipient_send_services.bot,
+        )
+
+    assert raised.value is errors[0]
+    assert len(emitted) == 1
+    assert isinstance(emitted[0], SendMediaGroup)
+    assert emitted[0].model_dump().get("receiver_user_id") is None
