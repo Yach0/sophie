@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import ssl
+from contextlib import suppress
 from typing import Any, cast
 
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, ip_filter_middleware, setup_application
@@ -112,7 +113,5 @@ def start_bot_mode() -> None:
 
         run_with_reload("bot")
         return
-    try:
+    with suppress(KeyboardInterrupt, SystemExit):
         asyncio.run(_webhook_main() if CONFIG.webhooks_enable else _polling_main())
-    except (KeyboardInterrupt, SystemExit):
-        pass
