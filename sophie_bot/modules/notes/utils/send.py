@@ -3,6 +3,7 @@ from html.parser import HTMLParser
 
 from aiogram import Bot
 from aiogram.enums import ContentType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import (
     SendMediaGroup,
     SendMessage,
@@ -37,6 +38,7 @@ from sophie_bot.modules.notes.utils.rich import render_rich_message, rich_messag
 from sophie_bot.modules.utils_.common_try import COROUTINE_TYPE, common_try
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 _TELEGRAM_ENTITY = re.compile(r"&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);?")
 _TELEGRAM_NAMED_ENTITIES = {"lt": "<", "gt": ">", "amp": "&", "quot": '"'}
@@ -91,6 +93,31 @@ class _VisibleTitleParser(HTMLParser):
         return "".join(self.parts).strip()
 
 
+async def _emit_with_recipient(
+    method: TelegramMethod[Message],
+    *,
+    bot: Bot,
+    chat_id: int,
+    receiver_user_id: int | None,
+) -> Message | None:
+    """Skip an ephemeral send whose recipient has already left, without making it public."""
+    try:
+        return await method.emit(bot)
+    except TelegramBadRequest as error:
+        if receiver_user_id is None or error.message.removeprefix("Bad Request: ") != "USER_NOT_PARTICIPANT":
+            raise
+        log.info(
+            "Ephemeral saveable send skipped",
+            chat_id=chat_id,
+            receiver_user_id=receiver_user_id,
+            method=method.__api_method__,
+            outcome="skipped",
+            reason="recipient_unavailable",
+            error=error.message,
+        )
+        return None
+
+
 async def _send_rich_saveable(
     send_to: int,
     saveable: Saveable,
@@ -138,12 +165,17 @@ async def _send_rich_saveable(
             ),
         )
 
-    async def reply_not_found() -> Message:
-        return await build_method(False).emit(bot)
+    def to_try(with_reply: bool) -> COROUTINE_TYPE:
+        return _emit_with_recipient(
+            build_method(with_reply),
+            bot=bot,
+            chat_id=send_to,
+            receiver_user_id=receiver_user_id,
+        )
 
     sent = await common_try(
-        to_try=build_method(True).emit(bot),
-        reply_not_found=reply_not_found,
+        to_try=to_try(True),
+        reply_not_found=lambda: to_try(False),
     )
     if collect_sent is not None and isinstance(sent, Message):
         collect_sent.append(sent)
@@ -261,6 +293,8 @@ async def send_saveable(
     of the chat history. Albums are always sent normally: sendMediaGroup takes no receiver, and
     splitting one into separate ephemeral sends is no way around it, since a user can be sent at
     most MAX_EPHEMERAL_MESSAGES_PER_USER of them.
+    If an ephemeral recipient has left, the send is skipped and returns ``None`` with a
+    structured log. A missing-reply retry keeps the recipient; it never becomes public.
     """
     text = saveable.text or ""
 
@@ -372,7 +406,12 @@ async def send_saveable(
         kwargs["message_thread_id"] = message_thread_id
 
     def to_try(**cb_kwargs: object) -> COROUTINE_TYPE:
-        return method(**cb_kwargs).emit(bot)
+        return _emit_with_recipient(
+            method(**cb_kwargs),
+            bot=bot,
+            chat_id=send_to,
+            receiver_user_id=receiver_user_id,
+        )
 
     async def reply_not_found() -> Message | None:
         kwargs.pop("reply_parameters", None)

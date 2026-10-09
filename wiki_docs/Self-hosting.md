@@ -89,6 +89,14 @@ Captcha prompts also go to each new member as ephemeral messages, rather than in
 chat. Only new members see them, one prompt each; nothing is left to delete after
 the captcha is passed.
 
+If a member leaves before Telegram accepts their ephemeral welcome or captcha prompt,
+`send_saveable` returns `None` and logs `outcome=skipped`, `reason=recipient_unavailable`,
+the chat ID and the recipient ID. This applies to Rich messages, traditional text and
+single-media saveables. A missing reply target is retried without the reply, but always
+with the same ephemeral recipient; a departed recipient is never retried publicly.
+Only the exact `USER_NOT_PARTICIPANT` failure on an ephemeral send is treated this way:
+unrelated failures and this error on public sends are still surfaced.
+
 A prompt whose security note is an album is still posted to the chat: `sendMediaGroup` cannot
 address one member, and splitting the album into separate ephemeral messages is no way around it —
 Telegram accepts at most five ephemeral messages per user.
