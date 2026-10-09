@@ -9,8 +9,6 @@ title: Getting Started with Sophie
 2. Select "Add admin" / "Add administrator."
 3. Search for `@rSophieBot` and add Sophie as an admin to your group.
 
-   ![Sophie Admin](https://firebasestorage.googleapis.com/v0/b/sophie-wiki.appspot.com/o/sophie%20figure1.png?alt=media&token=14fb06cb-f4fd-46f0-8b5c-a51123ec7ae4)
-
 5. Start Sophie by sending `/start` into your chat!
 
 > You can also open the following link to add Sophie to your group automatically
