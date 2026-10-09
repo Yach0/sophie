@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.exceptions import TelegramBadRequest
 
 from sophie_bot.filters.admin_rights import BotHasPermissions, UserRestricting
 from sophie_bot.filters.chat_status import ChatTypeFilter
@@ -11,10 +12,12 @@ from sophie_bot.metrics.moderation import track_purge
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_TO_DEL_NOT_FOUND
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.logger import log
 
 
 @flags.handler_help(description=l_("Purges all messages after replied message (including the replied message)."))
@@ -71,5 +74,10 @@ class PurgeMessagesHandler(SophieMessageHandler):
             chat_id, _("Purge completed. This message will be removed in 5 seconds.")
         )
         await sleep(5)
-        await msg.delete()
+        try:
+            await msg.delete()
+        except TelegramBadRequest as error:
+            if error.message.removeprefix("Bad Request: ") != MSG_TO_DEL_NOT_FOUND:
+                raise
+            log.info("Purge completion message already deleted", chat_tid=chat_id, message_id=msg.message_id)
         return None

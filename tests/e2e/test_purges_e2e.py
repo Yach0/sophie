@@ -10,10 +10,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import DeleteMessage, TelegramMethod
+from aiogram.methods.base import TelegramType
 from aiogram.types import Message, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory
 
+from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_message_id, next_user_id
 
 
@@ -87,9 +92,7 @@ async def test_purge_removes_the_range(test_client: TestClient, monkeypatch: pyt
 
     # The replied message must be older (smaller id) than the /purge command that follows it;
     # MessageFactory's auto-incrementing id guarantees that ordering.
-    replied = MessageFactory.create(
-        text="start of purge", from_user=member, chat=group, date=datetime.now(UTC)
-    )
+    replied = MessageFactory.create(text="start of purge", from_user=member, chat=group, date=datetime.now(UTC))
 
     requests = await _send_reply_command(test_client, command="purge", from_user=admin, group=group, replied=replied)
 
@@ -106,3 +109,50 @@ async def test_purge_without_reply_asks_for_one(test_client: TestClient) -> None
     requests = await test_client.send_command(command="purge", from_user=admin, chat=group)
 
     assert any("reply to a message" in (request.text or "").lower() for request in requests)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error_message", "reported_count"),
+    [("message to delete not found", 0), ("not enough rights to delete messages", 1)],
+)
+async def test_purge_completion_cleanup_distinguishes_missing_message_from_failed_deletion(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    error_message: str,
+    reported_count: int,
+) -> None:
+    admin, group, member = await _moderated_group(test_client)
+    original_make_request = test_client.bot.session.make_request
+    attempted: list[DeleteMessage] = []
+    reported: list[Exception] = []
+
+    async def no_wait(_seconds: float) -> None:
+        return None
+
+    def capture_error(error: Exception) -> None:
+        reported.append(error)
+
+    async def make_request(bot: Bot, method: TelegramMethod[TelegramType], timeout: int | None = None) -> TelegramType:
+        if isinstance(method, DeleteMessage) and method.chat_id == group.id:
+            attempted.append(method)
+            raise TelegramBadRequest(method=method, message=error_message)
+        response = await original_make_request(bot, method, timeout=timeout)
+        if isinstance(response, Message):
+            response.as_(bot)
+        return response
+
+    monkeypatch.setattr("sophie_bot.modules.purges.handlers.purge.sleep", no_wait)
+    monkeypatch.setattr(SophieErrorHandler, "capture_sentry", staticmethod(capture_error))
+    monkeypatch.setattr(test_client.bot.session, "make_request", make_request)
+    replied = MessageFactory.create(text="remove this message", from_user=member, chat=group, date=datetime.now(UTC))
+
+    requests = await _send_reply_command(test_client, command="purge", from_user=admin, group=group, replied=replied)
+
+    assert replied.message_id in _deleted_ids(requests)
+    assert len(attempted) == 1
+    assert len(reported) == reported_count
+    if reported:
+        error = reported[0]
+        assert isinstance(error, TelegramBadRequest)
+        assert error.method is attempted[0]
