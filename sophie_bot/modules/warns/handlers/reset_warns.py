@@ -23,7 +23,7 @@ class ResetWarnsHandler(SophieMessageHandler):
     @staticmethod
     def filters():
         return (
-            CMDFilter(("resetwarns", "delwarns")),
+            CMDFilter(("reset_warns", "del_warns")),
             ~ChatTypeFilter("private"),
             UserRestricting(can_restrict_members=True),
         )

@@ -69,7 +69,9 @@ async def initialize(services: ApplicationServices) -> None:
 
 
 async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
-    bot_router.message.outer_middleware(CacheUserMessagesMiddleware())
+    cache_user_messages = CacheUserMessagesMiddleware()
+    bot_router.message.outer_middleware(cache_user_messages)
+    bot_router.message.middleware(cache_user_messages.capture_command)
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())
@@ -136,7 +138,7 @@ module_manifest = ModuleManifest(
             " ",
             AI_POLICY,
             l_("Please note that each chat has a limited monthly AI quota."),
-            l_("Use /aiusage to check your remaining quota."),
+            l_("Use /ai_usage to check your remaining quota."),
         )
     ),
     modern_actions=(AIReplyAction,),

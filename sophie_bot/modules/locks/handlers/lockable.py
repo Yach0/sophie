@@ -124,7 +124,7 @@ def build_lockable_sections(full_languages: bool = False) -> tuple[Section, ...]
     else:
         language_items = [
             *sample([KeyValue(Code(f"language:{code}"), name) for code, name in SUPPORTED_LANGUAGES.items()], 5),
-            Template(_("To see all supported languages, use {cmd}"), cmd=Code("/locklanguages")),
+            Template(_("To see all supported languages, use {cmd}"), cmd=Code("/lock_languages")),
         ]
 
     return (
@@ -182,7 +182,7 @@ def build_lockable_doc(full_languages: bool = False) -> Doc:
 class ListLockableHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("lockable", "locktypes")),)
+        return (CMDFilter(("lockable", "lock_types")),)
 
     async def handle(self) -> Any:
         message: Message = self.event

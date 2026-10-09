@@ -52,7 +52,7 @@ That would make button render in the same row with previous button.
 | `[Delete message button](delmsg)`      | Deletes the message of the button after clicking                                                             |
 | `[Connect button](btnconnect)`         | Connects the DM with Group, see [Connection help](/docs/modules/connection) for more information.            |
 | `[Captcha button](btnwelcomesecurity)` | Redirects users to the DM to start the captcha process, use only when the captcha is activated for the chat. |
-| `[Sophie DM button](btnsophieurl)`     | Redirects users to the DM of Sophie, can be used for `/setjoinrequest`.                                      |
+| `[Sophie DM button](btnsophieurl)`     | Redirects users to the DM of Sophie, can be used for `/set_join_request`.                                      |
 
 ## Fillings
 

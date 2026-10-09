@@ -68,7 +68,7 @@ However, deleting this information may prevent you from using Sophie in the futu
 ### AI
 
 AI features are disabled by default and can only be activated with the user's explicit consent,
-by an administrator choosing an AI mode with the /aimode command.
+by an administrator choosing an AI mode with the /ai_mode command.
 When these features are activated, you agree to:
 
 * [OpenRouter Privacy Policy](https://openrouter.ai/docs/features/privacy-and-logging)
@@ -87,7 +87,7 @@ depending on which backend the instance is configured to use.
 
 ### AI modes and message history
 
-What Sophie's AI does in a chat, and what it is given, depends on the mode chosen with /aimode:
+What Sophie's AI does in a chat, and what it is given, depends on the mode chosen with /ai_mode:
 
 * **Disabled** — no AI feature runs, and no message history is kept. This is the default.
 * **Entertainment** — the chatbot may reply on its own initiative, and remembers information about
@@ -98,7 +98,7 @@ What Sophie's AI does in a chat, and what it is given, depends on the mode chose
 * **Support** — the chatbot answers questions using the chat's notes, and the AI moderator runs.
   Recent messages are cached to provide conversation context.
 
-Cached message history is held for at most 48 hours and can be cleared at any time with /aireset.
+Cached message history is held for at most 48 hours and can be cleared at any time with /ai_reset.
 
 When using certain AI-assisted features, user-saved data (including notes, filters, and settings)
 may be shared with our AI service providers: OpenRouter, Tavily, and other selected AI Providers.

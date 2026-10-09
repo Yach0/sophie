@@ -21,7 +21,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class EnableAllHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("enableall"), UserRestricting(admin=True)
+        return CMDFilter("enable_all"), UserRestricting(admin=True)
 
     async def handle(self):
         connection = self.connection

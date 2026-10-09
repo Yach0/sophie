@@ -22,7 +22,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class SetWelcomeMessageHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("setwelcome"), UserRestricting(admin=True)
+        return CMDFilter("set_welcome"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         connection = self.connection
@@ -41,7 +41,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             return await self.event.reply(
                 str(
                     Template(
-                        _("Please the '{cmd}' to control the welcome status."), cmd=Italic("/enablewelcome <on / off>")
+                        _("Please the '{cmd}' to control the welcome status."), cmd=Italic("/enable_welcome <on / off>")
                     )
                 )
             )
@@ -68,7 +68,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
                 _(
                     "⚠️ Please note, that the welcome messages are currently disabled in the chat, use '{cmd}' to enable it."
                 ),
-                cmd=Italic("/enablewelcome on"),
+                cmd=Italic("/enable_welcome on"),
             )
 
         await self.event.reply(str(doc))

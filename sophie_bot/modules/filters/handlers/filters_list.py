@@ -223,7 +223,7 @@ async def _render_filter_page(
     services: ApplicationServices,
 ) -> None:
     if not all_filters:
-        document = Doc(_("There are no filters in this chat!\nUse /addfilter <handler> to create one."))
+        document = Doc(_("There are no filters in this chat!\nUse /add_filter <handler> to create one."))
         await reply_or_edit_rich(event, document, bot=services.bot)
         return
 

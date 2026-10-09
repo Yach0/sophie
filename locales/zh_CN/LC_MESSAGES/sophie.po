@@ -189,8 +189,8 @@ msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "请注意，每个聊天都有有限的每月AI配额。"
 
 #: sophie_bot/modules/ai/__init__.py:139
-msgid "Use /aiusage to check your remaining quota."
-msgstr "使用 /aiusage 检查您的剩余配额。"
+msgid "Use /ai_usage to check your remaining quota."
+msgstr "使用 /ai_usage 检查您的剩余配额。"
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:17
 msgid "Can be empty"
@@ -392,8 +392,8 @@ msgid "AI Filter Suggestions"
 msgstr "AI过滤器建议"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:243
-msgid "Use /addfilter <handler> to create the filter."
-msgstr "使用 /addfilter <handler> 创建过滤器。"
+msgid "Use /add_filter <handler> to create the filter."
+msgstr "使用 /add_filter <handler> 创建过滤器。"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:244
 #, python-brace-format
@@ -3237,8 +3237,8 @@ msgid "Only the federation owner can set the log channel."
 msgstr "只有联盟拥有者可以设置日志频道。"
 
 #: sophie_bot/modules/federations/handlers/logs.py:58
-msgid "This federation already has a log channel set. Use /funsetlog to remove it first."
-msgstr "此联盟已设置日志频道。请先使用 /funsetlog 移除。"
+msgid "This federation already has a log channel set. Use /f_unset_log to remove it first."
+msgstr "此联盟已设置日志频道。请先使用 /f_unset_log 移除。"
 
 #: sophie_bot/modules/federations/handlers/logs.py:67
 msgid "Unable to verify permissions in this channel."
@@ -3829,7 +3829,7 @@ msgstr "取消"
 #: sophie_bot/modules/filters/handlers/filters_list.py:226
 msgid ""
 "There are no filters in this chat!\n"
-"Use /addfilter <handler> to create one."
+"Use /add_filter <handler> to create one."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:237
@@ -7643,7 +7643,7 @@ msgid "Welcome Security message"
 msgstr "欢迎安全消息"
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:140
-msgid "These settings are no longer active. Open /welcomesecurity again for the intended chat."
+msgid "These settings are no longer active. Open /welcome_security again for the intended chat."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:147

@@ -115,7 +115,7 @@ class WarnActionHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter(("warnaction", "warn_action")),
+            CMDFilter(("warn_action",)),
             FeatureFlagFilter("action_config_wizard"),
             UserRestricting(can_restrict_members=True),
         )

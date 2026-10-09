@@ -3,7 +3,7 @@
 Description:
     Seeds the AI provider and model catalog from what used to be hardcoded in
     `ai_model_registry.py`. Providers start without a key; credentials are managed in
-    the catalog through /op_aiprovider after this migration.
+    the catalog through /op_ai_provider after this migration.
 
 Affected Collections:
     - ai_catalog_provider (created)

@@ -27,7 +27,7 @@ type WelcomeMuteStatus = timedelta | Literal[False]
 )
 class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
     header_text = l_("Welcome Mute (Automatic new users media restricting)")
-    change_command = "welcomerestrict"
+    change_command = "welcome_restrict"
     change_args = "on / off / 12h / 2d / 1w"
 
     @classmethod
@@ -36,7 +36,7 @@ class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("welcomerestrict"), UserRestricting(admin=True)
+        return CMDFilter("welcome_restrict"), UserRestricting(admin=True)
 
     def status_text(self, status_data: WelcomeMuteStatus) -> Element | str:
         if status_data is False:

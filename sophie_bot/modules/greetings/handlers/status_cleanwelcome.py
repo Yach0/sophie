@@ -11,11 +11,11 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 @flags.handler_help(description=l_("Shows / changes the state of automatic welcome messages cleanup."))
 class CleanWelcomeHandlerABC(StatusBoolHandlerABC):
     header_text = l_("Automatic welcome messages cleanup")
-    change_command = "cleanwelcome"
+    change_command = "clean_welcome"
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter("cleanwelcome"), UserRestricting(admin=True)
+        return CMDFilter("clean_welcome"), UserRestricting(admin=True)
 
     async def get_status(self) -> bool:
         chat_iid = self.connection.db_model.iid

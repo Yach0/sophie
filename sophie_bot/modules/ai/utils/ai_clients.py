@@ -2,7 +2,7 @@
 
 These are the services Sophie calls with the vendor's own SDK rather than a chat-completions
 client: Mistral's moderation classifier and audio transcription, and OpenAI's moderation endpoint.
-Their keys are catalog rows, so `/op_aiprovider mistral ^key=...` rotates one without a redeploy —
+Their keys are catalog rows, so `/op_ai_provider mistral ^key=...` rotates one without a redeploy —
 the client is rebuilt as soon as the catalog version changes.
 """
 

@@ -27,7 +27,7 @@ class FilterDeleteHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            CMDFilter("delfilter"),
+            CMDFilter("del_filter"),
             FeatureFlagFilter("filters"),
             GroupOrConnectedFilter(),
             UserRestricting(admin=True),

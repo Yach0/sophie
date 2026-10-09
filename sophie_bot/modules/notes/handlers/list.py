@@ -26,7 +26,7 @@ from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.pagination import PaginationPage, build_pagination_row, paginate
 
-LIST_CMDS = ("notes", "saved", "notelist")
+LIST_CMDS = ("notes", "saved", "note_list")
 _PAGE_SIZE = 8
 _NOTES_LISTS_KEY = "notes_lists"
 _NOTES_LIST_TTL_SECONDS = 15 * 60

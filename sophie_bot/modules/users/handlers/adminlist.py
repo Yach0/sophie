@@ -19,7 +19,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class AdminListHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("adminlist", "admins")),)
+        return (CMDFilter(("admin_list", "admins")),)
 
     async def handle(self) -> Any:
         if self.event.chat.type == "private":

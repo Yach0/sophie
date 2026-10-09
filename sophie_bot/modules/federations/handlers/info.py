@@ -29,7 +29,7 @@ class FederationInfoHandler(SophieMessageHandler):
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("fedinfo", "finfo")),)
+        return (CMDFilter(("fed_info", "finfo")),)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, Any]:

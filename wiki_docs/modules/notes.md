@@ -14,8 +14,8 @@ icon: 📗
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/pmnotes` `/privatenotes` | - | Show current state of Private Notes | *Only in groups* |
-| `/notes` `/saved` `/notelist` | `<?Search notes>` | Lists available notes. | *Disable-able* |
+| `/pm_notes` `/private_notes` | - | Show current state of Private Notes | *Only in groups* |
+| `/notes` `/saved` `/note_list` | `<?Search notes>` | Lists available notes. | *Disable-able* |
 | `/get` | `<Note name>` `<?raw>` | Retrieve the note. |  |
 {.card-view-on-mobile}
 
@@ -23,10 +23,10 @@ icon: 📗
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/pmnotes` `/privatenotes` | `<New state>` | Control Private Notes | *Only in groups* |
-| `/delnote` `/clear` | `<Note name>` | Deletes notes. |  |
-| `/save` `/addnote` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
-| `/clearall` | - | Deletes all notes. |  |
+| `/pm_notes` `/private_notes` | `<New state>` | Control Private Notes | *Only in groups* |
+| `/del_note` `/clear` | `<Note name>` | Deletes notes. |  |
+| `/save` `/add_note` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
+| `/clear_all` | - | Deletes all notes. |  |
 {.card-view-on-mobile}
 ---
 # Features

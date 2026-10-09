@@ -21,6 +21,6 @@ icon: 🪧
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/setrules` | `<Content>` | Sets chat rules | *Only in groups* |
-| `/resetrules` | - | Resets chat rules to default settings. | *Only in groups* |
+| `/set_rules` | `<Content>` | Sets chat rules | *Only in groups* |
+| `/reset_rules` | - | Resets chat rules to default settings. | *Only in groups* |
 {.card-view-on-mobile}

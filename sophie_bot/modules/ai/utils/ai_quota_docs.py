@@ -18,7 +18,7 @@ def build_chatbot_quota_exhausted_doc(total_credits: int | str, period_end: date
             total=Code(formatted_total),
         ),
         Template(_("Quota resets on {date}."), date=Code(period_end.strftime("%B %d, %Y"))),
-        Template(_("Run {cmd} to check usage details."), cmd=Italic("/aiusage")),
+        Template(_("Run {cmd} to check usage details."), cmd=Italic("/ai_usage")),
     )
 
 
@@ -26,5 +26,5 @@ def build_feature_quota_exhausted_doc(period_end: date) -> Doc:
     return Doc(
         f"{AI_EMOJI} {_('AI Quota Exhausted')}",
         Template(_("AI features are disabled till {date}."), date=Code(period_end.strftime("%B %d, %Y"))),
-        Template(_("Run {cmd} to check usage details."), cmd=Code("/aiusage")),
+        Template(_("Run {cmd} to check usage details."), cmd=Code("/ai_usage")),
     )

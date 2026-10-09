@@ -21,10 +21,10 @@ icon: 🙋‍♂️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/enablewelcome` | `<?New status>` | Shows / changes the state of sending greetings |  |
-| `/setwelcome` | `<Content>` | Sets welcome message. |  |
-| `/setjoinrequest` | `<Content>` | Sets join request message. |  |
-| `/deljoinrequest` | - | Deletes the join request message |  |
-| `/cleanservice` | `<?New status>` | Shows / changes the state of automatic service messages cleanup. |  |
-| `/cleanwelcome` | `<?New status>` | Shows / changes the state of automatic welcome messages cleanup. |  |
+| `/enable_welcome` | `<?New status>` | Shows / changes the state of sending greetings |  |
+| `/set_welcome` | `<Content>` | Sets welcome message. |  |
+| `/set_join_request` | `<Content>` | Sets join request message. |  |
+| `/del_join_request` | - | Deletes the join request message |  |
+| `/clean_service` | `<?New status>` | Shows / changes the state of automatic service messages cleanup. |  |
+| `/clean_welcome` | `<?New status>` | Shows / changes the state of automatic welcome messages cleanup. |  |
 {.card-view-on-mobile}

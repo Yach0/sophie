@@ -285,7 +285,7 @@ def _render_chat_override_list(overrides: list[ChatFeatureOverride]) -> list[Doc
 class FeatureFlagsHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("op_killswitch", "op_ff")), IsOP(True)
+        return CMDFilter(("op_kill_switch", "op_ff")), IsOP(True)
 
     @classmethod
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:

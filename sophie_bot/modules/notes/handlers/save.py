@@ -39,7 +39,7 @@ from sophie_bot.utils.logger import log
 class SaveNote(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return CMDFilter(("save", "addnote"), allow_caption=True), UserRestricting(admin=True)
+        return CMDFilter(("save", "add_note"), allow_caption=True), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
         if not self.event.from_user:
