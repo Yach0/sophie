@@ -126,7 +126,7 @@ No AI provider credentials are read from environment variables.
 | `/op_ai_providers` | List providers. API keys are always masked. |
 | `/op_ai_provider <name> ^kind= ^base_url= ^key= ^enabled=` | Create or update a provider. Private chat only; the command message is deleted immediately. |
 | `/op_ai_models` | List models and what each one is used for. |
-| `/op_ai_model <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^enabled=` | Create or update a model. |
+| `/op_ai_model <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^context_window_tokens= ^enabled=` | Create or update a model. |
 
 `kind` is `openrouter`, `openai_compatible`, or `moderation` (a key for a vendor SDK rather than a
 chat-completions endpoint — do not point models at one). A role is `<mode>:<purpose>` — for example
@@ -138,6 +138,18 @@ chat-completions endpoint — do not point models at one). A role is `<mode>:<pu
 A mode with no model for a purpose falls back to the `support` tier, so you only need to define the
 roles you want to differ. Changes take effect on every process within a few seconds without a
 restart.
+
+`context_window_tokens` is the model's authoritative positive integer context capacity.
+The `add_ai_model_context_sizes` migration fetches the public OpenRouter models API once,
+matching exact `api_name` first and exact catalog `name` second. Existing configured
+capacities are preserved; unmatched models stay undefined and are reported. Set those
+manually with `/op_ai_model <name> ^context_window_tokens=<tokens>` or the operator API.
+Network or invalid-response errors stop the migration before it changes any capacities.
+Rollback removes only unchanged migration-added values and preserves later operator edits.
+
+Modern context requires a configured capacity for every possible chatbot candidate,
+including the last-resort model. Missing capacities raise an error; no provider-profile
+or model-name estimate is used. Legacy context can still use models with undefined capacities.
 
 
 > **Warning:** AI requests require a configured catalog model and a key on its provider. Check
@@ -181,8 +193,60 @@ The low, middle, and high battery icons correspond to 0–32%, 33–65%, and 66�
 `ai_chatbot_show_model_name` adds the model beside the battery reading.
 Only the assistant's answer is stored in conversation history; the displayed header,
 tool titles, and battery footer are not.
-Recent tool calls and results are replayed for follow-up questions, with each
-stored result capped by `ai_chatbot_tool_history_max_chars`.
+Legacy context replays recent tool calls and results, with each stored result capped by
+`ai_chatbot_tool_history_max_chars`. Proactive replies use the same inline custom-emoji
+header and bottom battery footer. Header styles are no longer configurable.
+
+### Modern AI context
+
+Modern history is opt-in. Run the model-context-size migration and configure every
+unmatched model, including last-resort candidates, before enabling it:
+
+```text
+/op_ff ^chat=<chat_id> ai_chatbot_modern_context true
+/op_ff ^chat=<chat_id> ai_chatbot_modern_context_tokens 16384
+```
+
+`ModernContext` keeps one serialized session per chat, topic and AI mode. It appends
+new chat messages and native assistant/tool exchanges once, rather than rebuilding
+the complete recent-message block on every turn. When the budget is reached, it
+deletes old background batches first, then whole completed turns. Tool calls and
+returns stay paired. There is no generated summary or compaction message; an oversized
+current request fails instead of being truncated. Text budgeting uses a conservative
+UTF-8 byte bound and images reserve 4096 estimated tokens each, not an exact tokenizer.
+Unlimited response-limit settings remain supported; admission reserves 2048 tokens
+for output plus the context safety margin.
+
+Stable instructions precede append-only history. Date-only runtime snapshots,
+escaped XML chat notes and 1-based XML memory items are appended when runtime data
+changes. The latest runtime snapshot supersedes earlier snapshots. Current/replied
+speakers and memory references can appear in the entertainment roster; old private
+alias maps do not grow the roster forever.
+
+Speakers and message references use session-local `uN` and `mN` labels. Typed builders
+select these labels instead of real handles or Telegram IDs for attribution fields.
+Entertainment alone includes literal first-name attribution. Its outgoing first-name
+mentions resolve to usernames only when the session identity lookup is unambiguous;
+known ambiguous names remain plain. Other modern modes keep alias-only attribution.
+Authored messages, notes, summaries, configuration prompts and arbitrary native tool
+data are not scanned or redacted. Only XML syntax is escaped. Native provider message
+parts and signatures replay unchanged; there is no generic sanitization processor.
+Memory facts use identity anchors, stored as internal links and re-aliased for a new
+session, so first-name jokes do not attach to a different person after reset.
+
+Supported providers receive caching options: Anthropic-compatible OpenRouter models
+use explicit cache markers, native Anthropic uses its cache controls, and native
+OpenAI uses an opaque session cache key. Generic compatible endpoints receive no
+unsupported OpenAI cache fields. Actual cache reads/writes are recorded from provider
+usage; cache hits remain provider-dependent.
+
+`/ai_reset` clears the shared message cache and native sessions in one epoch-fenced
+transaction. Pre-reset incoming messages and modern deliveries cannot repopulate it
+after their handler or generation finishes. Tool history and memory are also cleared.
+Switching the flag off uses `OldContext`; it does not reinterpret the modern session.
+After a deployment that retires old display headers, reset affected histories if
+previously decorated cache entries remain.
+
 
 ## AI moderation
 

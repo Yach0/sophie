@@ -18,7 +18,7 @@ from sophie_bot.modules.ai.utils.ai_catalog import get_catalog
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_filters_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_model_pricing import ai_http_client as openrouter_http_client
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.filters.utils_.ai_filter_schema import AIFilterResponseSchema, JevResponse
 from sophie_bot.modules.filters.utils_.extract_content import extract_message_content
 from sophie_bot.modules.locks.utils.detect_lock import check_locks
@@ -277,7 +277,7 @@ async def match_ai_handler(
             )
 
         # Build the AI message history
-        history = AIMessageHistory(services=services)
+        history = OldContext(services=services)
 
         # Add system prompt
         system_prompt = _(

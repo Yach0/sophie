@@ -10,7 +10,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
-from sophie_bot.modules.ai.utils.cache_messages import cache_message
+from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_context_epoch_key
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.utils.logger import log
@@ -49,6 +49,9 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
 
         cache_state = MessageCacheState()
         data["ai_message_cache_state"] = cache_state
+        expected_epoch = None
+        if isinstance(event, Message) and chat_db and capabilities.message_cache:
+            expected_epoch = int(await data["services"].redis.get(get_context_epoch_key(chat_db.tid)) or 0)
         result = await handler(event, data)
 
         if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
@@ -99,6 +102,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 reply_to_is_sophie_ai=reply_to_is_sophie_ai,
                 has_ai_command=has_ai_command,
                 is_ai_filter_reply=bool(data.get("ai_filter_handled", False)),
+                expected_epoch=expected_epoch,
                 redis=data["services"].redis,
             )
             if eligible_for_proactive_ai and capabilities.proactive_replies:

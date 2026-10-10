@@ -82,6 +82,9 @@ class FakeRunResult:
     def all_messages(self) -> list[ModelRequest | ModelResponse]:
         return [ModelResponse(parts=[TextPart(content=self.output)])]
 
+    def new_messages(self) -> list[ModelRequest | ModelResponse]:
+        return [ModelResponse(parts=[TextPart(content=self.output)])]
+
 
 class FakeRunAgent:
     def __init__(self, model: TestModel | None = None) -> None:
@@ -130,6 +133,9 @@ class FakeStreamResult:
         return "hello"
 
     def all_messages(self) -> list[ModelRequest | ModelResponse]:
+        return []
+
+    def new_messages(self) -> list[ModelRequest | ModelResponse]:
         return []
 
 

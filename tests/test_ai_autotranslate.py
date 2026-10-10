@@ -5,6 +5,8 @@ import pytest
 
 from sophie_bot.db.models.ai.ai_autotranslate import AIAutotranslateModel
 
+pytestmark = pytest.mark.usefixtures("db_init")
+
 
 @pytest.mark.asyncio
 async def test_disabling_preserves_language_settings(monkeypatch):

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Literal, cast
+from collections.abc import Sequence
+from contextlib import AsyncExitStack
+from datetime import UTC, datetime
+from typing import Literal
 
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import Message, ReactionTypeEmoji
+from aiogram.types import Chat, Message, ReactionTypeEmoji, User
 from pydantic import BaseModel, Field
-from pydantic_ai.messages import UserContent
 from sentry_sdk.ai import set_conversation_id
-from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -21,26 +22,37 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_models import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message, get_cached_messages
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunRequest,
     run_chatbot,
 )
+from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
 from sophie_bot.modules.ai.utils.chatbot_response import (
     build_chatbot_header,
     build_reply_doc,
     model_display_name,
+    select_mention_policy,
     truncate_output,
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
-from sophie_bot.modules.ai.utils.proactive_prompt import build_decision_history as _build_decision_history
+from sophie_bot.modules.ai.utils.modern_context import (
+    DecisionMessage,
+    ModernContext,
+    build_decision_prompt,
+    build_proactive_answer_prompt,
+    build_proactive_decision_instructions,
+    render_proactive_answer_target,
+)
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     acquire_lock as _acquire_lock,
 )
@@ -59,11 +71,9 @@ from sophie_bot.modules.ai.utils.proactive_tracking import (
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     track_eligible_message as _track_eligible_message,
 )
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
-from sophie_bot.utils.i18n import gettext as _
 
 ProactiveActionName = Literal["none", "react", "answer"]
 
@@ -235,7 +245,16 @@ async def _generate_decision(
         service_tier=service_tier or "none",
         message_count=len(messages),
     )
-    history = _build_decision_history(messages, settings, services=services)
+    modern = await is_enabled("ai_chatbot_modern_context", chat_tid=chat_tid, redis=services.redis)
+    message_ids: dict[int, int] = {}
+    decision_messages: Sequence[MessageType | DecisionMessage] = messages
+    if modern:
+        decision_messages, message_ids = await ModernContext.private_batch(
+            messages, services=services, mode=await get_chat_mode(chat.iid)
+        )
+    history = OldContext(services=services)
+    history.add_system(build_proactive_decision_instructions())
+    history.prompt = [build_decision_prompt(decision_messages, settings)]
     result = await run_structured_task(
         AIStructuredTask(
             output_type=ProactiveDecision,
@@ -250,7 +269,21 @@ async def _generate_decision(
         service_tier=service_tier,
         redis=services.redis,
     )
-    limited_actions = _limit_actions(result.output, settings)
+    decision = result.output
+    if modern:
+        decision = decision.model_copy(
+            update={
+                "actions": [
+                    action.model_copy(
+                        update={
+                            "message_id": message_ids.get(action.message_id) if action.message_id is not None else None
+                        }
+                    )
+                    for action in decision.actions
+                ]
+            }
+        )
+    limited_actions = _limit_actions(decision, settings)
 
     track_ai_proactive_event("decision_generated", _METRIC_ATTRIBUTES)
     track_ai_proactive_batch(len(messages), len(limited_actions), _METRIC_ATTRIBUTES)
@@ -264,7 +297,7 @@ async def _generate_decision(
         action_count=len(limited_actions),
         raw_action_count=len(result.output.actions),
     )
-    return result.output
+    return decision
 
 
 async def _react_to_message(
@@ -319,25 +352,64 @@ async def _build_answer_history(
     target_message: MessageType,
     *,
     services: ApplicationServices,
-) -> AIMessageHistory:
-    history = AIMessageHistory(services=services)
-    proactive_answer_prompt = Doc(
-        _(
-            "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: "
-            "1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the "
-            "target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the "
-            "answer minimal instead of trying to cover everything."
-        ),
-    )
-    history.add_system(proactive_answer_prompt.to_md())
+    context: SophieAIToolContext | None = None,
+    model_plan: AIModelPlan | None = None,
+) -> OldContext | ModernContext:
+    modern = await is_enabled("ai_chatbot_modern_context", chat_tid=chat_tid, redis=services.redis)
+    if modern:
+        if context is None:
+            raise ValueError("Modern proactive history requires a chatbot context")
+        created_at = target_message.created_at or datetime.now(UTC)
+        chat = Chat(id=chat_tid, type=context.connection.type.value)
+        reply = None
+        if target_message.reply_to_message_id is not None:
+            cached = await get_cached_messages(
+                chat_tid,
+                now=max(datetime.now(UTC), created_at),
+                redis=services.redis,
+            )
+            reply_row = next(
+                (
+                    row
+                    for row in cached
+                    if row.message_id == target_message.reply_to_message_id
+                    and (row.message_thread_id or 0) == (target_message.message_thread_id or 0)
+                ),
+                None,
+            )
+            reply_user_id = reply_row.user_id if reply_row else target_message.reply_to_user_id
+            reply = Message(
+                message_id=target_message.reply_to_message_id,
+                date=reply_row.created_at if reply_row and reply_row.created_at else created_at,
+                chat=chat,
+                from_user=(
+                    User(
+                        id=reply_user_id,
+                        is_bot=reply_row.is_bot if reply_row else reply_user_id == CONFIG.bot_id,
+                        first_name="",
+                    )
+                    if reply_user_id is not None
+                    else None
+                ),
+                text=reply_row.text if reply_row else None,
+                message_thread_id=target_message.message_thread_id,
+            )
+        message = Message(
+            message_id=target_message.message_id,
+            date=created_at,
+            chat=chat,
+            from_user=User(id=target_message.user_id, is_bot=target_message.is_bot, first_name=""),
+            text=target_message.text,
+            message_thread_id=target_message.message_thread_id,
+            reply_to_message=reply,
+        )
+        return await prepare_chatbot_history(
+            message, context, model_plan=model_plan, request_context=build_proactive_answer_prompt()
+        )
+    history = OldContext(services=services)
+    history.add_system(build_proactive_answer_prompt())
     await history.add_from_cache(chat_tid)
-    username = target_message.username or str(target_message.user_id)
-    prompt_text = AIUserMessageFormatter.user_message(
-        target_message.text,
-        username,
-        reply_to_user=target_message.reply_to_user_name,
-    )
-    history.prompt = [cast(UserContent, prompt_text)]
+    history.prompt = [render_proactive_answer_target(target_message)]
     return history
 
 
@@ -348,117 +420,138 @@ async def _answer_message(
     *,
     services: ApplicationServices,
 ) -> None:
-    connection = ChatConnection(
-        type=chat.type,
-        is_connected=False,
-        tid=chat.tid,
-        title=chat.first_name_or_title,
-        db_model=chat,
-    )
-    model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid, redis=services.redis)
-    model = model_plan.primary
-    service_tier = await resolve_chat_service_tier(
-        AIModelPurpose.chatbot, chat.iid, chat_tid, AIMode.support, redis=services.redis
-    )
-    _log_proactive_info(
-        "Proactive AI answer generation started",
-        chat_id=chat_tid,
-        message_id=target_message.message_id,
-        model=model.model_name,
-        service_tier=service_tier or "none",
-    )
-    history = await _build_answer_history(chat_tid, target_message, services=services)
-    previous_history = list(history.message_history)
-    context = SophieAIToolContext(
-        connection=connection,
-        chat_tid=chat_tid,
-        chat_iid=chat.iid,
-        mode=AIMode.support,
-        user_text=target_message.text,
-        user_tid=None,
-        services=services,
-    )
-    async with track_ai_conversation():
-        set_conversation_id(f"{chat.iid}:proactive")
-        result = await run_chatbot(
-            ChatbotRunRequest(
-                context=context,
-                history=history,
-                model_plan=model_plan,
-                service_tier=service_tier,
-                thread_id=target_message.message_thread_id,
-                session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
-                use_base_tools=True,
-            )
+    async with AsyncExitStack() as cleanup:
+        connection = ChatConnection(
+            type=chat.type,
+            is_connected=False,
+            tid=chat.tid,
+            title=chat.first_name_or_title,
+            db_model=chat,
         )
-    model = result.served_model or model
-    # Proactive answers are chatbot replies selected by a different trigger. They must use the
-    # same per-chat rendering contract as commands, reply-to-AI, streaming, and model fallback.
-    show_model_name = await is_enabled(
-        "ai_chatbot_show_model_name",
-        chat_tid=chat_tid,
-        redis=services.redis,
-    )
-    header = await build_chatbot_header(
-        chat.iid,
-        model_label=model_display_name(model) if show_model_name else None,
-        redis=services.redis,
-    )
-    output_text = truncate_output(header, str(result.output))
-    tool_labels = used_tool_labels(result.message_history[len(previous_history) :])
-    doc = await build_reply_doc(
-        header,
-        output_text,
-        model,
-        result,
-        False,
-        chat_tid=chat_tid,
-        redis=services.redis,
-        tool_labels=tool_labels,
-        strip_alien_html_tags=await is_enabled(
-            "ai_chatbot_strip_alien_html_tags",
+        modern = await is_enabled("ai_chatbot_modern_context", chat_tid=chat_tid, redis=services.redis)
+        mode = await get_chat_mode(chat.iid) if modern else AIMode.support
+        model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid, redis=services.redis)
+        model = model_plan.primary
+        service_tier = await resolve_chat_service_tier(
+            AIModelPurpose.chatbot, chat.iid, chat_tid, mode, redis=services.redis
+        )
+        _log_proactive_info(
+            "Proactive AI answer generation started",
+            chat_id=chat_tid,
+            message_id=target_message.message_id,
+            model=model.model_name,
+            service_tier=service_tier or "none",
+        )
+        context = SophieAIToolContext(
+            connection=connection,
+            chat_tid=chat_tid,
+            chat_iid=chat.iid,
+            mode=mode,
+            user_text=target_message.text,
+            user_tid=None,
+            services=services,
+        )
+        history = await _build_answer_history(
+            chat_tid, target_message, services=services, context=context, model_plan=model_plan
+        )
+        if isinstance(history, ModernContext):
+            cleanup.push_async_callback(history.abort)
+        previous_history = list(history.message_history)
+        async with track_ai_conversation():
+            set_conversation_id(f"{chat.iid}:proactive")
+            result = await run_chatbot(
+                ChatbotRunRequest(
+                    context=context,
+                    history=history,
+                    model_plan=model_plan,
+                    service_tier=service_tier,
+                    thread_id=target_message.message_thread_id,
+                    session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
+                    use_base_tools=True,
+                )
+            )
+        model = result.served_model or model
+        # Proactive answers are chatbot replies selected by a different trigger. They must use the
+        # same per-chat rendering contract as commands, reply-to-AI, streaming, and model fallback.
+        show_model_name = await is_enabled(
+            "ai_chatbot_show_model_name",
             chat_tid=chat_tid,
             redis=services.redis,
-        ),
-    )
-    _log_proactive_info(
-        "Proactive AI answer send started",
-        chat_id=chat_tid,
-        message_id=target_message.message_id,
-        output_length=len(doc.to_html()),
-    )
-    sent_message = await send_ai_rich_message_to_chat(
-        chat_tid,
-        doc,
-        reply_to_message_id=target_message.message_id,
-        message_thread_id=target_message.message_thread_id,
-        bot=services.bot,
-    )
+        )
+        header = await build_chatbot_header(
+            chat.iid,
+            model_label=model_display_name(model) if show_model_name else None,
+            redis=services.redis,
+        )
+        output_text = truncate_output(header, str(result.output))
+        tool_labels = used_tool_labels(
+            result.new_messages
+            if isinstance(history, ModernContext)
+            else result.message_history[len(previous_history) :]
+        )
+        doc = await build_reply_doc(
+            header,
+            output_text,
+            model,
+            result,
+            False,
+            chat_tid=chat_tid,
+            mention_policy=select_mention_policy(modern=isinstance(history, ModernContext), mode=context.mode),
+            speaker_names=(
+                history.mention_speaker_names
+                if isinstance(history, ModernContext) and context.mode == AIMode.entertainment
+                else ()
+            ),
+            redis=services.redis,
+            tool_labels=tool_labels,
+            strip_alien_html_tags=await is_enabled(
+                "ai_chatbot_strip_alien_html_tags",
+                chat_tid=chat_tid,
+                redis=services.redis,
+            ),
+        )
+        _log_proactive_info(
+            "Proactive AI answer send started",
+            chat_id=chat_tid,
+            message_id=target_message.message_id,
+            output_length=len(doc.to_html()),
+        )
+        sent_message = await send_ai_rich_message_to_chat(
+            chat_tid,
+            doc,
+            reply_to_message_id=target_message.message_id,
+            message_thread_id=target_message.message_thread_id,
+            bot=services.bot,
+        )
 
-    track_ai_proactive_event("answer_sent", _METRIC_ATTRIBUTES)
-    _log_proactive_info(
-        "Proactive AI answer sent",
-        chat_id=chat_tid,
-        message_id=target_message.message_id,
-        sent_message_id=sent_message.message_id,
-    )
-    await cache_message(
-        cut_titlebar(doc.to_md(), tool_labels=tool_labels),
-        chat_tid,
-        CONFIG.bot_id,
-        sent_message.message_id,
-        sent_message.date,
-        "Sophie",
-        is_bot=True,
-        message_thread_id=sent_message.message_thread_id,
-        handled_by_ai=True,
-        eligible_for_proactive_ai=False,
-        proactively_answered=True,
-        reply_to_message_id=target_message.message_id,
-        reply_to_user_id=target_message.user_id,
-        reply_to_username=target_message.username,
-        redis=services.redis,
-    )
+        track_ai_proactive_event("answer_sent", _METRIC_ATTRIBUTES)
+        _log_proactive_info(
+            "Proactive AI answer sent",
+            chat_id=chat_tid,
+            message_id=target_message.message_id,
+            sent_message_id=sent_message.message_id,
+        )
+        cached_message = MessageType(
+            text=output_text,
+            user_id=CONFIG.bot_id,
+            message_id=sent_message.message_id,
+            created_at=sent_message.date,
+            username="Sophie",
+            is_bot=True,
+            message_thread_id=sent_message.message_thread_id,
+            handled_by_ai=True,
+            eligible_for_proactive_ai=False,
+            proactively_answered=True,
+            reply_to_message_id=target_message.message_id,
+            reply_to_user_id=target_message.user_id,
+            reply_to_username=target_message.username,
+        )
+        if isinstance(history, ModernContext):
+            await history.finish_run(result.new_messages, sent_message, cached_message=cached_message)
+        else:
+            async with services.redis.pipeline(transaction=True) as pipe:
+                enqueue_cached_message(pipe, chat_tid, cached_message)
+                await pipe.execute()
 
 
 async def _execute_actions(

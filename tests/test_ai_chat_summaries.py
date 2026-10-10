@@ -540,13 +540,14 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
     assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> <h1>')
     assert "<table" not in rich_html
     assert rich_html.index("<h1>") < rich_html.index("<ul>")
+    assert rich_html.endswith("<p>🔋</p>")
+    assert rich_html.rfind("🔋") > rich_html.index("</ul>")
 
 
 @pytest.mark.asyncio
 async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) -> None:
     rich_sender = AsyncMock()
     monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
-    monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="simple"))
     monkeypatch.setattr(generate_chat_summaries, "is_enabled", AsyncMock(return_value=False))
     summary_date = date(2026, 5, 3)
     lines = [
@@ -574,32 +575,8 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
             summary_date,
             "General overview",
             lines,
-            "simple",
         ).to_rich()
     )
-
-
-def test_build_summary_doc_places_simple_battery_after_body() -> None:
-    doc = _build_summary_doc(-1001234567890, date(2026, 5, 3), "General overview", [], "simple")
-
-    html = doc.to_html()
-    rich_html = doc.to_rich()
-
-    assert html.startswith("✨ <b>[Chat history")
-    assert html.rstrip().endswith("🔋")
-    assert html.rfind("🔋") > html.find("General overview")
-    assert "\nChat history" not in html
-    assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> ')
-    assert "<table" not in rich_html
-
-
-def test_build_summary_doc_can_disable_ai_header() -> None:
-    doc = _build_summary_doc(-1001234567890, date(2026, 5, 3), "General overview", [], "disable")
-
-    html = doc.to_html()
-
-    assert not html.startswith("✨")
-    assert "Chat history" in html
 
 
 def test_build_summary_doc_orders_lines_by_first_message_time() -> None:

@@ -22,7 +22,7 @@ from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.shared.lock_constants import (
     CONTENT_TYPES,
     ENTITY_TYPES,
@@ -197,7 +197,7 @@ class AIFilterAddHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         prompt: str = self.data["prompt"].strip()
-        history = AIMessageHistory(services=self.services)
+        history = OldContext(services=self.services)
         base_prompt = str(
             await get_value("ai_filter_suggestions_prompt", chat_tid=self.event.chat.id, redis=self.services.redis)
         )

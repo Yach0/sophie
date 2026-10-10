@@ -79,6 +79,19 @@ def get_ai_model(model_name: str, reasoning_effort: str | None = None) -> Model:
     return _ai_models[key]
 
 
+def registered_context_window_tokens(model_name: str) -> int | None:
+    """The loaded registry capacity, never a provider profile or an inferred default.
+
+    A runnable model exposes its upstream name, which may differ from its registry name.
+    An exact, unambiguous upstream-name match therefore also identifies a registered model.
+    """
+    models = catalog().models
+    if registered := models.get(model_name):
+        return registered.context_window_tokens
+    matches = [model for model in models.values() if model.api_name == model_name]
+    return matches[0].context_window_tokens if len(matches) == 1 else None
+
+
 def pinned_candidate(model_name: str) -> AIModelCandidate:
     """A candidate for a model named by an ``ai_*_model`` flag rather than by a catalog role.
 
@@ -91,6 +104,7 @@ def pinned_candidate(model_name: str) -> AIModelCandidate:
         model=get_ai_model(model_name),
         model_name=model_name,
         supports_images=catalog_model.supports_images if catalog_model else True,
+        context_window_tokens=registered_context_window_tokens(model_name),
     )
 
 
@@ -106,6 +120,7 @@ def role_candidate(role: ResolvedRole) -> AIModelCandidate:
         model_name=role.model_name,
         supports_images=role.supports_images,
         service_tier=role.service_tier,
+        context_window_tokens=role.context_window_tokens,
     )
 
 

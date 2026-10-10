@@ -17,13 +17,13 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.notes.callbacks import NotesPageCallback
 from sophie_bot.modules.notes.utils.list import format_notes_list
-from sophie_bot.modules.notes.utils.semantic_search import semantic_search_notes
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.utils import flags
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.notes_search import semantic_search_notes
 from sophie_bot.utils.pagination import PaginationPage, build_pagination_row, paginate
 
 LIST_CMDS = ("notes", "saved", "note_list")

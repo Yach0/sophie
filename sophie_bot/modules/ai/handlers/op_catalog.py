@@ -21,7 +21,11 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
-from sophie_bot.modules.ai.utils.ai_catalog import bump_version, get_catalog, mask_api_key
+from sophie_bot.modules.ai.utils.ai_catalog import (
+    bump_version,
+    get_catalog,
+    mask_api_key,
+)
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -37,6 +41,7 @@ _PROVIDER_OPTION = "provider"
 _API_NAME_OPTION = "api_name"
 _REASONING_OPTION = "reasoning"
 _IMAGES_OPTION = "images"
+_CONTEXT_WINDOW_OPTION = "context_window_tokens"
 _ROLE_OPTION = "role"
 _UNROLE_OPTION = "unrole"
 _PRIORITY_OPTION = "priority"
@@ -86,6 +91,7 @@ def _model_usage() -> Section:
             Code("/op_ai_model <name> ^provider=<name> ^api_name=<upstream name> ^role=<role> ^enabled=<yes/no>"),
             Code("/op_ai_model <name> ^unrole=<role> ^reasoning=<yes/no> ^images=<yes/no>"),
             Code("/op_ai_model <name> ^role=<role> ^priority=<number>"),
+            Code("/op_ai_model <name> ^context_window_tokens=<positive number>"),
             Code("/op_ai_model <name> ^delete=yes"),
             Template(
                 _("Roles: {modes} paired with {purposes}, e.g. {example}"),
@@ -109,6 +115,10 @@ def _model_usage() -> Section:
             Template(
                 _("The upstream name defaults to the model name; set {option} when they differ."),
                 option=Code("^api_name"),
+            ),
+            _(
+                "Modern context requires a registered context size. Set ^context_window_tokens "
+                "to the model's actual capacity; omitting it keeps the stored value unchanged."
             ),
         ),
         title=_("Usage"),
@@ -219,9 +229,12 @@ class OpAIModels(SophieMessageHandler):
     async def handle(self) -> Any:
         lines = [
             Template(
-                "{name} @ {provider}{roles}{disabled}",
+                _("{name} @ {provider}{roles}, context: {context_window_tokens}{disabled}"),
                 name=Bold(stored_model.name),
                 provider=Code(stored_model.provider),
+                context_window_tokens=Code(stored_model.context_window_tokens)
+                if stored_model.context_window_tokens is not None
+                else _("unset"),
                 roles=Code(f" ({', '.join(_format_role(role) for role in stored_model.roles)})")
                 if stored_model.roles
                 else "",
@@ -265,6 +278,7 @@ class OpAIModel(SophieMessageHandler):
                     KeyValueArg(_API_NAME_OPTION, WordArg()),
                     KeyValueArg(_REASONING_OPTION, BooleanArg()),
                     KeyValueArg(_IMAGES_OPTION, BooleanArg()),
+                    KeyValueArg(_CONTEXT_WINDOW_OPTION, IntArg()),
                     KeyValueArg(_ENABLED_OPTION, BooleanArg()),
                     KeyValueArg(_ROLE_OPTION, WordArg()),
                     KeyValueArg(_UNROLE_OPTION, WordArg()),
@@ -293,6 +307,10 @@ class OpAIModel(SophieMessageHandler):
         if priority is not None and raw_role is None:
             return await self.event.reply(str(_("^priority only applies together with ^role.")))
 
+        context_window_tokens = _option(options, _CONTEXT_WINDOW_OPTION, int)
+        if context_window_tokens is not None and context_window_tokens <= 0:
+            return await self.event.reply(_("^context_window_tokens must be a positive number."))
+
         provider_name = _option(options, _PROVIDER_OPTION, str)
         if not stored_model:
             if provider_name is None:
@@ -307,6 +325,8 @@ class OpAIModel(SophieMessageHandler):
             stored_model.supports_reasoning = reasoning
         if (images := _option(options, _IMAGES_OPTION, bool)) is not None:
             stored_model.supports_images = images
+        if context_window_tokens is not None:
+            stored_model.context_window_tokens = context_window_tokens
         if (enabled := _option(options, _ENABLED_OPTION, bool)) is not None:
             stored_model.enabled = enabled
 
@@ -327,15 +347,26 @@ class OpAIModel(SophieMessageHandler):
                 if (existing.mode, existing.purpose) != (unrole.mode, unrole.purpose)
             ]
 
-        await stored_model.save()
+        if context_window_tokens is not None and stored_model.id is not None:
+            await stored_model.update(
+                {
+                    "$set": stored_model.model_dump(exclude={"id"}),
+                    "$unset": {"_migration_add_ai_model_context_sizes": ""},
+                }
+            )
+        else:
+            await stored_model.save()
         await bump_version(redis=self.services.redis)
 
         doc = Doc(
             Title(f"{AI_EMOJI} {_('AI Model saved')}"),
             Template(
-                "{name} @ {provider}{roles}",
+                _("{name} @ {provider}{roles}, context: {context_window_tokens}"),
                 name=Bold(stored_model.name),
                 provider=Code(stored_model.provider),
+                context_window_tokens=Code(stored_model.context_window_tokens)
+                if stored_model.context_window_tokens is not None
+                else _("unset"),
                 roles=Code(f" ({', '.join(_format_role(role) for role in stored_model.roles)})")
                 if stored_model.roles
                 else "",
