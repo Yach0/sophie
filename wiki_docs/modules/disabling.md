@@ -23,6 +23,6 @@ icon: 🚫
 | --- | --- | --- | --- |
 | `/disabled` | - | Lists all disabled commands. | *Disable-able* |
 | `/disable` | `<Command>` | Disables the command. |  |
-| `/enable` | `<Command>` | Enables previously disabled command. |  |
+| `/enable` | `<Command>` | Enables a previously disabled command. |  |
 | `/enable_all` | - | - |  |
 {.card-view-on-mobile}

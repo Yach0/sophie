@@ -41,7 +41,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             return await self.event.reply(
                 str(
                     Template(
-                        _("Please the '{cmd}' to control the welcome status."), cmd=Italic("/enable_welcome <on / off>")
+                        _("Please use '{cmd}' to control the welcome status."), cmd=Italic("/enable_welcome <on / off>")
                     )
                 )
             )
@@ -66,7 +66,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             doc += " "
             doc += Template(
                 _(
-                    "⚠️ Please note, that the welcome messages are currently disabled in the chat, use '{cmd}' to enable it."
+                    "⚠️ Please note that the welcome messages are currently disabled in the chat; use '{cmd}' to enable them."
                 ),
                 cmd=Italic("/enable_welcome on"),
             )

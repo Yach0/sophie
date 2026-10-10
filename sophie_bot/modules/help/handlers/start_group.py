@@ -35,7 +35,7 @@ class StartGroupHandler(SophieMessageHandler):
         buttons.add(InlineKeyboardButton(text=f"ℹ️ {_('Help')}", url=PMHelpStartUrlCallback().pack()))
 
         text = Doc(
-            _("My name is Sophie, I help manage this group in an efficient way!"),
+            _("My name is Sophie; I help manage this group in an efficient way!"),
             Template(
                 _("Join the {chat} and {channel}."),
                 chat=Url(_("💬 Support Chat"), CONFIG.support_link),
