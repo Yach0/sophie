@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from html.parser import HTMLParser
 from typing import Any
 
 from aiogram.types import Message
+from aiogram.utils.formatting import Bold, ExpandableBlockQuote, Text, Underline
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
 from stfu_tg import BlockQuote, Doc, Section
@@ -63,11 +65,51 @@ def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode:
     return False
 
 
+class _DebugHistoryTextParser(HTMLParser):
+    """Convert the complete STFU debug document before slicing its entity tree."""
+
+    def __init__(self, source: str) -> None:
+        super().__init__(convert_charrefs=True)
+        self.nodes: list[list[Text]] = [[]]
+        self.feed(source)
+        self.close()
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.nodes.append([])
+
+    def handle_endtag(self, tag: str) -> None:
+        node_type = {"b": Bold, "u": Underline, "blockquote": ExpandableBlockQuote}[tag]
+        node = node_type(*self.nodes.pop())
+        self.nodes[-1].append(node)
+
+    def handle_data(self, data: str) -> None:
+        # Text counts UTF-16 units but slices string leaves by Python index.
+        # Character leaves keep those coordinates aligned at Unicode boundaries.
+        self.nodes[-1].extend(Text(character) for character in data)
+
+    def as_text(self) -> Text:
+        return Text(*self.nodes[0])
+
+
 async def _reply_debug_history(message: Message, history: AIMessageHistory) -> None:
-    await message.reply(
-        Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
-        disable_web_page_preview=True,
-    )
+    title = _("LLM History")
+    source = Section(BlockQuote(history.history_debug(), expandable=True), title=title).to_html()
+    content = _DebugHistoryTextParser(source).as_text()
+    quote = next(entity for entity in content.render()[1] if entity.type == "expandable_blockquote")
+    title_length = len(Text(title))
+    heading = Text(Bold(content[:title_length]), content[title_length : quote.offset])
+    payload = content[quote.offset : quote.offset + quote.length]
+    payload_limit = 4096 - len(heading)
+    content_length = len(payload)
+    encoded = payload.render()[0].encode("utf-16-le")
+    offset = 0
+    while offset < content_length:
+        end = min(offset + payload_limit, content_length)
+        # Never slice between the two UTF-16 units of an astral character.
+        if 0xD800 <= int.from_bytes(encoded[end * 2 - 2 : end * 2], "little") <= 0xDBFF:
+            end -= 1
+        await message.reply(**Text(heading, payload[offset:end]).as_kwargs(), disable_web_page_preview=True)
+        offset = end
 
 
 async def _resolve_model_plan(
