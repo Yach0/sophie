@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from asyncio import gather
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import replace
 from datetime import timedelta
 from typing import BinaryIO
 
@@ -280,20 +281,31 @@ class AIMessageHistory:
         )
 
     def _fold_trailing_requests(self) -> None:
-        """Move trailing unanswered user turns out of the history and into the context block."""
+        """Fold trailing text user parts into context, retaining other parts and tool boundaries."""
         folded: list[str] = []
-        while self.message_history and isinstance(request := self.message_history[-1], ModelRequest):
+        for index in range(len(self.message_history) - 1, -1, -1):
+            request = self.message_history[index]
+            if not isinstance(request, ModelRequest):
+                break
             # A tool return must stay attached to the call that precedes it, or the provider sees a
             # tool call with no result.
             if any(isinstance(part, ToolReturnPart) for part in request.parts):
                 break
-            self.message_history.pop()
-            folded.extend(
+            folded[:0] = [
                 part.content
                 for part in request.parts
                 if isinstance(part, UserPromptPart) and isinstance(part.content, str)
-            )
-        self.context_lines.extend(reversed(folded))
+            ]
+            retained_parts = [
+                part
+                for part in request.parts
+                if not (isinstance(part, UserPromptPart) and isinstance(part.content, str))
+            ]
+            if retained_parts:
+                self.message_history[index] = replace(request, parts=retained_parts)
+            else:
+                self.message_history.pop(index)
+        self.context_lines.extend(folded)
 
     def apply_context_block(self) -> None:
         """Prepend collected background chatter to the prompt as reference-only context."""
@@ -343,6 +355,7 @@ class AIMessageHistory:
         fold_background: bool = False,
         max_age: timedelta | None = None,
         tool_exchanges: Mapping[int, Sequence[ToolExchange]] | None = None,
+        exclude_message: tuple[int, int] | None = None,
     ) -> None:
         """Adds messages from the cache to the message history.
 
@@ -355,6 +368,10 @@ class AIMessageHistory:
         ``tool_exchanges`` maps a Sophie message ID to the tool call/return pairs that produced it.
         They are replayed right before that answer, so the model can reuse what it already looked up
         instead of running the same searches again.
+
+        ``exclude_message`` omits one exact Telegram (chat ID, message ID) identity before
+        transformation and reply-target tracking, when the caller adds that message as the
+        current prompt. Other identities with the same text remain available as context.
         """
         messages = await get_cached_messages(
             chat_id,
@@ -362,6 +379,7 @@ class AIMessageHistory:
             max_age=max_age,
             redis=self.services.redis,
         )
+        messages = tuple(message for message in messages if (chat_id, message.message_id) != exclude_message)
         self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
         exchanges = tool_exchanges or {}
         if not fold_background:

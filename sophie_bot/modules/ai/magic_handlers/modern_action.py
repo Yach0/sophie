@@ -109,7 +109,12 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
 
         messages = AIMessageHistory(services=data["services"])
         messages.add_system(filter_data.prompt)
-        await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
+        await messages.add_from_cache(
+            message.chat.id,
+            limit=CHATBOT_CACHE_MESSAGE_LIMIT,
+            fold_background=True,
+            exclude_message=(message.chat.id, message.message_id),
+        )
         await messages.add_from_message(message)
         messages.apply_context_block()
         model_plan = await get_chat_default_model_plan(
