@@ -9,7 +9,6 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InputRichMessage, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
@@ -277,7 +276,7 @@ class ChatbotMessageStreamer:
 
 @asynccontextmanager
 async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> AsyncIterator[None]:
-    """Remove unfinished progress on unexpected failures while preserving the exception."""
+    """Preserve reply failures through cleanup; propagate cleanup failures otherwise."""
     completed = False
     try:
         yield
@@ -287,6 +286,11 @@ async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> 
         if streamer is not None:
             try:
                 await streamer.stop()
+            except BaseException as error:
+                # Cleanup must not replace an active failure, including cancellation.
+                if original_error is None:
+                    raise
+                log.warning("chatbot_streaming_session: Failed to stop streamer", error=str(error))
             finally:
                 if not completed and not streamer.final_message_sent and streamer.response_message is not None:
                     try:
@@ -294,7 +298,7 @@ async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> 
                             chat_id=streamer.response_message.chat.id,
                             message_id=streamer.response_message.message_id,
                         )
-                    except TelegramAPIError as error:
+                    except BaseException as error:
                         if original_error is None:
                             raise
                         log.warning("chatbot_streaming_session: Failed to delete unfinished progress", error=str(error))
