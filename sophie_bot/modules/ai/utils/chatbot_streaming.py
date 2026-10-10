@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections.abc import Sequence
-from contextlib import suppress
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager, suppress
 from random import choice
 from typing import Any
 
@@ -72,6 +72,7 @@ class ChatbotMessageStreamer:
         self.mention_policy = mention_policy
         self.speaker_names = speaker_names
         self.response_message: Message | None = None
+        self.final_message_sent = False
         self.latest_text: str = ""
         self.last_sent_text: str = ""
         self.last_sent_at: float = 0.0
@@ -144,10 +145,13 @@ class ChatbotMessageStreamer:
         await self._cancel_pending_update()
         rendered_rich = doc.to_rich()
         if self.response_message is None:
-            return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
+            result = await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
+            self.final_message_sent = True
+            return result
 
         reply_markup = editable_reply_markup(reply_kwargs.get("reply_markup"))
         if rendered_rich == self._last_sent_rich and reply_markup is None:
+            self.final_message_sent = True
             return self.response_message
 
         result = await self._editing_bot().edit_message_text(
@@ -157,6 +161,7 @@ class ChatbotMessageStreamer:
             reply_markup=reply_markup,
         )
         self._last_sent_rich = rendered_rich
+        self.final_message_sent = True
         return result if isinstance(result, Message) else self.response_message
 
     async def stop(self) -> None:
@@ -273,6 +278,25 @@ class ChatbotMessageStreamer:
 
         self._last_sent_rich = rendered_rich
         self.last_sent_at = time.monotonic()
+
+
+@asynccontextmanager
+async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> AsyncIterator[None]:
+    """Remove unfinished progress on unexpected failures while preserving the exception."""
+    completed = False
+    try:
+        yield
+        completed = True
+    finally:
+        if streamer is not None:
+            try:
+                await streamer.stop()
+            finally:
+                if not completed and not streamer.final_message_sent and streamer.response_message is not None:
+                    await streamer._editing_bot().delete_message(
+                        chat_id=streamer.response_message.chat.id,
+                        message_id=streamer.response_message.message_id,
+                    )
 
 
 async def build_message_streamer(
