@@ -16,6 +16,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_pl
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import (
     _build_chatbot_header,
     _build_fitting_reply_doc,
+    _cache_chatbot_reply,
     _send_chatbot_ai_failure_reply,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
@@ -23,7 +24,7 @@ from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, ChatbotStreamOp
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.chatbot_response import model_display_name, truncate_output
-from sophie_bot.modules.ai.utils.chatbot_streaming import build_message_streamer
+from sophie_bot.modules.ai.utils.chatbot_streaming import build_message_streamer, chatbot_streaming_session
 from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionSetupTryAgainException,
@@ -123,6 +124,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)
         messages.apply_context_block()
+        previous_history = list(messages.message_history)
         model_plan = await get_chat_default_model_plan(
             connection.db_model.iid,
             chat_tid=connection.db_model.tid,
@@ -136,60 +138,66 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         message_streamer = await build_message_streamer(
             message, False, redis=services.redis, strip_alien_html_tags=strip_alien_html_tags
         )
-        agent = Agent(model_plan.primary, name="filter:ai_response", output_type=str)
-        request_options = AIRequestOptions(user_tracking_id=chat_db.iid)
-        try:
-            if message_streamer:
-                result = await run_ai_stream(
-                    agent,
-                    user_prompt=messages.prompt,
-                    message_history=messages.message_history,
-                    request_options=request_options,
-                    model_plan=model_plan,
-                    on_text_stream=message_streamer.stream,
-                    on_reasoning_stream=message_streamer.stream_reasoning,
-                    on_retry=message_streamer.update_retrying,
-                    stream_options=ChatbotStreamOptions(
-                        continuation=await is_enabled(
-                            "ai_chatbot_stream_continuation", chat_tid=message.chat.id, redis=services.redis
-                        )
-                    ),
-                )
-            else:
-                result = await run_ai_text(
-                    agent,
-                    user_prompt=messages.prompt,
-                    message_history=messages.message_history,
-                    request_options=request_options,
-                    model_plan=model_plan,
-                )
-        except AIRequestFailed as error:
-            return await _send_chatbot_ai_failure_reply(message, message_streamer, error)
+        async with chatbot_streaming_session(message_streamer):
+            agent = Agent(model_plan.primary, name="filter:ai_response", output_type=str)
+            request_options = AIRequestOptions(user_tracking_id=chat_db.iid)
+            try:
+                if message_streamer:
+                    result = await run_ai_stream(
+                        agent,
+                        user_prompt=messages.prompt,
+                        message_history=messages.message_history,
+                        request_options=request_options,
+                        model_plan=model_plan,
+                        on_text_stream=message_streamer.stream,
+                        on_reasoning_stream=message_streamer.stream_reasoning,
+                        on_retry=message_streamer.update_retrying,
+                        stream_options=ChatbotStreamOptions(
+                            continuation=await is_enabled(
+                                "ai_chatbot_stream_continuation", chat_tid=message.chat.id, redis=services.redis
+                            )
+                        ),
+                    )
+                else:
+                    result = await run_ai_text(
+                        agent,
+                        user_prompt=messages.prompt,
+                        message_history=messages.message_history,
+                        request_options=request_options,
+                        model_plan=model_plan,
+                    )
+            except AIRequestFailed as error:
+                return await _send_chatbot_ai_failure_reply(message, message_streamer, error)
 
-        if result.usage and result.usage.total_tokens:
-            await charge_ai_usage(
-                chat_db.iid,
-                AI_FEATURE_FILTER,
-                result.served_model or model_plan.primary,
-                result.usage,
-                redis=data["services"].redis,
+            if result.usage and result.usage.total_tokens:
+                await charge_ai_usage(
+                    chat_db.iid,
+                    AI_FEATURE_FILTER,
+                    result.served_model or model_plan.primary,
+                    result.usage,
+                    redis=data["services"].redis,
+                )
+
+            model = result.served_model or model_plan.primary
+            show_model_name = await is_enabled(
+                "ai_chatbot_show_model_name", chat_tid=message.chat.id, redis=services.redis
             )
-
-        model = result.served_model or model_plan.primary
-        show_model_name = await is_enabled("ai_chatbot_show_model_name", chat_tid=message.chat.id, redis=services.redis)
-        header = await _build_chatbot_header(
-            connection, model_display_name(model) if show_model_name else None, services=services
-        )
-        doc = await _build_fitting_reply_doc(
-            header,
-            truncate_output(header, str(result.output)),
-            model,
-            result,
-            False,
-            chat_tid=message.chat.id,
-            services=services,
-            strip_alien_html_tags=strip_alien_html_tags,
-        )
-        if message_streamer:
-            return await message_streamer.send_final(doc)
-        return await send_ai_rich_message(message, doc)
+            header = await _build_chatbot_header(
+                connection, model_display_name(model) if show_model_name else None, services=services
+            )
+            doc = await _build_fitting_reply_doc(
+                header,
+                truncate_output(header, str(result.output)),
+                model,
+                result,
+                False,
+                chat_tid=message.chat.id,
+                services=services,
+                strip_alien_html_tags=strip_alien_html_tags,
+            )
+            if message_streamer:
+                final_message = await message_streamer.send_final(doc)
+            else:
+                final_message = await send_ai_rich_message(message, doc)
+            await _cache_chatbot_reply(message, final_message, doc, result, previous_history, services=services)
+            return final_message

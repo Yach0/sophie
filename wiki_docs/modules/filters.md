@@ -313,4 +313,5 @@ configured with the AI Response action. The AI reply is sent separately from oth
 silent mode still deletes it along with the triggering message.
 
 Once the AI Response is generated, users can interact with it by simply replying to the message, which can be invaluable
-for addressing follow-up questions.
+for addressing follow-up questions. The final answer is cached with its conversation context just like an ordinary AI
+reply. Unexpected failures remove unfinished progress messages and are reported through the normal error handler.
