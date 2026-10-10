@@ -222,6 +222,8 @@ escaped XML chat notes and 1-based XML memory items are appended when runtime da
 changes. The latest runtime snapshot supersedes earlier snapshots. Current/replied
 speakers and memory references can appear in the entertainment roster; old private
 alias maps do not grow the roster forever.
+Group and channel titles are included as escaped XML in runtime snapshots, never in
+stable instructions. Private-chat names are omitted from the conversation-title field.
 
 Speakers and message references use session-local `uN` and `mN` labels. Typed builders
 select these labels instead of real handles or Telegram IDs for attribution fields.

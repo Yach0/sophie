@@ -26,6 +26,7 @@ from pydantic_ai.messages import (
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import NoteModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils import modern_context
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
@@ -336,15 +337,17 @@ async def test_private_classifier_batch_projects_identity_and_preserves_authored
     assert rows[0].user_id == USER_TID and rows[0].username == 'alice_secret'
 
 
+@pytest.mark.parametrize('chat_type', [ChatType.supergroup, ChatType.private])
 async def test_default_formatting_is_stable_and_authored_dynamic_context_is_preserved(
-    context: SophieAIToolContext, monkeypatch: pytest.MonkeyPatch,
+    context: SophieAIToolContext, monkeypatch: pytest.MonkeyPatch, chat_type: ChatType,
 ) -> None:
     modules = MagicMock()
     modules.help_modules = ['notes', 'ai']
     monkeypatch.setattr(context.services, 'modules', modules)
     authored_instructions = f'Custom style: @alice_secret; user_id={USER_TID}; May and Bob.'
     monkeypatch.setattr(modern_context, 'get_value', AsyncMock(return_value=authored_instructions))
-    monkeypatch.setattr(modern_context.ChatModel, 'get_by_tid', AsyncMock(return_value=None))
+    chat = MagicMock(type=chat_type, first_name_or_title='Engineering & Release <room>')
+    monkeypatch.setattr(modern_context.ChatModel, 'get_by_tid', AsyncMock(return_value=chat))
     summaries = [MagicMock(title='topic @alice_secret', usernames=['alice_secret', 'Unknown Name'], source_excerpt=f'Unknown Name {USER_TID}', first_message_id=1234567)]
     monkeypatch.setattr(modern_context.AIChatSummaryModel, 'get_recent_lines', AsyncMock(return_value=summaries))
     monkeypatch.setattr(modern_context, 'semantic_search_notes', AsyncMock(return_value=[]))
@@ -355,6 +358,10 @@ async def test_default_formatting_is_stable_and_authored_dynamic_context_is_pres
         payload = _payload(first)
         runtime = ElementTree.fromstring(first.runtime_context)
         assert runtime.find('date') is not None
+        assert runtime.findtext('conversation') == (
+            chat.first_name_or_title if chat_type != ChatType.private else None
+        )
+        assert chat.first_name_or_title not in stable
         assert runtime.findtext('./chat_summaries/summary/title') == summaries[0].title
         assert runtime.findtext('./chat_summaries/summary/excerpt') == summaries[0].source_excerpt
         assert '1234567' not in payload
@@ -362,9 +369,13 @@ async def test_default_formatting_is_stable_and_authored_dynamic_context_is_pres
     finally:
         await first.abort()
     summaries[0].source_excerpt = 'updated runtime'
+    chat.first_name_or_title = 'Renamed & Updated <room>'
     second = await ModernContext.build(_message(132), context, token_budget=100000)
     try:
         assert second.instructions == stable
+        assert ElementTree.fromstring(second.runtime_context).findtext('conversation') == (
+            chat.first_name_or_title if chat_type != ChatType.private else None
+        )
         assert 'updated runtime' in second.runtime_context and 'updated runtime' in str(second.prompt[0])
     finally:
         await second.abort()

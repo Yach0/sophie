@@ -550,8 +550,8 @@ class ModernContext:
         )
         runtime = ["<date>" + datetime.now(UTC).strftime("%d %B %Y") + " (UTC)</date>"]
         chat = await ChatModel.get_by_tid(context.chat_tid)
-        if chat and chat.first_name_or_title:
-            runtime.append("<conversation>conversation</conversation>")
+        if chat and chat.type != ChatType.private and chat.first_name_or_title:
+            runtime.append(f"<conversation>{escape(chat.first_name_or_title, quote=False)}</conversation>")
         summaries = await AIChatSummaryModel.get_recent_lines(context.chat_iid)
         if summaries:
             lines = []
