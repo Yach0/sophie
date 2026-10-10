@@ -3662,6 +3662,35 @@ msgstr ""
 msgid "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
 msgstr ""
 
+#: sophie_bot/modules/filters/__init__.py:69
+msgid "Without a prefix, filters match text contained in the normalized message; punctuation is not literal."
+msgstr ""
+
+#: sophie_bot/modules/filters/__init__.py:71
+#, python-brace-format
+msgid "{prefix} matches a whole normalized word or phrase."
+msgstr ""
+
+#: sophie_bot/modules/filters/__init__.py:75
+#, python-brace-format
+msgid "{prefix} matches the whole literal message."
+msgstr ""
+
+#: sophie_bot/modules/filters/__init__.py:78
+#, python-brace-format
+msgid "{prefix} uses a regular expression."
+msgstr ""
+
+#: sophie_bot/modules/filters/__init__.py:80
+#, python-brace-format
+msgid "{prefix} asks AI whether the message meets a criterion."
+msgstr ""
+
+#: sophie_bot/modules/filters/__init__.py:84
+#, python-brace-format
+msgid "Lock-type handlers use Locks detectors; {command} lists them."
+msgstr ""
+
 #: sophie_bot/modules/filters/filter_wizard.py:58
 #: sophie_bot/modules/filters/filter_wizard.py:64
 msgid "The filter could not be found."
