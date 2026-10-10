@@ -261,10 +261,9 @@ def extract_markdown_entities(
     elif isinstance(url_re, str):
         url_re = re.compile(url_re)
 
+    delimiters = DEFAULT_DELIMITERS if delimiters is None else delimiters
     if not delimiters:
-        if delimiters is not None:
-            return text, []
-        delimiters = DEFAULT_DELIMITERS
+        return text, []
 
     delim_re = _build_delimiter_regex(delimiters)
 
