@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
@@ -8,6 +9,7 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import InputRichMessage, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
@@ -25,6 +27,7 @@ from sophie_bot.modules.ai.utils.research import (
 )
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
@@ -280,15 +283,21 @@ async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> 
         yield
         completed = True
     finally:
+        original_error = sys.exception()
         if streamer is not None:
             try:
                 await streamer.stop()
             finally:
                 if not completed and not streamer.final_message_sent and streamer.response_message is not None:
-                    await streamer._editing_bot().delete_message(
-                        chat_id=streamer.response_message.chat.id,
-                        message_id=streamer.response_message.message_id,
-                    )
+                    try:
+                        await streamer._editing_bot().delete_message(
+                            chat_id=streamer.response_message.chat.id,
+                            message_id=streamer.response_message.message_id,
+                        )
+                    except TelegramAPIError as error:
+                        if original_error is None:
+                            raise
+                        log.warning("chatbot_streaming_session: Failed to delete unfinished progress", error=str(error))
 
 
 async def build_message_streamer(
