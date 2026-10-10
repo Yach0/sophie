@@ -41,11 +41,12 @@ def test_only_leading_paragraph_is_inline_when_header_present(with_header: bool,
     rendered_body = PreformattedHTML(body.to_rich()) if preformatted else body
     header = build_ai_header("simple", ai_credit_header(50)) if with_header else None
     rich = build_ai_message_doc(header, rendered_body).to_rich()
+    separator = "<br>" if preformatted else "\n"
     if with_header:
-        assert rich.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {FIRST}\n{SECOND}')
+        assert rich.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {FIRST}{separator}{SECOND}')
         assert rich.endswith(" 50%</p>")
     else:
-        assert rich == body.to_rich()
+        assert rich == f"<p>{FIRST}</p>{separator}{SECOND}"
 
 
 def test_only_first_body_item_is_unwrapped() -> None:
