@@ -307,5 +307,10 @@ Sophie will use the message content as context to generate more suitable respons
 Admins can provide additional information in the prompt to help Sophie's AI module better assist users with their
 specific needs.
 
+AI Response actions use the same Rich formatting, tables, AI marker and credit footer as ordinary AI replies,
+including progress messages and streamed edits. This applies to both `ai:` handlers and text or regex handlers
+configured with the AI Response action. The AI reply is sent separately from other filter action text;
+silent mode still deletes it along with the triggering message.
+
 Once the AI Response is generated, users can interact with it by simply replying to the message, which can be invaluable
 for addressing follow-up questions.
